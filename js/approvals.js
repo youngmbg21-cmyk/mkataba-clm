@@ -13,7 +13,7 @@ function approvalRules(){
   // migrate the legacy spend gate into a single default rule
   const legacy=s.approval||{}; const threshold=Number(legacy.threshold!=null?legacy.threshold:5000000);
   const rules=[];
-  if(threshold>0) rules.push({ id:'r-spend', name:`Value ≥ ${fmtKESshort(threshold)}`, order:1,
+  if(threshold>0) rules.push({ id:'r-spend', name:`Value ≥ ${fmtMoneyShort(threshold)}`, order:1,
     cond:{type:'value',op:'>=',value:threshold}, approver:{kind:'role', role:legacy.approverRole==='legal'?'legal':'admin'} });
   return rules;
 }
@@ -84,7 +84,7 @@ function approvalDrift(step, c){
   if(!was) return [];
   const out=[];
   if(Number(was.value||0)!==now.value)
-    out.push(`the value changed from ${fmtKESshort(was.value||0)} to ${fmtKESshort(now.value)}`);
+    out.push(`the value changed from ${fmtMoneyShort(was.value||0)} to ${fmtMoneyShort(now.value)}`);
   if(String(was.doc||'')!==now.doc) out.push('the wording changed');
   return out;
 }
@@ -147,7 +147,7 @@ function approveContract(c, comment){
     ? {...s, status:'approved', by:u.name, at:nowISO(), comment:comment||null, stamp, drift:undefined}
     : s);
   logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
-    +` — for ${fmtKESshort(stamp.value)} and the wording as it stands`
+    +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
     +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
   persist(c); renderSignButton(c); renderAuditSection(c);
   const done=approvalState(c).ok;
@@ -422,7 +422,7 @@ function wireApprovalPanel(c){
     if(typeof window.promptDialog==='function'){
       note=await window.promptDialog({ title:'Send back for approval?',
         message:'This puts the contract back in front of the approver who refused it, with your note.',
-        label:'What changed?', placeholder:'e.g. cap raised to KES 10M as asked', optional:true });
+        label:'What changed?', placeholder:`e.g. cap raised to ${jxCurrency()} 10M as asked`, optional:true });
       if(note===null) return;
     }
     resubmitApproval(c, String(note||'').trim()||null);

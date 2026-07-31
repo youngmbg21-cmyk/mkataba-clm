@@ -10,7 +10,7 @@ const TEMPLATE_PRIMARY = {
   CM:{field:'product', label:'Product manufactured', ph:'e.g. powdered beverages', def:''},
   EQ:{field:'equipment', label:'Equipment', ph:'e.g. filling line', def:''},
   WH:{field:'site', label:'Warehouse / site', ph:'e.g. Nairobi DC', def:''},
-  FF:{field:'region', label:'Distribution region', ph:'e.g. Western Kenya', def:''},
+  FF:{field:'region', label:'Distribution region', ph:'e.g. a named region or county', def:''},
   DA:{field:'territory', label:'Distributor territory', ph:'e.g. Coast region', def:''},
   RL:{field:'channel', label:'Retail channel', ph:'e.g. modern trade', def:''},
   MK:{field:'services', label:'Services', ph:'e.g. media & activation', def:''},

@@ -907,7 +907,7 @@ const LAB_AI_ACTIONS = [
      instruction — it says what it wants, and asking a person to retype that
      would be a step for nothing. */
   { id:'advantage', label:'✨ Rephrase with Copilot', converse:true,
-    ask:'Rewrite this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+    get ask(){ return `Rewrite this contract wording as the drafter asks, while staying commercially reasonable and enforceable under ${jxLaw()}.`; },
     greeting:'How would you like me to help rephrase this passage?' },
   /* ---------- "ALIGN WITH CORPORATE PLAYBOOK" IS GONE ----------
      It read as the most authoritative item on the menu and was the least: the

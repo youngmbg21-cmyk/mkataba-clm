@@ -2879,7 +2879,7 @@ async function negoBatchConfirm(c, kind, split){
    gone is the claim that it can draft. */
 const NEGO_AI_ACTIONS = [
   { id: 'advantage', label: '🪄 Rephrase for Buyer/Supplier Advantage',
-    ask: 'Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under Kenyan law.' },
+    get ask(){ return `Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under ${jxLaw()}.`; } },
   { id: 'risk', label: '🔍 Explain Legal Risk',
     ask: 'Explain the legal and commercial risk this wording carries, then give a safer alternative formulation.', explain: true },
   { id: 'shorten', label: '✂️ Shorten Wording',
@@ -2997,7 +2997,7 @@ async function negoAiPropose(c, ctx){
   })();
   const messages = [{ role: 'user', content:
     `${action.ask}\n\n`
-    + `You are helping negotiate a contract governed by Kenyan law. `
+    + `You are helping negotiate a contract governed by ${jxLaw()}. `
     + `The party I act for is ${side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us')}. `
     + (pbLine ? pbLine + ' ' : '')
     + `\n\nThe selected wording is:\n"""\n${text}\n"""\n\n`
@@ -5269,7 +5269,7 @@ const RL_SEL_ACTIONS = [
      it, I will approve it". */
   { id: 'edit', label: '✨ Edit with Copilot', converse: true, placements: true,
     noteLabel: 'Edit',
-    ask: 'Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+    get ask(){ return `Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under ${jxLaw()}.`; },
     greeting: 'What would you like to add or change here?' },
   /* No placements: a shortening that inserts is not a shortening. The action
      carries its own instruction and cannot mean anything but a replacement, so

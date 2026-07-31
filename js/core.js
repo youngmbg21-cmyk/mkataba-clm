@@ -121,8 +121,6 @@ const uploadTooBigMsg = f => `“${f.name}” is ${(f.size/1048576).toFixed(1)} 
 const EXTRACT_MAX_CHARS = 200000;
 
 /* ============================================================ HELPERS */
-const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
-const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
 
 /* ---- the one setting everything quiet depends on ----
    Without a mail provider a workspace cannot deliver an invitation, an update
@@ -388,7 +386,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -688,7 +686,7 @@ function renderAuth(mode){
       ${input('su-title','Your job title','text','e.g. Chief Operating Officer')}
       ${input('su-email','Work email','email','you@company.co.ke')}
       ${input('su-pass','Password','password','Min 8 characters')}
-      <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> Load sample Kenyan FMCG portfolio (30 demo contracts)</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> Load sample ${jx().sampleLabel} portfolio (30 demo contracts)</label>
       <button id="su-go" class="ui-btn ui-btn-primary" style="${PBTN}">Create workspace &amp; sign in</button>`);
     document.getElementById('su-go').addEventListener('click',doSetup);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
@@ -1019,7 +1017,7 @@ function renderNegotiationSection(c){
             <div class="text-[11px] text-brand-800/65 mb-1">by ${r.by}</div>
             <p class="text-xs text-brand-800/80 leading-relaxed">${(r.comment||'').replace(/</g,'&lt;')}</p>
             ${r.proposedText?`<div class="mt-1.5 text-[11px] inline-flex items-center gap-1 rounded-full bg-gold-500/12 text-gold-600 px-2 py-0.5 font-600">${icon('history','w-3 h-3')} proposed edits (redline)</div>`:''}
-            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/70">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtKES(r.proposedValue)}</span></div>`:''}
+            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/70">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtMoney(r.proposedValue)}</span></div>`:''}
             ${r.status==='open'?(canEdit()?`
               <div class="mt-2 flex items-center gap-2">
                 ${r.proposedText?`<button data-nego-redline="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('history','w-3 h-3')} Review redline</button>
@@ -1328,7 +1326,7 @@ function downloadEvidence(c){
     // here would claim HaTi took a signature it never took
     legalBasis: isExternallyExecuted(c)
       ? 'Executed outside HaTi and migrated in as a record. No electronic signature was taken in HaTi; the signatures are on the original document.'
-      : 'Electronic signature under the Business Laws (Amendment) Act 2020 (Kenya).',
+      : jxEsignature(),
     disclosure:'Government IPRS identity verification and CAK-accredited PKI signatures are not yet integrated.',
     migration: isExternallyExecuted(c)
       ? { filedBy:(c.migration&&c.migration.importedBy)||null, filedAt:(c.migration&&c.migration.importedAt)||null,
@@ -2688,7 +2686,7 @@ async function applyResponse(c, r, opts={}){
       // changes on the review screen rather than read as one lump
       clauseNotes: Array.isArray(r.clauseNotes)&&r.clauseNotes.length ? r.clauseNotes.slice(0,60) : null,
       status:'open', resolution:null });
-    logAudit(c,'Changes requested',`${who} requested changes${hasRedline?' with proposed edits (redline)':''}${r.proposedValue?` (proposed value KES ${Number(r.proposedValue).toLocaleString('en-KE')})`:''}`);
+    logAudit(c,'Changes requested',`${who} requested changes${hasRedline?' with proposed edits (redline)':''}${r.proposedValue?` (proposed value ${fmtMoney(r.proposedValue)})`:''}`);
     /* The same redline, ALSO filed as fingerprinted changes so it can be worked
        clause by clause in the Negotiation tab. The round record above is
        untouched and still carries the whole-document pair — every existing

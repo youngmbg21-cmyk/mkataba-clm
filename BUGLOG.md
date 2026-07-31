@@ -5329,3 +5329,92 @@ non-clause the patterns do not catch still gets a button. A second check at
 Apply — length against the passage, or a "this does not read like a clause"
 confirm — was considered and not built: it needs a rule that will not fire on
 short real edits, and guessing at one is how the first guard got too narrow.
+
+---
+
+## Run: the market is a setting, not a sentence (2026-07-31)
+
+### 1. Kenya was hard-coded into ~90 places, none of them a setting
+
+**What was broken.** The product was written for one market and asserted it in
+code rather than configuration. The Copilot was told "you are helping negotiate
+a contract governed by Kenyan law" on every rewrite, on three separate prompt
+paths plus the server's own. Money formatted as KES through `fmtKES` — the
+formatter's *name* was a hard-code. The executed copy and the evidence pack
+cited the Business Laws (Amendment) Act 2020. The scanner asked whether a lease
+had been stamped under Cap 480 and named the Data Protection Act 2019. The
+playbook's governing-law position was "Kenyan law & forum", and its foreign-law
+test literally meant "not Kenya". The generated document header stamped
+"Republic of Kenya" on every contract the app produced.
+
+A pilot outside Kenya would have been advised to negotiate for Kenyan courts,
+shown shillings, and told its signatures rested on a Kenyan Act — each wrong in
+the same way, none of them saying so.
+
+**The tell nobody had noticed.** A Jurisdiction switcher (SE / KE) was already
+in the header. It set a `data-region` attribute and raised a toast saying the
+workspace had switched, while every sentence above stayed exactly where it was.
+A control that reports a change it did not make is worse than no control.
+
+**The fix.** `js/jurisdiction.js` — one table of packs (Kenya, Sweden), and
+every assertion above reads from the active one. A pack holds what the app must
+know to describe a market honestly: what the law is called, what money looks
+like, which statute a signature rests on, which statute-specific checks apply.
+It does NOT hold legal advice invented for a market nobody here has practised
+in — where a pack has nothing to say (Sweden levies no stamp duty on a
+commercial lease) the field is null and the check does not run, rather than
+firing with a blank where the statute name goes. `fmtKES`/`fmtKESshort` became
+`fmtMoney`/`fmtMoneyShort` and moved into the pack.
+
+The foreign-law test is now RELATIVE — "not home" rather than "not Kenya" — so
+a Kenyan-law contract is correctly foreign paper to a Stockholm workspace and
+the same code path serves both. The header switcher is wired to the record and
+repaints; it opens on the stored jurisdiction (which rides on the org, so a
+workspace carries its market across devices) rather than on whatever key this
+browser last held.
+
+**Kenya stays the default, deliberately.** Making the market configurable and
+changing it in the same breath would move every existing workspace's money,
+playbook and scan without anybody asking. A workspace that never touches the
+setting behaves exactly as it did.
+
+**One table, two hosts.** `server/server.js` requires the same module rather
+than restating the packs. The repo already carries one deliberate twin
+(`negoCopilotRecord` / `copilotNegotiation`) with a test holding it honest; a
+second was not worth the same cost when a plain require would do.
+
+**Files touched.** New js/jurisdiction.js. js/app.js, js/ai.js, js/core.js,
+js/playbook.js, js/metadata.js, js/versioning.js, js/approvals.js,
+js/aichart.js, js/advice.js, js/fieldlib.js, js/templates.js, js/wizard.js,
+js/views/{contract,negotiation,doclab,portal,settings,register,reports,advice,
+adviceportal,queue,home,intelligence,library,migration,templatebuilder}.js,
+server/server.js, and the four test harnesses that evaluate app modules onto a
+bare stage (test/dom.js, test/world.js, test/portalworld.js, the two Chromium
+pages) — a view that renders money now needs the pack on the stage with it.
+
+**Verified.** f99 (23 tests): default unchanged; switching moves currency, law,
+e-signature basis and playbook label together; foreign-is-relative in both
+directions; the stamp-duty check runs in Kenya and stays silent in Sweden; the
+data-protection finding names the right regime; every pack answers every field
+the app asks of it; the server requires the same module; the switcher is wired.
+One test is a source-level guard against the failure most likely to reappear —
+the next prompt somebody writes saying "Kenyan law" again.
+
+Beyond the suite: the real app was booted in Chromium, signed in with the
+30-contract sample portfolio, and swept across eleven views in BOTH markets —
+no unrendered `${…}` anywhere (the risk when a plain string becomes an
+interpolation), no KES leaking into the Swedish workspace, no page errors.
+Suite 1848/1848, browser 69/69, selection 22/22.
+
+**Not done / known.** The 12 built-in template papers, the seeded playbook
+clause wording and the 30 demo contracts are still Kenyan — deliberately, and
+agreed with the user before starting. They are CONTENT, not configuration:
+deleting them removes working features rather than un-hard-coding anything, and
+a Swedish pack of papers has to be written by someone who practises there, not
+generated here. A Swedish pilot gets correct law, currency, statutes and
+Copilot briefings with a Kenyan template library it can ignore or replace.
+
+Per-contract currency is also not done: money follows the workspace, so a
+contract denominated in USD still displays in the workspace currency. That was
+the explicit choice — the alternative needs the register, reports and charts to
+total across mixed currencies, which is a larger change than this one.

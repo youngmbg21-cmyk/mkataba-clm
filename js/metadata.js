@@ -35,7 +35,7 @@ function heuristicExtract(text){
   if(dates.length){ set(m,'effectiveDate',dates[0],'low'); if(dates.length>1) set(m,'expiryDate',dates[dates.length-1],'low'); }
   // value: KES / Kshs / USD amounts
   const val = t.match(/\b(?:KES|Kshs?|USD|US\$|\$)\s*([\d,]+(?:\.\d+)?)\s*(million|m|bn|billion)?/i);
-  if(val){ let n=Number(val[1].replace(/,/g,'')); const u=(val[2]||'').toLowerCase(); if(u==='million'||u==='m') n*=1e6; if(u==='bn'||u==='billion') n*=1e9; set(m,'value',n,'low'); const cur=/usd|\$/i.test(val[0])?'USD':'KES'; set(m,'currency',cur,'low'); }
+  if(val){ let n=Number(val[1].replace(/,/g,'')); const u=(val[2]||'').toLowerCase(); if(u==='million'||u==='m') n*=1e6; if(u==='bn'||u==='billion') n*=1e9; set(m,'value',n,'low'); const cur=/usd|\$/i.test(val[0])?'USD':(typeof jxCurrency==='function'?jxCurrency():'KES'); set(m,'currency',cur,'low'); }
   // governing law
   const gl = t.match(/govern(?:ed|ing)[^.]*\blaws?\s+of\s+([A-Z][A-Za-z &]+?)[.,\n)]/i);
   if(gl) set(m,'governingLaw',gl[1].trim().replace(/\s+the\s+$/i,''),'low');
@@ -241,7 +241,7 @@ async function extractMetadata(text, seed, opts={}){
   // seed with what the uploader already typed (higher trust than a low-conf guess)
   if(seed){ meta.confidence=meta.confidence||{};
     if(seed.counterparty){ meta.counterparty=seed.counterparty; meta.confidence.counterparty='high'; }
-    if(seed.value){ meta.value=seed.value; meta.confidence.value='high'; if(!meta.currency) meta.currency='KES'; }
+    if(seed.value){ meta.value=seed.value; meta.confidence.value='high'; if(!meta.currency) meta.currency=(typeof jxCurrency==='function'?jxCurrency():'KES'); }
     if(seed.expiry){ meta.expiryDate=seed.expiry; meta.confidence.expiryDate='high'; }
   }
   return meta;

@@ -718,7 +718,7 @@ function migExportSheet(){
   const rows=migContracts();
   if(!rows.length){ toast('Nothing migrated yet','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','File','Name','Counterparty','Contract type','Stream','Status','Value (KES)','Currency','Effective date','Expiry date','Renewal','Notice (days)','Governing law','Payment terms','Needs review','Low-confidence fields'];
+  const head=['ID','File','Name','Counterparty','Contract type','Stream','Status',`Value (${jxCurrency()})`,'Currency','Effective date','Expiry date','Renewal','Notice (days)','Governing law','Payment terms','Needs review','Low-confidence fields'];
   const body=rows.map(c=>{ const m=c.metadata||{}, conf=m.confidence||{};
     const low=Object.keys(conf).filter(k=>conf[k]==='low').join('; ');
     return [c.id, c.upload&&c.upload.fileName||'', c.name, c.counterparty||'', m.contractType||'',
@@ -1050,7 +1050,7 @@ function renderMigration(){
                   <span style="display:block;font-size:10.5px;color:${c.counterparty?'var(--color-neutral-600)':'#8f322b'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c.counterparty)||'No counterparty'} · ${migEsc((c.upload&&c.upload.fileName)||'')}</span>
                 </td>
                 <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${streamLabel(c)}</td>
-                <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
+                <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
                 <td style="font-size:11.5px;white-space:nowrap">${c.expiry||m.expiryDate||(m.renewalType==='evergreen'?'evergreen':'<span style="color:#8f322b">—</span>')}</td>
                 <td>${statusChip(c.status)}</td>
                 <td><span style="display:inline-flex;gap:3px;align-items:center">${migGateDots(c)}</span>

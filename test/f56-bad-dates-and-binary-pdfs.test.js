@@ -137,7 +137,7 @@ function shell(renderers = {}) {
     // called near the END of setView — recording it proves the tail ran
     schedulePolling() { calls.push({ kind: 'tail' }); },
     esc: s => String(s == null ? '' : s), icon: () => '', fmtDT: s => String(s || ''),
-    fmtKES: n => 'KES ' + n, fmtKESshort: n => 'KES ' + n,
+    fmtMoney: n => 'KES ' + n, fmtMoneyShort: n => 'KES ' + n,
     FOLDERS: STUB_FOLDERS, TEMPLATES: STUB_TEMPLATES,
     metrics: () => ({ totalValue: 0, pending: 0, signed: 0, declined: 0, drafts: 0 }),
     overdueObligationCount: () => 0, questionCount: () => 0, questionDot: () => '',
