@@ -631,6 +631,12 @@ function negoStyleHtml(){
 
   .nego-editing{outline:2px solid var(--n-focus);outline-offset:2px;background:var(--n-paper)}
   .nego-editing:focus{outline:2px solid var(--n-focus)}
+  /* The formatting bar over the open editor — small, quiet, and gone with it. */
+  .nego-fmt-bar{display:flex;gap:3px;margin:0 0 5px;padding:3px;width:max-content;
+    background:var(--n-well,var(--n-paper));border:1px solid var(--n-line);border-radius:7px}
+  .nego-fmt-bar button{width:24px;height:24px;display:inline-grid;place-items:center;border:0;
+    background:none;border-radius:5px;font-family:inherit;font-size:11.5px;color:var(--n-ink-soft);cursor:pointer}
+  .nego-fmt-bar button:hover{background:var(--n-line);color:var(--n-ink)}
   .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
   .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
@@ -1252,6 +1258,8 @@ function negoHistoryExportHtml(c, report){
   .ht-clause{font-weight:600}
   .ht-redline{border:1px solid #e3e7ea;border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px}
   .ht-redline ins{background:var(--st-green-bg);text-decoration:none} .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  /* OI-5: open the seam between a deletion and its replacement — display only */
+  .ht-redline del+ins{margin-left:.3em}
   .ht-note{font-size:11px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
   @media print{ body{margin:10mm auto} }
 </style></head><body>
@@ -4028,6 +4036,27 @@ function wireNegotiationTab(c, opts = {}){
     holder.setAttribute('data-nego-editor', clauseId);
     holder.innerHTML = cl.bodyHtml || `<p>${_ne(cl.text)}</p>`;
     body.replaceWith(holder);
+    /* ---- THE FORMATTING TOOLBAR, BOTH SIDES ----
+       The editor has always been rich — Ctrl+B worked — but a control you
+       have to know about is a control half the writers never find, and the
+       counterparty portal mounts this same component, so one toolbar serves
+       both chairs. mousedown + preventDefault, because a click would take
+       the selection (and the formatting command's target) away with it. */
+    const fmt = document.createElement('div');
+    fmt.className = 'nego-fmt-bar';
+    fmt.innerHTML = [
+      ['bold', '<b>B</b>', 'Bold'],
+      ['italic', '<i>I</i>', 'Italic'],
+      ['underline', '<u>U</u>', 'Underline'],
+      ['insertUnorderedList', '&#8226;&#8210;', 'Bulleted list'],
+      ['insertOrderedList', '1.', 'Numbered list'],
+    ].map(([cmd, label, tip]) =>
+      `<button type="button" data-nego-fmt="${cmd}" title="${tip}" tabindex="-1">${label}</button>`).join('');
+    holder.before(fmt);
+    fmt.querySelectorAll('[data-nego-fmt]').forEach(fb => fb.addEventListener('mousedown', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      try{ document.execCommand(fb.getAttribute('data-nego-fmt')); }catch(_){ /* an engine without execCommand still has the keyboard */ }
+    }));
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
     bar.innerHTML = `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
@@ -4790,6 +4819,22 @@ function redlineLayoutCss(){
   .redline-page .rl-jump option:checked{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
     color:var(--color-accent-600)}
   html.dark .redline-page .rl-jump option:checked{color:#2dd4bf}
+  /* The playbook pass wears the Copilot's violet — an AI act, visibly not one
+     of the engine's own verbs, and disabled it says it is thinking. */
+  .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
+    border-radius:9px;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
+    transition:background .12s}
+  .redline-page .rl-pb-btn:hover{background:#ede9fe}
+  .redline-page .rl-pb-btn:disabled{opacity:.6;cursor:wait}
+  html.dark .redline-page .rl-pb-btn{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.35);color:#c4b5fd}
+  html.dark .redline-page .rl-pb-btn:hover{background:rgba(139,92,246,.25)}
+  /* Presence: who is reading their copy right now. A statement, not a control. */
+  .redline-page .rl-presence{display:inline-flex;align-items:center;gap:7px;flex:none;
+    border:1px solid var(--color-divider);background:var(--color-surface);border-radius:999px;
+    padding:4px 12px;font-size:11px;font-weight:600;color:var(--color-neutral-600);white-space:nowrap}
+  .redline-page .rl-presence[hidden]{display:none}
+  .redline-page .rl-live-dot{width:7px;height:7px;border-radius:99px;background:#10b981;
+    box-shadow:0 0 0 3px rgba(16,185,129,.2);flex:none}
   .redline-page .rl-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:nowrap}
   .redline-page .rl-btn{display:inline-flex;align-items:center;gap:6px}
   /* The wrap point is a fallback for genuinely narrow windows, not the
@@ -5601,6 +5646,9 @@ function renderRedline(){
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
           ${rlJumpHtml(c)}
+          ${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
+            title="Review every clause against your playbook and propose redlines — each files as a tracked change only when you approve it">&#10022; Review vs Playbook</button>` : ''}
+          <span id="rl-presence" class="rl-presence" hidden></span>
         </div>
         <div class="rl-actions">
           ${blast}
@@ -5647,6 +5695,8 @@ function renderRedline(){
   if (jump) jump.addEventListener('change', () => {
     if (jump.value && jump.value !== c.id) openRedlineWorkbench(jump.value);
   });
+  host.querySelector('[data-rl-pbreview]')?.addEventListener('click', () =>
+    rlOpenPlaybookReview(c, () => renderRedline()));
   /* The header's two actions are the design's, but they are not second copies
      of anything: each one presses the engine's own control, which is the only
      thing that can actually accept a change or publish a round. If the engine
@@ -5867,6 +5917,61 @@ function renderRedline(){
   /* Every decision, send and retract repaints this page — which is exactly
      when the nav's "N Open" tag and this toolbar's dropdown counts moved. */
   if (window.updateSidebarCounts) updateSidebarCounts();
+  rlStartLivePoll(c);
+}
+
+/* ---------- THE BENCH STAYS CURRENT ----------
+   While the Redline page is open, a light probe every few seconds asks the
+   server two things it can answer without shipping the record: has the
+   contract's version moved, and is the counterparty reading their copy right
+   now. A moved version repaints the bench with the fresh record and says so
+   out loud; presence paints a pill and nothing else. Silent in local mode
+   and on the test stage — no server, no probe. Self-terminating: the first
+   tick after the reader leaves the page clears the timer. */
+const RL_LIVE_MS = 12000;
+let _rlLiveTimer = null, _rlLiveBusy = false;
+function rlStartLivePoll(c){
+  if (typeof setInterval !== 'function' || !c || !c.id) return;
+  /* The harness's off switch. The node worlds run with API_MODE() true, and
+     an interval on their window is a real Node timer — one un-cleared poll
+     and the whole test process refuses to exit. The stage sets this flag;
+     a browser never does. */
+  if (window.RL_LIVE_POLL === false) return;
+  if (!(window.API_MODE && API_MODE() && window.api)) return;
+  if (_rlLiveTimer){ clearInterval(_rlLiveTimer); _rlLiveTimer = null; }
+  const id = c.id;
+  _rlLiveTimer = setInterval(async () => {
+    if (!window.state || state.view !== 'redline' || state.activeId !== id){
+      clearInterval(_rlLiveTimer); _rlLiveTimer = null; return;
+    }
+    if (_rlLiveBusy) return;
+    _rlLiveBusy = true;
+    try{
+      const st = await api('contracts/' + id + '/state');
+      rlPaintPresence(st && st.viewing);
+      const cur = window.getContract ? getContract(id) : null;
+      /* Our own saves move the version too — but persist writes the new
+         version back onto the record (c._v), so only SOMEBODY ELSE's write
+         leaves the two numbers apart. */
+      if (st && cur && st.version != null && cur._v != null && st.version !== cur._v){
+        const fresh = await api('contracts/' + id);
+        const i = state.contracts.findIndex(x => x && x.id === id);
+        if (i >= 0) state.contracts[i] = fresh;
+        renderRedline();
+        if (window.toast) toast(`Updated just now — new activity on ${id}`);
+      }
+    }catch(_){ /* transient — the next tick retries */ }
+    _rlLiveBusy = false;
+  }, RL_LIVE_MS);
+}
+function rlPaintPresence(v){
+  if (typeof document === 'undefined') return;
+  const el = document.getElementById('rl-presence');
+  if (!el) return;
+  if (v && v.name){
+    el.hidden = false;
+    el.innerHTML = `<span class="rl-live-dot"></span>${_ne(v.name)} &middot; viewing their copy now`;
+  } else el.hidden = true;
 }
 
 /* ============================================================
@@ -7279,6 +7384,167 @@ function rlJumpHtml(c){
       title="Every contract with redline actions awaiting, and how many — pick one to bring it to this bench">${
     rows.map(e => `<option value="${_nea(e.id)}"${e.id === c.id ? ' selected' : ''}>${_ne(e.id)} &middot; ${e.n} awaiting${e.cp ? ` &middot; ${_ne(e.cp)}` : ''}</option>`).join('')}</select>`;
 }
+
+/* ============================================================
+   REVIEW VS PLAYBOOK — the whole document, one pass
+   ============================================================
+   The review engine (runPlaybookReview — Copilot-assisted with a key, the
+   rule engine without) and the filing engine (negoEditClause /
+   negoInsertClause) both exist; what never existed was the button between
+   them. This pass runs every playbook position over the document and turns
+   what it finds into PROPOSALS — each with the position it enforces, a risk
+   level, and the playbook's own preferred and fallback wording — and a
+   proposal becomes a change only when a person presses File. Nothing
+   applies itself: the AI drafts, the human decides, and the fingerprint
+   chain records both names. */
+const _rlPbNorm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+/* The verdict's quote is verbatim from the document, so containment finds the
+   clause in the ordinary case; the word-overlap fallback covers a quote the
+   review trimmed or re-punctuated. Below half overlap nothing is claimed. */
+function rlPbFindClause(c, quote){
+  const q = _rlPbNorm(quote);
+  if (!q) return null;
+  const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
+  let best = null, bestScore = 0;
+  const qw = q.split(/[^a-z0-9]+/).filter(w => w.length > 3);
+  for (const cl of clauses){
+    const l = _rlPbNorm(cl.text);
+    if (!l) continue;
+    if (l.includes(q) || q.includes(l)) return cl;
+    if (qw.length){
+      let hit = 0;
+      for (const w of qw) if (l.includes(w)) hit++;
+      const score = hit / qw.length;
+      if (score > bestScore){ bestScore = score; best = cl; }
+    }
+  }
+  return bestScore >= 0.5 ? best : null;
+}
+/* Review result → the proposal list the modal draws. Pure — no DOM, no
+   filing — so the tests can hold it to account without a screen. */
+function rlPlaybookProposals(c, rev){
+  const out = [];
+  const lib = (window.clauseLibrary ? clauseLibrary() : []);
+  for (const v of ((rev && rev.verdicts) || [])){
+    if (!v || v.status === 'aligned') continue;
+    const cl = v.quote ? rlPbFindClause(c, v.quote) : null;
+    const libCl = lib.find(x => _rlPbNorm(x.category) === _rlPbNorm(v.category)
+      || _rlPbNorm(x.name) === _rlPbNorm(v.category)) || null;
+    const preferred = String(v.redline || (libCl ? libCl.preferred : '') || '').trim();
+    let fallback = String((libCl && libCl.fallback) || '').trim();
+    if (fallback && fallback === preferred) fallback = '';
+    if (!preferred && !fallback) continue;   // review-only verdict — nothing proposable
+    out.push({ v, clauseId: cl ? cl.clauseId : null,
+      clauseLabel: cl && window.negoClauseLabel ? negoClauseLabel(cl) : '',
+      oldText: cl ? cl.text : '',
+      preferred: preferred || fallback, fallback: preferred ? fallback : '',
+      risk: v.escalate ? 'high' : 'medium' });
+  }
+  return out;
+}
+/* File one proposal. A located clause is a modify through negoEditClause —
+   merged into the clause's own markup — and a missing position is an insert
+   at the end, both wearing a note that names the playbook position they
+   enforce. The same verbs a person's own edit uses; nothing new to audit. */
+async function rlFilePlaybookProposal(c, item, wording){
+  const words = String(wording == null ? '' : wording).trim();
+  if (!words) return null;
+  const author = (window.currentUser && currentUser()?.name) || 'This workspace';
+  const note = `Playbook — ${item.v.category}${item.v.escalate ? ' (escalation position)' : ''}${
+    item.v.position ? ': ' + String(item.v.position).slice(0, 300) : ''}`;
+  if (item.clauseId && window.negoEditClause && window.negoRichFromLines)
+    return await negoEditClause(c, item.clauseId, negoRichFromLines(words), { side: 'owner', author, note });
+  if (window.negoInsertClause){
+    const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
+    const after = clauses.length ? clauses[clauses.length - 1].clauseId : null;
+    const body = window.textToRich ? textToRich(words) : `<p>${_ne(words)}</p>`;
+    return await negoInsertClause(c, after, { headingText: String(item.v.category || '').toUpperCase(), bodyHtml: body },
+      { side: 'owner', author, note,
+        summary: `Playbook position inserted — ${item.v.category}` });
+  }
+  return null;
+}
+/* The pass, end to end: run the review, propose, and let the reader rule. */
+async function rlOpenPlaybookReview(c, again){
+  if (!window.runPlaybookReview || !window.openModal){
+    if (window.toast) toast('The playbook module is not loaded on this page', 'err');
+    return;
+  }
+  const btn = document.querySelector('[data-rl-pbreview]');
+  const restore = btn ? btn.innerHTML : '';
+  if (btn){ btn.disabled = true; btn.innerHTML = '&#10022; Reviewing&hellip;'; }
+  let rev = null, err = null;
+  try{ rev = await runPlaybookReview(c); }catch(e){ err = e; }
+  if (btn){ btn.disabled = false; btn.innerHTML = restore; }
+  if (err || !rev || !Array.isArray(rev.verdicts)){
+    if (window.toast) toast('The review could not run: ' + ((err && err.message) || 'no usable result'), 'err');
+    return;
+  }
+  c.playbook = rev;
+  if (window.logAudit) logAudit(c, 'Playbook',
+    `Playbook review run from the Redline bench — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
+  if (window.persist) persist(c);
+  const items = rlPlaybookProposals(c, rev);
+  const aligned = rev.verdicts.filter(v => v.status === 'aligned').length;
+  if (!items.length){
+    if (window.toast) toast(aligned === rev.verdicts.length
+      ? `Every playbook position is aligned — nothing to propose`
+      : 'The review found points to watch but no proposable wording — see Draft & Review on the Doc page');
+    if (again) again();
+    return;
+  }
+  const chip = it => it.risk === 'high'
+    ? `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--st-ruby-bg,#fee2e2);color:var(--st-ruby-fg,#b91c1c)">HIGH RISK</span>`
+    : `<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309)">MEDIUM</span>`;
+  const itemHtml = (it, i) => `<div id="pbr-item-${i}" style="border:1px solid var(--color-divider);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:var(--color-surface)">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <b style="font-size:12.5px">${_ne(it.v.category)}</b>${chip(it)}
+      <span style="font-size:10px;color:var(--color-neutral-500)">${it.v.status === 'missing'
+        ? 'missing — files as a new clause at the end'
+        : (it.clauseLabel ? `deviation &middot; ${_ne(it.clauseLabel)}` : 'deviation')}</span>
+    </div>
+    ${it.v.position ? `<div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:5px;line-height:1.5">${_ne(String(it.v.position))}</div>` : ''}
+    ${it.oldText && window.redlineStructuredHtml
+      ? `<div style="margin-top:8px;font-size:12px;line-height:1.7;border:1px solid var(--color-divider);border-radius:7px;padding:8px 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.preferred)}</div>`
+      : `<div style="margin-top:8px;font-size:12px;line-height:1.6;border:1px solid var(--color-divider);border-radius:7px;padding:8px 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px" data-pbr-verbs="${i}">
+      <button data-pbr-skip="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Skip</button>
+      ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px" title="File the concession the playbook allows instead of the opening position">File fallback</button>` : ''}
+      <button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px">File as tracked change</button>
+    </div>
+  </div>`;
+  openModal(`<div style="padding:20px 24px;max-height:calc(100vh - 80px);overflow-y:auto">
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">&#10022; Playbook review — ${items.length} proposal${items.length === 1 ? '' : 's'}</h2>
+    <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>Preferred</b> is your opening position; <b>fallback</b> is the concession the playbook allows.</p>
+    ${items.map(itemHtml).join('')}
+    <div style="display:flex;justify-content:flex-end"><button id="pbr-close" class="ui-btn">Close</button></div>
+  </div>`, { maxWidth: '780px' });
+  const root = document.getElementById('modal-root') || document;
+  const settle = (i, text, tone) => {
+    const verbs = root.querySelector(`[data-pbr-verbs="${i}"]`);
+    if (verbs) verbs.innerHTML = `<span style="font-size:11.5px;font-weight:600;color:${tone}">${text}</span>`;
+  };
+  const fileFrom = async (b, attr, wordingOf) => {
+    const i = Number(b.getAttribute(attr));
+    const it = items[i];
+    if (!it) return;
+    b.disabled = true;
+    let ch = null;
+    try{ ch = await rlFilePlaybookProposal(c, it, wordingOf(it)); }
+    catch(e){ if (window.toast) toast('Could not file that: ' + ((e && e.message) || e), 'err'); b.disabled = false; return; }
+    if (!ch){ if (window.toast) toast('That proposal could not be filed', 'err'); b.disabled = false; return; }
+    if (window.persist) persist(c);
+    settle(i, `Filed as #${_ne(ch.id)} &#10003;`, 'var(--st-green-fg,#047857)');
+    if (again) again();
+  };
+  root.querySelectorAll('[data-pbr-go]').forEach(b =>
+    b.addEventListener('click', () => fileFrom(b, 'data-pbr-go', it => it.preferred)));
+  root.querySelectorAll('[data-pbr-fb]').forEach(b =>
+    b.addEventListener('click', () => fileFrom(b, 'data-pbr-fb', it => it.fallback)));
+  root.querySelectorAll('[data-pbr-skip]').forEach(b => b.addEventListener('click', () =>
+    settle(Number(b.getAttribute('data-pbr-skip')), 'Skipped', 'var(--color-neutral-500)')));
+  root.querySelector('#pbr-close')?.addEventListener('click', () => { if (window.closeModal) closeModal(); });
+}
 /* ============================================================
    THE VIEW WALL — what each side of the toggle is allowed to see
    ============================================================
@@ -7871,6 +8137,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
+  rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,

@@ -140,6 +140,10 @@ function buildWorld(opts = {}) {
     canEdit: () => (opts.canEdit === undefined ? true : !!opts.canEdit),
     isAdmin: () => user.role === 'admin',
     API_MODE: () => (opts.apiMode === undefined ? true : !!opts.apiMode),
+    /* The Redline bench's live poll must never run on this stage: its
+       interval is a real Node timer, and one un-cleared poll keeps the test
+       process alive forever. The view checks this flag before starting. */
+    RL_LIVE_POLL: false,
     FIRST_PARTY: opts.org || 'Wanjiru Catering Ltd',
     PORTAL_MODE: false,
 

@@ -6,19 +6,12 @@ of fixes) and delete it from here.
 
 ---
 
-## OI-5 · A deletion and the insertion after it run together in the history
-
-Observed while building `timeline-verify.js`, not a layout fault and not fixed
-here: in `.ht-redline` a `<del>` is followed immediately by its `<ins>` with no
-separation, so "…within ~~thirty (30) days (Net-30).~~forty-five (45) days…"
-reads as one word at the join. Legible, and cosmetic. It belongs to the shared
-redline renderer rather than to the history screen, so changing it moves every
-surface that draws a redline — worth a deliberate decision rather than a
-drive-by.
-
----
-
-*Closed:* OI-1 (a cross-reference to a deleted clause was never flagged) closed
+*Closed:* OI-5 (a deletion and the insertion after it ran together in the
+history) closed in the fidelity pass, f131: the seam is opened by CSS —
+`del[class]+ins[class]{margin-inline-start:.3em}` in the app shell and
+`.ht-redline del+ins` in the standalone history export — and deliberately NOT
+by the renderer, because any character injected there leaks into every text
+projection, export and copy (the invariant `f36` pins). OI-1 (a cross-reference to a deleted clause was never flagged) closed
 with N1 in Stage 1 — attributed broken-reference warnings, `f110`. OI-2 (a
 deletion left a visible numbering gap with nothing said about it) closed across
 f98 (the notice and the lock) and N2 in Stage 5 — the explicit, previewed

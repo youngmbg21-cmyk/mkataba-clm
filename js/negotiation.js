@@ -1220,6 +1220,32 @@ function negoTopicForQuote(c, quote){
     label: window.discussTrim ? discussTrim(best.line, 70) : best.line.slice(0, 70) };
 }
 
+/* ---------- WHERE THE NEGOTIATION STARTED ----------
+   The round-1 baseline, read from the archive once round 1 has closed and
+   from the live baseline while it is still in flight. This is what the
+   cumulative redline measures against, and it never moves after the first
+   round closes — negoAdvanceRound archived it verbatim. */
+function negoOriginalBaselineText(c){
+  const n = c && c.negotiation;
+  if (!n) return '';
+  if (Array.isArray(n.rounds) && n.rounds.length && n.rounds[0].baselineText != null)
+    return String(n.rounds[0].baselineText);
+  return String(n.baselineText || '');
+}
+/* Which clauses moved since the original, and how many times — counted from
+   the ACCEPTED changes the engine archived, across every round. A clause the
+   parties fought over and left alone (rejected, withdrawn) did not move. */
+function negoClauseJourney(c){
+  const all = (typeof negoAllChanges === 'function') ? negoAllChanges(c) : [];
+  const map = new Map();
+  for (const ch of all){
+    if (!ch || ch.status !== 'accepted') continue;
+    const k = String(ch.clauseLabel || ch.clauseId || '').trim() || '(unlabelled)';
+    map.set(k, (map.get(k) || 0) + 1);
+  }
+  return [...map.entries()].map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n);
+}
+
 /* A proposal that arrived as TEXT, lifted back into a document.
 
    THIS IS THE FIX FOR THE PHANTOM-CHANGE BUG (B-010). It matters which way the
@@ -1341,7 +1367,20 @@ function negoBuildBody(c, take){
 
   for (const ch of accepted){
     if (ch.changeType !== 'modify') continue;
-    const next = clauseReplaceBody(body, ch.clauseId, ch.bodyHtml || `<p>${_negoEsc(ch.newText)}</p>`);
+    /* A change that arrived without markup (an AI draft, an old payload) used
+       to materialise as one flat escaped <p> — accepting it silently stripped
+       the clause's lists and numbering. The honest reading is a MERGE: the
+       new wording laid into the clause's own current markup, the same
+       richFromTextEdit path every text proposal already takes. The flat <p>
+       remains only as the last resort when there is nothing to merge into. */
+    let replacement = ch.bodyHtml;
+    if (!replacement){
+      const was = clauseSegment(body).find(cl => cl.clauseId === ch.clauseId);
+      replacement = (was && was.bodyHtml && typeof negoBodyFromText === 'function')
+        ? negoBodyFromText(was.bodyHtml, ch.newText)
+        : `<p>${_negoEsc(ch.newText)}</p>`;
+    }
+    const next = clauseReplaceBody(body, ch.clauseId, replacement);
     if (next != null) body = next;
   }
   for (const ch of accepted){
@@ -2842,7 +2881,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
-  negoImportReturnedDocx, negoTopicForQuote,
+  negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,

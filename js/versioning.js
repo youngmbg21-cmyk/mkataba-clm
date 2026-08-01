@@ -505,12 +505,24 @@ function openCompareModal(c){
 
   const opts=items.map((it,i)=>`<option value="${i}">${it.label}</option>`).join('');
   const selStyle='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:6px 8px;border-radius:4px;color:inherit;min-width:0;flex:1';
+  /* ---- THE CUMULATIVE REDLINE ----
+     Round-by-round history answers "what changed this round"; the question a
+     GC asks before signing is "what did we concede IN TOTAL" — current
+     wording against where the negotiation STARTED, as one combined redline.
+     The original is the round-1 baseline the engine archived when that round
+     closed (negoOriginalBaselineText); no negotiation, no toggle. */
+  const orig=(window.negoOriginalBaselineText?negoOriginalBaselineText(c):'');
+  const cumulative=!!(orig.trim()&&orig!==live);
+  const segBtn=(k,label,on)=>`<button data-cmp-mode="${k}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${on?'var(--accent-solid,var(--color-accent))':'none'};color:${on?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0;flex:1">Compare versions</h3>
         <button id="cmp-x" title="Close" class="ui-btn" style="flex:none;width:30px;height:30px;padding:0">${icon('close','w-3.5 h-3.5')}</button></div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      ${cumulative?`<div id="cmp-mode" style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;width:max-content;margin-bottom:10px">
+        ${segBtn('pair','Two versions',true)}${segBtn('cum','vs Original — cumulative',false)}
+      </div>`:''}
+      <div id="cmp-pair-row" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <select id="cmp-a" style="${selStyle}">${opts}</select>
         <span style="color:var(--color-neutral-500);flex:none">→</span>
         <select id="cmp-b" style="${selStyle}">${opts}</select>
@@ -542,6 +554,29 @@ function openCompareModal(c){
     document.getElementById('cmp-out').innerHTML=_diffBox(a.text,b.text);
   };
   document.getElementById('cmp-go').addEventListener('click',run);
+  /* The cumulative view: original → current as one redline, headed by the
+     clauses that moved and how many times — counted from the accepted
+     changes the engine already archived, not re-derived from the diff. */
+  const runCum=()=>{
+    const st=diffStats(orig,live);
+    const moved=(window.negoClauseJourney?negoClauseJourney(c):[]);
+    const trail=moved.length
+      ? `<div style="font-size:11.5px;line-height:1.9;color:var(--color-neutral-700);border:1px solid var(--color-divider);border-radius:7px;padding:9px 12px;margin-bottom:10px"><b>Clauses that moved since the original:</b> ${moved.slice(0,8).map(m=>`${m.label} ×${m.n}`).join(' · ')}${moved.length>8?` · +${moved.length-8} more`:''}</div>`
+      : '';
+    document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · everything since the negotiation opened, as one redline · ${_diffLegend}`;
+    document.getElementById('cmp-out').innerHTML=trail+_diffBox(orig,live);
+  };
+  document.querySelectorAll('[data-cmp-mode]').forEach(b=>b.addEventListener('click',()=>{
+    const mode=b.getAttribute('data-cmp-mode');
+    document.querySelectorAll('[data-cmp-mode]').forEach(x=>{
+      const on=x===b;
+      x.style.background=on?'var(--accent-solid,var(--color-accent))':'none';
+      x.style.color=on?'#fff':'var(--color-neutral-600)';
+    });
+    const row=document.getElementById('cmp-pair-row');
+    if(row) row.style.display=mode==='cum'?'none':'flex';
+    if(mode==='cum') runCum(); else run();
+  }));
   run();   // show the default (previous → latest) comparison immediately
 }
 

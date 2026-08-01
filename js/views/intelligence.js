@@ -664,21 +664,42 @@ const IG_SUGGESTIONS=[
 ];
 function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
+  /* Two surfaces under one nav item: the graph, and the negotiation-friction
+     read of the same portfolio. The tab lives on the module state so a
+     repaint comes back where the reader was. */
+  if(intel.tab!=='map'&&intel.tab!=='friction') intel.tab='map';
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
-  document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="border:0;border-radius:6px;padding:5px 13px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${intel.tab===k?'var(--accent-solid,var(--color-accent))':'none'};color:${intel.tab===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
+  const tabsHtml=`<div style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;flex:none">${tabBtn('map','Contract Graph')}${tabBtn('friction','Negotiation Friction')}</div>`;
+  const headerHtml=`
     <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
-      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>
+      ${tabsHtml}
+      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${intel.tab==='friction'
+        ? 'where deals get stuck — counted from the fingerprinted changes the negotiations already recorded'
+        : `${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses`}</span>
       <span style="flex:1"></span>
-      <label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
+      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
         <span style="position:relative;display:inline-flex;align-items:center">
           <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:4px;cursor:pointer;outline:none">
             ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
           </select>
           <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:9px">▼</span>
         </span>
-      </label>
-    </header>
+      </label>`:''}
+    </header>`;
+  if(intel.tab==='friction'){
+    document.getElementById('content').innerHTML=`
+    <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+      ${headerHtml}
+      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:18px 20px">${intelFrictionHtml()}</div>
+    </div>`;
+    document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
+    setActiveNav('intel');
+    return;
+  }
+  document.getElementById('content').innerHTML = `
+  <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+    ${headerHtml}
     <div id="ig-note" style="flex:none;padding:0 16px 4px;font-size:11.5px"></div>
     <div class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
       <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative">
@@ -709,10 +730,91 @@ function renderIntel(){
 
   // controls
   document.getElementById('ig-group').addEventListener('change',e=>{ intel.groupBy=e.target.value; intel.groups=null; rebuildIntelGraph(); });
+  document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
 
-  // animation loop (stops when leaving intel)
+  // animation loop (stops when leaving intel — or when the tab is not the map;
+  // intelRAF was bumped at the top, so a tab switch retires this loop too)
   (function loop(){ if(state.view!=='intel'||myRAF!==intelRAF||!IG) return; igTick(); igRender(); requestAnimationFrame(loop); })();
   setActiveNav('intel');
+}
+
+/* ============================================================
+   NEGOTIATION FRICTION — where deals get stuck
+   ============================================================
+   Every number here is COUNTED from the fingerprinted change records the
+   negotiations already store — no new collection, no model, no estimate.
+   A clause "contested" in a deal means at least one tracked change was
+   filed against it there, in any round, by either side. */
+function intelFrictionStats(){
+  const list=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
+  const per=new Map(); const dealRounds=new Map(); const days=[];
+  let deals=0, roundsSum=0;
+  for(const c of list){
+    if(!c||!c.negotiation||typeof window.negoAllChanges!=='function') continue;
+    let all=[];
+    try{ all=negoAllChanges(c); }catch(_){ continue; }
+    if(!all.length) continue;
+    deals++;
+    const rounds=Math.max(1, Number(c.negotiation.round)||1);
+    roundsSum+=rounds; dealRounds.set(c.id, rounds);
+    const labels=new Set();
+    for(const ch of all){
+      const k=String((ch&&(ch.clauseLabel||ch.headingText))||'').replace(/\s+/g,' ').trim();
+      if(k) labels.add(k.length>44?k.slice(0,44):k);
+    }
+    for(const k of labels){
+      if(!per.has(k)) per.set(k,{label:k,ids:new Set()});
+      per.get(k).ids.add(c.id);
+    }
+    if(c.execution&&c.execution.at&&c.negotiation.startedAt){
+      const d=(new Date(c.execution.at)-new Date(c.negotiation.startedAt))/86400000;
+      if(isFinite(d)&&d>=0) days.push(d);
+    }
+  }
+  const ranked=[...per.values()].sort((a,b)=>b.ids.size-a.ids.size).slice(0,8);
+  /* The insight: does contesting the top clause cost extra rounds? Averages
+     on both sides of the split, or no claim at all — a one-deal "pattern"
+     is an anecdote wearing a percentage. */
+  let insight=null;
+  if(ranked.length&&deals>=3){
+    const top=ranked[0]; const withR=[], without=[];
+    for(const [id,r] of dealRounds) (top.ids.has(id)?withR:without).push(r);
+    if(withR.length>=2&&without.length>=1){
+      const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+      const extra=avg(withR)-avg(without);
+      if(extra>0.05) insight={ label:top.label, share:top.ids.size/deals, extra };
+    }
+  }
+  return { deals, avgRounds: deals?roundsSum/deals:0,
+    avgDays: days.length?days.reduce((a,b)=>a+b,0)/days.length:null,
+    clauses: ranked.map(e=>({label:e.label, n:e.ids.size, share:deals?e.ids.size/deals:0})),
+    insight };
+}
+function intelFrictionHtml(){
+  const st=intelFrictionStats();
+  if(!st.deals) return `<div style="max-width:560px;margin:40px auto;text-align:center;color:var(--color-neutral-600);font-size:13px;line-height:1.6">
+    <b style="color:var(--color-text)">No negotiations recorded yet.</b><br/>Once contracts go through the Redline bench, this tab counts which clauses get contested, how often, and what each fight costs in rounds — straight from the tracked changes.</div>`;
+  const pct=v=>Math.round(v*100);
+  const bars=st.clauses.map(cl=>`
+    <span style="font-size:12px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${igEsc(cl.label)}</span>
+    <span style="position:relative;height:14px;border-radius:4px;min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:var(--accent-solid,var(--color-accent));border-radius:4px"></span></span>
+    <span style="font-size:12px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;text-align:right">${pct(cl.share)}%</span>`).join('');
+  const tile=(n,t)=>`<div style="flex:1;min-width:130px;border:1px solid var(--color-divider);border-radius:10px;padding:10px 14px;background:var(--color-surface)">
+    <div style="font-size:20px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums">${n}</div>
+    <div style="font-size:10.5px;color:var(--color-neutral-600);font-weight:600">${t}</div></div>`;
+  return `<div style="max-width:860px;margin:0 auto">
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:12px;padding:16px 20px">
+      <div style="font-size:12.5px;font-weight:700">Most-contested clauses <span style="font-weight:400;color:var(--color-neutral-500)">· share of the ${st.deals} negotiation${st.deals===1?'':'s'} where the clause was redlined</span></div>
+      <div role="img" aria-label="Bar chart of most-contested clauses" style="display:grid;grid-template-columns:200px 1fr 46px;gap:7px 10px;align-items:center;margin-top:12px">${bars}</div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px">
+      ${tile(st.avgRounds.toFixed(1),'avg rounds per negotiation')}
+      ${st.avgDays!=null?tile(Math.round(st.avgDays)+' days','avg from first round to signature'):''}
+      ${tile(String(st.deals),'negotiations counted')}
+    </div>
+    ${st.insight?`<div style="display:flex;gap:9px;align-items:flex-start;background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;line-height:1.55">&#128161;&nbsp;<span><b>${igEsc(st.insight.label)}</b> is contested in ${pct(st.insight.share)}% of negotiations and adds about <b>${st.insight.extra.toFixed(1)} extra round${st.insight.extra>=1.95?'s':''}</b> when it is. If the fight keeps ending in the same place, consider moving the template default there.</span></div>`:''}
+    <div style="font-size:11px;color:var(--color-neutral-500);margin-top:12px">Counted from the fingerprinted tracked changes in each negotiation's record — live rounds and archived ones alike. No sampling, no model.</div>
+  </div>`;
 }
 
 /* ---- right-hand Copilot dock ---- */
@@ -956,4 +1058,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,intelFrictionStats,intelFrictionHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

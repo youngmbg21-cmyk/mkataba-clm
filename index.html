@@ -234,6 +234,13 @@
 
   *,*::before,*::after{box-sizing:border-box;}
   .hidden{display:none!important;}
+  /* OI-5: a deletion directly followed by its replacement rendered
+     </del><ins> welded together — "…days (Net-30).forty-five (45)…". The
+     seam is opened here, in CSS, and ONLY here: a character injected by the
+     renderer would leak into every text projection, export and copy (f36
+     pins that). Classed marks only, so Word-imported or hand-written
+     del/ins in stored content are left exactly as authored. */
+  del[class]+ins[class]{margin-inline-start:.3em;}
   html{scroll-behavior:smooth;}
   body{
     margin:0;

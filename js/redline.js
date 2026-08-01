@@ -302,6 +302,12 @@ function redlineOpsHtml(ops, opts = {}){
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const t = String(opts.title == null ? '' : opts.title).trim();
   const tip = t ? ` title="${attr(t)}"` : '';
+  /* OI-5 note: a del op directly followed by its ins renders </del><ins>
+     with nothing between — deliberately. Any character injected here leaks
+     into every text projection of the rendered node (richToText, exports,
+     copy) and f36 pins that. The visible seam is opened by CSS instead:
+     `del[class]+ins[class]{margin-inline-start}` in index.html and in the
+     standalone history export — a gap the eye gets and the text never has. */
   return (ops || []).map(o =>
     o.op === 'keep' ? e(o.text)
     : o.op === 'ins' ? `<${tagIns} class="${insCls}"${tip}>${e(o.text)}</${tagIns}>`
