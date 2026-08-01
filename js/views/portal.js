@@ -61,13 +61,13 @@ function portalRevisedBanner(){
     ? `+${st.add} added · −${st.del} removed · measured against your own paper`
     : `+${st.add} added · −${st.del} removed · your copy was dated ${fmtDT(when)}`;
   return `
-    <div id="pt-revised" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#b8862b;color:#fff;font-size:14px;font-weight:700">!</span>
+    <div id="pt-revised" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-amber-dot);color:#fff;font-size:14px;font-weight:700">!</span>
       <span style="flex:1;min-width:220px;line-height:1.45">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:#7d5a14">${headline}</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-amber-fg)">${headline}</span>
         <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
       </span>
-      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:12.5px;font-weight:600;border:0;border-radius:5px;padding:9px 16px;cursor:pointer;background:#b8862b;color:#fff">See what changed</button>
+      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:12.5px;font-weight:600;border:0;border-radius:5px;padding:9px 16px;cursor:pointer;background:var(--st-amber-dot);color:#fff">See what changed</button>
     </div>
     <style>
       @keyframes pt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -89,16 +89,16 @@ function openPortalCompare(p){
         <div style="${COL}">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">What ${esc(p.org||'the sender')} changed</h3>
-            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:3px 9px">Since your copy of ${fmtDT(ch.openedAt||ch.at)}</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:3px 9px">Since your copy of ${fmtDT(ch.openedAt||ch.at)}</span>
           </div>
           <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
-            <span style="background:#dff0e6;color:#1e6b4d;padding:0 4px;border-radius:2px">added</span>
-            <span style="background:#fbe3e1;color:#b0453c;text-decoration:line-through;padding:0 4px;border-radius:2px">removed</span></p>
+            <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:2px">added</span>
+            <span style="background:var(--st-ruby-bg);color:var(--st-ruby-dot);text-decoration:line-through;padding:0 4px;border-radius:2px">removed</span></p>
         </div>
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
         <div style="${COL}">
-          <div style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(ch.before,ch.after)}</div>
+          <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(ch.before,ch.after)}</div>
           ${msg?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px 16px">
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Note from ${esc(p.sharedBy||'the sender')}</div>
             <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${esc(msg)}</div></div>`:''}
@@ -107,7 +107,7 @@ function openPortalCompare(p){
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
           <span style="font-size:11.5px;color:var(--color-neutral-600);min-width:150px;flex:1">Accepting records your agreement. It does not sign the contract.</span>
-          <button id="pc-decline" class="ui-btn" style="border-color:color-mix(in srgb,#b0453c 40%,transparent);color:#b0453c">Decline</button>
+          <button id="pc-decline" class="ui-btn" style="border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);color:var(--st-ruby-dot)">Decline</button>
           <button id="pc-counter" class="ui-btn">Propose further edits</button>
           <button id="pc-accept" class="ui-btn ui-btn-primary">Accept these changes</button>
         </div>
@@ -191,9 +191,9 @@ function openPortalVersionCompare(p){
     if(a===b){ document.getElementById('pv-out').innerHTML='<div style="font-size:12.5px;color:var(--color-neutral-600)">Those are the same version — pick two different ones.</div>'; return; }
     const st=(window.diffStats?diffStats(a.text,b.text):{add:0,del:0});
     document.getElementById('pv-legend').innerHTML=`+${st.add} added · −${st.del} removed ·
-      <span style="background:#dff0e6;color:#1e6b4d;padding:0 4px;border-radius:2px">added</span>
-      <span style="background:#fbe3e1;color:#b0453c;text-decoration:line-through;padding:0 4px;border-radius:2px">removed</span>`;
-    document.getElementById('pv-out').innerHTML=`<div style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a.text,b.text)}</div>`;
+      <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:2px">added</span>
+      <span style="background:var(--st-ruby-bg);color:var(--st-ruby-dot);text-decoration:line-through;padding:0 4px;border-radius:2px">removed</span>`;
+    document.getElementById('pv-out').innerHTML=`<div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a.text,b.text)}</div>`;
   };
   document.getElementById('pv-go').addEventListener('click',run);
   document.getElementById('pv-close').addEventListener('click',closeModal);
@@ -252,12 +252,12 @@ function portalMarkSigned(p, info){
   const band=document.getElementById('pt-agreed');
   if(!band) return;
   const who=esc((info&&info.name)||'You');
-  band.style.background='#d9eae0';
-  band.style.borderLeftColor='#1e6b4d';
+  band.style.background='var(--st-green-bg)';
+  band.style.borderLeftColor='var(--st-green-fg)';
   band.innerHTML=`
-    <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
+    <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
     <span style="flex:1;min-width:220px;line-height:1.5">
-      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:#14503a">${who} signed this contract</span>
+      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${who} signed this contract</span>
       <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${fmtDT(nowISO())} · sent to ${esc((p&&p.sharedBy)||'the sender')} at ${esc((p&&p.org)||'their organisation')}. There is nothing further for you to do here — keep this link to read the contract.</span>
     </span>`;
 }
@@ -288,21 +288,21 @@ function portalClosedBanner(){
      looking for a link that no longer has anything for them to do. */
   const done=portalExecuted();
   if(done) return `
-    <div id="pt-executed" style="display:flex;align-items:flex-start;gap:12px;border:1px solid #cfe7d9;background:#e8f4ee;border-left:4px solid #1e6b4d;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <span style="flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:12px;font-weight:700" aria-hidden="true">✓</span>
+    <div id="pt-executed" style="display:flex;align-items:flex-start;gap:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:12px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:#14503a">This contract is executed and sealed</span>
-        <span style="display:block;font-size:12px;color:#14503a;margin-top:2px">The wording is final and read-only${done.at?` — signed ${fmtDT(done.at)}`:''}. You can still read this copy and keep this link. Nothing further can be proposed, decided or signed here; if something has to change, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to record an amendment.</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-green-fg)">This contract is executed and sealed</span>
+        <span style="display:block;font-size:12px;color:var(--st-green-fg);margin-top:2px">The wording is final and read-only${done.at?` — signed ${fmtDT(done.at)}`:''}. You can still read this copy and keep this link. Nothing further can be proposed, decided or signed here; if something has to change, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to record an amendment.</span>
       </span>
     </div>`;
   const sup=PORTAL_OPTS.superseded;
   if(!sup) return '';
   return `
-    <div id="pt-superseded" style="display:flex;align-items:flex-start;gap:12px;border:1px solid #e3c4bf;background:#f9ecea;border-left:4px solid #b0453c;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <span style="flex:none;margin-top:1px;color:#8f322b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+    <div id="pt-superseded" style="display:flex;align-items:flex-start;gap:12px;border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-left:4px solid var(--st-ruby-dot);border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:none;margin-top:1px;color:var(--st-ruby-fg);display:inline-flex">${icon('alert','w-4 h-4')}</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:#8f322b">This is an older copy — it can no longer be answered</span>
-        <span style="display:block;font-size:12px;color:#8f322b;margin-top:2px">A newer version of this contract was sent to you on ${fmtDT(sup.at)}. You can still read this copy and compare it, but signing or responding has to happen on the most recent link. If you cannot find it, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to send it again.</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-ruby-fg)">This is an older copy — it can no longer be answered</span>
+        <span style="display:block;font-size:12px;color:var(--st-ruby-fg);margin-top:2px">A newer version of this contract was sent to you on ${fmtDT(sup.at)}. You can still read this copy and compare it, but signing or responding has to happen on the most recent link. If you cannot find it, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to send it again.</span>
       </span>
     </div>`;
 }
@@ -317,13 +317,13 @@ function portalRoundBanner(c, p){
     ? `${accepted} of your ${decided.length} rounds accepted`
     : (latest.resolution.decision==='accepted'?'Your edits were adopted':'Your edits were not adopted');
   return `
-    <div id="pt-banner" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#b8862b;color:#fff;font-size:14px;font-weight:700">!</span>
+    <div id="pt-banner" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-amber-dot);color:#fff;font-size:14px;font-weight:700">!</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:#7d5a14">${org} ${verb}</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-amber-fg)">${org} ${verb}</span>
         <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">Round ${latest.n} · ${tally} · ${fmtDT(latest.resolution.at||latest.at)}</span>
       </span>
-      ${latest.resolution.decision==='accepted'?`<span style="flex:none;font-size:11.5px;color:#7d5a14">The wording below already reflects them.</span>`:''}
+      ${latest.resolution.decision==='accepted'?`<span style="flex:none;font-size:11.5px;color:var(--st-amber-fg)">The wording below already reflects them.</span>`:''}
     </div>
     <style>
       @keyframes pt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -361,9 +361,9 @@ function portalThreadHtml(c, p){
     return `<div style="display:flex;flex-direction:column;gap:7px;margin-top:2px">${parts.map(b=>`
       <div style="border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;background:var(--color-bg)">
         <div style="font-size:11.5px;line-height:1.55;color:var(--color-neutral-800)">
-          ${b.before?`<span style="text-decoration:line-through;color:#8f322b">${esc(String(b.before).trim())}</span> `:''}
-          ${b.after?`<span style="color:#1e6b4d">${esc(String(b.after).trim())}</span>`:''}
-          <span style="font-size:10px;font-weight:700;margin-left:6px;color:${b.decision==='accept'?'#1e6b4d':'#8f322b'}">${b.decision==='accept'?'ADOPTED':'NOT ADOPTED'}</span>
+          ${b.before?`<span style="text-decoration:line-through;color:var(--st-ruby-fg)">${esc(String(b.before).trim())}</span> `:''}
+          ${b.after?`<span style="color:var(--st-green-fg)">${esc(String(b.after).trim())}</span>`:''}
+          <span style="font-size:10px;font-weight:700;margin-left:6px;color:${b.decision==='accept'?'var(--st-green-fg)':'var(--st-ruby-fg)'}">${b.decision==='accept'?'ADOPTED':'NOT ADOPTED'}</span>
         </div>
         ${b.note?`<div style="margin-top:4px;font-size:11px;color:var(--color-neutral-700)"><b>You said:</b> ${esc(b.note)}</div>`:''}
         ${b.reply?`<div style="margin-top:3px;font-size:11px;color:var(--color-neutral-700)"><b>${esc(orgName)}:</b> ${esc(b.reply)}</div>`:''}
@@ -372,7 +372,7 @@ function portalThreadHtml(c, p){
   const verdict=r=>{
     if(!r.resolution||!r.resolution.decision) return '';
     const ok=r.resolution.decision==='accepted';
-    return `<div style="font-size:10.5px;font-weight:600;color:${ok?'#1e6b4d':'#8f322b'};margin-left:2px">${ok?'Adopted':'Not adopted'}${r.resolution.at?` · ${fmtDT(r.resolution.at)}`:''}</div>`;
+    return `<div style="font-size:10.5px;font-weight:600;color:${ok?'var(--st-green-fg)':'var(--st-ruby-fg)'};margin-left:2px">${ok?'Adopted':'Not adopted'}${r.resolution.at?` · ${fmtDT(r.resolution.at)}`:''}</div>`;
   };
   return `
     <div id="pt-thread" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
@@ -414,20 +414,20 @@ function portalOpenPointsHtml(c, p){
      specific change is still its thread in the negotiation room. */
   const canReply=false;
   return `
-    <div id="pt-openpoints" style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+    <div id="pt-openpoints" style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-        <span style="flex:none;color:#b8862b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600;color:#7d5a14">Still open between us</span>
-        <span style="margin-left:auto;font-size:10.5px;color:#7d5a14;font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
+        <span style="flex:none;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">Still open between us</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
-      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:#7d5a14">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${canReply?`Answer ${pts.length===1?'it':'them'} right here — that changes nothing in the contract — or press <b>Propose edits</b> when you have new wording to put forward.`:`Press <b>Propose edits</b> if you want to come back on ${pts.length===1?'it':'them'}.`}</p>
+      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${canReply?`Answer ${pts.length===1?'it':'them'} right here — that changes nothing in the contract — or press <b>Propose edits</b> when you have new wording to put forward.`:`Press <b>Propose edits</b> if you want to come back on ${pts.length===1?'it':'them'}.`}</p>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
-          <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
+          <div style="border:1px solid var(--st-amber-line);background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
             ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Contract says</span>
               <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
             ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">You asked for</span>
-              <div style="color:#8f322b">${esc(pt.after)}</div></div>`:''}
+              <div style="color:var(--st-ruby-fg)">${esc(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>You said:</b> ${esc(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>Their reply:</b> ${esc(pt.reason)}</div>`:''}
             ${canReply?discussPointReplyHtml('point:'+pt.id, PORTAL_OPTS.messages||[], {
@@ -525,15 +525,15 @@ function portalClauseEditorHtml(c){
     const shown=edited?PORTAL_CLAUSE_EDITS[u.i]:u.text;
     const heading=u.kind==='heading';
     return `
-      <div data-cl="${u.i}" style="border:1px solid ${edited?'#b8862b':'var(--color-divider)'};background:${edited?'#fdf6e7':'var(--color-surface)'};border-radius:6px;padding:10px 13px">
+      <div data-cl="${u.i}" style="border:1px solid ${edited?'var(--st-amber-dot)':'var(--color-divider)'};background:${edited?'var(--st-amber-bg)':'var(--color-surface)'};border-radius:6px;padding:10px 13px">
         <div data-cl-view="${u.i}" style="display:flex;align-items:flex-start;gap:10px">
           <span style="flex:1;min-width:0;font-size:${heading?'13.5px':'13px'};line-height:1.7;${heading?'font-weight:700;letter-spacing:.02em;':''}color:var(--color-doc-text);white-space:pre-wrap">${esc(shown)}</span>
           <button data-cl-edit="${u.i}" class="ui-btn" style="flex:none;font-size:11px;padding:4px 10px">${edited?'Edit again':'Change'}</button>
         </div>
-        ${edited?`<div style="margin-top:6px;font-size:10.5px;color:#7d5a14;display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+        ${edited?`<div style="margin-top:6px;font-size:10.5px;color:var(--st-amber-fg);display:flex;align-items:center;gap:7px;flex-wrap:wrap">
           <span>You changed this.</span>
           ${PORTAL_CLAUSE_NOTES[u.i]?`<span style="color:var(--color-neutral-700);font-size:11px">“${esc(PORTAL_CLAUSE_NOTES[u.i])}”</span>`:''}
-          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:#7d5a14;cursor:pointer;text-decoration:underline">Undo</button></div>`:''}
+          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline">Undo</button></div>`:''}
       </div>`;
   }).join('');
   const n=Object.keys(PORTAL_CLAUSE_EDITS).length;
@@ -541,7 +541,7 @@ function portalClauseEditorHtml(c){
     <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
       <span style="font-size:12px;color:var(--color-neutral-700)">Press <b>Change</b> on any clause you want to alter. Everything else stays exactly as it is.</span>
       <span style="flex:1"></span>
-      <span id="pt-cl-count" style="font-size:11.5px;font-weight:600;color:${n?'#7d5a14':'var(--color-neutral-500)'}">${n?`${n} change${n===1?'':'s'}`:'No changes yet'}</span>
+      <span id="pt-cl-count" style="font-size:11.5px;font-weight:600;color:${n?'var(--st-amber-fg)':'var(--color-neutral-500)'}">${n?`${n} change${n===1?'':'s'}`:'No changes yet'}</span>
     </div>
     <div id="pt-cl-list" style="display:flex;flex-direction:column;gap:7px">${rows}</div>`;
 }
@@ -1096,11 +1096,11 @@ function portalAgreedHtml(p){
     : `All ${changes.length} change${changes.length===1?'':'s'} on this contract ${changes.length===1?'has':'have'} been resolved`
       + `${acc?` — ${acc} adopted into the wording`:''}${rej?`, ${rej} not taken`:''}. Nothing is outstanding between you.`;
   return `
-    <div id="pt-agreed" style="border:1px solid #a8cbb8;background:#eef7f1;border-left:4px solid #1e6b4d;border-radius:8px;
+    <div id="pt-agreed" style="border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:8px;
       padding:14px 18px;margin:0 0 18px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
-      <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
+      <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:220px;line-height:1.5">
-        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:#14503a">Ready to sign</span>
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">Ready to sign</span>
         <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} Read the wording below, then sign or respond on the right.</span>
       </span>
       ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Review what changed</button>`:''}
@@ -1138,7 +1138,7 @@ function portalNegoFootHtml(p){
     :'Changes are still waiting on a decision.';
   const spent=PORTAL_READY_SENT;
   return `
-    <span style="flex:1;min-width:150px;font-size:11.5px;color:${n?'#7d5a14':'var(--color-neutral-600)'}">
+    <span style="flex:1;min-width:150px;font-size:11.5px;color:${n?'var(--st-amber-fg)':'var(--color-neutral-600)'}">
       ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
         :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
     </span>
@@ -1147,7 +1147,7 @@ function portalNegoFootHtml(p){
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
       title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
       style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
-    <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent)">Decline</button>
+    <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">Decline</button>
     ${portalCanDerive()?`<button id="pt-derive" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px"
       title="Mint a read-only link for an adviser — they can read this contract and nothing else. It cannot answer, and it dies when your link does.">Share a read-only copy</button>`:''}
     ${portalDerivedHtml()}`;
@@ -1507,7 +1507,7 @@ function portalPollDecide(d, prevSig){
    reloads under somebody's hands. */
 function portalUpdatedNoticeHtml(){
   return `<div id="pt-updated" role="status" style="position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
-      border-bottom:1px solid #e0c48a;background:#fdf6e7;padding:10px 24px;font-size:12.5px;color:#7d5a14;box-shadow:var(--shadow-sm)">
+      border-bottom:1px solid var(--st-amber-line);background:var(--st-amber-bg);padding:10px 24px;font-size:12.5px;color:var(--st-amber-fg);box-shadow:var(--shadow-sm)">
     <span style="flex:none;display:inline-flex">${icon('alert','w-4 h-4')}</span>
     <span style="flex:1;min-width:0;line-height:1.5"><b>This contract has been updated.</b>
       Your unsent work is still here — send it or set it aside, then refresh to see the new copy.</span>
@@ -1663,7 +1663,7 @@ function portalViewerStyle(){
     .pv-banner b{font-family:var(--font-mono);font-weight:600;}
     .pv-banner .pv-sub{display:block;font-size:11.5px;color:var(--color-accent-200);margin-top:3px;line-height:1.5;}
     .pv-page{max-width:920px;margin:0 auto;padding:26px 24px 60px;}
-    .pv-sheet{position:relative;background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:34px 40px;overflow:hidden;}
+    .pv-sheet{position:relative;background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:34px 40px;overflow:hidden;}
     /* The watermark is behind the words and never on top of them: a copy an
        advisor cannot read is a copy they ask to be re-sent unmarked. */
     .pv-sheet::before{content:attr(data-mark);position:absolute;inset:0;display:grid;place-items:center;
@@ -1879,7 +1879,7 @@ function renderShareDormant(d, opts={}){
     : `${esc(d.org||'the sender')}'s own signatures are not yet complete`;
   root.innerHTML=`<div id="pt-dormant" style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
     <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:32px;text-align:center;max-width:26rem;">
-      <div style="color:#b8862b;margin-bottom:12px;display:flex;justify-content:center;">${icon('clock','w-8 h-8')}</div>
+      <div style="color:var(--st-amber-dot);margin-bottom:12px;display:flex;justify-content:center;">${icon('clock','w-8 h-8')}</div>
       <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0;">Not your turn to sign yet</h1>
       <p style="font-size:13px;color:var(--color-neutral-700);margin-top:8px;line-height:1.6;">This is your personal signing link${d.contractName?` for <strong>“${esc(d.contractName)}”</strong>`:''}${d.org?` from ${esc(d.org)}`:''}${d.order&&d.total?` — you are signer ${d.order} of ${d.total}`:''}. ${who}.</p>
       <p style="font-size:12px;color:var(--color-neutral-600);margin-top:10px;line-height:1.6;">Keep this link. This page checks automatically and will come alive the moment it is your turn — nothing is needed from you until then.${d.expiresAt?` The link expires on ${esc(String(d.expiresAt).slice(0,10))}.`:''}</p>
@@ -1926,7 +1926,7 @@ function renderSharePortal(p, opts={}){
     const gone=opts.gone;   // 'expired' | 'revoked' — the link was real but is no longer active
     root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:32px;text-align:center;max-width:24rem;">
-        <div style="color:${gone?'#b8862b':'#b0453c'};margin-bottom:12px;display:flex;justify-content:center;">${icon(gone?'clock':'ban','w-8 h-8')}</div>
+        <div style="color:${gone?'var(--st-amber-dot)':'var(--st-ruby-dot)'};margin-bottom:12px;display:flex;justify-content:center;">${icon(gone?'clock':'ban','w-8 h-8')}</div>
         <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0;">${gone==='revoked'?'Link withdrawn':gone==='expired'?'Link expired':'Invalid share link'}</h1>
         <p style="font-size:13px;color:var(--color-neutral-700);margin-top:6px;line-height:1.5;">${opts.goneMsg||(gone?'This share link is no longer active. Ask the sender to reshare the contract.':'This link is malformed or truncated. Ask the sender to generate a fresh one.')}</p>
       </div></div>`;
@@ -1990,7 +1990,7 @@ function renderSharePortal(p, opts={}){
                exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
         ${portalTemplateFormHtml(c,p)}
-        <div id="pt-doc" class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+        <div id="pt-doc" class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
           ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
           <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
           ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
@@ -2007,9 +2007,9 @@ function renderSharePortal(p, opts={}){
             </span>
             <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Cancel</button>
           </div>
-          <div id="pt-clause-editor" class="scroll-thin" style="padding:18px 22px;max-height:min(62vh,620px);overflow-y:auto;background:#fbfbfc"></div>
+          <div id="pt-clause-editor" class="scroll-thin" style="padding:18px 22px;max-height:min(62vh,620px);overflow-y:auto;background:var(--color-doc-surface)"></div>
           <div id="portal-plain" class="hidden">
-            <textarea id="pt-redline-text" class="scroll-thin" spellcheck="false" style="display:block;width:100%;height:min(62vh,620px);border:0;outline:none;resize:vertical;padding:26px 32px;font:inherit;font-size:15px;line-height:1.95;color:var(--color-doc-text);background:#fbfbfc;"></textarea>
+            <textarea id="pt-redline-text" class="scroll-thin" spellcheck="false" style="display:block;width:100%;height:min(62vh,620px);border:0;outline:none;resize:vertical;padding:26px 32px;font:inherit;font-size:15px;line-height:1.95;color:var(--color-doc-text);background:var(--color-doc-surface);"></textarea>
           </div>
           <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
             <span id="pt-redline-count" style="font-size:11.5px;color:var(--color-neutral-600)">Your name is taken from the panel on the right.</span>
@@ -2064,7 +2064,7 @@ function renderSharePortal(p, opts={}){
                 <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">${why}</span>
               </div>`).join('')}
             <div style="border-top:1px solid var(--color-divider);padding-top:9px">
-              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent);">Decline this contract</button>
+              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);">Decline this contract</button>
               <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">Ends the deal. You will be asked why, and they will be told.</span>
             </div>
           </div>
@@ -2335,8 +2335,8 @@ async function portalRespond(p, action, extra){
          replaced: nothing was recorded, and their wording would be gone. */
       if(action==='redline'){ PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={}; }
       document.getElementById('portal-result').innerHTML=`
-        <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
-          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
+        <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:16px;text-align:center;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
           <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">${esc(p.sharedBy)} at ${esc(p.org)} has been notified — you're all done.</p>
         </div>`;
     }catch(e){
@@ -2345,7 +2345,7 @@ async function portalRespond(p, action, extra){
       portalSetIdle();
       toast(e.message,'err');
       const box=document.getElementById('portal-result');
-      if(box) box.innerHTML=`<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:#8f322b"><b>Not sent.</b> ${esc(e.message||'Something went wrong.')}</div>`;
+      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:var(--st-ruby-fg)"><b>Not sent.</b> ${esc(e.message||'Something went wrong.')}</div>`;
     }
     return;
   }
@@ -2415,7 +2415,7 @@ function portalTemplateFormHtml(c,p){
   <div id="pt-tplform" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);margin-bottom:18px;overflow:hidden">
     <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
       <span style="font-family:var(--font-heading);font-weight:600;font-size:13px;flex:1">Fill in your details</span>
-      <span style="font-size:10.5px;color:${filled.length===required.length?'#1e6b4d':'#8a5a19'};font-weight:600">${filled.length}/${required.length} required</span>
+      <span style="font-size:10.5px;color:${filled.length===required.length?'var(--st-green-fg)':'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required</span>
       <span id="pt-tplform-state" style="font-size:10px;color:var(--color-neutral-500)"></span>
     </div>
     <div style="padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
@@ -2424,10 +2424,10 @@ function portalTemplateFormHtml(c,p){
         ${g.fields.map(f=>{
           const idx=form.fields.indexOf(f);
           return `<label style="display:block;min-width:0">
-            <span style="display:block;font-size:11px;font-weight:600;margin-bottom:3px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:#8f322b">*</span>':''}</span>
+            <span style="display:block;font-size:11px;font-weight:600;margin-bottom:3px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}</span>
             ${inputFor(f,idx)}
             ${f.helpText?`<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>`:''}
-            <span data-ptf-err="${idx}" style="display:none;font-size:10.5px;color:#8f322b;margin-top:2px"></span>
+            <span data-ptf-err="${idx}" style="display:none;font-size:10.5px;color:var(--st-ruby-fg);margin-top:2px"></span>
           </label>`; }).join('')}`).join('')}
     </div>
   </div>`;
@@ -2517,10 +2517,10 @@ function wirePortalTemplateForm(p){
           ? `<textarea data-ptf-pop style="${INP};min-height:52px">${esc(v)}</textarea>`
           : `<input type="${({email:'email',tel:'tel',date:'date'})[lib.input]||'text'}" data-ptf-pop value="${esc(v)}" placeholder="${esc(lib.hint||'')}" style="${INP}">`;
       pop.innerHTML=`
-        <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:#8f322b">*</span>':''}</div>
+        <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}</div>
         ${inputHtml}
         ${f.helpText?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>`:''}
-        <div data-ptf-pop-err style="display:none;font-size:10.5px;color:#8f322b;margin-top:4px"></div>`;
+        <div data-ptf-pop-err style="display:none;font-size:10.5px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
       document.body.appendChild(pop);
       const input=pop.querySelector('[data-ptf-pop]');
       let done=false; // Enter commits, then the focused input's blur fires change — one door only
@@ -2551,9 +2551,9 @@ function wirePortalTemplateForm(p){
 async function portalSignUnverified(p, info){
   const box=document.getElementById('portal-result');
   box.innerHTML=`
-    <div style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:6px;padding:13px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#7d5a14;margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
-      <p style="font-size:11.5px;color:#7d5a14;margin:0 0 10px;line-height:1.55;">This sender's HaTi cannot send verification codes, so we cannot confirm that <strong>${esc(info.email)}</strong> is yours. Your signature is still binding, and the contract's record will show that it was <strong>not independently verified</strong>.</p>
+    <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:6px;padding:13px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-amber-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
+      <p style="font-size:11.5px;color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">This sender's HaTi cannot send verification codes, so we cannot confirm that <strong>${esc(info.email)}</strong> is yours. Your signature is still binding, and the contract's record will show that it was <strong>not independently verified</strong>.</p>
       <button id="pt-unver-go" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Sign anyway</button>
       <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Cancel</button>
     </div>`;
@@ -2571,8 +2571,8 @@ async function portalSignUnverified(p, info){
       portalSetDone('pt-sign','Signed and sent');
       portalMarkSigned(p, info);
       box.innerHTML=`
-        <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
-          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed</div>
+        <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:16px;text-align:center;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed</div>
           <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. It is recorded as not independently verified, because this server cannot send verification codes.</p>
         </div>`;
     }catch(e){ portalSetIdle(); toast(e.message,'err'); box.innerHTML=''; }
@@ -2602,7 +2602,7 @@ async function portalStartOtp(p, info){
     /* The one refusal with no way forward on this page: the link records no
        address to verify against. Said in full, with the way out, rather than
        as a toast that scrolls away. */
-    box.innerHTML=`<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:#8f322b"><b>Cannot send a signing code.</b> ${esc(e.message||'')}</div>`;
+    box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:var(--st-ruby-fg)"><b>Cannot send a signing code.</b> ${esc(e.message||'')}</div>`;
     portalSetIdle();
     return;
   }
@@ -2610,8 +2610,8 @@ async function portalStartOtp(p, info){
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:13px;">
       <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} Verify it's you to sign</div>
       <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to <strong>${esc(sentTo)}</strong> — the address this link was issued to. Enter it to complete your signature.</p>
-      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">The code goes only to <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
-      ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
+      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">The code goes only to <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
+      ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
       <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Resend code</button>
@@ -2662,16 +2662,16 @@ async function portalVerifyAndSign(p, info){
       portalSetDone('pt-sign','Signed and sent');
       portalMarkSigned(p, info);
       document.getElementById('portal-result').innerHTML=`
-        <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
-          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
+        <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:16px;text-align:center;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
           <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your email-verified signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. You're all done.</p>
         </div>`;
     }catch(e){
       const out=document.getElementById('portal-result');
       if(out){
         out.innerHTML=`
-          <div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:14px;">
-            <div style="display:flex;align-items:center;gap:6px;color:#8f322b;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('alert','w-4 h-4')} Your signature didn’t go through</div>
+          <div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:14px;">
+            <div style="display:flex;align-items:center;gap:6px;color:var(--st-ruby-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('alert','w-4 h-4')} Your signature didn’t go through</div>
             <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(e.message||'The connection dropped before your signature was recorded.')} You’re already verified — you can try again without a new code.</p>
             <button id="pt-sign-retry" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Try signing again</button>
           </div>`;
@@ -2695,7 +2695,7 @@ function uploadedTextForPrint(c){
   const raw=String((c.redlineText||u.extractedText||'')).trim();
   const text=rich?richToText(raw):raw;
   if(!text) return `
-    <p style="font-size:11px;color:#8f322b;line-height:1.6;">No machine-readable text could be extracted from this file, so the wording cannot be printed here. Refer to the original document (<strong>${u.fileName||'attached file'}</strong>).</p>`;
+    <p style="font-size:11px;color:var(--st-ruby-fg);line-height:1.6;">No machine-readable text could be extracted from this file, so the wording cannot be printed here. Refer to the original document (<strong>${u.fileName||'attached file'}</strong>).</p>`;
   const body=rich
     ? renderDocHtml(raw, RICH_FORMAT)
     : (window.documentTextHtml)
@@ -2751,7 +2751,7 @@ function printExecutionBlock(c){
   const cap=s=>(window.signatureCapacity?signatureCapacity(s):'')||'';
   const cell=s=>`
     <td style="vertical-align:top;padding:0 10px 10px 0;width:50%;">
-      <div style="border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;">
+      <div style="border:1px solid var(--color-divider);border-radius:8px;padding:9px 11px;">
         <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${esc(partyLabel(s))}</div>
         ${s.image?`<img src="${s.image}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
         <div style="font-weight:600;font-size:12px;">${esc(s.name||'—')}${cap(s)?', '+esc(cap(s)):''}</div>
@@ -2762,17 +2762,17 @@ function printExecutionBlock(c){
   for(let i=0;i<sigs.length;i+=2) rows.push(`<tr>${cell(sigs[i])}${sigs[i+1]?cell(sigs[i+1]):'<td></td>'}</tr>`);
   const sigTable=sigs.length
     ? `<table style="width:100%;border-collapse:collapse;margin-top:10px;">${rows.join('')}</table>`
-    : `<div style="margin-top:10px;border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;font-size:11px;color:#666;">${c.signatory?('Signed by '+esc(c.signatory)):'Signatories not recorded'}</div>`;
+    : `<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:8px;padding:9px 11px;font-size:11px;color:#666;">${c.signatory?('Signed by '+esc(c.signatory)):'Signatories not recorded'}</div>`;
   return `
-    <div style="margin-top:26px;page-break-inside:avoid;border:1px solid ${external?'#8fa8c2':'#a8cbb8'};border-radius:12px;padding:16px 18px;background:${external?'#f2f6fa':'#f2f8f4'};">
+    <div style="margin-top:26px;page-break-inside:avoid;border:1px solid ${external?'#8fa8c2':'var(--st-green-line)'};border-radius:12px;padding:16px 18px;background:${external?'#f2f6fa':'#f2f8f4'};">
       <table style="width:100%;border-collapse:collapse;"><tr>
         <td style="width:70px;vertical-align:top;">
           <svg width="62" height="62" viewBox="0 0 96 96" aria-hidden="true">
             <circle cx="48" cy="48" r="46" fill="#fff"/>
-            <circle cx="48" cy="48" r="46" fill="none" stroke="${external?'#5980a6':'#086B54'}" stroke-width="2"/>
-            <circle cx="48" cy="48" r="38" fill="${external?'rgba(89,128,166,.10)':'rgba(8,107,84,.10)'}" stroke="${external?'#8fa8c2':'#C79A3E'}" stroke-width="1.5"/>
-            <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12" fill="${external?'#3f6087':'#2e8763'}">${external?'ON FILE':'SEALED'}</text>
-            <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="${external?'#5980a6':'#1e6b4d'}">${external?'MIGRATED':'SHA-256'}</text>
+            <circle cx="48" cy="48" r="46" fill="none" stroke="${external?'var(--color-accent)':'#086B54'}" stroke-width="2"/>
+            <circle cx="48" cy="48" r="38" fill="${external?'color-mix(in srgb,var(--color-accent) 11%,transparent)':'rgba(8,107,84,.10)'}" stroke="${external?'#8fa8c2':'#C79A3E'}" stroke-width="1.5"/>
+            <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12" fill="${external?'#3f6087':'var(--st-green-dot)'}">${external?'ON FILE':'SEALED'}</text>
+            <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="${external?'var(--color-accent)':'var(--st-green-fg)'}">${external?'MIGRATED':'SHA-256'}</text>
           </svg>
         </td>
         <td style="vertical-align:top;">
@@ -2781,7 +2781,7 @@ function printExecutionBlock(c){
             ? 'Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.'
             : jxEsignatureShort()}</div>
           ${external?'':sigTable}
-          ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;">
+          ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:8px;padding:9px 11px;">
             <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">Sealed text fingerprint (SHA-256)</div>
             <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
           </div>`:''}
@@ -2830,7 +2830,7 @@ function exportPDF(c, opts){
     // attachment, so the print is the certificate for the signature we took.
     const u=c.upload||{};
     bodyHtml=`
-      <div style="border:1px solid #d4d4d7;border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="border:1px solid var(--color-divider);border-radius:10px;padding:16px;margin-bottom:16px;">
         <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${esc(c.name)}</div>
         <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
         <table style="font-size:11px;border-collapse:collapse;">
@@ -2897,7 +2897,7 @@ function exportPDF(c, opts){
   const printCover=(printDesign&&printDesign.designId&&isUpload(c)&&!record&&window.docDesignCoverPageHtml)?docDesignCoverPageHtml(printDesign,c):'';
   document.getElementById('print-root').innerHTML=`
     <div${printDesign&&window.docDesignPaperAttr?docDesignPaperAttr(printDesign):''} style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
-      ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #5980a6;padding-bottom:10px;margin-bottom:24px;">
+      ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:24px;">
         <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>`:''}
@@ -2906,8 +2906,8 @@ function exportPDF(c, opts){
       <div class="doc-surface">${bodyHtml}</div>
       ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
       ${execBlock}
-      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
-      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid var(--color-divider);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       ${record?`<div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>`:''}
     </div>`;
   logAudit(c,'Exported',record?'Full record exported (seal and audit trail)':'PDF export generated');

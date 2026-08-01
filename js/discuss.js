@@ -103,7 +103,7 @@ const discussIsInternal = m => !!m && m.visibility === DISCUSS_INTERNAL;
 function discussVisBadgeHtml(m){
   const internal = discussIsInternal(m);
   const pal = internal
-    ? 'background:#f4ecd8;color:#8a6a2a;border:1px solid rgba(138,106,42,.3)'
+    ? 'background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.3)'
     : 'background:var(--color-accent-100);color:var(--color-accent-800);border:1px solid var(--color-accent-300)';
   return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
     letter-spacing:.04em;border-radius:999px;padding:2px 7px;white-space:nowrap;${pal}">${
@@ -148,8 +148,8 @@ function discussNoteTone(note, viewerSide){
       ? 'note-bubble note-counterparty bg-amber-50 border-amber-200 text-amber-900'
       : 'note-bubble note-owner bg-blue-50 border-blue-200 text-blue-900',
     style: theirs
-      ? 'background:#fffbeb;border:1px solid #fde68a;color:#78350f'
-      : 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a',
+      ? 'background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg)'
+      : 'background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);color:color-mix(in srgb,#3b82f6 55%,var(--color-text))',
     label: theirs ? '🌐 Counterparty Note'
       : internal ? '🔒 Internal Note' : '👔 Owner Note'
   };
@@ -164,7 +164,7 @@ function discussBubbleHtml(m, mine){
     <div style="display:flex;flex-direction:column;gap:2px;align-items:${isMine ? 'flex-end' : 'flex-start'}">
       <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);display:flex;align-items:center;gap:6px;flex-wrap:wrap">${e(m.author)}${when ? ` · ${when}` : ''}${
         internal ? ' ' + discussVisBadgeHtml(m) : ''}</div>
-      <div style="max-width:92%;border:1px solid ${internal ? 'rgba(138,106,42,.35)' : (isMine ? 'var(--color-divider)' : 'var(--color-accent-300)')};background:${internal ? '#fdfaf1' : (isMine ? 'var(--color-bg)' : 'var(--color-accent-100)')};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
+      <div style="max-width:92%;border:1px solid ${internal ? 'rgba(138,106,42,.35)' : (isMine ? 'var(--color-divider)' : 'var(--color-accent-300)')};background:${internal ? 'rgba(245,158,11,.08)' : (isMine ? 'var(--color-bg)' : 'var(--color-accent-100)')};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
     </div>`;
 }
 /* The whole panel: what has been said, grouped by what it is about, and one
@@ -205,7 +205,7 @@ function discussPanelHtml(opts){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px;flex-wrap:wrap">
         <span style="flex:none;color:var(--color-accent);display:inline-flex">${window.icon ? icon('msg', 'w-4 h-4') : ''}</span>
         <span style="font-size:13px;font-weight:600">${e(title || 'Open points — talk it through')}</span>
-        ${waiting ? `<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:2px 9px">${waiting} awaiting your reply</span>` : ''}
+        ${waiting ? `<span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:2px 9px">${waiting} awaiting your reply</span>` : ''}
         <span style="margin-left:auto;font-size:10.5px;color:var(--color-neutral-500);font-family:var(--font-mono)">${(messages || []).length} message${(messages || []).length === 1 ? '' : 's'}</span>
       </div>
       ${blurb ? `<p style="margin:0 0 11px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${e(blurb)}</p>` : ''}
@@ -269,7 +269,7 @@ function wireDiscussPoints(opts){
         if (input) input.value = '';
         if (onSent) onSent(res);
       } catch (e){
-        if (out) out.innerHTML = `<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:7px 10px;font-size:11px;line-height:1.5;color:#8f322b"><b>Not sent.</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your reply is still in the box.</div>`;
+        if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:7px 10px;font-size:11px;line-height:1.5;color:var(--st-ruby-fg)"><b>Not sent.</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your reply is still in the box.</div>`;
         if (window.toast) toast(e.message || 'Could not send that reply', 'err');
       }
       btn.disabled = false; btn.innerHTML = restore;
@@ -299,7 +299,7 @@ function wireDiscussPanel(opts){
       if (onSent) onSent(res);
     } catch (e){
       // nothing was recorded, so the box keeps what they wrote
-      if (out) out.innerHTML = `<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:9px 11px;font-size:11.5px;line-height:1.5;color:#8f322b"><b>Not sent.</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
+      if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:9px 11px;font-size:11.5px;line-height:1.5;color:var(--st-ruby-fg)"><b>Not sent.</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
       if (window.toast) toast(e.message || 'Could not send that message', 'err');
     }
     btn.disabled = false; btn.innerHTML = restore;
@@ -351,7 +351,7 @@ function discussDiscardBtnHtml(change, opts){
     title="Discard ${id} — it has not been sent, so nothing is withdrawn from anyone"
     aria-label="Discard draft change ${id}"
     style="margin-left:auto;flex:none;font-size:10.5px;padding:3px 8px;line-height:1.4;
-      border:1px solid rgba(143,50,43,.28);background:#fdf6f5;color:#8f322b;border-radius:5px;cursor:pointer">🗑️ Discard</button>`;
+      border:1px solid rgba(143,50,43,.28);background:rgba(244,63,94,.08);color:var(--st-ruby-fg);border-radius:5px;cursor:pointer">🗑️ Discard</button>`;
 }
 
 /* Wire every Discard on the page. The three steps are in this order for a

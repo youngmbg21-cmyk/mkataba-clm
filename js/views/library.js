@@ -92,7 +92,7 @@ function buildFromCustomTemplate(t, values, opts){
 function openTemplateFillModal(t){
   const fs=templateFields(t);
   const inp=f=>{ const id='tf-'+f.key;
-    const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_tplEsc(f.label)}${f.required?' <span style="color:#8f322b">*</span>':''}${f.maps?`<span style="font-weight:400;color:var(--color-neutral-500)"> → ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`;
+    const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${f.maps?`<span style="font-weight:400;color:var(--color-neutral-500)"> → ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`;
     const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none';
     if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
@@ -110,7 +110,7 @@ function openTemplateFillModal(t){
         <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">Their email<span style="font-weight:400;color:var(--color-neutral-500)"> → so you can send it to them</span></span>
         <input id="tf-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
     </div>
-    <div id="tf-err" style="font-size:11px;color:#8f322b;min-height:15px;margin-top:8px"></div>
+    <div id="tf-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
       <button id="tf-cancel" class="ui-btn">Cancel</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">Create draft</button>
@@ -291,9 +291,9 @@ function openCreateTemplateModal(mode){
       if(report.ok){
         rep(`<span style="color:var(--color-neutral-700)">Converted <b>${t.length.toLocaleString()}</b> characters${kept?` — ${kept} kept`:''}${res.via==='text'?' · pasted as plain text (the source offered no formatting)':''}. <b>Preview</b> it before saving.</span>`);
       } else {
-        rep(`<span style="display:block;border:1px solid #e6c9c1;background:rgba(176,69,60,.06);border-radius:4px;padding:8px 10px;color:#8f322b">
+        rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:4px;padding:8px 10px;color:var(--st-ruby-fg)">
           <b>That did not come across properly.</b> ${_tplEsc(report.reason)}
-          Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:600;color:#8f322b;text-decoration:underline;cursor:pointer">use the plain-text version instead</button> — you will lose the formatting but keep every word.</span>`);
+          Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--st-ruby-fg);text-decoration:underline;cursor:pointer">use the plain-text version instead</button> — you will lose the formatting but keep every word.</span>`);
         document.getElementById('ct-fallback')?.addEventListener('click',()=>{
           editor.set(textToRich(res.plain||''));
           pasted={ ...res, via:'text' };
@@ -317,7 +317,7 @@ function openCreateTemplateModal(mode){
   pvBtn.addEventListener('click',()=>{
     if(previewing){ previewing=false; pv.style.display='none'; host.style.display=''; pvBtn.textContent='Preview'; editor.focus(); return; }
     const html=editor.get();
-    if(!richToText(html).trim()){ st('<span style="color:#8f322b">Nothing to preview yet.</span>'); return; }
+    if(!richToText(html).trim()){ st('<span style="color:var(--st-ruby-fg)">Nothing to preview yet.</span>'); return; }
     pv.innerHTML=renderDocHtml(html, RICH_FORMAT);
     previewing=true; pv.style.display=''; host.style.display='none'; pvBtn.textContent='Back to editing'; st('');
   });
@@ -331,8 +331,8 @@ function openCreateTemplateModal(mode){
     if(tab==='paste'){
       const html=editor.get();
       const text=richToText(html);
-      if(!text.trim()){ st('<span style="color:#8f322b">Paste the contract into the box first.</span>'); return; }
-      if(text.length<40){ st('<span style="color:#8f322b">That is too short to be a template — paste the whole document.</span>'); return; }
+      if(!text.trim()){ st('<span style="color:var(--st-ruby-fg)">Paste the contract into the box first.</span>'); return; }
+      if(text.length<40){ st('<span style="color:var(--st-ruby-fg)">That is too short to be a template — paste the whole document.</span>'); return; }
       if(report && !report.ok && !await confirmDialog({
         title:'The conversion looks incomplete',
         message:`${report.reason} Saving now stores it as it appears in the box above.`,
@@ -358,7 +358,7 @@ function openCreateTemplateModal(mode){
 
     /* ---- the secondary route: a file ---- */
     const file=document.getElementById('ct-file').files[0];
-    if(!file){ st('<span style="color:#8f322b">Choose a file.</span>'); return; }
+    if(!file){ st('<span style="color:var(--st-ruby-fg)">Choose a file.</span>'); return; }
     if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
     st('Reading file…');
     try{
@@ -366,7 +366,7 @@ function openCreateTemplateModal(mode){
       // Legacy .doc is refused on the bytes, not the extension — nothing is saved.
       const wordKind=detectWordFile(dataUrl, file.type||'', file.name);
       if(wordKind==='doc'){
-        st(`<span style="color:#8f322b">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> using the other tab — that keeps the formatting too.</span>`); return; }
+        st(`<span style="color:var(--st-ruby-fg)">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> using the other tab — that keeps the formatting too.</span>`); return; }
       st('Reading the document and rebuilding its structure…');
       // Recover the document's SHAPE, not just its words — headings, bold,
       // italics, clause numbering and indentation are all stated by the PDF and
@@ -387,7 +387,7 @@ function openCreateTemplateModal(mode){
         // OCR returns words with no type information, so a scan is plain text
         if(ocr.text){ text=ocr.text; rich={ html:'', text, format:TEXT_FORMAT, summary:null }; }
       }
-      if(!text||text.length<40){ st('<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, re-scan it at a higher resolution, or paste the document instead.</span>'); return; }
+      if(!text||text.length<40){ st('<span style="color:var(--st-ruby-fg)">Could not extract readable text from this file — try a text-based PDF, re-scan it at a higher resolution, or paste the document instead.</span>'); return; }
       const isRichBody = isRich(rich.format) && !!rich.html;
       const body = isRichBody ? rich.html : text;
       const found=detectBlanks(text).filter(d=>body.includes(d.raw));
@@ -405,7 +405,7 @@ function openCreateTemplateModal(mode){
       if(state.view==='templates') renderTemplatesPage();
       updateSidebarCounts();
       if(extra&&extra.fields) setTimeout(()=>openBlanksEditor(rec.id), 120);
-    }catch(e){ st('<span style="color:#8f322b">Extraction failed: '+_tplEsc(e.message)+'</span>'); }
+    }catch(e){ st('<span style="color:var(--st-ruby-fg)">Extraction failed: '+_tplEsc(e.message)+'</span>'); }
   });
 
   paint();
@@ -496,14 +496,14 @@ function openBlanksEditor(tid){
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
     const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 7px;font:inherit;font-size:11.5px;outline:none';
     const rows=fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.05)">
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
         <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="Label" style="${st}"/>
         <select data-f="type" style="${st}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${st}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="Remove this blank" style="border:1px solid #e6c9c1;background:none;color:#8f322b;border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
+        <button data-del="${i}" title="Remove this blank" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="Choices, comma separated" style="${st};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:#8f322b">— this blank is not used anywhere in the body</span>':''}</div>
+        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:var(--st-ruby-fg)">— this blank is not used anywhere in the body</span>':''}</div>
       </div>`).join('');
     const host=document.getElementById('be-fields');
     if(host){
@@ -531,7 +531,7 @@ function openBlanksEditor(tid){
     }
     const warn=document.getElementById('be-warn');
     if(warn) warn.innerHTML = orphanBlanks.length
-      ? `<span style="color:#8f322b">${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'} in the body (${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')}) ${orphanBlanks.length===1?'has':'have'} no field — add or remove them before saving.</span>`
+      ? `<span style="color:var(--st-ruby-fg)">${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'} in the body (${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')}) ${orphanBlanks.length===1?'has':'have'} no field — add or remove them before saving.</span>`
       : `<span style="color:var(--color-neutral-600)">${fields.length} blank${fields.length===1?'':'s'} · they become the contract's structured data when someone fills this template in.</span>`;
   };
 
@@ -565,8 +565,8 @@ function openBlanksEditor(tid){
   document.getElementById('be-make').addEventListener('click',async()=>{
     const picked=rich?_richSelection(bodyEl):null;
     const sel=(rich ? (picked?picked.text:'') : bodyEl.value.slice(bodyEl.selectionStart,bodyEl.selectionEnd)).trim();
-    if(!sel){ status('<span style="color:#8f322b">Select the text in the document that should become a blank first.</span>'); return; }
-    if(sel.length>200){ status('<span style="color:#8f322b">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
+    if(!sel){ status('<span style="color:var(--st-ruby-fg)">Select the text in the document that should become a blank first.</span>'); return; }
+    if(sel.length>200){ status('<span style="color:var(--st-ruby-fg)">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
     const label=await promptDialog({
       title:'Name this blank',
       message:`“${sel.length<=60?sel:sel.slice(0,60)+'…'}” becomes a fill-in field. The name is what the person using this template sees when they are asked for it.`,
@@ -581,7 +581,7 @@ function openBlanksEditor(tid){
       // document, then re-serialise through the sanitiser. The surrounding
       // formatting is untouched because only the range's contents move.
       const next=_richReplaceRange(bodyEl, picked, '{{'+key+'}}');
-      if(next==null){ status('<span style="color:#8f322b">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
+      if(next==null){ status('<span style="color:var(--st-ruby-fg)">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
       body=next;
     } else {
       body=bodyEl.value.slice(0,bodyEl.selectionStart)+'{{'+key+'}}'+bodyEl.value.slice(bodyEl.selectionEnd);
@@ -626,7 +626,7 @@ function openBlanksEditor(tid){
       }
       dirty=true; draw();
       status(`<b>${added}</b> suggestion${added===1?'':'s'} added${missed?`, ${missed} skipped (the text no longer matched)`:''}. <b>Review and edit them</b> — nothing is saved until you press Save blanks.${r.note?`<br><span style="color:var(--color-neutral-500)">${_tplEsc(r.note)}</span>`:''}`);
-    }catch(err){ status(`<span style="color:#8f322b">${_tplEsc(err.message)}</span>`); }
+    }catch(err){ status(`<span style="color:var(--st-ruby-fg)">${_tplEsc(err.message)}</span>`); }
     btn.disabled=false; btn.innerHTML=was;
   });
 
@@ -639,11 +639,11 @@ function openBlanksEditor(tid){
   document.getElementById('be-save').addEventListener('click',()=>{
     const used=bodyPlaceholders(body);
     const orphan=used.filter(k=>!fields.some(f=>f.key===k));
-    if(orphan.length){ status(`<span style="color:#8f322b">The body uses ${orphan.map(k=>'{{'+k+'}}').join(', ')} with no matching field. Add the field or remove the placeholder.</span>`); return; }
+    if(orphan.length){ status(`<span style="color:var(--st-ruby-fg)">The body uses ${orphan.map(k=>'{{'+k+'}}').join(', ')} with no matching field. Add the field or remove the placeholder.</span>`); return; }
     const bad=fields.find(f=>!String(f.label||'').trim());
-    if(bad){ status('<span style="color:#8f322b">Every blank needs a label.</span>'); return; }
+    if(bad){ status('<span style="color:var(--st-ruby-fg)">Every blank needs a label.</span>'); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
-    if(badSel){ status(`<span style="color:#8f322b">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
+    if(badSel){ status(`<span style="color:var(--st-ruby-fg)">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
     updateTemplateRecord(tid, { fields, body, chars:bodyText().length });
     closeModal(); toast(`${fields.length} blank${fields.length===1?'':'s'} saved on “${rec.name}”`);
     if(state.view==='templates') renderTemplatesPage();
@@ -763,7 +763,7 @@ function openTemplateEditor(tid){
 
     <div id="te-status" style="font-size:11px;min-height:16px;margin-bottom:8px"></div>
     <div style="display:flex;justify-content:space-between;gap:8px">
-      <button id="te-delete" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Delete template</button>
+      <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">Delete template</button>
       <span style="display:flex;gap:8px">
         <button id="te-cancel" class="ui-btn">Cancel</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
@@ -785,7 +785,7 @@ function openTemplateEditor(tid){
       const r=pasteConversionReport(body, res.plain||'');
       st(r.ok
         ? `<span style="color:var(--color-neutral-700)">Pasted ${richToText(body).length.toLocaleString()} characters.${res.via==='text'?' The source offered no formatting, so this came in as plain text.':''} <b>Preview</b> before saving.</span>`
-        : `<span style="color:#8f322b"><b>That did not come across properly.</b> ${_tplEsc(r.reason)} Undo (Ctrl+Z) and paste again, or use the plain-text version.</span>`);
+        : `<span style="color:var(--st-ruby-fg)"><b>That did not come across properly.</b> ${_tplEsc(r.reason)} Undo (Ctrl+Z) and paste again, or use the plain-text version.</span>`);
       markEmpty(); drawFields();
     },
   });
@@ -804,14 +804,14 @@ function openTemplateEditor(tid){
     const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 7px;font:inherit;font-size:11.5px;outline:none';
     const host2=document.getElementById('te-fields'); if(!host2) return;
     host2.innerHTML=fields.length?fields.map((f,i)=>`
-      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.05)">
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
         <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="Label" style="${stl}"/>
         <select data-f="type" style="${stl}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${stl}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="Remove this blank" style="border:1px solid #e6c9c1;background:none;color:#8f322b;border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
+        <button data-del="${i}" title="Remove this blank" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="Choices, comma separated" style="${stl};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:#8f322b">— not used anywhere in the document above</span>':''}</div>
+        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:var(--st-ruby-fg)">— not used anywhere in the document above</span>':''}</div>
       </div>`).join('')
       :`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0">No blanks. Select a value in the document above and press <b>Make selection a blank</b>.</div>`;
     host2.querySelectorAll('[data-fld]').forEach(row=>{
@@ -840,8 +840,8 @@ function openTemplateEditor(tid){
     if(warn){
       const act=(a,k,label)=>`<button type="button" data-fix="${a}" data-k="${k}" style="border:0;background:none;padding:0;font:inherit;font-size:inherit;font-weight:600;color:inherit;text-decoration:underline;cursor:pointer">${label}</button>`;
       const bits=[];
-      if(orphanBlanks.length) bits.push(`<span style="display:block;color:#8f322b"><b>${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'}</b> in the document with no matching blank: ${orphanBlanks.map(k=>`{{${k}}} — ${act('mk',k,'create the blank')} or ${act('rm',k,'remove it from the document')}`).join('; ')}. Saving is blocked until this is resolved: an unmatched placeholder prints as literal braces in every contract.</span>`);
-      if(orphanFields.length) bits.push(`<span style="display:block;color:#7d5a14;margin-top:3px"><b>${orphanFields.length} blank${orphanFields.length===1?'':'s'}</b> no longer used in the document: ${orphanFields.map(f=>`${_tplEsc(f.label||f.key)} — ${act('del',f.key,'remove the blank')} or ${act('ins',f.key,'put {{'+f.key+'}} back at the end')}`).join('; ')}. Left as-is ${orphanFields.length===1?'it':'they'} will still be asked for, and the answer will go nowhere.</span>`);
+      if(orphanBlanks.length) bits.push(`<span style="display:block;color:var(--st-ruby-fg)"><b>${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'}</b> in the document with no matching blank: ${orphanBlanks.map(k=>`{{${k}}} — ${act('mk',k,'create the blank')} or ${act('rm',k,'remove it from the document')}`).join('; ')}. Saving is blocked until this is resolved: an unmatched placeholder prints as literal braces in every contract.</span>`);
+      if(orphanFields.length) bits.push(`<span style="display:block;color:var(--st-amber-fg);margin-top:3px"><b>${orphanFields.length} blank${orphanFields.length===1?'':'s'}</b> no longer used in the document: ${orphanFields.map(f=>`${_tplEsc(f.label||f.key)} — ${act('del',f.key,'remove the blank')} or ${act('ins',f.key,'put {{'+f.key+'}} back at the end')}`).join('; ')}. Left as-is ${orphanFields.length===1?'it':'they'} will still be asked for, and the answer will go nowhere.</span>`);
       warn.innerHTML = bits.length?bits.join('')
         : `<span style="color:var(--color-neutral-600)">${fields.length} blank${fields.length===1?'':'s'}, all present in the document.</span>`;
       warn.querySelectorAll('[data-fix]').forEach(b=>b.addEventListener('click',()=>{
@@ -879,8 +879,8 @@ function openTemplateEditor(tid){
   document.getElementById('te-blank').addEventListener('click',async()=>{
     const picked=_richSelection(host);
     const sel=(picked?picked.text:'').trim();
-    if(!sel){ st('<span style="color:#8f322b">Select the value in the document that should become a blank first.</span>'); return; }
-    if(sel.length>200){ st('<span style="color:#8f322b">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
+    if(!sel){ st('<span style="color:var(--st-ruby-fg)">Select the value in the document that should become a blank first.</span>'); return; }
+    if(sel.length>200){ st('<span style="color:var(--st-ruby-fg)">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
     const label=await promptDialog({
       title:'Name this blank',
       message:`“${sel.length<=60?sel:sel.slice(0,60)+'…'}” becomes a fill-in field. The name is what the person using this template sees when they are asked for it.`,
@@ -890,7 +890,7 @@ function openTemplateEditor(tid){
     const lbl=String(label).trim()||sel.slice(0,40);
     const key=tplKeyFrom(lbl, fields);
     const next=_richReplaceRange(host, picked, '{{'+key+'}}');
-    if(next==null){ st('<span style="color:#8f322b">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
+    if(next==null){ st('<span style="color:var(--st-ruby-fg)">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
     body=next; format=RICH_FORMAT;
     const shape=guessFieldShape(lbl);
     fields.push({ key, label:lbl, type:shape.type, maps:shape.maps, required:!!shape.maps, def:'', opts:[] });
@@ -923,11 +923,11 @@ function openTemplateEditor(tid){
 
   document.getElementById('te-save').addEventListener('click',async()=>{
     const nm=document.getElementById('te-name').value.trim();
-    if(!nm){ st('<span style="color:#8f322b">The template needs a name.</span>'); return; }
+    if(!nm){ st('<span style="color:var(--st-ruby-fg)">The template needs a name.</span>'); return; }
     if(previewing) pvBtn.click();
     if(isRich(format)) body=unmarkPlaceholders(editor.get());
     const text=bodyText();
-    if(!text.trim()){ st('<span style="color:#8f322b">The document cannot be empty.</span>'); return; }
+    if(!text.trim()){ st('<span style="color:var(--st-ruby-fg)">The document cannot be empty.</span>'); return; }
 
     // the blank/body sync warnings are BLOCKING in one direction and advisory in
     // the other: a placeholder with no field would render as literal braces in
@@ -935,7 +935,7 @@ function openTemplateEditor(tid){
     // just asks a pointless question, which the user may well intend mid-edit.
     const used=usedIn();
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
-    if(orphanBlanks.length){ st(`<span style="color:#8f322b">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
+    if(orphanBlanks.length){ st(`<span style="color:var(--st-ruby-fg)">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
     const orphanFields=fields.filter(f=>!used.includes(f.key));
     if(orphanFields.length && !await confirmDialog({
       title:`Save with ${orphanFields.length} unused blank${orphanFields.length===1?'':'s'}?`,
@@ -943,9 +943,9 @@ function openTemplateEditor(tid){
         `${orphanFields.length===1?'It':'They'} will still be asked for when someone uses this template, and the answer will not appear in the contract.`,
       confirmLabel:'Save anyway', cancelLabel:'Go back and fix it' })) return;
     const bad=fields.find(f=>!String(f.label||'').trim());
-    if(bad){ st('<span style="color:#8f322b">Every blank needs a label.</span>'); return; }
+    if(bad){ st('<span style="color:var(--st-ruby-fg)">Every blank needs a label.</span>'); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
-    if(badSel){ st(`<span style="color:#8f322b">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
+    if(badSel){ st(`<span style="color:var(--st-ruby-fg)">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
 
     const note=document.getElementById('te-note').value.trim();
     const next=saveTemplateVersion(tid, {
@@ -1116,10 +1116,10 @@ function openBulkCreateModal(t){
       if(r.errors.length){
         const byRow={};
         r.errors.forEach(er=>{ (byRow[er.row]=byRow[er.row]||[]).push(er); });
-        out.innerHTML=`<div style="border:1px solid #e6c9c1;background:#fdf4f2;border-radius:5px;padding:9px 11px">
-          <div style="font-weight:600;color:#8f322b;margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>nothing has been created</b>.</div>
+        out.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:9px 11px">
+          <div style="font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>nothing has been created</b>.</div>
           <div class="scroll-thin" style="max-height:200px;overflow-y:auto">
-          ${Object.keys(byRow).sort((a,b)=>a-b).map(rn=>`<div style="padding:2px 0;color:#8f322b">
+          ${Object.keys(byRow).sort((a,b)=>a-b).map(rn=>`<div style="padding:2px 0;color:var(--st-ruby-fg)">
             ${rn==='0'?'<b>Sheet</b>':`<b>Row ${rn}</b>`} — ${byRow[rn].map(er=>`${er.cell?`<i>${_tplEsc(er.cell)}</i>: `:''}${_tplEsc(er.msg)}`).join('; ')}</div>`).join('')}
           </div>
           <div style="margin-top:6px;color:var(--color-neutral-700)">Fix them in the spreadsheet and upload it again.</div></div>`;
@@ -1130,7 +1130,7 @@ function openBulkCreateModal(t){
         <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> Press <b>Create drafts</b> to file them all in one pass.
         <div style="margin-top:5px;color:var(--color-neutral-700);font-size:11px">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';
-    }catch(err){ out.innerHTML=`<span style="color:#8f322b">Could not read that CSV: ${_tplEsc(err.message)}</span>`; }
+    }catch(err){ out.innerHTML=`<span style="color:var(--st-ruby-fg)">Could not read that CSV: ${_tplEsc(err.message)}</span>`; }
   });
   go.addEventListener('click',()=>{
     if(!ready||!ready.length) return;
@@ -1214,7 +1214,7 @@ function renderTemplatesPage(){
         ${canManage?`<button data-tpl-edit="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Edit</button>`:''}
         <button data-tpl-prev="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Preview</button>
         <button data-tpl-vers="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Version history — ${templateVersions(t).length+1} version${templateVersions(t).length?'s':''}">${icon('history','w-3 h-3')}</button>
-        ${canManage?`<button data-tpl-del="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 8px;border-color:#e6c9c1;color:#8f322b" title="Delete template">${icon('trash','w-3 h-3')}</button>`:''}
+        ${canManage?`<button data-tpl-del="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 8px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" title="Delete template">${icon('trash','w-3 h-3')}</button>`:''}
       </div>
       ${canManage?`<div style="display:flex;gap:6px">
         <button data-tpl-blanks="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;flex:1">${templateFields(t).length?`${templateFields(t).length} blank${templateFields(t).length===1?'':'s'}`:'Add blanks'}</button>
@@ -1242,14 +1242,14 @@ function renderTemplatesPage(){
 
   const already=new Set(my.filter(t=>t.source&&t.source.startsWith('sample:')).map(t=>t.source.slice(7)));
   const sampleRows=HATI_SAMPLES.map((s,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(29,31,32,.06)">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent)">
       <span style="color:var(--color-neutral-500)">${icon('file','w-4 h-4')}</span>
       <span style="min-width:0;flex:1">
         <span style="display:block;font-size:12px;font-weight:500">${s.name}</span>
         <span style="display:block;font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono)">${s.file} · ${FOLDERS[s.folder].name}</span>
       </span>
       ${already.has(s.file)
-        ?`<span class="badge" style="background:#e8f4ee;color:#1e6b4d"><span class="dot" style="background:#2e8763"></span>Imported</span>`
+        ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>Imported</span>`
         :canManage?`<button data-sample-imp="${i}" class="ui-btn" style="font-size:11px;padding:4px 10px;flex:none">Import as template</button>`:''}
     </div>`).join('');
 
@@ -1323,12 +1323,12 @@ function renderPlaybookPage(){
     .filter(x=>x.s&&(x.s.dev+x.s.miss)>0)
     .sort((a,b)=>(b.s.dev+b.s.miss)-(a.s.dev+a.s.miss)).slice(0,8);
   const devHtml=devRows.length?devRows.map(x=>`
-    <button data-dev-open="${x.c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+    <button data-dev-open="${x.c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.c.name}</span>
         <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${x.c.id} · ${x.c.counterparty||'—'}</span>
       </span>
-      <span class="badge" style="background:#fbf4e3;color:#7d5a14;flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
+      <span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
     </button>`).join('')
     :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0;line-height:1.6">No playbook deviations recorded yet. Run the <b>Copilot review</b> from a contract's workspace — deviations from these positions will be listed here.</p>`;
 

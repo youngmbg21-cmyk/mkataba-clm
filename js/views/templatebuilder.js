@@ -70,9 +70,9 @@ function tbPaint() {
       <div style="min-width:0;flex:1">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
           <span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-600)" title="${esc(meta.tip)}">${meta.label}</span>
-          ${b.blockType === 'field_group' && !/\{\{[a-z0-9_]+\}\}/.test(b.content) ? `<span style="font-size:10px;color:#8a5a19">no {{placeholder}} yet</span>` : ''}
+          ${b.blockType === 'field_group' && !/\{\{[a-z0-9_]+\}\}/.test(b.content) ? `<span style="font-size:10px;color:var(--st-amber-fg)">no {{placeholder}} yet</span>` : ''}
           <span style="flex:1"></span>
-          <button data-tb-del="${i}" class="ui-btn" style="padding:2px 7px;font-size:10px;border-color:#e6c9c1;color:#8f322b" title="Remove block">${icon('x', 'w-3 h-3')}</button>
+          <button data-tb-del="${i}" class="ui-btn" style="padding:2px 7px;font-size:10px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" title="Remove block">${icon('x', 'w-3 h-3')}</button>
         </div>
         ${editor}
       </div>
@@ -83,20 +83,20 @@ function tbPaint() {
     const lib = (window.FIELD_LIB || {})[f.fieldType] || { label: f.fieldType };
     const uses = tbPlaceholderUse(f.fieldKey);
     const conf = f.detectionConfidence !== 'manual' && !f.humanReviewed
-      ? `<span class="badge" style="background:${f.detectionConfidence === 'low' ? '#fbeaea' : '#fdf3e2'};color:${f.detectionConfidence === 'low' ? '#8f322b' : '#8a5a19'}" title="Detected by the converter — not yet reviewed">${f.detectionConfidence} confidence</span>` : '';
+      ? `<span class="badge" style="background:${f.detectionConfidence === 'low' ? '#fbeaea' : '#fdf3e2'};color:${f.detectionConfidence === 'low' ? 'var(--st-ruby-fg)' : 'var(--st-amber-fg)'}" title="Detected by the converter — not yet reviewed">${f.detectionConfidence} confidence</span>` : '';
     return `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--color-divider)">
       <span style="min-width:0;flex:1">
         <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <b style="font-size:12px">${esc(f.label || f.fieldKey)}</b>
-          ${f.required ? '<span style="color:#8f322b;font-size:11px" title="Required">*</span>' : ''}
+          ${f.required ? '<span style="color:var(--st-ruby-fg);font-size:11px" title="Required">*</span>' : ''}
           ${conf}
         </span>
-        <span style="display:block;font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono)">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? `in ${uses} block${uses === 1 ? '' : 's'}` : '<span style="color:#8a5a19">unplaced</span>'}</span>
+        <span style="display:block;font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono)">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? `in ${uses} block${uses === 1 ? '' : 's'}` : '<span style="color:var(--st-amber-fg)">unplaced</span>'}</span>
       </span>
       <button data-tb-fcopy="${i}" class="ui-btn" style="font-size:10px;padding:2px 8px" title="Copy the placeholder to paste into a block">${icon('copy', 'w-3 h-3')}</button>
       <button data-tb-fedit="${i}" class="ui-btn" style="font-size:10px;padding:2px 8px">Edit</button>
-      <button data-tb-fdel="${i}" class="ui-btn" style="font-size:10px;padding:2px 7px;border-color:#e6c9c1;color:#8f322b">${icon('x', 'w-3 h-3')}</button>
+      <button data-tb-fdel="${i}" class="ui-btn" style="font-size:10px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
     </div>`;
   }).join('');
 

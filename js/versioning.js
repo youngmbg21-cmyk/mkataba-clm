@@ -285,8 +285,8 @@ function diffHtml(aStr, bStr){
   // clear diff convention: additions emerald, deletions ruby (struck through)
   return wordDiff(aStr,bStr).map(p=>
     p.t==='eq' ? esc(p.text)
-    : p.t==='add' ? `<ins style="background:#d9eae0;color:#1e6b4d;text-decoration:none;border-radius:2px;padding:0 1px">${esc(p.text)}</ins>`
-    : `<del style="background:#f1dcd8;color:#8f322b;border-radius:2px;padding:0 1px">${esc(p.text)}</del>`).join('');
+    : p.t==='add' ? `<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:2px;padding:0 1px">${esc(p.text)}</ins>`
+    : `<del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:2px;padding:0 1px">${esc(p.text)}</del>`).join('');
 }
 function diffStats(aStr,bStr){ let add=0,del=0; wordDiff(aStr,bStr).forEach(p=>{ const w=p.text.trim()?p.text.trim().split(/\s+/).length:0; if(p.t==='add') add+=w; else if(p.t==='del') del+=w; }); return {add,del}; }
 
@@ -455,9 +455,9 @@ function renderVersionsSection(c){
   document.getElementById('ver-compare')?.addEventListener('click',()=>openCompareModal(c));
 }
 
-const _diffLegend = `<span style="display:inline-flex;align-items:center;gap:8px"><ins style="background:#d9eae0;color:#1e6b4d;text-decoration:none;border-radius:2px;padding:0 4px">added</ins><del style="background:#f1dcd8;color:#8f322b;border-radius:2px;padding:0 4px">removed</del></span>`;
+const _diffLegend = `<span style="display:inline-flex;align-items:center;gap:8px"><ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:2px;padding:0 4px">added</ins><del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:2px;padding:0 4px">removed</del></span>`;
 const _diffBox = (a,b)=>`<div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-surface);padding:14px 16px;font-size:12.5px;line-height:1.85;color:var(--color-doc-text);max-height:56vh;overflow-y:auto;white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a,b)}</div>`;
-const _statLine = (st)=>`<span style="font-weight:600;color:#1e6b4d">+${st.add}</span> added · <span style="font-weight:600;color:#8f322b">−${st.del}</span> removed`;
+const _statLine = (st)=>`<span style="font-weight:600;color:var(--st-green-fg)">+${st.add}</span> added · <span style="font-weight:600;color:var(--st-ruby-fg)">−${st.del}</span> removed`;
 
 function openDiffModal(aText, bText, labelA, labelB){
   const st=diffStats(aText,bText);
@@ -567,8 +567,8 @@ function reviewProposedRound(c, n){
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:7px;padding:11px 13px">
       ${b.context?`<div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:6px">…${e(b.context)}</div>`:''}
       <div style="font-size:13px;line-height:1.7">
-        ${b.before.trim()?`<del style="background:#f1dcd8;color:#8f322b;border-radius:2px;padding:0 2px">${e(b.before.trim())}</del> `:''}
-        ${b.after.trim()?`<ins style="background:#d9eae0;color:#1e6b4d;text-decoration:none;border-radius:2px;padding:0 2px">${e(b.after.trim())}</ins>`:''}
+        ${b.before.trim()?`<del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:2px;padding:0 2px">${e(b.before.trim())}</del> `:''}
+        ${b.after.trim()?`<ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:2px;padding:0 2px">${e(b.after.trim())}</ins>`:''}
       </div>
       ${ask?`<div style="margin-top:8px;border-left:2px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0 4px 4px 0;padding:7px 10px">
         <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px">Why they asked</span>
@@ -585,9 +585,9 @@ function reviewProposedRound(c, n){
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
         <div style="${COL}">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-            <span style="color:#b8862b;display:inline-flex">${icon('history','w-4 h-4')}</span>
+            <span style="color:var(--st-amber-dot);display:inline-flex">${icon('history','w-4 h-4')}</span>
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Changes proposed by ${e(r.by||'the counterparty')}</h3>
-            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:3px 9px">Round ${n} · open</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:3px 9px">Round ${n} · open</span>
           </div>
           <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${fmtDT(r.at)} · ${_statLine(st)} · ${_diffLegend}</p>
         </div>
@@ -603,7 +603,7 @@ function reviewProposedRound(c, n){
             </div>
             <div id="pr-blocks" style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">${blocks.map(blockRow).join('')}</div>`:''}
           <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">The document, with their changes marked</div>
-          <div style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
+          <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
           ${r.comment?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px 16px">
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Their comment</div>
             <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${e(r.comment)}</div></div>`:''}
@@ -618,7 +618,7 @@ function reviewProposedRound(c, n){
           <span id="pr-summary" style="font-size:11.5px;color:var(--color-neutral-600)"></span>
           <span style="flex:1"></span>
           <button id="pr-close" class="ui-btn">Decide later</button>
-          <button id="pr-reject" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Reject the round</button>
+          <button id="pr-reject" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">Reject the round</button>
           <button id="pr-accept" class="ui-btn ui-btn-primary">Apply my decisions</button>
         </div>
       </div>
@@ -630,11 +630,11 @@ function reviewProposedRound(c, n){
       const on=decisions[b.id]==='accept';
       if(on) acc++;
       const tag=document.querySelector(`[data-state="${b.id}"]`);
-      if(tag){ tag.textContent=on?'Accepted':'Rejected'; tag.style.color=on?'#1e6b4d':'#8f322b'; }
+      if(tag){ tag.textContent=on?'Accepted':'Rejected'; tag.style.color=on?'var(--st-green-fg)':'var(--st-ruby-fg)'; }
       document.querySelectorAll(`[data-for="${b.id}"]`).forEach(btn=>{
         const active=(btn.getAttribute('data-dec')==='accept')===on;
-        btn.style.background=active?(on?'#d9eae0':'#f1dcd8'):'';
-        btn.style.borderColor=active?(on?'#2e8763':'#b0453c'):'';
+        btn.style.background=active?(on?'var(--st-green-bg)':'var(--st-ruby-bg)'):'';
+        btn.style.borderColor=active?(on?'var(--st-green-dot)':'var(--st-ruby-dot)'):'';
         btn.style.fontWeight=active?'700':'';
       });
     }

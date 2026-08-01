@@ -740,15 +740,15 @@ function labSeed(c, lab){
    ============================================================ */
 const LAB_CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
 const LAB_H6   = 'margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
-const LAB_GOLD = '#8a6a2a';
+const LAB_GOLD = 'var(--st-amber-fg)';
 
 function labChip(text, kind){
   const pal = {
-    internal: `background:#f4ecd8;color:${LAB_GOLD};border:1px solid rgba(138,106,42,.28)`,
+    internal: `background:var(--st-amber-bg);color:${LAB_GOLD};border:1px solid rgba(138,106,42,.28)`,
     shared:   'background:var(--color-accent-100);color:var(--color-accent-800);border:1px solid var(--color-accent-300)',
     open:     'background:var(--color-bg);color:var(--color-neutral-700);border:1px solid var(--color-divider)',
-    good:     'background:#e6f1ec;color:#1e6b4d;border:1px solid rgba(30,107,77,.25)',
-    bad:      'background:#f9ecea;color:#8f322b;border:1px solid rgba(143,50,43,.22)',
+    good:     'background:var(--st-green-bg);color:var(--st-green-fg);border:1px solid rgba(30,107,77,.25)',
+    bad:      'background:var(--st-ruby-bg);color:var(--st-ruby-fg);border:1px solid rgba(143,50,43,.22)',
     draft:    `background:transparent;color:${LAB_GOLD};border:1px dashed rgba(138,106,42,.5)`,
     quiet:    'background:transparent;color:var(--color-neutral-600);border:1px solid var(--color-divider)'
   }[kind] || '';
@@ -1511,7 +1511,7 @@ function labNoteCompose(ctx){
       <textarea data-note-text placeholder="What should the next reader know?" spellcheck="true"></textarea>
       <div style="display:flex;gap:0;border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
         <button type="button" class="ui-btn" data-note-vis="${LAB_INTERNAL}" aria-pressed="true"
-          style="flex:1;border:0;border-radius:0;font-size:11.5px;background:#f4ecd8;color:${LAB_GOLD};font-weight:600">🔒 Internal</button>
+          style="flex:1;border:0;border-radius:0;font-size:11.5px;background:var(--st-amber-bg);color:${LAB_GOLD};font-weight:600">🔒 Internal</button>
         <button type="button" class="ui-btn" data-note-vis="${LAB_SHARED}" aria-pressed="false"
           style="flex:1;border:0;border-left:1px solid var(--color-divider);border-radius:0;font-size:11.5px">🌐 Share</button>
       </div>
@@ -1533,15 +1533,15 @@ function labNoteCompose(ctx){
     pop.querySelectorAll('[data-note-vis]').forEach(o => {
       const on = o === btn;
       o.setAttribute('aria-pressed', String(on));
-      o.style.background = on ? (vis === LAB_SHARED ? '#e0e7ff' : '#f4ecd8') : '';
-      o.style.color = on ? (vis === LAB_SHARED ? '#3730a3' : LAB_GOLD) : '';
+      o.style.background = on ? (vis === LAB_SHARED ? 'var(--lab-indigo-bg)' : 'var(--st-amber-bg)') : '';
+      o.style.color = on ? (vis === LAB_SHARED ? 'var(--lab-indigo-fg)' : LAB_GOLD) : '';
       o.style.fontWeight = on ? '600' : '';
     });
     const hint = pop.querySelector('[data-note-hint]');
     hint.textContent = vis === LAB_SHARED
       ? `${c.counterparty || 'The counterparty'} will be able to read this once the change is sent.`
       : `Stays inside ${window.FIRST_PARTY || 'your organisation'}. It is not in the share payload.`;
-    hint.style.color = vis === LAB_SHARED ? '#3730a3' : LAB_GOLD;
+    hint.style.color = vis === LAB_SHARED ? 'var(--lab-indigo-fg)' : LAB_GOLD;
   }));
   const save = () => {
     const t = pop.querySelector('[data-note-text]').value;
@@ -1756,7 +1756,7 @@ function labThreadHtml(t, opts){
   <div class="lab-thread${t.changeId && t.changeId === _labLinked ? ' is-linked' : ''}${
     clauseId && clauseId === _labFocus ? ' is-focus' : ''}" data-lab-thread="${esc(t.id)}"${
     t.changeId ? ` data-lab-thread-change="${esc(t.changeId)}"` : ''}${
-    clauseId ? ` data-lab-thread-clause="${esc(clauseId)}"` : ''} style="border:1px solid ${internal ? 'rgba(138,106,42,.35)' : 'var(--color-divider)'};background:${internal ? '#faf5e9' : 'var(--color-surface)'};border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;${resolved ? 'opacity:.66' : ''}">
+    clauseId ? ` data-lab-thread-clause="${esc(clauseId)}"` : ''} style="border:1px solid ${internal ? 'rgba(138,106,42,.35)' : 'var(--color-divider)'};background:${internal ? 'var(--st-amber-bg)' : 'var(--color-surface)'};border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;${resolved ? 'opacity:.66' : ''}">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       ${''/* SPELT OUT, not abbreviated. "Internal" and "Shared" read as
              categories; a person scanning a thread needs to know at a glance
@@ -1768,7 +1768,7 @@ function labThreadHtml(t, opts){
     </div>
     <div style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(t.topicLabel || 'The contract generally')}</div>
     ${msgs}
-    ${resolved ? `<div style="font-size:10.5px;color:#1e6b4d">Closed${t.resolvedAt ? ' on ' + esc(fmtDT(t.resolvedAt)) : ''}${
+    ${resolved ? `<div style="font-size:10.5px;color:var(--st-green-fg)">Closed${t.resolvedAt ? ' on ' + esc(fmtDT(t.resolvedAt)) : ''}${
       owner && t.resolvedBy ? ' by ' + esc(t.resolvedBy.name) : (t.resolvedByOrg ? ' by ' + esc(t.resolvedByOrg) : '')}</div>` : ''}
     ${owner && !resolved ? `<div><button class="ui-btn" data-lab-resolve="${esc(t.id)}" style="font-size:11px;padding:4px 10px">Mark resolved</button></div>` : ''}
   </div>`;
@@ -1820,7 +1820,7 @@ function labModeBannerHtml(c, lab, side, external){
   const acts = (split.theirs.length || split.held.length) ? `
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px">
       <button class="ui-btn" id="lab-batch-rej"${split.theirs.length ? '' : ' disabled'}
-        style="font-size:11.5px;padding:4px 11px;border-color:#b0453c;color:#b0453c"
+        style="font-size:11.5px;padding:4px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)"
         title="Rejects every pending change proposed by the other side. Your own drafts are untouched.">Reject All Counterparty Redlines${split.theirs.length ? ` (${split.theirs.length})` : ''}</button>
       ${split.held.length ? `<span style="font-size:11px;color:${LAB_GOLD};align-self:center">${split.held.length} held back for a person</span>` : ''}
     </div>` : '';
@@ -1967,7 +1967,7 @@ function labStatusHeaderHtml(c, lab, side, external, held, payload){
         </div>
         ${external ? '' : `
         <button id="lab-batch-acc" class="ui-btn" type="button"${bsplit.clear.length ? '' : ' disabled'}
-          style="border-color:#1e6b4d;color:#1e6b4d"
+          style="border-color:var(--st-green-fg);color:var(--st-green-fg)"
           title="Accepts only the pending changes that trip no playbook, scan or rewrite signal — the rest are held back for you to read">✨ Accept All Non-Risk${bsplit.clear.length ? ` (${bsplit.clear.length})` : ''}</button>
         <button id="lab-publish-round" class="ui-btn ui-btn-primary" type="button"${unsent.length ? '' : ' disabled'}
           title="Collapses each clause's internal stack into one clean diff from the last agreed wording, and sends the lot as one turn">📤 Publish Round${roundClauses.length ? ` (${roundClauses.length})` : ''}</button>`}
@@ -2099,8 +2099,26 @@ function renderDocLab(){
 
   content.innerHTML = `
   <style>
-    .lab-ins{color:#1e6b4d;background:rgba(46,135,99,.12);border-radius:2px;padding:0 2px;font-weight:600;text-decoration:none}
-    .lab-del{color:#8f322b;background:rgba(176,69,60,.10);border-radius:2px;padding:0 2px;text-decoration:line-through}
+    /* ---- view-local theme tokens ----
+       The lab's indigo/violet/blue accents keep their hue on both themes:
+       light theme keeps the original values, html.dark swaps them for
+       translucent washes of the same vivid mid-tones with light foregrounds. */
+    :root{
+      --lab-indigo-bg:#e0e7ff; --lab-indigo-fg:#3730a3; --lab-indigo-line:#c7d2fe;
+      --lab-indigo-hover:#c7d2fe;
+      --lab-violet-bg:#ede9fe; --lab-violet-fg:#5b21b6; --lab-violet-line:#ddd6fe;
+      --lab-note-own-bg:#eff6ff; --lab-note-own-fg:#1e3a8a; --lab-note-own-line:#bfdbfe;
+      --lab-note-cp-bg:#fffbeb; --lab-note-cp-fg:#78350f; --lab-note-cp-line:#fde68a;
+    }
+    html.dark{
+      --lab-indigo-bg:rgba(99,102,241,.20); --lab-indigo-fg:#a5b4fc; --lab-indigo-line:rgba(99,102,241,.45);
+      --lab-indigo-hover:rgba(99,102,241,.32);
+      --lab-violet-bg:rgba(139,92,246,.20); --lab-violet-fg:#c4b5fd; --lab-violet-line:rgba(139,92,246,.45);
+      --lab-note-own-bg:rgba(59,130,246,.16); --lab-note-own-fg:#93c5fd; --lab-note-own-line:rgba(59,130,246,.42);
+      --lab-note-cp-bg:rgba(245,158,11,.15); --lab-note-cp-fg:#fcd34d; --lab-note-cp-line:rgba(245,158,11,.42);
+    }
+    .lab-ins{color:var(--st-green-fg);background:rgba(46,135,99,.12);border-radius:2px;padding:0 2px;font-weight:600;text-decoration:none}
+    .lab-del{color:var(--st-ruby-fg);background:rgba(176,69,60,.10);border-radius:2px;padding:0 2px;text-decoration:line-through}
 
     /* THE CLAUSE KEEPS ITS SHAPE. Each line of a clause is its own block, so
        pre-wrap is off inside one — the blocks carry the breaks now. The hanging
@@ -2118,9 +2136,9 @@ function renderDocLab(){
        cannot separate the reds from the greens. */
     .lab-redline .rl-line-ins,.lab-redline .rl-line-del{position:relative}
     .lab-redline .rl-line-ins::before{content:"+";position:absolute;left:-1.1em;
-      color:#1e6b4d;font-weight:700;text-indent:0}
+      color:var(--st-green-fg);font-weight:700;text-indent:0}
     .lab-redline .rl-line-del::before{content:"−";position:absolute;left:-1.1em;
-      color:#8f322b;font-weight:700;text-indent:0}
+      color:var(--st-ruby-fg);font-weight:700;text-indent:0}
 
     /* ---- ONE CLAUSE, ONE FRAME ----
        The utility class names on the element are the ones the spec asks for.
@@ -2148,13 +2166,13 @@ function renderDocLab(){
     .clause-tool{font:inherit;font-size:11px;line-height:1;cursor:pointer;white-space:nowrap;
       border:1px solid var(--color-divider);background:var(--color-bg);
       color:var(--color-neutral-700);border-radius:5px;padding:5px 8px}
-    .clause-tool:hover{border-color:#6366f1;color:#4338ca;background:#eef2ff}
+    .clause-tool:hover{border-color:#6366f1;color:var(--lab-indigo-fg);background:var(--lab-indigo-bg)}
 
     /* ---- the change tag that rides with the diff ---- */
     .change-tag-badge{display:inline-block;font-family:var(--font-mono);font-size:10.5px;
       line-height:1.5;padding:2px 7px;border-radius:5px;cursor:pointer;
-      background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
-    .change-tag-badge:hover{background:#c7d2fe}
+      background:var(--lab-indigo-bg);color:var(--lab-indigo-fg);border:1px solid var(--lab-indigo-line)}
+    .change-tag-badge:hover{background:var(--lab-indigo-hover)}
     .change-tag-badge[aria-pressed="true"]{background:#4338ca;border-color:#4338ca;color:#fff}
 
     /* ---- notes pinned to a change ---- */
@@ -2168,31 +2186,32 @@ function renderDocLab(){
     /* WHO WROTE IT — the colour, set inline from discussNoteTone so the lab and
        the product cannot drift apart. These are the fallback for a page where
        that module did not load. */
-    .lab-tag.note-owner{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}
-    .lab-tag.note-counterparty{background:#fffbeb;border:1px solid #fde68a;color:#78350f}
+    .lab-tag.note-owner{background:var(--lab-note-own-bg);border:1px solid var(--lab-note-own-line);color:var(--lab-note-own-fg)}
+    .lab-tag.note-counterparty{background:var(--lab-note-cp-bg);border:1px solid var(--lab-note-cp-line);color:var(--lab-note-cp-fg)}
     .lab-tagwho{font-weight:700;font-size:9.5px;letter-spacing:.04em;white-space:nowrap;
       font-family:var(--font-body)}
     /* WHO CAN SEE IT — a separate mark, because visibility and authorship are
        independent and one badge cannot honestly carry both. */
     .lab-tagvis{font-size:9px;letter-spacing:.04em;border-radius:999px;padding:1px 6px;
-      white-space:nowrap;background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.09);
+      white-space:nowrap;background:color-mix(in srgb,var(--color-surface) 65%,transparent);
+      border:1px solid color-mix(in srgb,var(--color-text) 12%,transparent);
       font-family:var(--font-body)}
     /* Kept for the older callers and for the counterparty's copy, which has no
        authorship to colour by. */
-    .lab-tag.is-internal:not(.note-owner):not(.note-counterparty){background:#f4ecd8;color:#7d5a14;border:1px solid rgba(138,106,42,.32)}
-    .lab-tag.is-shared:not(.note-owner):not(.note-counterparty){background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
+    .lab-tag.is-internal:not(.note-owner):not(.note-counterparty){background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.32)}
+    .lab-tag.is-shared:not(.note-owner):not(.note-counterparty){background:var(--lab-indigo-bg);color:var(--lab-indigo-fg);border:1px solid var(--lab-indigo-line)}
 
     /* ---- whose hand is on a redline ---- */
     .lab-authorpill{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-mono);
       font-size:9.5px;font-weight:700;letter-spacing:.03em;border-radius:999px;padding:2px 7px;
-      background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;white-space:nowrap}
+      background:var(--lab-indigo-bg);color:var(--lab-indigo-fg);border:1px solid var(--lab-indigo-line);white-space:nowrap}
     /* A stacked pass is marked, because "the third person to touch this clause"
        is a different thing to read than "the author". */
-    .lab-authorpill.is-stacked{background:#ede9fe;border-color:#ddd6fe;color:#5b21b6}
+    .lab-authorpill.is-stacked{background:var(--lab-violet-bg);border-color:var(--lab-violet-line);color:var(--lab-violet-fg)}
     .lab-pilldepth{font-size:8.5px;opacity:.8}
     .lab-stacktrail{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px;
-      padding:6px 9px;border-radius:6px;background:#faf7ef;border:1px dashed rgba(138,106,42,.3)}
-    .lab-stacklabel{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#7d5a14;
+      padding:6px 9px;border-radius:6px;background:color-mix(in srgb,var(--st-amber-fg) 6%,var(--color-surface));border:1px dashed rgba(138,106,42,.3)}
+    .lab-stacklabel{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:var(--st-amber-fg);
       font-family:var(--font-body)}
     .lab-stackstep{display:inline-flex;align-items:center;gap:5px}
     .lab-stackid{font-family:var(--font-mono);font-size:9.5px;color:var(--color-neutral-600)}
@@ -2291,15 +2310,15 @@ function renderDocLab(){
     .lab-badge{font-family:var(--font-mono);font-size:10.5px;border-radius:999px;padding:2px 9px;
       cursor:pointer;border:1px solid var(--color-divider);background:var(--color-bg);
       color:var(--color-neutral-700)}
-    .lab-badge:hover{border-color:#8a6a2a;color:#8a6a2a}
-    .lab-badge[aria-pressed="true"]{background:#8a6a2a;border-color:#8a6a2a;color:#fff}
+    .lab-badge:hover{border-color:var(--st-amber-fg);color:var(--st-amber-fg)}
+    .lab-badge[aria-pressed="true"]{background:var(--st-amber-fg);border-color:var(--st-amber-fg);color:var(--color-surface)}
     /* ---- the clause both sides are looking at ----
        A tint and a rule down the leading edge rather than a heavy border: this
        marks a clause somebody is reading, and a box drawn around contract
        wording reads as a change to it. The card and the thread carry the same
        mark so the pairing is legible as one thing across the gap. */
     .clause-frame.is-focus{border-color:#6366f1 !important;
-      box-shadow:0 0 0 3px rgba(99,102,241,.16);background:#fbfbff}
+      box-shadow:0 0 0 3px rgba(99,102,241,.16);background:color-mix(in srgb,#6366f1 6%,var(--color-surface))}
     .lab-card.is-focus,.lab-thread.is-focus{border-color:#6366f1 !important;
       box-shadow:0 0 0 3px rgba(99,102,241,.16)}
     .clause-frame.is-focus,.lab-card.is-focus,.lab-thread.is-focus{
@@ -2313,15 +2332,15 @@ function renderDocLab(){
     .lab-thread.is-linked,.lab-card.is-linked{box-shadow:0 0 0 3px rgba(99,102,241,.42);
       border-color:#6366f1 !important}
     .lab-filterbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:11.5px;
-      padding:7px 11px;border-radius:6px;background:#fdf6e7;border:1px solid #e0c48a;color:#7d5a14}
+      padding:7px 11px;border-radius:6px;background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg)}
     .lab-filterbar button{font:inherit;font-size:11px;font-weight:600;cursor:pointer;
-      border:1px solid #d8bd86;background:#fff;color:#7d5a14;border-radius:5px;padding:3px 9px}
+      border:1px solid var(--st-amber-line);background:var(--color-surface);color:var(--st-amber-fg);border-radius:5px;padding:3px 9px}
 
     /* ---- which mode the lab is in ---- */
     .lab-mode{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;
       padding:9px 14px;border-radius:6px;border:1px solid var(--color-divider)}
-    .lab-mode.is-sandbox{border-left:4px solid #8a6a2a;background:#fffdf7;color:#7d5a14}
-    .lab-mode.is-published{border-left:4px solid #33475c;background:#f5f8fb;color:var(--color-neutral-800)}
+    .lab-mode.is-sandbox{border-left:4px solid var(--st-amber-fg);background:color-mix(in srgb,var(--st-amber-fg) 5%,var(--color-surface));color:var(--st-amber-fg)}
+    .lab-mode.is-published{border-left:4px solid var(--color-neutral-600);background:color-mix(in srgb,var(--color-neutral-500) 8%,var(--color-surface));color:var(--color-text)}
     .lab-mode b{font-size:12.5px}
 
     /* ---- THE ONE STATUS BAR ----
@@ -2329,7 +2348,7 @@ function renderDocLab(){
        the same look on their own, so the header holds its shape on a page where
        the utility framework did not load — which is this app's offline stage. */
     .doclab-status-header{display:flex;flex-direction:column;gap:0;
-      padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--color-divider)}
+      padding:12px 16px;background:var(--color-bg);border-bottom:1px solid var(--color-divider)}
     .doclab-status-row{display:flex;align-items:center;justify-content:space-between;
       gap:10px;flex-wrap:wrap;min-height:26px}
     /* ~40px once the detail row is out: 26px of content inside 7px of padding
@@ -2359,8 +2378,8 @@ function renderDocLab(){
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .doclab-modechip{flex:none;font-size:10.5px;font-weight:700;border-radius:999px;
       padding:3px 10px;white-space:nowrap}
-    .doclab-modechip.is-sandbox{background:#f4ecd8;color:#7d5a14;border:1px solid rgba(138,106,42,.3)}
-    .doclab-modechip.is-published{background:#eef2f7;color:#33475c;border:1px solid #cbd5e1}
+    .doclab-modechip.is-sandbox{background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.3)}
+    .doclab-modechip.is-published{background:var(--color-neutral-100);color:var(--color-neutral-700);border:1px solid var(--color-divider)}
     .doclab-count{flex:none;font-size:10.5px;color:var(--color-neutral-600);
       background:var(--color-surface);border:1px solid var(--color-divider);
       border-radius:999px;padding:2px 9px;white-space:nowrap}
@@ -2369,7 +2388,7 @@ function renderDocLab(){
       overflow:hidden;flex:none}
     .doclab-seg .ui-btn{border:0;border-radius:0;font-size:11.5px;padding:4px 10px}
     .doclab-seg .ui-btn + .ui-btn{border-left:1px solid var(--color-divider)}
-    .doclab-seg .ui-btn.is-on{background:var(--color-neutral-800);color:#fff}
+    .doclab-seg .ui-btn.is-on{background:var(--color-neutral-800);color:var(--color-surface)}
     .doclab-seg .ui-btn.is-on.is-accent{background:var(--color-accent);color:#fff}
     .doclab-controls > .ui-btn{font-size:11.5px;padding:4px 10px;flex:none}
     .doclab-status-detail{display:flex;flex-direction:column;gap:9px;margin-top:10px}
@@ -2381,7 +2400,7 @@ function renderDocLab(){
     .doclab-detail-line code{font-family:var(--font-mono);font-size:11px}
 
     /* ---- discarding a draft ---- */
-    .discuss-discard:hover{background:#f9dedb;border-color:rgba(143,50,43,.5)}
+    .discuss-discard:hover{background:var(--st-ruby-bg);border-color:var(--st-ruby-line)}
 
     /* ============================================================
        THE COPILOT DRAWER FLOATS. NOTHING UNDER IT MOVES.
@@ -2477,7 +2496,7 @@ function renderDocLab(){
           <h6 style="${LAB_H6}">Write a message</h6>
 
           <div style="display:flex;gap:0;border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
-            <button id="lab-vis-int" class="ui-btn" style="flex:1;border:0;border-radius:0;font-size:12px;background:#f4ecd8;color:${LAB_GOLD};font-weight:600">Internal note</button>
+            <button id="lab-vis-int" class="ui-btn" style="flex:1;border:0;border-radius:0;font-size:12px;background:var(--st-amber-bg);color:${LAB_GOLD};font-weight:600">Internal note</button>
             <button id="lab-vis-sh" class="ui-btn" style="flex:1;border:0;border-left:1px solid var(--color-divider);border-radius:0;font-size:12px">Send to ${esc(c.counterparty || 'the counterparty')}</button>
           </div>
           <input type="hidden" id="lab-vis" value="${LAB_INTERNAL}"/>
@@ -2997,7 +3016,7 @@ function wireDocLab(c, lab, side, external){
     if(!visIn) return;
     visIn.value = v;
     const isInt = v === LAB_INTERNAL;
-    if(bInt){ bInt.style.background = isInt ? '#f4ecd8' : ''; bInt.style.color = isInt ? LAB_GOLD : ''; bInt.style.fontWeight = isInt ? '600' : ''; }
+    if(bInt){ bInt.style.background = isInt ? 'var(--st-amber-bg)' : ''; bInt.style.color = isInt ? LAB_GOLD : ''; bInt.style.fontWeight = isInt ? '600' : ''; }
     if(bSh){ bSh.style.background = isInt ? '' : 'var(--color-accent)'; bSh.style.color = isInt ? '' : '#fff'; bSh.style.fontWeight = isInt ? '' : '600'; }
     if(note){
       note.style.color = isInt ? LAB_GOLD : 'var(--color-accent-800)';

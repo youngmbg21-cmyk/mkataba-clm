@@ -1065,10 +1065,10 @@ function renderUploadSteps(active, note){
   host.innerHTML=`<div style="padding:10px 12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px">
    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
     ${UPLOAD_STEPS.map((s,i)=>{ const n=i+1; const done=n<active, cur=n===active;
-      const dot=done?`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:#2e8763;color:#fff">${icon('check2','w-2.5 h-2.5')}</span>`
+      const dot=done?`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--st-green-dot);color:#fff">${icon('check2','w-2.5 h-2.5')}</span>`
         :cur?`<span class="scan-pulse" style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff;font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`
         :`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-neutral-200);color:var(--color-neutral-600);font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`;
-      const col=done?'#1e6b4d':cur?'var(--color-accent-800)':'var(--color-neutral-500)';
+      const col=done?'var(--st-green-fg)':cur?'var(--color-accent-800)':'var(--color-neutral-500)';
       return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:${cur?600:500};color:${col}">${dot}${s}</span>`
         + (n<UPLOAD_STEPS.length?`<span style="color:var(--color-neutral-400);margin:0 1px">→</span>`:''); }).join('')}
    </div>
@@ -1104,7 +1104,7 @@ async function submitUpload(){
     toast(msg,'err');
     const steps=document.getElementById('up-steps');
     if(steps){ steps.classList.remove('hidden');
-      steps.innerHTML=`<div style="border:1px solid #e6c9c1;background:#fdf4f2;color:#8f322b;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55">${msg}</div>`; }
+      steps.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55">${msg}</div>`; }
     btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false;
     btn.innerHTML=`${icon('upload','w-3.5 h-3.5')} Add contract`;
   };
@@ -1306,20 +1306,20 @@ function discussPointsSectionHtml(c){
   const e=x=>String(x==null?'':x).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const who=e(c.counterparty||'the counterparty');
   return `
-    <div id="ws-openpoints" style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:8px;padding:14px 18px;margin:0 0 14px;box-shadow:var(--shadow-sm)">
+    <div id="ws-openpoints" style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:8px;padding:14px 18px;margin:0 0 14px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-        <span style="flex:none;color:#b8862b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600;color:#7d5a14">Still open between you</span>
-        <span style="margin-left:auto;font-size:10.5px;color:#7d5a14;font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
+        <span style="flex:none;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">Still open between you</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
-      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:#7d5a14">Changes ${who} asked for that were not adopted. The contract reads as it did; answering here changes nothing in it.</p>
+      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">Changes ${who} asked for that were not adopted. The contract reads as it did; answering here changes nothing in it.</p>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
             ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Contract says</span>
               <div style="color:var(--color-neutral-800)">${e(pt.before)}</div></div>`:''}
             ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">They asked for</span>
-              <div style="color:#8f322b">${e(pt.after)}</div></div>`:''}
+              <div style="color:var(--st-ruby-fg)">${e(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>They said:</b> ${e(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>You replied:</b> ${e(pt.reason)}</div>`:''}
             ${discussPointReplyHtml('point:'+pt.id, c._messages||[], {
@@ -1588,9 +1588,9 @@ function docBody(c){
   try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
     if(/^c\d+$/.test(a||'')){ const r=(window.SEV_RANK&&SEV_RANK[x.sev])||{high:3,med:2,low:1}[x.sev]||0;
       if(!flags[a]||r>flags[a].r) flags[a]={r,sev:x.sev}; } }); }catch(e){}
-  const FLAGPAL={ high:{tag:'High',bg:'#f1dcd8',fg:'#8f322b',box:'rgba(176,69,60,.05)',line:'rgba(176,69,60,.3)'},
-    med:{tag:'Deviation',bg:'#f1e6cd',fg:'#7d5a14',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'},
-    low:{tag:'Check',bg:'#f1e6cd',fg:'#7d5a14',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'} };
+  const FLAGPAL={ high:{tag:'High',bg:'var(--st-ruby-bg)',fg:'var(--st-ruby-fg)',box:'rgba(176,69,60,.05)',line:'rgba(176,69,60,.3)'},
+    med:{tag:'Deviation',bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'},
+    low:{tag:'Check',bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'} };
   const clause=(n,title,body)=>{
     const p=flags['c'+n]?FLAGPAL[flags['c'+n].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:4px;padding:6px 10px;margin-bottom:14px"`:'';
@@ -1755,10 +1755,10 @@ function externalExecutionBlock(c){
       <div class="flex items-start gap-4">
         <svg class="seal-pop shrink-0" width="62" height="62" viewBox="0 0 96 96" style="filter:drop-shadow(0 6px 14px rgba(40,50,70,.16))">
           <circle cx="48" cy="48" r="46" fill="#fff"/>
-          <circle cx="48" cy="48" r="46" fill="none" stroke="#5980a6" stroke-width="2"/>
-          <circle cx="48" cy="48" r="38" fill="rgba(89,128,166,.10)" stroke="#8fa8c2" stroke-width="1.5"/>
+          <circle cx="48" cy="48" r="46" fill="none" style="stroke:var(--color-accent)" stroke-width="2"/>
+          <circle cx="48" cy="48" r="38" fill="color-mix(in srgb,var(--color-accent) 11%,transparent)" stroke="#8fa8c2" stroke-width="1.5"/>
           <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
-          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="#5980a6">MIGRATED</text>
+          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" style="fill:var(--color-accent)">MIGRATED</text>
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">Executed outside HaTi</span>${statusChip('Signed')}</div>
@@ -1805,8 +1805,8 @@ function signatureBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#2e8763">SEALED</text>
-          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="#1e6b4d">SHA-256</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" style="fill:var(--st-green-dot)">SEALED</text>
+          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" style="fill:var(--st-green-fg)">SHA-256</text>
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
@@ -1931,7 +1931,7 @@ function wsNextAction(c){
    re-rendering the workspace under the cursor. */
 function actionBarHtml(c){
   const locked=c.status==='Signed';
-  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#e8f4ee;color:#1e6b4d"><span style="width:6px;height:6px;border-radius:50%;background:#2e8763"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span><span style="flex:1"></span><button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`;
+  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span><span style="flex:1"></span><button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`;
   if(!canEdit()) return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`;
   const na=wsNextAction(c);
   return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`
@@ -2032,7 +2032,7 @@ function negoTabCountHtml(c){
   if(!window.negoProgress) return '';
   const p=negoProgress(c);
   if(!p.pending) return '';
-  return `<span id="nego-tab-count" title="${p.pending} change${p.pending===1?'':'s'} waiting on a decision" style="align-self:center;margin:0 8px 0 -6px;font-family:var(--font-mono);font-size:10px;font-weight:700;background:#b8862b;color:#fff;border-radius:999px;padding:1px 7px">${p.pending}</span>`;
+  return `<span id="nego-tab-count" title="${p.pending} change${p.pending===1?'':'s'} waiting on a decision" style="align-self:center;margin:0 8px 0 -6px;font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--st-amber-dot);color:#fff;border-radius:999px;padding:1px 7px">${p.pending}</span>`;
 }
 function applyWsTabs(c){
   if(_wsTab!=='docs'&&_wsTab!=='redline') _wsTab='docs';
@@ -2415,11 +2415,11 @@ function returnedChangesStrip(c){
   const withText=open.filter(r=>r.proposedText).length;
   const who=esc(latest.by||'The counterparty');
   return `
-    <div id="changes-strip" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:#fdf6e7;border-top:1px solid #e0c48a;border-bottom:1px solid #e0c48a">
-      <span class="changes-pip" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#b8862b;color:#fff;border-radius:999px;padding:3px 10px">Changes returned</span>
-      <span style="font-size:12.5px;color:#7d5a14;min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
+    <div id="changes-strip" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:var(--st-amber-bg);border-top:1px solid var(--st-amber-line);border-bottom:1px solid var(--st-amber-line)">
+      <span class="changes-pip" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:999px;padding:3px 10px">Changes returned</span>
+      <span style="font-size:12.5px;color:var(--st-amber-fg);min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
       <span style="flex:1"></span>
-      <button id="changes-review" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid #b8862b;background:var(--color-surface);color:#7d5a14;border-radius:5px;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
+      <button id="changes-review" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--st-amber-dot);background:var(--color-surface);color:var(--st-amber-fg);border-radius:5px;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
     </div>
     <style>
       @keyframes changes-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -2483,11 +2483,11 @@ function readyToSignStrip(c){
      contract that has gone back into negotiation. */
   const stale=!!sig.stale;
   return `
-    <div id="ready-strip" data-stale="${stale?'1':'0'}" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:${stale?'#fdf6e7':'#eef7f1'};border-top:1px solid ${stale?'#e0c48a':'#a8cbb8'};border-bottom:1px solid ${stale?'#e0c48a':'#a8cbb8'}">
-      <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:${stale?'#b8862b':'#1e6b4d'};color:#fff;border-radius:999px;padding:3px 10px">Ready to sign</span>
-      <span style="font-size:12.5px;color:${stale?'#7d5a14':'#14503a'};min-width:0"><b>${esc(sig.by||c.counterparty||'The counterparty')}</b> signalled they are ready to sign — ${esc(when)}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>Nothing is signed yet.</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
+    <div id="ready-strip" data-stale="${stale?'1':'0'}" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:${stale?'var(--st-amber-bg)':'var(--st-green-bg)'};border-top:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'};border-bottom:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'}">
+      <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:999px;padding:3px 10px">Ready to sign</span>
+      <span style="font-size:12.5px;color:${stale?'var(--st-amber-fg)':'var(--st-green-fg)'};min-width:0"><b>${esc(sig.by||c.counterparty||'The counterparty')}</b> signalled they are ready to sign — ${esc(when)}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>Nothing is signed yet.</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
       <span style="flex:1"></span>
-      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid #1e6b4d;background:#1e6b4d;color:#fff;border-radius:5px;padding:6px 13px;cursor:pointer">Issue a signing link</button>`:''}
+      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--st-green-fg);background:var(--st-green-fg);color:#fff;border-radius:5px;padding:6px 13px;cursor:pointer">Issue a signing link</button>`:''}
     </div>`;
 }
 /* The strip's one action: open the redline if there is one, otherwise take the
@@ -2595,7 +2595,7 @@ function renderWorkspace(){
   // Industry design-system tokens — inline styles per the design handoff.
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
   const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
-  const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:11.5px';
+  const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:11.5px';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
   const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:3px 7px;font:inherit;font-size:11.5px;text-align:right;outline:none';
@@ -2637,7 +2637,7 @@ function renderWorkspace(){
           <button id="ws-history" title="The whole negotiation as one story — every proposal, decision, signature and renumbering, with filters" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} History</button>
           <button id="ws-pdf" title="Export a clean copy for sending — your branding, the wording and the signatures, with no HaTi marks on it" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
           ${printIsHatiExecuted(c)?`<button id="ws-pdf-record" title="Export the full record for your own file — the same document plus HaTi's seal and the audit trail. Not the copy to send a counterparty." class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} Record</button>`:''}
-          ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
+          ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
         </div>
         ${''/* GIVE THE DOCUMENT THE ROOM. This header carries nine actions, a
               status strip and a tab row before one line of the contract is
@@ -2710,7 +2710,7 @@ function renderWorkspace(){
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
-          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
             ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
             ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
@@ -2740,7 +2740,7 @@ function renderWorkspace(){
           <section style="${CARD};padding:12px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
               <h6 style="${H6};flex:1">Activity &amp; comments</h6>
-              <span class="flex items-center gap-1" style="font-size:10px;color:#1e6b4d;font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:#2e8763;display:inline-block"></span>live</span>
+              <span class="flex items-center gap-1" style="font-size:10px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:var(--st-green-dot);display:inline-block"></span>live</span>
             </div>
             <div id="feed" class="space-y-3 scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px"></div>
             <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
@@ -3523,7 +3523,7 @@ async function notifyNextSigner(c, nxt){
 /* Distribution panel shown in the sign area once a contract is executed. */
 function distributionPanelHtml(c){
   const d=c.distribution;
-  const dot=st=>['delivered','queued','sent'].includes(st)?'#2e8763':['failed','bounced'].includes(st)?'#b0453c':'#8a8f95';
+  const dot=st=>['delivered','queued','sent'].includes(st)?'var(--st-green-dot)':['failed','bounced'].includes(st)?'var(--st-ruby-dot)':'#8a8f95';
   const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st;
   /* WHY NOTHING HAS GONE OUT YET, said before anyone has to wonder. The copy is
      held until every party has signed; a panel that simply showed the button

@@ -103,11 +103,11 @@ const REPORT_CHARTS=[
     return r.topParty.map(([k,v])=>bar(k,v,mx,fmtMoneyShort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
   {k:'renewalPipe', label:'Renewal pipeline · next 12 months', render:r=>{
     const months=Object.keys(r.pipeline).sort(); const mx=Math.max(1,...Object.values(r.pipeline));
-    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'#2e8763')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
+    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'var(--st-green-dot)')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
   {k:'roundsType', label:'Negotiation rounds by type (avg)', render:r=>{
     const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
     const mx=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
-    return e.length?e.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, mx, (v.rounds/v.n).toFixed(1),'#b8862b')).join(''):emptyMsg('No negotiation data.'); }},
+    return e.length?e.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, mx, (v.rounds/v.n).toFixed(1),'var(--st-amber-dot)')).join(''):emptyMsg('No negotiation data.'); }},
   {k:'stageCount', label:'Contracts by stage', render:r=>{
     const order=['Draft','Under Review','Signed','Declined']; const e=order.filter(k=>r.byStatus[k]).map(k=>[k,r.byStatus[k]]);
     const mx=Math.max(1,...e.map(x=>x[1]));
@@ -117,11 +117,11 @@ const REPORT_CHARTS=[
     return e.length?e.map(([k,v])=>bar(k,v,mx,String(v),'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
   {k:'riskBand', label:'Contracts by risk band', render:r=>{
     const e=Object.entries(r.riskBands); const mx=Math.max(1,...e.map(x=>x[1]));
-    const col={Low:'#2e8763',Medium:'#b8862b',High:'#b0453c'};
+    const col={Low:'var(--st-green-dot)',Medium:'var(--st-amber-dot)',High:'var(--st-ruby-dot)'};
     return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
   {k:'obState', label:'Obligations by status', render:r=>{
     const e=Object.entries(r.obByState); const mx=Math.max(1,...e.map(x=>x[1]));
-    const col={Overdue:'#b0453c',Open:'#b8862b',Completed:'#2e8763'};
+    const col={Overdue:'var(--st-ruby-dot)',Open:'var(--st-amber-dot)',Completed:'var(--st-green-dot)'};
     return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No obligations tracked yet.'); }},
 ];
 const DEFAULT_REPORT_CHARTS=['streamValue','partyValue','renewalPipe','roundsType'];

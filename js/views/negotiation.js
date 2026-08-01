@@ -176,11 +176,11 @@ function negoStyleHtml(){
   .nego-room, #nego-root, .nego-selmenu, .nego-aipop{
     --n-slate:#33475c; --n-slate-deep:#26374a; --n-slate-soft:#456a8f;
     --n-badge-bg:#eef2f6;
-    --n-ins-bg:#e4f1ea; --n-ins-fg:#1e6b4d;
-    --n-del-bg:#f9ecea; --n-del-fg:#b0453c;
+    --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
+    --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-dot);
     --n-paper:#ffffff; --n-canvas:#f2f4f7; --n-line:#e3e8ee;
     --n-ink:#2b3440; --n-ink-soft:#66707d;
-    --n-accept:#1e6b4d; --n-reject:#b0453c; --n-focus:#456a8f;
+    --n-accept:var(--st-green-fg); --n-reject:var(--st-ruby-dot); --n-focus:#456a8f;
     /* Type is the platform's, colour is the room's. The room used to set its
        own three faces, so a contract changed face when you walked into it;
        a clause now reads the same here as on the Doc page and in the PDF. */
@@ -190,6 +190,22 @@ function negoStyleHtml(){
     --n-r-sm:6px; --n-r-md:10px; --n-r-lg:14px;
     --n-shadow-card:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07);
     --n-shadow-pop:0 8px 30px rgba(38,55,74,.18);
+  }
+  /* The room joins the theme like every other surface: same private namespace,
+     dark values. The topbar slate and the accept/reject hues already read on
+     both themes; only paper, canvas, ink and hairlines flip. */
+  html.dark .nego-room, html.dark #nego-root, html.dark .nego-selmenu, html.dark .nego-aipop{
+    --n-badge-bg:#1e293b;
+    --n-ins-bg:var(--st-green-bg);
+    --n-paper:#0f172a; --n-canvas:#020617; --n-line:#1e293b;
+    --n-ink:#e2e8f0; --n-ink-soft:#94a3b8;
+    --n-focus:#7fa3c8;
+    /* The two named hues with light-only fallbacks in the rules below: "my
+       ask" navy and "closed round" oxblood both vanish against dark paper,
+       so the dark ramp lifts them the way it lifts the ink. */
+    --n-mine:#7fa3c8; --n-closed:#d99a90;
+    --n-shadow-card:0 1px 2px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.45);
+    --n-shadow-pop:0 8px 30px rgba(0,0,0,.6);
   }
   .nego-room *, #nego-root *{box-sizing:border-box}
   .nego-room button:focus-visible, #nego-root button:focus-visible,
@@ -241,24 +257,24 @@ function negoStyleHtml(){
     color:rgba(230,236,242,.62);border:1px dashed rgba(255,255,255,.34)}
   .nego-why{flex:0 1 auto;max-width:300px;font-size:10.5px;line-height:1.35;color:#c3cfda}
   .nego-readysig{display:flex;align-items:flex-start;gap:11px;flex-wrap:wrap;margin:10px 14px 0;
-    border:1px solid #a8cbb8;border-left:4px solid var(--n-accept);background:#eef7f1;
+    border:1px solid var(--st-green-line);border-left:4px solid var(--n-accept);background:var(--st-green-bg);
     border-radius:6px;padding:10px 14px}
   .nego-readysig .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
     background:var(--n-accept);color:#fff;font-size:11px;font-weight:800}
-  .nego-readysig .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:#14503a}
+  .nego-readysig .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:var(--st-green-fg)}
   .nego-readysig .row{display:block}
   .nego-readysig .row+.row{margin-top:3px;color:var(--n-ink-soft)}
   .nego-readysig .nego-tbtn{flex:none;align-self:center}
   /* A signal the change set has moved past is not good news, and must not be
      dressed as it. Same box, the colour of an open point. */
-  .nego-readysig.stale{border-color:#e0c48a;border-left-color:#b8862b;background:#fdf6e7}
-  .nego-readysig.stale .tick{background:#b8862b}
-  .nego-readysig.stale .body{color:#7d5a14}
+  .nego-readysig.stale{border-color:var(--st-amber-line);border-left-color:var(--st-amber-dot);background:var(--st-amber-bg)}
+  .nego-readysig.stale .tick{background:var(--st-amber-dot)}
+  .nego-readysig.stale .body{color:var(--st-amber-fg)}
   .nego-closed{display:flex;align-items:flex-start;gap:11px;margin:10px 14px 0;border-radius:6px;
     padding:10px 14px;border:1px solid var(--n-line);background:var(--n-badge-bg);
     border-left:4px solid var(--n-slate)}
-  .nego-closed[data-state="signed"]{border-color:#a8cbb8;border-left-color:var(--n-accept);background:#eef7f1}
-  .nego-closed[data-state="declined"]{border-color:#e3c4bf;border-left-color:var(--n-reject);background:#f9ecea}
+  .nego-closed[data-state="signed"]{border-color:var(--st-green-line);border-left-color:var(--n-accept);background:var(--st-green-bg)}
+  .nego-closed[data-state="declined"]{border-color:var(--st-ruby-line);border-left-color:var(--n-reject);background:var(--st-ruby-bg)}
   .nego-closed .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
     background:var(--n-slate);color:#fff;font-size:11px;font-weight:800}
   .nego-closed[data-state="signed"] .tick{background:var(--n-accept)}
@@ -270,11 +286,11 @@ function negoStyleHtml(){
      stays answering only it. Amber while the draft can still be tidied; slate
      once the contract is executed and the gap is part of the record. */
   .nego-gaps{display:flex;align-items:flex-start;gap:10px;margin:0 0 18px;border-radius:6px;
-    padding:10px 13px;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b}
+    padding:10px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot)}
   .nego-gaps[data-locked="1"]{border-color:var(--n-line);background:var(--n-badge-bg);
     border-left-color:var(--n-slate)}
   .nego-gaps .mark{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
-    background:#b8862b;color:#fff;font-size:11px;font-weight:800;line-height:1}
+    background:var(--st-amber-dot);color:#fff;font-size:11px;font-weight:800;line-height:1}
   .nego-gaps[data-locked="1"] .mark{background:var(--n-slate)}
   .nego-gaps .body{flex:1;min-width:200px;font-size:11.5px;line-height:1.55;color:var(--n-ink)}
   .nego-gaps .body b{font-weight:700}
@@ -282,8 +298,8 @@ function negoStyleHtml(){
   /* The one door out of the notice (N2-T5) — drafts only; the executed notice
      never renders it at all. */
   .nego-gaps .renum{display:inline-block;margin-top:7px;font:inherit;font-size:11px;font-weight:700;
-    color:#7d5a14;background:#fff;border:1px solid #b8862b;border-radius:5px;padding:4px 10px;cursor:pointer}
-  .nego-gaps .renum:hover{background:#b8862b;color:#fff}
+    color:var(--st-amber-fg);background:var(--n-paper);border:1px solid var(--st-amber-dot);border-radius:5px;padding:4px 10px;cursor:pointer}
+  .nego-gaps .renum:hover{background:var(--st-amber-dot);color:#fff}
   /* Their name, in the room, because the room is their page. */
   .nego-who{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);
     border-radius:7px;padding:2px 4px 2px 9px;background:rgba(255,255,255,.06)}
@@ -318,6 +334,8 @@ function negoStyleHtml(){
   .nego-rz::before{content:"";width:2px;height:60px;border-radius:99px;background:#c4cfdb;transition:background .15s ease}
   .nego-rz:hover::before,.nego-rz[data-drag]::before{background:var(--n-slate-soft)}
   .nego-rz[data-drag]{background:#dbe3ec}
+  html.dark .nego-rz::before{background:#475569}
+  html.dark .nego-rz[data-drag]{background:#334155}
 
   .nego-pane{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--n-canvas)}
   .nego-pane-head{flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;
@@ -332,6 +350,8 @@ function negoStyleHtml(){
     color:var(--n-slate-soft);border-radius:5px;padding:2px 8px;font:inherit;font-size:10.5px;
     font-weight:700;cursor:pointer}
   .nego-fold:hover{background:#e3eaf2}
+  html.dark .nego-ver,html.dark .nego-fold{border-color:#334155}
+  html.dark .nego-fold:hover{background:#334155}
   .nego-scroll{flex:1;overflow-y:auto;padding:22px 20px 90px;scroll-behavior:smooth}
 
   /* ---- the document ----
@@ -340,6 +360,7 @@ function negoStyleHtml(){
   .nego-doc{background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--n-r-md);
     box-shadow:var(--n-shadow-card);padding:34px 38px 44px;max-width:720px;margin:0 auto;
     font-family:var(--n-font-doc);font-size:14.5px;line-height:1.72;color:#222a33}
+  html.dark .nego-doc{color:var(--n-ink)}
   .nego-doc h1{font-size:19px;text-align:center;margin:0 0 6px;letter-spacing:.2px;line-height:1.35;
     font-family:var(--n-font-doc);font-weight:700}
   .nego-doc .nego-meta{text-align:center;font-family:var(--n-font-ui);font-size:11px;
@@ -457,35 +478,43 @@ function negoStyleHtml(){
     border:2px solid var(--n-line);border-top-color:var(--n-slate);animation:nego-spin .8s linear infinite}
   @keyframes nego-spin{to{transform:rotate(360deg)}}
   .nego-aipop .nego-aierr{padding:14px;font-family:var(--n-font-ui);font-size:12.5px;
-    line-height:1.6;color:#8f322b}
+    line-height:1.6;color:var(--st-ruby-fg)}
 
   /* ---- a thread singled out by its badge ---- */
-  .nego-card.is-linked{box-shadow:0 0 0 3px rgba(184,134,43,.35);border-color:#b8862b}
+  .nego-card.is-linked{box-shadow:0 0 0 3px rgba(184,134,43,.35);border-color:var(--st-amber-dot)}
   .nego-filterbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
     font-family:var(--n-font-ui);font-size:11.5px;padding:7px 11px;border-radius:6px;
-    background:#fdf6e7;border:1px solid #e0c48a;color:#7d5a14;margin-bottom:9px}
+    background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);margin-bottom:9px}
   .nego-filterbar button{font:inherit;font-size:11px;font-weight:600;cursor:pointer;
-    border:1px solid #d8bd86;background:#fff;color:#7d5a14;border-radius:5px;padding:3px 9px}
+    border:1px solid var(--st-amber-line);background:var(--n-paper);color:var(--st-amber-fg);border-radius:5px;padding:3px 9px}
 
   /* ---- visibility on a comment ---- */
   .nego-vis{display:inline-flex;align-items:center;gap:4px;font-family:var(--n-font-ui);
     font-size:10px;font-weight:700;letter-spacing:.04em;border-radius:999px;padding:2px 8px;white-space:nowrap}
-  .nego-vis-int{background:#f4ecd8;color:#8a6a2a;border:1px solid rgba(138,106,42,.3)}
+  .nego-vis-int{background:#f4ecd8;color:var(--st-amber-fg);border:1px solid rgba(138,106,42,.3)}
   .nego-vis-sh{background:#e8f0f8;color:#2c455d;border:1px solid #b5d9fd}
-  .nego-msg.is-internal{background:#fdfaf1;border-left:3px solid #b8862b;padding-left:9px}
+  .nego-msg.is-internal{background:#fdfaf1;border-left:3px solid var(--st-amber-dot);padding-left:9px}
   .nego-visswitch{display:inline-flex;border:1px solid var(--n-line);border-radius:6px;overflow:hidden}
   .nego-visswitch button{font:inherit;font-family:var(--n-font-ui);font-size:11px;font-weight:600;
     cursor:pointer;border:0;background:var(--n-paper);color:var(--n-ink-soft);padding:4px 9px}
   .nego-visswitch button + button{border-left:1px solid var(--n-line)}
-  .nego-visswitch button[aria-pressed="true"].v-int{background:#f4ecd8;color:#8a6a2a}
+  .nego-visswitch button[aria-pressed="true"].v-int{background:#f4ecd8;color:var(--st-amber-fg)}
   .nego-visswitch button[aria-pressed="true"].v-sh{background:var(--n-slate);color:#fff}
+  /* The creams and powder blues above are light-paper tints; on dark paper the
+     same chips drop to translucent washes of their own hue, the way the
+     redline page's badges do. */
+  html.dark .nego-vis-int{background:var(--st-amber-bg);border-color:var(--st-amber-line)}
+  html.dark .nego-vis-sh{background:rgba(125,163,200,.18);color:#a9c6e2;border-color:rgba(125,163,200,.4)}
+  html.dark .nego-msg.is-internal{background:rgba(245,158,11,.07)}
+  html.dark .nego-visswitch button[aria-pressed="true"].v-int{background:var(--st-amber-bg)}
 
   /* ---- which mode the room is in ---- */
   .nego-mode{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:none;
     font-family:var(--n-font-ui);font-size:11.5px;padding:8px 13px;border-radius:6px;
     border:1px solid var(--n-line);background:var(--n-paper)}
-  .nego-mode.is-sandbox{border-left:4px solid #b8862b;background:#fffdf7;color:#7d5a14}
+  .nego-mode.is-sandbox{border-left:4px solid var(--st-amber-dot);background:color-mix(in srgb,var(--st-amber-dot) 6%,var(--n-paper));color:var(--st-amber-fg)}
   .nego-mode.is-published{border-left:4px solid var(--n-slate);background:#f5f8fb;color:var(--n-ink)}
+  html.dark .nego-mode.is-published{background:var(--n-badge-bg)}
   .nego-mode b{font-size:12px}
   /* ---- a clause with nothing proposed against it reads as the DOCUMENT ----
      Not as a text projection of it. The projection exists to be diffed; it is
@@ -520,6 +549,7 @@ function negoStyleHtml(){
   .nego-clause .nego-body blockquote{margin:8px 0 8px 18px;padding-left:12px;
     border-left:2px solid var(--n-line);color:var(--n-ink-soft)}
   .nego-clause.is-active{background:#f3f7fb;box-shadow:0 0 0 2px var(--n-slate-soft)}
+  html.dark .nego-clause.is-active{background:rgba(127,163,200,.12)}
   .nego-clause.flash{animation:negoFlash 1.4s ease 1}
   @keyframes negoFlash{
     0%{box-shadow:0 0 0 2px var(--n-slate-soft),0 0 0 8px rgba(69,106,143,.18)}
@@ -554,11 +584,12 @@ function negoStyleHtml(){
   .nego-note.no{background:var(--n-del-bg);color:var(--n-del-fg)}
 
   /* ---- the change index ---- */
-  .nego-pane.index{background:#fafbfc}
+  .nego-pane.index{background:var(--color-neutral-100)}
   .nego-index-head{flex:none;padding:12px 16px 10px;background:var(--n-paper);border-bottom:1px solid var(--n-line)}
   .nego-count{font-family:var(--n-font-mono);font-size:10.5px;font-weight:700;
     background:var(--n-slate);color:#fff;border-radius:99px;padding:1px 8px}
   .nego-track{height:5px;background:#e6ebf1;border-radius:99px;overflow:hidden;margin-bottom:7px}
+  html.dark .nego-track{background:var(--n-line)}
   .nego-fill{height:100%;border-radius:99px;
     background:linear-gradient(90deg,var(--n-slate-soft),var(--n-accept));transition:width .4s ease}
   .nego-index-scroll{flex:1;overflow-y:auto;padding:12px 12px 90px}
@@ -566,6 +597,7 @@ function negoStyleHtml(){
     box-shadow:var(--n-shadow-card);padding:12px 13px;margin-bottom:11px;cursor:pointer;
     transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}
   .nego-card:hover{border-color:#c9d5e1}
+  html.dark .nego-card:hover{border-color:#334155}
   .nego-card.is-active{border-color:var(--n-slate-soft);
     box-shadow:0 0 0 2px rgba(69,106,143,.25),var(--n-shadow-pop);transform:translateY(-1px)}
   .nego-id{font-family:var(--n-font-mono);font-size:10px;font-weight:700;
@@ -597,13 +629,13 @@ function negoStyleHtml(){
   .nego-tool:hover,.nego-tool:focus-visible{filter:brightness(1.18)}
   .nego-tool.danger{background:var(--n-del-fg);border-color:var(--n-del-fg)}
 
-  .nego-editing{outline:2px solid var(--n-focus);outline-offset:2px;background:#fff}
+  .nego-editing{outline:2px solid var(--n-focus);outline-offset:2px;background:var(--n-paper)}
   .nego-editing:focus{outline:2px solid var(--n-focus)}
   .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
   .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
-  .nego-edit-bar .b-cancel{background:#fff;border-color:var(--n-line);color:var(--n-ink-soft)}
+  .nego-edit-bar .b-cancel{background:var(--n-paper);border-color:var(--n-line);color:var(--n-ink-soft)}
   /* The room sits above the application shell, and the shell is where HaTi's
      Copilot panel lives — which is why Ask Copilot could not simply open it.
      Raising the real panel over the room is the whole fix: it stays the app's
@@ -616,14 +648,15 @@ function negoStyleHtml(){
     border:1px solid var(--n-line);border-radius:6px;padding:4px 8px;max-width:min(60%,320px);cursor:pointer}
   .nego-vsel:hover{border-color:var(--n-slate-soft)}
   .nego-cmp-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 14px;
-    border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:6px;padding:9px 13px}
+    border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:6px;padding:9px 13px}
   .nego-cmp-tag{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
-    background:#b8862b;color:#fff;border-radius:4px;padding:2px 7px}
-  .nego-cmp-txt{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:#7d5a14}
+    background:var(--st-amber-dot);color:#fff;border-radius:4px;padding:2px 7px}
+  .nego-cmp-txt{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:var(--st-amber-fg)}
   /* Clean read is a HYPOTHETICAL, not history — so it is the room's own slate
      rather than the amber of "you are looking at an old version". Same shape,
      because it is the same kind of thing: a mode, with its way out in it. */
   .nego-cmp-bar.clean{border-color:#c9d5e1;background:var(--n-badge-bg);border-left-color:var(--n-slate)}
+  html.dark .nego-cmp-bar.clean{border-color:#334155}
   .nego-cmp-bar.clean .nego-cmp-tag{background:var(--n-slate)}
   .nego-cmp-bar.clean .nego-cmp-txt{color:var(--n-ink)}
   .nego-cmp-bar.clean .nego-cmp-exit{border-color:var(--n-slate);background:var(--n-slate)}
@@ -635,12 +668,13 @@ function negoStyleHtml(){
   .nego-clean-btn[aria-pressed="true"]{background:var(--n-slate);color:#fff}
   /* On an amber banner a ghost button is white-on-cream and unreadable — the
      way out of a mode has to be the most legible thing in it. */
-  .nego-cmp-exit{flex:none;border:1px solid #7d5a14;background:#7d5a14;color:#fff;border-radius:6px;
+  .nego-cmp-exit{flex:none;border:1px solid var(--st-amber-fg);background:var(--st-amber-fg);color:#fff;border-radius:6px;
     padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
   .nego-cmp-exit:hover{filter:brightness(1.15)}
   .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     border-radius:5px;padding:2px 7px}
   .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
+  html.dark .nego-st.pending{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .nego-st.accepted{background:var(--n-ins-bg);color:var(--n-ins-fg)}
   .nego-st.rejected{background:var(--n-del-bg);color:var(--n-del-fg)}
   .nego-st.verified{background:var(--n-badge-bg);color:var(--n-slate-soft)}
@@ -648,18 +682,19 @@ function negoStyleHtml(){
      withdrawn" is the whole story: they asked, we said no, they let it go.
      Replacing the status would erase the refusal from the face of the card. */
   .nego-st.withdrawn{margin-left:0;background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
-  .nego-st.sent{margin-left:0;background:var(--n-ins-bg);color:var(--n-ins-fg);border:1px solid #a8cbb8}
+  html.dark .nego-st.withdrawn{border-color:#334155;color:var(--n-ink-soft)}
+  .nego-st.sent{margin-left:0;background:var(--n-ins-bg);color:var(--n-ins-fg);border:1px solid var(--st-green-line)}
   /* ---- answered here, and nowhere else yet ----
      Amber, the colour this product already uses for something still open, and
      deliberately louder than the status beside it: the green "accepted" is the
      half of this state a reader already believes. */
-  .nego-st.unsent{margin-left:0;background:#fdf6e7;color:#7d5a14;border:1px solid #e0c48a}
+  .nego-st.unsent{margin-left:0;background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)}
   /* And on the card itself, so a held answer is one glance rather than one
      read — an index of five cards shows at once which of them have gone. */
-  .nego-card.is-held{border-color:#e0c48a;border-left:3px solid #b8862b;background:#fffdf7}
+  .nego-card.is-held{border-color:var(--st-amber-line);border-left:3px solid var(--st-amber-dot);background:color-mix(in srgb,var(--st-amber-dot) 6%,var(--n-paper))}
   .nego-card.is-held .nego-hold{display:flex}
   .nego-hold{display:none;align-items:flex-start;gap:6px;margin-top:9px;
-    border-top:1px dashed #e0c48a;padding-top:8px;font-size:10.5px;line-height:1.45;color:#7d5a14}
+    border-top:1px dashed var(--st-amber-line);padding-top:8px;font-size:10.5px;line-height:1.45;color:var(--st-amber-fg)}
   .nego-hold b{font-weight:700}
   /* ---- whose ask is this ----
      THE EDGE IS THE ONLY THING THAT CHANGES, and only on your own asks. Cards
@@ -696,6 +731,8 @@ function negoStyleHtml(){
     overflow:hidden;text-overflow:ellipsis;
     background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
   .nego-whose.mine{background:#eaf0f8;color:var(--n-mine,#1f3f6e);border-color:#b9cbe4}
+  html.dark .nego-whose{border-color:#334155;color:var(--n-ink-soft)}
+  html.dark .nego-whose.mine{background:rgba(127,163,200,.15);color:var(--n-mine);border-color:rgba(127,163,200,.4)}
   /* ---- the rounds that are over ----
      Set apart from the round in flight without being hidden: a quieter card on
      a tinted ground, folded away behind its own heading. It must never be
@@ -715,6 +752,7 @@ function negoStyleHtml(){
   .nego-round-tog{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
     background:none;border:0;padding:9px 11px;font:inherit;color:var(--n-closed,#8c2f28)}
   .nego-round-tog:hover{background:rgba(0,0,0,.03)}
+  html.dark .nego-round-tog:hover{background:rgba(255,255,255,.05)}
   .nego-round-caret{flex:none;font-size:10px}
   .nego-round-name{font-size:12px;font-weight:700}
   .nego-round-count{font-size:10.5px;color:var(--n-ink-soft);margin-left:auto}
@@ -728,15 +766,17 @@ function negoStyleHtml(){
   .nego-round.open .nego-round-body{display:block}
   .nego-round-note{font-size:10.5px;line-height:1.5;color:var(--n-ink-soft);
     padding:2px 2px 9px}
-  .nego-card.is-past{cursor:default;background:var(--n-surface,#fff);opacity:.92}
+  .nego-card.is-past{cursor:default;background:var(--n-paper);opacity:.92}
   .nego-card.is-past:hover{border-color:var(--n-line)}
   .nego-st.past{margin-left:0;background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
+  html.dark .nego-st.past{border-color:#334155;color:var(--n-ink-soft)}
   .nego-past-thread{margin-top:9px;border-top:1px dashed var(--n-line);padding-top:8px}
   .nego-contested{border-left:2px solid var(--n-reject);background:var(--n-del-bg);border-radius:0 4px 4px 0;
     padding:6px 9px;margin-bottom:8px;font-size:11px;line-height:1.5;color:var(--n-ink)}
   .nego-hash{font-family:var(--n-font-mono);font-size:9.5px;color:var(--n-slate-soft);
     background:var(--n-badge-bg);border:1px solid #dde5ee;border-radius:5px;padding:4px 7px;
     margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html.dark .nego-hash{border-color:#334155}
   .nego-acts{display:flex;gap:6px}
   .nego-acts button{flex:1;border-radius:6px;padding:6px 0;font:inherit;font-size:11.5px;font-weight:700;
     border:1.5px solid transparent;background:var(--n-paper);cursor:pointer;transition:all .12s ease}
@@ -745,6 +785,7 @@ function negoStyleHtml(){
   .nego-acts .b-rej{border-color:var(--n-reject);color:var(--n-reject)}
   .nego-acts .b-rej:hover{background:var(--n-reject);color:#fff}
   .nego-acts .b-dis{border-color:#c9d5e1;color:var(--n-slate-soft)}
+  html.dark .nego-acts .b-dis,html.dark .nego-acts .b-undo{border-color:#334155}
   .nego-acts .b-dis:hover{background:var(--n-badge-bg)}
   .nego-acts .b-dis.has-thread{border-color:var(--n-slate-soft)}
   /* ---- somebody is waiting on an answer ----
@@ -754,14 +795,21 @@ function negoStyleHtml(){
      the colour this product already uses for an open point, and it stops the
      moment the thread is opened — a light that never goes out is a light people
      stop seeing. */
-  .nego-acts .b-dis.has-unread{border-color:#b8862b;color:#7d5a14;background:#fdf6e7;
+  .nego-acts .b-dis.has-unread{border-color:var(--st-amber-dot);color:var(--st-amber-fg);background:var(--st-amber-bg);
     animation:negoUnread 1.2s ease-in-out infinite}
   @keyframes negoUnread{
-    0%,100%{background:#fdf6e7;box-shadow:0 0 0 0 rgba(184,134,43,0)}
+    0%,100%{background:var(--st-amber-bg);box-shadow:0 0 0 0 rgba(184,134,43,0)}
     50%{background:#f7e9c8;box-shadow:0 0 0 3px rgba(184,134,43,.28)}
   }
+  /* The pulse's bright frame is a cream that would flash white on dark paper,
+     so dark mode swaps the whole animation for one that peaks as a wash. */
+  html.dark .nego-acts .b-dis.has-unread{animation-name:negoUnreadDark}
+  @keyframes negoUnreadDark{
+    0%,100%{background:var(--st-amber-bg);box-shadow:0 0 0 0 rgba(245,158,11,0)}
+    50%{background:rgba(245,158,11,.3);box-shadow:0 0 0 3px rgba(245,158,11,.25)}
+  }
   .nego-acts .b-undo{border-color:#c9d5e1;color:var(--n-ink-soft);flex:0 0 auto;padding:6px 12px}
-  .nego-acts .b-undo:hover{background:#f2f4f7}
+  .nego-acts .b-undo:hover{background:var(--n-canvas)}
   /* Tertiary on purpose. Changing an answer that has already gone to the other
      side is a real thing to be able to do and a rare thing to want, so it reads
      as a link beside the verbs rather than as a third verb among them. */
@@ -885,7 +933,8 @@ function negoStyleHtml(){
     .nego-room *,#nego-root *{transition:none !important;animation:none !important}
     .nego-pulse{animation:none !important;background:#5b83ad}
     .nego-acts .b-dis.has-unread{animation:none !important;background:#f7e9c8;
-      border-color:#b8862b;color:#7d5a14}
+      border-color:var(--st-amber-dot);color:var(--st-amber-fg)}
+    html.dark .nego-acts .b-dis.has-unread{background:rgba(245,158,11,.3)}
   }
 </style>`;
 }
@@ -1108,8 +1157,8 @@ function negoTimelineScreenHtml(c, f = {}){
       .ht .ht-meta{font-size:10.5px;color:var(--color-neutral-600);margin-top:1px}
       .ht .ht-clause{font-weight:600}
       .ht .ht-redline{border:1px solid var(--color-divider);border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px;line-height:1.55;background:var(--color-surface)}
-      .ht .ht-redline ins{background:#d9eae0;text-decoration:none}
-      .ht .ht-redline del{background:#f9ecea;color:#8f322b}
+      .ht .ht-redline ins{background:var(--st-green-bg);text-decoration:none}
+      .ht .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
       .ht .ht-note{font-size:11px;color:var(--color-neutral-700);margin-top:4px;border-left:2px solid var(--color-divider);padding-left:8px}
     </style>
     <h3>Negotiation history — ${_ne(c.name || c.id)}</h3>
@@ -1180,8 +1229,8 @@ function openHistoryTimeline(c, f = {}){
 }
 function negoVerifyResultHtml(r){
   return r.ok
-    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#e8f4ee;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#1e6b4d">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
-    : `<div data-verify-ok="0" style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#8f322b"><b>Integrity check failed.</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:11px">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
+    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--st-green-fg)">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
+    : `<div data-verify-ok="0" style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--st-ruby-fg)"><b>Integrity check failed.</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:11px">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
 }
 /* The report a reader with no login can hold: the whole story, every filter
    off, each change as its rendered redline, and the integrity statement —
@@ -1196,13 +1245,13 @@ function negoHistoryExportHtml(c, report){
 <style>
   body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
   h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:12px;margin:0 0 18px}
-  .integrity{border:1.5px solid ${report.ok ? '#2e8763' : '#b0453c'};border-radius:6px;padding:12px 14px;margin:0 0 20px;font-size:12.5px}
+  .integrity{border:1.5px solid ${report.ok ? 'var(--st-green-dot)' : 'var(--st-ruby-dot)'};border-radius:6px;padding:12px 14px;margin:0 0 20px;font-size:12.5px}
   .ht-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e3e7ea;page-break-inside:avoid}
   .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid #cdd4da;font-size:11px}
   .ht-body{flex:1;min-width:0} .ht-text{font-size:12.5px} .ht-meta{font-size:10.5px;color:#5a6470}
   .ht-clause{font-weight:600}
   .ht-redline{border:1px solid #e3e7ea;border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px}
-  .ht-redline ins{background:#d9eae0;text-decoration:none} .ht-redline del{background:#f9ecea;color:#8f322b}
+  .ht-redline ins{background:var(--st-green-bg);text-decoration:none} .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   .ht-note{font-size:11px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
   @media print{ body{margin:10mm auto} }
 </style></head><body>
@@ -2224,8 +2273,8 @@ function negoHeadHtml(c, opts){
           : 'No changes on the table yet. Propose wording and each change becomes a fingerprint on this list.'}
       </span>
       ${canAct && p.pending ? `
-        <button id="nego-all-acc" class="ui-btn" title="Accepts only the pending changes that trip no playbook, scan or review signal — the rest are held back for you" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:#1e6b4d;color:#1e6b4d">Accept all non-risk redlines</button>
-        <button id="nego-all-rej" class="ui-btn" title="Rejects every pending change proposed by the other side. Your own asks are untouched." style="flex:none;font-size:11.5px;padding:5px 11px;border-color:#b0453c;color:#b0453c">Reject all counterparty redlines</button>` : ''}
+        <button id="nego-all-acc" class="ui-btn" title="Accepts only the pending changes that trip no playbook, scan or review signal — the rest are held back for you" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">Accept all non-risk redlines</button>
+        <button id="nego-all-rej" class="ui-btn" title="Rejects every pending change proposed by the other side. Your own asks are untouched." style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">Reject all counterparty redlines</button>` : ''}
       ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none;font-size:11.5px;padding:5px 11px"
         title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}"${p.pending ? ' disabled' : ''}>Export clean PDF</button>` : ''}
     </div>
@@ -2244,11 +2293,11 @@ function negoReadyHtml(c, opts){
   const withdrawn = negoChanges(c).filter(x => x.withdrawn).length;
   return `
     <div id="nego-ready" style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-      border:1px solid #a8cbb8;background:#eef7f1;border-left:4px solid #1e6b4d;border-radius:6px;
+      border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:6px;
       padding:12px 16px;box-shadow:var(--shadow-sm)">
-      <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
+      <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-fg);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:#14503a">Ready to sign — every change is resolved</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-green-fg)">Ready to sign — every change is resolved</span>
         <span style="display:block;font-size:11.5px;color:var(--n-ink-soft);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}${withdrawn ? ` · ${withdrawn} ask${withdrawn === 1 ? '' : 's'} withdrawn` : ''}. Nothing is outstanding between the parties.</span>
       </span>
       ${side === 'owner'
@@ -2419,9 +2468,9 @@ function negoTurnBannerHtml(c, opts){
     ? negoUnsentAsks(c, 'owner').length : (b.unsent || 0);
   return `<div class="nego-turn" id="nego-turn" data-turn="${mine ? 'mine' : 'theirs'}"
       style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:6px;padding:9px 14px;
-      border:1px solid ${mine ? '#a8cbb8' : 'var(--n-line)'};background:${mine ? '#eef7f1' : 'var(--n-badge-bg)'};
+      border:1px solid ${mine ? 'var(--st-green-line)' : 'var(--n-line)'};background:${mine ? 'var(--st-green-bg)' : 'var(--n-badge-bg)'};
       border-left:4px solid ${mine ? 'var(--n-accept)' : 'var(--n-slate-soft)'}">
-    <span style="flex:1;min-width:200px;font-size:12.5px;font-weight:600;color:${mine ? '#14503a' : 'var(--n-ink)'}">
+    <span style="flex:1;min-width:200px;font-size:12.5px;font-weight:600;color:${mine ? 'var(--st-green-fg)' : 'var(--n-ink)'}">
       ${_ne(b.text)}${!mine && when ? ` <span style="font-weight:400;color:var(--n-ink-soft)">— sent ${_ne(when)}</span>` : ''}</span>
     ${''/* THE BUTTON THAT DID NOTHING, and only ever could have done nothing.
 
@@ -3275,7 +3324,7 @@ async function negoBatchConfirm(c, kind, split){
   const list = arr => arr.slice(0, 12).map(x => {
     const ch = x.ch || x;
     return `<li style="margin:0 0 4px"><code style="font-family:var(--font-mono);font-size:11px">#${e(ch.id)}</code> ${e(ch.clauseLabel || ch.clauseId || '')}${
-      x.why ? ` <span style="color:#8f322b">— ${e(x.why.join('; '))}</span>` : ''}</li>`;
+      x.why ? ` <span style="color:var(--st-ruby-fg)">— ${e(x.why.join('; '))}</span>` : ''}</li>`;
   }).join('') + (arr.length > 12 ? `<li style="color:var(--color-neutral-600)">…and ${arr.length - 12} more</li>` : '');
   const body = `
     <div style="font-size:12.5px;line-height:1.6">
@@ -5253,6 +5302,7 @@ function redlineLayoutCss(){
     font:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
   .redline-page.rl-embed .nego-bulk .b-acc{background:#059669;color:#fff}
   .redline-page.rl-embed .nego-bulk .b-rej{background:#e2e8f0;color:#1e293b}
+  html.dark .redline-page.rl-embed .nego-bulk .b-rej{background:#cbd5e1;color:#0f172a}
   .redline-page.rl-embed .nego-bulk button:disabled{opacity:.45;cursor:not-allowed}
 
   .redline-page .rl-disc-head{display:flex;align-items:center;gap:8px;padding:13px 14px 9px;

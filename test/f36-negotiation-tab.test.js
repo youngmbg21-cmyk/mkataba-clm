@@ -705,8 +705,11 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     // redesign unified typography — the room still declares its OWN --n-font-*
     // handles, so its sheet never names a family directly.
     assert.match(css, /--n-font-doc:var\(--font-doc\)/, 'the document face comes from the design token');
-    assert.match(css, /--n-ins-bg:#e4f1ea/);
-    assert.match(css, /--n-del-fg:#b0453c/);
+    // Status hues resolve from the shared status tokens since the dark-mode
+    // unification, so the room's redline colours re-map with the theme like
+    // every other status wash in the product.
+    assert.match(css, /--n-del-fg:var\(--st-ruby-dot\)/);
+    assert.match(css, /--n-ins-fg:var\(--st-green-fg\)/);
   });
 
   test('they are declared on the room, never on :root', async () => {
@@ -748,27 +751,28 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
         `${sel} floats at body level, so it must be in the token block or it paints with nothing`);
   });
 
-  test('the room does not borrow the app\'s palette', async () => {
-    /* Typography is the one deliberate exception since the redesign: the
-       room's --n-font-* tokens resolve from the app's global faces, so one
-       design's type reads everywhere. Colour is not — the room keeps its own
-       slate-and-paper ramp, and a room styled half from each palette would
-       read as neither. */
+  test('the room joins the theme through its own namespace', async () => {
+    /* This test used to assert the opposite — that the room never referenced
+       a shared token. That reading was overturned with dark mode: the HaTi
+       reference themes EVERYTHING on screen, so the room's surface/ink ramp
+       must flip with the app. What still holds: the flip happens through the
+       room's own --n-* handles (a dark override on the component selector),
+       never by restyling :root from inside a component. */
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
-    assert.ok(!/var\(--color-/.test(css),
-      'a room styled half from each palette reads as neither');
-    // including the markup the component generates
-    assert.ok(!/var\(--color-/.test(m.html()),
-      'inline styles must use the room\'s ramp too');
+    assert.match(css, /html\.dark \.nego-room[^{]*\{[^}]*--n-paper:#0f172a/,
+      'dark mode must flip the room\'s paper through the --n-* namespace');
+    assert.match(css, /html\.dark \.nego-room[^{]*\{[^}]*--n-ink:#e2e8f0/,
+      'dark mode must flip the room\'s ink through the --n-* namespace');
   });
 
-  test('the prototype\'s redline values, exactly', async () => {
+  test('the redline marks paint from the room\'s tokens', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
     assert.match(css, /\.nego-del\{background:var\(--n-del-bg\);color:var\(--n-del-fg\)/);
     assert.match(css, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\)/);
-    assert.match(css, /--n-ins-fg:#1e6b4d/, 'the insertion green is the same in both designs');
+    assert.match(css, /--n-ins-fg:var\(--st-green-fg\)/,
+      'the insertion green rides the shared status token, so it re-maps in dark');
   });
 
   test('reduced motion is honoured', async () => {

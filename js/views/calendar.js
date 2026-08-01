@@ -3,10 +3,13 @@
 let calState = { ym:null };   // {y, m} current month; null -> this month resolved at render
 
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
+/* The reference's traffic lights: vivid mid-tone dots and translucent washes
+   of the same hues, so a day with an expiry reads as a coloured box on the
+   light theme and the dark one alike; the fg tokens re-map per theme. */
 const CAL_EVENT = {
-  expiry:     { dot:'#b0453c', fg:'#8f322b', label:'Expiry',           tint:'rgba(176,69,60,.13)' },
-  renewal:    { dot:'#b8862b', fg:'#7d5a14', label:'Renewal decision', tint:'rgba(184,134,43,.15)' },
-  obligation: { dot:'#2e8763', fg:'#1e6b4d', label:'Obligation',       tint:'rgba(46,135,99,.13)' },
+  expiry:     { dot:'var(--st-ruby-dot)',  fg:'var(--st-ruby-fg)',  label:'Expiry',           tint:'rgba(244,63,94,.13)' },
+  renewal:    { dot:'var(--st-amber-dot)', fg:'var(--st-amber-fg)', label:'Renewal decision', tint:'rgba(245,158,11,.14)' },
+  obligation: { dot:'var(--st-green-dot)', fg:'var(--st-green-fg)', label:'Obligation',       tint:'rgba(16,185,129,.13)' },
 };
 // priority when a day carries more than one kind of event (drives its tint)
 const CAL_PRIORITY = ['expiry','renewal','obligation'];
@@ -74,13 +77,13 @@ function renderCalendar(){
     // expiry / renewal / obligation read as coloured boxes at a glance
     const kind=CAL_PRIORITY.find(t=>list.some(e=>e.type===t&&!e.done)) || CAL_PRIORITY.find(t=>list.some(e=>e.type===t));
     const ev=kind?CAL_EVENT[kind]:null;
-    const bg=today?'rgba(89,128,166,.1)':(ev?ev.tint:'var(--color-bg)');
+    const bg=today?'color-mix(in srgb,var(--color-accent) 11%,transparent)':(ev?ev.tint:'var(--color-bg)');
     const bd=today?'var(--color-accent)':(ev?ev.dot:'var(--color-divider)');
     /* min-width:0 and overflow:hidden, or the cell's min-content width is the
        longest contract name inside it and the column stretches to hold it. */
     const cellStyle=`min-height:62px;min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
       `background:${bg};border:1px solid ${bd}`;
-    const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--color-accent-800)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
+    const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--st-steel-fg)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
       return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
@@ -122,9 +125,9 @@ function renderCalendar(){
              padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Done</button>`
       : '';
     const theirsChip = (e.type==='obligation' && e.theirs)
-      ? `<span title="The counterparty owes this — chase it" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 4px;background:rgba(184,134,43,.15);color:#7d5a14">theirs</span>`
+      ? `<span title="The counterparty owes this — chase it" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
       : '';
-    return `<div style="display:flex;align-items:center;gap:8px;width:100%;border-bottom:1px solid rgba(29,31,32,.07)" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">`+
+    return `<div style="display:flex;align-items:center;gap:8px;width:100%;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">`+
       `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">`+
         _dot(ev.dot,7)+
         `<span style="flex:1;min-width:0">`+
@@ -150,7 +153,7 @@ function renderCalendar(){
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:14px">
     <style>
       .cal-day{transition:box-shadow .14s ease,border-color .14s ease;position:relative}
-      .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px rgba(89,128,166,.32),0 4px 14px rgba(43,43,45,.16);z-index:2}
+      .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 35%,transparent),0 4px 14px rgba(43,43,45,.16);z-index:2}
       /* ---- THE REFERENCE'S TWO-TO-ONE SPLIT ----
          Twelve-column thinking again: lg:grid-cols-3 with the month taking
          col-span-2 and the agenda the last third. Below the design's lg
