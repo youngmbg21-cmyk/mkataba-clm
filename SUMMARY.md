@@ -4320,3 +4320,89 @@ any provider call, so asking about an unconfigured type costs nothing.
 **Local mode:** no playbook engine there (out of scope, per the order);
 `_localSystem` now tells the model to say the check needs the
 server-connected Copilot rather than bluffing.
+
+---
+
+# Run 10 — Copilot streaming (2026-08-01, work order: copilot-streaming)
+
+The sequence's last order: the answer arrives as it is written. One new SSE
+route beside the old one, a small client stream reader, a transparent
+fallback. Suite green, 2271 → 2284 tests. The sequence is complete.
+
+## The server — POST /api/ai/chat/stream
+
+A new route with the SAME middleware chain (`auth, rlAiLight,
+aiFeature('chat'), aiBudgetGuard, capAiInput`) running the same tool loop —
+including work order #1's quote verification/logging and #2's deep-tier
+escalation and playbook tool — delivered as Server-Sent Events:
+
+- `progress` — `{ step, tool, label }` when a tool runs; the human label is
+  built server-side ("Searching the workspace…", "Reading MK-103…",
+  "Comparing 3 contracts…", "Checking the playbook…").
+- `token` — `{ text }` chunks of the answer as it is written.
+- `final` — the EXACT shape `/api/ai/chat` returns (`answer, citations,
+  compare, cards, notice`) after normalizeDeliver + quote verification + card
+  resolution. The client replaces its streamed text with `final.answer`, so
+  the verified version is what persists. A parity test deep-equals the two
+  routes' output for the same scripted conversation — they cannot drift.
+- `error` — `{ message }`, then the stream closes.
+
+**The existing `/api/ai/chat` is untouched** — it is the fallback and the
+contract for tests, local mode and old clients (its stale "not
+token-streamed" comment now points at the new route; no code changed).
+
+**Streaming the final turn without predicting it:** every iteration calls
+Anthropic with `stream: true` (`anthropicMessagesStream`, a twin of
+`anthropicMessages` with the same retry-once-on-rejected-model and the same
+booking). Tool-use deltas are buffered silently; text deltas stream as
+`token` events — if a streamed response turns out to be a tool call, no
+answer was shown and the loop simply continues. One deliberate addition
+beyond the letter of the order: because the system prompt makes the model
+finish via `deliver_answer`, the final answer usually arrives as a JSON
+string, not text deltas — so `answerExtractor()` incrementally unescapes the
+`"answer"` property from `deliver_answer`'s partial JSON and streams THAT as
+tokens. Without it, the streamed route would show progress and then still
+drop the whole answer at once in the common case; with it, the prose visibly
+writes itself. It is ~30 bounded lines, emits nothing if the property never
+appears, and the final event always carries the authoritative text.
+
+**Spend:** usage is accumulated from `message_start`/`message_delta` so
+`recordAiSpend` books the SAME numbers as the non-streaming path. If a
+dropped connection means usage never arrived, a conservative estimate
+(~4 chars/token on payload and emitted text) is booked with a warning —
+spend never silently under-counts.
+
+**Abort:** the browser going away aborts the in-flight Anthropic fetch
+(`AbortController` on `res close`), whatever usage was received is booked,
+and the turn is logged with an "aborted by client" note. Test-pinned.
+
+**The copilot log** records streamed turns identically: on `final`, on
+provider errors, and on aborts.
+
+**CSP, verified not assumed:** `connect-src` includes `'self'`
+(server/server.js CSP block), so same-origin SSE needs no CSP change — a
+test asserts it on a live response header.
+
+## The client — js/ai.js + js/api.js
+
+- `apiStream()` sits BESIDE `api()` in js/api.js (`api()` stays JSON-only,
+  untouched): fetch + ReadableStream SSE parsing, surfaces
+  progress/token via callback, resolves with the `final` payload, throws on
+  ANY irregularity. Tested for real — the browser file runs in a Node vm
+  against the live route.
+- `copilotAsk(messages, context, onEvent)`: the server branch tries the
+  stream route when the caller can render it; any stream failure falls back
+  to one plain `/api/ai/chat` call, transparently. Local mode keeps its
+  non-streaming path, untouched.
+- Rendering: `aiStreamRenderer()` drives the EXISTING typing bubble —
+  progress replaces the three dots with the step label, tokens write the
+  answer into the bubble as it arrives, and `final` goes through the same
+  `aiRenderServerAnswer` + full repaint as before, so formatting, citation
+  cards and the compare table change zero. Only the main panel streams; the
+  negotiation-room and rewrite callers keep the plain path.
+
+## Sequence status
+
+All three orders are done. Parked list (digest, local-mode retirement, log
+viewer UI, retention policy, deep-bucket throttle for escalated chat) is
+unchanged and lives in BUGLOG.md / the sequence doc. Handing back to Young.

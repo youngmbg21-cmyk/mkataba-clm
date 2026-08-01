@@ -26,6 +26,47 @@ async function api(path, method='GET', body){
   if(data&&data.notice&&typeof toast==='function') toast(data.notice,'err');
   return data;
 }
+/* SSE POST for the streaming Copilot chat. Deliberately its OWN helper: api()
+   above is JSON-only and every caller relies on that; bending it to also
+   speak event-streams would put stream parsing in every JSON call's path.
+   Calls onEvent({type:'progress'|'token', ...}) as events arrive and resolves
+   with the `final` payload — the same shape api('ai/chat') returns. ANY
+   failure (route missing, non-stream response, parse error, network cut
+   mid-stream, server error event) throws, and the caller falls back to the
+   plain endpoint transparently. */
+async function apiStream(path, body, onEvent){
+  const res=await fetch('api/'+path,{ method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body), credentials:'same-origin' });
+  if(!res.ok||!res.body||!/text\/event-stream/.test(res.headers.get('content-type')||''))
+    throw new Error('stream unavailable ('+res.status+')');
+  const reader=res.body.getReader(); const dec=new TextDecoder();
+  let buf='', final=null;
+  const handle=(name,data)=>{
+    if(name==='final'){ final=data; return; }
+    if(name==='error') throw new Error((data&&data.message)||'stream error');
+    if(onEvent) onEvent({type:name,...(data||{})});
+  };
+  for(;;){
+    const {done,value}=await reader.read();
+    if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    let i;
+    while((i=buf.indexOf('\n\n'))>=0){
+      const frame=buf.slice(0,i); buf=buf.slice(i+2);
+      let name='message', data='';
+      for(const line of frame.split('\n')){
+        if(line.startsWith('event:')) name=line.slice(6).trim();
+        else if(line.startsWith('data:')) data+=line.slice(5).trim();
+      }
+      if(data) handle(name,JSON.parse(data));
+    }
+  }
+  if(!final) throw new Error('stream ended without a final answer');
+  // same notice surfacing as api() — the two paths must feel identical
+  if(final.notice&&typeof toast==='function') toast(final.notice,'err');
+  return final;
+}
 async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
@@ -50,4 +91,4 @@ async function loadBootstrap(){
   state.folderId=ui.folderId||null;
   if(state.view==='workspace'&&!state.activeId) state.view='dashboard';
 }
-Object.assign(window,{API_MODE,api,loadBootstrap});
+Object.assign(window,{API_MODE,api,apiStream,loadBootstrap});

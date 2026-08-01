@@ -94,9 +94,15 @@ function startAiStub() {
    Unlike startAiStub above (which always answers with the request's first
    tool), this one plays back exactly what each test enqueues, so a
    multi-round tool loop can be driven deterministically. `script(...turns)`
-   enqueues per-call returns: an array of content blocks for a 200, or a bare
-   number for that HTTP status. An empty queue answers deliver_answer with a
-   plain stubbed answer. */
+   enqueues per-call returns: an array of content blocks for a 200, a bare
+   number for that HTTP status, or `{ content, stallMs }` to pause mid-stream
+   (for abort tests). An empty queue answers deliver_answer with a plain
+   stubbed answer.
+
+   When the recorded request carries `stream: true`, the same scripted content
+   is played back as Anthropic's SSE protocol — message_start, block starts,
+   text/input_json deltas split into chunks, message_delta with usage — so the
+   server's stream parser runs for real against the identical conversation. */
 function startScriptedAi() {
   const calls = [];
   const queue = [];
@@ -112,11 +118,37 @@ function startScriptedAi() {
         res.end(JSON.stringify({ error: { type: 'scripted', message: 'scripted provider failure' } }));
         return;
       }
-      const content = next || [{ type: 'tool_use', id: 'tu_default', name: 'deliver_answer',
+      const spec = (next && !Array.isArray(next)) ? next : { content: next };
+      const content = spec.content || [{ type: 'tool_use', id: 'tu_default', name: 'deliver_answer',
         input: { answer: 'stubbed answer', citations: [] } }];
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ id: 'msg_stub', type: 'message', role: 'assistant',
-        model: body.model || 'stub', content, usage: { input_tokens: 10, output_tokens: 5 } }));
+      const usage = { input_tokens: 10, output_tokens: 5 };
+      if (!body.stream) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id: 'msg_stub', type: 'message', role: 'assistant',
+          model: body.model || 'stub', content, usage }));
+        return;
+      }
+      // --- streaming playback ---
+      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
+      const ev = (name, data) => { try { res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {} };
+      const halves = s => { const mid = Math.max(1, Math.ceil(s.length / 2)); return s.length ? [s.slice(0, mid), s.slice(mid)].filter(Boolean) : []; };
+      ev('message_start', { message: { usage: { input_tokens: usage.input_tokens } } });
+      const rest = () => {
+        content.forEach((b, i) => {
+          if (b.type === 'text') {
+            ev('content_block_start', { index: i, content_block: { type: 'text' } });
+            for (const part of halves(b.text || '')) ev('content_block_delta', { index: i, delta: { type: 'text_delta', text: part } });
+          } else {
+            ev('content_block_start', { index: i, content_block: { type: 'tool_use', id: b.id, name: b.name } });
+            for (const part of halves(JSON.stringify(b.input || {}))) ev('content_block_delta', { index: i, delta: { type: 'input_json_delta', partial_json: part } });
+          }
+          ev('content_block_stop', { index: i });
+        });
+        ev('message_delta', { delta: { stop_reason: 'end_turn' }, usage: { output_tokens: usage.output_tokens } });
+        ev('message_stop', {});
+        try { res.end(); } catch (_) {}
+      };
+      if (spec.stallMs) setTimeout(rest, spec.stallMs); else rest();
     });
   });
   return new Promise(resolve => {

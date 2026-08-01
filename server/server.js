@@ -2500,10 +2500,11 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
    it falls back to its built-in keyword assistant. Cost/rate/daily controls are
    inherited from the shared middleware, exactly like the other Copilot endpoints.
 
-   NOTE: replies are request/response (not token-streamed). The tool loop is
-   inherently multi-round; a future enhancement can stream the final turn over
-   SSE, but every existing client path is request/response and the panel shows a
-   typing indicator meanwhile. */
+   NOTE: this route is request/response and stays that way — it is the
+   contract for tests, local mode and any old client. The streaming variant
+   lives beside it at POST /api/ai/chat/stream (SSE: progress + token events,
+   then a `final` event of exactly this route's shape); the client falls back
+   here transparently on any stream failure. */
 
 /* The Copilot tool loop runs server-side against the database, so it needs the
    caller's visibility rules travelling with it. One context object carries all
@@ -2994,6 +2995,268 @@ app.get('/api/ai/log', auth, admin, (req, res) => {
     citedIds: arr(r.cited_ids), toolsUsed: arr(r.tools_used),
     quoteDrops: r.quote_drops, model: r.model, steps: r.steps,
   })) });
+});
+
+/* ============================================================
+   Streaming chat — POST /api/ai/chat/stream
+   ============================================================
+   The same tool loop as /api/ai/chat, delivered as Server-Sent Events so a
+   multi-tool answer reads as "it's working" instead of a 20-second typing
+   indicator. The non-streaming route above STAYS, untouched: it is the
+   fallback and the contract for tests, local mode and any old client.
+
+   What streams is deliberately limited. The loop's intermediate turns use
+   forced tool structure, and quote verification / citation scoping run AFTER
+   the model finishes — so the wire carries (a) coarse progress while tools
+   run, (b) the answer text as it is written, and (c) one `final` event, the
+   exact shape the plain route returns, after the checks have run. The client
+   replaces its streamed text with final.answer; the verified version is what
+   persists.
+
+   Events (JSON per event, one `event:` name each):
+     progress — { step, tool, label }   a tool is about to run
+     token    — { text }                a chunk of the answer being written
+     final    — { answer, citations, compare, cards, notice? }
+     error    — { message }, then the stream closes
+
+   Same-origin SSE is already permitted by the CSP: connect-src includes
+   'self' (see the CSP block above) — verified, not assumed. */
+
+/* Feed this partial_json chunks of deliver_answer's input and it emits the
+   "answer" string's content incrementally, unescaped — the model writes its
+   answer inside a JSON string, and the user should watch the prose, not the
+   escaping. Tolerant by design: if the answer property never appears, it
+   simply emits nothing (the final event still carries the full answer). */
+function answerExtractor(emit) {
+  let head = '', open = false, done = false, esc = false, uni = null;
+  const UNESC = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', '"': '"', '\\': '\\', '/': '/' };
+  return chunk => {
+    if (done) return;
+    if (!open) {
+      head += chunk;
+      const m = /"answer"\s*:\s*"/.exec(head);
+      if (!m) { if (head.length > 30000) done = true; return; }
+      chunk = head.slice(m.index + m[0].length);
+      head = ''; open = true;
+    }
+    let out = '';
+    for (const ch of chunk) {
+      if (uni !== null) { uni += ch; if (uni.length === 4) { const c = parseInt(uni, 16); if (Number.isFinite(c)) out += String.fromCharCode(c); uni = null; } continue; }
+      if (esc) { esc = false; if (ch === 'u') { uni = ''; } else { out += UNESC[ch] !== undefined ? UNESC[ch] : ch; } continue; }
+      if (ch === '\\') { esc = true; continue; }
+      if (ch === '"') { done = true; break; }
+      out += ch;
+    }
+    if (out) emit(out);
+  };
+}
+
+/* Streaming twin of anthropicMessages(): same request, same retry-once on a
+   rejected model name, same booking — but the response is consumed as SSE and
+   reassembled, so callers read resp.data.content exactly as they do from the
+   non-streaming call. `onToken` receives the visible text as it is written:
+   text deltas, plus deliver_answer's answer string via answerExtractor. Other
+   tool_use deltas are buffered silently — if a streamed response turns out to
+   be a tool call, no tokens were shown and the loop simply continues, which
+   is what makes "the last iteration" need no prediction.
+
+   Usage is accumulated from message_start / message_delta so recordAiSpend
+   books the SAME numbers as the non-streaming path. If the stream dies before
+   usage arrives, a conservative estimate is booked with a warning — spend
+   must never silently under-count. */
+async function anthropicMessagesStream(key, tier, payload, meter = {}, { onToken, signal } = {}) {
+  const t = tier === 'deep' ? 'deep' : 'fast';
+  const chosen = meter.model || aiModelForTier(t);
+  const def = AI_TIER_DEFAULTS[t];
+  const attempt = async (model) => {
+    const r = await fetch(ANTHROPIC_BASE + '/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ ...payload, model, stream: true }),
+      signal,
+    });
+    if (!r.ok) return { ok: false, status: r.status, error: await r.text(), model };
+    const blocks = [];
+    const usage = {};
+    let sawUsage = false, emittedChars = 0;
+    const onEvent = (name, d) => {
+      if (name === 'message_start') { Object.assign(usage, (d.message && d.message.usage) || {}); sawUsage = true; return; }
+      if (name === 'content_block_start') {
+        const b = d.content_block || {};
+        blocks[d.index] = b.type === 'tool_use'
+          ? { type: 'tool_use', id: b.id, name: b.name, input: {}, _json: '',
+              _extract: (b.name === 'deliver_answer' && onToken) ? answerExtractor(tx => { emittedChars += tx.length; onToken(tx); }) : null }
+          : { type: 'text', text: '' };
+        return;
+      }
+      if (name === 'content_block_delta') {
+        const b = blocks[d.index]; if (!b) return;
+        const delta = d.delta || {};
+        if (delta.type === 'text_delta' && b.type === 'text') {
+          b.text += delta.text || '';
+          if (onToken && delta.text) { emittedChars += delta.text.length; onToken(delta.text); }
+        }
+        if (delta.type === 'input_json_delta' && b.type === 'tool_use') {
+          b._json += delta.partial_json || '';
+          if (b._extract) b._extract(delta.partial_json || '');
+        }
+        return;
+      }
+      if (name === 'message_delta') { if (d.usage) { Object.assign(usage, d.usage); sawUsage = true; } return; }
+      if (name === 'error') { const e = new Error('provider stream error: ' + JSON.stringify(d.error || d).slice(0, 200)); e.providerStream = true; throw e; }
+    };
+    const book = () => {
+      let u = usage;
+      if (!sawUsage) {
+        // Dropped before any usage arrived: estimate ~4 chars/token both ways.
+        u = { input_tokens: Math.ceil(JSON.stringify(payload).length / 4), output_tokens: Math.ceil(emittedChars / 4) || 1 };
+        console.warn('[ai] stream ended without usage — booking a conservative estimate (' + u.input_tokens + ' in / ' + u.output_tokens + ' out).');
+      }
+      return recordAiSpend(meter.feature || 'other', model, u, { countRequest: meter.countRequest !== false, allowance: !!meter.allowance });
+    };
+    let spend;
+    try {
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          const frame = buf.slice(0, i); buf = buf.slice(i + 2);
+          let name = 'message', data = '';
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) name = line.slice(6).trim();
+            else if (line.startsWith('data:')) data += line.slice(5).trim();
+          }
+          if (data) onEvent(name, JSON.parse(data));
+        }
+      }
+    } catch (e) {
+      // Book what we know before surfacing the abort/parse failure.
+      try { spend = book(); } catch (_) {}
+      throw e;
+    }
+    spend = book();
+    const content = blocks.filter(Boolean).map(b => {
+      if (b.type !== 'tool_use') return b;
+      let input = {}; try { input = b._json ? JSON.parse(b._json) : {}; } catch (_) {}
+      return { type: 'tool_use', id: b.id, name: b.name, input };
+    });
+    return { ok: true, data: { content, usage }, model, spend };
+  };
+  const first = await attempt(chosen);
+  if (!first.ok && chosen !== def && isModelRejection(first.status, first.error)) {
+    console.warn(`[ai] model "${chosen}" rejected by Anthropic (HTTP ${first.status}); retrying once with tier default "${def}".`);
+    const second = await attempt(def);
+    return second.ok ? { ...second, fellBack: true, rejectedModel: chosen } : second;
+  }
+  return first;
+}
+
+// The human line shown while a tool runs — built server-side so every client
+// says the same thing.
+function copilotProgressLabel(name, input) {
+  const a = input || {};
+  const id = String(a.id || '').slice(0, 40);
+  if (name === 'search_contracts') return 'Searching the workspace…';
+  if (name === 'get_contract') return `Reading ${id || 'the contract'}…`;
+  if (name === 'get_scan_findings') return `Checking findings on ${id || 'the contract'}…`;
+  if (name === 'list_portfolio') return 'Scanning the portfolio…';
+  if (name === 'compare_contracts') { const n = Array.isArray(a.ids) ? a.ids.length : 2; return `Comparing ${n} contracts…`; }
+  if (name === 'check_against_playbook') return 'Checking the playbook…';
+  return 'Working…';
+}
+
+app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+  const { messages, context } = req.body || {};
+  if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages are required' });
+  const cx = copilotCtx(req);
+  const convo = messages
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-10).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+  if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
+
+  // From here on the response is an event stream — errors travel as events.
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  const send = (event, data) => { try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {} };
+  /* The user closing the panel or navigating away aborts the in-flight
+     provider call; whatever usage was received (or a conservative estimate)
+     is booked by the stream reader, and the turn is still logged. */
+  const ac = new AbortController();
+  let clientGone = false;
+  res.on('close', () => { if (!res.writableEnded) { clientGone = true; ac.abort(); } });
+
+  const system = buildCopilotSystem(context, cx);
+  const working = convo.slice();
+  const question = convo[convo.length - 1].content;
+  const toolsUsed = [];
+  let steps = 0, compared = false;
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
+  try {
+    for (let step = 0; step < 5; step++) {
+      steps = step + 1;
+      const resp = await anthropicMessagesStream(key, compared ? 'deep' : 'fast',
+        { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working },
+        { feature: 'chat' },
+        { signal: ac.signal, onToken: text => { if (text) send('token', { text }); } });
+      if (!resp.ok) {
+        const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
+        logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
+        send('error', { message: err });
+        return res.end();
+      }
+      usedModel = resp.model || usedModel;
+      if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
+      const content = resp.data.content || [];
+      const toolUses = content.filter(b => b.type === 'tool_use');
+      working.push({ role: 'assistant', content });
+      if (!toolUses.length) {
+        const txt = content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+        final = { answer: txt || 'I could not produce an answer for that.', citations: [], compare: null };
+        break;
+      }
+      const deliver = toolUses.find(t => t.name === 'deliver_answer');
+      if (deliver) { final = normalizeDeliver(deliver.input, cx); break; }
+      toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
+      if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
+      for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
+      const results = await Promise.all(toolUses.map(async t =>
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key })) })));
+      working.push({ role: 'user', content: results });
+    }
+    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
+    const cardIds = [];
+    final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
+    if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
+    const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
+    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
+    if (final.quoteDrops) {
+      const drop = final.quoteDrops === 1
+        ? 'One quoted excerpt could not be matched to the contract text and was removed — treat that point with care.'
+        : final.quoteDrops + ' quoted excerpts could not be matched to the contract text and were removed — treat those points with care.';
+      notice = { notice: (notice.notice ? notice.notice + ' ' : '') + drop };
+    }
+    logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
+      quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, cards, ...notice });
+    res.end();
+  } catch (e) {
+    if (clientGone || e.name === 'AbortError') {
+      // The user left; usage was booked by the stream reader. Record the turn.
+      logCopilotTurn(req, { question, answer: '[stream aborted by client]', toolsUsed, model: usedModel, steps });
+      try { res.end(); } catch (_) {}
+      return;
+    }
+    logCopilotTurn(req, { question, answer: 'Copilot request failed: ' + e.message, toolsUsed, model: usedModel, steps });
+    send('error', { message: 'Copilot request failed: ' + e.message });
+    res.end();
+  }
 });
 
 // E8-T4: full workspace export as a zip (contracts incl. versions/audit,

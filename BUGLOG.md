@@ -6387,3 +6387,33 @@ a small refactor with its own blast radius, not done inside this order.
 `npm run test:browser` remains **70/71** — `FAIL 13 the batch send is in the
 toolbar` — identical to before this run and to the untouched tree (see the
 trust-pass entry above). Negotiation-toolbar UI, unrelated to this order.
+
+---
+
+## Run: Copilot streaming (2026-08-01, work order: copilot-streaming)
+
+### 1. Judgement call, documented: deliver_answer's answer is streamed from its partial JSON
+
+The order's letter says tool_use deltas buffer silently — but the system
+prompt makes every well-behaved turn END in a `deliver_answer` tool call, so
+the letter alone would leave the common case unstreamed (progress, silence,
+then the whole answer at once). `answerExtractor()` in server/server.js
+incrementally unescapes the `"answer"` string from the tool call's partial
+JSON and emits it as token events; all other tool_use deltas stay silent. If
+this reads as scope creep in the morning, deleting the one `_extract` hook in
+`anthropicMessagesStream` restores the strict-letter behaviour — everything
+else (protocol, parity, fallback) stands without it.
+
+### 2. Parked: the SSE stream sends no heartbeat
+
+A very long quiet gap (a slow deep-tier synthesis with no tools left to
+announce) sends nothing on the wire until tokens start. Some proxies cut idle
+streams; a `: ping` comment every ~15s would inoculate. Not needed for the
+demo path (progress/token events flow well within any sane idle timeout);
+worth adding if a real deployment ever fronts HaTi with an aggressive proxy.
+
+### 3. Parked (unchanged): the one pre-existing redline browser check
+
+`npm run test:browser` still **70/71** — `FAIL 13 the batch send is in the
+toolbar` — identical on the untouched tree since before this sequence began.
+Logged in the trust-pass entry; still nobody's regression.

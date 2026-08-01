@@ -1989,3 +1989,53 @@ kind-regex mirrors are asserted identical in `server/server.js` and
 the deep model while the first stayed fast · a never-comparing turn is fast
 end to end · escalation is per-request, never sticky across turns · both
 calls of a compare turn book to the `chat` feature line of `/api/ai/spend`.
+
+---
+
+# Run — Copilot streaming (2026-08-01, work order: copilot-streaming)
+
+**Branch:** `claude/new-session-inm5ts` · same harness; the scripted
+Anthropic stand-in now speaks the provider's SSE protocol when a request
+carries `stream: true`, so the server's stream parser is exercised for real.
+
+## Suite counts
+
+| | Before (quality pass, merged) | After (this run) |
+|---|---|---|
+| Tests | 2271 | **2284** |
+| Suites | 479 | 483 |
+| Pass | 2271 | **2284** |
+| Fail | 0 | 0 |
+
++13 tests, all from the new file below. The non-streaming route's tests are
+untouched and green, per the order. Browser checks: selection **22/22**,
+parity **18/18**, timeline **19/19**, redline **70/71** (the same
+pre-existing failure, parked since the trust pass — not a regression).
+
+## New tests — `test/f134-copilot-streaming.test.js` (13)
+
+**Protocol (5):** events arrive `progress → token → final`, exactly one
+final, the progress label is server-built ("Reading MK-A1…"), and the token
+concatenation IS `final.answer` · **THE parity test** — `final` deep-equals
+the non-streaming route's response for the same scripted conversation · a
+plain-text turn streams as text deltas with JSON escapes and typography
+intact · multi-tool turns emit one labelled progress per tool · work order
+#2's deep-tier escalation applies on the stream route (`stream: true`, fast
+then deep).
+
+**Trust survives the stream (4):** a fabricated quote streams as tokens but
+is absent from `final` (dropped + noticed + counted on the log row — #1's
+verification still bites) · a completed streamed turn logs the same facts as
+the plain route · a provider error becomes an `error` event and a log row ·
+client abort mid-stream: no crash, the interrupted provider call is still
+booked to the spend ledger, the turn is logged as aborted, and the server
+answers normally afterwards.
+
+**The client half (3):** the REAL `js/api.js` runs in a Node vm against the
+live route — `apiStream` surfaces progress + tokens and resolves with the
+final payload · a JSON (non-stream) response makes `apiStream` throw, which
+is the fallback trigger · source pins: `copilotAsk` tries the stream, falls
+back to the plain call on any failure, local mode and `api()` untouched.
+
+**Environment (1):** the CSP's `connect-src 'self'` is asserted on a live
+response header — the same-origin SSE claim is verified, not assumed.

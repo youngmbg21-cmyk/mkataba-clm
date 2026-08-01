@@ -1295,12 +1295,53 @@ function updateAiBrainPill(){
     ? `<span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span>✦ ${b.label}`
     : `<span class="h-1.5 w-1.5 rounded-full" style="background:#c79a3e;"></span>${b.label}`;
 }
-async function copilotAsk(messages, context){
-  if(typeof API_MODE==='function' && API_MODE() && state.aiConfigured)
+async function copilotAsk(messages, context, onEvent){
+  if(typeof API_MODE==='function' && API_MODE() && state.aiConfigured){
+    /* Streamed when the caller can render it (onEvent) — progress + tokens as
+       the answer is written, then the same verified final shape. ANY stream
+       failure (route missing on an older server, parse error, network cut
+       mid-stream) falls back to one plain /api/ai/chat call, transparently:
+       the user still gets an answer, just un-streamed. */
+    if(onEvent && typeof apiStream==='function'){
+      try{ return await apiStream('ai/chat/stream',{ messages, context }, onEvent); }
+      catch(e){ /* fall through to the request/response contract */ }
+    }
     return await api('ai/chat','POST',{ messages, context });
+  }
   if(!(typeof API_MODE==='function' && API_MODE()) && _localAiKey())
     return await aiLocalClaude(messages, context);
   const e=new Error('needsKey'); e.needsKey=true; throw e;
+}
+
+/* Live renderer for a streaming turn: progress events replace the typing
+   indicator's dots with the step's label; token events write the answer into
+   the bubble as it arrives. The bubble this drives is the `typing` one
+   renderAIFeed(true) painted last — and the eventual `final` goes through
+   aiRenderServerAnswer + a full repaint exactly as before, so formatting,
+   citation cards and the compare table change zero. */
+function aiStreamRenderer(){
+  let text='';
+  const target=()=>{
+    const feed=document.getElementById('ai-feed'); if(!feed) return null;
+    const last=feed.querySelector('.ai-msg:last-child'); if(!last) return null;
+    const t=last.querySelector('.typing');
+    if(t){ t.classList.remove('typing'); t.setAttribute('data-ai-stream',''); t.textContent=''; }
+    return last.querySelector('[data-ai-stream]');
+  };
+  return ev=>{
+    const el=target(); if(!el) return;
+    if(ev.type==='progress'){
+      /* A new model turn is starting — any streamed text so far was that
+         turn's preamble, superseded by the tool run it announced. */
+      text='';
+      el.innerHTML=`<span class="text-[12px] text-ink/50">${_aiEsc(ev.label||'Working…')}</span>`;
+    }else if(ev.type==='token'&&ev.text){
+      text+=ev.text;
+      el.textContent=text;
+      const feed=document.getElementById('ai-feed');
+      if(feed) feed.scrollTop=feed.scrollHeight;
+    }
+  };
 }
 
 /* Deterministic side-by-side from live fields — works with NO Copilot at all, so
@@ -2411,7 +2452,7 @@ async function aiSubmit(){
   // keeps the panel working (with a nudge toward adding a key).
   if(copilotAvailable()){
     try{
-      const res=await copilotAsk(aiChatMessages(), aiChatContext());
+      const res=await copilotAsk(aiChatMessages(), aiChatContext(), aiStreamRenderer());
       finish(aiRenderServerAnswer(res));
     }catch(e){
       // Graceful degrade: answer from the keyword engine, note why.
