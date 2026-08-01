@@ -4255,3 +4255,68 @@ taken tonight): retention/purge policy for this table (GDPR).**
 - Local mode deliberately does NOT get quote verification or logging (per the
   order): it is demo-only and being retired when the key moves server-side.
   It did get the truncation flags, the 50k cap and the language rule.
+
+---
+
+# Run 9 — Copilot quality pass (2026-08-01, work order: copilot-quality)
+
+Two fixes: the smart model writes the legal-adjacent verdicts, and the
+playbook is reachable from the chat. Suite green, 2259 → 2271 tests.
+
+## F-A — Deep-tier escalation for comparison verdicts
+
+The chat loop ran every step on the fast tier (Haiku), including "which
+contract is more favorable and why". Per the original plan (HaTi-Copilot-PLAN
+§1.1), the loop now tracks whether `compare_contracts` was called during the
+turn; once it has, every subsequent iteration — above all the final synthesis
+that writes the verdict — runs on the deep tier (Sonnet). The existing
+`anthropicMessages(key, tier, …)` signature already took the tier; no new
+plumbing. A turn that never compares stays fast end to end, and the boolean is
+per-request, so one comparison never taxes the next question.
+
+**Rate-limiting judgement call, as the order asked:** the route stays on
+`rlAiLight`. Remounting on `rlAiDeep` would throttle every ordinary question,
+and a per-call check against the deep bucket from inside the loop would have
+meant refactoring the rate-limiter middleware into an imperatively callable
+form — not clean tonight. Deep-tier chat turns are therefore governed by the
+daily spend ceiling (each call books real usage to the ledger the moment it
+returns), not by the deep rate bucket. Verified: both calls of a compare turn
+land on the `chat` feature line of `/api/ai/spend` (test-pinned).
+
+## F-B — `check_against_playbook`: the playbook reaches the chat
+
+The working core of `/api/ai/playbook` (prompt build + deep call + verdict
+parse) is extracted into `aiPlaybookVerdicts()`, and the route and the new
+chat tool both call it — the route's behaviour is byte-for-byte the same
+(kept middleware, validation, error mapping; test-pinned including the
+provider-error path).
+
+The tool takes `{ id }`, resolves the contract through the scoped
+`copilotGetJson` (out of scope reads as not found, never as a playbook
+result), resolves the workspace playbook for that contract's kind, and runs
+the shared review — **always on the deep tier**, whichever door it comes
+through. Its verdict list (aligned / deviation / missing, with quotes) feeds
+the loop like any other tool result; the final `deliver_answer` cites the
+contract as usual, and quoted deviations pass through Run 8's quote
+verification like everything else. One new system-prompt line tells the model
+when to reach for it, and to say plainly when `noPlaybook` comes back.
+
+**Where the workspace playbook lives, server-side:** the playbook the org
+actually saved (`appSettings.playbook`, written by the Playbook editor). The
+browser's built-in `DEFAULT_PLAYBOOK` is a client-side seed for the Playbook
+page; the server deliberately does not restate it — a second copy of a client
+default would drift silently. A workspace that never configured a playbook
+gets `{ noPlaybook: true }` and an honest "no playbook is set up for this
+contract type". Key resolution mirrors the client's `playbookKeyFor` (custom
+types' match keywords first, then the built-in kind regexes, extends-aware
+merge); the regexes are pinned identical in both files by an f47-style parity
+test.
+
+**Cost note, as the order asked:** one playbook check ≈ one deep call (~10¢
+at current Sonnet pricing for a ~20k-char document). The daily spend ceiling
+governs; no new limits were added. A missing playbook short-circuits before
+any provider call, so asking about an unconfigured type costs nothing.
+
+**Local mode:** no playbook engine there (out of scope, per the order);
+`_localSystem` now tells the model to say the check needs the
+server-connected Copilot rather than bluffing.

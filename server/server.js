@@ -2438,11 +2438,13 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
    ranges). Returns per-clause verdicts (aligned/deviation/missing) with a
    verbatim quote, the playbook position, and a suggested redline in the
    preferred wording. No key -> client heuristic. */
-app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuard, capAiInput, async (req, res) => {
-  const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
-  const { text, playbook, kind } = req.body || {};
-  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+/* The working core of the playbook review — prompt build + deep-tier call +
+   verdict parse — shared by the /api/ai/playbook route below and the
+   Copilot's check_against_playbook chat tool. The route's behaviour is
+   unchanged: it keeps its own middleware, validation and error mapping, and
+   its tests prove it. Always the deep tier: this is a legal-review synthesis
+   by nature, whichever door it is called through. */
+async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
   const tool = {
     name: 'playbook_review',
     description: 'Judge the document against the playbook positions and ranges.',
@@ -2463,13 +2465,25 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
   };
   const J = orgJx();
   const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
+  const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, meter || { feature: 'playbook' });
+  if (!resp.ok) return { ok: false, resp };
+  const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+  if (!block) return { ok: false, resp, noResult: true };
+  return { ok: true, resp, verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [] };
+}
+
+app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
+  const { text, playbook, kind } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'playbook' });
-    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
-    const data = resp.data;
-    const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    res.json({ verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [], ...aiNotice(req, resp) });
+    const r = await aiPlaybookVerdicts(key, { text, playbook, kind });
+    if (!r.ok) {
+      if (r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
+      return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
+    }
+    res.json({ verdicts: r.verdicts, ...aiNotice(req, r.resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -2661,6 +2675,65 @@ function copilotList(ctx, filter = {}) {
   });
 }
 
+/* ---- the workspace playbook, read where the server stands ----
+   The playbook the org actually SAVED (Playbook editor → saveSettings →
+   appSettings.playbook). The browser also carries a built-in default playbook
+   as a seed for the Playbook page; the server deliberately does NOT restate
+   it — a second copy of a client-side default would drift, and a workspace
+   that never configured a playbook honestly has none here (noPlaybook), which
+   the system prompt tells the model to say plainly. */
+function workspacePlaybook() {
+  const pb = (getSetting('appSettings') || {}).playbook;
+  return (pb && typeof pb === 'object' && !Array.isArray(pb)) ? pb : null;
+}
+/* Mirror of playbookKeyFor (js/playbook.js), fed from what the server stores:
+   the contract's template + name stand in for the client's cKind() label, and
+   the folder works the same on both sides. Custom types' match keywords win
+   first, exactly as in the client. */
+function copilotPlaybookKey(pb, c) {
+  const k = `${c.template || ''} ${c.name || ''}`.toLowerCase();
+  const f = c.folder || '';
+  for (const key in pb) {
+    const p = pb[key];
+    if (key === '_default' || !p || !Array.isArray(p.match) || !p.match.length) continue;
+    if (p.match.some(w => { w = String(w || '').toLowerCase().trim(); return w && (k.includes(w) || f === w); })) return key;
+  }
+  if (/nda|non-disclosure/.test(k)) return 'nda';
+  if (/lease/.test(k)) return 'lease';
+  if (/professional|marketing|services|advisory|agency/.test(k)) return 'services';
+  if (/supply|packaging|raw material|manufactur|co-pack|distribut|warehous|freight|logistics|retail/.test(k) || f === 'proc' || f === 'sales' || f === 'dist' || f === 'mfg') return 'supply';
+  return '_default';
+}
+// Mirror of resolvePlaybook (js/playbook.js): extends-aware merge, tolerant of
+// missing keys. Null when the resolved book has nothing to judge against.
+function copilotResolvePlaybook(pb, key) {
+  const p = pb[key] || pb._default;
+  if (!p || typeof p !== 'object') return null;
+  const base = (p.extends && pb[p.extends] && typeof pb[p.extends] === 'object') ? pb[p.extends] : null;
+  const out = {
+    label: p.label || key,
+    positions: [...(base && Array.isArray(base.positions) ? base.positions : []), ...(Array.isArray(p.positions) ? p.positions : [])],
+    ranges: [...(base && Array.isArray(base.ranges) ? base.ranges : []), ...(Array.isArray(p.ranges) ? p.ranges : [])],
+  };
+  return (out.positions.length || out.ranges.length) ? out : null;
+}
+/* The check_against_playbook tool body. Scope first (an out-of-scope contract
+   reads as not found, never as a playbook result), then the workspace
+   playbook for this contract's kind, then the shared deep-tier review. The
+   spend is booked to the chat feature line — it is a chat turn's cost. */
+async function copilotPlaybookCheck(ctx, id, key) {
+  const c = copilotGetJson(ctx, id);
+  if (!c) return { id, found: false };
+  const pb = workspacePlaybook();
+  const resolved = pb ? copilotResolvePlaybook(pb, copilotPlaybookKey(pb, c)) : null;
+  if (!resolved) return { id: c.id, name: c.name || c.id, noPlaybook: true };
+  const r = await aiPlaybookVerdicts(key,
+    { text: contractFullBody(c).slice(0, 20000), playbook: resolved, kind: resolved.label },
+    { feature: 'chat' });
+  if (!r.ok) return { error: 'playbook review failed' + (r.resp && r.resp.status ? ' (provider ' + r.resp.status + ')' : '') };
+  return { id: c.id, name: c.name || c.id, playbook: resolved.label, verdicts: r.verdicts };
+}
+
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet. Use when the user names a party or topic rather than an exact id.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' } }, required: ['query'] } },
@@ -2676,6 +2749,8 @@ const COPILOT_TOOLS = [
       minValue: { type: 'number', description: 'Optional: only contracts worth at least this much, in the workspace currency.' } } } },
   { name: 'compare_contracts', description: 'Fetch two or more contracts in full at once for a side-by-side comparison. Prefer this over multiple get_contract calls when comparing.',
     input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4, description: 'The contract ids to compare.' } }, required: ['ids'] } },
+  { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), or noPlaybook:true when no playbook is configured for that contract type. Use for questions about whether a contract matches our standards, positions or playbook. This runs a deeper, slower legal-review pass — reach for it when the question is really about playbook conformance, not for ordinary reading.',
+    input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
     input_schema: { type: 'object', properties: {
       answer: { type: 'string', description: 'The answer in short, plain markdown. Ground every claim in fetched data. If you lack the data, say so rather than guessing.' },
@@ -2689,7 +2764,10 @@ const COPILOT_TOOLS = [
       required: ['answer'] } },
 ];
 
-function runCopilotTool(ctx, name, input) {
+/* Async because check_against_playbook makes its own provider call; the data
+   tools stay synchronous reads and simply resolve immediately. `aux.key` is
+   the provider key the playbook tool reviews with. */
+async function runCopilotTool(ctx, name, input, aux) {
   const a = input || {};
   try {
     if (name === 'search_contracts') return { results: copilotSearch(ctx, a.query) };
@@ -2697,6 +2775,7 @@ function runCopilotTool(ctx, name, input) {
     if (name === 'get_scan_findings') { const d = copilotDetail(ctx, a.id); return d.found ? { id: d.id, name: d.name, openFindings: d.openFindings } : { id: a.id, found: false }; }
     if (name === 'list_portfolio') return { contracts: copilotList(ctx, a) };
     if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
+    if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key);
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
 }
@@ -2740,6 +2819,7 @@ HOW TO WORK:
 - To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
 - If a contract's "textTruncated" is true, the document was longer than the excerpt you received — say so plainly, and do not claim to have reviewed the whole document.
+- QUESTIONS ABOUT WHETHER A CONTRACT MATCHES OUR STANDARDS, POSITIONS OR PLAYBOOK: call check_against_playbook with the contract id and answer from its verdicts. If it returns noPlaybook, say plainly that no playbook is set up for this contract type — do not improvise one.
 - Reply in the language the user wrote their question in. This workspace's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : orgJx().locale}. Contract quotes stay verbatim in their original language; your own words follow the user's.
 - Contract ids look like MK-103. Money is in ${orgJx().currency}.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
@@ -2841,11 +2921,19 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   const question = convo[convo.length - 1].content;
   const toolsUsed = [];
   let steps = 0;
+  /* Deep-tier escalation (HaTi-Copilot-PLAN §1.1): routing and plain reads run
+     on the fast tier, but once compare_contracts has run in this turn, the
+     verdict being written is a legal-adjacent judgement — every subsequent
+     iteration (above all the final synthesis) runs on the deep tier. The
+     route stays on rlAiLight deliberately: remounting it on rlAiDeep would
+     throttle every ordinary question; the spend ceiling governs these deep
+     calls instead (see SUMMARY.md). */
+  let compared = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
     for (let step = 0; step < 5; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat' });
+      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat' });
       if (!resp.ok) {
         const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -2865,7 +2953,9 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       if (deliver) { final = normalizeDeliver(deliver.input, cx); break; }
       // Execute the data tools and feed results back for the next round.
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
-      const results = toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(runCopilotTool(cx, t.name, t.input)) }));
+      if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
+      const results = await Promise.all(toolUses.map(async t =>
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key })) })));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };

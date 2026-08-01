@@ -90,6 +90,48 @@ function startAiStub() {
   });
 }
 
+/* ---------- a SCRIPTED Anthropic stand-in ----------
+   Unlike startAiStub above (which always answers with the request's first
+   tool), this one plays back exactly what each test enqueues, so a
+   multi-round tool loop can be driven deterministically. `script(...turns)`
+   enqueues per-call returns: an array of content blocks for a 200, or a bare
+   number for that HTTP status. An empty queue answers deliver_answer with a
+   plain stubbed answer. */
+function startScriptedAi() {
+  const calls = [];
+  const queue = [];
+  const server = http.createServer((req, res) => {
+    let raw = '';
+    req.on('data', d => { raw += d; });
+    req.on('end', () => {
+      let body = {}; try { body = JSON.parse(raw); } catch (_) {}
+      calls.push({ url: req.url, body, raw });
+      const next = queue.length ? queue.shift() : null;
+      if (typeof next === 'number') {
+        res.writeHead(next, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: { type: 'scripted', message: 'scripted provider failure' } }));
+        return;
+      }
+      const content = next || [{ type: 'tool_use', id: 'tu_default', name: 'deliver_answer',
+        input: { answer: 'stubbed answer', citations: [] } }];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ id: 'msg_stub', type: 'message', role: 'assistant',
+        model: body.model || 'stub', content, usage: { input_tokens: 10, output_tokens: 5 } }));
+    });
+  });
+  return new Promise(resolve => {
+    server.listen(0, '127.0.0.1', () => {
+      resolve({
+        base: 'http://127.0.0.1:' + server.address().port,
+        calls,
+        script(...turns) { queue.push(...turns); },
+        reset() { calls.length = 0; queue.length = 0; },
+        stop() { return new Promise(r => server.close(r)); },
+      });
+    });
+  });
+}
+
 async function waitForServer(base, proc, timeoutMs = 20000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -255,5 +297,5 @@ function mentionsFolderB(text) {
   return B_MARKERS.filter(m => s.includes(m));
 }
 
-module.exports = { startHati, startAiStub, seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
+module.exports = { startHati, startAiStub, startScriptedAi, seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
   FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, Client };

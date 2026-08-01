@@ -1939,3 +1939,53 @@ provider error writes a row · the gave-up fallback writes a row · a failed
 INSERT (table renamed out from under the server) never fails the user's
 answer · admin-only (403 for non-admin) · another org's rows never return ·
 `limit` honoured and clamped.
+
+---
+
+# Run — Copilot quality pass (2026-08-01, work order: copilot-quality)
+
+**Branch:** `claude/new-session-inm5ts` · same harness as the trust-pass run
+(local Anthropic stand-ins; the real API is never called).
+
+## Suite counts
+
+| | Before (trust pass, merged) | After (this run) |
+|---|---|---|
+| Tests | 2259 | **2271** |
+| Suites | 476 | 479 |
+| Pass | 2259 | **2271** |
+| Fail | 0 | 0 |
+
++12 tests, all from the new file below; every pre-existing test green,
+including the untouched `/api/ai/playbook` behaviour now pinned directly.
+Browser checks: selection **22/22**, parity **18/18**, timeline **19/19**,
+redline **70/71** (the same pre-existing failure parked in BUGLOG.md — not a
+regression of this run).
+
+Test-infra note: the scripted Anthropic stand-in introduced by the trust pass
+moved from `f132` into `test/helpers.js` (`startScriptedAi`) so both Copilot
+runs drive the tool loop through one canonical stub; `f132` re-ran green after
+the move.
+
+## New tests — `test/f133-copilot-quality.test.js` (12)
+
+**F-B unconfigured (2):** `check_against_playbook` on a fresh workspace →
+`{ noPlaybook: true }`, no provider call burned · system prompt teaches the
+tool AND the "say plainly there is no playbook" honesty rule.
+
+**F-B configured (6):** verdicts flow back through the tool — the internal
+review call uses `tool_choice: playbook_review` on the DEEP model, carries the
+extends-merged positions and the contract text, and the final answer cites
+the contract with its card · a custom type's `match` keywords beat the
+built-in regexes (as in the client) · scope: an out-of-folder contract reads
+`found: false` — never `noPlaybook`, never verdicts, no review call · a
+provider 500 inside the tool degrades to an error tool-result and the chat
+still answers · the `/api/ai/playbook` route is byte-compatible after the
+extraction (verdicts, deep tier, 502 mapping) · f47-style parity pin: the
+kind-regex mirrors are asserted identical in `server/server.js` and
+`js/playbook.js`.
+
+**F-A escalation (4):** after `compare_contracts`, the following call runs on
+the deep model while the first stayed fast · a never-comparing turn is fast
+end to end · escalation is per-request, never sticky across turns · both
+calls of a compare turn book to the `chat` feature line of `/api/ai/spend`.

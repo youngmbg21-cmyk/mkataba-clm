@@ -26,52 +26,12 @@
    deterministically through multi-step conversations. */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const { startHati, seedWorkspace, fixtureContract, FIXTURES, FOLDER_A } = require('./helpers');
+const { startHati, startScriptedAi, seedWorkspace, fixtureContract, FIXTURES, FOLDER_A } = require('./helpers');
 
 const SERVER_SRC = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 const AI_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
-
-/* ---------- a scriptable Anthropic stand-in ----------
-   `script(...turns)` enqueues what the next calls return: an array of content
-   blocks for a 200, or a number for that HTTP status. An empty queue answers
-   deliver_answer with a plain stubbed answer. */
-function startScriptedAi() {
-  const calls = [];
-  const queue = [];
-  const server = http.createServer((req, res) => {
-    let raw = '';
-    req.on('data', d => { raw += d; });
-    req.on('end', () => {
-      let body = {}; try { body = JSON.parse(raw); } catch (_) {}
-      calls.push({ url: req.url, body, raw });
-      const next = queue.length ? queue.shift() : null;
-      if (typeof next === 'number') {
-        res.writeHead(next, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: { type: 'scripted', message: 'scripted provider failure' } }));
-        return;
-      }
-      const content = next || [{ type: 'tool_use', id: 'tu_default', name: 'deliver_answer',
-        input: { answer: 'stubbed answer', citations: [] } }];
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ id: 'msg_stub', type: 'message', role: 'assistant',
-        model: body.model || 'stub', content, usage: { input_tokens: 10, output_tokens: 5 } }));
-    });
-  });
-  return new Promise(resolve => {
-    server.listen(0, '127.0.0.1', () => {
-      resolve({
-        base: 'http://127.0.0.1:' + server.address().port,
-        calls,
-        script(...turns) { queue.push(...turns); },
-        reset() { calls.length = 0; queue.length = 0; },
-        stop() { return new Promise(r => server.close(r)); },
-      });
-    });
-  });
-}
 
 const deliver = input => [{ type: 'tool_use', id: 'tu_d', name: 'deliver_answer', input }];
 const toolCall = (name, input) => [{ type: 'tool_use', id: 'tu_t', name, input }];

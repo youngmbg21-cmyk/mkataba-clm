@@ -6360,3 +6360,30 @@ first turn with deliver_answer". The tests pass either way (their assertions
 are about scoping, not the answer), so nothing was changed; the new
 `test/f132-copilot-trust.test.js` uses its own scripted stand-in instead.
 Worth a tidy-up someday, not tonight.
+
+---
+
+## Run: Copilot quality pass (2026-08-01, work order: copilot-quality)
+
+### 1. Parked: /api/ai/playbook had no route tests until tonight
+
+The order said the extraction must leave the route's behaviour proven by "its
+tests" — but no test file exercised `POST /api/ai/playbook` directly (f131
+covers the client-side playbook pass). Tonight's `f133` adds direct route
+coverage (verdict shape, deep tier, provider-error mapping) alongside the
+extraction, so the pin now exists. Noting it here because the gap predates
+this run and the new pin is the fix.
+
+### 2. Parked: the deep rate bucket is not consulted by escalated chat turns
+
+By design tonight (documented in SUMMARY.md Run 9): escalated chat iterations
+are governed by the daily spend ceiling, not `rlAiDeep`. If chat-driven deep
+usage ever needs its own throttle, the rate-limiter middleware would need an
+imperatively callable form so the loop can draw on the deep bucket per call —
+a small refactor with its own blast radius, not done inside this order.
+
+### 3. Parked: still one pre-existing browser check failing (unchanged)
+
+`npm run test:browser` remains **70/71** — `FAIL 13 the batch send is in the
+toolbar` — identical to before this run and to the untouched tree (see the
+trust-pass entry above). Negotiation-toolbar UI, unrelated to this order.
