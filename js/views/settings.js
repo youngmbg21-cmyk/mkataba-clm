@@ -60,13 +60,23 @@ function openFolderAccessEditor(userId){
   document.getElementById('fa-cancel').addEventListener('click',closeModal);
   document.getElementById('fa-save').addEventListener('click',async()=>{
     state.settings=state.settings||{}; state.settings.folderAccess=state.settings.folderAccess||{};
-    if(allBox.checked){ delete state.settings.folderAccess[userId]; }
+    let folders;
+    if(allBox.checked){ folders=null; delete state.settings.folderAccess[userId]; }
     else {
       const ids=[...document.querySelectorAll('[data-fa-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-fa-folder'));
       if(!ids.length){ toast('Pick at least one stream, or choose All streams','err'); return; }
-      state.settings.folderAccess[userId]=ids;
+      folders=ids; state.settings.folderAccess[userId]=ids;
     }
-    try{ await saveSettings(); }catch(e){ toast('Could not save access: '+e.message,'err'); return; }
+    /* H-3: write folder access through its own atomic endpoint, not the whole
+       settings blob. This is the security-relevant map, and routing it through
+       the general settings save is what let a concurrent, unrelated settings
+       change silently revert a restriction. In server mode the dedicated route
+       read-modify-writes just this key; static mode has no concurrency, so the
+       blob save is fine there. */
+    try{
+      if(window.API_MODE && window.API_MODE()) await api('settings/folder-access','PUT',{ userId, folders });
+      else await saveSettings();
+    }catch(e){ toast('Could not save access: '+e.message,'err'); return; }
     closeModal(); toast(`Folder access updated for ${u.name||u.email}`); renderTeam();
   });
 }

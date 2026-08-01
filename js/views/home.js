@@ -416,9 +416,34 @@ function renderDashboard(){
       ${decisionFooter}
     </section>`;
 
+  /* U-2: a brand-new workspace opened on a cockpit of zeroed gauges with no
+     route to the three real entry points. When there are no contracts yet, show
+     a first-run welcome that points at them — draft from a template, import an
+     existing portfolio, or explore — above the (still-zeroed) dashboard. Purely
+     additive, so nothing that already renders disappears. */
+  const firstRunBanner = countAll===0 ? `
+    <section style="border:1px solid var(--color-divider);border-radius:14px;background:var(--color-surface);padding:22px 22px 20px;">
+      <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">Welcome — let's put your first contract in.</h2>
+      <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">Your workspace is ready. Start one of three ways — you can always do the others later.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
+        <button id="fr-draft" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Draft a contract</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
+        </button>
+        <button id="fr-import" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Import your existing contracts</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Drop a back-catalogue of PDFs or scans — HaTi extracts the terms and files them for you.</div>
+        </button>
+        <button id="fr-explore" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Explore the register</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">See where contracts live once they're in — search, filters, stages and export.</div>
+        </button>
+      </div>
+    </section>` : '';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="display:flex;flex-direction:column;gap:18px;padding:16px 18px 28px;">
     ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
+    ${firstRunBanner}
 
     <!-- Welcome banner — what this workspace is for, and the button that starts work -->
     ${heroSection}
@@ -483,6 +508,16 @@ function renderDashboard(){
     if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); }
     else if(nb){ nb.click(); }
   });
+  /* U-2: first-run welcome cards route to the three real entry points. Draft
+     reuses the same new-contract menu the command bar owns. */
+  document.getElementById('fr-draft')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu');
+    if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); }
+    else if(nb){ nb.click(); }
+  });
+  document.getElementById('fr-import')?.addEventListener('click',()=>setView('migration'));
+  document.getElementById('fr-explore')?.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.type='all'; R.sel={}; setView('register'); });
   document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage=el.getAttribute('data-stage'); R.type='all'; R.sel={}; setView('register'); }));
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
   document.getElementById('dd-ask-ai')?.addEventListener('click',e=>{

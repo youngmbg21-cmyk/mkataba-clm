@@ -474,14 +474,36 @@ async function saveContract(c){
     c._v=r.version; c._loaded=true; c._light=false;
   }catch(e){
     if(/conflict|version/i.test(e.message)){
-      toast('This contract changed on the server — reloading it','err');
-      try{ const fresh=await api('contracts/'+c.id); Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
-        if(state.activeId===c.id) renderWorkspace(); }catch(_){}
+      /* H-4: someone else saved this contract while it was being edited. The old
+         behaviour overwrote the in-progress edit with the server copy and showed
+         only a toast — the user's work vanished silently. Now the edit is kept
+         and the user decides: keep theirs and overwrite, or discard and load the
+         server's version. A background flush (not the open contract) never pops a
+         modal over unrelated work — it keeps the edit in memory and warns once. */
+      let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
+      if(state.activeId===c.id){
+        const keepMine=await confirmDialog({
+          title:'This contract just changed on the server',
+          message:'Someone else saved a change to '+c.id+' while you were editing. Your change has not been saved. Keep yours and overwrite theirs, or discard yours and load their version?',
+          confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
+        if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
+        if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; if(typeof renderWorkspace==='function') renderWorkspace(); }
+        toast('Loaded the server’s version — your unsaved change was discarded','err');
+      } else {
+        toast(c.id+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
+      }
     } else toast('Save failed: '+e.message,'err');
   }
 }
 async function saveSettings(){
-  if(API_MODE()){ try{ await api('settings','PUT',state.settings); }catch(e){ toast('Settings save failed: '+e.message,'err'); } }
+  if(API_MODE()){
+    /* H-3: folderAccess is an access-control map and is written ONLY through its
+       own atomic endpoint. Never include it in a whole-blob save — that is what
+       let a stale, unrelated settings save silently revert a folder restriction.
+       Stripped here so the general PUT preserves the server's copy. */
+    const { folderAccess, ...rest } = (state.settings||{});
+    try{ await api('settings','PUT',rest); }catch(e){ toast('Settings save failed: '+e.message,'err'); }
+  }
   else persist();
 }
 // Ensure a contract's full body (comments, audit, execution text, extracted text)
@@ -721,8 +743,12 @@ function renderAuth(mode){
       const email=fval('fp-email'); if(!email){ toast('Enter your email','err'); return; }
       try{
         const r=await api('password/reset-request','POST',{ email });
-        document.getElementById('fp-result').innerHTML=`<div style="border-radius:4px;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:11px;font-size:11px;color:var(--color-accent-800);line-height:1.5;">If that email is registered, a reset link has been sent.${r.devToken?` <br/>Email isn’t configured yet — <button id="fp-dev" style="text-decoration:underline;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;">open the reset form</button> for testing.`:''}</div>`;
-        document.getElementById('fp-dev')?.addEventListener('click',()=>renderAuth('reset:'+r.devToken));
+        /* C-2: the server never returns the reset token any more. When email is
+           not configured the reset link is in the ADMIN-ONLY outbox (Team &
+           Settings), the same place signing codes queue — so the shortcut that
+           used to open the reset form for anyone is gone. */
+        const outboxHint = r.emailSent ? '' : ` <br/>Email isn’t configured — an admin can find the reset link in the outbox under Team &amp; Settings.`;
+        document.getElementById('fp-result').innerHTML=`<div style="border-radius:4px;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:11px;font-size:11px;color:var(--color-accent-800);line-height:1.5;">If that email is registered, a reset link has been sent.${outboxHint}</div>`;
       }catch(e){ toast(e.message,'err'); }
     });
   } else if(mode && mode.startsWith('reset:')){
@@ -976,6 +1002,12 @@ function logAudit(c, action, detail, actor, data){
 function renderAuditSection(c){
   const host=document.getElementById('audit-section'); if(!host) return;
   const items=(c.audit||[]).slice().reverse();
+  /* H-1: escape audit fields before they reach innerHTML. Audit `detail` strings
+     embed counterparty-influenced text — a proposed change's summary and the
+     proposer's name (see negoResolve in negotiation.js) and comment text applied
+     from a share response — so the audit trail is an untrusted-text sink too,
+     for the same reason the comments feed was. */
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   host.innerHTML=`
     <div class="px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
@@ -987,9 +1019,9 @@ function renderAuditSection(c){
         ${items.length?items.map(e=>`
           <div class="flex gap-2 text-[11px] leading-relaxed">
             <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-300 shrink-0"></span>
-            <span class="min-w-0"><span class="font-medium text-brand-900">${e.action}</span>
-              <span class="text-brand-800/70"> — ${e.detail}</span>
-              <span class="block text-[10px] text-brand-800/60 font-mono">${e.user} · ${fmtDT(e.at)}</span></span>
+            <span class="min-w-0"><span class="font-medium text-brand-900">${esc(e.action)}</span>
+              <span class="text-brand-800/70"> — ${esc(e.detail)}</span>
+              <span class="block text-[10px] text-brand-800/60 font-mono">${esc(e.user)} · ${esc(fmtDT(e.at))}</span></span>
           </div>`).join(''):`<div class="text-[11px] text-brand-800/65">No events recorded yet.</div>`}
       </div>
     </div>`;
@@ -1210,11 +1242,19 @@ function promptDialog(opts={}){
    ("inbound") document it covers the file's own hash, so the seal proves
    exactly which file you signed. */
 // Used only for the share-link doc fingerprint (change detection).
+/* C-3: the share-link change-detection fingerprint MUST cover the negotiated
+   body. It used to hash only the field values, so an edit to a clause's wording
+   (c.redlineText) left the fingerprint unchanged — the owner could revise the
+   text after the counterparty approved, and the "did this change?" check saw
+   nothing. The body is canonicalised the same way the seal and the version
+   fingerprint are (canonicalDocString normalises formatting-only churn), so a
+   real wording change trips the check while a cosmetic reformat does not. */
 const canonicalDoc = c => isUpload(c)
   ? JSON.stringify({ id:c.id, source:'upload', fileName:c.upload?.fileName, fileHash:c.upload?.fileHash,
       firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value })
   : JSON.stringify({ id:c.id, template:c.template, name:c.name,
-      firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields });
+      firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
+      body: c.redlineText ? ((window.canonicalDocString) ? canonicalDocString(c.redlineText, c.format) : String(c.redlineText)) : '' });
 
 /* Evidence-grade sealing:
    at signature we FREEZE the fully-rendered contract text (values baked in),
@@ -1289,7 +1329,16 @@ function execHashInput(exec){
 }
 function sealString(c){
   const content = isUpload(c) ? 'file:'+(c.upload?.fileHash||'') : 'text:'+(c.execution?.textHash||'');
-  const base={ id:c.id, firstParty:FIRST_PARTY, counterparty:c.counterparty,
+  /* H-6: the seal must bind the first-party name AS IT WAS AT SIGNING, not the
+     live workspace name. It used to read the FIRST_PARTY global, which is set
+     from the org name at each login — so renaming the workspace (a corrected
+     legal name, a re-setup) made every previously-sealed contract recompute to
+     a different string and verifySeal cried "MISMATCH" on untouched records.
+     The name is now frozen onto c.execution at signing and read from there;
+     records sealed before this change have no frozen name and fall back to the
+     live global exactly as before, so their verification is unchanged. */
+  const firstParty=(c.execution&&c.execution.firstParty)||FIRST_PARTY;
+  const base={ id:c.id, firstParty, counterparty:c.counterparty,
     value:c.value, valueType:c.valueType, content, signedAt:c.execution?.at||'' };
   // Seal v2 folds every signature MARK (its hash) into the seal, so the visible
   // signatures are as tamper-evident as the text. v1 (sealVersion unset) keeps
@@ -2292,6 +2341,19 @@ async function openShareModal(c, opts={}){
                  panel.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
       return;
     }
+    /* H-7: a signing code is only as safe as the address it is sent to, and that
+       address is whatever the sender typed. Before a BINDING signing link goes
+       out, echo the exact address back for one explicit confirmation — a typo
+       here delivers a valid signing code to a real-but-wrong inbox, which is
+       hard to walk back. Only signing links are gated; sending a draft out to
+       negotiate is not this kind of risk. */
+    if(purposeSel==='sign' && ch==='email'){
+      const okAddr=await confirmDialog({
+        title:'Send the signing link to this address?',
+        message:'The one-time signing code will go to '+email+' — and only to that address. Check it is exactly right; a signing code sent to the wrong inbox is hard to undo.',
+        confirmLabel:'Send to '+email, cancelLabel:'Go back' });
+      if(!okAddr) return;
+    }
     const rcptLabel=name||email||phone||c.counterparty||'counterparty';
     if(server){
       let r;
@@ -2398,7 +2460,11 @@ async function openShareModal(c, opts={}){
         try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
         try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
       }
-      logAudit(c,'Shared',`${reuse?`Published to ${rcptLabel}'s existing link`:`Sent to ${rcptLabel}`} via ${ch==='link'?'link':ch}${msg?' with a message':''}`);
+      // H-7: record the EXACT destination address on the audit trail, not just a
+      // display label — so "who was this sent to" is provable later, especially
+      // for a signing link where the address is what a signature rests on.
+      const addr=(ch==='email'&&email)?` to ${email}`:(ch==='whatsapp'&&phone)?` to ${phone}`:'';
+      logAudit(c,'Shared',`${reuse?`Published to ${rcptLabel}'s existing link`:`Sent to ${rcptLabel}`}${addr} via ${ch==='link'?'link':ch}${purposeSel==='sign'?' (signing link)':''}${msg?' with a message':''}`);
       persist(c); renderAuditSection(c);
       refreshShareOverview(); renderSharesSection(c);
       if(typeof opts.onSent==='function')
@@ -2634,7 +2700,22 @@ async function applyResponse(c, r, opts={}){
     return false;
   }
   const currentHash=await sha256(canonicalDoc(c));
-  if(r.docHash && r.docHash!==currentHash && r.docHash!==c.hash)
+  const docChanged = r.docHash && r.docHash!==currentHash && r.docHash!==c.hash;
+  /* C-3: a BINDING response — a signature, or an acceptance of the wording, or
+     a "ready to sign" — against a copy that no longer matches the live document
+     must NOT be applied. Sealing it would bind the counterparty to text they
+     never saw and the seal would still verify as "valid", because it would be
+     consistent with the edited wording. So the binding action is refused, the
+     owner is told plainly, and the remedy (reshare the current copy) is named.
+     Non-binding responses (a redline or a decline) keep the informational note
+     and proceed, because they change nothing the counterparty is bound by.
+     Refused the same way an out-of-order signature is refused above: return
+     false so nothing is written and the response stays visible as pending. */
+  if(docChanged && (r.action==='sign' || r.action==='accept' || r.action==='ready')){
+    if(!opts.background) toast(`${r.name||'The counterparty'} responded to an earlier copy of ${c.id} — the wording changed after their link was sent, so their ${r.action==='sign'?'signature':'response'} was NOT applied. Reshare the current version so they respond to the document you actually have.`,'err');
+    return false;
+  }
+  if(docChanged)
     toast('Note: the document changed after this share link was created','err');
   const who=r.name+(r.title?', '+r.title:'');
   /* Values the counterparty filled into a template form. Only known open
@@ -2854,7 +2935,7 @@ async function applyResponse(c, r, opts={}){
     // the base text it was edited from so the owner can review a clean diff.
     const hasRedline = typeof r.proposedText==='string' && r.proposedText.trim().length>0;
     c.rounds.push({ n:c.rounds.length+1, at:r.at, by:who, comment:r.comment,
-      proposedValue:(r.proposedValue!=null&&r.proposedValue!=='')?Number(r.proposedValue):null,
+      proposedValue:Number.isFinite(Number(r.proposedValue))&&r.proposedValue!==''&&r.proposedValue!=null?Number(r.proposedValue):null,  // M-4: store only a real number, never NaN
       proposedText: hasRedline ? r.proposedText : null,
       baseText: hasRedline ? (r.baseText || docPlainText(c)) : null,
       // a reason per clause, when they gave one — matched to the individual
