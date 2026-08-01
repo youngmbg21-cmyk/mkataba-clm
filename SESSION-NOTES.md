@@ -5,6 +5,52 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Contract designs — five company-standard looks + the Design step
+
+**Done** (suite green: 2219 existing + 14 new in f129; branch
+`claude/hati-contract-templates-703qm9`; spec in DESIGN-contract-designer.md,
+approved by Young 1 Aug 2026 before any code)
+
+- **js/branding.js (new, dual-mode).** The catalogue of five fixed designs
+  (classic-letterhead, modern-minimal, formal-legal, bold-corporate,
+  compact-executive), inline-styled header/footer/paper/cover renderers
+  (inline because #print-root carries no app CSS), accent-from-logo
+  extraction (pure pixel-picker + canvas wrapper; greys/white never become a
+  brand colour, pale colours darkened to stay legible), and
+  `resolveDocBranding()` — the one rule for which look a document wears:
+  sealed → its own snapshot only; snapshot with designId → that; otherwise
+  the company default, live.
+- **Storage.** `org_branding` gains design_id / logo_position / accent_color /
+  accent_source / set_by / set_at (addColumnIfMissing); PUT /api/org/branding
+  validates against the shared catalogue (unknown design/position/accent =
+  400). Static mode rides `state.settings.branding` through saveSettings().
+  `templates` gains a per-template design override, written at publish,
+  cleared by publishing with design:null.
+- **The Design step (js/views/designstep.js).** tbPublish() now routes
+  through it — the ONLY client path to the publish API, so publish cannot go
+  around the step (decision 2). Left: the five designs; centre: the real
+  draft dressed live; right: logo upload (accent extracted on the spot),
+  position chips, accent controls, identity fields, change note. The first
+  design saves as the company default (decision 1); later publishes are
+  one-click with an opt-in "also make this the default". Team & Settings
+  gains a "Company design" card (Admin/Legal) opening the same screen.
+- **Render surfaces.** templateBrandingHeaderHtml/FooterHtml are design-aware
+  (legacy letterhead byte-for-byte when no design is anywhere in play);
+  dressed: the contract workspace, the counterparty portal (#pt-doc), the
+  read-only viewer (.pv-sheet — previously carried no branding at all), and
+  print/PDF on both copies. Bold Corporate's band bleeds via per-surface
+  padding hints; Formal Legal's page border rides docDesignPaperStyle(). A
+  raw upload gets the branded cover page on the distribution print (§5).
+- **Seal safety.** freezeContractHtml untouched. finalizeExecution stamps the
+  resolved branding onto c.branding before anything freezes, so a sealed
+  contract keeps its look while drafts follow the default; f52/f122 green.
+- **Share payloads** carry `branding` with the design fields (the org default
+  is stamped into the payload at share time when the contract has no
+  snapshot), so the no-session portal dresses identically.
+
+**Not done / deliberate:** docx-export dressing (phase two per the spec); no
+per-user designs, no custom fonts, no sixth design.
+
 ## Stages 7–9 — live numbering, extensions, hardening, release (Sessions 15–21)
 
 **Done** (suite green at every commit; final counts in EXECUTION-PLAN §9;

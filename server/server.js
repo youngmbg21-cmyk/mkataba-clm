@@ -4658,6 +4658,24 @@ addColumnIfMissing('contracts', 'template_id', 'TEXT');
 addColumnIfMissing('contracts', 'template_version_id', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_template ON contracts(template_id)');
 
+/* The document design (DESIGN-contract-designer.md): which of the five fixed
+   looks the company publishes under, where the logo sits, and the accent
+   colour (extracted from the logo client-side, or picked manually). Additive
+   and nullable — every workspace that set its letterhead before designs
+   existed keeps exactly the letterhead it had until someone chooses a design. */
+addColumnIfMissing('org_branding', 'design_id', 'TEXT');
+addColumnIfMissing('org_branding', 'logo_position', 'TEXT');
+addColumnIfMissing('org_branding', 'accent_color', 'TEXT');
+addColumnIfMissing('org_branding', 'accent_source', 'TEXT');
+addColumnIfMissing('org_branding', 'set_by', 'TEXT');
+addColumnIfMissing('org_branding', 'set_at', 'TEXT');
+/* A template may switch designs for ITS contracts without moving the company
+   default (DESIGN §2: "switching designs for that one document is allowed but
+   does not silently overwrite the default"). NULL = follow the default. */
+addColumnIfMissing('templates', 'design_id', 'TEXT');
+addColumnIfMissing('templates', 'design_logo_position', 'TEXT');
+addColumnIfMissing('templates', 'design_accent_color', 'TEXT');
+
 /* What kind of document this template was converted from, and how long it was.
    Additive and nullable on purpose: every template that existed before the PDF
    route keeps NULL, and NULL reads exactly like 'docx' everywhere downstream
@@ -4682,6 +4700,9 @@ const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
    entry in that file, nowhere else. */
 const { FIELD_LIB: TPL_FIELD_LIB, fieldLibValidate } = require(path.join(__dirname, '..', 'js', 'fieldlib.js'));
 const { templateFormDocHtml, templateFormResolveDefaults } = require(path.join(__dirname, '..', 'js', 'templateform.js'));
+/* The design catalogue — the same file the browser renders from, so a
+   designId this route accepts is a designId every surface can draw. */
+const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS } = require(path.join(__dirname, '..', 'js', 'branding.js'));
 /* Same registry, template_fields row shape (options may arrive as a JSON
    string straight from SQLite). Empty is a `required` question, not a type
    question — fieldLibValidate answers it first and separately. */
@@ -4940,7 +4961,25 @@ app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, pass
       warnings.push(`Field “${f.label || f.field_key}” is not placed in any wording block — it will appear only on the fill form`);
   }
   const changeNote = clean((req.body || {}).changeNote).slice(0, 500);
+  /* The Design step rides on publish: an optional per-template design
+     override, validated against the same shared catalogue as the org route.
+     Absent → the template keeps whatever override it had; present with a
+     null designId → the override clears and the company default rules. */
+  const design = (req.body || {}).design;
+  if (design !== undefined) {
+    if (design !== null && typeof design !== 'object') return res.status(400).json({ error: 'design must be an object or null' });
+    const dId = design && design.designId ? String(design.designId) : null;
+    if (dId && !DOC_DESIGNS.some(d => d.id === dId)) return res.status(400).json({ error: 'Unknown document design' });
+    const dPos = design && design.logoPosition ? String(design.logoPosition) : null;
+    if (dPos && !DESIGN_LOGO_POSITIONS.includes(dPos)) return res.status(400).json({ error: 'Unknown logo position' });
+    const dAccent = design && design.accentColor ? String(design.accentColor) : null;
+    if (dAccent && !/^#[0-9a-f]{6}$/i.test(dAccent)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
+    req._tplDesign = { dId, dPos: dId ? dPos : null, dAccent: dId ? dAccent : null };
+  }
   txn(() => {
+    if (req._tplDesign)
+      db.prepare('UPDATE templates SET design_id=?, design_logo_position=?, design_accent_color=?, updated_at=? WHERE id=?')
+        .run(req._tplDesign.dId, req._tplDesign.dPos, req._tplDesign.dAccent, now(), t.id);
     db.prepare("UPDATE template_versions SET status='superseded', updated_at=? WHERE template_id=? AND status='published'").run(now(), t.id);
     db.prepare("UPDATE template_versions SET status='published', published_at=?, published_by=?, change_note=?, updated_at=? WHERE id=?")
       .run(now(), req.user.name, changeNote || null, now(), v.id);
@@ -5120,6 +5159,8 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
     versionNumber: pub.version_number, blocks, fields, values,
   };
   const branding = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
+  // the template's own design override, if its manager picked one at publish
+  const tplDesign = db.prepare('SELECT design_id, design_logo_position, design_accent_color FROM templates WHERE id=?').get(t.id) || {};
   const uid = (Number(getSetting('uid')) || 100) + 1;
   const c = {
     id: 'MK-' + uid,
@@ -5131,10 +5172,17 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
     templateForm: form,
     libraryTemplateId: t.id, libraryTemplateVersionId: pub.id,
     /* the branding snapshot travels on the contract so the portal (which has
-       no session and no org routes) renders the same header the owner sees */
+       no session and no org routes) renders the same header the owner sees.
+       The design fields ride along: the look the company standard had at
+       creation is this contract's look — a later change of default reaches
+       future contracts, not this one (DESIGN-contract-designer.md §2). */
     branding: branding ? { logoUrl: branding.logo_url || null, companyName: branding.company_name || '',
       registrationNumber: branding.registration_number || '', address: branding.address || '',
-      footerText: branding.default_footer_text || '' } : null,
+      footerText: branding.default_footer_text || '',
+      designId: tplDesign.design_id || branding.design_id || null,
+      logoPosition: (tplDesign.design_id ? tplDesign.design_logo_position : null) || branding.logo_position || null,
+      accentColor: (tplDesign.design_id ? tplDesign.design_accent_color : null) || branding.accent_color || null,
+      accentSource: branding.accent_source || null } : null,
     fields: {}, comments: [],
     audit: [{ at: now(), user: req.user.name, action: 'Created',
       detail: `Created from template “${t.name}” v${pub.version_number} (${t.id})` }],
@@ -5691,11 +5739,15 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
 });
 
 /* ---- org branding & profile values ---- */
+const orgBrandingView = r => r ? { logoUrl: r.logo_url || null, companyName: r.company_name || '',
+  registrationNumber: r.registration_number || '', address: r.address || '',
+  defaultFooterText: r.default_footer_text || '',
+  designId: r.design_id || null, logoPosition: r.logo_position || null,
+  accentColor: r.accent_color || null, accentSource: r.accent_source || null,
+  setBy: r.set_by || null, setAt: r.set_at || null } : null;
 app.get('/api/org/branding', auth, (req, res) => {
   const r = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
-  res.json({ branding: r ? { logoUrl: r.logo_url || null, companyName: r.company_name || '',
-    registrationNumber: r.registration_number || '', address: r.address || '',
-    defaultFooterText: r.default_footer_text || '' } : null });
+  res.json({ branding: orgBrandingView(r) });
 });
 app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
   const b = req.body || {};
@@ -5704,13 +5756,28 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
   // every contract header, the portal included — so it is validated here, once.
   if (logo && !/^data:image\/(png|jpe?g|webp|svg\+xml);base64,/.test(logo)) return res.status(400).json({ error: 'The logo must be a PNG, JPEG, WebP or SVG image' });
   if (logo && logo.length > 700000) return res.status(400).json({ error: 'Keep the logo under 500 KB' });
-  db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,updated_at)
-    VALUES (?,?,?,?,?,?,?)
+  /* The design fields, validated against the shared catalogue. All-or-nothing
+     on the id: an unknown design is a 400, not a silent null — the client
+     offering it is broken and should hear so. */
+  const designId = b.designId == null || b.designId === '' ? null : String(b.designId);
+  if (designId && !DOC_DESIGNS.some(d => d.id === designId)) return res.status(400).json({ error: 'Unknown document design' });
+  const logoPosition = b.logoPosition == null || b.logoPosition === '' ? null : String(b.logoPosition);
+  if (logoPosition && !DESIGN_LOGO_POSITIONS.includes(logoPosition)) return res.status(400).json({ error: 'Unknown logo position' });
+  const accentColor = b.accentColor == null || b.accentColor === '' ? null : String(b.accentColor);
+  if (accentColor && !/^#[0-9a-f]{6}$/i.test(accentColor)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
+  const accentSource = b.accentSource === 'manual' ? 'manual' : (b.accentSource === 'logo' ? 'logo' : null);
+  db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,
+      design_id,logo_position,accent_color,accent_source,set_by,set_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(org_id) DO UPDATE SET logo_url=excluded.logo_url, company_name=excluded.company_name,
       registration_number=excluded.registration_number, address=excluded.address,
-      default_footer_text=excluded.default_footer_text, updated_at=excluded.updated_at`)
+      default_footer_text=excluded.default_footer_text,
+      design_id=excluded.design_id, logo_position=excluded.logo_position,
+      accent_color=excluded.accent_color, accent_source=excluded.accent_source,
+      set_by=excluded.set_by, set_at=excluded.set_at, updated_at=excluded.updated_at`)
     .run(WORKSPACE_ID, logo, clean(b.companyName).slice(0, 200), clean(b.registrationNumber).slice(0, 100),
-      clean(b.address).slice(0, 500), clean(b.defaultFooterText).slice(0, 500), now());
+      clean(b.address).slice(0, 500), clean(b.defaultFooterText).slice(0, 500),
+      designId, logoPosition, accentColor, accentSource, req.user.name, now(), now());
   res.json({ ok: true });
 });
 app.get('/api/org/profile-values', auth, (req, res) => {

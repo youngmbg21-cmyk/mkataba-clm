@@ -484,6 +484,27 @@ async function saveSettings(){
   if(API_MODE()){ try{ await api('settings','PUT',state.settings); }catch(e){ toast('Settings save failed: '+e.message,'err'); } }
   else persist();
 }
+/* The company default document design (DESIGN-contract-designer.md §2),
+   cached on window for the synchronous render paths. Server mode reads the
+   org route once per sign-in and again after every save; static mode rides
+   state.settings.branding, which saveSettings() already persists — one write
+   path per mode, no new storage machinery. */
+async function refreshOrgBranding(){
+  try{
+    if(API_MODE()){
+      const r=await api('org/branding');
+      window.ORG_BRANDING=(r&&r.branding&&window.normalizeDesignBranding)?normalizeDesignBranding(r.branding):null;
+    } else {
+      window.ORG_BRANDING=(state.settings&&state.settings.branding&&window.normalizeDesignBranding)?normalizeDesignBranding(state.settings.branding):null;
+    }
+  }catch(e){ /* no branding yet is a normal state — render paths fall back to the legacy letterhead */ }
+}
+async function saveOrgBranding(b){
+  if(API_MODE()) await api('org/branding','PUT',b);
+  else { state.settings.branding={...b}; await saveSettings(); }
+  await refreshOrgBranding();
+}
+Object.assign(window,{refreshOrgBranding,saveOrgBranding});
 // Ensure a contract's full body (comments, audit, execution text, extracted text)
 // is loaded before we render its workspace.
 async function ensureFull(c){
@@ -847,6 +868,8 @@ function startApp(){
   renderSideUser(); renderSideFolders();
   window.renderNewMenu&&renderNewMenu();
   window.applyPanelLayout&&applyPanelLayout();
+  // the company design loads async; if the first paint was a contract, repaint it dressed
+  refreshOrgBranding().then(()=>{ if(window.ORG_BRANDING&&state.view==='workspace'&&window.renderWorkspace) renderWorkspace(); });
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
   setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
@@ -1824,7 +1847,11 @@ function buildSharePayload(c, docHash, who, opts){
         templateName:c.templateForm.templateName, versionNumber:c.templateForm.versionNumber,
         blocks:c.templateForm.blocks, fields:c.templateForm.fields,
         values:{...(c.templateForm.values||{})} }:undefined,
-      branding:c.branding||undefined,
+      /* The design travels with the words: a snapshot on the contract wins
+         (sealed or deliberately chosen), otherwise the company default is
+         stamped into THIS payload — the look the document was shared with,
+         fixed on the link even if the default changes tomorrow. */
+      branding:c.branding||(window.orgBrandingSnapshot?orgBrandingSnapshot():null)||undefined,
       rounds:shareRounds.length?shareRounds:undefined,
       /* The wording exactly as it left, in plain text. A template-drafted
          contract has no stored body — it is rendered from the template and its

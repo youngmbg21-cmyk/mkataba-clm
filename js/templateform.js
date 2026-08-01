@@ -116,8 +116,18 @@ function templateFormProblems(form, validate) {
    than inside it — the rich format rightly drops <img>, so the logo can never
    live in redlineText. Reads the branding snapshot the contract carries
    (stamped at creation), so the portal shows the same letterhead with no
-   session and no org routes. Browser-side only; the server never calls it. */
-function templateBrandingHeaderHtml(c) {
+   session and no org routes. Browser-side only; the server never calls it.
+
+   DESIGN-AWARE since the contract-designer feature: when a document design
+   is resolvable (js/branding.js — the snapshot's own designId, or the
+   company default), the chosen design renders instead, on ANY contract.
+   Without one, the behaviour below is byte-for-byte what it always was —
+   template contracts get the plain letterhead, everything else stays bare. */
+function templateBrandingHeaderHtml(c, opts) {
+  if (typeof window !== 'undefined' && window.resolveDocBranding) {
+    const db = resolveDocBranding(c);
+    if (db && db.designId) return docDesignHeaderHtml(db, c, opts || {});
+  }
   const b = c && c.branding;
   if (!c || !c.templateForm || !b) return '';
   if (!b.logoUrl && !b.companyName) return '';
@@ -131,6 +141,10 @@ function templateBrandingHeaderHtml(c) {
   </div>`;
 }
 function templateBrandingFooterHtml(c) {
+  if (typeof window !== 'undefined' && window.resolveDocBranding) {
+    const db = resolveDocBranding(c);
+    if (db && db.designId) return docDesignFooterHtml(db, c);
+  }
   const b = c && c.branding;
   if (!c || !c.templateForm || !b || !b.footerText) return '';
   return `<div style="margin-top:22px;padding-top:10px;border-top:1px solid var(--color-doc-rule,#d8d5cd);font-size:9.5px;color:#6b6f76;text-align:center">${TPLFORM_ESC(b.footerText)}</div>`;

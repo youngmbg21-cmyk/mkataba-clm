@@ -1691,8 +1691,10 @@ function renderShareViewer(p, opts={}){
         send any comments to ${esc(org)} directly.</span>
     </header>
     <div class="pv-page">
-      <div class="pv-sheet" data-mark="${esc(mark)}">
+      <div class="pv-sheet" data-mark="${esc(mark)}" style="${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+        ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
         <article class="doc-surface">${body}</article>
+        ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
         ${portalViewerRedlineHtml(c)}
       </div>
       <p class="pv-foot">This is a fixed copy of the contract as it stood on ${esc(asOf||'the date it was shared')}.
@@ -1967,8 +1969,8 @@ function renderSharePortal(p, opts={}){
                exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
         ${portalTemplateFormHtml(c,p)}
-        <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
-          ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c):''}
+        <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+          ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
           <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
           ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
         </div>
@@ -2824,13 +2826,23 @@ function exportPDF(c, opts){
   // platform runs on the design's two faces throughout. The contract is still a
   // document surface and still carries the document ink, measure and leading,
   // exactly as it does on screen, so the PDF matches the page it came from.
+  /* The design travels to paper too: the same inline-styled header/footer the
+     screen shows, the ruled page border where the design has one, and — for a
+     raw upload whose own layout is baked into the file — the branded cover
+     page in front of the transcription (DESIGN-contract-designer.md §5).
+     The band bleeds to the sheet edge only on the DISTRIBUTION copy: the
+     record copy stacks HaTi's masthead above the letterhead, and a bled band
+     would print over it. */
+  const printDesign=window.resolveDocBranding?resolveDocBranding(c):null;
+  const printCover=(printDesign&&printDesign.designId&&isUpload(c)&&!record&&window.docDesignCoverPageHtml)?docDesignCoverPageHtml(printDesign,c):'';
   document.getElementById('print-root').innerHTML=`
-    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;">
+    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
       ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #5980a6;padding-bottom:10px;margin-bottom:24px;">
         <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>`:''}
-      ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c):''}
+      ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,record?{}:{bleedX:24,bleedY:32}):''}
+      ${printCover}
       <div class="doc-surface">${bodyHtml}</div>
       ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
       ${execBlock}

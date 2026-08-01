@@ -359,6 +359,26 @@ function renderTeam(){
         </section>
 
       <section style="${cardStyle}">
+        <h4 style="${h4Style}">Company design</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The standard look every contract wears when it is published, shared or exported — one of five fixed designs, your logo, your colour. The wording of a contract never changes; only its presentation does. Signed contracts keep the look they were sealed with.</p>
+        ${(()=>{ const ob=window.ORG_BRANDING; const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
+          const canDesign=(currentUser()||{}).role==='admin'||(currentUser()||{}).role==='legal';
+          return `
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:8px;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
+            ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:9px;color:var(--color-neutral-500)">No logo</span>`}
+          </div>
+          <div style="flex:1;min-width:150px">
+            ${d?`<div style="font-size:12.5px;font-weight:700">${esc(d.name)}</div>
+            <div style="font-size:10.5px;color:var(--color-neutral-600)">Logo: ${esc({'top-left':'top left','top-center':'top centre','top-right':'top right',footer:'footer'}[ob.logoPosition]||ob.logoPosition||'—')}${d.usesAccent&&ob.accentColor?` · accent <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${ob.accentColor};vertical-align:-1px;border:1px solid var(--color-divider)"></span>`:''}</div>`
+            :`<div style="font-size:12px;color:var(--color-neutral-600)">No design chosen yet — the first template publish will ask, or set it here.</div>`}
+          </div>
+          ${canDesign?`<button id="brand-edit" style="${secondaryBtn}">${d?'Edit company design':'Choose a design'}</button>`
+            :`<span style="font-size:10.5px;color:var(--color-neutral-600)">Admin or Legal can change it.</span>`}
+        </div>`;})()}
+      </section>
+
+      <section style="${cardStyle}">
         <h4 style="${h4Style}">Data &amp; backup</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -433,6 +453,7 @@ function renderTeam(){
   });
   document.getElementById('tm-invite')?.addEventListener('click',()=>{ const n=document.getElementById('tm-name'); if(n){ n.scrollIntoView({block:'nearest'}); n.focus(); } });
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
+  document.getElementById('brand-edit')?.addEventListener('click',()=>openDesignStep({ mode:'settings', onBack:()=>renderTeam() }));
   renderClauseLibrary();
   if(API_MODE()) loadSessions();
   // Copilot engine config

@@ -210,33 +210,21 @@ async function tbSave(quiet) {
   } catch (e) { toast(e.message, 'err'); return false; }
 }
 
+/* Publish goes THROUGH the Design step — never around it (decision 2 in
+   DESIGN-contract-designer.md). The step carries the change-note field and
+   the publish call; with a company default already saved it opens
+   pre-dressed and Publish is one click. */
 async function tbPublish() {
   if (!await tbSave(true)) return;
-  openModal(`
-    <div style="padding:20px 22px;max-width:460px">
-      <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:16px;font-weight:700">Publish v${_tb.versionNumber}</h3>
-      <p style="margin:0 0 12px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">
-        Publishing freezes this version forever and makes it what the whole team creates contracts from.
-        Contracts already created from earlier versions are not touched.</p>
-      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">What changed, and why?</span>
-        <textarea id="tb-note" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;outline:none;min-height:52px" maxlength="500" placeholder="e.g. Payment terms now offer 30/45/60 days"></textarea></label>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="ui-btn" onclick="closeModal()">Cancel</button>
-        <button id="tb-pub-go" class="ui-btn ui-btn-primary">Publish</button>
-      </div>
-    </div>`);
-  document.getElementById('tb-pub-go')?.addEventListener('click', async () => {
-    try {
-      const r = await api(`templates/${_tb.tid}/versions/${_tb.vid}/publish`, 'POST', {
-        changeNote: document.getElementById('tb-note').value.trim() });
-      closeModal();
-      (r.warnings || []).forEach(w => toast(w, 'err'));
-      toast(`v${r.versionNumber} published — the team can create contracts from it now`);
-      openTemplateLibDetail(_tb.tid);
-    } catch (e) {
-      closeModal();
-      ((e.data && e.data.problems) || [e.message]).forEach(p => toast(p, 'err'));
-    }
+  openDesignStep({
+    mode: 'publish',
+    tid: _tb.tid, vid: _tb.vid, versionNumber: _tb.versionNumber,
+    templateName: _tb.template.name,
+    form: {
+      blocks: _tb.blocks.map((b, i) => ({ orderIndex: i, blockType: b.blockType, content: b.content })),
+      fields: _tb.fields, values: {},
+    },
+    onBack: () => tbPaint(),
   });
 }
 
