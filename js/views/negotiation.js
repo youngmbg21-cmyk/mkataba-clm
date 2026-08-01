@@ -4761,7 +4761,12 @@ function redlineLayoutCss(){
   /* The contract jump, dressed like the toolbar it sits in. It may shrink on
      a narrow window but never to nothing — a switch you cannot see is a
      contract you cannot reach. */
-  .redline-page .rl-jump{flex:0 1 auto;min-width:96px;max-width:220px;border:1px solid var(--color-divider);
+  /* 9ch wider than the pre-counterparty 220px, measured in the control's own
+     11px mono figures — room for the name's first letters, nothing more.
+     overflow:hidden so anything past the new edge disappears rather than
+     stretching the toolbar. */
+  .redline-page .rl-jump{flex:0 1 auto;min-width:96px;max-width:calc(220px + 9ch);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--color-divider);
     background:var(--color-surface);border-radius:9px;padding:6px 8px;font:inherit;font-family:var(--font-mono);
     font-size:11px;font-weight:600;color:var(--color-text);cursor:pointer}
   .redline-page .rl-jump:hover{border-color:var(--color-neutral-300)}
@@ -7263,13 +7268,16 @@ function rlOwnerOpenTotal(){
    eviction rules cannot be skipped. */
 function rlJumpHtml(c){
   const list = (typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : [];
-  const rows = list.map(x => ({ id: x.id, n: rlOwnerOpenActions(x) }))
+  const rows = list.map(x => ({ id: x.id, n: rlOwnerOpenActions(x), cp: x.counterparty || '' }))
     .filter(e => e.n > 0 || e.id === c.id)
     .sort((a, b) => b.n - a.n || String(a.id).localeCompare(String(b.id)));
-  if (!rows.some(e => e.id === c.id)) rows.unshift({ id: c.id, n: 0 });
+  if (!rows.some(e => e.id === c.id)) rows.unshift({ id: c.id, n: 0, cp: c.counterparty || '' });
+  /* The counterparty rides last on each line — the number is still the handle,
+     the name is the reminder of who is on the other side. The control is 9ch
+     wider than it was to make room; whatever does not fit is clipped. */
   return `<select id="rl-contract-jump" class="rl-jump" aria-label="Contracts awaiting redline action"
       title="Every contract with redline actions awaiting, and how many — pick one to bring it to this bench">${
-    rows.map(e => `<option value="${_nea(e.id)}"${e.id === c.id ? ' selected' : ''}>${_ne(e.id)} &middot; ${e.n} awaiting</option>`).join('')}</select>`;
+    rows.map(e => `<option value="${_nea(e.id)}"${e.id === c.id ? ' selected' : ''}>${_ne(e.id)} &middot; ${e.n} awaiting${e.cp ? ` &middot; ${_ne(e.cp)}` : ''}</option>`).join('')}</select>`;
 }
 /* ============================================================
    THE VIEW WALL — what each side of the toggle is allowed to see

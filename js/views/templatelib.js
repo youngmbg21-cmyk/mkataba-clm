@@ -89,7 +89,7 @@ function tplCompanySectionHtml() {
   const canManage = tplLibCanManage();
   const list = _tplLib.list;
   const fmtDay = iso => iso ? new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-  /* Cards, in the same grid and the same shape as My templates further down the
+  /* Cards, in the same grid and the same shape as Counterparty Templates further down the
      page — one Templates page should not have two visual languages for the same
      idea. The card is a DIV, not a button: the row it replaces was a <button>
      with the "New contract" <button> nested inside it, which is invalid HTML,
@@ -98,8 +98,8 @@ function tplCompanySectionHtml() {
      which is the broken layout this replaces. Opening is now a click on the
      card body, so the buttons inside it are ordinary siblings.
 
-     One deliberate departure from My templates: the stripe down the left edge
-     shows STATUS rather than category. My templates colours by folder because
+     One deliberate departure from Counterparty Templates: the stripe down the left edge
+     shows STATUS rather than category. Counterparty Templates colours by folder because
      that is its only classification; here, draft-versus-published is the fact
      you scan for, and a draft that looks published is the mistake worth
      designing against. */
@@ -125,7 +125,7 @@ function tplCompanySectionHtml() {
         <button data-tpllib-open="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px;${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? '' : 'flex:1'}">Open</button>
       </div>
     </div>`).join('');
-  /* The section itself now matches My templates too: a padded card holding a
+  /* The section itself now matches Counterparty Templates too: a padded card holding a
      heading row and a grid, rather than a bordered table whose rows ran the
      full width. Same auto-filling columns and same gap, so the two sections
      line up as one page instead of two designs stacked. */
