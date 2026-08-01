@@ -2541,6 +2541,60 @@ function wireWsCollapse(c){
   });
 }
 
+/* ---- THE EXPORT MENU ----
+   Open on the button, shut on a pick or a click anywhere else. The document
+   listener is bound once and checks liveness itself, because this header is
+   rebuilt on every renderWorkspace and a listener per paint is a leak. */
+let _wsExportDocWired=false;
+function wireWsExportMenu(){
+  const btn=document.getElementById('ws-export'), menu=document.getElementById('ws-export-menu');
+  if(!btn||!menu) return;
+  const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
+  btn.addEventListener('click',e=>{ e.stopPropagation();
+    const open=menu.classList.toggle('hidden')===false;
+    btn.setAttribute('aria-expanded',open?'true':'false'); });
+  menu.addEventListener('click',()=>shut());
+  if(!_wsExportDocWired&&typeof document!=='undefined'){
+    _wsExportDocWired=true;
+    document.addEventListener('click',e=>{
+      const m=document.getElementById('ws-export-menu'), b=document.getElementById('ws-export');
+      if(m&&b&&!m.classList.contains('hidden')&&!m.contains(e.target)&&!b.contains(e.target)){
+        m.classList.add('hidden'); b.setAttribute('aria-expanded','false');
+      }
+    });
+  }
+}
+/* ---- WORD, WITH THE REDLINES AS REAL TRACKED CHANGES ----
+   The same writer the Doc Lab proved out (docxExportTracked), reconnected to
+   a reachable button: the redline as the owner sees it, as a .docx a
+   counterparty can accept and reject in their own copy of Word. The whole
+   document, not one clause — a tracked-changes file with three clauses in it
+   is not the agreement. */
+function exportWordTracked(c){
+  if(!window.docxExportTracked||!window.redlineDocHtml){ toast('The Word writer is not loaded on this page','err'); return; }
+  let out;
+  try{
+    const html=redlineDocHtml(c,{side:'owner'});
+    out=docxExportTracked(html,{author:(currentUser()&&currentUser().name)||'HaTi'});
+  }catch(e){ toast('That document could not be written as Word: '+((e&&e.message)||e),'err'); return; }
+  const name=`${c.id}-redline.docx`;
+  try{
+    const blob=new Blob([out.bytes],{type:window.DOCX_MIME||'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),0);
+  }catch(e){ toast('The download could not start: '+((e&&e.message)||e),'err'); return; }
+  logAudit(c,'Export',`Word export — ${name}`+(out.tracked&&(out.tracked.ins||out.tracked.del)
+    ?` carrying ${out.tracked.ins} insertion${out.tracked.ins===1?'':'s'} and ${out.tracked.del} deletion${out.tracked.del===1?'':'s'} as tracked changes`
+    :' (no redlines — clean wording)'));
+  persist(c);
+  toast(out.tracked&&(out.tracked.ins||out.tracked.del)
+    ? `${name} — ${out.tracked.ins} insertion${out.tracked.ins===1?'':'s'} and ${out.tracked.del} deletion${out.tracked.del===1?'':'s'}, as Word tracked changes`
+    : `${name} — no redlines on this document, so it exports as clean wording`);
+}
+
 /* ---- FOCUS MODE, THE DOC PAGE'S OWN ----
    The Redline page's focus button, on this tab: hide the header card and the
    strips, give the room to the document. The button lives on the tab row —
@@ -2635,8 +2689,20 @@ function renderWorkspace(){
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-history" title="The whole negotiation as one story — every proposal, decision, signature and renumbering, with filters" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} History</button>
-          <button id="ws-pdf" title="Export a clean copy for sending — your branding, the wording and the signatures, with no HaTi marks on it" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
-          ${printIsHatiExecuted(c)?`<button id="ws-pdf-record" title="Export the full record for your own file — the same document plus HaTi's seal and the audit trail. Not the copy to send a counterparty." class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} Record</button>`:''}
+          <!-- ---- ONE EXPORT MENU, NOT A ROW OF EXPORT BUTTONS ----
+               PDF, Word-with-tracked-changes and the sealed Record are three
+               shapes of the same act, and each one on its own button was the
+               crowding this header keeps being trimmed for. The ids inside are
+               the ORIGINAL ids (ws-pdf, ws-pdf-record) so every existing
+               handler and test presses exactly the button it always pressed. -->
+          <div style="position:relative;flex:none">
+            <button id="ws-export" class="ui-btn" aria-haspopup="true" aria-expanded="false" title="Export this contract — PDF, Word with tracked changes, or the sealed record" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} Export &#9662;</button>
+            <div id="ws-export-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:250px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:5px">
+              <button id="ws-pdf" title="Export a clean copy for sending — your branding, the wording and the signatures, with no HaTi marks on it" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-text);border-radius:6px;padding:7px 10px">PDF <span style="font-weight:400;color:var(--color-neutral-500)">— clean copy to send</span></button>
+              <button id="ws-word" title="Export the redline as a Word file — every pending change travels as a real Word tracked change the other side can accept or reject in their own copy" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-text);border-radius:6px;padding:7px 10px">Word <span style="font-weight:400;color:var(--color-neutral-500)">— with tracked changes</span></button>
+              ${printIsHatiExecuted(c)?`<button id="ws-pdf-record" title="Export the full record for your own file — the same document plus HaTi's seal and the audit trail. Not the copy to send a counterparty." style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-text);border-radius:6px;padding:7px 10px">Record <span style="font-weight:400;color:var(--color-neutral-500)">— sealed + audit trail</span></button>`:''}
+            </div>
+          </div>
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
         </div>
         ${''/* GIVE THE DOCUMENT THE ROOM. This header carries nine actions, a
@@ -2898,6 +2964,8 @@ function renderWorkspace(){
   });
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
+  document.getElementById('ws-word')?.addEventListener('click',()=>exportWordTracked(c));
+  wireWsExportMenu();
   // The text-size stepper on the tab row: the control, its styles and its
   // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the
   // two tabs render one component reading one persisted preference. The

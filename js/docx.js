@@ -645,6 +645,72 @@ function docxZip(files){
   return out;
 }
 
+/* ---------- THE MARGIN, READ TOO ----------
+   A .docx keeps its comments in word/comments.xml, a part docxExtract never
+   opens — which is how a returned file's margin notes ("we can accept this
+   only if clause 12 changes") used to vanish on import. Each comment carries
+   its author and its text here; WHERE it pointed lives in word/document.xml
+   as a commentRangeStart/End pair (or, for a comment pinned to a point, a
+   bare commentReference inside a paragraph). The quote — the wording the
+   comment was anchored to — is what lets a caller pin the note to a clause. */
+function _docxTRuns(xml){
+  const parts = [];
+  String(xml || '').replace(/<w:(?:t|delText)(?:\s[^>]*)?>([\s\S]*?)<\/w:(?:t|delText)>/g,
+    (m, t) => { parts.push(decodeXmlEntities(t)); return m; });
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+function docxCommentQuote(docXml, id){
+  if (!docXml || id == null || id === '') return '';
+  const start = docXml.indexOf(`<w:commentRangeStart w:id="${id}"`);
+  const end = docXml.indexOf(`<w:commentRangeEnd w:id="${id}"`);
+  let span = '';
+  if (start !== -1 && end !== -1 && end > start) span = docXml.slice(start, end);
+  else {
+    /* pinned to a point, not a range: the paragraph it sits in is the context */
+    const ref = docXml.indexOf(`<w:commentReference w:id="${id}"`);
+    if (ref === -1) return '';
+    const s = Math.max(docXml.lastIndexOf('<w:p ', ref), docXml.lastIndexOf('<w:p>', ref));
+    const e = docXml.indexOf('</w:p>', ref);
+    if (s === -1 || e === -1) return '';
+    span = docXml.slice(s, e);
+  }
+  return _docxTRuns(span).slice(0, 400);
+}
+async function docxComments(bytes){
+  let entries;
+  try{ entries = zipEntries(bytes); }catch(_){ return []; }
+  /* The same decode docxExtract trusts: stored entries read in place,
+     deflated ones inflate — and any part that will not read cleanly reads as
+     absent, because a damaged margin must never take the import down with it. */
+  const readPart = async name => {
+    const e = entries.find(x => x.name === name);
+    if (!e) return '';
+    try{
+      let raw;
+      if (e.method === 0) raw = zipEntryBytes(bytes, e);
+      else if (e.method === 8) raw = await inflateRawBytes(zipEntryBytes(bytes, e));
+      else return '';
+      return new TextDecoder().decode(raw);
+    }catch(_){ return ''; }
+  };
+  const xml = await readPart('word/comments.xml');
+  if (!xml) return [];
+  const doc = await readPart('word/document.xml');
+  const out = [];
+  const re = /<w:comment\b([^>]*)>([\s\S]*?)<\/w:comment>/g;
+  let m;
+  while ((m = re.exec(xml))){
+    const attrs = m[1] || '';
+    const id = (attrs.match(/w:id="([^"]*)"/) || [])[1] || '';
+    const author = decodeXmlEntities((attrs.match(/w:author="([^"]*)"/) || [])[1] || '').trim();
+    const date = (attrs.match(/w:date="([^"]*)"/) || [])[1] || '';
+    const text = _docxTRuns(m[2]);
+    if (!text) continue;
+    out.push({ id, author, date, text, quote: docxCommentQuote(doc, id) });
+  }
+  return out;
+}
+
 /* The export, end to end: redline HTML in, .docx bytes out.
    Returns the counts as well as the bytes so a caller can say on the record
    what went — "12 insertions and 5 deletions, as tracked changes" — rather than
@@ -665,8 +731,10 @@ function docxExportTracked(html, opts = {}){
 if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxXmlToText,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_NUMBERED,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
+  docxComments,docxCommentQuote,
   DOCX_UI_CLASSES,DOCX_UI_ID});
 if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxExtract,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,
   docxStripUiBadges,docxRunsFromHtml,docxTrackedXml,docxDocumentXml,docxExportTracked,docxZip,docxCrc32,
+  docxComments,docxCommentQuote,
   DOCX_UI_CLASSES,DOCX_UI_ID};

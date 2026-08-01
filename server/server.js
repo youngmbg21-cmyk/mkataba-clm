@@ -3888,8 +3888,17 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
   if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
   const b = req.body || {};
   if (!msgValid(b)) return res.status(400).json({ error: 'A message is required' });
-  const m = addMessage({ contractId: req.params.id, token: null, side: 'owner',
-    author: req.user.name, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim() });
+  /* A comment lifted from a returned Word file is the COUNTERPARTY's words,
+     imported by the editor holding their file. It lands on their side under
+     the commenter's own name, suffixed with the channel it came by — the
+     same trust the response-code import already extends, and the audit trail
+     records the import that carried it. */
+  const viaWord = b.viaWordComment === true;
+  const wordAuthor = viaWord ? (String(b.author || '').trim() || 'Counterparty') + ' · via Word comment' : null;
+  const m = addMessage({ contractId: req.params.id, token: null,
+    side: viaWord ? 'counterparty' : 'owner',
+    author: viaWord ? wordAuthor : req.user.name,
+    topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim() });
   const sent = await notifyCounterpartyMessage(req.params.id, m);
   res.json({ ok: true, message: m, messages: contractMessages(req.params.id),
     emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });

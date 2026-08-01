@@ -1157,6 +1157,69 @@ async function negoFileProposal(c, proposedText, opts = {}){
   return filed;
 }
 
+/* ---------- THE RETURNED WORD FILE, WHOLE ----------
+   One door for the file a counterparty sends back after marking up our Word
+   export: the wording differences arrive as ordinary counterparty changes
+   through negoFileProposal — same fingerprints, same cards, same wall — and
+   the MARGIN COMMENTS come with them instead of vanishing. docxComments
+   reads the part of the file docxExtract never opens; each comment is
+   matched to a discussion topic by the wording it was anchored to, because
+   the quote is the only thing a Word file and our clause model share.
+   Posting the comments is the caller's job (server or local store) — this
+   function reads and files, it does not talk to a network. */
+async function negoImportReturnedDocx(c, bytes, opts = {}){
+  if (!window.docxExtract) throw new Error('The Word reader is not loaded on this page');
+  const read = await docxExtract(bytes);
+  const text = String((read && read.text) || '');
+  if (!text.trim()) throw new Error('That file has no readable wording in it');
+  const author = String(opts.author || c.counterparty || 'Counterparty').trim();
+  const filed = await negoFileProposal(c, text, { side: 'counterparty', author,
+    via: 'a returned Word file' });
+  const comments = (window.docxComments ? await docxComments(bytes) : []).map(cm => {
+    const t = negoTopicForQuote(c, cm.quote || cm.text);
+    return { ...cm, topic: t.topic, topicLabel: t.label };
+  });
+  return { filed, comments, tracked: (read && read.tracked) || null };
+}
+/* Which discussion topic a quoted passage belongs to. The same clause keys
+   discussTopics hands the composer, derived the same way, so a comment lands
+   in the thread the panel already draws for that clause. No match is honest:
+   the comment files against the contract generally rather than being dropped
+   or pinned to a guess. */
+function negoTopicForQuote(c, quote){
+  const fallback = { topic: (window.DISCUSS_GENERAL || 'general'), label: null };
+  const norm = s => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const q = norm(quote);
+  if (!q) return fallback;
+  /* Containment first; WORD OVERLAP second, because a comment is usually
+     anchored on the wording the counterparty CHANGED — which by definition is
+     not in our baseline verbatim. The clause it belongs to still shares most
+     of its words with the quote, and no other clause does. Below half shared,
+     honesty wins: the contract generally, not a guess. */
+  const words = s => new Set(norm(s).split(/[^a-z0-9]+/).filter(w => w.length > 3));
+  const qw = words(q);
+  const lines = String(window.docPlainText ? docPlainText(c) : '').split('\n');
+  let best = null, bestScore = 0;
+  for (let i = 0; i < lines.length; i++){
+    const line = lines[i];
+    if (!line.trim()) continue;
+    if (window.docLineKind && docLineKind(line) === 'heading') continue;
+    const l = norm(line);
+    if (!l) continue;
+    if (l.includes(q) || q.includes(l)){ best = { line, i }; bestScore = 1; break; }
+    if (qw.size){
+      const lw = words(l);
+      let hit = 0;
+      for (const w of qw) if (lw.has(w)) hit++;
+      const score = hit / qw.size;
+      if (score > bestScore){ bestScore = score; best = { line, i }; }
+    }
+  }
+  if (!best || bestScore < 0.5) return fallback;
+  return { topic: window.discussClauseKey ? discussClauseKey(best.line, best.i) : fallback.topic,
+    label: window.discussTrim ? discussTrim(best.line, 70) : best.line.slice(0, 70) };
+}
+
 /* A proposal that arrived as TEXT, lifted back into a document.
 
    THIS IS THE FIX FOR THE PHANTOM-CHANGE BUG (B-010). It matters which way the
@@ -2779,6 +2842,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
+  negoImportReturnedDocx, negoTopicForQuote,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
