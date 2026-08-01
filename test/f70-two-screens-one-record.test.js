@@ -335,8 +335,9 @@ describe('F70 — the sends are prominent, and there is one of each', () => {
     assert.equal(room.$$('[id="nego-send"]').length, 1, 'and there is exactly one of it');
     assert.match(btn.className, /nego-pulse/, 'flashing, because something is being held');
     assert.ok(btn.closest('.nego-index-send'), 'in the index, beside the change it sends');
-    assert.match(btn.textContent, /Send \d+ change/);
-    assert.match(btn.textContent, /Nordfrakt Logistik AB/);
+    assert.match(btn.textContent, /Send All \(\d+\) Redline/);
+    assert.match(btn.title, /Nordfrakt Logistik AB/,
+      'who receives it moved to the tooltip when the blast identity moved onto this button');
   });
 
   test('and with nothing held it is the banner send, still weighty', async () => {

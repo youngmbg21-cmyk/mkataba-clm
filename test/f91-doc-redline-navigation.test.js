@@ -183,8 +183,10 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
     b.win.openRedlineWorkbench('MK-1');
     const labels = [...b.$('#view-redline').querySelectorAll('.rl-actions button')]
       .map(x => x.textContent.trim()).join(' | ');
-    for (const want of ['Internal View', 'Counterparty View', 'Accept All Non-Risk', 'Publish Round'])
+    for (const want of ['Internal View', 'Counterparty View', 'Publish Round'])
       assert.ok(labels.includes(want), `${want} must still be there — got ${labels}`);
+    assert.ok(!labels.includes('Non-Risk'),
+      'the batch verbs moved to the Tracked Changes column head — no second copy here');
   });
 });
 

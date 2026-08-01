@@ -53,6 +53,23 @@ async function world(){
   return { w, win, c };
 }
 
+/* Like world(), with an execution block at the foot of the paper — the case
+   the insert anchor must step over. */
+async function buildSignedWorld(){
+  const w = buildWorld({ negotiationView: true, playbook: true });
+  const { win } = w;
+  const c = contractFixture({ redlineText: BASE + '\n' + [
+    'SIGNED FOR BUYER — Company Stamp, Signature, Date, Director Name',
+    'Name: full name',
+    'Title: job title',
+  ].join('\n') });
+  if (typeof win.cKind !== 'function') win.cKind = () => 'raw material supply';
+  win.negoInit(c);
+  win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id });
+  win.getContract = id => (id === c.id ? c : null);
+  return { w, win, c };
+}
+
 describe('F131 — Fix 2: the playbook pass proposes, a person disposes', () => {
   test('a payment-terms deviation becomes a proposal aimed at the clause it quotes', async () => {
     const { win, c } = await world();
@@ -90,6 +107,23 @@ describe('F131 — Fix 2: the playbook pass proposes, a person disposes', () => 
     assert.ok(ch, 'the insert files');
     assert.equal(ch.changeType, 'insertClause');
     assert.equal(ch.status, 'pending');
+  });
+
+  test('a new clause lands BEFORE the signature block, never after it', async () => {
+    const { win } = await buildSignedWorld();
+    const c = win.state.contracts[0];
+    const rev = win.playbookReviewHeuristic(c, win.docPlainText(c));
+    const missing = win.rlPlaybookProposals(c, rev).find(it => it.v.status === 'missing' && !it.clauseId);
+    assert.ok(missing, 'something is missing to insert');
+    const ch = await win.rlFilePlaybookProposal(c, missing, missing.preferred);
+    assert.ok(ch && ch.changeType === 'insertClause');
+    /* The anchor sits AHEAD of the execution wording — text below the
+       signatures can be argued as outside what was signed. */
+    const clauses = win.negoClauseList(c);
+    const anchor = clauses.find(cl => cl.clauseId === ch.afterClauseId);
+    assert.ok(anchor, 'the anchor clause exists');
+    assert.ok(!/signed for|in witness/i.test(anchor.text),
+      'the insert never anchors on (or after) a clause carrying signature wording');
   });
 
   test('nothing proposes itself: aligned verdicts and empty reviews yield no items', async () => {

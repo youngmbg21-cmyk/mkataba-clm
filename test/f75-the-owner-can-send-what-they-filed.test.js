@@ -143,7 +143,9 @@ describe('F75 — unsent work asks to be sent', () => {
 
   test('and says how much, so the number is not a surprise', async () => {
     const { btn } = await bannerHtml();
-    assert.match(btn.textContent, /Send 1 change to Nordfrakt Logistik AB/);
+    assert.match(btn.textContent, /Send All \(1\) Redline/);
+    assert.match(btn.title, /Nordfrakt Logistik AB/,
+      'the recipient rides on the tooltip since the blast identity moved onto this button');
   });
 
   test('the send sits in the index, beside the work it sends', async () => {

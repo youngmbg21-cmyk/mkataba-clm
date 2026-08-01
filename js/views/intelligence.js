@@ -340,7 +340,42 @@ function intelPushChatResult(res){
 // General Copilot Q&A in the Intel dock (used for compare + typed questions).
 // With no Copilot key, comparisons still work via the deterministic local table;
 // other free-form questions get a clear nudge instead of silence.
+/* ---- QUESTIONS THAT DRIVE THE FRICTION VIEW ----
+   The graph's dock already re-filters the map from plain sentences; the
+   friction tab follows the same pattern with a deliberately small verb set:
+   filter to a counterparty, filter to clauses matching a phrase, reset.
+   Deterministic, so it works with no Copilot key at all — anything it does
+   not recognise falls through to the Copilot with the friction dataset as
+   context. */
+function frictionInterpret(q){
+  const s=String(q||'').trim().toLowerCase();
+  if(!s) return null;
+  if(/^(reset|clear|show (all|everything)|all negotiations)\b/.test(s)) return {reset:true};
+  const cps=[...new Set(((window.state&&state.contracts)||[]).map(c=>c&&c.counterparty).filter(Boolean))];
+  const cpHit=cps.find(x=>s.includes(String(x).toLowerCase()));
+  if(cpHit&&/friction|clause|round|negotiat|contest|deal|with|for|against|only|filter|show/.test(s))
+    return {counterparty:cpHit};
+  const m=s.match(/clauses?\s+(?:about|on|matching|named|containing)\s+["']?([a-z0-9 &\-]{3,40})["']?/i)
+    || s.match(/only\s+(?:the\s+)?([a-z0-9 &\-]{3,40}?)\s+clauses?\b/i)
+    || s.match(/filter\s+(?:to|by)\s+["']?([a-z0-9 &\-]{3,40})["']?/i);
+  if(m) return {clause:m[1].trim()};
+  return null;
+}
 async function intelChatAsk(q){
+  /* On the friction tab, a recognised command re-draws the analytics rather
+     than starting a chat — and says what it did, so the panel's answer and
+     the left pane never disagree about what is being counted. */
+  if(intel.tab==='friction'){
+    const cmd=frictionInterpret(q);
+    if(cmd){
+      intel.frictionFilter=cmd.reset?null:{...(intel.frictionFilter||{}),...cmd};
+      intel.history.push({role:'assistant', text: cmd.reset
+        ? 'Filters cleared — the friction view counts every negotiation again.'
+        : `Filtered the friction view${cmd.counterparty?` to <b>${igEsc(cmd.counterparty)}</b>`:''}${cmd.clause?` to clauses matching &ldquo;${igEsc(cmd.clause)}&rdquo;`:''}. Say <b>reset</b> to clear.`});
+      renderIntel();
+      return;
+    }
+  }
   const ids=(String(q).match(/MK-\d+/gi)||[]).map(s=>s.toUpperCase()).filter((v,i,a)=>a.indexOf(v)===i);
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){
     if(ids.length>=2 && typeof localCompareData==='function'){
@@ -352,7 +387,14 @@ async function intelChatAsk(q){
     return;
   }
   try{
-    const res=await copilotAsk(intelChatMessages(), { view:'intel' });
+    /* On the friction tab the Copilot answers ABOUT the friction numbers, so
+       the same dataset the left pane draws rides along as context — scoped to
+       negotiation KPIs, which is all this tab is for. */
+    const ctx=intel.tab==='friction'
+      ? { view:'intel-friction', friction:intelFrictionStats(intel.frictionFilter||null),
+          frictionFilter:intel.frictionFilter||null }
+      : { view:'intel' };
+    const res=await copilotAsk(intelChatMessages(), ctx);
     intelPushChatResult(res);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
@@ -688,12 +730,21 @@ function renderIntel(){
       </label>`:''}
     </header>`;
   if(intel.tab==='friction'){
+    /* Same shape as the graph: the data on the left, the Copilot dock on the
+       right, permanently — and on this tab the dock's questions can DRIVE the
+       analytics (filter by counterparty or clause, reset), the way the
+       graph's dock already drives the map. */
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:18px 20px">${intelFrictionHtml()}</div>
+      <div style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
+        <div id="ig-friction" class="scroll-thin" style="flex:1;min-width:0;overflow-y:auto;padding:18px 20px">${intelFrictionHtml()}</div>
+        <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
+      </div>
     </div>`;
+    renderIntelDock();
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
+    document.getElementById('ig-friction-clear')?.addEventListener('click',()=>{ intel.frictionFilter=null; renderIntel(); });
     setActiveNav('intel');
     return;
   }
@@ -745,8 +796,11 @@ function renderIntel(){
    negotiations already store — no new collection, no model, no estimate.
    A clause "contested" in a deal means at least one tracked change was
    filed against it there, in any round, by either side. */
-function intelFrictionStats(){
-  const list=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
+function intelFrictionStats(filter){
+  const f=filter||null;
+  const list=((window.state&&Array.isArray(state.contracts))?state.contracts:[])
+    .filter(c=>!f||!f.counterparty||String(c&&c.counterparty||'').toLowerCase()
+      .includes(String(f.counterparty).toLowerCase()));
   const per=new Map(); const dealRounds=new Map(); const days=[];
   let deals=0, roundsSum=0;
   for(const c of list){
@@ -771,7 +825,9 @@ function intelFrictionStats(){
       if(isFinite(d)&&d>=0) days.push(d);
     }
   }
-  const ranked=[...per.values()].sort((a,b)=>b.ids.size-a.ids.size).slice(0,8);
+  const ranked=[...per.values()]
+    .filter(e=>!f||!f.clause||e.label.toLowerCase().includes(String(f.clause).toLowerCase()))
+    .sort((a,b)=>b.ids.size-a.ids.size).slice(0,8);
   /* The insight: does contesting the top clause cost extra rounds? Averages
      on both sides of the split, or no claim at all — a one-deal "pattern"
      is an anecdote wearing a percentage. */
@@ -791,9 +847,11 @@ function intelFrictionStats(){
     insight };
 }
 function intelFrictionHtml(){
-  const st=intelFrictionStats();
-  if(!st.deals) return `<div style="max-width:560px;margin:40px auto;text-align:center;color:var(--color-neutral-600);font-size:13px;line-height:1.6">
-    <b style="color:var(--color-text)">No negotiations recorded yet.</b><br/>Once contracts go through the Redline bench, this tab counts which clauses get contested, how often, and what each fight costs in rounds — straight from the tracked changes.</div>`;
+  const f=intel.frictionFilter||null;
+  const st=intelFrictionStats(f);
+  const filterChip=f?`<div style="display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:600;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);border-radius:999px;padding:4px 12px;margin-bottom:12px">Filtered${f.counterparty?` · counterparty: ${igEsc(f.counterparty)}`:''}${f.clause?` · clauses matching “${igEsc(f.clause)}”`:''}<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-weight:700;color:inherit">✕</button></div>`:'';
+  if(!st.deals) return `${filterChip}<div style="max-width:560px;margin:40px auto;text-align:center;color:var(--color-neutral-600);font-size:13px;line-height:1.6">
+    <b style="color:var(--color-text)">${f?'Nothing matches this filter.':'No negotiations recorded yet.'}</b><br/>${f?'Say “reset” in the panel, or press ✕ above, to see everything again.':'Once contracts go through the Redline bench, this tab counts which clauses get contested, how often, and what each fight costs in rounds — straight from the tracked changes.'}</div>`;
   const pct=v=>Math.round(v*100);
   const bars=st.clauses.map(cl=>`
     <span style="font-size:12px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${igEsc(cl.label)}</span>
@@ -803,13 +861,14 @@ function intelFrictionHtml(){
     <div style="font-size:20px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums">${n}</div>
     <div style="font-size:10.5px;color:var(--color-neutral-600);font-weight:600">${t}</div></div>`;
   return `<div style="max-width:860px;margin:0 auto">
+    ${filterChip}
     <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:12px;padding:16px 20px">
       <div style="font-size:12.5px;font-weight:700">Most-contested clauses <span style="font-weight:400;color:var(--color-neutral-500)">· share of the ${st.deals} negotiation${st.deals===1?'':'s'} where the clause was redlined</span></div>
       <div role="img" aria-label="Bar chart of most-contested clauses" style="display:grid;grid-template-columns:200px 1fr 46px;gap:7px 10px;align-items:center;margin-top:12px">${bars}</div>
     </div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:14px">
       ${tile(st.avgRounds.toFixed(1),'avg rounds per negotiation')}
-      ${st.avgDays!=null?tile(Math.round(st.avgDays)+' days','avg from first round to signature'):''}
+      ${st.avgDays!=null?tile(st.avgDays<1?'&lt;1 day':Math.round(st.avgDays)+' days','avg from first round to signature'):''}
       ${tile(String(st.deals),'negotiations counted')}
     </div>
     ${st.insight?`<div style="display:flex;gap:9px;align-items:flex-start;background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309);border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;line-height:1.55">&#128161;&nbsp;<span><b>${igEsc(st.insight.label)}</b> is contested in ${pct(st.insight.share)}% of negotiations and adds about <b>${st.insight.extra.toFixed(1)} extra round${st.insight.extra>=1.95?'s':''}</b> when it is. If the fight keeps ending in the same place, consider moving the template default there.</span></div>`:''}
@@ -1058,4 +1117,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,intelFrictionStats,intelFrictionHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,intelFrictionStats,intelFrictionHtml,frictionInterpret,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});

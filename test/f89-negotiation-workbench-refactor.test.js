@@ -873,7 +873,7 @@ describe('F89 (13) — the flashing batch send', () => {
   test('it appears with a count when drafts are held back', async () => {
     const p = await page({ theirChange: false, myChange: true });
     const b = p.$('[data-rl-blast]');
-    assert.ok(b, 'the send must be in the toolbar, not below the fold in a column head');
+    assert.ok(b, 'the blast send renders at the head of the Tracked Changes column, beside the drafts it publishes');
     assert.match(b.textContent, /Send All \(1\) Redline/);
     assert.ok(b.classList.contains('rl-btn-blast'));
     assert.match(p.css(), /@keyframes rlBlast/, 'prominent means animated');
@@ -904,7 +904,7 @@ describe('F89 (13) — the flashing batch send', () => {
     let fired = 0;
     engine.addEventListener('click', () => { fired++; });
     p.$('[data-rl-blast]').click();
-    assert.equal(fired, 1, 'the toolbar button routes through the one act that sends a round');
+    assert.equal(fired, 1, 'the blast IS the engine\'s own send — one control, one act');
   });
 
   test('the card\'s Send is the same act, not a second one', async () => {

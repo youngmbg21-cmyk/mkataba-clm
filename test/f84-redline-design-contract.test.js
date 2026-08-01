@@ -361,13 +361,19 @@ describe('F84 — one sidebar, two modes, switched by the tabs and remembered', 
 });
 
 describe('F84 — the header actions press the engine, not a lookalike', () => {
-  test('the design\'s three header controls are all there', async () => {
+  test('the header carries the view toggle and Publish Round — the batch verbs live with the cards', async () => {
+    /* "Send All" and "Accept All Non-Risk" used to render here as proxies,
+       crowding the strip until the contract dropdown clipped. The column's
+       own copies — beside the cards they act on — are the ones that stay. */
     const p = await page();
     const labels = p.$$('.rl-actions button').map(b => b.textContent.trim());
     assert.ok(labels.some(t => /Internal View/.test(t)));
     assert.ok(labels.some(t => /Counterparty View/.test(t)));
-    assert.ok(labels.some(t => /Accept All Non-Risk/.test(t)));
     assert.ok(labels.some(t => /Publish Round/.test(t)));
+    assert.ok(!labels.some(t => /Non-Risk|Send All/.test(t)),
+      'no second copies of the column\'s batch verbs in the header');
+    assert.ok(p.doc.getElementById('nego-bulk-acc'),
+      'the bulk verb is the engine\'s own control, at the head of the column');
   });
 
   /* ---- AND THE SAME BUTTONS, READ FROM THE OTHER CHAIR ----
@@ -392,36 +398,36 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'publishing a round is the owner\'s act; the other chair sends answers back');
   });
 
-  test('and it carries their words instead', async () => {
-    const labels = headerLabels(await asCounterparty()).join(' | ');
-    assert.ok(/Accept all/.test(labels), labels);
-    assert.ok(/Send Response/.test(labels), labels);
+  test('and it carries their words instead — on the column\'s own control', async () => {
+    const p = await asCounterparty();
+    assert.ok(/Send Response/.test(headerLabels(p).join(' | ')));
+    assert.match(p.doc.getElementById('nego-bulk-acc').textContent, /Accept all/,
+      'the bulk verb is seat-relative where it actually renders — the column head');
   });
 
-  test('the header and the control it presses do not disagree', async () => {
-    /* The durable form of the claim. Two buttons for one act, and only one of
-       them following the rule, is exactly how this drifted. */
+  test('ONE copy of each batch verb — the header never duplicates the column', async () => {
+    /* Two buttons for one act, and only one of them following the seat rule,
+       is exactly how the D2 drift happened — so the durable claim is now
+       stronger: there is no second button at all. */
     const p = await asCounterparty();
-    const pane = p.doc.getElementById('nego-bulk-acc');
-    const proxy = p.$('[data-redline-proxy="nego-bulk-acc"]');
-    assert.ok(pane && proxy);
-    assert.equal(proxy.textContent.trim(), pane.textContent.trim(),
-      'the proxy and the control it presses must say the same thing');
+    assert.ok(p.doc.getElementById('nego-bulk-acc'), 'the engine\'s bulk control renders');
+    assert.equal(p.$('[data-redline-proxy="nego-bulk-acc"]'), null, 'and no proxy shadows it');
+    assert.equal(p.doc.querySelectorAll('[data-rl-blast]').length,
+      p.doc.getElementById('nego-send') ? 1 : 0,
+      'the blast identity lives on the engine\'s own send, nowhere else');
   });
 
-  test('the ACT is untouched — only the words moved', async () => {
+  test('the ACT is untouched — only the placement moved', async () => {
     const p = await asCounterparty();
-    assert.ok(p.$('[data-redline-proxy="nego-bulk-acc"]'), 'same control, same id');
     assert.ok(p.$('[data-redline-proxy="nego-send-decisions"]'),
-      'and the send still points at the counterparty postbox, as it already did');
+      'the header\'s send still points at the counterparty postbox, as it already did');
   });
 
   test('flipping back restores the owner\'s own words', async () => {
     const p = await asCounterparty();
     p.$$('[data-redline-side]').find(b => b.getAttribute('data-redline-side') === 'owner').click();
-    const labels = headerLabels(p).join(' | ');
-    assert.ok(/Accept All Non-Risk/.test(labels), labels);
-    assert.ok(/Publish Round/.test(labels), labels);
+    assert.ok(/Publish Round/.test(headerLabels(p).join(' | ')));
+    assert.match(p.doc.getElementById('nego-bulk-acc').textContent, /Accept All Non-Risk/);
   });
 
   test('Close Round stays owner-only, as it already was', async () => {
@@ -432,14 +438,11 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
     assert.equal(p.$('[data-rl-close-round]'), null);
   });
 
-  test('Accept All Non-Risk fires the engine\'s own bulk control', async () => {
+  test('Accept All Non-Risk is the engine\'s own control, pressed directly', async () => {
     const p = await page();
     const engine = p.doc.getElementById('nego-bulk-acc');
     assert.ok(engine, 'the engine\'s bulk-accept must be in the DOM to be pressed');
-    let fired = 0;
-    engine.addEventListener('click', () => { fired++; });
-    p.$('[data-redline-proxy="nego-bulk-acc"]').click();
-    assert.equal(fired, 1, 'the header button must route through the engine\'s control');
+    assert.equal(p.doc.querySelectorAll('#nego-bulk-acc').length, 1, 'once, and only once');
   });
 
   test('a header button disables itself rather than lying', async () => {

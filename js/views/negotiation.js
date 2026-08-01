@@ -631,12 +631,18 @@ function negoStyleHtml(){
 
   .nego-editing{outline:2px solid var(--n-focus);outline-offset:2px;background:var(--n-paper)}
   .nego-editing:focus{outline:2px solid var(--n-focus)}
-  /* The formatting bar over the open editor — small, quiet, and gone with it. */
-  .nego-fmt-bar{display:flex;gap:3px;margin:0 0 5px;padding:3px;width:max-content;
-    background:var(--n-well,var(--n-paper));border:1px solid var(--n-line);border-radius:7px}
-  .nego-fmt-bar button{width:24px;height:24px;display:inline-grid;place-items:center;border:0;
-    background:none;border-radius:5px;font-family:inherit;font-size:11.5px;color:var(--n-ink-soft);cursor:pointer}
-  .nego-fmt-bar button:hover{background:var(--n-line);color:var(--n-ink)}
+  /* The formatting bar over the open editor. Each command is a real chip —
+     white face, visible border, a touch of shadow — the same clothing the
+     type stepper wears, so it reads as buttons at a glance without adding a
+     single colour. Gone with the editor when it closes. */
+  .nego-fmt-bar{display:flex;gap:4px;margin:0 0 6px;padding:4px;width:max-content;
+    background:var(--n-well,var(--n-paper));border:1px solid var(--n-line);border-radius:8px}
+  .nego-fmt-bar button{width:28px;height:28px;display:inline-grid;place-items:center;
+    background:var(--n-paper,#fff);border:1px solid var(--n-line);border-radius:6px;
+    font-family:inherit;font-size:12.5px;color:var(--n-ink,#1e293b);cursor:pointer;
+    box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
+  .nego-fmt-bar button:hover{border-color:var(--n-ink-soft);background:var(--n-well,#f8fafc)}
+  .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
   .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
   .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
@@ -2551,8 +2557,15 @@ function negoIndexSendHtml(c, opts = {}){
     const n = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner').length : 0;
     if (!n) return '';
     const them = _ne(String(c.counterparty || 'the counterparty'));
+    /* THE ONE SEND, WHERE THE DRAFTS ARE. This button used to have a flashing
+       proxy in the page header ("Send All"), which crowded the toolbar until
+       the contract dropdown clipped mid-word — two copies of one act. The
+       proxy is gone and its identity moved HERE, onto the engine's own
+       control at the head of the Tracked Changes column: same words, same
+       count, same blast styling, beside the cards it publishes. */
     return `<div class="nego-index-send">
-      <button id="nego-send" class="nego-pulse">Send ${n} change${n === 1 ? '' : 's'} to ${them}</button>
+      <button id="nego-send" data-rl-blast class="nego-pulse rl-btn-blast"
+        title="Publish every unsent redline to ${them} in one action">&#9889; Send All (${n}) Redline${n === 1 ? '' : 's'}</button>
       <span class="why">Held on this page until you send. Nothing has reached ${them} yet.</span>
     </div>`;
   }
@@ -5546,49 +5559,23 @@ function renderRedline(){
      act, taking the same route through the share/response flow — so pressing it
      publishes every unsent draft in one go rather than opening a queue of
      confirmations. See redlineSyncProxies for why a proxy can go dead. */
-  const unsentN = (window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).length;
-  /* Whose postbox the batch send presses. The owner's is #nego-send; acting
-     as the counterparty the engine renders #nego-send-decisions instead, and
-     a proxy aimed at the wrong one is a button that dies the moment the view
-     flips — which is what it did: Send All worked in Internal View and went
-     dead in Counterparty View, found in the six-round simulation. */
+  /* Whose postbox the send acts for, named from the reader's chair (D2). */
   const sendTarget = side === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
   const sendWho = side === 'counterparty' ? (window.FIRST_PARTY || 'the owner')
     : (c.counterparty || 'the counterparty');
-  /* ---- AND THE HEADER'S PROXIES ARE NAMED FROM THE READER'S CHAIR TOO ----
-     The rule is D2's, stated where the bulk verbs are built and honoured
-     there: "Accept All Non-Risk" sorts by OUR playbook and OUR scan signals,
-     so from the other seat it both offers a verb they cannot reason about and
-     reads out how we score their asks; "Publish Round" is the owner's act, and
-     what the other chair does is send answers back.
-
-     These two buttons are PROXIES onto those same controls and kept the
-     owner's words in either seat — so Counterparty View, whose entire job is
-     to show the owner what the other side sees, showed them a header the other
-     side never gets. `Close Round` beside them was already gated on the seat,
-     so the mechanism was here and had simply not been extended.
-
-     Nothing leaks: the counterparty's own page mounts the panes and no header
-     at all. What was broken is the PREVIEW, which is the only reason anybody
-     flips this toggle. The act, the target and the counts were already
-     seat-relative and are untouched. */
-  const bulkLabel = side === 'owner' ? 'Accept All Non-Risk' : 'Accept all';
-  const bulkTip = side === 'owner'
-    ? 'Accepts only the pending changes that trip no playbook, scan or review signal'
-    : `Accepts every change ${sendWho} has proposed. Your own asks are untouched.`;
+  /* ---- THE HEADER CARRIES ONE VERB, NOT THREE ----
+     "Send All" and "Accept All Non-Risk" used to render here as PROXIES onto
+     the engine's own controls — which ALSO render, both of them, at the head
+     of the Tracked Changes column (the .nego-bulk pair and the .rl-sendslot
+     postbox). Two copies of every batch verb crowded this strip until the
+     contract dropdown clipped mid-word. The column's copies are the ones
+     beside the cards they act on, so they are the ones that stay; the header
+     keeps only Publish Round — the act that closes the strip's own story —
+     and Close Round when it is earned. */
   const sendLabel = side === 'owner' ? 'Publish Round' : 'Send Response';
   const sendTip = side === 'owner'
     ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
     : `Send the answers and counter-proposals held on this page to ${sendWho}`;
-  /* ONE TEXT NODE, and both halves of that matter. Written on one line because
-     a newline in inline text renders as a space; and the count is NOT wrapped
-     in a span, because .rl-btn is an inline-flex row with gap:6px — a wrapped
-     number becomes a flex item and the gap paints as "Send All ( 1 ) Redline".
-     The count is read from the label rather than from a hook precisely so the
-     label can stay one string. */
-  const blast = unsentN ? `<button data-redline-proxy="${sendTarget}" data-rl-blast class="rl-btn rl-btn-blast"`
-    + ` title="Publish every unsent redline to ${_nea(sendWho)} in one action">`
-    + `&#9889; Send All (${unsentN}) Redline${unsentN === 1 ? '' : 's'}</button>` : '';
   /* ---- CLOSING THE ROUND, FROM THE PAGE THE ROUND IS WORKED ON ----
      negoAdvanceRound archives the decided changes onto the round record and
      makes the agreed wording the next baseline — the "clean public diff" a
@@ -5651,11 +5638,7 @@ function renderRedline(){
           <span id="rl-presence" class="rl-presence" hidden></span>
         </div>
         <div class="rl-actions">
-          ${blast}
           <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
-          <button data-redline-proxy="nego-bulk-acc" class="rl-btn rl-btn-alt" title="${_nea(bulkTip)}">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 9-9"/><path d="M15 4V2M15 10V8M11 6h2M17 6h2M19 13v-2M19 17v-2M17 15h2M21 15h-2"/><path d="m14 7-1.5 1.5a2.1 2.1 0 0 0 0 3l.5.5a2.1 2.1 0 0 0 3 0L17.5 10"/></svg>
-            ${_ne(bulkLabel)}</button>
           <button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             ${_ne(sendLabel)}</button>
@@ -7455,8 +7438,20 @@ async function rlFilePlaybookProposal(c, item, wording){
   if (item.clauseId && window.negoEditClause && window.negoRichFromLines)
     return await negoEditClause(c, item.clauseId, negoRichFromLines(words), { side: 'owner', author, note });
   if (window.negoInsertClause){
+    /* ---- BEFORE THE SIGNATURES, NEVER AFTER ----
+       A new operative clause anchors after the LAST clause ahead of the
+       execution wording — text below the signature blocks can be argued as
+       outside what was signed, so "at the end" must mean the end of the
+       terms, not the end of the paper. The walk stops at the FIRST clause
+       carrying a signature marker anywhere in its text, because a document
+       whose segmentation folded the signature lines into its final clause
+       must still keep the insert ahead of them. */
     const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
-    const after = clauses.length ? clauses[clauses.length - 1].clauseId : null;
+    const hasBoiler = cl => /\b(signed for|in witness|witnesseth)\b|signature:\s/i
+      .test(String((cl && cl.text) || '') + ' ' + String((cl && cl.headingText) || ''));
+    let after = null;
+    for (const cl of clauses){ if (hasBoiler(cl)) break; after = cl.clauseId; }
+    if (after == null && clauses.length) after = clauses[clauses.length - 1].clauseId;
     const body = window.textToRich ? textToRich(words) : `<p>${_ne(words)}</p>`;
     return await negoInsertClause(c, after, { headingText: String(item.v.category || '').toUpperCase(), bodyHtml: body },
       { side: 'owner', author, note,
@@ -7509,8 +7504,8 @@ async function rlOpenPlaybookReview(c, again){
       : `<div style="margin-top:8px;font-size:12px;line-height:1.6;border:1px solid var(--color-divider);border-radius:7px;padding:8px 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
     <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Skip</button>
-      ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px" title="File the concession the playbook allows instead of the opening position">File fallback</button>` : ''}
-      <button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px">File as tracked change</button>
+      ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px" title="File the pre-approved concession instead — the wording you can live with if they push back">File fallback</button>` : ''}
+      <button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px" title="File your opening position — the playbook's preferred wording — as a tracked change">File preferred</button>
     </div>
   </div>`;
   openModal(`<div style="padding:20px 24px;max-height:calc(100vh - 80px);overflow-y:auto">

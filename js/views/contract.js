@@ -2552,7 +2552,20 @@ function wireWsExportMenu(){
   const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
   btn.addEventListener('click',e=>{ e.stopPropagation();
     const open=menu.classList.toggle('hidden')===false;
-    btn.setAttribute('aria-expanded',open?'true':'false'); });
+    btn.setAttribute('aria-expanded',open?'true':'false');
+    if(open){
+      /* FIXED, MEASURED, CLAMPED — the header card clips its own overflow
+         (that is what keeps its rounded corners), so a menu positioned inside
+         it gets scissored to the card's edge. Same anchoring the shell's
+         "Draft new agreement" menu uses: measured under the button that was
+         pressed, clamped to the viewport, immune to any container. */
+      const r=btn.getBoundingClientRect();
+      menu.style.position='fixed';
+      menu.style.top=Math.max(8, Math.min(r.bottom+4, (window.innerHeight||600)-menu.offsetHeight-8))+'px';
+      menu.style.left=Math.max(8, Math.min(r.right-menu.offsetWidth, (window.innerWidth||800)-menu.offsetWidth-8))+'px';
+      menu.style.right='auto';
+    }
+  });
   menu.addEventListener('click',()=>shut());
   if(!_wsExportDocWired&&typeof document!=='undefined'){
     _wsExportDocWired=true;

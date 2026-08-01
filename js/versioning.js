@@ -513,6 +513,41 @@ function openCompareModal(c){
      closed (negoOriginalBaselineText); no negotiation, no toggle. */
   const orig=(window.negoOriginalBaselineText?negoOriginalBaselineText(c):'');
   const cumulative=!!(orig.trim()&&orig!==live);
+  /* ---- THE COMPARISON READS LIKE THE DOCUMENT ----
+     A flat wall of inline marks made readers hunt for the clause they were
+     in. The structure-preserving renderer the Redline page already uses
+     (redlineStructuredHtml) draws headings as headings, hangs clause numbers
+     in the gutter, and tags each line changed or same — so unchanged runs
+     can fold to a "N unchanged lines" row and what moved is what you see.
+     Falls back to the flat word-diff when the pair is too large to align. */
+  const structuredBox=(aText,bText)=>{
+    const html=window.redlineStructuredHtml
+      ? redlineStructuredHtml(aText,bText,{classPrefix:'cmp',insClass:'cmp-ins',delClass:'cmp-del'}) : null;
+    if(!html) return _diffBox(aText,bText);
+    return `<div class="cmp-doc" style="font-size:12.5px;line-height:1.75;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-surface);padding:14px 18px;max-height:62vh;overflow:auto">${html}</div>`;
+  };
+  const foldUnchanged=()=>{
+    const doc=document.querySelector('#cmp-out .cmp-doc'); if(!doc) return;
+    let run=[];
+    const fold=()=>{
+      if(run.length>4){
+        const mid=run.slice(1,-1);
+        const btn=document.createElement('button');
+        btn.type='button'; btn.className='cmp-fold';
+        btn.textContent=`⋯ ${mid.length} unchanged lines — show`;
+        mid.forEach(el=>{ el.style.display='none'; });
+        run[0].after(btn);
+        btn.addEventListener('click',()=>{ mid.forEach(el=>{ el.style.display=''; }); btn.remove(); });
+      }
+      run=[];
+    };
+    [...doc.children].forEach(el=>{
+      /* Headings always stay — they are the map. */
+      const same=el.classList&&el.classList.contains('cmp-same')&&el.tagName!=='H4';
+      if(same) run.push(el); else fold();
+    });
+    fold();
+  };
   const segBtn=(k,label,on)=>`<button data-cmp-mode="${k}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${on?'var(--accent-solid,var(--color-accent))':'none'};color:${on?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
   openModal(`
     <div style="padding:20px 22px">
@@ -529,6 +564,20 @@ function openCompareModal(c){
         <button id="cmp-go" class="ui-btn ui-btn-primary" style="flex:none">Compare</button>
       </div>
       <div id="cmp-legend" style="font-size:11.5px;color:var(--color-neutral-600);margin-bottom:10px"></div>
+      <style>
+        #cmp-out .cmp-line{margin:0 0 6px}
+        #cmp-out h4.cmp-line{font-weight:700;font-size:12.5px;letter-spacing:.02em;margin:14px 0 7px}
+        #cmp-out .cmp-doc>h4.cmp-line:first-child{margin-top:0}
+        #cmp-out .cmp-hang{padding-left:34px;text-indent:-34px}
+        #cmp-out .cmp-marker{font-weight:600;margin-right:6px}
+        #cmp-out ins.cmp-ins{background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:3px;padding:0 2px}
+        #cmp-out del.cmp-del{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:3px;padding:0 2px}
+        #cmp-out del.cmp-del+ins.cmp-ins{margin-left:.3em}
+        #cmp-out .cmp-line-ins{background:color-mix(in srgb,var(--st-green-bg) 45%,transparent);border-radius:4px}
+        #cmp-out .cmp-line-del{background:color-mix(in srgb,var(--st-ruby-bg) 40%,transparent);border-radius:4px}
+        #cmp-out .cmp-fold{display:block;width:100%;text-align:center;border:1px dashed var(--color-divider);background:var(--color-neutral-100);color:var(--color-neutral-600);border-radius:6px;font:inherit;font-size:11px;font-weight:600;padding:4px;margin:8px 0;cursor:pointer}
+        #cmp-out .cmp-fold:hover{color:var(--color-text)}
+      </style>
       <div id="cmp-out" style="font-size:12px;color:var(--color-neutral-500)">Pick two versions and press <b>Compare</b> to see the changes.</div>
       <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="cmp-done" class="ui-btn ui-btn-primary">Close</button></div>
     </div>`, {maxWidth:'860px'});
@@ -551,7 +600,8 @@ function openCompareModal(c){
       return; }
     const st=diffStats(a.text,b.text);
     document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · ${_diffLegend}`;
-    document.getElementById('cmp-out').innerHTML=_diffBox(a.text,b.text);
+    document.getElementById('cmp-out').innerHTML=structuredBox(a.text,b.text);
+    foldUnchanged();
   };
   document.getElementById('cmp-go').addEventListener('click',run);
   /* The cumulative view: original → current as one redline, headed by the
@@ -564,7 +614,8 @@ function openCompareModal(c){
       ? `<div style="font-size:11.5px;line-height:1.9;color:var(--color-neutral-700);border:1px solid var(--color-divider);border-radius:7px;padding:9px 12px;margin-bottom:10px"><b>Clauses that moved since the original:</b> ${moved.slice(0,8).map(m=>`${m.label} ×${m.n}`).join(' · ')}${moved.length>8?` · +${moved.length-8} more`:''}</div>`
       : '';
     document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · everything since the negotiation opened, as one redline · ${_diffLegend}`;
-    document.getElementById('cmp-out').innerHTML=trail+_diffBox(orig,live);
+    document.getElementById('cmp-out').innerHTML=trail+structuredBox(orig,live);
+    foldUnchanged();
   };
   document.querySelectorAll('[data-cmp-mode]').forEach(b=>b.addEventListener('click',()=>{
     const mode=b.getAttribute('data-cmp-mode');
