@@ -1,21 +1,25 @@
 /* ============================================================
    F94 — focus mode: the chrome steps aside, the work does not move
    ============================================================
-   Focus mode hides the Redline page's three tiers of chrome — the shell, the
-   toolbar strip and the banner block — and hands their height to the document
-   and the sidebar. Two properties make it safe, and both are the kind that
-   rot invisibly if unpinned:
+   Focus mode hides the Redline page's shell and banner block and hands their
+   height to the document and the sidebar. THE TOOLBAR STAYS — exactly as the
+   Doc page's focus mode keeps its tab row — because it holds the engine's
+   proxies, the type stepper, the contract jump, and the way OUT: the same
+   button that entered the mode, now pressed and wearing a dark face. Three
+   properties make it safe, and all rot invisibly if unpinned:
 
-     · IT IS A CLASS FLIP, NOT A REPAINT. The toolbar holds the proxies the
-       engine's controls are pressed through, and the banner can hold the
-       set-once counterparty email form; hiding must be display:none over the
-       same nodes, never removal. And because nothing rebuilds, the three
-       scroll boxes keep their positions — the whole point of a reading mode.
+     · IT IS A CLASS FLIP, NOT A REPAINT. The banner can hold the set-once
+       counterparty email form; hiding must be display:none over the same
+       nodes, never removal. And because nothing rebuilds, the three scroll
+       boxes keep their positions — the whole point of a reading mode.
 
-     · EVERY WAY IN HAS A VISIBLE WAY OUT. The exit pill floats over the
-       document whenever the mode is on, Esc works beside it, and arriving at
-       the tab from any other view always lands on the full screen: a mode
-       whose exits are hidden is a trap, so none of these is optional. */
+     · THE WAY OUT NEVER HIDES. The toggle lives on the toolbar, and the
+       toolbar stays on screen; a control that hides itself cannot be pressed
+       again. Esc works beside it, and arriving at the tab from any other view
+       always lands on the full screen.
+
+     · THE BUTTON'S FACE TELLS THE TRUTH. aria-pressed and the .on class flip
+       with the mode, on entry, on exit, and across a repaint. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
@@ -53,8 +57,8 @@ async function page(opts = {}){
     css: () => (doc.getElementById('redline-layout-css') || { textContent: '' }).textContent };
 }
 
-describe('F94 — the two controls exist, and the page starts un-focused', () => {
-  test('the enter button sits in the toolbar strip, beside the type stepper', async () => {
+describe('F94 — the toggle exists, and the page starts un-focused', () => {
+  test('the focus button sits in the toolbar strip, beside the type stepper', async () => {
     const p = await page();
     const btn = p.$('[data-rl-focus]');
     assert.ok(btn, 'the focus button is missing');
@@ -64,48 +68,48 @@ describe('F94 — the two controls exist, and the page starts un-focused', () =>
       'the type stepper shares the strip — the button is placed beside it');
   });
 
-  test('the exit pill is rendered on the page, outside the chrome it hides', async () => {
-    const p = await page();
-    const pill = p.$('[data-rl-unfocus]');
-    assert.ok(pill, 'the exit pill is missing');
-    assert.ok(p.view().contains(pill), 'the pill must be inside #view-redline');
-    for (const sel of ['.rl-shell', '.rl-head', '#rl-banner'])
-      assert.ok(!p.$(sel).contains(pill),
-        `the pill must not live inside ${sel} — hiding that would hide the way back`);
-  });
-
-  test('the pill says where the reader is: the round and the view', async () => {
-    const p = await page();
-    const pill = p.$('[data-rl-unfocus]');
-    assert.match(pill.textContent, /Round 1/, 'the round is named on the pill');
-    assert.match(pill.textContent, /Internal View/, 'and so is the side being viewed');
-  });
-
-  test('a fresh render is NOT in focus mode', async () => {
+  test('a fresh render is NOT in focus mode, and the button says so', async () => {
     const p = await page();
     assert.ok(!p.view().classList.contains('rl-focus'));
     assert.equal(p.win.rlFocusOn(), false);
+    const btn = p.$('[data-rl-focus]');
+    assert.equal(btn.getAttribute('aria-pressed'), 'false');
+    assert.ok(!btn.classList.contains('on'));
   });
 });
 
-describe('F94 — entering and leaving', () => {
-  test('the button enters; the pill leaves; the flag agrees with the class', async () => {
+describe('F94 — entering and leaving through the one button', () => {
+  test('first press enters, second press leaves; the flag agrees with the class', async () => {
     const p = await page();
-    p.$('[data-rl-focus]').click();
+    const btn = p.$('[data-rl-focus]');
+    btn.click();
     assert.ok(p.view().classList.contains('rl-focus'), 'clicking the button must enter focus');
     assert.equal(p.win.rlFocusOn(), true);
-    p.$('[data-rl-unfocus]').click();
-    assert.ok(!p.view().classList.contains('rl-focus'), 'clicking the pill must leave focus');
+    btn.click();
+    assert.ok(!p.view().classList.contains('rl-focus'), 'clicking it again must leave focus');
     assert.equal(p.win.rlFocusOn(), false);
+  });
+
+  test('the button wears the mode: aria-pressed and .on flip with each press', async () => {
+    const p = await page();
+    const btn = p.$('[data-rl-focus]');
+    btn.click();
+    assert.equal(btn.getAttribute('aria-pressed'), 'true', 'pressed must be said, not just shown');
+    assert.ok(btn.classList.contains('on'), 'the dark face is the .on class');
+    btn.click();
+    assert.equal(btn.getAttribute('aria-pressed'), 'false');
+    assert.ok(!btn.classList.contains('on'));
   });
 
   test('entering is a class flip over the SAME nodes — nothing is rebuilt or removed', async () => {
     const p = await page();
-    const before = { doc: p.$('#rl-doc'), shell: p.$('.rl-shell'), banner: p.$('#rl-banner') };
+    const before = { doc: p.$('#rl-doc'), shell: p.$('.rl-shell'), banner: p.$('#rl-banner'),
+      head: p.$('.rl-head') };
     p.$('[data-rl-focus]').click();
     assert.equal(p.$('#rl-doc'), before.doc, 'the document pane must be the same element');
     assert.equal(p.$('.rl-shell'), before.shell, 'the shell is hidden, never removed');
     assert.equal(p.$('#rl-banner'), before.banner, 'the banner block is hidden, never removed');
+    assert.equal(p.$('.rl-head'), before.head, 'the toolbar is untouched — it does not even hide');
   });
 
   test('Esc leaves focus mode, and does nothing when the mode is off', async () => {
@@ -119,7 +123,7 @@ describe('F94 — entering and leaving', () => {
     assert.equal(p.win.rlFocusOn(), false, 'a second Esc is a no-op, not a toggle');
   });
 
-  test('a repaint mid-session comes back in the mode it left', async () => {
+  test('a repaint mid-session comes back in the mode it left, button face included', async () => {
     // saving a redline or answering a card repaints the whole page; the mode
     // must survive that, or the chrome would jump back over the reader's work
     const p = await page();
@@ -127,6 +131,9 @@ describe('F94 — entering and leaving', () => {
     p.win.renderRedline();
     assert.ok(p.view().classList.contains('rl-focus'),
       'renderRedline must re-read the flag and repaint focused');
+    const btn = p.$('[data-rl-focus]');
+    assert.equal(btn.getAttribute('aria-pressed'), 'true', 'the fresh button must say pressed');
+    assert.ok(btn.classList.contains('on'));
   });
 
   test('rlResetFocus lands the NEXT render on the full screen — the router\'s arrival path', async () => {
@@ -139,19 +146,18 @@ describe('F94 — entering and leaving', () => {
 });
 
 describe('F94 — the stylesheet keeps the bargain', () => {
-  test('focus hides exactly the three tiers of chrome, by display:none', async () => {
+  test('focus hides exactly the shell and the banner, by display:none — never the toolbar', async () => {
     const p = await page();
     const css = p.css();
-    const rule = css.match(/\.redline-page\.rl-focus \.rl-shell,\s*\.redline-page\.rl-focus \.rl-head,\s*\.redline-page\.rl-focus #rl-banner\{display:none\}/);
-    assert.ok(rule, 'the shell, the strip and the banner block hide together under .rl-focus');
+    const rule = css.match(/\.redline-page\.rl-focus \.rl-shell,\s*\.redline-page\.rl-focus #rl-banner\{display:none\}/);
+    assert.ok(rule, 'the shell and the banner block hide together under .rl-focus');
+    assert.ok(!/\.rl-focus[^{}]*\.rl-head[^{}]*\{[^}]*display:none/.test(css),
+      'no rule may hide the toolbar under focus — it carries the way out');
   });
 
-  test('the exit pill is hidden outside focus mode and floats inside it', async () => {
+  test('the pressed button has its dark face in the stylesheet', async () => {
     const p = await page();
-    const css = p.css();
-    assert.ok(/\.redline-page \.rl-focus-exit\{display:none\}/.test(css),
-      'the pill must not be visible on the regular screen');
-    assert.ok(/\.redline-page\.rl-focus \.rl-focus-exit\{position:absolute/.test(css),
-      'and must float over the page when focus is on');
+    assert.ok(/\.rl-focus-btn\.on/.test(p.css()),
+      'the .on face must be styled, or a pressed toggle looks identical to an idle one');
   });
 });

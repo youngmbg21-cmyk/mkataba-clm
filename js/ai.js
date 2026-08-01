@@ -517,10 +517,15 @@ const ai = { open:false, minimized:false, unread:false, busy:false, history:[],
 const AI_STYLE_KEY = 'hati.v1.aiStyle';
 function aiStyle(){ return ai.style==='legal' ? 'legal' : 'plain'; }
 function aiSetStyle(v){
+  const prev = ai.style;
   ai.style = v==='legal' ? 'legal' : 'plain';
   try{ lsSet(AI_STYLE_KEY, ai.style); }catch(_){}
   renderAIStyleToggle();
   if(typeof persistUi==='function') try{ persistUi(); }catch(_){}
+  /* The toggle is not only a preference for NEXT time: if an explanation is
+     on screen, flipping it restates that explanation in the register just
+     chosen — see aiRestyleLastAnswer. Nothing to restate, nothing happens. */
+  if(ai.style!==prev) aiRestyleLastAnswer();
 }
 function renderAIStyleToggle(){
   const host=document.getElementById('ai-style'); if(!host) return;
@@ -1990,6 +1995,7 @@ function aiOpenProposal(opts){
        is an answer to THIS. Without it the reader answers a question the model
        is never shown again. */
     aiRephraseRemember('copilot', said);
+    _aiNoteRestylable(said);
     renderAIFeed();
     return null;
   }
@@ -2011,7 +2017,7 @@ function aiOpenProposal(opts){
     onRefine: typeof o.onRefine === 'function' ? o.onRefine : null };
   aiProposals.set(id, p);
   ai.activeProposal = id;
-  if (p.advice) aiPush('assistant', { text: aiFmt(p.advice) });
+  if (p.advice){ aiPush('assistant', { text: aiFmt(p.advice) }); _aiNoteRestylable(p.advice); }
   /* NO REASONING IS TWO DIFFERENT FACTS. A model that kept the shape and left
      the advice field empty had nothing to add, and saying so is true. A model
      that missed the shape entirely never offered reasoning OR wording — what
@@ -2206,6 +2212,84 @@ function aiOpenRephraseSession(opts){
 const aiActiveRephrase = () => aiRephrase.active;
 function aiCloseRephraseSession(){ aiRephrase.active = null; }
 
+/* ============================================================
+   PLAIN ↔ LEGAL, APPLIED TO THE ANSWER ALREADY ON SCREEN
+   ============================================================
+   The style toggle used to govern only the NEXT answer, so a drafter who
+   read a plain explanation and wanted the legal depth had to walk back to
+   the contract, re-select the passage and ask again — the panel had all of
+   it and made them re-earn it. Now the last explanation is remembered with
+   the passage it was about, and flipping the toggle restates THAT answer,
+   in place, in the register just chosen.
+
+   Both versions are kept once they exist, so flipping back is instant and
+   free — the model is never asked to say the same thing the same way twice.
+   The bubble is REPLACED, not appended to: one explanation wearing two
+   registers is one thing, and two bubbles would read as two opinions. */
+let _aiRestyle = null;
+function _aiNoteRestylable(said){
+  const s = String(said == null ? '' : said).trim();
+  if (!s) return;
+  _aiRestyle = {
+    passage: (aiRephrase.active && aiRephrase.active.passage) || '',
+    clauseLabel: (aiRephrase.active && aiRephrase.active.clauseLabel) || '',
+    texts: { [aiStyle()]: s },
+    /* The live history entry this explanation is wearing. aiPush spreads the
+       payload into a fresh object, so the reference is taken off the top of
+       the history right after the push. */
+    entry: ai.history[ai.history.length - 1] || null,
+  };
+}
+async function aiRestyleLastAnswer(){
+  const r = _aiRestyle;
+  if (!r || !r.entry || ai.busy) return;
+  /* The feed may have been cleared since — restating into a bubble that is
+     no longer on the record would resurrect it. */
+  if (!ai.history.includes(r.entry)) return;
+  const want = aiStyle();
+  const put = raw => {
+    r.entry.text = aiFmt(raw);
+    /* aiFmt banks chart blocks for the NEXT aiPush; this path has no push,
+       so the bank must not leak into someone else's message. */
+    _aiPendingBlocks = null;
+    renderAIFeed();
+  };
+  if (r.texts[want]){ put(r.texts[want]); return; }
+  const source = r.texts[want === 'legal' ? 'plain' : 'legal'] || Object.values(r.texts)[0] || '';
+  if (!source) return;
+  if (!copilotAvailable()){
+    if (typeof toast === 'function')
+      toast('Rewriting this answer needs the Copilot engine — add a key under Team & Settings', 'err');
+    return;
+  }
+  ai.busy = true; renderAIFeed(true);
+  try{
+    const messages = [{ role: 'user', content:
+      `Restate the explanation below ${want === 'legal'
+        ? 'in full professional legal depth — name the clauses, dates, amounts and assumptions it rests on'
+        : 'in plain everyday language a non-lawyer follows on first read — short sentences, no jargon'}. `
+      + `Keep every fact and caveat; change only the register. Do not add new claims or new advice.\n\n`
+      + `EXPLANATION:\n"""\n${source}\n"""`
+      + (r.passage ? `\n\nIt explains this contract passage${r.clauseLabel ? ` (${r.clauseLabel})` : ''}:\n"""\n${String(r.passage).slice(0, 1500)}\n"""` : '')
+      + `\n\nReply with the restated explanation and nothing else.` }];
+    const res = await copilotAsk(messages, window.buildAssistantContext ? buildAssistantContext() : null);
+    let raw = typeof res === 'string' ? res
+      : (res && (res.text || res.answer || res.content || res.reply || res.message)) || '';
+    raw = String(raw || '').trim();
+    ai.busy = false;
+    if (!raw){ renderAIFeed(); return; }
+    r.texts[want] = raw;
+    put(raw);
+  }catch(e){
+    ai.busy = false;
+    renderAIFeed();
+    if (typeof toast === 'function')
+      toast(e && e.needsKey
+        ? 'Rewriting this answer needs the Copilot engine — add a key under Team & Settings'
+        : `The Copilot could not restate that: ${(e && e.message) || 'no answer'}. The explanation is unchanged.`, 'err');
+  }
+}
+
 /* Record a turn on the open session, if there is one. Called for the drafter's
    own sentence and for a Copilot reply that produced no card — which is exactly
    the reply that needs remembering, because it is the one the next sentence is
@@ -2353,4 +2437,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

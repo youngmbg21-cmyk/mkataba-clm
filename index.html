@@ -680,7 +680,7 @@
 
 <!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
      stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:240px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:256px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
 
   <!-- ================= TOP HEADER (64px, spans both columns) ================= -->
   <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
@@ -754,7 +754,7 @@
     </div>
   </header>
 
-  <!-- ================= SIDEBAR (240px) ================= -->
+  <!-- ================= SIDEBAR (256px — wide enough that "Contract Repository" stays one line) ================= -->
   <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
@@ -800,7 +800,7 @@
           <button data-view="register" class="nav-item" title="Contract Repository">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
-            <span style="flex:1;">Contract Repository</span><span class="nav-count" data-count="register"></span>
+            <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Contract Repository</span><span class="nav-count" data-count="register"></span>
           </button>
           <button data-view="calendar" class="nav-item" title="Calendar">
             <span class="nav-rail"></span>
