@@ -2675,7 +2675,7 @@ function renderWorkspace(){
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
-          <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
             ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
             ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}

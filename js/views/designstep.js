@@ -97,7 +97,7 @@ function dsPaint() {
     <div style="margin-top:14px;font-size:10px;color:var(--color-neutral-500);line-height:1.5">${esc(design.name)} is deliberately monochrome — the accent colour shows in Modern Minimal and Bold Corporate.</div>`;
 
   const paper = `
-    <div style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;max-width:680px;margin:0 auto;${docDesignPaperStyle(b)}">
+    <div${docDesignPaperAttr(b)} style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;max-width:680px;margin:0 auto;${docDesignPaperStyle(b)}">
       ${docDesignHeaderHtml(b, dsPreviewContract(), { bleedX: 36, bleedY: 30 })}
       <article class="doc-surface" style="background:transparent"><div class="hati-doc">${dsPreviewBody()}</div></article>
       ${docDesignFooterHtml(b, dsPreviewContract())}

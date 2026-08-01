@@ -1691,7 +1691,7 @@ function renderShareViewer(p, opts={}){
         send any comments to ${esc(org)} directly.</span>
     </header>
     <div class="pv-page">
-      <div class="pv-sheet" data-mark="${esc(mark)}" style="${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+      <div class="pv-sheet" data-mark="${esc(mark)}"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
         ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
         <article class="doc-surface">${body}</article>
         ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
@@ -1969,7 +1969,7 @@ function renderSharePortal(p, opts={}){
                exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
         ${portalTemplateFormHtml(c,p)}
-        <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+        <div id="pt-doc" class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
           ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
           <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
           ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
@@ -2836,7 +2836,7 @@ function exportPDF(c, opts){
   const printDesign=window.resolveDocBranding?resolveDocBranding(c):null;
   const printCover=(printDesign&&printDesign.designId&&isUpload(c)&&!record&&window.docDesignCoverPageHtml)?docDesignCoverPageHtml(printDesign,c):'';
   document.getElementById('print-root').innerHTML=`
-    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
+    <div${printDesign&&window.docDesignPaperAttr?docDesignPaperAttr(printDesign):''} style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
       ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #5980a6;padding-bottom:10px;margin-bottom:24px;">
         <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>

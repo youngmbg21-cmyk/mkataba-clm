@@ -636,6 +636,40 @@
     .hati-doc h1,.hati-doc h2,.hati-doc h3,.hati-doc h4{break-after:avoid;}
   }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
+
+  /* ============ document designs — body typography ============
+     A paper div carrying data-doc-body="<designId>" (js/branding.js,
+     docDesignPaperAttr) restyles the document BODY to match its design:
+     typeface, heading treatment, justification. !important on the faces
+     because the print sheet above enforces --font-doc with !important and
+     these five looks must survive onto paper — that is the whole feature.
+     --doc-design-accent is pinned inline by docDesignPaperStyle. */
+  [data-doc-body="classic-letterhead"] .doc-surface,
+  [data-doc-body="classic-letterhead"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:Georgia,'Times New Roman',Times,serif!important;}
+  [data-doc-body="classic-letterhead"] .doc-surface h1{text-align:center;letter-spacing:.06em;}
+
+  [data-doc-body="modern-minimal"] .doc-surface,
+  [data-doc-body="modern-minimal"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Helvetica Neue',Helvetica,Arial,sans-serif!important;}
+  [data-doc-body="modern-minimal"] .doc-surface h1{font-weight:400;letter-spacing:-.01em;}
+  [data-doc-body="modern-minimal"] .doc-surface h2{font-weight:600;}
+
+  [data-doc-body="formal-legal"] .doc-surface,
+  [data-doc-body="formal-legal"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Times New Roman',Times,Georgia,serif!important;}
+  [data-doc-body="formal-legal"] .doc-surface p{text-align:justify;}
+  [data-doc-body="formal-legal"] .doc-surface h1{text-align:center;text-transform:uppercase;letter-spacing:.14em;}
+  [data-doc-body="formal-legal"] .doc-surface h2{text-transform:uppercase;letter-spacing:.08em;font-size:1em;}
+
+  [data-doc-body="bold-corporate"] .doc-surface,
+  [data-doc-body="bold-corporate"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI',Verdana,Arial,sans-serif!important;}
+  [data-doc-body="bold-corporate"] .doc-surface h1{font-weight:800;letter-spacing:.01em;}
+  [data-doc-body="bold-corporate"] .doc-surface h2{color:var(--doc-design-accent,#37474f);font-weight:700;}
+
+  [data-doc-body="compact-executive"] .doc-surface,
+  [data-doc-body="compact-executive"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif!important;}
+  [data-doc-body="compact-executive"] .doc-surface{font-size:.94em;}
+  [data-doc-body="compact-executive"] .doc-surface p{line-height:1.55;}
+  [data-doc-body="compact-executive"] .doc-surface h1{font-size:1.35em;}
+  [data-doc-body="compact-executive"] .doc-surface h2{font-size:1.02em;}
 </style>
 
 

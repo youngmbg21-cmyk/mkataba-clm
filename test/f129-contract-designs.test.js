@@ -74,12 +74,27 @@ describe('f129 — the design catalogue and renderers (pure)', () => {
     assert.ok(branding.docDesignHeaderHtml(b, {}).includes('#c76b2e'), 'the band wears the accent');
   });
 
-  test('only Formal Legal asks the paper for a border', () => {
+  test('only Formal Legal asks the paper for a border; every design pins its accent for the body rules', () => {
     for (const id of IDS) {
-      const style = branding.docDesignPaperStyle(branding.normalizeDesignBranding({ designId: id }));
+      const style = branding.docDesignPaperStyle(branding.normalizeDesignBranding({ designId: id, accentColor: '#1a7f6b' }));
+      assert.ok(style.includes('--doc-design-accent:#1a7f6b;'), id + ' pins the accent custom property');
       if (id === 'formal-legal') assert.ok(/border:/.test(style));
-      else assert.equal(style, '');
+      else assert.ok(!/border:/.test(style), id + ' asks for no border');
     }
+    assert.equal(branding.docDesignPaperStyle(null), '');
+  });
+
+  test('the body typography rides an attribute the stylesheet keys on — and index.html styles every design', () => {
+    const fs = require('node:fs');
+    const html = fs.readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+    for (const id of IDS) {
+      const attr = branding.docDesignPaperAttr(branding.normalizeDesignBranding({ designId: id }));
+      assert.equal(attr, ` data-doc-body="${id}"`);
+      assert.ok(html.includes(`[data-doc-body="${id}"] .doc-surface`), id + ' has body-typography rules in index.html');
+    }
+    assert.equal(branding.docDesignPaperAttr(branding.normalizeDesignBranding({})), '', 'no design, no attribute — the legacy body is untouched');
+    // the faces must survive print, where --font-doc is enforced with !important
+    assert.match(html, /\[data-doc-body="classic-letterhead"\][^}]*font-family:Georgia[^}]*!important/s);
   });
 
   test('accent: greys and white are never a brand colour; a pale colour is darkened, not stored as-is', () => {

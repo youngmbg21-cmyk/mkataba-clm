@@ -325,12 +325,26 @@ function docDesignFooterHtml(b, c) {
   return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid #d5dbd9;display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:9px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
 }
 
-/* Extra inline CSS the paper div itself needs — only Formal Legal asks for
-   any (the ruled page border). Appended to the surface's existing style
-   attribute, so it must end with a semicolon and claim nothing about layout. */
+/* Extra inline CSS the paper div itself needs. Formal Legal asks for the
+   ruled page border; every design pins its accent onto a custom property so
+   the body-typography rules (index.html, [data-doc-body=…]) can colour
+   headings without a per-org stylesheet. Appended to the surface's existing
+   style attribute, so it must end with a semicolon. */
 function docDesignPaperStyle(b) {
-  if (!b || b.designId !== 'formal-legal') return '';
-  return `border:1px solid ${BR_RULE};box-shadow:inset 0 0 0 3px #fbfbfc,inset 0 0 0 4px ${BR_RULE};`;
+  if (!b || !b.designId) return '';
+  const accent = `--doc-design-accent:${brAccent(b)};`;
+  if (b.designId !== 'formal-legal') return accent;
+  return `${accent}border:1px solid ${BR_RULE};box-shadow:inset 0 0 0 3px #fbfbfc,inset 0 0 0 4px ${BR_RULE};`;
+}
+
+/* The attribute that turns a design's BODY typography on: the paper div
+   carries data-doc-body="<designId>" and the stylesheet in index.html
+   restyles .doc-surface underneath it — typeface, heading treatment,
+   justification. An attribute rather than inline styles because the body's
+   own classes (.doc-surface, .hati-doc) must be out-specified in print,
+   where --font-doc is enforced with !important. */
+function docDesignPaperAttr(b) {
+  return b && b.designId ? ` data-doc-body="${b.designId}"` : '';
 }
 
 /* The branded cover page for a raw upload whose layout is baked in (print
@@ -360,8 +374,8 @@ function docDesignCoverPageHtml(b, c) {
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, docDesignHeaderHtml, docDesignFooterHtml,
-    docDesignPaperStyle, docDesignCoverPageHtml };
+    docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml };
 if (typeof window !== 'undefined')
   Object.assign(window, { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, extractAccentFromLogo, resolveDocBranding, orgBrandingSnapshot,
-    docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignCoverPageHtml });
+    docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml });
