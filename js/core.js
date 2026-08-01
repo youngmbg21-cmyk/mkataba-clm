@@ -2687,8 +2687,14 @@ async function refreshShareOverview(){
   if(!API_MODE()) return;
   try{
     const r=await api('shares/overview');
+    /* Repaint only when the answer moved. This runs on a minute timer, and an
+       unconditional renderDashboard() rebuilt the whole Home screen twice a
+       minute for a reader who was just looking at it — the same steady data,
+       redrawn as a visible blink. Same rule as pollThreadMessages. */
+    const j=JSON.stringify(r), changed=j!==state._shareOverviewJson;
+    state._shareOverviewJson=j;
     state.shareOverview=r; state.shareByContract=r.byContract||{};
-    if(state.view==='dashboard') renderDashboard();
+    if(changed && state.view==='dashboard') renderDashboard();
   }catch(e){ /* transient — next refresh retries */ }
 }
 
@@ -2700,8 +2706,12 @@ async function refreshWaitingQuestions(){
   if(!API_MODE()) return;
   try{
     const r=await api('messages/waiting');
+    /* Same discipline as refreshShareOverview: a minute-timer refresh earns a
+       repaint only by bringing something new. */
+    const j=JSON.stringify(r), changed=j!==state._waitingQuestionsJson;
+    state._waitingQuestionsJson=j;
     state.waitingQuestions=r;
-    if(state.view==='dashboard') renderDashboard();
+    if(changed && state.view==='dashboard') renderDashboard();
   }catch(e){ /* transient — next refresh retries */ }
 }
 

@@ -200,6 +200,8 @@ function renderFolderListOnly(){
   const f=FOLDERS[state.folderId]; if(!f) return;
   const cs=folderFiltered();
   const tb=document.getElementById('fold-tbody'); if(!tb) return;
+  /* Same as renderRegisterBody: the intro played when the page arrived. */
+  if(tb.classList) tb.classList.remove('stagger');
   tb.innerHTML=folderRowsHtml(cs);
   const cnt=document.getElementById('fold-count'); if(cnt) cnt.textContent=cs.length;
   const all=document.getElementById('fold-selall'); if(all){ const shownIds=cs.slice(0,Math.min(cs.length,state.folderShown||FOLDER_PAGE)); all.checked=shownIds.length>0 && shownIds.every(c=>state.folderSel&&state.folderSel[c.id]); }
@@ -439,7 +441,10 @@ function regRowsHtml(cs){
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary(c)).reduce((s,c)=>s+Number(c.value||0),0); }
 function renderRegisterBody(){
   const cs=regFiltered();
-  const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
+  /* The stagger intro belongs to arriving at the page; this body re-renders on
+     every search keystroke, sort and pager press, and rows that replay their
+     fade-in per keystroke read as a flickering table. One intro, then still. */
+  const tb=document.getElementById('reg-tbody'); if(tb){ if(tb.classList) tb.classList.remove('stagger'); tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
   const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs);
     document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
