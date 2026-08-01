@@ -1766,8 +1766,14 @@ function portalWorkbenchStyle(){
   if(document.getElementById('pw-style')) return;
   const el=document.createElement('style'); el.id='pw-style';
   el.textContent=`
-    .pw-page{height:var(--view-h,100vh);box-sizing:border-box;display:flex;flex-direction:column;
+    /* THE WHOLE WINDOW, MEASURED FROM THE WINDOW. --view-h is the app
+       shell's content-scroll height, measured for the owner's chrome — on
+       this standalone page it can resolve to a fraction of the screen, which
+       cut the portal off two-thirds down and left a dead white band under
+       it. The counterparty is the customer; their page fills their screen. */
+    .pw-page{height:100vh;height:100dvh;box-sizing:border-box;display:flex;flex-direction:column;
       gap:9px;padding:9px 16px 12px;background:var(--color-bg);min-height:0;overflow:hidden;}
+    html,body{background:var(--color-bg);}
     .pw-id{display:flex;align-items:center;gap:11px;flex:none;background:var(--color-surface);
       border:1px solid var(--color-divider);border-radius:8px;padding:9px 14px;box-shadow:var(--shadow-sm);}
     .pw-id-badge{width:30px;height:30px;flex:none;border-radius:5px;background:var(--color-accent);

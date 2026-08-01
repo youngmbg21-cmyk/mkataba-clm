@@ -223,6 +223,30 @@ async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
   intel.history.push({role:'user', text:q});
+  /* ---- THE FRICTION TAB HAS ITS OWN EARS ----
+     The graph verbs (filter the map, regroup, lenses) mean nothing here, so
+     the routing is different: the deterministic interpreter first — a
+     recognised command re-draws the analytics with no Copilot at all — and
+     everything else goes STRAIGHT to the Copilot carrying the friction
+     dataset. Routing friction questions through the graph branches is
+     exactly how "only liability clauses" ended up answered by a model that
+     was never shown the clause data. */
+  if(intel.tab==='friction'){
+    const cmd=frictionInterpret(q);
+    if(cmd){
+      intel.frictionFilter=cmd.reset?null:{...(intel.frictionFilter||{}),...cmd};
+      intel.history.push({role:'assistant', text: cmd.reset
+        ? 'Filters cleared — the friction view counts every negotiation again.'
+        : `Filtered the friction view${cmd.counterparty?` to <b>${igEsc(cmd.counterparty)}</b>`:''}${cmd.clause?` to clauses matching &ldquo;${igEsc(cmd.clause)}&rdquo;`:''}. Say <b>reset</b> to clear.`});
+      renderIntel();
+      return;
+    }
+    intel.busy=true; renderIntelDock(); updateIntelNote();
+    try{ await intelChatAsk(q); }
+    catch(e){ intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true}); }
+    intel.busy=false; renderIntelDock();
+    return;
+  }
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
     const idHits=(q.match(/MK-\d+/gi)||[]).length;
@@ -329,11 +353,29 @@ function intelChatMessages(){
 }
 
 // Turn a chat response into a dock message + light the cited nodes.
+/* ---- RICH DOCK ANSWERS, CHARTS INCLUDED ----
+   The main Copilot panel extracts ```hati-chart``` fences into live charts;
+   the dock used aiFmt for the text but never HYDRATED the canvases, so a
+   chart the model drew arrived as an empty card. This runs the same
+   extraction, keeps the blocks ON the message, and renderIntelDock hydrates
+   them after every paint — same drawing features, both surfaces. */
+let _igFmtSeq=0;
+function igFmtRich(raw){
+  if(typeof aiExtractCharts!=='function'||typeof aiRichText!=='function')
+    return { html:(typeof aiFmt==='function')?aiFmt(String(raw==null?'':raw)):igEsc(String(raw==null?'':raw)), blocks:[] };
+  const { text, blocks }=aiExtractCharts(String(raw==null?'':raw), 'igd'+(++_igFmtSeq));
+  let html=aiRichText(text);
+  for(const b of blocks) b.html=aiChartHtml(b);
+  html=aiPlaceCharts(html, blocks);
+  for(const b of blocks) html=html.split(`<div class="ai-chart-host" id="${b.key}"></div>`)
+    .join(`<div class="ai-chart-host" id="${b.key}">${b.html}</div>`);
+  return { html, blocks };
+}
 function intelPushChatResult(res){
   const cardIds=(res.cards||[]).map(c=>c.id).filter(id=>getContract(id));
-  const text=(typeof aiFmt==='function') ? aiFmt(res.answer||'') : igEsc(res.answer||'');
+  const rich=igFmtRich(res.answer||'');
   const notice=res.notice?`<div class="text-[11px] text-amber-700 mt-2">${igEsc(res.notice)}</div>`:'';
-  intel.history.push({ role:'assistant', text:text+notice, compare:res.compare||null, cardIds });
+  intel.history.push({ role:'assistant', text:rich.html+notice, compare:res.compare||null, cardIds, blocks:rich.blocks });
   if(cardIds.length) igPaintIds(cardIds);
 }
 
@@ -361,21 +403,27 @@ function frictionInterpret(q){
   if(m) return {clause:m[1].trim()};
   return null;
 }
+/* Everything the friction Copilot is allowed to reason from: the same stats
+   the left pane draws, the active filter, and a per-negotiation breakdown —
+   contested clauses by name, rounds, accept/reject counts. Bounded, and
+   counted from the records rather than asserted. */
+function igFrictionDataset(){
+  const per=(((window.state&&state.contracts)||[]))
+    .filter(c=>c&&c.negotiation&&typeof window.negoAllChanges==='function')
+    .map(c=>{
+      let all=[]; try{ all=negoAllChanges(c); }catch(_){ return null; }
+      if(!all.length) return null;
+      return { id:c.id, counterparty:c.counterparty||'',
+        rounds:(c.negotiation&&c.negotiation.round)||1,
+        signed:!!(c.execution&&c.execution.at),
+        contestedClauses:[...new Set(all.map(ch=>String((ch&&(ch.clauseLabel||ch.headingText))||'').replace(/\s+/g,' ').trim()).filter(Boolean))].slice(0,12),
+        accepted:all.filter(x=>x&&x.status==='accepted').length,
+        rejected:all.filter(x=>x&&x.status==='rejected').length };
+    }).filter(Boolean).slice(0,80);
+  return { stats:intelFrictionStats(intel.frictionFilter||null),
+    activeFilter:intel.frictionFilter||null, negotiations:per };
+}
 async function intelChatAsk(q){
-  /* On the friction tab, a recognised command re-draws the analytics rather
-     than starting a chat — and says what it did, so the panel's answer and
-     the left pane never disagree about what is being counted. */
-  if(intel.tab==='friction'){
-    const cmd=frictionInterpret(q);
-    if(cmd){
-      intel.frictionFilter=cmd.reset?null:{...(intel.frictionFilter||{}),...cmd};
-      intel.history.push({role:'assistant', text: cmd.reset
-        ? 'Filters cleared — the friction view counts every negotiation again.'
-        : `Filtered the friction view${cmd.counterparty?` to <b>${igEsc(cmd.counterparty)}</b>`:''}${cmd.clause?` to clauses matching &ldquo;${igEsc(cmd.clause)}&rdquo;`:''}. Say <b>reset</b> to clear.`});
-      renderIntel();
-      return;
-    }
-  }
   const ids=(String(q).match(/MK-\d+/gi)||[]).map(s=>s.toUpperCase()).filter((v,i,a)=>a.indexOf(v)===i);
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){
     if(ids.length>=2 && typeof localCompareData==='function'){
@@ -387,14 +435,19 @@ async function intelChatAsk(q){
     return;
   }
   try{
-    /* On the friction tab the Copilot answers ABOUT the friction numbers, so
-       the same dataset the left pane draws rides along as context — scoped to
-       negotiation KPIs, which is all this tab is for. */
-    const ctx=intel.tab==='friction'
-      ? { view:'intel-friction', friction:intelFrictionStats(intel.frictionFilter||null),
-          frictionFilter:intel.frictionFilter||null }
-      : { view:'intel' };
-    const res=await copilotAsk(intelChatMessages(), ctx);
+    /* On the friction tab the dataset rides INSIDE the question rather than
+       in the context object, because the server builds its own prompt from
+       the context and silently drops fields it does not know — which is how
+       the Copilot ended up saying "I don't have clause-level details" while
+       the pane beside it was drawing them. */
+    const msgs=intelChatMessages().map(m=>({...m}));
+    if(intel.tab==='friction'&&msgs.length){
+      const last=msgs[msgs.length-1];
+      last.content='NEGOTIATION FRICTION DATASET — the same numbers on the analytics pane beside this chat, counted from fingerprinted tracked changes (JSON):\n'
+        +JSON.stringify(igFrictionDataset())
+        +'\n\nGround every answer in this dataset and cite the numbers you use. Stay scoped to negotiation KPIs — for anything else, say this tab is scoped to negotiation analytics. When figures would read better as a chart, include one as a fenced block in exactly this form:\n```hati-chart\n{"kind":"quoted","title":"…","label":"…","items":[{"label":"…","value":1}]}\n```\n(2–12 items, numeric values.)\n\nQUESTION: '+String(last.content||'');
+    }
+    const res=await copilotAsk(msgs, { view: intel.tab==='friction'?'intel-friction':'intel' });
     intelPushChatResult(res);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
@@ -1000,6 +1053,11 @@ function renderIntelDock(){
       <button id="igd-go" class="absolute right-[18px] top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-700 transition">Ask</button>
     </div>`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
+  // charts in dock answers come back to life after every repaint
+  if(typeof aiHydrateCharts==='function'){
+    const blocks=intel.history.flatMap(m=>(m&&m.blocks)||[]);
+    if(blocks.length) aiHydrateCharts(blocks);
+  }
   // wiring
   document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
   // widen the dock leftward / shrink back; the graph re-fits automatically

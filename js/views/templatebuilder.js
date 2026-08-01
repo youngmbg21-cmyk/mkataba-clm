@@ -135,11 +135,22 @@ function tbPaint() {
     </section>
 
     <section style="${CARD};padding:14px 16px" id="tb-branding"></section>
+
+    <!-- The same two verbs again at the foot: on a long template the top bar
+         is screens away by the time the last block is written, and a save
+         that requires scrolling back up is a save that gets skipped. -->
+    <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;padding-top:2px">
+      <span id="tb-dirty-bottom" style="font-size:11px;color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
+      <button id="tb-save-bottom" class="ui-btn" style="font-size:12px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} Save draft</button>
+      <button id="tb-publish-bottom" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 13px">Publish v${_tb.versionNumber}</button>
+    </div>
   </div>`;
 
   document.getElementById('tb-back')?.addEventListener('click', () => tbLeave());
   document.getElementById('tb-save')?.addEventListener('click', () => tbSave());
   document.getElementById('tb-publish')?.addEventListener('click', () => tbPublish());
+  document.getElementById('tb-save-bottom')?.addEventListener('click', () => tbSave());
+  document.getElementById('tb-publish-bottom')?.addEventListener('click', () => tbPublish());
   document.getElementById('tb-addblock')?.addEventListener('click', () => {
     const type = document.getElementById('tb-addtype').value;
     if (type === 'branding' && _tb.blocks.some(b => b.blockType === 'branding')) { toast('There is already a branding header', 'err'); return; }

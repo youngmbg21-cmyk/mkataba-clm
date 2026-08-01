@@ -564,6 +564,18 @@ function hydrate(){
     state.folderId = d.folderId || null;
   }
   else state.contracts = state.contracts.map(migrateContract);
+  /* ---- SERVER MODE RESUMES TOO ----
+     Every setView writes {view, activeId, folderId} to LS.ui in server mode —
+     and nothing ever read it back, so a browser refresh always landed on the
+     dashboard however deep into a negotiation the reader was. The UI store is
+     the fresher record when it exists; startApp still validates the view
+     against its allowlist before rendering it. */
+  const ui = lsGet(LS.ui);
+  if(ui && ui.view){
+    state.view = ui.view;
+    if(ui.activeId !== undefined) state.activeId = ui.activeId || state.activeId || null;
+    if(ui.folderId !== undefined) state.folderId = ui.folderId || state.folderId || null;
+  }
 }
 function migrateContract(c){
   return Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
@@ -898,7 +910,11 @@ function startApp(){
   refreshOrgBranding().then(()=>{ if(window.ORG_BRANDING&&state.view==='workspace'&&window.renderWorkspace) renderWorkspace(); });
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
-  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
+  /* 'redline' and the template surfaces belong on this list: both render an
+     honest empty state when their contract or template is not loaded yet, so
+     resuming there is safe — and losing a refresh mid-negotiation to the
+     dashboard was the exact complaint this list caused. */
+  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','migration','redline','doclab'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */

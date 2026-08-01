@@ -635,13 +635,17 @@ function negoStyleHtml(){
      white face, visible border, a touch of shadow — the same clothing the
      type stepper wears, so it reads as buttons at a glance without adding a
      single colour. Gone with the editor when it closes. */
+  /* Every var carries a fallback: the counterparty portal mounts this same
+     editor OUTSIDE the #nego-root scope that defines the --n-* ramp, and a
+     border whose color resolves to nothing is a toolbar that vanishes on
+     exactly the page the customer sees. One look, both chairs. */
   .nego-fmt-bar{display:flex;gap:4px;margin:0 0 6px;padding:4px;width:max-content;
-    background:var(--n-well,var(--n-paper));border:1px solid var(--n-line);border-radius:8px}
+    background:var(--n-well,#f1f5f9);border:1px solid var(--n-line,#e2e8f0);border-radius:8px}
   .nego-fmt-bar button{width:28px;height:28px;display:inline-grid;place-items:center;
-    background:var(--n-paper,#fff);border:1px solid var(--n-line);border-radius:6px;
+    background:var(--n-paper,#fff);border:1px solid var(--n-line,#e2e8f0);border-radius:6px;
     font-family:inherit;font-size:12.5px;color:var(--n-ink,#1e293b);cursor:pointer;
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
-  .nego-fmt-bar button:hover{border-color:var(--n-ink-soft);background:var(--n-well,#f8fafc)}
+  .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
   .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
   .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
   .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
@@ -5354,19 +5358,21 @@ function redlineLayoutCss(){
   .redline-page #rl-changes-col{border-radius:12px}
   .redline-page #rl-changes-col h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:700}
-  /* the header carries these; a second pair here would be two controls for one action */
-  .redline-page .nego-bulk{display:none!important}
-  .redline-page #nego-send{display:none!important}
-  /* An EMBED has no header to carry them, so the bulk verbs come back to the
-     column head there — "I agree to all of it" is a real answer, and on the
-     counterparty's page this is the only surface it can live on. */
-  .redline-page.rl-embed .nego-bulk{display:flex!important;gap:6px;flex-basis:100%}
-  .redline-page.rl-embed .nego-bulk button{flex:1;border:0;border-radius:7px;padding:6px 9px;
+  /* ---- THE COLUMN'S CONTROLS ARE THE CONTROLS ----
+     These two used to be display:none here because the page header carried
+     proxies for them — and when the proxies were removed (they crowded the
+     strip until the contract dropdown clipped mid-word) the hiding rules
+     stayed, so the send and the bulk verbs existed in the DOM and appeared
+     NOWHERE. jsdom cannot see display:none, which is why every test stayed
+     green while the screen went dark. The embed styling is now the base
+     styling: one look, every mount. */
+  .redline-page .nego-bulk{display:flex;gap:6px;flex-basis:100%;margin-top:0}
+  .redline-page .nego-bulk button{flex:1;border:0;border-radius:7px;padding:6px 9px;
     font:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
-  .redline-page.rl-embed .nego-bulk .b-acc{background:#059669;color:#fff}
-  .redline-page.rl-embed .nego-bulk .b-rej{background:#e2e8f0;color:#1e293b}
-  html.dark .redline-page.rl-embed .nego-bulk .b-rej{background:#cbd5e1;color:#0f172a}
-  .redline-page.rl-embed .nego-bulk button:disabled{opacity:.45;cursor:not-allowed}
+  .redline-page .nego-bulk .b-acc{background:#059669;color:#fff}
+  .redline-page .nego-bulk .b-rej{background:#e2e8f0;color:#1e293b}
+  html.dark .redline-page .nego-bulk .b-rej{background:#cbd5e1;color:#0f172a}
+  .redline-page .nego-bulk button:disabled{opacity:.45;cursor:not-allowed}
 
   .redline-page .rl-disc-head{display:flex;align-items:center;gap:8px;padding:13px 14px 9px;
     border-bottom:1px solid var(--color-divider);flex:none}
