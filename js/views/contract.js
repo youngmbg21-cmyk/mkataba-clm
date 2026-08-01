@@ -2541,6 +2541,33 @@ function wireWsCollapse(c){
   });
 }
 
+/* ---- FOCUS MODE, THE DOC PAGE'S OWN ----
+   The Redline page's focus button, on this tab: hide the header card and the
+   strips, give the room to the document. The button lives on the tab row —
+   which stays — because a control that hides itself cannot be pressed again
+   (the collapse button above learned the same lesson). A posture, not a
+   setting: it resets when the reader moves to another contract. */
+let _wsFocus=false,_wsFocusFor=null;
+function applyWsFocus(){
+  const head=document.getElementById('ws-head');
+  if(head) head.style.display=_wsFocus?'none':'';
+  const strips=document.getElementById('ws-strips');
+  if(strips) strips.style.display=_wsFocus?'none':'contents';
+  const b=document.getElementById('ws-focus');
+  if(b){
+    b.setAttribute('aria-pressed',_wsFocus?'true':'false');
+    b.style.background=_wsFocus?'var(--color-accent-800)':'';
+    b.style.color=_wsFocus?'#fff':'';
+    b.style.borderColor=_wsFocus?'var(--color-accent-800)':'';
+    b.title=_wsFocus?'Exit focus mode — bring the header back':'Focus mode — hide the header and give the room to the document';
+  }
+}
+function wireWsFocus(c){
+  if(_wsFocusFor!==c.id){ _wsFocus=false; _wsFocusFor=c.id; }
+  document.getElementById('ws-focus')?.addEventListener('click',()=>{ _wsFocus=!_wsFocus; applyWsFocus(); });
+  applyWsFocus();
+}
+
 function renderWorkspace(){
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
@@ -2587,7 +2614,7 @@ function renderWorkspace(){
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
     <!-- ============ FULL-WIDTH DOCUMENT HEADER (spans the doc + the right panel) ============ -->
-    <section style="${CARD};flex:none;overflow:hidden">
+    <section id="ws-head" style="${CARD};flex:none;overflow:hidden">
       <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:12px 16px">
         <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:32px;height:32px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
         <div style="min-width:0;flex:1">
@@ -2637,8 +2664,7 @@ function renderWorkspace(){
       </div>
     </section>
 
-    ${readyToSignStrip(c)}
-    ${returnedChangesStrip(c)}
+    <div id="ws-strips" style="display:contents">${readyToSignStrip(c)}${returnedChangesStrip(c)}</div>
 
     <!-- ============ TABS + STATUS, ONE ROW: Docs · Redline · next action ============
          Two ways of working on one contract. Docs is this page — the document,
@@ -2660,6 +2686,10 @@ function renderWorkspace(){
         ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
       </div>
       ${window.rlTypeStepHtml?rlTypeStepHtml():''}
+      <button id="ws-focus" class="ui-btn" aria-pressed="false" style="width:30px;height:30px;padding:0;flex:none"
+        title="Focus mode — hide the header and give the room to the document">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
       <div id="ws-actionbar" data-ws-fold="strip" data-ws-display="flex" style="flex:1;min-width:280px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
     </div>
 
@@ -2874,6 +2904,7 @@ function renderWorkspace(){
   // stylesheet call is idempotent; the zoom applies the stored choice now.
   if(window.redlineLayoutCss) redlineLayoutCss();
   if(window.rlWireTypeStep) rlWireTypeStep(content);
+  wireWsFocus(c);
   applyDocZoom();
   setActiveNav('workspace');
 }

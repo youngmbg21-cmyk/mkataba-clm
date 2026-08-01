@@ -4695,6 +4695,13 @@ function redlineLayoutCss(){
 
   .redline-page .rl-root{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
   .redline-page .rl-head{flex-wrap:nowrap}
+  /* The contract jump, dressed like the toolbar it sits in. It may shrink on
+     a narrow window but never to nothing — a switch you cannot see is a
+     contract you cannot reach. */
+  .redline-page .rl-jump{flex:0 1 auto;min-width:96px;max-width:220px;border:1px solid var(--color-divider);
+    background:var(--color-surface);border-radius:9px;padding:6px 8px;font:inherit;font-family:var(--font-mono);
+    font-size:11px;font-weight:600;color:var(--color-text);cursor:pointer}
+  .redline-page .rl-jump:hover{border-color:var(--color-neutral-300)}
   .redline-page .rl-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:nowrap}
   .redline-page .rl-btn{display:inline-flex;align-items:center;gap:6px}
   /* The wrap point is a fallback for genuinely narrow windows, not the
@@ -5522,6 +5529,7 @@ function renderRedline(){
           <button type="button" data-rl-focus class="rl-focus-btn" title="Focus mode &mdash; hide the header and give the space to the document and the changes" aria-label="Enter focus mode">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
+          ${rlJumpHtml(c)}
         </div>
         <div class="rl-actions">
           ${blast}
@@ -5560,6 +5568,13 @@ function renderRedline(){
   host.querySelectorAll('[data-rl-unfocus]').forEach(el =>
     el.addEventListener('click', () => rlSetFocus(false)));
   rlWireFocusKey();
+  /* The contract jump goes through the bench's one door, same as any other
+     arrival. Change only — re-picking the current contract is a no-op, not a
+     repaint that would drop the reader's scroll. */
+  const jump = host.querySelector('#rl-contract-jump');
+  if (jump) jump.addEventListener('change', () => {
+    if (jump.value && jump.value !== c.id) openRedlineWorkbench(jump.value);
+  });
   /* The header's two actions are the design's, but they are not second copies
      of anything: each one presses the engine's own control, which is the only
      thing that can actually accept a change or publish a round. If the engine
@@ -5777,6 +5792,9 @@ function renderRedline(){
     const el = document.getElementById(id);
     if (el) el.scrollTop = _keepScroll[id];
   });
+  /* Every decision, send and retract repaints this page — which is exactly
+     when the nav's "N Open" tag and this toolbar's dropdown counts moved. */
+  if (window.updateSidebarCounts) updateSidebarCounts();
 }
 
 /* ============================================================
@@ -7153,6 +7171,39 @@ function redlineDocHtml(c, opts = {}){
    decision — the OTHER side's ask, on a copy that can still move the
    negotiation. Nobody rules on their own ask. */
 const _rlIsLive = ch => !!ch && ch.status === 'pending' && !ch.withdrawn;
+/* How many redline actions sit with the OWNER seat on one contract: the other
+   side's live asks awaiting a decision, plus our own drafts that have not left
+   the building — the same two readings the cards and the wall are drawn from.
+   Reads the record only where a negotiation already exists, because counting
+   must never CREATE one: negoInit stamps clause ids into the document. */
+function rlOwnerOpenActions(x){
+  if (!x || !x.negotiation || !Array.isArray(x.changes)) return 0;
+  const awaiting = x.changes.filter(ch => _rlIsLive(ch) && ch.authorSide === 'counterparty').length;
+  const drafts = window.negoUnsentAsks ? negoUnsentAsks(x, 'owner').length : 0;
+  return awaiting + drafts;
+}
+/* The portfolio-wide sum — the nav's "N Open" tag and the workbench's
+   contract dropdown both read through here, so they cannot disagree. */
+function rlOwnerOpenTotal(){
+  const list = (typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : [];
+  return list.reduce((n, x) => n + rlOwnerOpenActions(x), 0);
+}
+/* The toolbar's contract jump: every contract with redline actions awaiting,
+   by NUMBER (the number is the stable handle; two drafts can share a name),
+   each wearing its own count. The bench's current contract is always an
+   option — a select whose value is not in its list shows a lie — and picking
+   another one brings it to the bench through the one entry point, so the
+   eviction rules cannot be skipped. */
+function rlJumpHtml(c){
+  const list = (typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : [];
+  const rows = list.map(x => ({ id: x.id, n: rlOwnerOpenActions(x) }))
+    .filter(e => e.n > 0 || e.id === c.id)
+    .sort((a, b) => b.n - a.n || String(a.id).localeCompare(String(b.id)));
+  if (!rows.some(e => e.id === c.id)) rows.unshift({ id: c.id, n: 0 });
+  return `<select id="rl-contract-jump" class="rl-jump" aria-label="Contracts awaiting redline action"
+      title="Every contract with redline actions awaiting, and how many — pick one to bring it to this bench">${
+    rows.map(e => `<option value="${_nea(e.id)}"${e.id === c.id ? ' selected' : ''}>${_ne(e.id)} &middot; ${e.n} awaiting</option>`).join('')}</select>`;
+}
 /* ============================================================
    THE VIEW WALL — what each side of the toggle is allowed to see
    ============================================================
@@ -7744,6 +7795,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlDocType, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
+  rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,

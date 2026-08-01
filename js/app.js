@@ -212,6 +212,20 @@ function updateSidebarCounts(){
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
+  // The two right-aligned tags the design draws on the nav itself. "AI Active"
+  // on HaTi DocLab shows only while the Copilot brain is actually live —
+  // copilotAvailable is the one place that knows, so the tag can never claim
+  // an AI that isn't answering. "N Open" on Redline is the owner-seat actions
+  // open across the whole portfolio, from the same reading the workbench uses.
+  const ai=document.getElementById('nav-ai-active');
+  if(ai) ai.hidden=!((typeof copilotAvailable==='function')&&copilotAvailable());
+  const rl=document.getElementById('nav-redline-count');
+  if(rl){
+    const n=window.rlOwnerOpenTotal?rlOwnerOpenTotal():0;
+    rl.textContent=n?`${Number(n).toLocaleString('en-KE')} Open`:'';
+    rl.title=n?`${n} redline action${n===1?'':'s'} waiting on your side — changes to decide and drafts to send`:'';
+    rl.classList.toggle('hidden',!n);
+  }
 }
 
 /* ============================================================ SHELL VIEW SWITCH */
