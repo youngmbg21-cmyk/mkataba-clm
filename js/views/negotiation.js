@@ -4921,9 +4921,12 @@ function redlineLayoutCss(){
   }
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
     background:var(--st-amber-bg);color:var(--st-amber-fg);overflow-wrap:anywhere}
-  .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
-  .redline-page .rl-card-verbs button{flex:1;min-width:64px;border:0;border-radius:7px;padding:6px;font:inherit;
-    font-size:11px;font-weight:700;cursor:pointer;transition:filter .15s}
+  /* Compact pills, right-aligned: each verb is only as wide as its word, so the
+     card's information leads and the actions follow. flex:1 stretched them into
+     a wall of colour that outweighed the change itself. */
+  .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:9px}
+  .redline-page .rl-card-verbs button{border:0;border-radius:999px;padding:3px 11px;font:inherit;
+    font-size:10px;font-weight:700;line-height:1.6;cursor:pointer;transition:filter .15s}
   /* washes darken a touch on hover in light, lift in dark — a brightness
      bump on a near-white tint is invisible */
   .redline-page .rl-card-verbs button:hover{filter:brightness(.95)}
