@@ -132,19 +132,32 @@ describe('f105 — upload-and-convert', () => {
   });
   after(async () => { await h.stop(); await stub.stop(); });
 
-  test('the real file signature is checked — a renamed non-docx never reaches the model', async () => {
+  test('the real file signature is checked — a renamed non-document never reaches the model', async () => {
     const calls = stubCalls.length;
+    /* Updated when the PDF route landed. This used to assert that anything
+       beginning %PDF- was refused outright; PDFs are now a supported door, so
+       what is pinned here is the narrower and still-true claim: bytes that are
+       not a readable document of EITHER kind are refused, and refused before
+       any money is spent. This file's own byte string is a case in point — it
+       carries a PDF signature and nothing else, so it is refused as an
+       unreadable PDF rather than as "not a Word file". */
     const fake = await w.admin.raw('/api/templates/upload', { method: 'POST', body: {
-      fileName: 'contract.docx', dataUrl: 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4 not a docx').toString('base64') } });
+      fileName: 'contract.pdf', dataUrl: 'data:application/pdf;base64,' + Buffer.from('%PDF-1.4 not really a pdf').toString('base64') } });
     assert.equal(fake.status, 400);
-    assert.match(fake.json.error, /not a Word/);
+    assert.match(fake.json.error, /could not be read/);
+
+    // Neither signature: refused as neither kind.
+    const junk = await w.admin.raw('/api/templates/upload', { method: 'POST', body: {
+      fileName: 'contract.docx', dataUrl: 'data:text/plain;base64,' + Buffer.from('just some text').toString('base64') } });
+    assert.equal(junk.status, 400);
+    assert.match(junk.json.error, /not a Word \(\.docx\) or PDF/);
 
     // a zip wrapper with no word/document.xml inside is a zip, not a document
     const notdocx = Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.alloc(200)]);
     const z = await w.admin.raw('/api/templates/upload', { method: 'POST', body: {
       fileName: 'x.docx', dataUrl: dataUrl(notdocx) } });
     assert.equal(z.status, 400);
-    assert.equal(stubCalls.length, calls, 'no model call was made for either');
+    assert.equal(stubCalls.length, calls, 'no model call was made for any of them');
   });
 
   let brutTplId, brutV1Id;

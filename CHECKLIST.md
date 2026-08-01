@@ -659,3 +659,30 @@ Suite at close: **2113/0**; Chromium 71/71 · 18/18 · 22/22. Stage 6 gate held.
 | Forged/revoked/view tickets fail closed on every mutating door, derive included | f125 | PASS |
 | Sealed record survives crafted PUTs (rewording, renumber-by-PUT, invented changes, audit erasure) | f125 | PASS |
 | Rate limits engage; folder scope holds on shares panel | f125 | PASS |
+
+## PDF & scanned document upload
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| A PDF enters the same door as Word and lands on the same confirmation screen | f128 | PASS |
+| Encrypted, unreadable and over-30-page PDFs refused BEFORE any model call | f128 | PASS |
+| The page cap is the server's own count — a client-supplied count cannot raise it | f128 | PASS |
+| Boundary: exactly 30 pages is accepted, 31 refused | f128 | PASS |
+| Born-digital PDF classified `pdf_digital`; page count recorded on the template | f128 | PASS |
+| Image-only PDF classified `pdf_scanned` and flagged `scanned` for the banner | f128 | PASS |
+| A large, noisy, image-only PDF is still a scan (outcome pinned; guard is precautionary — see BUGLOG) | f128 | PASS |
+| `source_type` NULL (pre-feature templates) reads as "not a scan", never as unknown | f128 | PASS |
+| The PDF travels as a `document` content block — no rasterising, whole file, really a PDF | f128 | PASS |
+| Shared prompt, forced tool and sanitiser reused; PDF rules ride as an addendum | f128 | PASS |
+| The Word route is unchanged and does NOT receive the PDF rules | f128 | PASS |
+| From a scan, all five digit-bearing field types capped to `medium` however confident the model was | f128 | PASS |
+| The cap is selective: name, email and date fields keep `high` | f128 | PASS |
+| The user is told the cap happened, rather than quietly seeing lower numbers | f128 | PASS |
+| From a digital PDF the same digit fields keep `high` | f128 | PASS |
+| A garbage answer to a PDF saves a draft with an error note; original file stored | f128 | PASS |
+| Viewers cannot upload a PDF | f128 | PASS |
+| End-to-end per fixture: upload → classify → detect → confirm → publish → contract → fill, no `{{}}` | f128 | PASS |
+| Non-documents of either kind still refused before any call | f105 (updated) | PASS |
+| **Detection quality on the real model (brief's bar: ≥20 of ~27 blanks)** | — | **NOT RUN — no API key; see BUGLOG** |
+| **Observed API cost per document** | — | **NOT RUN — no API key; see BUGLOG** |
+| **Scan detection quality against a genuine print-and-scan** | — | **NOT RUN — fixture is synthetic; see BUGLOG** |
