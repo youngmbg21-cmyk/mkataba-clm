@@ -1001,6 +1001,22 @@ function aiPortfolioSnapshot(){
     obs.length?`Open obligations: ${obs.length}${overdue.length?`, of which ${overdue.length} OVERDUE`:''}`
       +`${(typeof obligationsOurs==='function')?` — ${obligationsOurs(obs).length} ours to do, ${obligationsTheirs(obs).length} theirs to chase`:''}.`
       :'Open obligations: none recorded.',
+    /* The Negotiation Friction control tower's own KPIs, so "which clause do
+       we fight over most" is answerable HERE — the pinned Copilot left that
+       tab, and this launcher is where those questions now land. Counted from
+       the same records the tab draws; a failure to count is silence, never a
+       broken snapshot. */
+    (()=>{ try{
+      if(typeof window.intelFrictionStats!=='function') return '';
+      const fs=intelFrictionStats(null);
+      if(!fs.deals) return '';
+      const pc=v=>v==null?'n/a':Math.round(v*100)+'%';
+      return `NEGOTIATION FRICTION (from tracked-change records): ${fs.deals} negotiations, avg ${fs.avgRounds.toFixed(1)} rounds`
+        +`${fs.avgDays!=null?`, avg ${fs.avgDays<1?'<1 day':Math.round(fs.avgDays)+' days'} to signature`:''}`
+        +`; asks accepted — ours ${pc(fs.oursAcceptShare)}, theirs ${pc(fs.theirsAcceptShare)}; ${fs.deadlocks} deadlock(s) open.`
+        +`${fs.clauses.length?` Most-contested clauses: ${fs.clauses.slice(0,5).map(cl=>`${cl.label} (${pc(cl.share)}${cl.extra!=null?`, ${cl.extra>0?'+':''}${cl.extra.toFixed(1)} rounds`:''})`).join('; ')}.`:''}`
+        +`${fs.counterparties.length?` Slowest counterparties by avg rounds: ${fs.counterparties.slice(0,3).map(cp=>`${cp.name} (${cp.avgRounds.toFixed(1)})`).join('; ')}.`:''}`;
+    }catch(_){ return ''; } })(),
     ``,
     `CONTRACTS (soonest to expire first; showing ${Math.min(live.length,AI_SNAPSHOT_CAP)} of ${live.length}):`,
     ...lines,

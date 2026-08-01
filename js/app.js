@@ -91,7 +91,7 @@ function commandMeta(view){
     // Named to match the nav item exactly. One feature answering to two names —
     // "Portfolio Intel" in the sidebar, "Portfolio Intelligence" on the page —
     // is one name too many for a reader trying to describe where they were.
-    case 'intel':     return ['Portfolio Intel', 'Copilot contract graph · clustered by value stream'];
+    case 'intel':     return ['Portfolio Intel', 'negotiation friction control tower · Copilot contract graph'];
     case 'calendar':  return ['Renewal Calendar & Obligations', 'expiry, renewal-decision deadlines and obligations — surfaced automatically from every contract'];
     case 'migration': return ['Migration', 'bulk-import an existing portfolio · Copilot extraction with human review'];
     case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
