@@ -207,3 +207,29 @@ fixed. The guard stays (cheap, and the failure it covers is silent); the claim
 about it does not. Building that test also took two attempts at incompressible
 data: a plain LCG degenerates in float64 and deflate crushed the buffer to a
 fortieth of its size, so it now uses a SHA-256 chain.
+
+**Loop 7 — the real run, and a bug the bill exposed.** A key arrived, so all
+three fixtures went to the live model. §9's bar cleared comfortably: 25 fields on
+the digital Brut PDF against a bar of 20, and 27 on the scan, with the digit cap
+firing on six fields exactly as designed. `TPL_CONVERT_PDF_RULES` needed no
+iteration — it worked first time, which is more luck than method given it had
+never seen a real answer.
+
+Cost measured at 4–6 US cents per document, which makes the estimate written into
+BUGLOG earlier wrong by about a factor of ten. The error is worth naming: I
+assumed input tokens dominate, and they do not. Output is $15/M against $3/M in,
+and the answer is roughly three quarters of the bill. The practical consequence
+is that cost tracks fields-found rather than page-count, so extrapolating a
+thirty-page worst case from a two-page sample — which is exactly what my estimate
+did — is unsound. BUGLOG and SUMMARY now carry the measured table and the
+correction.
+
+Reading the bill also turned up a real defect predating this work:
+`recordAiCall()` files unlabelled features under 'other', and `template_convert`
+was never added to `AI_FEATURE_LABEL`, so every conversion since Phase D has been
+reported in the Other bucket — hiding the single figure this brief exists to
+produce. One-line fix, plus a source-level test in f128 asserting every
+spend-capable feature has a label, so the next one added without one fails a test
+rather than quietly hiding its cost.
+
+**Spent on the real runs: about $0.20 of the $2 authorised.**

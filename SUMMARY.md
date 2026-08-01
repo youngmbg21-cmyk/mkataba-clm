@@ -4021,22 +4021,61 @@ Word version). The page limit is checked by the server from the file itself,
 not taken on trust from the browser, because that limit is what stops a single
 upload becoming expensive.
 
-## What you need to do next
+## Verified against the real model
 
-**Two things in the brief could not be finished, because this environment has no
-Anthropic API key.** Neither is a bug; both need a key and about five minutes:
+Both open questions are now answered — a key was supplied and all three fixtures
+were run against the live model.
 
-1. **How well it actually reads your form.** The brief sets the bar at finding at
-   least 20 of the Brut form's ~27 blanks. Every test here runs against a
-   stand-in that returns a canned answer, which proves the plumbing but says
-   nothing about real reading quality. The instructions written for Claude about
-   reading pages are a **first draft that has never been tested against a real
-   answer.**
-2. **What it costs per document** — the number you wanted for pricing. Nothing
-   was measured, and no figure in this write-up came from a real call.
+**Does it actually read the form? Yes, comfortably.** The digital Brut PDF came
+back with **25 fields** against your bar of 20. The types landed where they
+matter: KRA PIN as a Kenyan tax ID, receiver ID as a national ID, phones, emails,
+addresses, the credit limit as currency, payment terms as a pick-list, the
+company stamp as a stamp. The three not listed separately — director signature,
+title, date signed — were folded into the signature block, which is what the
+instructions ask for rather than a miss.
 
-`BUGLOG.md` has the exact commands. A handful of uploads costs cents, far under
-the $2 you authorised.
+**The scan did better, at 27 fields**, and the safety rule worked exactly as
+designed on a live run: six number fields were held down to medium and the rest
+left alone, with the banner shown. The page-reading instructions I wrote needed
+no adjustment — they worked first time.
+
+**What it costs: about 4 to 6 US cents per document.**
+
+| Document | Pages | Cost |
+|---|---|---|
+| 1-page consultancy agreement | 1 | $0.038 |
+| Brut form, digital | 2 | $0.059 |
+| Brut form, scanned | 2 | $0.063 |
+
+**I owe you a correction here.** My earlier estimate in `BUGLOG.md` said about
+half a cent per document. The real figure is roughly ten times that. The estimate
+assumed the cost is mostly in *reading* the document; it is not. About three
+quarters of the bill is Claude's *answer* — the list of fields it writes back.
+
+That changes how you should price it: **cost follows the number of fields found,
+not the number of pages.** A long contract with a few blanks is cheap. A short,
+dense form with fifty fields is not. So don't scale my two-page numbers up to
+thirty pages — the page count is the smaller half of the bill. If a thirty-page
+figure matters commercially, upload one and measure it; it will cost you pennies
+to find out.
+
+One pleasant surprise: a scan cost only ~7% more than the same form as a digital
+PDF, where I had expected considerably more.
+
+**Still open, and only this:** the scanned test file is generated rather than a
+real print-and-scan. Everything above proves scans are *handled* correctly. How
+Claude copes with genuine scanner output — real skew, JPEG artefacts,
+bleed-through — is the one thing still untested. Worth a five-minute check with a
+real scan when convenient.
+
+## A bug the cost check turned up
+
+Looking at the bill exposed something that had been wrong since Phase D: **every
+document conversion, Word ones included, was being reported under "Other"** in
+the AI spend breakdown rather than under its own name. Nothing was lost or
+mischarged, but the one number you need to price this feature was the one number
+Team & Settings would not show you. Fixed, with a test so the next feature added
+without a label fails rather than quietly hiding its cost.
 
 ## Which fixtures pass
 

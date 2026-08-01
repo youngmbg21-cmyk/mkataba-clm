@@ -262,6 +262,34 @@ describe('f128 — the PDF door', () => {
     assert.equal(r.scanned, true);
   });
 
+  test('every AI feature that spends money has a label, so none of it hides in “Other”', () => {
+    /* Found by running a real conversion and looking at the bill. `recordAiCall`
+       files any feature missing from AI_FEATURE_LABEL under 'other', silently —
+       so from Phase D until now every document conversion, Word and PDF alike,
+       landed in the Other bucket. Nothing was lost, but the one figure an admin
+       needs to answer "what does converting a document cost us?" was the one
+       figure they could not see.
+
+       A source-level check rather than a behavioural one, because the failure
+       is a missing entry in a lookup table: reproducing it through the API
+       would need a real, paid model call, and the thing worth pinning is the
+       invariant — every feature key that can spend has somewhere to be
+       reported. This catches the next feature added without a label. */
+    const src = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
+    const labelBlock = /const AI_FEATURE_LABEL = \{([\s\S]*?)\n\};/.exec(src);
+    assert.ok(labelBlock, 'AI_FEATURE_LABEL is still where this test expects it');
+    const labelled = new Set([...labelBlock[1].matchAll(/(?:^|[\s{,])([a-z_]+)\s*:/g)].map(m => m[1]));
+
+    const used = new Set([...src.matchAll(/aiFeature\('([a-z_]+)'\)/g)].map(m => m[1]));
+    for (const m of src.matchAll(/feature:\s*'([a-z_]+)'/g)) used.add(m[1]);
+    assert.ok(used.size >= 10, 'sanity: the feature keys were actually found');
+
+    const unlabelled = [...used].filter(f => !labelled.has(f)).sort();
+    assert.deepEqual(unlabelled, [],
+      `these AI features spend money but have no label, so their cost is reported as "Other": ${unlabelled.join(', ')}`);
+    assert.ok(labelled.has('template_convert'), 'the document converter in particular');
+  });
+
   test('a Word file is still docx, and templates from before this feature stay silent', async () => {
     const docx = 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,'
       + FIX('blanks-inline.docx').toString('base64');

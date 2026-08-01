@@ -6257,3 +6257,68 @@ proving the filter works. Both the code comment and the test say so.
 
 Recorded here because a guard that passes either way is the kind of thing a
 later reader mistakes for a tested invariant.
+
+---
+
+## The real run happened — and my cost estimate was wrong by roughly ten times
+
+A key was supplied after the merge and all three fixtures were run against the
+live model. Two entries above are now settled and one correction is owed.
+
+### The estimate in this file was badly out. Use these numbers instead.
+
+I estimated "on the order of half a US cent" for a two-page form and "15–30
+cents" for a thirty-page scan, from published per-token pricing. Measured:
+
+| Document | Pages | Input tok | Output tok | Cost |
+|---|---|---|---|---|
+| `blanks-mixed.pdf` (digital) | 1 | 3,570 | 1,819 | **$0.0380** |
+| `brut-account-opening.pdf` (digital) | 2 | — | — | **$0.0589** |
+| `brut-account-opening-scanned.pdf` (scan) | 2 | — | — | **$0.0630** |
+
+About **4–6 US cents per document**, not half a cent. The estimate was wrong
+because it assumed input tokens dominate. They do not: at $3/M input against
+$15/M output, the 1,819 output tokens cost $0.0273 of that $0.0380 run — **the
+answer is about three quarters of the bill, and the document is the rest.**
+
+The practical consequence for pricing: **cost tracks the number of fields
+detected far more closely than the number of pages.** A long contract with few
+blanks is cheap; a short dense form with fifty fields is not. Extrapolating the
+thirty-page worst case from a two-page sample is therefore unsafe in a way I did
+not appreciate when writing the estimate — the page count moves the smaller half
+of the bill. If a real thirty-page figure matters for pricing, measure one.
+
+Note also that a scan cost only ~7% more than the same form as a digital PDF
+(2 pages, $0.0630 vs $0.0589). I had expected image tokens to make scans
+markedly more expensive. On this evidence they do not, though a photographic
+scan at full resolution may behave differently from a generated raster.
+
+### §9's detection bar: PASSED, comfortably
+
+Digital Brut PDF: **25 fields**, against a bar of 20 and a form carrying 28
+blanks. Types were right where it matters — `kenya_tax_id` for the KRA PIN,
+`national_id` for the receiver ID, `phone`, `email`, `address`, `currency`,
+`select` for the payment-terms option list, `stamp_image` for the stamp. The
+three not returned as separate fields were Director signature, Title and Date
+signed, which were folded into the signature block — the behaviour the shared
+prompt asks for, not a miss.
+
+The scan did **better**, at 27 fields, and the hard-coded rule fired exactly as
+designed in production: 6 digit-bearing fields held to `medium`
+(`company_reg_number`, `kenya_tax_id`, two `phone`, `national_id`, and a third
+`phone`), everything else left at `high`. `TPL_CONVERT_PDF_RULES` needed no
+iteration; it worked first time.
+
+Caveat that still stands: the scan fixture is generated, not a genuine
+print-and-scan. Real scanner output is the remaining unknown.
+
+### A real bug the cost check exposed
+
+`recordAiCall()` files any feature missing from `AI_FEATURE_LABEL` under
+`'other'`. `template_convert` was never added to that map, so **every document
+conversion since Phase D — Word as well as PDF — has been reported in the Other
+bucket.** Nothing was lost or mischarged, but the single figure an admin needs
+to answer "what does converting a document cost us?" was the one figure Team &
+Settings would not show them. Fixed by adding the label; `f128` now asserts that
+every feature key capable of spending has one, so the next feature added without
+a label fails a test instead of quietly hiding its cost.

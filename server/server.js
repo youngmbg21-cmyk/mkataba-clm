@@ -840,6 +840,14 @@ const AI_FEATURE_LABEL = {
   extract: 'Metadata extraction', ocr: 'OCR (scanned paper)', playbook: 'Clause review',
   obligations: 'Obligations', graph: 'Portfolio graph', search: 'Search',
   template: 'Template advisor', chat: 'Copilot', blanks: 'Template blanks', other: 'Other',
+  /* Document conversion — the .docx and PDF upload routes. Missing from this
+     map until now, and the omission was not cosmetic: recordAiCall() files any
+     feature it does not recognise under 'other', so every conversion since
+     Phase D has been landing in the Other bucket. That is the one number an
+     admin needs to answer "what does converting a document cost us?", and it
+     was the hardest to find. Adding the label is the whole fix — the spend
+     rows were always written with the right key. */
+  template_convert: 'Document converter',
 };
 
 function aiSpendRows(day) {

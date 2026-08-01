@@ -683,6 +683,8 @@ Suite at close: **2113/0**; Chromium 71/71 · 18/18 · 22/22. Stage 6 gate held.
 | Viewers cannot upload a PDF | f128 | PASS |
 | End-to-end per fixture: upload → classify → detect → confirm → publish → contract → fill, no `{{}}` | f128 | PASS |
 | Non-documents of either kind still refused before any call | f105 (updated) | PASS |
-| **Detection quality on the real model (brief's bar: ≥20 of ~27 blanks)** | — | **NOT RUN — no API key; see BUGLOG** |
-| **Observed API cost per document** | — | **NOT RUN — no API key; see BUGLOG** |
-| **Scan detection quality against a genuine print-and-scan** | — | **NOT RUN — fixture is synthetic; see BUGLOG** |
+| Detection quality on the real model (brief's bar: ≥20 of ~27 blanks) | real run, digital Brut PDF | **PASS — 25 fields** |
+| Observed API cost per document | real run, all three fixtures | **MEASURED — $0.038–$0.063; see SUMMARY** |
+| Scan detection on the generated fixture (27 fields, 6 digit fields capped live) | real run, scanned fixture | **PASS** |
+| **Scan detection against a genuine print-and-scan** | — | **NOT RUN — fixture is synthetic; see BUGLOG** |
+| Every AI feature that spends has a spend label (no cost hidden in "Other") | f128 | PASS |
