@@ -125,6 +125,23 @@ function groupLabelOf(c, groupBy, override){
     case 'status': return statusLabel(c.status);
     case 'valueBand': return valueBand(c.value);
     case 'kind': return cKind(c);
+    case 'expiry': {
+      const e=(typeof effectiveExpiry==='function'?effectiveExpiry(c):c.expiry);
+      const d=e?daysUntil(String(e).slice(0,10)):null;
+      if(d==null||isNaN(d)) return 'No expiry set';
+      if(d<0) return 'Expired';
+      if(d<=30) return 'Within 30 days';
+      if(d<=90) return '31–90 days';
+      if(d<=365) return '3–12 months';
+      return 'Beyond a year';
+    }
+    case 'risk': {
+      if(!c.scan) return 'Not scanned';
+      const r=riskScore(c);
+      return r>=8?'High risk':r>=3?'Medium risk':r>=1?'Low risk':'No open findings';
+    }
+    case 'source': return c.source==='upload'?'Uploaded paper'
+      :(c.templateId||c.templateForm||c.template)?'From a template':'Drafted in HaTi';
     case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
   }
 }
@@ -519,7 +536,7 @@ function makeIntelGraph(model){
   const hubs=nodes.filter(n=>n.kind==='hub');
   hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
-  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(96,Math.min(180,n.label.length*7+30)); n.h=40; } else { n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.sub?40:30; } });
+  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(100,Math.min(196,n.label.length*7.8+32)); n.h=40; } else { n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.sub?40:30; } });
   // svg build
   edges.forEach(e=>{ e.el=document.createElementNS('http://www.w3.org/2000/svg','path'); e.el.setAttribute('class','ig-link'); e.el.setAttribute('marker-end','url(#ig-arrow)'); gLinks.appendChild(e.el); });
   // adjacency (undirected) for the hover-focus highlight
@@ -529,17 +546,27 @@ function makeIntelGraph(model){
     g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')); n.g=g;
     const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
-    rect.style.fill = n.kind==='hub'?'#2c455d':'var(--color-surface)';
+    /* A GROUP is not a contract, and in dark mode the old slate hub fill sat
+       a shade away from the contract chips — one field of near-identical
+       cards. Hubs now wear the brand's deep teal with an accent ring, in
+       both themes: the accent tokens re-map per theme, so the distinction
+       survives dark mode instead of fighting it. */
+    rect.style.fill = n.kind==='hub'?'var(--color-accent-800, #134e4a)':'var(--color-surface)';
+    if(n.kind==='hub'){ rect.style.stroke='var(--accent-solid, #14b8a6)'; rect.setAttribute('stroke-width','1.5'); }
     g.appendChild(rect);
     if(n.kind==='contract'){ const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
       bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
     const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
     lab.setAttribute('class','ig-lab'); lab.setAttribute('x',n.kind==='hub'?11:13); lab.setAttribute('y',n.sub?17:19);
-    lab.style.fill = n.kind==='hub'?'#eef6ff':'var(--color-text)'; lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
-    lab.textContent = n.label.length>24?n.label.slice(0,23)+'…':n.label; g.appendChild(lab);
+    lab.style.fill = n.kind==='hub'?'#f0fdfa':'var(--color-text)'; lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
+    if(n.kind==='hub') lab.setAttribute('letter-spacing','.5');
+    /* Uppercase is the second distinguisher — colour alone is the one channel
+       a reader might not have. */
+    const labText=n.kind==='hub'?String(n.label).toUpperCase():n.label;
+    lab.textContent = labText.length>24?labText.slice(0,23)+'…':labText; g.appendChild(lab);
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
-      sub.setAttribute('fill', n.kind==='hub'?'#b5d9fd':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+      sub.setAttribute('fill', n.kind==='hub'?'#99f6e4':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
     if(n.badge){ // gold pill pinned to the chip's top-right corner (Copilot annotation)
       const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
       const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
@@ -686,7 +713,7 @@ function renderIntel(){
      read of the same portfolio. The tab lives on the module state so a
      repaint comes back where the reader was. */
   if(intel.tab!=='map'&&intel.tab!=='friction') intel.tab='friction';
-  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
+  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['risk','Risk'],['source','Origin']];
   const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="border:0;border-radius:6px;padding:5px 13px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${intel.tab===k?'var(--accent-solid,var(--color-accent))':'none'};color:${intel.tab===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
   const tabsHtml=`<div style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;flex:none">${tabBtn('friction','Negotiation Friction')}${tabBtn('map','Contract Graph')}</div>`;
   const headerHtml=`
