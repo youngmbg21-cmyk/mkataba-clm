@@ -16,8 +16,8 @@ const TPLLIB_CATEGORIES = {
   nda: 'NDA', other: 'Other',
 };
 const TPLLIB_STATUS = {
-  draft:     { label: 'Draft',     bg: '#fdf3e2', fg: '#8a5a19', dot: '#c98a2b' },
-  published: { label: 'Published', bg: '#e8f4ee', fg: '#1e6b4d', dot: '#2e8763' },
+  draft:     { label: 'Draft',     bg: 'var(--st-amber-bg)', fg: 'var(--st-amber-fg)', dot: '#c98a2b' },
+  published: { label: 'Published', bg: 'var(--st-green-bg)', fg: 'var(--st-green-fg)', dot: 'var(--st-green-dot)' },
   archived:  { label: 'Archived',  bg: 'var(--color-neutral-100)', fg: 'var(--color-neutral-600)', dot: 'var(--color-neutral-400)' },
 };
 const TPLLIB_ORIGIN = {
@@ -69,7 +69,7 @@ async function renderCompanyTemplatesSection() {
     const d = await api('templates');
     _tplLib = { list: d.templates || [], canManage: !!d.canManage, loaded: true };
   } catch (e) {
-    host.innerHTML = `<section style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;padding:16px;font-size:12px;color:#8f322b">Company templates could not be loaded: ${esc(e.message)}</section>`;
+    host.innerHTML = `<section style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;padding:16px;font-size:12px;color:var(--st-ruby-fg)">Company templates could not be loaded: ${esc(e.message)}</section>`;
     return;
   }
   if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
@@ -89,7 +89,7 @@ function tplCompanySectionHtml() {
   const canManage = tplLibCanManage();
   const list = _tplLib.list;
   const fmtDay = iso => iso ? new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-  /* Cards, in the same grid and the same shape as My templates further down the
+  /* Cards, in the same grid and the same shape as Counterparty Templates further down the
      page — one Templates page should not have two visual languages for the same
      idea. The card is a DIV, not a button: the row it replaces was a <button>
      with the "New contract" <button> nested inside it, which is invalid HTML,
@@ -98,8 +98,8 @@ function tplCompanySectionHtml() {
      which is the broken layout this replaces. Opening is now a click on the
      card body, so the buttons inside it are ordinary siblings.
 
-     One deliberate departure from My templates: the stripe down the left edge
-     shows STATUS rather than category. My templates colours by folder because
+     One deliberate departure from Counterparty Templates: the stripe down the left edge
+     shows STATUS rather than category. Counterparty Templates colours by folder because
      that is its only classification; here, draft-versus-published is the fact
      you scan for, and a draft that looks published is the mistake worth
      designing against. */
@@ -125,7 +125,7 @@ function tplCompanySectionHtml() {
         <button data-tpllib-open="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px;${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? '' : 'flex:1'}">Open</button>
       </div>
     </div>`).join('');
-  /* The section itself now matches My templates too: a padded card holding a
+  /* The section itself now matches Counterparty Templates too: a padded card holding a
      heading row and a grid, rather than a bordered table whose rows ran the
      full width. Same auto-filling columns and same gap, so the two sections
      line up as one page instead of two designs stacked. */
@@ -240,14 +240,14 @@ function tplConfirmPaint() {
   const rows = order.map(i => {
     const f = s.fields[i];
     const conf = f.detectionConfidence;
-    const chip = conf === 'manual' ? '' : `<span class="badge" style="background:${conf === 'low' ? '#fbeaea' : conf === 'medium' ? '#fdf3e2' : '#e8f4ee'};color:${conf === 'low' ? '#8f322b' : conf === 'medium' ? '#8a5a19' : '#1e6b4d'}">${conf}</span>`;
+    const chip = conf === 'manual' ? '' : `<span class="badge" style="background:${conf === 'low' ? 'var(--st-ruby-bg)' : conf === 'medium' ? 'var(--st-amber-bg)' : 'var(--st-green-bg)'};color:${conf === 'low' ? 'var(--st-ruby-fg)' : conf === 'medium' ? 'var(--st-amber-fg)' : 'var(--st-green-fg)'}">${conf}</span>`;
     return `
     <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--color-divider)">
       <span style="flex:none;width:64px">${chip}</span>
       <input data-tc-label="${i}" value="${esc(f.label)}" style="${INP};flex:2;min-width:120px" maxlength="200">
       <select data-tc-type="${i}" style="${INP};flex:1;min-width:110px">${types.map(([k, tt]) => `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${tt.label}</option>`).join('')}</select>
       <label style="flex:none;display:flex;align-items:center;gap:4px;font-size:11px"><input type="checkbox" data-tc-req="${i}" ${f.required ? 'checked' : ''}>required</label>
-      <button data-tc-del="${i}" class="ui-btn" style="flex:none;font-size:10px;padding:2px 7px;border-color:#e6c9c1;color:#8f322b">${icon('x', 'w-3 h-3')}</button>
+      <button data-tc-del="${i}" class="ui-btn" style="flex:none;font-size:10px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
     </div>`;
   }).join('');
   const blockRows = s.blocks.map(b => `
@@ -265,8 +265,8 @@ function tplConfirmPaint() {
         really a blank, add anything missed. Nothing publishes until you have been through the builder.</p>
     </section>
     ${s.scanned ? `
-    <section id="tc-scan-banner" style="${CARD};padding:12px 16px;border-color:#e6c98a;background:#fdf7ea">
-      <p style="margin:0;font-size:12px;color:#7a541a;line-height:1.55">
+    <section id="tc-scan-banner" style="${CARD};padding:12px 16px;border-color:var(--st-amber-line);background:var(--st-amber-bg)">
+      <p style="margin:0;font-size:12px;color:var(--st-amber-fg);line-height:1.55">
         <strong>This document was a scan. Please check number fields carefully.</strong>
         Reading a photograph of paper involves more guesswork than reading a Word file, and digits are
         where mistakes hide — a 3 read as an 8 in an ID or KRA PIN looks perfectly normal on screen.
@@ -417,10 +417,10 @@ async function openTemplateLibDetail(id) {
       <span style="min-width:0;flex:1">
         <span style="display:block;font-size:12px">${v.status === 'published' ? `Published ${fmtAt(v.publishedAt)}${v.publishedBy ? ' by ' + esc(v.publishedBy) : ''}` : v.status === 'superseded' ? `Superseded — was published ${fmtAt(v.publishedAt)}` : 'Draft in progress'}</span>
         ${v.changeNote ? `<span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:2px">“${esc(v.changeNote)}”</span>` : ''}
-        ${v.errorNote ? `<span style="display:block;font-size:11px;color:#8f322b;margin-top:2px">${esc(v.errorNote)}</span>` : ''}
+        ${v.errorNote ? `<span style="display:block;font-size:11px;color:var(--st-ruby-fg);margin-top:2px">${esc(v.errorNote)}</span>` : ''}
       </span>
       ${canManage && v.status === 'draft' ? `<button data-tpllib-build="${v.id}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:3.5px 10px;flex:none">${icon('pencil', 'w-3 h-3')} Open builder</button>` : ''}
-      ${v.status === 'published' ? `<span class="badge" style="background:#e8f4ee;color:#1e6b4d;flex:none"><span class="dot" style="background:#2e8763"></span>Live</span>` : ''}
+      ${v.status === 'published' ? `<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg);flex:none"><span class="dot" style="background:var(--st-green-dot)"></span>Live</span>` : ''}
     </div>`).join('');
 
   document.getElementById('content').innerHTML = `
@@ -445,7 +445,7 @@ async function openTemplateLibDetail(id) {
           ${canManage ? `<button id="tpllib-edit-meta" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('pencil', 'w-3 h-3')} Rename / describe</button>` : ''}
           ${canManage && t.status !== 'archived' ? `<button id="tpllib-archive" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('box', 'w-3 h-3')} Archive</button>` : ''}
           ${canManage && t.status === 'archived' ? `<button id="tpllib-restore" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Restore</button>` : ''}
-          ${canManage && !t.contractsCreated ? `<button id="tpllib-delete" class="ui-btn" style="font-size:11.5px;padding:4px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash', 'w-3 h-3')} Delete</button>` : ''}
+          ${canManage && !t.contractsCreated ? `<button id="tpllib-delete" class="ui-btn" style="font-size:11.5px;padding:4px 10px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('trash', 'w-3 h-3')} Delete</button>` : ''}
         </div>
       </div>
       ${t.status === 'archived' ? `<p style="margin:12px 0 0;font-size:11px;color:var(--color-neutral-600);background:var(--color-neutral-100);border-radius:8px;padding:8px 12px">
@@ -587,7 +587,7 @@ function renderTemplateFormSection(c) {
     <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
       <h6 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0;flex:1">Contract form
         <span style="font-weight:400;color:var(--color-neutral-500)">· from “${esc(form.templateName || '')}” v${form.versionNumber || ''}</span></h6>
-      <span style="font-size:10px;color:${filled.length === required.length ? '#1e6b4d' : '#8a5a19'};font-weight:600">${filled.length}/${required.length} required filled</span>
+      <span style="font-size:10px;color:${filled.length === required.length ? 'var(--st-green-fg)' : 'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required filled</span>
     </div>
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
       ${locked ? `<div style="font-size:11px;color:var(--color-neutral-600)">Executed — the form is part of the sealed record.</div>` : ''}
@@ -597,11 +597,11 @@ function renderTemplateFormSection(c) {
           const idx = form.fields.indexOf(f);
           const problem = String(values[f.fieldKey] || '').trim() !== '' ? problemOf(f.fieldKey) : null;
           return `<label style="display:block">
-            <span style="display:block;font-size:11px;font-weight:600;margin-bottom:3px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:#8f322b">*</span>' : ''}</span>
+            <span style="display:block;font-size:11px;font-weight:600;margin-bottom:3px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:var(--st-ruby-fg)">*</span>' : ''}</span>
             ${editable ? tplFormInputHtml(f, values[f.fieldKey], idx)
               : `<span style="display:block;font-size:12px;color:var(--color-neutral-800)">${esc(values[f.fieldKey] || '—')}</span>`}
             ${f.helpText ? `<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>` : ''}
-            <span data-tplf-err="${idx}" style="display:${problem ? 'block' : 'none'};font-size:10.5px;color:#8f322b;margin-top:2px">${esc(problem || '')}</span>
+            <span data-tplf-err="${idx}" style="display:${problem ? 'block' : 'none'};font-size:10.5px;color:var(--st-ruby-fg);margin-top:2px">${esc(problem || '')}</span>
           </label>`;
         }).join('')}`).join('')}
     </div>`;
@@ -699,10 +699,10 @@ function tplFormPopover(c, idx, anchor) {
   pop.id = 'tplf-pop';
   pop.style.cssText = `position:fixed;z-index:80;top:${Math.round(r.bottom + 6)}px;left:${Math.round(Math.min(Math.max(8, r.left), (window.innerWidth || 1200) - 296))}px;width:284px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:10px;box-shadow:var(--shadow-md);padding:10px 12px`;
   pop.innerHTML = `
-    <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:#8f322b">*</span>' : ''}</div>
+    <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:var(--st-ruby-fg)">*</span>' : ''}</div>
     ${tplFormInputHtml(f, (form.values || {})[f.fieldKey], idx)}
     ${f.helpText ? `<div style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>` : ''}
-    <div data-tplf-pop-err style="display:none;font-size:10.5px;color:#8f322b;margin-top:4px"></div>`;
+    <div data-tplf-pop-err style="display:none;font-size:10.5px;color:var(--st-ruby-fg);margin-top:4px"></div>`;
   document.body.appendChild(pop);
   const input = pop.querySelector('[data-tplf]');
   let done = false; // Enter commits, then the focused input's blur fires change — one door only

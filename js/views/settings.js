@@ -94,9 +94,9 @@ function renderAllowancePanel(a){
   const docsPct=a.docs>0?Math.min(100,Math.round(a.docsUsed/a.docs*100)):0;
   const pct=Math.max(moneyPct,docsPct);
   const bar=`<div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-top:5px">
-    <div style="width:${pct}%;height:100%;background:${a.exhausted?'#8f322b':pct>=80?'#b8862b':'#2e8763'};transition:width .3s"></div></div>`;
+    <div style="width:${pct}%;height:100%;background:${a.exhausted?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>`;
   host.innerHTML=`<div>
-    <span style="font-weight:600;color:${a.exhausted?'#8f322b':'#1e6b4d'}">${a.exhausted?'Used up':'Open'}</span>
+    <span style="font-weight:600;color:${a.exhausted?'var(--st-ruby-fg)':'var(--st-green-fg)'}">${a.exhausted?'Used up':'Open'}</span>
     ${a.budget>0?` · <b>${money(a.spent)}</b> of <b>${money(a.budget)}</b>`:' · no money cap'}
     ${a.docs>0?` · <b>${a.docsUsed}</b> of <b>${a.docs}</b> documents`:''}
     ${a.openedBy?`<span style="color:var(--color-neutral-500)"> · opened by ${PB_ESC(a.openedBy)}</span>`:''}
@@ -113,7 +113,7 @@ function renderRateTable(rates, meta){
   const models=Object.keys(rates||{}).sort((a,b)=>a==='default'?1:b==='default'?-1:a.localeCompare(b));
   const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:11px;text-align:right;outline:none';
   host.innerHTML=models.map(m=>`
-    <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px solid rgba(29,31,32,.05)">
+    <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="flex:1;min-width:0;font-size:11px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
       <label style="font-size:9.5px;color:var(--color-neutral-500)">in <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
       <label style="font-size:9.5px;color:var(--color-neutral-500)">out <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
@@ -135,10 +135,10 @@ function renderTeam(){
   const primaryBtn='font-family:var(--font-mono);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer;white-space:nowrap';
   const primaryBtnSm='font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer';
   const secondaryBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:5px;cursor:pointer';
-  const dangerBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:#b0453c;border:1px solid #e3c9c4;border-radius:5px;cursor:pointer';
+  const dangerBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:5px;cursor:pointer';
   const tagAccent='display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:var(--color-accent-200);color:var(--color-accent-800)';
   const avStyle='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700;flex:none;font-family:var(--font-mono)';
-  const roleTag=r=>{ const map={admin:['#eef4fb','#2c455d'],legal:['#fbf4e3','#7d5a14'],viewer:['#eceae6','#5d5d60']};
+  const roleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
     const [bg,fg]=map[r]||map.viewer;
     return `display:inline-flex;align-items:center;font-size:10px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:${bg};color:${fg}`; };
 
@@ -166,7 +166,7 @@ function renderTeam(){
           <span style="min-width:0">
             <span style="display:block;font-weight:500;color:var(--color-text)">${esc(x.name)}${isMe?' <span style="font-weight:400;color:var(--color-neutral-500);font-size:11px">(you)</span>':''}</span>
             <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.email)}</span>
-            <span style="display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${x.title?'var(--color-neutral-700)':'#7d5a14'}">
+            <span style="display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${x.title?'var(--color-neutral-700)':'var(--st-amber-fg)'}">
               ${x.title?esc(x.title):'No job title — signs with no capacity shown'}
               ${(isAdmin()||isMe)?`<button data-title-for="${x.id}" title="This is the capacity they sign contracts in — not their permission level" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${x.title?'Edit':'Add'}</button>`:''}
             </span>
@@ -175,9 +175,9 @@ function renderTeam(){
       </td>
       <td style="padding:8px 10px"><span style="${roleTag(x.role)}">${ROLE_LABEL[x.role]}</span></td>
       <td style="padding:8px 10px;white-space:nowrap">
-        <span style="font-size:11.5px;color:${restricted?'#7d5a14':'var(--color-neutral-700)'}">${accessSummary(x)}</span>
+        <span style="font-size:11.5px;color:${restricted?'var(--st-amber-fg)':'var(--color-neutral-700)'}">${accessSummary(x)}</span>
         ${(isAdmin()&&x.role!=='admin')?`<button data-access-for="${x.id}" title="Edit folder access" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">Edit</button>`:''}
-        <span style="display:block;font-size:10.5px;color:${valuesOn(x)?'var(--color-neutral-600)':'#7d5a14'};margin-top:2px">
+        <span style="display:block;font-size:10.5px;color:${valuesOn(x)?'var(--color-neutral-600)':'var(--st-amber-fg)'};margin-top:2px">
           ${valuesOn(x)?'Sees contract values':'Values hidden'}
           ${(isAdmin()&&x.role!=='admin'&&!isMe&&API_MODE())?`<button data-values-for="${x.id}" data-values-to="${valuesOn(x)?'0':'1'}" title="${valuesOn(x)?'Hide contract values from this member':'Let this member see contract values'}" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${valuesOn(x)?'Hide':'Show'}</button>`:''}
         </span>
@@ -187,7 +187,7 @@ function renderTeam(){
         ${canManage?`<select data-role-for="${x.id}" title="Change role" style="font-size:11px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 6px;color:inherit;font-family:inherit;outline:none">
             ${['admin','legal','viewer'].map(r=>`<option value="${r}" ${x.role===r?'selected':''}>${ROLE_LABEL[r]}</option>`).join('')}
           </select>
-          <button data-remove-user="${x.id}" style="margin-left:8px;font-size:11px;font-weight:600;color:#b0453c;background:none;border:0;cursor:pointer">Remove</button>`
+          <button data-remove-user="${x.id}" style="margin-left:8px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">Remove</button>`
         :`<span style="color:var(--color-neutral-400)">—</span>`}
       </td>
     </tr>`;
@@ -242,7 +242,7 @@ function renderTeam(){
             <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em">Directory · ${(((state.settings||{}).directory)||[]).length} contact${(((state.settings||{}).directory)||[]).length===1?'':'s'}</div>
             <label style="${secondaryBtn}">${icon('upload','w-3.5 h-3.5')} Import CSV<input id="dir-import" type="file" accept=".csv,text/csv" style="display:none"/></label>
           </div>
-          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">Bulk-add signer contacts so titles &amp; emails auto-fill when adding signers on a contract. CSV columns: <b>Name, Email, Title</b>.${(((state.settings||{}).directory)||[]).length?` · <button id="dir-clear" style="color:#b0453c;background:none;border:0;cursor:pointer;font-weight:600;font-size:10.5px">Clear directory</button>`:''}</div>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">Bulk-add signer contacts so titles &amp; emails auto-fill when adding signers on a contract. CSV columns: <b>Name, Email, Title</b>.${(((state.settings||{}).directory)||[]).length?` · <button id="dir-clear" style="color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;font-weight:600;font-size:10.5px">Clear directory</button>`:''}</div>
         </div>`:''}
       </section>
 
@@ -276,7 +276,7 @@ function renderTeam(){
               <input id="ai-key" type="password" placeholder="sk-ant-…" style="${inputStyle}"/></label>
             <button id="ai-key-save" style="${primaryBtn}">Save key</button>
           </div>
-          <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:#b0453c;background:none;border:0;cursor:pointer;padding:0">Remove key</button>
+          <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">Remove key</button>
           ${API_MODE()?`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
             <div style="font-size:12px;font-weight:600;color:var(--color-text)">Model routing</div>
@@ -325,7 +325,7 @@ function renderTeam(){
             <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:11px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
               <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
               <span><b>Thorough extraction</b> — read the whole contract in overlapping chunks instead of one pass.
-              <span style="color:#7d5a14">This runs one deep-tier Copilot call per ~30,000 characters, so a long agreement can cost several times a normal extraction.</span> Pre-flight estimates reflect it.</span></label>
+              <span style="color:var(--st-amber-fg)">This runs one deep-tier Copilot call per ~30,000 characters, so a long agreement can cost several times a normal extraction.</span> Pre-flight estimates reflect it.</span></label>
             <button id="ai-limits-save" style="margin-top:9px;${primaryBtnSm}">Save limits</button>
           </div>
 
@@ -492,13 +492,13 @@ function renderTeam(){
             : `Today: <b>${money(spent)}</b> · ${Number(spend.requests||0).toLocaleString('en-KE')} request${spend.requests===1?'':'s'} <span style="color:var(--color-neutral-500)">(${spend.date||''}) · no daily budget set</span>`; }
         const uBar=document.getElementById('ai-usage-bar');
         if(uBar){ const pct=budget>0?Math.min(100,Math.round(spent/budget*100)):0;
-          uBar.style.width=pct+'%'; uBar.style.background=pct>=90?'#8f322b':pct>=70?'#b8862b':'var(--color-accent)'; }
+          uBar.style.width=pct+'%'; uBar.style.background=pct>=90?'var(--st-ruby-fg)':pct>=70?'var(--st-amber-dot)':'var(--color-accent)'; }
         // per-feature breakdown — so an admin can see what is actually expensive
         const bdHost=document.getElementById('ai-spend-breakdown');
         if(bdHost){
           const rows=Object.entries(spend.byFeature||{}).map(([k,v])=>({k,...v})).sort((a,b)=>b.cost-a.cost);
           bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
-            ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid rgba(29,31,32,.05);font-size:11px">
+            ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:11px">
               <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
               <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString('en-KE')} req</span>
               <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
@@ -593,8 +593,8 @@ function renderTeam(){
   if(!API_MODE() && isAdmin()){
     const st=document.getElementById('ai-cfg-status');
     const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
-      st.innerHTML=k?`<span style="color:#1e6b4d;font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
-                    :`<span style="color:#7d5a14;font-weight:600">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
+      st.innerHTML=k?`<span style="color:var(--st-green-fg);font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
+                    :`<span style="color:var(--st-amber-fg);font-weight:600">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
     refresh();
     // reflect the key change immediately in the sidebar status + Copilot panel header
     const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
@@ -750,7 +750,7 @@ function renderClauseLibrary(){
         <span style="font-size:12.5px;font-weight:600;color:var(--color-text)">${cl.name}</span>
         ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
           <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button>
-          <button data-cl-del="${i}" style="background:none;border:0;cursor:pointer;color:#b0453c">remove</button></span>`:''}
+          <button data-cl-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">remove</button></span>`:''}
       </div>
       <div style="margin-top:4px;font-size:11px;color:var(--color-neutral-600)"><b>Preferred:</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
     </div>`).join('')||`<p style="font-size:11px;color:var(--color-neutral-500)">No clauses in the library.</p>`;
@@ -765,9 +765,9 @@ const PB_ATTR = s => String(s==null?'':s).replace(/"/g,'&quot;');
 // position chip — red for required/forbidden, steel for preferred; ⚑ = escalate
 function pbPosChip(pos){
   const hard=pos.pos==='required'||pos.pos==='forbidden';
-  return `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;${hard?'background:#fdece9;color:#8f322b':'background:#eef4fb;color:#2c455d'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
+  return `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;${hard?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)':'background:var(--st-steel-bg);color:var(--st-steel-fg)'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
 }
-const pbRangeChip = rg => `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;background:#fbf4e3;color:#7d5a14">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+const pbRangeChip = rg => `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
 function renderPlaybookView(){
   const pv=document.getElementById('playbook-view'); if(!pv) return;
   const canEditPb=isAdmin()||currentUser()?.role==='legal';
@@ -780,7 +780,7 @@ function renderPlaybookView(){
         ${baseline?`<span style="font-size:8.5px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:999px;padding:2px 8px">Applies to all</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button>
-          ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:#b0453c">remove</button>`:''}
+          ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">remove</button>`:''}
         </span>`:''}
       </div>
       ${baseline?`<div style="font-size:10px;color:var(--color-accent-800);margin-bottom:7px">The default positions every contract inherits — change these to shift the whole portfolio.</div>`:''}
@@ -844,7 +844,7 @@ function openPlaybookEditor(key){
   </div>`, {maxWidth:'34rem'});
 
   const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
-    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:10.5px;font-weight:600;border:1px solid ${on?(hard?'#d9a59d':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'#fdece9':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'#8f322b':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:6px;cursor:pointer">${l}</button>`; }).join('');
+    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:10.5px;font-weight:600;border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:6px;cursor:pointer">${l}</button>`; }).join('');
   const paint=()=>{
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
@@ -931,7 +931,7 @@ function renderApprovalRules(){
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:10px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
         <span style="font-size:12px;color:var(--color-text)"><b>IF</b> ${condLabel(r.cond)} <b>THEN</b> ${approverLabelOf(r.approver)}</span>
-        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:#b0453c">remove</button></span>`:''}
+        ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">remove</button></span>`:''}
       </div>
     </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500)">No approval rules — contracts can be signed without sign-off.</p>`;
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
@@ -986,7 +986,7 @@ async function loadSessions(){
       return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:7px 10px">
         <span style="min-width:0"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${dev}${s.current?' <span style="font-size:9px;font-family:var(--font-mono);color:var(--color-accent-700)">· this device</span>':''}</span>
         <span style="display:block;font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · last seen ${s.lastSeen?fmtDT(s.lastSeen):'—'}</span></span>
-        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:11px;font-weight:600;color:#b0453c;background:none;border:0;cursor:pointer">Revoke</button>`}
+        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">Revoke</button>`}
       </div>`; }).join('')}</div>`:`<p style="font-size:11px;color:var(--color-neutral-500)">No active sessions.</p>`;
     host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{
       try{ await api('sessions/'+b.getAttribute('data-sess-revoke'),'DELETE'); toast('Session revoked'); loadSessions(); }

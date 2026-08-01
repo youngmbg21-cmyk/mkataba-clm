@@ -86,8 +86,22 @@ function _acMonthsAhead(n){
   for (let i = 0; i < n; i++) out.push(_acMonthKey(new Date(now.getFullYear(), now.getMonth() + i, 1)));
   return out;
 }
-const AC_INK = '#33475c', AC_ACCENT = '#5980a6', AC_GOOD = '#2e8763', AC_WARN = '#b8862b', AC_BAD = '#b0453c';
+/* Chart.js parses colour strings itself, so a CSS var() reference is opaque to
+   it — the tokens are resolved to concrete values here, re-read on every chart
+   build (aiChartHtml) so a theme toggle repaints the next chart correctly. */
+const _acVar = (n, fb) => { try{ const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || fb; }catch(e){ return fb; } };
+let AC_INK = '#475569', AC_MUTED = '#94a3b8', AC_ACCENT = '#0d9488', AC_GOOD = '#10b981', AC_WARN = '#f59e0b', AC_BAD = '#f43f5e';
 const _acGrid = { color: 'rgba(38,55,74,.08)' };
+function _acRefreshPalette(){
+  AC_INK    = _acVar('--color-neutral-600', '#475569');
+  AC_MUTED  = _acVar('--st-gray-dot', '#94a3b8');
+  AC_ACCENT = _acVar('--color-accent', '#0d9488');
+  AC_GOOD   = _acVar('--st-green-dot', '#10b981');
+  AC_WARN   = _acVar('--st-amber-dot', '#f59e0b');
+  AC_BAD    = _acVar('--st-ruby-dot', '#f43f5e');
+  const dark = !!(document.documentElement.classList && document.documentElement.classList.contains('dark'));
+  _acGrid.color = dark ? 'rgba(148,163,184,.14)' : 'rgba(38,55,74,.08)';
+}
 
 /* A Chart.js config, with the house style applied once. Money axes format
    through the app's own currency helper, so a display-currency change is
@@ -127,7 +141,7 @@ const AI_CHART_RECIPES = {
     const counts = order.map(s => cs.filter(c => c.status === s).length);
     if (!counts.some(Boolean)) return null;
     return _acConfig('bar', { labels: order, datasets: [{ label: 'Contracts', data: counts,
-      backgroundColor: [ '#98989b', AC_WARN, AC_GOOD, AC_BAD ], borderRadius: 4 }] },
+      backgroundColor: [ AC_MUTED, AC_WARN, AC_GOOD, AC_BAD ], borderRadius: 4 }] },
       { legend: false });
   },
 
@@ -399,7 +413,7 @@ function aiCustomConfig(spec){
   if (units.length > 1) return { error: 'That chart mixes money with counts on one axis.' };
   const months = _acMonthsAhead(12);
   const cs = _acContracts();
-  const palette = [AC_ACCENT, AC_GOOD, AC_WARN, AC_BAD, '#7d5a14', '#5d5d60'];
+  const palette = [AC_ACCENT, AC_GOOD, AC_WARN, AC_BAD, _acVar('--st-amber-fg', '#b45309'), _acVar('--st-gray-fg', '#475569')];
   const datasets = ds.map((d, i) => {
     const s = all[d.series];
     const kind = d.display === 'line' || d.display === 'area' ? 'line' : 'bar';
@@ -418,6 +432,7 @@ function aiCustomConfig(spec){
 /* Turn one parsed block into a card. Never throws: a bad spec is a card that
    says so, because raw JSON on the page reads as a broken product. */
 function aiChartHtml(block){
+  _acRefreshPalette();
   const spec = block.spec;
   if (block.error || !spec || typeof spec !== 'object') return aiChartNote('That chart could not be read.');
   const title = spec.title ? String(spec.title).slice(0, 120) : '';

@@ -33,11 +33,11 @@ const ADVICE_DEFAULT_RATES = {
 /* Pipeline stages — same treatment as the contract queue. Submitted →
    Delivered is the promise a customer can watch; Closed is the exit lane. */
 const ADVICE_STAGES = [
-  { k:'Submitted',   label:'Submitted',   color:'#98989b', desc:'Received — awaiting triage by the legal team' },
-  { k:'Scoping',     label:'Scoping',     color:'#b8862b', desc:'Counsel is confirming scope and the fee estimate' },
-  { k:'In Progress', label:'In Progress', color:'#5980a6', desc:'Counsel is working on the matter' },
-  { k:'Delivered',   label:'Delivered',   color:'#2e8763', desc:'Feedback delivered to the customer' },
-  { k:'Closed',      label:'Closed',      color:'#b0453c', desc:'Withdrawn or declined' },
+  { k:'Submitted',   label:'Submitted',   color:'var(--st-gray-dot)', desc:'Received — awaiting triage by the legal team' },
+  { k:'Scoping',     label:'Scoping',     color:'var(--st-amber-dot)', desc:'Counsel is confirming scope and the fee estimate' },
+  { k:'In Progress', label:'In Progress', color:'var(--color-accent)', desc:'Counsel is working on the matter' },
+  { k:'Delivered',   label:'Delivered',   color:'var(--st-green-dot)', desc:'Feedback delivered to the customer' },
+  { k:'Closed',      label:'Closed',      color:'var(--st-ruby-dot)', desc:'Withdrawn or declined' },
 ];
 const adviceStage = k => ADVICE_STAGES.find(s=>s.k===k) || ADVICE_STAGES[0];
 const ADVICE_ACTIVE = ['Submitted','Scoping','In Progress'];

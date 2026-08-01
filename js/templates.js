@@ -9,9 +9,9 @@ const FOLDERS = {
   proc:  { id:'proc',  name:'Procurement & Raw Materials', ic:'leaf',      color:'#2e9f80', desc:'Ingredient, commodity and packaging supply into the plants.' },
   mfg:   { id:'mfg',   name:'Manufacturing & Production',  ic:'factory',   color:'#b45309', desc:'Co-packing, tolling and plant equipment agreements.' },
   dist:  { id:'dist',  name:'Warehousing & Distribution',  ic:'truck',     color:'#0369a1', desc:'3PL warehousing, cold chain and primary distribution.' },
-  sales: { id:'sales', name:'Sales & Route-to-Market',     ic:'store',     color:'#b8862b', desc:'Distributor, modern-trade and e-commerce supply deals.' },
+  sales: { id:'sales', name:'Sales & Route-to-Market',     ic:'store',     color:'var(--st-amber-dot)', desc:'Distributor, modern-trade and e-commerce supply deals.' },
   mktg:  { id:'mktg',  name:'Marketing & Brand',           ic:'megaphone', color:'#7c3aed', desc:'Agency, media, activation and sponsorship contracts.' },
-  corp:  { id:'corp',  name:'Corporate & Compliance',      ic:'briefcase', color:'#2e8763', desc:'NDAs, leases, audit, legal and IT / professional services.' },
+  corp:  { id:'corp',  name:'Corporate & Compliance',      ic:'briefcase', color:'var(--st-green-dot)', desc:'NDAs, leases, audit, legal and IT / professional services.' },
 };
 
 /* ---- Custom value streams ("folders") ----------------------------------
@@ -26,7 +26,7 @@ const CUSTOM_FOLDER_COLORS = ['#c2410c','#0e7490','#be123c','#4d7c0f','#1d4ed8',
 function loadCustomFolders(){
   let saved=null; try{ saved=JSON.parse(localStorage.getItem(FOLDER_LS)); }catch(e){}
   if(Array.isArray(saved)) saved.forEach(f=>{
-    if(f && f.id && !FOLDERS[f.id]) FOLDERS[f.id]={ id:f.id, name:f.name, ic:f.ic||'folder', color:f.color||'#5980a6', desc:f.desc||'Custom value stream.', custom:true };
+    if(f && f.id && !FOLDERS[f.id]) FOLDERS[f.id]={ id:f.id, name:f.name, ic:f.ic||'folder', color:f.color||'var(--color-accent)', desc:f.desc||'Custom value stream.', custom:true };
   });
 }
 function saveCustomFolders(){
@@ -91,7 +91,7 @@ function promptNewFolder(){
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 4px">New value stream</h3>
         <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5">Create a custom folder to file contracts under. It becomes available everywhere streams are used — dropdowns, filters, the map and reports.</p>
         <input id="nf-name" placeholder="e.g. Legal &amp; Regulatory" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:9px 11px;font:inherit;font-size:13px;outline:none" />
-        <div id="nf-err" style="font-size:11px;color:#b0453c;margin-top:6px;display:none">Please enter a name.</div>
+        <div id="nf-err" style="font-size:11px;color:var(--st-ruby-dot);margin-top:6px;display:none">Please enter a name.</div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
           <button id="nf-cancel" class="ui-btn" style="font-size:12px">Cancel</button>
           <button id="nf-save" class="ui-btn ui-btn-primary" style="font-size:12px">Create stream</button>

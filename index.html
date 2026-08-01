@@ -150,6 +150,10 @@
     --color-doc-text:#15181a;
     --color-doc-muted:#4a4f54;         /* secondary document copy only */
     --color-doc-rule:#c9ccd1;
+    /* The sheet itself. Views must paint the paper with this token — never a
+       literal #fbfbfc — so the document joins the theme flip. Print pins it
+       back to white (see @media print). */
+    --color-doc-surface:#fbfbfc;
 
     --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
     --radius-sm:8px; --radius-md:12px; --radius-lg:12px;
@@ -167,12 +171,12 @@
     /* danger / destructive-action tone (used by confirmDialog, delete, decline) */
     --danger:#dc2626; --danger-hover:#b91c1c; --red-tint:rgba(220,38,38,.1);
 
-    /* status palette (wash bg / fg / dot) */
-    --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;
-    --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b;
-    --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981;
-    --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;
-    --st-steel-bg:#ccfbf1; --st-steel-fg:#115e59; --st-steel-dot:#14b8a6;
+    /* status palette (wash bg / fg / dot / line for bordered callouts) */
+    --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;  --st-gray-line:#cbd5e1;
+    --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b; --st-amber-line:#e0c48a;
+    --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981; --st-green-line:#a8cbb8;
+    --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;  --st-ruby-line:#e6c9c1;
+    --st-steel-bg:#ccfbf1; --st-steel-fg:#115e59; --st-steel-dot:#14b8a6; --st-steel-line:#99f6e4;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
     --tile-steel-bg:#ccfbf1;   --tile-steel-fg:#115e59;
@@ -189,17 +193,24 @@
 
   /* ============================================================
      DARK THEME — html.dark (toggled from the top header, persisted
-     as 'hati-theme'). Surfaces and neutrals flip; the teal accent
-     ramp and the document paper (--color-doc-*) deliberately do not:
-     a contract still reads as paper in a dark room. Views are being
-     re-skinned page-by-page; anything still reading these tokens
-     inherits a coherent dark automatically.
+     as 'hati-theme'). Everything on screen flips, the document
+     included: in dark mode the contract pane is a dark surface with
+     light ink, set apart from the app by its border and shadow — the
+     HaTi reference treats the paper as part of the theme, not an
+     exemption. Only print/PDF stays ink-on-white (see @media print).
+     Anything reading these tokens inherits a coherent dark
+     automatically.
      ============================================================ */
   html.dark{
     --color-bg:#020617;
     --color-surface:#0f172a;
     --color-text:#e2e8f0;
     --color-divider:#1e293b;
+
+    --color-doc-text:#e2e8f0;
+    --color-doc-muted:#94a3b8;
+    --color-doc-rule:#334155;
+    --color-doc-surface:#0f172a;
 
     --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
     --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#94a3b8;
@@ -209,11 +220,11 @@
     --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.6);
     --shadow-lg:0 12px 32px rgba(0,0,0,.6);
 
-    --st-gray-bg:rgba(148,163,184,.14);  --st-gray-fg:#94a3b8;  --st-gray-dot:#64748b;
-    --st-amber-bg:rgba(245,158,11,.15);  --st-amber-fg:#fbbf24; --st-amber-dot:#f59e0b;
-    --st-green-bg:rgba(16,185,129,.15);  --st-green-fg:#34d399; --st-green-dot:#10b981;
-    --st-ruby-bg:rgba(244,63,94,.15);    --st-ruby-fg:#fb7185;  --st-ruby-dot:#f43f5e;
-    --st-steel-bg:rgba(20,184,166,.15);  --st-steel-fg:#5eead4; --st-steel-dot:#14b8a6;
+    --st-gray-bg:rgba(148,163,184,.14);  --st-gray-fg:#94a3b8;  --st-gray-dot:#64748b;  --st-gray-line:rgba(148,163,184,.3);
+    --st-amber-bg:rgba(245,158,11,.15);  --st-amber-fg:#fbbf24; --st-amber-dot:#f59e0b; --st-amber-line:rgba(245,158,11,.35);
+    --st-green-bg:rgba(16,185,129,.15);  --st-green-fg:#34d399; --st-green-dot:#10b981; --st-green-line:rgba(16,185,129,.35);
+    --st-ruby-bg:rgba(244,63,94,.15);    --st-ruby-fg:#fb7185;  --st-ruby-dot:#f43f5e;  --st-ruby-line:rgba(244,63,94,.35);
+    --st-steel-bg:rgba(20,184,166,.15);  --st-steel-fg:#5eead4; --st-steel-dot:#14b8a6; --st-steel-line:rgba(20,184,166,.35);
 
     --tile-steel-bg:rgba(20,184,166,.16);  --tile-steel-fg:#5eead4;
     --tile-emerald-bg:rgba(16,185,129,.16);--tile-emerald-fg:#34d399;
@@ -263,6 +274,82 @@
   /* status badge — pill-shaped chip (optional leading dot) */
   .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:999px;white-space:nowrap;font-family:var(--font-body);}
   .badge>.dot{width:6px;height:6px;border-radius:50%;flex:none;}
+
+  /* scan-finding severity (SEV_META in js/ai.js) — status tokens, so the
+     chips re-map in dark mode like every other status wash */
+  .sev-high{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+  .sev-med{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+  .sev-low{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+  .sev-dot-high{background:var(--st-ruby-dot);}
+  .sev-dot-med{background:var(--st-amber-dot);}
+  .sev-dot-low{background:var(--st-gray-dot);}
+  .sev-text-high{color:var(--st-ruby-fg);}
+  .sev-text-med{color:var(--st-amber-fg);}
+  .sev-text-low{color:var(--st-gray-fg);}
+
+  /* shared compact contract row (contractRow in js/components.js) */
+  .crow{border-bottom:1px solid var(--color-divider);}
+  .crow:last-child{border-bottom:0;}
+  .crow:hover{background:color-mix(in srgb,var(--color-accent) 7%,transparent);}
+
+  /* ============================================================
+     DARK RE-MAP FOR COMPILED UTILITIES.
+     The Tailwind sheet above was compiled without dark: variants, so every
+     bg-white / text-ink / border-hair in the older markup is a light-mode
+     literal. These overrides give those utilities their dark meaning in one
+     place — html.dark + class outranks the single-class utility — so views
+     built on them join the theme without per-call-site edits. New work
+     should still source the CSS variables directly.
+     ============================================================ */
+  /* surfaces */
+  html.dark .bg-white{background-color:var(--color-surface);}
+  html.dark .bg-canvas,html.dark .bg-docbg,html.dark .bg-slate-50{background-color:var(--color-bg);}
+  html.dark .bg-canvas\/60,html.dark .bg-slate-50\/60{background-color:color-mix(in srgb,var(--color-bg) 60%,transparent);}
+  html.dark .bg-slate-200{background-color:var(--color-neutral-200);}
+  html.dark .bg-brand-50,html.dark .bg-brand-50\/30,html.dark .bg-brand-50\/40,html.dark .bg-brand-50\/50{background-color:rgba(20,184,166,.08);}
+  html.dark .bg-brand-100{background-color:rgba(20,184,166,.16);}
+  html.dark .bg-emerald-50,html.dark .bg-green-100{background-color:var(--st-green-bg);}
+  html.dark .bg-rose-50,html.dark .bg-red-100{background-color:var(--st-ruby-bg);}
+  html.dark .bg-blue-50{background-color:rgba(59,130,246,.15);}
+  html.dark .bg-indigo-100{background-color:rgba(99,102,241,.18);}
+  html.dark .from-brand-50{--tw-gradient-from:rgba(20,184,166,.10) var(--tw-gradient-from-position);--tw-gradient-to:rgba(20,184,166,0) var(--tw-gradient-to-position);}
+  html.dark .to-white{--tw-gradient-to:var(--color-surface) var(--tw-gradient-to-position);}
+  /* ink */
+  html.dark .text-ink,html.dark .text-brand-900,html.dark .text-brand-800{color:var(--color-text);}
+  html.dark .text-brand-800\/85{color:color-mix(in srgb,var(--color-text) 85%,transparent);}
+  html.dark .text-brand-800\/80,html.dark .text-ink\/80{color:color-mix(in srgb,var(--color-text) 80%,transparent);}
+  html.dark .text-brand-800\/75{color:color-mix(in srgb,var(--color-text) 75%,transparent);}
+  html.dark .text-brand-800\/70,html.dark .text-ink\/70{color:color-mix(in srgb,var(--color-text) 72%,transparent);}
+  html.dark .text-brand-800\/65,html.dark .text-ink\/65{color:color-mix(in srgb,var(--color-text) 68%,transparent);}
+  html.dark .text-brand-800\/60,html.dark .text-ink\/60{color:color-mix(in srgb,var(--color-text) 64%,transparent);}
+  html.dark .text-ink\/55{color:color-mix(in srgb,var(--color-text) 58%,transparent);}
+  html.dark .text-ink\/50{color:color-mix(in srgb,var(--color-text) 54%,transparent);}
+  html.dark .text-brand-800\/45,html.dark .text-ink\/45{color:color-mix(in srgb,var(--color-text) 50%,transparent);}
+  html.dark .text-ink\/40{color:color-mix(in srgb,var(--color-text) 46%,transparent);}
+  html.dark .text-brand-800\/35{color:color-mix(in srgb,var(--color-text) 42%,transparent);}
+  html.dark .text-brand-700,html.dark .text-brand-600{color:var(--color-accent-400);}
+  html.dark .text-gold-600{color:var(--st-amber-fg);}
+  html.dark .text-emerald-700,html.dark .text-green-800{color:var(--st-green-fg);}
+  html.dark .text-rose-600,html.dark .text-rose-700,html.dark .text-rose-800,html.dark .text-rose-700\/80,html.dark .text-red-800{color:var(--st-ruby-fg);}
+  html.dark .text-blue-900{color:#93c5fd;}
+  html.dark .text-indigo-800{color:#a5b4fc;}
+  /* hairlines */
+  html.dark .border-hair,html.dark .border-line,html.dark .border-inputln,
+  html.dark .border-slate-200,html.dark .border-slate-300,
+  html.dark .border-brand-100,html.dark .border-brand-100\/50,html.dark .border-brand-100\/60,
+  html.dark .border-brand-200{border-color:var(--color-divider);}
+  html.dark .border-brand-300{border-color:rgba(20,184,166,.4);}
+  html.dark .border-emerald-200{border-color:var(--st-green-line);}
+  html.dark .border-rose-200{border-color:var(--st-ruby-line);}
+  html.dark .border-blue-200{border-color:rgba(59,130,246,.35);}
+  /* interactive states */
+  html.dark .hover\:bg-brand-50:hover,html.dark .hover\:bg-brand-50\/50:hover,html.dark .hover\:bg-brand-50\/60:hover{background-color:rgba(20,184,166,.12);}
+  html.dark .hover\:bg-slate-50:hover{background-color:var(--color-neutral-100);}
+  html.dark .hover\:bg-rose-50:hover{background-color:var(--st-ruby-bg);}
+  html.dark .hover\:text-brand-800:hover,html.dark .hover\:text-brand-900:hover{color:var(--color-accent-300);}
+  html.dark .hover\:text-ink:hover{color:var(--color-text);}
+  html.dark .hover\:text-ink\/70:hover{color:color-mix(in srgb,var(--color-text) 72%,transparent);}
+  html.dark .hover\:border-indigo-300:hover{border-color:rgba(99,102,241,.5);}
 
   /* buttons */
   .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
@@ -398,6 +485,11 @@
   .field{font-family:var(--font-mono);font-size:.95em;color:var(--color-accent-800);background:var(--color-accent-100);border:none;border-bottom:1.5px dashed var(--color-accent-400);padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
   .field:hover{background:var(--color-accent-200);}
   .field:focus{background:#fff;border-bottom-color:var(--color-accent);box-shadow:0 2px 0 0 var(--color-accent),0 0 0 2px color-mix(in srgb,var(--color-accent) 18%,transparent);}
+  /* On the dark paper the solid mint ramp would sit as a light chip; a
+     translucent teal wash reads as the same affordance on both themes. */
+  html.dark .field{background:rgba(20,184,166,.16);color:#5eead4;border-bottom-color:rgba(45,212,191,.55);}
+  html.dark .field:hover{background:rgba(20,184,166,.28);}
+  html.dark .field:focus{background:var(--color-surface);}
   .field.field-date{min-width:140px;} .field.field-num{text-align:right;min-width:130px;}
   .field:disabled{color:var(--color-text);background:transparent;border-bottom:1.5px solid var(--color-divider);-webkit-text-fill-color:var(--color-text);opacity:1;cursor:default;font-weight:600;}
 
@@ -620,6 +712,18 @@
     body>*{display:none!important;}
     #print-root{display:block!important;}
     body{background:#fff;}
+    /* Ink on white regardless of the on-screen theme: the filed artefact is
+       not themed. Every token the document surfaces read is pinned back to
+       its measured light value here, so a dark-mode session prints the same
+       page a light-mode session does. */
+    html.dark,html.dark #print-root,#print-root{
+      --color-doc-text:#15181a; --color-doc-muted:#4a4f54; --color-doc-rule:#c9ccd1;
+      --color-doc-surface:#fff; --color-bg:#fff; --color-surface:#fff;
+      --color-text:#1e293b; --color-divider:#e2e8f0;
+      --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
+      --color-neutral-400:#94a3b8; --color-neutral-500:#64748b; --color-neutral-600:#475569;
+      --color-neutral-700:#334155; --color-neutral-800:#1e293b; --color-neutral-900:#0f172a;
+    }
     /* Print the ink that was measured, not whatever the print pipeline decides
        is economical. Without this, browsers and drivers lighten body text and
        drop background fills — which would silently undo the contrast work on
@@ -937,13 +1041,13 @@
 </div>
 
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
-<div id="ai-scrim" class="fixed inset-0 z-40" style="background:rgba(29,45,61,.35);backdrop-filter:blur(2px);"></div>
+<div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
 <section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">
   <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-accent-900);color:#fff;">
     <div class="h-9 w-9 grid place-items-center shrink-0" style="background:var(--color-accent);color:#fff;border-radius:4px;" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
       <div class="font-display font-600">HaTi Copilot</div>
-      <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:#2e8763;"></span>Searching your live contract data</div>
+      <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span>Searching your live contract data</div>
     </div>
     <button id="ai-expand" title="Expand the panel" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
     <button id="ai-clear" title="Delete conversation" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="trash"></button>
@@ -1005,9 +1109,9 @@
   color:var(--color-neutral-800);max-height:9.6em;overflow:auto;white-space:pre-wrap}
 #ai-feed .ai-target-ask{font-size:13px;line-height:1.55}
 .ai-tone{font-weight:600;border-radius:3px;padding:0 3px}
-.ai-tone-pos{color:#1e6b4d;background:rgba(46,135,99,.10)}
-.ai-tone-neg{color:#8f322b;background:rgba(176,69,60,.10)}
-.ai-tone-warn{color:#7d5a14;background:rgba(184,134,43,.12)}
+.ai-tone-pos{color:var(--st-green-fg);background:var(--st-green-bg)}
+.ai-tone-neg{color:var(--st-ruby-fg);background:var(--st-ruby-bg)}
+.ai-tone-warn{color:var(--st-amber-fg);background:var(--st-amber-bg)}
 .ai-tone-mut{color:var(--color-neutral-600)}
 .ai-chart{border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;
   padding:10px 12px;margin:.5em 0}

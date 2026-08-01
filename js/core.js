@@ -135,13 +135,13 @@ const EMAIL_SETUP_LINE = 'Email isn’t set up on this workspace yet, so nothing
 function emailSetupBannerHtml(){
   if(!emailOff()) return '';
   return `
-    <div id="email-setup-banner" style="display:flex;align-items:flex-start;gap:11px;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:8px;padding:12px 16px">
-      <span style="flex:none;margin-top:1px;color:#b8862b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+    <div id="email-setup-banner" style="display:flex;align-items:flex-start;gap:11px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:8px;padding:12px 16px">
+      <span style="flex:none;margin-top:1px;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13px;font-weight:600;color:#7d5a14">Email isn’t set up yet</span>
-        <span style="display:block;font-size:11.5px;color:#7d5a14;margin-top:2px">${EMAIL_SETUP_LINE}</span>
+        <span style="display:block;font-size:13px;font-weight:600;color:var(--st-amber-fg)">Email isn’t set up yet</span>
+        <span style="display:block;font-size:11.5px;color:var(--st-amber-fg);margin-top:2px">${EMAIL_SETUP_LINE}</span>
       </span>
-      ${isAdmin()?`<button id="email-setup-go" class="ui-btn" style="flex:none;font-size:11.5px;padding:6px 12px;border-color:#dcc38a">Set it up</button>`:''}
+      ${isAdmin()?`<button id="email-setup-go" class="ui-btn" style="flex:none;font-size:11.5px;padding:6px 12px;border-color:var(--st-amber-line)">Set it up</button>`:''}
     </div>`;
 }
 function wireEmailSetupBanner(){
@@ -203,10 +203,10 @@ function fieldDisplayValue(inp){
 // Declined so filters, backend and logic are untouched — only the visible
 // chip label and colours change.
 const STATUS_META = {
-  'Draft':        {label:'Drafting',  dot:'#98989b', bg:'#eceae6', tx:'#5d5d60', bd:'#dedcd6'},
-  'Under Review': {label:'In Review', dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14', bd:'#f0e3c2'},
-  'Signed':       {label:'Executed',  dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d', bd:'#cfe7d9'},
-  'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#fdece9', tx:'#8f322b', bd:'#f5d4cd'},
+  'Draft':        {label:'Drafting',  dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)',  bd:'var(--st-gray-line)'},
+  'Under Review': {label:'In Review', dot:'var(--st-amber-dot)', bg:'var(--st-amber-bg)', tx:'var(--st-amber-fg)', bd:'var(--st-amber-line)'},
+  'Signed':       {label:'Executed',  dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)', bd:'var(--st-green-line)'},
+  'Declined':     {label:'Closed',    dot:'var(--st-ruby-dot)',  bg:'var(--st-ruby-bg)',  tx:'var(--st-ruby-fg)',  bd:'var(--st-ruby-line)'},
 };
 const statusLabel = s => (STATUS_META[s]||{}).label || s;
 
@@ -243,7 +243,7 @@ function contractExpired(c){
    stored status is untouched — filters, the server and every existing query
    keep working on Draft/Under Review/Signed/Declined exactly as before. */
 const contractStage = c => contractExpired(c) ? 'Expired' : (c&&c.status);
-const EXPIRED_META = {label:'Expired', dot:'#8a8a8d', bg:'#efedea', tx:'#5d5d60', bd:'#dedcd6'};
+const EXPIRED_META = {label:'Expired', dot:'var(--st-gray-dot)', bg:'var(--st-gray-bg)', tx:'var(--st-gray-fg)', bd:'var(--st-gray-line)'};
 const contractStatusChip = c => contractExpired(c)
   ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
   : statusChip(c&&c.status);
@@ -259,15 +259,15 @@ const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
 // server-side; these chips only render it. Distinct from STATUS_META — a
 // contract can be In Review while its shares are in several of these states.
 const SHARE_META = {
-  sent:    {label:'Sent',      dot:'#98989b', bg:'#eceae6', tx:'#5d5d60'},
-  opened:  {label:'Opened',    dot:'#5980a6', bg:'#e7edf3', tx:'#3f5f7d'},
-  changes: {label:'Changes',   dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14'},
-  accepted:{label:'Accepted',  dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
-  reviewed:{label:'Reviewed',  dot:'#98989b', bg:'#f2f1ee', tx:'#5d5d60'},
-  signed:  {label:'Signed',    dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
-  declined:{label:'Declined',  dot:'#b0453c', bg:'#fdece9', tx:'#8f322b'},
-  expired: {label:'Expired',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
-  revoked: {label:'Revoked',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
+  sent:    {label:'Sent',      dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
+  opened:  {label:'Opened',    dot:'var(--st-steel-dot)', bg:'var(--st-steel-bg)', tx:'var(--st-steel-fg)'},
+  changes: {label:'Changes',   dot:'var(--st-amber-dot)', bg:'var(--st-amber-bg)', tx:'var(--st-amber-fg)'},
+  accepted:{label:'Accepted',  dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)'},
+  reviewed:{label:'Reviewed',  dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
+  signed:  {label:'Signed',    dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)'},
+  declined:{label:'Declined',  dot:'var(--st-ruby-dot)',  bg:'var(--st-ruby-bg)',  tx:'var(--st-ruby-fg)'},
+  expired: {label:'Expired',   dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
+  revoked: {label:'Revoked',   dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
 };
 const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
   return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
@@ -285,13 +285,13 @@ const questionCount = cid => {
   const hit=w.find(x=>x.contractId===cid);
   return hit?hit.count:0; };
 const questionDot = cid => { const n=questionCount(cid); if(!n) return '';
-  return `<span title="${n} question${n===1?'':'s'} waiting for your reply" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
+  return `<span title="${n} question${n===1?'':'s'} waiting for your reply" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
-  ruby:  {bg:'#fdece9', fg:'#8f322b', dot:'#b0453c'},
-  amber: {bg:'#fbf4e3', fg:'#7d5a14', dot:'#b8862b'},
-  green: {bg:'#e8f4ee', fg:'#1e6b4d', dot:'#2e8763'},
+  ruby:  {bg:'var(--st-ruby-bg)',  fg:'var(--st-ruby-fg)',  dot:'var(--st-ruby-dot)'},
+  amber: {bg:'var(--st-amber-bg)', fg:'var(--st-amber-fg)', dot:'var(--st-amber-dot)'},
+  green: {bg:'var(--st-green-bg)', fg:'var(--st-green-fg)', dot:'var(--st-green-dot)'},
 };
 const riskBand = r => r>=60?'ruby':r>=35?'amber':'green';
 const riskPal  = r => RISK_PAL[riskBand(r)];
@@ -348,7 +348,7 @@ function toast(msg,kind='ok'){
   el.className='toast-in';
   el.style.cssText=`display:flex;align-items:center;gap:10px;border-radius:4px;`
     +`border:1px solid ${isErr?'color-mix(in srgb,#fff 22%,transparent)':'color-mix(in srgb,#fff 14%,transparent)'};`
-    +`background:${isErr?'#b0453c':'var(--color-accent-900)'};color:#fff;`
+    +`background:${isErr?'var(--st-ruby-dot)':'var(--color-accent-900)'};color:#fff;`
     +`padding:11px 15px;box-shadow:var(--shadow-lg);font-size:13px;font-family:var(--font-body);max-width:20rem;`;
   el.innerHTML=`<span style="display:inline-flex;color:${isErr?'#fff':'var(--color-accent-300)'};">${icon(kind==='ok'?'check2':'ban')}</span><span>${msg}</span>`;
   root.appendChild(el);
@@ -740,7 +740,7 @@ function renderAuth(mode){
       ${input('li-email','Email','email')}
       ${input('li-pass','Password','password')}
       <button id="li-go" class="ui-btn ui-btn-primary" style="${PBTN}">Sign in</button>
-      <p id="li-err" class="hidden" style="text-align:center;font-size:12px;color:#b0453c;margin-top:12px;"></p>
+      <p id="li-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>
       ${REMOTE?`<button id="li-forgot" style="${LINKBTN}">Forgot password?</button>`:''}
       ${REMOTE?'':`<button id="li-reset" style="${LINKBTN}">Reset workspace (erases all local data)</button>`}`);
     document.getElementById('li-go').addEventListener('click',doLogin);
@@ -779,7 +779,7 @@ function renderAuth(mode){
       <p style="${SUB}">Choose a new password for your account.</p>
       ${input('rs-pass','New password','password','Min 8 characters')}
       <button id="rs-go" class="ui-btn ui-btn-primary" style="${PBTN}">Save new password</button>
-      <p id="rs-err" class="hidden" style="text-align:center;font-size:12px;color:#b0453c;margin-top:12px;"></p>`);
+      <p id="rs-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>`);
     document.getElementById('rs-go').addEventListener('click',async()=>{
       const pass=document.getElementById('rs-pass').value;
       if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
@@ -864,7 +864,7 @@ function renderMustChangePassword(){
         <input id="cp-new" type="password" placeholder="New password (min 8 characters)" style="${F}"/>
         <input id="cp-again" type="password" placeholder="Repeat the new password" style="${F}"/>
         <button id="cp-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:14px;">Set my password</button>
-        <p id="cp-err" class="hidden" style="text-align:center;font-size:12px;color:#b0453c;margin-top:12px;"></p>
+        <p id="cp-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>
       </div></div>`;
   document.getElementById('cp-go').addEventListener('click',async()=>{
     const cur=document.getElementById('cp-current').value;
@@ -957,7 +957,7 @@ function renderSideUser(){
   // is visibly reflected (green ✦ = Claude answering; grey = keyword fallback).
   const aiOn=(typeof copilotAvailable==='function') && copilotAvailable();
   const st=document.getElementById('side-status');
-  if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'#1e6b4d':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude Copilot':'Copilot off'}</span> · ${online} online`;
+  if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'var(--st-green-fg)':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude Copilot':'Copilot off'}</span> · ${online} online`;
 }
 // Bottom-left Copilot meter: today's real Anthropic API calls across the workspace,
 // so the owner can watch actual usage and size a per-customer daily limit.
@@ -1611,8 +1611,8 @@ function shareSummaryStepHtml(c, opts={}){
         <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:1px">${esc(x.clause)} · ${esc(x.kind)} · ${esc(x.mine?'yours':x.author)}</span>
       </span>
       <span style="flex:none;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:2px 6px;margin-top:1px;
-        background:${x.status==='accepted'?'#e4f1ea':x.status==='rejected'?'#f9ecea':'#fdf3e3'};
-        color:${x.status==='accepted'?'#1e6b4d':x.status==='rejected'?'#b0453c':'#9a6a1f'}">${esc(x.status)}</span>
+        background:${x.status==='accepted'?'var(--st-green-bg)':x.status==='rejected'?'var(--st-ruby-bg)':'var(--st-amber-bg)'};
+        color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
   const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:8px 10px;font-size:12px;font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
   return `
@@ -1628,7 +1628,7 @@ function shareSummaryStepHtml(c, opts={}){
         :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
       <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently</span>
         <textarea id="sh-summary" rows="5" style="${FLD}">${esc(s?s.text:'')}</textarea></label>
-      ${opts.handOver?`<div id="share-handover" style="margin-top:12px;border:1px solid #a8cbb8;background:#eef7f1;border-left:3px solid #1e6b4d;border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.5;color:#14503a">
+      ${opts.handOver?`<div id="share-handover" style="margin-top:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.5;color:var(--st-green-fg)">
         <b>Sending this closes your turn.</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-close-1" class="ui-btn">Close</button>
@@ -1645,8 +1645,8 @@ function readinessPanelHtml(c){
   if(!probs.length) return '';
   const blocks=probs.filter(x=>x.severity==='block');
   const tone=blocks.length
-    ? { bg:'#f9ecea', line:'#e3c4bf', fg:'#8f322b', head:`Not ready to send — ${blocks.length} thing${blocks.length===1?'':'s'} to fix` }
-    : { bg:'#fbf4e3', line:'#f0e3c2', fg:'#7d5a14', head:'Worth checking before you send' };
+    ? { bg:'var(--st-ruby-bg)', line:'var(--st-ruby-line)', fg:'var(--st-ruby-fg)', head:`Not ready to send — ${blocks.length} thing${blocks.length===1?'':'s'} to fix` }
+    : { bg:'var(--st-amber-bg)', line:'var(--st-amber-line)', fg:'var(--st-amber-fg)', head:'Worth checking before you send' };
   return `<div id="share-readiness" style="margin:0 0 12px;border:1px solid ${tone.line};background:${tone.bg};border-radius:5px;padding:10px 12px;">
     <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
     <ul style="margin:0;padding-left:16px;font-size:11.5px;line-height:1.65;color:${tone.fg};">
@@ -2212,11 +2212,11 @@ async function openShareModal(c, opts={}){
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
       ${readinessPanelHtml(c)}
-      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 12px;border:1px solid #e0c48a;background:#fdf6e7;border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:#7d5a14">
+      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 12px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">
         <b>This will not be emailed.</b> ${EMAIL_SETUP_LINE} Press <b>Create link</b> instead and send it to ${esc(c.counterparty||'them')} yourself — or set email up first and come back.</div>`:''}
-      ${server?'':`<div style="margin:0 0 12px;border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:10px 12px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8f322b;margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Demo sharing — for demonstrations only</div>
-        <p style="margin:0;font-size:11.5px;line-height:1.6;color:#8f322b;">Without a HaTi server the whole document travels <strong>inside the link itself</strong>. That link <strong>never expires and cannot be revoked</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
+      ${server?'':`<div style="margin:0 0 12px;border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Demo sharing — for demonstrations only</div>
+        <p style="margin:0;font-size:11.5px;line-height:1.6;color:var(--st-ruby-fg);">Without a HaTi server the whole document travels <strong>inside the link itself</strong>. That link <strong>never expires and cannot be revoked</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
       </div>`}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
       <div id="share-fields">
@@ -2364,7 +2364,7 @@ async function openShareModal(c, opts={}){
     if(ack && !ack.checked){
       toast('This contract is not ready to send — tick the confirmation, or close and complete it','err');
       const panel=document.getElementById('share-readiness');
-      if(panel){ panel.style.outline='2px solid #b0453c'; setTimeout(()=>{ panel.style.outline=''; },1600);
+      if(panel){ panel.style.outline='2px solid var(--st-ruby-dot)'; setTimeout(()=>{ panel.style.outline=''; },1600);
                  panel.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
       return;
     }
@@ -2424,11 +2424,11 @@ async function openShareModal(c, opts={}){
         // which of the three actually happened, and quote the reason.
         const link=r.link?`<div style="margin-top:8px"><span style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all">${esc(r.link)}</span></div>`:'';
         if(r.emailSent){
-          resultBox(`<div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#e8f4ee;border-radius:6px;padding:12px;font-size:12px;color:#1e6b4d;display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Email sent</strong> to ${esc(email)}. You’ll be emailed when they open it${currentUser()?.prefs?.notifyShareOpens?'':' (if enabled in settings)'} and when they respond. Fill in another recipient to share again.</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Email sent</strong> to ${esc(email)}. You’ll be emailed when they open it${currentUser()?.prefs?.notifyShareOpens?'':' (if enabled in settings)'} and when they respond. Fill in another recipient to share again.</span></div>`);
         } else if(r.emailConfigured){
-          resultBox(`<div style="border:1px solid color-mix(in srgb,#b8862b 45%,transparent);background:color-mix(in srgb,#b8862b 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:#7d5a14;display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Not delivered — the mail provider refused it.</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:' No reason was given.'}${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Not delivered — the mail provider refused it.</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:' No reason was given.'}${link}</span></div>`);
         } else {
-          resultBox(`<div style="border:1px solid color-mix(in srgb,#b8862b 45%,transparent);background:color-mix(in srgb,#b8862b 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:#7d5a14;display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Queued, not sent.</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Queued, not sent.</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
         }
       } else if(ch==='whatsapp'){
         const wa=waShareLink(phone, shareMessageText(c,r.link,msg,r.expiresAt));
@@ -2528,7 +2528,7 @@ function reshareNotSentModal(c, out, who){
       : `The mail provider refused it${out.emailError?`: ${esc(out.emailError)}`:'.'}`;
   openModal(`
     <div style="padding:22px 24px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:#b8862b;display:inline-flex">${icon('alert')}</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--st-amber-dot);display:inline-flex">${icon('alert')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Link updated — but not sent</h2></div>
       <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
         ${esc(who)} is now looking at the current wording <b>if they open their link</b> — but they have not been told.
@@ -2578,12 +2578,12 @@ function counterpartySeenHtml(c, shares){
   const stale=days>=3;
   if(st.kind==='opened') return `
     <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:var(--color-neutral-700)">
-      <span style="flex:none;color:#1e6b4d;display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
+      <span style="flex:none;color:var(--st-green-fg);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:160px"><b>${esc(st.who)}</b> opened the current wording ${days===0?'today':`${days} day${days===1?'':'s'} ago`}. No response yet.</span>
     </div>`;
   return `
-    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid ${stale?'#e0c48a':'var(--color-divider)'};background:${stale?'#fdf6e7':'var(--color-surface)'};border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:${stale?'#7d5a14':'var(--color-neutral-700)'}">
-      <span style="flex:none;color:${stale?'#b8862b':'var(--color-neutral-500)'};display:inline-flex">${icon(stale?'alert':'clock','w-3.5 h-3.5')}</span>
+    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid ${stale?'var(--st-amber-line)':'var(--color-divider)'};background:${stale?'var(--st-amber-bg)':'var(--color-surface)'};border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:${stale?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
+      <span style="flex:none;color:${stale?'var(--st-amber-dot)':'var(--color-neutral-500)'};display:inline-flex">${icon(stale?'alert':'clock','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:160px"><b>${esc(st.who)} has not opened the current version.</b> Sent ${days===0?'today':`${days} day${days===1?'':'s'} ago`}${stale?' — worth chasing, or check the link reached them.':'.'}</span>
       ${canEdit()?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:11px;padding:5px 11px">Send it again</button>`:''}
     </div>`;
@@ -2630,7 +2630,7 @@ async function renderSharesSection(c){
           ${(live(s)&&canEdit())?`<div style="display:flex;gap:10px;margin-top:5px">
             <button data-sh-copy="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Copy link</button>
             ${s.channel==='email'?`<button data-sh-resend="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Resend</button>`:''}
-            <button data-sh-revoke="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:#b0453c;cursor:pointer">Revoke</button>
+            <button data-sh-revoke="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--st-ruby-dot);cursor:pointer">Revoke</button>
           </div>`:''}
         </div>`; }).join('')}
     </div></div>`;

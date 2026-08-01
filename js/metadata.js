@@ -287,7 +287,7 @@ function openMetaReview(meta, onConfirm, opts={}){
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="font-serif font-600 text-lg text-ink">Review extracted details</h3></div>
       <p class="text-xs text-ink/60 mb-4">${src}. Check each field — <span class="text-amber font-600">low-confidence</span> fields are highlighted. Nothing is saved until you confirm.</p>
-      ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid #f0e3c2;background:#fbf4e3;color:#7d5a14;border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:-8px 0 14px">
+      ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3">${META_FIELDS.map(field).join('')}</div>

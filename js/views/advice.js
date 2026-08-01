@@ -22,7 +22,7 @@ function adviceCard(r){
     : left==null ? '—'
     : left<0 ? `${-left}d overdue`
     : left===0 ? 'due today' : `${left}d left`;
-  const etaCol = done ? 'var(--color-neutral-500)' : left!=null&&left<0 ? '#b0453c' : left!=null&&left<=1 ? '#7d5a14' : 'var(--color-neutral-600)';
+  const etaCol = done ? 'var(--color-neutral-500)' : left!=null&&left<0 ? 'var(--st-ruby-dot)' : left!=null&&left<=1 ? 'var(--st-amber-fg)' : 'var(--color-neutral-600)';
   const q=r.quote||{};
   const fee=q.rate?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—';
   const ini=(r.assignee||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
@@ -31,14 +31,14 @@ function adviceCard(r){
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${r.id}</span>
         <span style="display:flex;align-items:center;gap:4px;flex:none">
-          ${r.urgency==='priority'?`<span style="background:#fbf4e3;color:#7d5a14;font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px">Priority</span>`:''}
+          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px">Priority</span>`:''}
           <span style="font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
         </span>
       </div>
       <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;line-height:1.3"><span style="display:inline-flex;color:var(--color-accent-700);flex:none">${icon(svc.ic,'w-3.5 h-3.5')}</span><span style="min-width:0">${esc(svc.name)}</span></div>
       <div style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}${r.company?' · '+esc(r.company):''}</div>
       ${r.contractName?`<div style="font-size:10.5px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.contractName)}</div>`:''}
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid rgba(29,31,32,.07);padding-top:5px;margin-top:1px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
         <span style="font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
         ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:8.5px;font-weight:700;font-family:var(--font-mono);flex:none">${ini}</span>`
             :`<span style="font-size:10px;color:var(--color-neutral-400)">unassigned</span>`}
@@ -63,9 +63,9 @@ function renderAdviceDesk(){
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
         <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
-        <span style="font-size:10.5px;background:rgba(89,128,166,.1);padding:1px 8px;border-radius:999px;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
+        <span style="font-size:10.5px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:999px;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
       </div>
-      <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:rgba(89,128,166,.05);border:1px solid var(--color-divider);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
+      <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
         ${g.list.map(adviceCard).join('')||`<div style="border:1px dashed var(--color-divider);border-radius:4px;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">Nothing here</div>`}
       </div>
     </div>`).join('');
@@ -78,9 +78,9 @@ function renderAdviceDesk(){
     </style>
     <div style="display:flex;align-items:stretch;gap:10px;flex:none;flex-wrap:wrap">
       ${kpi('Active requests',active.length)}
-      ${kpi('Due in 48h',dueSoon,dueSoon?'#7d5a14':undefined)}
-      ${kpi('Overdue',overdue,overdue?'#b0453c':undefined)}
-      ${kpi('Delivered · 30d',delivered30,'#1e6b4d')}
+      ${kpi('Due in 48h',dueSoon,dueSoon?'var(--st-amber-fg)':undefined)}
+      ${kpi('Overdue',overdue,overdue?'var(--st-ruby-dot)':undefined)}
+      ${kpi('Delivered · 30d',delivered30,'var(--st-green-fg)')}
       ${kpi('Projected fees · active',fmtMoneyShort(projected))}
       <span style="flex:1"></span>
       <div style="display:flex;align-items:center;gap:8px;flex:none">
@@ -130,7 +130,7 @@ function wireAdviceBoard(){
     el.addEventListener('dragend',()=>{ el.style.opacity=''; adviceDrag=null; });
   });
   document.querySelectorAll('[data-adv-drop]').forEach(col=>{
-    col.addEventListener('dragover',e=>{ if(!adviceDrag) return; e.preventDefault(); col.style.borderColor='var(--color-accent)'; col.style.background='rgba(89,128,166,.08)'; });
+    col.addEventListener('dragover',e=>{ if(!adviceDrag) return; e.preventDefault(); col.style.borderColor='var(--color-accent)'; col.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'; });
     col.addEventListener('dragleave',()=>pipeColReset(col));
     col.addEventListener('drop',e=>{ e.preventDefault(); pipeColReset(col); const id=adviceDrag; adviceDrag=null; if(id) adviceMove(id, col.getAttribute('data-adv-drop')); });
   });
@@ -148,9 +148,9 @@ function openAdviceModal(id){
   const r=getAdviceRequest(id); if(!r) return;
   const svc=ADVICE_SERVICES[r.service]||{name:r.service,ic:'msg'};
   const q=r.quote||{};
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
   const hist=(r.history||[]).slice().reverse().map(h=>`
-    <div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(29,31,32,.05)">
+    <div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
       <span style="width:8px;height:8px;border-radius:50%;background:${adviceStage(h.to).color};flex:none;margin-top:3px"></span>
       <span style="min-width:0;flex:1"><strong>${adviceStage(h.to).label}</strong>${h.by?` <span style="color:var(--color-neutral-600)">— ${esc(h.by)}</span>`:''}
         <span style="display:block;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${fmtDT(h.at)}</span></span>

@@ -50,7 +50,7 @@ function renderFolder(){
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
       .fold-table{width:100%;border-collapse:collapse;font-size:12.5px}
-      .fold-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:#fafbfc}
+      .fold-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
       .fold-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .fold-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
     </style>
@@ -130,9 +130,9 @@ function folderExpiryCell(c){
   let col='var(--color-neutral-700)', hint='', weight=400;
   if(from) hint=`from ${from.id}`;
   if(c.status!=='Declined'){ const d=daysUntil(eff);
-    if(d<0){ col='#8f322b'; weight=600; hint=`${-d}d ago${from?' · from '+from.id:''}`; }
-    else if(d<30){ col='#8f322b'; weight=600; hint=`in ${d}d${from?' · from '+from.id:''}`; }
-    else if(d<=90){ col='#7d5a14'; hint=`in ${d}d${from?' · from '+from.id:''}`; }
+    if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${-d}d ago${from?' · from '+from.id:''}`; }
+    else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`in ${d}d${from?' · from '+from.id:''}`; }
+    else if(d<=90){ col='var(--st-amber-fg)'; hint=`in ${d}d${from?' · from '+from.id:''}`; }
   }
   return `<span style="color:${col};font-weight:${weight}">${dt}</span>${hint?`<span style="display:block;font-size:10px;color:${col};opacity:.85">${hint}</span>`:''}`;
 }
@@ -146,7 +146,7 @@ function folderRowsHtml(cs){
   const sel=state.folderSel||{};
   return cs.slice(0,shown).map((c,i)=>{
     const o=(window.openFindings?openFindings(c):[])||[];
-    const scan=o.length?`<span class="badge" style="margin-left:6px;background:#f1dcd8;color:#8f322b" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
+    const scan=o.length?`<span class="badge" style="margin-left:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg)" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
     return `
     <tr data-open="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td style="padding-left:12px" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
@@ -407,7 +407,7 @@ function regRowsHtml(cs){
   }
   const p=regCurPage(cs); const start=(p-1)*REG_PAGE;
   const pageRows=cs.slice(start, start+REG_PAGE);
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'#8f322b':'inherit'}">${a.label}</button>`).join('');
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
@@ -415,8 +415,8 @@ function regRowsHtml(cs){
     const renIn=din==null?'':(din<0?Math.abs(din)+'d over':'in '+din+'d');
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
-    const renColor=din==null?'transparent':(renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-500)');
-    const renDateColor=renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-700)';
+    const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-500)');
+    const renDateColor=renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-700)';
     const val=!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—');
     return `
     <tr data-row="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
@@ -525,7 +525,7 @@ function renderRegister(){
          The reference is a rounded card with an uppercase 10px header band, p-4
          cells, hairline dividers between rows and a hover tint. Written in the
          design's tokens rather than its raw slate classes so the same rules
-         carry the dark theme — the header band used to be a hardcoded #fafbfc,
+         carry the dark theme — the header band used to be a hardcoded var(--color-neutral-100),
          which is a light-mode value sitting on a dark surface. */
       .reg-table{width:100%;border-collapse:collapse;font-size:12px}
       .reg-table thead th{position:sticky;top:0;z-index:3}
@@ -644,7 +644,7 @@ function ftsSearch(q){
       if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--color-neutral-600)">No full-text matches.</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
         <div style="font-size:12.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${h.id}</span></div>
-        ${h.snippet?`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:#f1e6cd;border-radius:2px;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:11px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
+        ${h.snippet?`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:2px;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:11px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');
       box.querySelectorAll('[data-fts-open]').forEach(b=>b.addEventListener('click',()=>{ box.classList.add('hidden'); openWorkspace(b.getAttribute('data-fts-open')); }));

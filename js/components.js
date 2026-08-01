@@ -84,18 +84,18 @@ Object.assign(window,{ICONS,icon});
    ============================================================ */
 function contractRow(c, {showFolder=false}={}){
   return `
-  <button data-open="${c.id}" class="w-full text-left group flex items-center gap-3 px-4 py-3 hover:bg-brand-50/50 transition border-b border-brand-100/50 last:border-0">
-    <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'} border" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c))}</span>
+  <button data-open="${c.id}" class="crow w-full text-left group flex items-center gap-3 px-4 py-3 transition">
+    <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg border" style="${isUpload(c)?'background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line)':'background:var(--st-steel-bg);color:var(--color-accent);border-color:var(--st-steel-line)'}" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c))}</span>
     <span class="min-w-0 flex-1">
-      <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${esc(c.name)}</span>
-      <span class="block text-[11px] text-brand-800/65 font-mono truncate">${esc(c.counterparty||'No counterparty yet')}${showFolder?' · '+esc(FOLDERS[c.folder].name):''}</span>
+      <span class="block text-sm font-medium truncate group-hover:text-brand-500 transition" style="color:var(--color-text)">${esc(c.name)}</span>
+      <span class="block text-[11px] font-mono truncate" style="color:var(--color-neutral-500)">${esc(c.counterparty||'No counterparty yet')}${showFolder?' · '+esc(FOLDERS[c.folder].name):''}</span>
     </span>
     ${(()=>{ const o=openFindings(c); if(!o.length) return '';
       const sm=SEV_META[worstSevOf(o)];
       return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`; })()}
-    <span class="hidden sm:block text-xs font-mono whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/60'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</span>
+    <span class="hidden sm:block text-xs font-mono whitespace-nowrap" style="color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</span>
     <span class="shrink-0">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
-    <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
+    <span class="transition shrink-0" style="color:var(--color-neutral-400)">${icon('chevR')}</span>
   </button>`;
 }
 function wireOpens(root=document){
