@@ -145,6 +145,13 @@ reference) stapled in front of the original pages.
 
 ## 6. Out of scope (deliberately)
 
+- **The Redline view stays undressed** (settled by Young, 1 Aug 2026, after
+  the feature shipped). Redline is the workbench, not the document: its job
+  is making word-level changes visually obvious, and strikethroughs,
+  highlights and side-by-side comparison read best on a neutral page in one
+  typography. The design appears everywhere the contract is *presented* —
+  Docs tab, share portal, viewer, PDF, sealed copy — and deliberately not
+  where it is *edited*. Do not "fix" this.
 - No sixth design, no custom/free-form design builder, no per-user designs.
 - No fonts uploaded by customers (licensing + rendering risk); each design
   ships with its own fixed, embeddable faces.
