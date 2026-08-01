@@ -97,6 +97,21 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_contracts_folder ON contracts(folder);
   CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status);
   CREATE INDEX IF NOT EXISTS idx_contracts_seq ON contracts(seq);
+  -- Every completed Copilot chat turn, including the failure paths. A chat
+  -- turn spans contracts and belongs to the workspace, so it lives in its own
+  -- table rather than bolted onto one contract's audit array. "What did the
+  -- AI tell my team about MK-248 before we signed?" is answerable from here.
+  CREATE TABLE IF NOT EXISTS copilot_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    at TEXT NOT NULL, org_id TEXT NOT NULL,
+    user_id TEXT NOT NULL, user_email TEXT NOT NULL,
+    question TEXT NOT NULL, answer TEXT NOT NULL,
+    cited_ids TEXT NOT NULL,            -- JSON array of contract ids
+    tools_used TEXT NOT NULL,           -- JSON array, e.g. ["search_contracts","get_contract"]
+    quote_drops INTEGER NOT NULL DEFAULT 0,
+    model TEXT NOT NULL, steps INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_copilot_log_org_at ON copilot_log (org_id, at);
 `);
 
 const now = () => new Date().toISOString();
@@ -186,7 +201,11 @@ const richBodyToSearchText = html => String(html || '')
   .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
   .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
   .replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
-function contractSearchBody(c) {
+/* The whole readable text of a contract, unsliced. The Copilot read path and
+   quote verification need the FULL text — the read cap is applied (and, above
+   all, FLAGGED) in copilotDetail, so a clip here would silently defeat the
+   textTruncated flag and let a 60k document read as "complete" at 40k. */
+function contractFullBody(c) {
   const parts = [c.name, c.counterparty, c.id, c.searchText];
   if (c.fields) parts.push(Object.values(c.fields).join(' '));
   if (c.upload && c.upload.extractedText) parts.push(c.upload.extractedText);
@@ -197,7 +216,11 @@ function contractSearchBody(c) {
   if (c.redlineText) parts.push(c.format === 'rich' ? richBodyToSearchText(c.redlineText) : c.redlineText);
   if (c.metadata) parts.push(Object.values(c.metadata).filter(v => typeof v === 'string').join(' '));
   if (Array.isArray(c.obligations)) parts.push(c.obligations.map(o => o.desc).join(' '));
-  return parts.filter(Boolean).join('  ').slice(0, 40000);
+  return parts.filter(Boolean).join('  ');
+}
+// The FTS index keeps its own bound — an index row is a convenience, not evidence.
+function contractSearchBody(c) {
+  return contractFullBody(c).slice(0, 40000);
 }
 function syncFts(c) {
   if (!ftsOk) return;
@@ -2510,12 +2533,20 @@ function copilotCard(ctx, id) {
   if (!ctx.money) { delete card.value; delete card.valueType; }
   return card;
 }
+/* How much of a contract's body a Copilot tool hands the model, in chars.
+   50k (~25 pages) reads nearly every SME contract in full; anything longer is
+   clipped AND flagged (textTruncated / textTotalChars) so the model can say so
+   instead of summarising a document it only partly saw. capAiInput clips the
+   caller's own request body upstream, never these server-built tool results,
+   so the flag computed here cannot be invalidated downstream. */
+const COPILOT_TEXT_CAP = 50000;
 // Richer detail (adds searchable body text + findings) for get/compare tools.
 function copilotDetail(ctx, id) {
   const c = copilotGetJson(ctx, id);
   if (!c) return { id, found: false };
   const open = copilotOpenFindings(c);
   const d = copilotDaysUntil(c.expiry);
+  const body = contractFullBody(c);
   const detail = {
     found: true, id: c.id, name: c.name || c.id, counterparty: c.counterparty || 'none',
     folder: c.folder || '', template: c.template || '', isUpload: c.source === 'upload',
@@ -2523,9 +2554,12 @@ function copilotDetail(ctx, id) {
     status: c.status || '', effectiveDate: (c.fields && c.fields.effDate) || '',
     expiry: c.expiry || '', daysUntilExpiry: d,
     openFindings: open.map(f => ({ severity: f.sev, kind: f.kind, title: f.title, why: f.why })),
-    // Whole-document read (up to 16k chars) so Copilot can summarise a contract
-    // in full and quote clauses verbatim, not just its opening section.
-    text: contractSearchBody(c).slice(0, 16000),
+    // Whole-document read (up to COPILOT_TEXT_CAP chars) so Copilot can
+    // summarise a contract in full and quote clauses verbatim, not just its
+    // opening section — and say honestly when the document ran past the cap.
+    text: body.slice(0, COPILOT_TEXT_CAP),
+    textTruncated: body.length > COPILOT_TEXT_CAP,
+    textTotalChars: body.length,
     // What is happening TO this contract, not just what it says. Without this
     // Copilot could read the wording and still had no idea a negotiation was
     // under way — asked "how many additions have I added?" it answered, quite
@@ -2705,6 +2739,8 @@ HOW TO WORK:
 - Use the tools to fetch real data before answering. Never state a value, date, party, clause or finding you have not fetched. If you cannot find something, say so plainly.
 - To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
+- If a contract's "textTruncated" is true, the document was longer than the excerpt you received — say so plainly, and do not claim to have reviewed the whole document.
+- Reply in the language the user wrote their question in. This workspace's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : orgJx().locale}. Contract quotes stay verbatim in their original language; your own words follow the user's.
 - Contract ids look like MK-103. Money is in ${orgJx().currency}.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
 - Always finish by calling deliver_answer exactly once. Cite the contracts you used. When you compared 2+ contracts, fill in the compare table.
@@ -2717,6 +2753,20 @@ SCOPE & SAFETY:
 - Be concise and direct. Reference specific numbers and clauses from the fetched data.`;
 }
 
+/* One text, one shape, both sides. Lowercase; smart quotes to straight;
+   en/em dashes to hyphen; the ellipsis char to three dots; every whitespace
+   run (incl. NBSP) to one space. This is the anti-false-reject step: spacing
+   and typography differences must not kill a real quote. */
+function quoteNorm(s) {
+  return String(s == null ? '' : s)
+    .toLowerCase()
+    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[“”„‟]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/…/g, '...')
+    .replace(/[\s ]+/g, ' ')
+    .trim();
+}
 function normalizeDeliver(input, cx) {
   const inp = input || {};
   const answer = typeof inp.answer === 'string' && inp.answer.trim() ? inp.answer.trim() : 'I could not produce an answer for that.';
@@ -2726,6 +2776,26 @@ function normalizeDeliver(input, cx) {
   const citations = (Array.isArray(inp.citations) ? inp.citations : [])
     .filter(c => c && c.id && idInScope(cx.scope, c.id))
     .map(c => ({ id: String(c.id), quote: typeof c.quote === 'string' ? c.quote.slice(0, 400) : '' }));
+  /* A citation card with a verbatim quote is the product's defence against a
+     confidently-wrong answer — so the quote has to actually appear in the
+     cited contract. Checked against the FULL body, not the capped tool
+     excerpt, so a real quote from deep in a long document still verifies.
+     A quote that cannot be found is dropped; the citation itself stays,
+     because the id is still true even when the quote is not, and dropping the
+     card would hide which contract the answer leaned on. */
+  let quoteDrops = 0;
+  for (const c of citations) {
+    if (!c.quote) continue;
+    const nq = quoteNorm(c.quote);
+    // Too short to verify meaningfully or to mislead — passes unchecked.
+    if (nq.length < 12) continue;
+    const cj = copilotGetJson(cx, c.id);
+    const body = cj ? quoteNorm(contractFullBody(cj)) : '';
+    if (body.includes(nq)) continue;
+    c.quote = '';
+    c.quoteDropped = true;
+    quoteDrops++;
+  }
   let compare = null;
   if (inp.compare && Array.isArray(inp.compare.columns) && Array.isArray(inp.compare.rows) && inp.compare.columns.length) {
     compare = {
@@ -2735,7 +2805,22 @@ function normalizeDeliver(input, cx) {
     };
     if (!compare.columns.length) compare = null;
   }
-  return { answer, citations, compare };
+  return { answer, citations, compare, quoteDrops };
+}
+
+/* One row per completed Copilot chat turn — including the failure paths, so
+   the record has no silent gaps. Its own try/catch: a failed log line must
+   never fail the user's answer. */
+function logCopilotTurn(req, row) {
+  try {
+    db.prepare(`INSERT INTO copilot_log (at, org_id, user_id, user_email, question, answer, cited_ids, tools_used, quote_drops, model, steps)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
+      now(), (req.user && req.user.org_id) || WORKSPACE_ID,
+      (req.user && req.user.id) || '', (req.user && req.user.email) || '',
+      String(row.question || '').slice(0, 4000), String(row.answer || '').slice(0, 4000),
+      JSON.stringify(row.citedIds || []), JSON.stringify(row.toolsUsed || []),
+      Number(row.quoteDrops) || 0, String(row.model || ''), Number(row.steps) || 0);
+  } catch (e) { console.warn('[copilot-log] failed to record a chat turn: ' + e.message); }
 }
 
 app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capAiInput, async (req, res) => {
@@ -2752,12 +2837,22 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
 
   const system = buildCopilotSystem(context, cx);
   const working = convo.slice();
+  // What the log row is built from: the question already capped at 4,000 above.
+  const question = convo[convo.length - 1].content;
+  const toolsUsed = [];
+  let steps = 0;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
     for (let step = 0; step < 5; step++) {
+      steps = step + 1;
       const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat' });
-      if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
-      if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; usedModel = resp.model; }
+      if (!resp.ok) {
+        const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
+        logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
+        return res.status(502).json({ error: err });
+      }
+      usedModel = resp.model || usedModel;
+      if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; }
       const content = resp.data.content || [];
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
@@ -2769,6 +2864,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
       if (deliver) { final = normalizeDeliver(deliver.input, cx); break; }
       // Execute the data tools and feed results back for the next round.
+      toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       const results = toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(runCopilotTool(cx, t.name, t.input)) }));
       working.push({ role: 'user', content: results });
     }
@@ -2778,9 +2874,36 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
     const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
-    const notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
+    let notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
+    if (final.quoteDrops) {
+      const drop = final.quoteDrops === 1
+        ? 'One quoted excerpt could not be matched to the contract text and was removed — treat that point with care.'
+        : final.quoteDrops + ' quoted excerpts could not be matched to the contract text and were removed — treat those points with care.';
+      notice = { notice: (notice.notice ? notice.notice + ' ' : '') + drop };
+    }
+    logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
+      quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
     res.json({ answer: final.answer, citations: final.citations, compare: final.compare, cards, ...notice });
-  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+  } catch (e) {
+    logCopilotTurn(req, { question, answer: 'Copilot request failed: ' + e.message, toolsUsed, model: usedModel, steps });
+    res.status(502).json({ error: 'Copilot request failed: ' + e.message });
+  }
+});
+
+/* The read side of the Copilot log — the thing an auditor is pointed at.
+   Admin-only and org-scoped; newest first; `limit` capped at 500. No UI yet:
+   the endpoint is the deliverable, a Settings-page viewer is a later ticket. */
+app.get('/api/ai/log', auth, admin, (req, res) => {
+  const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 100));
+  const org = (req.user && req.user.org_id) || WORKSPACE_ID;
+  const rows = db.prepare('SELECT * FROM copilot_log WHERE org_id=? ORDER BY id DESC LIMIT ?').all(org, limit);
+  const arr = s => { try { const v = JSON.parse(s); return Array.isArray(v) ? v : []; } catch (_) { return []; } };
+  res.json({ entries: rows.map(r => ({
+    id: r.id, at: r.at, userId: r.user_id, userEmail: r.user_email,
+    question: r.question, answer: r.answer,
+    citedIds: arr(r.cited_ids), toolsUsed: arr(r.tools_used),
+    quoteDrops: r.quote_drops, model: r.model, steps: r.steps,
+  })) });
 });
 
 // E8-T4: full workspace export as a zip (contracts incl. versions/audit,

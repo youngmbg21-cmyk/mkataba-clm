@@ -4170,3 +4170,88 @@ those are the contract, not a HaTi mark.
 report come from the browser's own print settings, not from HaTi. No code can
 remove them. In the print dialog, open **More settings** and untick **Headers
 and footers**.
+
+---
+
+# Run 8 — Copilot trust pass (2026-08-01, work order: copilot-trust)
+
+Five fixes in the `/api/ai/chat` corner, per the work order. All five shipped;
+nothing ballooned; the full suite is green (2237 → 2259 tests).
+
+## F-A — Quotes are verified against the contract they cite
+
+`normalizeDeliver` (server/server.js) now checks every citation's verbatim
+quote against the cited contract's actual text before the answer reaches the
+browser. Both sides are normalised first — lowercase, whitespace runs (incl.
+NBSP) collapsed, smart quotes → straight, en/em dashes → hyphen, ellipsis
+char → `...` — so spacing and typography differences never kill a real quote.
+Quotes under 12 normalised chars pass unchecked (too short to verify
+meaningfully or to mislead). A quote that cannot be found is dropped; the
+citation itself stays (`quoteDropped: true`) because the contract id is still
+true even when the quote is not, and the response `notice` says plainly that a
+quoted excerpt was removed. Verification runs against the FULL contract body,
+not the capped tool excerpt, so a true quote from deep in a long document is
+never punished for the reading cap. The client needed no change — a citation
+without a quote already renders as a plain card.
+
+## F-B — Truncation is honest
+
+`copilotDetail` used to clip body text at 16k chars and never say so. It now
+sends `textTruncated` and `textTotalChars` alongside the (capped) `text`, and
+the system prompt teaches the same disclosure pattern the negotiation block's
+`changesOmitted` already uses: if truncated, say so, and do not claim to have
+reviewed the whole document. Mirrored in local mode (`_localDetail` /
+`_localSystem` in js/ai.js).
+
+## F-D — The reading cap is 50k, and it is real
+
+`COPILOT_TEXT_CAP = 50000` (~25 pages) replaces the 16k slice in both engines,
+so nearly every SME contract is read in full. Two verifications the order
+asked for:
+
+- **`capAiInput` / `aiMaxChars` cannot re-clip a contract read.** That
+  middleware caps the caller's own request body (`text`, `contracts[]`,
+  `candidates[]`) before it reaches the endpoint; the Copilot tool results are
+  built server-side from the database after it has run, so the 50k excerpt and
+  its flag travel untouched.
+- **One upstream clip WAS found and fixed:** `contractSearchBody()` slices at
+  40k for the FTS index. Had `copilotDetail` kept reading it, a 60k document
+  would have reported 40k chars with `textTruncated: false` — a silently wrong
+  "complete". The body builder is now split: `contractFullBody()` (unsliced)
+  feeds the Copilot read, the truncation flag and quote verification;
+  `contractSearchBody()` keeps its 40k bound for the search index only.
+
+## F-E — Answers come back in the user's language
+
+The workspace's interface language is the jurisdiction pack's locale
+(`en-KE` / `sv-SE`) — that is where the EN/SV setting lives, so
+`aiChatContext()` now sends it as `context.lang`, and `buildCopilotSystem`
+adds the rule: reply in the language the user wrote in; the workspace language
+is `${lang}`; contract quotes stay verbatim in their original language. Falls
+back to the org's own locale when a client doesn't send one. Same rule in
+local mode's `_localSystem`.
+
+## F-C — Every Copilot exchange is logged
+
+New `copilot_log` table (in the existing schema block) with an `(org_id, at)`
+index: who asked, what was asked (capped 4k), the answer (capped 4k), cited
+contract ids, tools used, quote-drop count, resolved model, loop steps. One
+row per completed turn, written just before `res.json` — and on the failure
+paths too (provider error, the "wasn't able to finish" fallback, thrown
+exceptions), so the record has no silent gaps. The insert sits in its own
+try/catch: a failed log line warns and never fails the user's answer.
+
+Read side: `GET /api/ai/log?limit=100` — auth + admin, org-scoped
+(`WHERE org_id=?`), newest first, limit clamped to 500. No UI tonight; the
+endpoint is the deliverable for an auditor. **Open decision for Young (not
+taken tonight): retention/purge policy for this table (GDPR).**
+
+## Also
+
+- `SECURITY.md` updated: the Copilot section now truthfully claims verified
+  quotes and a logged record — and the false sentence "the browser never talks
+  to the Anthropic API directly" is fixed: browser-direct local mode exists
+  today by design and is stated plainly, with its scheduled retirement noted.
+- Local mode deliberately does NOT get quote verification or logging (per the
+  order): it is demo-only and being retired when the key moves server-side.
+  It did get the truncation flags, the 50k cap and the language rule.

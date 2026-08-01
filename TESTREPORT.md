@@ -1878,3 +1878,64 @@ Medium blast radius; the interim flag is low risk.
 
 **Confidence** High — reproduced; outbox contents read through the admin API.
 
+
+---
+
+# Run — Copilot trust pass (2026-08-01, work order: copilot-trust)
+
+**Branch:** `claude/new-session-inm5ts` · **Mode:** `npm test` (node:test) +
+the four chromium checks. The Anthropic API is never called: the node suite
+uses the local stand-ins (`ANTHROPIC_BASE_URL` → in-process stub).
+
+## Suite counts
+
+| | Before (untouched tree) | After (this run) |
+|---|---|---|
+| Tests | 2237 | **2259** |
+| Suites | 472 | 476 |
+| Pass | 2237 | **2259** |
+| Fail | 0 | 0 |
+
+Both counts measured in this session on this machine (`git stash` → run →
+`git stash pop` → run), so they are the same suite on the same day. +22 tests,
+all from the new file below; every pre-existing test untouched and green —
+including the seal, negotiation-record, signing and share suites this order
+was forbidden to disturb (asserted by running them, not by reading the diff).
+
+Browser checks: selection **22/22**, parity **18/18**, timeline **19/19**,
+redline **70/71** — the one failure (`13 the batch send is in the toolbar`)
+reproduces identically on the untouched tree and is parked in BUGLOG.md, not a
+regression of this run.
+
+## New tests — `test/f132-copilot-trust.test.js` (22)
+
+Drives `/api/ai/chat` with a per-test **scripted** Anthropic stand-in (exact
+content blocks enqueued per turn), a seeded workspace, and generated long
+bodies (no 60k fixture files committed).
+
+**F-A — quote verification (6):** exact quote kept · typographic variant kept
+(smart quotes, double spaces, em-dash vs hyphen — the anti-false-reject test
+that matters) · fabricated quote → citation kept, quote dropped, notice
+present · two drops → counted notice · under-12-chars passes unchecked · a
+true quote from PAST the 50k cap verifies against the full body, no crash.
+
+**F-B / F-D — cap & honesty (5):** 40k body read in full, flag false, the
+document's tail present (the old 16k cap would have lost it) · 60k body
+clipped at exactly 50,000 with `textTruncated: true` and true
+`textTotalChars` · system prompt teaches the disclosure beside the
+`changesOmitted` rule · both engines pin `COPILOT_TEXT_CAP` = 50000 and the
+local flags · the flag is computed from `contractFullBody` (no upstream clip
+can fake "complete").
+
+**F-E — language (3):** client-sent `lang` reaches the system prompt with the
+reply-in-kind rule · absent `lang` falls back to the org locale · the client
+sends `lang` and local mode carries the same rule. (Deliberately not testing
+the model's actual Swedish — not deterministic; the instruction and the
+setting travelling is the testable claim.)
+
+**F-C — the log (8):** one completed turn → exactly one row with the right
+user, cited ids, tools, model, steps · a dropped quote is counted on the row ·
+provider error writes a row · the gave-up fallback writes a row · a failed
+INSERT (table renamed out from under the server) never fails the user's
+answer · admin-only (403 for non-admin) · another org's rows never return ·
+`limit` honoured and clamped.

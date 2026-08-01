@@ -6322,3 +6322,41 @@ to answer "what does converting a document cost us?" was the one figure Team &
 Settings would not show them. Fixed by adding the label; `f128` now asserts that
 every feature key capable of spending has one, so the next feature added without
 a label fails a test instead of quietly hiding its cost.
+
+---
+
+## Run: Copilot trust pass (2026-08-01, work order: copilot-trust)
+
+### 1. The FTS body builder was silently pre-clipping the Copilot's read (FIXED in this run)
+
+**What was broken.** `contractSearchBody()` slices its output at 40,000 chars
+for the FTS index — and `copilotDetail` read through it. Raising the Copilot
+read cap to 50k would have been a fiction: a 60k document would arrive as 40k
+chars with `textTruncated: false`, which is precisely the silent-skim defect
+this order exists to kill.
+
+**Fix.** Split the builder: `contractFullBody()` (unsliced) feeds the Copilot
+read, the truncation flags and quote verification; `contractSearchBody()`
+keeps its 40k bound for the search index only. In scope because F-D item 3
+explicitly asked for the truncation flag to survive any other clip, and a flag
+computed after a hidden clip is not a flag.
+
+### 2. Parked: one pre-existing browser check fails, unrelated to this order
+
+`npm run test:browser` (redline suite) reports **70/71** — `FAIL 13 the batch
+send is in the toolbar`. Verified against the untouched tree (`git stash`,
+re-run): it fails identically **before** this run's changes, so it is not this
+order's regression. It is a negotiation-toolbar UI check, nowhere near the
+`/api/ai/chat` corner. Not touched tonight per the sequence rules; needs its
+own look.
+
+### 3. Parked: the helpers.js AI stub's comment does not match its behaviour
+
+`test/helpers.js` `startAiStub()` picks `tools[0].name` when no `tool_choice`
+is set, which for the chat route is `search_contracts` — so a default-stubbed
+chat turn loops five rounds and lands on the "wasn't able to finish" fallback,
+while a comment in `test/f1-folder-scope.test.js` says the stub "answers the
+first turn with deliver_answer". The tests pass either way (their assertions
+are about scoping, not the answer), so nothing was changed; the new
+`test/f132-copilot-trust.test.js` uses its own scripted stand-in instead.
+Worth a tidy-up someday, not tonight.
