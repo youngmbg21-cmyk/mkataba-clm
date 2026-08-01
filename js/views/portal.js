@@ -1421,8 +1421,16 @@ function wirePortalNegoFoot(c, p){
    exactly the fault fixed one release ago in the redline editor, reintroduced
    by a timer. So a refresh that lands while they are working does not happen:
    they are told, once, and choose when. */
-const PORTAL_POLL_MS = 45000;
+const PORTAL_POLL_MS = 45000;         // idle cadence
+/* M-5: while the reader is actively working the page, a live back-and-forth
+   should not sit up to 45s behind reality. Poll every ~10s when there has been
+   recent interaction, and fall back to 45s when idle — the same "fast when
+   active, slow when idle" shape the internal app uses, at no extra cost to a
+   reader who has walked away. */
+const PORTAL_POLL_ACTIVE_MS = 10000;
 let _ptPollTimer=null, _ptPollSig=null, _ptPollToken=null, _ptPollInFlight=false;
+let _ptLastActivity=0, _ptActivityWired=false;
+function portalPollDelay(){ return (Date.now()-_ptLastActivity) < 120000 ? PORTAL_POLL_ACTIVE_MS : PORTAL_POLL_MS; }
 
 /* One place that turns a server answer into render options, so the first paint
    and every refresh after it cannot drift apart. */
@@ -1553,15 +1561,28 @@ async function portalRefreshNow(reason){
   }catch(e){ return 'error'; }        // a dropped connection is not news; the next tick retries
   finally{ _ptPollInFlight=false; }
 }
-function portalStopPolling(){ if(_ptPollTimer){ clearInterval(_ptPollTimer); _ptPollTimer=null; } }
+function portalStopPolling(){ if(_ptPollTimer){ clearTimeout(_ptPollTimer); _ptPollTimer=null; } }
+/* M-5: a self-rescheduling timer, so each tick picks the active-or-idle delay
+   afresh rather than being locked to one interval for the life of the page. */
+function portalScheduleNextPoll(){
+  if(_ptPollToken==null) return;
+  _ptPollTimer=setTimeout(async()=>{ await portalRefreshNow('tick'); portalScheduleNextPoll(); }, portalPollDelay());
+}
 function portalStartPolling(token, d){
   portalStopPolling();
   _ptPollToken=token; _ptPollSig=portalSignature(d);
+  _ptLastActivity=Date.now();   // opening the link is itself activity
   try{
-    _ptPollTimer=setInterval(()=>{ portalRefreshNow('tick'); }, PORTAL_POLL_MS);
-    /* Coming back to the tab is the moment somebody most wants the truth, and
-       it costs one request rather than a faster timer for everybody. */
-    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) portalRefreshNow('visible'); });
+    // Recent interaction bumps the cadence to ~10s. Wired once, not per repaint,
+    // so repeated starts do not stack listeners.
+    if(!_ptActivityWired){
+      ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ _ptLastActivity=Date.now(); }, { passive:true }));
+      /* Coming back to the tab is the moment somebody most wants the truth, and
+         it costs one request rather than a faster timer for everybody. */
+      document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ _ptLastActivity=Date.now(); portalRefreshNow('visible'); } });
+      _ptActivityWired=true;
+    }
+    portalScheduleNextPoll();
   }catch(_){ /* a page that cannot keep a timer still renders */ }
 }
 
@@ -2566,8 +2587,10 @@ async function portalSignUnverified(p, info){
    signs)"; that handover is exactly what W8 removes, because a code sent to
    a typed address proves control of A mailbox, not the RIGHT one. A
    colleague who should sign gets their own link on the signing route. */
+let _ptLastOtpSend=0;   // L1: resend cooldown
 async function portalStartOtp(p, info){
   const box=document.getElementById('portal-result');
+  _ptLastOtpSend=Date.now();
   const invited=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
   box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
   let emailSent=true, sentTo=invited;
@@ -2594,7 +2617,23 @@ async function portalStartOtp(p, info){
       <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Resend code</button>
     </div>`;
   document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
-  document.getElementById('pt-otp-resend').addEventListener('click',()=>portalStartOtp(p, info));
+  /* L1: a 30-second cooldown on Resend, with a live countdown, so rapid taps do
+     not fire repeated sends (each of which silently resets the code and the
+     input) and the signer gets an acknowledgement rather than nothing. */
+  const resendBtn=document.getElementById('pt-otp-resend');
+  const RESEND_COOLDOWN=30000;
+  let _cd=null;
+  const tickCooldown=()=>{
+    const left=Math.ceil((RESEND_COOLDOWN-(Date.now()-_ptLastOtpSend))/1000);
+    if(left>0){ resendBtn.disabled=true; resendBtn.style.opacity='.55'; resendBtn.style.cursor='default'; resendBtn.textContent=`Resend code in ${left}s`; }
+    else { resendBtn.disabled=false; resendBtn.style.opacity=''; resendBtn.style.cursor='pointer'; resendBtn.textContent='Resend code'; if(_cd){ clearInterval(_cd); _cd=null; } }
+  };
+  tickCooldown(); _cd=setInterval(tickCooldown, 1000);
+  resendBtn.addEventListener('click',()=>{
+    if(Date.now()-_ptLastOtpSend < RESEND_COOLDOWN) return;
+    if(_cd){ clearInterval(_cd); _cd=null; }
+    portalStartOtp(p, info);
+  });
   document.getElementById('pt-otp').focus();
 }
 async function portalVerifyAndSign(p, info){
@@ -2610,16 +2649,37 @@ async function portalVerifyAndSign(p, info){
     templateValues:portalTemplateValues(p),
     signatureForm:info.sig?info.sig.form:null, signatureImage:info.sig?info.sig.image:null, signatureImageHash:info.sig?info.sig.imageHash:null,
     signatureTypedName:info.sig?info.sig.typedName:null, signatureFont:info.sig?info.sig.font:null };
-  try{
-    await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
-    portalSetDone('pt-sign','Signed and sent');
-    portalMarkSigned(p, info);
-    document.getElementById('portal-result').innerHTML=`
-      <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
-        <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your email-verified signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. You're all done.</p>
-      </div>`;
-  }catch(e){ toast(e.message,'err'); }
+  /* U-3: submit as a retryable step. A failure AFTER the code verified is the
+     most expensive place in the whole product to lose feedback — a first-time
+     counterparty cannot tell a success from a failure on a binding act. On
+     error, an inline card with an explicit "Try signing again" is rendered into
+     #portal-result (the verify token is still valid, so the retry re-sends the
+     already-verified signature), instead of a toast that scrolls away while the
+     success panel never appears. */
+  const submitSigned=async()=>{
+    try{
+      await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+      portalSetDone('pt-sign','Signed and sent');
+      portalMarkSigned(p, info);
+      document.getElementById('portal-result').innerHTML=`
+        <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your email-verified signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. You're all done.</p>
+        </div>`;
+    }catch(e){
+      const out=document.getElementById('portal-result');
+      if(out){
+        out.innerHTML=`
+          <div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:14px;">
+            <div style="display:flex;align-items:center;gap:6px;color:#8f322b;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('alert','w-4 h-4')} Your signature didn’t go through</div>
+            <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(e.message||'The connection dropped before your signature was recorded.')} You’re already verified — you can try again without a new code.</p>
+            <button id="pt-sign-retry" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Try signing again</button>
+          </div>`;
+        document.getElementById('pt-sign-retry')?.addEventListener('click',submitSigned);
+      } else toast(e.message,'err');
+    }
+  };
+  await submitSigned();
 }
 
 /* ---------- PDF export (print pipeline) ---------- */

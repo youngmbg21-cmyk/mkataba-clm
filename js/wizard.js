@@ -118,7 +118,10 @@ function createFromWizard(tid, vars){
   const cpEmail=val('cpemail');
   if(cpEmail && !/.+@.+\..+/.test(cpEmail))
     errs.push(`"${cpEmail}" is not an email address — leave it blank if you do not have it yet.`);
-  if(errs.length){ toast(errs[0],'err'); return; }
+  /* U-10: show ALL the problems at once, not just the first. The full list is
+     already collected here; toasting errs[0] alone forced a fix-resubmit-discover
+     loop through fields the user could have corrected in one pass. */
+  if(errs.length){ toast(errs.length===1?errs[0]:`${errs.length} things need fixing:\n• ${errs.join('\n• ')}`,'err'); return; }
   const cp=values.counterparty||'';
   /* THE NAME THEY TYPED IS THE COUNTERPARTY, not just a word in the title.
      This wrote `counterparty:''` and folded `cp` into the display name only,

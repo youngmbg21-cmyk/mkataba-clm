@@ -682,7 +682,11 @@ function resolveRound(c, n, accept, opts={}){
   // no reason is the thing that pushes the conversation back into email.
   r.status='closed'; r.resolution={ decision:accept?'accepted':'rejected', by:u.name, at:nowISO(),
     comment:String(opts.comment||'').slice(0,2000)||null };
-  if(accept && r.proposedValue!=null){
+  // M-4: only adopt a proposed value that is a real number. The guard used to be
+  // "not null", but Number('1.5m') is NaN and NaN!=null is true, so a malformed
+  // figure (reachable via a hand-built/static-mode response code) would be
+  // written straight onto c.value, breaking money KPIs, sorting and CSV export.
+  if(accept && Number.isFinite(Number(r.proposedValue))){
     c.value=Number(r.proposedValue);
     c.approval=null; c.approvalChain=null; // value changed — prior approvals are void, rebuild the chain
   }
@@ -751,7 +755,7 @@ function acceptProposedRound(c, n, opts={}){
   r.status='closed';
   r.resolution={ decision:partly?'partly-accepted':'accepted', by:u.name, at:nowISO(),
     comment:String(opts.comment||'').slice(0,2000)||null };
-  if(r.proposedValue!=null){ c.value=Number(r.proposedValue); c.approval=null; }
+  if(Number.isFinite(Number(r.proposedValue))){ c.value=Number(r.proposedValue); c.approval=null; }  // M-4: real numbers only
   // A Word round carries the returned .docx itself. Adoption files that file
   // as the contract's CURRENT version (v2, v3…) beside the untouched original,
   // makes its text the extracted text (so search, Copilot review and the reading

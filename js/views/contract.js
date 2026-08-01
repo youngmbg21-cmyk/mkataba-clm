@@ -1917,7 +1917,12 @@ function wsNextAction(c){
   }
   // Under Review
   if(!appr.ok) return { label:'Send to counterparty', ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
-  if(!c.compliance.consent) return { label:'Sign', ic:'finger', guide:'Approved — confirm intent and sign below.', kind:'sign-scroll' };
+  // U-8: when intent-to-sign is not yet ticked, this button only scrolls to the
+  // consent box — it does not sign. Labelling it "Sign" made the prominent verb
+  // a false promise (tick the box, then hunt for a second Sign control). It now
+  // says what it actually does; the label becomes "Sign" only when a click will
+  // truly execute.
+  if(!c.compliance.consent) return { label:'Review & sign below', ic:'finger', guide:'Approved — confirm intent-to-sign below, then sign.', kind:'sign-scroll' };
   return { label:'Sign', ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
 }
 
@@ -3008,20 +3013,29 @@ function updateStatusUI(c){
 /* -------- comments -------- */
 function renderFeed(c){
   const feed=document.getElementById('feed');
+  /* H-1: escape every value that reaches innerHTML. A counterparty's typed name
+     (m.author) and comment (m.text) flow into c.comments through the public
+     share portal (applyResponse in core.js), so this feed renders text that
+     originates OUTSIDE the workspace. Rendered raw, a name or comment like
+     "<img src=x onerror=…>" would execute in the contract owner's browser —
+     stored cross-site scripting from an external party against an internal
+     (often admin) user. Every other typed-text surface already escapes; this
+     older panel did not. initials is derived from author, so it is escaped too. */
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   feed.innerHTML=c.comments.map(m=>{
     const internal=m.side==='internal';
     const avatarBg=internal?'bg-brand-100 text-brand-700':'bg-gold-500/15 text-gold-600';
-    const initials=m.author.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const initials=esc(String(m.author||'').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase());
     return `
     <div class="flex gap-2.5">
       <div class="h-7 w-7 shrink-0 grid place-items-center rounded-full text-[10px] font-semibold ${avatarBg}">${initials}</div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="text-xs font-medium text-brand-900">${m.author}</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded ${internal?'bg-brand-50 text-brand-600':'bg-gold-500/10 text-gold-600'}">${m.role}</span>
-          <span class="text-[10px] text-brand-800/60 ml-auto">${m.ts}</span>
+          <span class="text-xs font-medium text-brand-900">${esc(m.author)}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded ${internal?'bg-brand-50 text-brand-600':'bg-gold-500/10 text-gold-600'}">${esc(m.role)}</span>
+          <span class="text-[10px] text-brand-800/60 ml-auto">${esc(m.ts)}</span>
         </div>
-        <p class="text-xs text-brand-800/75 mt-0.5 leading-relaxed">${m.text}</p>
+        <p class="text-xs text-brand-800/75 mt-0.5 leading-relaxed">${esc(m.text)}</p>
       </div>
     </div>`;
   }).join('');
@@ -3334,8 +3348,19 @@ function openPaperSignatureModal(c){
 /* Freeze + seal + (single-signer) record the first mark + distribute. Called
    once, from either completion point (last internal signer here, or a
    counterparty's signature in applyResponse). Idempotent. */
+const _sealingInFlight = new Set();   // H-5: guards against a concurrent double-seal
 async function finalizeExecution(c, opts={}){
   if(c.status==='Signed' || (c.hash && c.hash!==null)) return;   // already executed
+  /* H-5: the guard above runs synchronously, but c.status only becomes 'Signed'
+     AFTER several awaits below (freeze + two hashes). Two polls firing close
+     together — the interval tick and a focus/visibility refresh — could both
+     pass that guard before either committed, and both would seal and distribute:
+     duplicate signatures, duplicate audit lines, a double /distribute. An
+     in-flight lock keyed by id closes the window. Kept in a Set, not on the
+     record, so it is never persisted. */
+  if(_sealingInFlight.has(c.id)) return;
+  _sealingInFlight.add(c.id);
+  try{
   const u=opts.by||currentUser();
   const at=(opts.meta&&opts.meta.at)||nowISO();
   const ip=(opts.meta&&opts.meta.ip)||null;
@@ -3349,7 +3374,10 @@ async function finalizeExecution(c, opts={}){
     const worn=resolveDocBranding(c);
     if(worn&&worn.designId&&!(c.branding&&c.branding.designId)) c.branding={...worn};
   }
-  const exec={ at, method:'session-authenticated', consent:true, ua:(typeof navigator!=='undefined'?navigator.userAgent:''), ip };
+  const exec={ at, method:'session-authenticated', consent:true, ua:(typeof navigator!=='undefined'?navigator.userAgent:''), ip,
+    // H-6: freeze the first-party name into the record so the seal binds the
+    // name as it was at signing, not the live (renameable) workspace name.
+    firstParty:(typeof window!=='undefined'&&window.FIRST_PARTY)||(typeof FIRST_PARTY!=='undefined'?FIRST_PARTY:'') };
   if(!isUpload(c)){
     exec.html=freezeContractHtml(c);
     // Record WHAT was sealed and HOW it was hashed, on the execution record
@@ -3410,6 +3438,7 @@ async function finalizeExecution(c, opts={}){
   }catch(e){ /* not on screen — fine */ }
   if(!opts.silent) toast('Signed & sealed — the exact text is frozen and fingerprinted');
   distributeExecuted(c);                 // email a sealed copy to every party
+  } finally { _sealingInFlight.delete(c.id); }   // H-5: release the seal lock
 }
 
 /* Auto-distribute the executed copy to every party (§ auto-distribution).

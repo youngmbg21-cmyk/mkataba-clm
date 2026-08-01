@@ -42,6 +42,19 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.HATI_DATA || path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'hati.db'));
+/* H-2: absorb write collisions instead of dropping them. SQLite serialises
+   writes and, by default, throws SQLITE_BUSY the instant two writers meet — and
+   here two writers genuinely can meet: a counterparty POSTing a signature at the
+   same moment the owner saves. With no busy_timeout that collision surfaces as a
+   500 and the losing write (possibly a signature or a negotiation response) is
+   simply gone. busy_timeout makes a blocked writer wait and retry for up to five
+   seconds — long enough to clear any real contention on one workspace — and WAL
+   mode lets reads proceed while a write is in flight, so the app stays
+   responsive under that contention rather than stalling. A small retry wrapper
+   (txnRetry, below) covers the multi-statement public write paths as a belt to
+   this braces. */
+try { db.exec('PRAGMA busy_timeout = 5000'); } catch (_) {}
+try { db.exec('PRAGMA journal_mode = WAL'); } catch (_) {}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, json TEXT NOT NULL);
@@ -231,6 +244,22 @@ function backfillFts() {
   } catch (_) {}
 }
 function txn(fn) { db.exec('BEGIN'); try { fn(); db.exec('COMMIT'); } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} throw e; } }
+/* H-2: retry a write a few times if SQLite reports the file busy/locked. The
+   busy_timeout PRAGMA already handles most contention inside a single statement;
+   this covers the case where a whole operation needs re-running. Used on the
+   public, unauthenticated write paths (a counterparty responding), where a
+   dropped write is a lost signature and there is no user to retry by hand. */
+const isBusyErr = e => /SQLITE_BUSY|database is locked|is locked/i.test(String(e && (e.code || e.message) || ''));
+function withWriteRetry(fn, tries = 4) {
+  for (let i = 0; ; i++) {
+    try { return fn(); }
+    catch (e) {
+      if (!isBusyErr(e) || i >= tries - 1) throw e;
+      const until = Date.now() + 60 + i * 90;   // brief synchronous backoff
+      while (Date.now() < until) { /* node:sqlite is sync; a short spin is simplest and bounded */ }
+    }
+  }
+}
 let seqCounter = null;
 function nextSeq() {
   if (seqCounter == null) { const r = db.prepare('SELECT MAX(seq) m FROM contracts').get(); seqCounter = (r && r.m) || 0; }
@@ -276,6 +305,10 @@ db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_fingerprint ON contracts(text_
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_parent ON contracts(parent_id)');
 // why a message was refused, in the provider's own words (see sendEmail)
 addColumnIfMissing('outbox', 'detail', 'TEXT');
+// C-1: per-code failed-attempt counter, so a signing code burns out after a
+// few wrong guesses regardless of where the guesses come from — defence in
+// depth that does not depend on IP-based rate limiting alone.
+addColumnIfMissing('share_otp', 'attempts', 'INTEGER NOT NULL DEFAULT 0');
 addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
 // Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
 // share is bound to a recipient and channel, expires, can be revoked, and
@@ -476,8 +509,15 @@ function folderScopeFor(user) {
   if (user.role === 'admin') return ADMIN_SCOPE;
   const map = (getSetting('appSettings') || {}).folderAccess || {};
   const v = map[user.id];
-  if (v == null || v === ADMIN_SCOPE || !Array.isArray(v) || !v.length) return ADMIN_SCOPE;
-  return v.map(String);
+  /* M-1: distinguish "no restriction recorded" from "restricted to nothing".
+     Previously an empty array fell through to ADMIN_SCOPE, so the one thing a
+     cautious admin would reach for — "let them see nothing until I decide" —
+     silently granted the ENTIRE workspace, and deny-all was impossible to
+     express. Now: no key / null / the ALL sentinel / a non-array → unrestricted
+     (backward-compatible: absence has always meant "all"); an explicit empty
+     array → deny everything (scopeFrag turns [] into 1=0). */
+  if (v == null || v === ADMIN_SCOPE || !Array.isArray(v)) return ADMIN_SCOPE;
+  return v.map(String);   // [] included, and it means "no folders"
 }
 const scopeIsAll = s => s === ADMIN_SCOPE;
 const inScope = (scope, folder) => scopeIsAll(scope) || scope.includes(String(folder || ''));
@@ -564,12 +604,30 @@ function visibleContract(c, user, moneyKeys) {
 }
 
 const app = express();
-app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
+/* C-1: TRUST EXACTLY THE HOPS WE OWN, NOT THE WHOLE HEADER.
+   `trust proxy: true` trusts every entry in X-Forwarded-For, which means the
+   left-most value — the one the *client* supplies — becomes req.ip. An attacker
+   then rotates that value per request and looks like a fresh visitor every time,
+   so every IP-keyed rate limiter (login, password reset, OTP, share) never
+   engages. We trust a fixed number of proxy hops instead: TRUST_PROXY may be a
+   number ("1" for a single known proxy like Render), and defaults to 1 when TLS
+   termination is on, else 0 (local dev, direct connection). With N trusted hops
+   Express derives req.ip from the (N+1)-th-from-last XFF entry, which a client
+   cannot forge. */
+const TRUST_HOPS = (() => {
+  const raw = String(process.env.TRUST_PROXY || '').trim();
+  if (/^\d+$/.test(raw)) return Number(raw);
+  if (raw === 'true') return 1;
+  return process.env.HTTPS === 'true' ? 1 : 0;
+})();
+app.set('trust proxy', TRUST_HOPS);    // trusted-hop count, so req.ip cannot be spoofed by the client
 
 // E8-T2: hand-rolled security headers (no new deps). Secure cookies + HSTS
 // only when told we're behind TLS (HTTPS=true or TRUST_PROXY set), so local
 // http development still works.
-const HTTPS_ON = () => process.env.HTTPS === 'true' || process.env.TRUST_PROXY === 'true';
+const HTTPS_ON = () => process.env.HTTPS === 'true'
+  || process.env.TRUST_PROXY === 'true'
+  || /^[1-9]\d*$/.test(String(process.env.TRUST_PROXY || '').trim());
 
 // E9-FIX4: force HTTPS when we know we're behind TLS. Honours x-forwarded-proto
 // (the app runs behind a proxy). No-op when HTTPS_ON() is false, so local http
@@ -621,7 +679,11 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '15mb' }));
-const clientIp = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null;
+/* C-1: use req.ip, which Express derives from the TRUSTED hop count above — the
+   client cannot forge it. We no longer read the left-most X-Forwarded-For value
+   by hand (that WAS the spoofable path). Behind zero trusted hops (local/direct)
+   req.ip is the socket address, which is also correct. */
+const clientIp = req => (req.ip || null);
 
 // E8-T1: in-memory sliding-window rate limiter (no deps). Keyed by ip+bucket by
 // default; pass opts.keyFn to key by something else (e.g. the signed-in user),
@@ -651,6 +713,14 @@ function rateLimit(bucket, max, windowMs, opts = {}) {
 setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) { const keep = arr.filter(t => nowMs - t < 3600000); if (keep.length) rlHits.set(k, keep); else rlHits.delete(k); } }, 600000).unref?.();
 const rlAuth = rateLimit('auth', 10, 15 * 60 * 1000);   // 10 / 15 min per IP
 const rlOtp = rateLimit('otp', 8, 15 * 60 * 1000);
+/* C-1: also cap OTP traffic PER SHARE TOKEN, not only per IP. A signing code
+   belongs to one contract link; capping guesses against that link means an
+   attacker cannot multiply their attempts by spreading them across source
+   addresses. Keyed on the :token route param (present before the handler). */
+const rlOtpToken = rateLimit('otp-token', 12, 15 * 60 * 1000,
+  { keyFn: req => 't:' + (req.params && req.params.token || 'none'),
+    message: 'Too many signing-code attempts for this link — please wait and try again' });
+const OTP_MAX_ATTEMPTS = 5;   // wrong guesses before a code is burned
 const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
 // per-user daily cap on outbound shares/resends — protects sender reputation
 const rlShareSend = rateLimit('share-send', 100, 24 * 60 * 60 * 1000,
@@ -1229,14 +1299,24 @@ app.post('/api/logout', auth, (req, res) => {
 app.get('/api/bootstrap', auth, (req, res) => {
   const scope = folderScopeFor(req.user);
   const f = scopeFrag(scope);
+  /* M-3: the settings blob is handed to every signed-in user, and it carries the
+     folderAccess map — the full record of which member is restricted to which
+     value streams. A non-admin has no need for that map (their OWN scope reaches
+     them on `me.folderAccess`), and it quietly discloses the workspace's access
+     structure. Strip it for non-admins; admins still get it to edit. */
+  const rawSettings = getSetting('appSettings') || {};
+  const settings = req.user.role === 'admin' ? rawSettings : (() => { const s = { ...rawSettings }; delete s.folderAccess; return s; })();
   res.json({
     org: getSetting('org'),
     me: publicUser(req.user),
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(publicUser),
     uid: getSetting('uid') || 100,
-    settings: getSetting('appSettings') || {},
+    settings,
     count: db.prepare(`SELECT COUNT(*) n FROM contracts ${whereOf(f.sql)}`).get(...f.args).n,
     aiConfigured: !!(getSetting('aiKey') || process.env.ANTHROPIC_API_KEY),
+    // M-6: reminder-sweep health, admins only — so "reminders stopped" is
+    // visible in the app, not just in the server log and the outbox.
+    reminderHealth: req.user.role === 'admin' ? (getSetting('reminderHealth') || null) : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -1642,12 +1722,45 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
     db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
   });
+  _storedBytes = null;   // H-8: recompute the storage total after removing files
   res.json({ ok: true, sharesRevoked: revoked, filesDeleted: fileIds.length });
 });
 
 app.put('/api/settings', auth, admin, (req, res) => {
-  setSetting('appSettings', req.body || {});
+  /* H-3: folderAccess is an access-control map, and it used to ride inside this
+     one big blob that is overwritten wholesale on EVERY settings change. A
+     second admin saving any unrelated setting from a slightly older copy would
+     silently revert a folder restriction another admin had just made — a
+     security control regressing on ordinary two-admin timing. It is now
+     preserved from the stored settings here (the client's copy of it is
+     ignored) and can only be changed through the dedicated atomic endpoint
+     below. Every other key keeps the existing whole-blob behaviour. */
+  const incoming = req.body || {};
+  const stored = getSetting('appSettings') || {};
+  // If the caller did NOT send folderAccess, keep the stored map rather than
+  // dropping it — the client's general settings save no longer includes it, so
+  // an unrelated settings change must not wipe access control. A caller that
+  // sends folderAccess explicitly (the dedicated endpoint, the setup seed, or a
+  // direct API call) still writes it.
+  if (!('folderAccess' in incoming) && 'folderAccess' in stored) incoming.folderAccess = stored.folderAccess;
+  setSetting('appSettings', incoming);
   res.json({ ok: true });
+});
+/* H-3: the one place folderAccess changes — a server-side read-modify-write of
+   just that key, so it cannot be clobbered by a concurrent full-blob save. Send
+   `folders` as an array of stream ids to restrict, or null to lift the
+   restriction (unrestricted = the key is removed). */
+app.put('/api/settings/folder-access', auth, admin, (req, res) => {
+  const { userId, folders } = req.body || {};
+  const id = String(userId || '').trim();
+  if (!id) return res.status(400).json({ error: 'userId required' });
+  if (folders != null && !Array.isArray(folders)) return res.status(400).json({ error: 'folders must be an array or null' });
+  const s = getSetting('appSettings') || {};
+  s.folderAccess = s.folderAccess || {};
+  if (folders == null) delete s.folderAccess[id];
+  else s.folderAccess[id] = folders.map(String);
+  setSetting('appSettings', s);
+  res.json({ ok: true, folderAccess: id in s.folderAccess ? s.folderAccess[id] : null });
 });
 // Templates are managed by Admin AND Legal (tplCanManage() === canEdit() on the
 // client), but the settings blob they live in is admin-only — so a Legal user
@@ -2915,13 +3028,32 @@ app.delete('/api/users/:id', auth, admin, (req, res) => {
   res.json({ ok: true });
 });
 
-/* ---------- uploaded-file storage (keeps big files out of the synced blob) ---------- */
+/* ---------- uploaded-file storage (keeps big files out of the synced blob) ----------
+   H-8: files are stored as base64 text in SQLite (≈33% larger than the bytes)
+   and there was no ceiling — a steady stream of large uploads grows the one
+   database file until the host disk is full, which on a fixed-disk host is a
+   whole-app outage, not a graceful error. A per-workspace ceiling refuses new
+   uploads past a sensible cap with a clear message, so the failure is "this
+   upload was declined" rather than "the product is down". Default 750 MB of
+   stored bytes; override with STORAGE_MAX_MB (0 disables). The orphan-file sweep
+   at /api/files/orphans lets an admin reclaim space. */
+const STORAGE_MAX_BYTES = (() => { const mb = Number(process.env.STORAGE_MAX_MB); return Number.isFinite(mb) ? mb * 1024 * 1024 : 750 * 1024 * 1024; })();
+let _storedBytes = null;
+function storedBytes() {
+  if (_storedBytes == null) { const r = db.prepare('SELECT COALESCE(SUM(LENGTH(data)),0) n FROM files').get(); _storedBytes = Number(r && r.n) || 0; }
+  return _storedBytes;
+}
 app.post('/api/files', auth, editor, (req, res) => {
   const { name, mime, dataUrl } = req.body || {};
   if (!dataUrl || typeof dataUrl !== 'string') return res.status(400).json({ error: 'dataUrl required' });
+  if (STORAGE_MAX_BYTES > 0 && storedBytes() + dataUrl.length > STORAGE_MAX_BYTES) {
+    const mb = n => (n / (1024 * 1024)).toFixed(0);
+    return res.status(413).json({ error: `Document storage is full (${mb(storedBytes())} MB of ${mb(STORAGE_MAX_BYTES)} MB used). Ask an admin to remove unneeded uploads (Team & Settings → reclaim orphaned files) or raise the limit before uploading more.`, storageFull: true });
+  }
   const id = 'f_' + rid(10);
   db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
     .run(id, name || '', mime || '', dataUrl, now());
+  if (_storedBytes != null) _storedBytes += dataUrl.length;
   res.json({ ok: true, id });
 });
 /* A file's bytes ARE the contract, for an uploaded document — so this route is
@@ -2981,6 +3113,7 @@ app.delete('/api/files/orphans', auth, admin, (req, res) => {
     for (const f of db.prepare('SELECT id FROM files').all())
       if (!referenced.has(f.id)) { db.prepare('DELETE FROM files WHERE id=?').run(f.id); n++; }
   });
+  _storedBytes = null;   // H-8: recompute the storage total after the sweep
   res.json({ ok: true, deleted: n });
 });
 
@@ -3944,7 +4077,7 @@ app.get('/api/contracts/:id/engagement', auth, (req, res) => {
    signs. Its replacement is W7's recorded route — the owner names each
    signer's address up front and each gets their own bound link — which is why
    W8 ships with W7 and never before it. Flagged in the release notes. */
-app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request a code
+app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, (req, res) => {     // public: request a code
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   const invited = String(s.recipient_email || '').toLowerCase();
@@ -3954,8 +4087,10 @@ app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request
        padlock. Refused plainly, with the way out named. */
     return res.status(409).json({ error: 'This link was issued without a named email address, so a signing code cannot be sent. Ask the sender to reissue the link to the signer\'s own email address.' });
   const code = code6(), expires = Date.now() + 10 * 60 * 1000;
-  db.prepare('INSERT INTO share_otp (token,email,code_hash,verify,verified,expires) VALUES (?,?,?,?,0,?) ' +
-    'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
+  // C-1: a fresh code resets the attempt counter (attempts=0), so requesting a
+  // new code is the honest way back after a few mistyped digits.
+  db.prepare('INSERT INTO share_otp (token,email,code_hash,verify,verified,expires,attempts) VALUES (?,?,?,?,0,?,0) ' +
+    'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires, attempts=0')
     .run(req.params.token, invited, sha(code + req.params.token), null, expires);
   sendEmail(invited, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
   // The code is NEVER returned to the caller. This endpoint is public and the
@@ -3967,7 +4102,7 @@ app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request
   // address was used.
   res.json({ ok: true, emailSent: EMAIL_ON(), sentTo: invited });
 });
-app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: verify the code
+app.post('/api/shares/:token/verify-otp', rlOtp, rlOtpToken, (req, res) => {  // public: verify the code
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
   const { code } = req.body || {};
   /* The typed email is no longer part of the check — the server chose the
@@ -3975,9 +4110,21 @@ app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: ver
      only re-admit the page's opinion. Possession of the code IS the proof. */
   if (!row) return res.status(400).json({ error: 'Request a code first' });
   if (Date.now() > row.expires) return res.status(400).json({ error: 'Code expired — request a new one' });
-  if (row.code_hash !== sha(String(code || '') + req.params.token)) return res.status(400).json({ error: 'Incorrect code' });
+  /* C-1: burn the code after OTP_MAX_ATTEMPTS wrong guesses. Without this, a
+     6-digit code (a million possibilities) stays guessable for its whole
+     10-minute life, and IP rate limiting was the only ceiling — the very
+     ceiling the trust-proxy fix above had to restore. This closes the gap
+     independently: after five misses the code is dead and the signer must
+     request a new one, which resets the counter. */
+  if (Number(row.attempts || 0) >= OTP_MAX_ATTEMPTS)
+    return res.status(429).json({ error: 'Too many incorrect attempts on this code. Request a new signing code and try again.', retryAfter: 60 });
+  if (row.code_hash !== sha(String(code || '') + req.params.token)) {
+    db.prepare('UPDATE share_otp SET attempts=attempts+1 WHERE token=?').run(req.params.token);
+    const left = Math.max(0, OTP_MAX_ATTEMPTS - Number(row.attempts || 0) - 1);
+    return res.status(400).json({ error: left > 0 ? `Incorrect code — ${left} attempt${left === 1 ? '' : 's'} left before you need a new code.` : 'Incorrect code — that was the last attempt. Request a new signing code.' });
+  }
   const verify = rid(12);
-  db.prepare('UPDATE share_otp SET verified=1, verify=? WHERE token=?').run(verify, req.params.token);
+  db.prepare('UPDATE share_otp SET verified=1, verify=?, attempts=0 WHERE token=?').run(verify, req.params.token);
   res.json({ ok: true, verify });
 });
 
@@ -4106,14 +4253,18 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     r.invitedEmail = s.recipient_email || null;
   }
   const at = now();
-  if (s.durable) {
-    // every round's answer is kept, and applied to the contract on its own
-    db.prepare('INSERT INTO share_responses (token,response,at,applied) VALUES (?,?,?,0)')
-      .run(req.params.token, JSON.stringify(r), at);
-    db.prepare('UPDATE shares SET response=?, responded_at=? WHERE token=?').run(JSON.stringify(r), at, req.params.token);
-  } else {
-    db.prepare('UPDATE shares SET response=?, responded_at=?, applied=0 WHERE token=?').run(JSON.stringify(r), at, req.params.token);
-  }
+  // H-2: this is the public write that must not be dropped — a counterparty's
+  // signature or response. Retried if SQLite reports the file momentarily busy.
+  withWriteRetry(() => {
+    if (s.durable) {
+      // every round's answer is kept, and applied to the contract on its own
+      db.prepare('INSERT INTO share_responses (token,response,at,applied) VALUES (?,?,?,0)')
+        .run(req.params.token, JSON.stringify(r), at);
+      db.prepare('UPDATE shares SET response=?, responded_at=? WHERE token=?').run(JSON.stringify(r), at, req.params.token);
+    } else {
+      db.prepare('UPDATE shares SET response=?, responded_at=?, applied=0 WHERE token=?').run(JSON.stringify(r), at, req.params.token);
+    }
+  });
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
   /* W7 sequential release: this signature may be the one the next signer's
      dormant link is waiting on. Fired from here — the moment the signature is
@@ -4198,15 +4349,21 @@ app.put('/api/me/prefs', auth, (req, res) => {
 app.post('/api/password/reset-request', rlAuth, (req, res) => {
   const email = String((req.body || {}).email || '').toLowerCase();
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(email);
-  let devToken;
   if (u) {
     const token = rid(16), id = 'r_' + rid(6);
     db.prepare('INSERT INTO resets (id,user_id,token_hash,expires,used) VALUES (?,?,?,?,0)').run(id, u.id, sha(token), Date.now() + 30 * 60 * 1000);
     const link = `${req.protocol}://${req.get('host')}/#reset=${id}.${token}`;
+    // C-2: the reset link goes to email, or (no provider) to the ADMIN-ONLY
+    // outbox — never back to the caller. Returning the token in the HTTP
+    // response, as this route used to do in outbox mode, handed a working
+    // reset credential to anyone who could name an email address: a one-step
+    // account takeover, and an existence oracle besides. The link now travels
+    // exactly like the signing OTP does — the sole place a real key turns this
+    // from an admin-visible outbox into delivered mail — and the response body
+    // is identical whether or not the account exists.
     sendEmail(email, 'Reset your HaTi password', `Open this link to set a new password (valid 30 minutes):\n${link}`, `Reset link: ${link}`);
-    devToken = EMAIL_ON() ? undefined : `${id}.${token}`;
   }
-  res.json({ ok: true, emailSent: EMAIL_ON(), devToken }); // never leak whether the email exists
+  res.json({ ok: true, emailSent: EMAIL_ON() }); // never leak whether the email exists, and never return the token
 });
 /* Change your own password. Also the route that clears the
    must-change-password flag an admin-created account starts life with. */
@@ -4403,10 +4560,36 @@ app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders(
    process with it — but it used to be EMPTY, and that is how one malformed
    expiry switched every renewal reminder in a workspace off in perfect silence.
    Whatever stops the sweep now says so where an operator can see it. */
-setInterval(() => {
-  try { runReminders(); }
-  catch (e) { console.warn('[reminders] sweep failed, no reminders went out this cycle:', (e && e.message) || e); }
-}, 12 * 60 * 60 * 1000);
+/* M-6: a swallowed failure is how one malformed date silently switched every
+   renewal reminder off. The catch stays (one bad cycle must not crash the
+   process), but the outcome is now RECORDED where an admin can see it: a
+   `reminderHealth` setting (surfaced to admins on bootstrap) carries the last
+   run, last success and last error, and a failure also drops an admin-visible
+   note into the outbox. "Reminders stopped" is no longer invisible. */
+function recordReminderRun(ok, errMsg) {
+  const h = getSetting('reminderHealth') || {};
+  h.lastRunAt = now();
+  if (ok) { h.lastOkAt = now(); h.lastError = null; h.lastErrorAt = null; }
+  else { h.lastError = errMsg || 'unknown error'; h.lastErrorAt = now(); }
+  setSetting('reminderHealth', h);
+}
+function reminderSweep() {
+  try { runReminders(); recordReminderRun(true); }
+  catch (e) {
+    const msg = (e && e.message) || String(e);
+    console.warn('[reminders] sweep failed, no reminders went out this cycle:', msg);
+    recordReminderRun(false, msg);
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('rem_' + rid(6), 'admin', 'Renewal reminders did not run',
+          `The automatic renewal-reminder sweep failed and no reminders went out this cycle.\n\nReason: ${msg}\n\nRenewal, notice and expiry alerts are paused until this is resolved. Check the most recently edited contract's dates.`,
+          'system', 'reminder sweep failure', now());
+    } catch (_) {}
+  }
+}
+// Run once shortly after boot so the health line has a recent result, then every 12h.
+setTimeout(reminderSweep, 30 * 1000).unref?.();
+setInterval(reminderSweep, 12 * 60 * 60 * 1000).unref?.();
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   // A durable link is never "used up", so marking it applied wholesale would
@@ -4555,7 +4738,13 @@ app.get('/api/advice/track/:token', (req, res) => {
 });
 
 // Team: the full pipeline.
-app.get('/api/advice/requests', auth, (req, res) => {
+// M-2: Admin/Legal only. This returns customer emails, internal notes and
+// assignees for the whole advice desk; it was auth-only, so any signed-in
+// account — including a read-only Viewer — could read the lot. The board is
+// internal legal-team work, so it is gated to those roles on the server, not
+// just hidden in the UI. (Role-only, like templateManager — no password-change
+// gate on a read.)
+app.get('/api/advice/requests', auth, templateManager, (req, res) => {
   const rows = db.prepare('SELECT json FROM advice_requests ORDER BY seq DESC LIMIT 500').all();
   res.json({ requests: rows.map(r => JSON.parse(r.json)) });
 });

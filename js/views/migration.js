@@ -330,8 +330,15 @@ async function migConfirmEstimate(files){
   const threshold=Number(lim.estimateConfirmAt!=null?lim.estimateConfirmAt:1);
   const M=migState();
   M.lastEstimate=est;
-  if(!(threshold>0) || est.worstCase<threshold) return true;
   const a=M.allowance;
+  /* U-4: an open onboarding allowance IS the admin's explicit pre-authorisation
+     for onboarding spend — it is set deliberately and burns down visibly on this
+     screen — so it should not also greet the user with a blocking "you may be
+     charged" dialog on the headline action of the whole migration journey. Only
+     prompt when the batch draws on the day-to-day budget and clears the
+     threshold. The estimate itself still shows on screen, framed as an estimate. */
+  if(a&&a.open) return true;
+  if(!(threshold>0) || est.worstCase<threshold) return true;
   return await confirmDialog({
     title:'Run this batch?',
     message:`${est.docs} document${est.docs===1?'':'s'}, about ${est.pages} page${est.pages===1?'':'s'} — estimated ${migMoney(est.extractCost)} to read the details`
