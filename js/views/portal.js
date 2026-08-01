@@ -1784,6 +1784,12 @@ function portalWorkbenchStyle(){
     .pw-id-sub{display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .pw-id .nego-who{margin-left:auto;flex:none;display:flex;align-items:center;gap:7px;}
+    .pt-focus-btn{width:32px;height:32px;flex:none;display:inline-grid;place-items:center;
+      background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;
+      cursor:pointer;color:var(--color-neutral-700);transition:background .12s,border-color .12s;}
+    .pt-focus-btn:hover{background:var(--color-neutral-100);}
+    .pt-focus-btn.on{background:var(--color-accent-800,#115e59);border-color:var(--color-accent-800,#115e59);color:#fff;}
+    .pw-page.pw-focus .pw-notes{display:none;}
     .pw-id .nego-who .lbl{font-size:11px;font-weight:600;color:var(--color-neutral-700);
       font-family:var(--font-mono);}
     .pw-id .nego-who input{min-height:32px;min-width:180px;border:1px solid var(--color-divider);
@@ -1844,6 +1850,17 @@ function renderShareWorkbench(p, opts={}){
              Filled ONLY from the share's named recipient, never from the
              counterparty ORGANISATION — see negoNameFieldHtml. An empty box
              asks the question; a wrong one answers it. */}
+      ${''/* The same reading controls the owner's bench carries — the
+             counterparty is the customer, and squinting at 11px wording is
+             not a seat-relative fact. The stepper is the shared component
+             (rlSetDocType updates every mounted .redline-page, this embed
+             included); focus folds the banners away and gives the room to
+             the document, exiting through the same button. */}
+      ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+      <button type="button" id="pt-focus" class="pt-focus-btn" aria-pressed="false"
+        title="Focus — hide the banners and give the room to the document">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
       ${window.negoNameFieldHtml
         ? negoNameFieldHtml({ recipientName:(opts.share&&opts.share.recipientName)||'' }) : ''}
     </section>
@@ -1857,6 +1874,17 @@ function renderShareWorkbench(p, opts={}){
     <div class="pw-mount"><div id="pt-nego"></div></div>
     <div id="pt-nego-foot" hidden></div>
   </div>`;
+  /* The reading controls: the stepper presses the shared rlSetDocType (which
+     updates every mounted workbench root, this embed included), and focus is
+     a class flip on the page — the banners fold, the button stays. */
+  if(window.rlWireTypeStep) rlWireTypeStep(root);
+  document.getElementById('pt-focus')?.addEventListener('click',()=>{
+    const pg=document.getElementById('pw-page'); if(!pg) return;
+    const on=pg.classList.toggle('pw-focus');
+    const b=document.getElementById('pt-focus');
+    if(b){ b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
+      b.title=on?'Exit focus — bring the banners back':'Focus — hide the banners and give the room to the document'; }
+  });
   /* The shared component, wired exactly as the old page wired it. Same
      function, same options — this changes the room the workbench stands in,
      never the workbench. */

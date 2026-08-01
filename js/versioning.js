@@ -484,6 +484,24 @@ function openCompareModal(c){
   // the live document is a comparable whenever it differs in WORDING or in SHAPE
   if(!lastV || live!==lastV.text || liveCanon!==(lastV.canon||lastV.text))
     items.push({label:'Current (live document)', short:'Current', text:live, canon:liveCanon});
+  /* ---- WHAT HAS BEEN PROPOSED IS COMPARABLE TOO ----
+     A reader who has filed and sent redlines has PENDING changes — the
+     agreed wording has not moved yet, which is why two versions could read
+     "word-for-word identical" while three asks sat on the table and Compare
+     looked broken. The proposed state — every live pending change read as if
+     accepted — joins the list as its own comparable, so "what am I asking
+     for, against where we started" is one pick. Last in the list, which also
+     makes it the DEFAULT right-hand side. */
+  if(c.negotiation&&window.negoChanges&&window.negoBuildBody&&window.richToText){
+    try{
+      const pend=negoChanges(c).filter(x=>x&&x.status==='pending'&&!x.withdrawn).length;
+      if(pend){
+        const propText=richToText(negoBuildBody(c,x=>x&&(x.status==='accepted'||(x.status==='pending'&&!x.withdrawn))));
+        if(propText.trim()&&propText!==live)
+          items.push({label:`Proposed — with ${pend} pending redline${pend===1?'':'s'}`,short:'Proposed',text:propText,canon:propText});
+      }
+    }catch(_){ /* one malformed change must not take Compare down */ }
+  }
   const canSnap=canEdit()&&c.status!=='Signed';
 
   if(items.length<2){

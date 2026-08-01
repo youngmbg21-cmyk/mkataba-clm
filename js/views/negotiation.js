@@ -4716,7 +4716,13 @@ function redlineLayoutCss(){
      stays a strip at any width the three-column grid itself supports. */
   .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;
     background:none;border:0;box-shadow:none;border-radius:0;padding:0 2px 2px;flex:none}
-  .redline-page .rl-head-id{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+  /* WRAPS: this strip now carries tabs, round, stepper, focus, the contract
+     jump, the playbook pass and the presence pill — on a laptop width they
+     over-subscribe one row, and nowrap answered that by clipping the jump
+     mid-word and printing the pill over it. A second line is the honest
+     shape. The pill may shrink to ellipsis but never to nothing. */
+  .redline-page .rl-head-id{display:flex;align-items:center;gap:9px 8px;min-width:0;flex:1;flex-wrap:wrap}
+  .redline-page .rl-presence{min-width:0;max-width:260px;overflow:hidden;text-overflow:ellipsis}
   /* ---- THE DOC PAGE'S SHELL, ON THIS TAB ----
      Back arrow, contract name and status, the document verbs — the workspace
      header's own arrangement, so the furniture holds still while the tabs
