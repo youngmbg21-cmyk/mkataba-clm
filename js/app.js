@@ -265,6 +265,15 @@ function renderFailedHtml(view, e, cid){
   </div>`;
 }
 function setView(view){
+  /* ---- A REPAINT IS NOT A NAVIGATION ----
+     Arriving on a DIFFERENT view starts the reader at the top; re-entering
+     the SAME view (a delete, a background response landing, a save that
+     re-renders) must leave them exactly where they were. The scroll is
+     captured before the rebuild — a shorter intermediate paint clamps
+     scrollTop to 0 — and put back after it. */
+  const _sameView = state.view === view;
+  const _sc = document.getElementById('content-scroll');
+  const _keepTop = _sameView && _sc ? _sc.scrollTop : 0;
   // remember where the workspace was opened from, so its Back button returns
   // there (register, a folder, the queue, …) instead of always the folder view
   if(view==='workspace' && state.view && state.view!=='workspace') state.wsReturn={view:state.view, folderId:state.folderId};
@@ -312,7 +321,24 @@ function setView(view){
      watching closely, and leaving it is the moment to stop. */
   if(window.schedulePolling) schedulePolling();
   if(view==='workspace' && window.pollNow) pollNow('opened a contract');
-  const sc=document.getElementById('content-scroll'); if(sc) sc.scrollTo({top:0});
+  const sc=document.getElementById('content-scroll');
+  if(sc){
+    if(_sameView){ sc.scrollTop=_keepTop;
+      // guarded: the cut-down node stage has no requestAnimationFrame
+      if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=_keepTop; }); }
+    else sc.scrollTo({top:0});
+  }
+}
+/* Repaint a same-view surface without losing the reader's place. For callers
+   that repaint DIRECTLY (renderRegister after a delete) rather than through
+   setView — the rebuild's shorter intermediate paint clamps scrollTop to 0,
+   and this puts it back once the new frame has its height. */
+function keepScroll(fn){
+  const sc=document.getElementById('content-scroll');
+  const top=sc?sc.scrollTop:0;
+  fn();
+  if(sc){ sc.scrollTop=top;
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=top; }); }
 }
 function openFolder(fid){
   if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast('You do not have access to that value stream','err'); setView('register'); return; }
@@ -715,4 +741,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});

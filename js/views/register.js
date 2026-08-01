@@ -461,7 +461,11 @@ function wireRegRows(){
     if(act==='open') openWorkspace(id);
     else if(act==='share') openShareModal(c);
     else if(act==='scan') runScanFor(c);
-    else if(act==='delete') deleteContract(id).then(ok=>{ if(ok) renderRegister(); });
+    else if(act==='delete') deleteContract(id).then(ok=>{ if(ok){
+      /* The reader was three pages down when they pressed Delete; the row
+         goes, the place stays. */
+      if(window.keepScroll) keepScroll(()=>renderRegister()); else renderRegister();
+    } });
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   // empty-state actions

@@ -441,8 +441,12 @@ async function loadEngagement(c){
     <div class="flex items-center gap-2 mb-3"><span class="text-brand-500">${icon('history')}</span>
       <h3 class="text-sm font-display font-600 text-ink">Counterparty activity</h3>
       <span class="ml-auto text-[10px] font-mono text-ink/60">${events.length} open${events.length===1?'':'s'}</span></div>
-    <div class="space-y-1">${events.slice(0,20).map(e=>`<div class="flex items-center gap-2 text-[11px] text-ink/65">
-      <span class="h-1.5 w-1.5 rounded-full bg-brand-400"></span><span>Opened</span>
+    ${''/* The list scrolls inside its card instead of running down the page —
+          52 opens is a fact worth keeping, not a wall worth scrolling past.
+          All fetched rows render (the server caps at 100); the box shows the
+          first handful and the wheel does the rest. */}
+    <div class="space-y-1 scroll-thin" style="max-height:190px;overflow-y:auto;padding-right:6px">${events.map(e=>`<div class="flex items-center gap-2 text-[11px] text-ink/65">
+      <span class="h-1.5 w-1.5 rounded-full bg-brand-400" style="flex:none"></span><span>Opened</span>
       <span class="ml-auto font-mono text-ink/45">${fmtDT(e.at)}${e.ip?' · '+e.ip:''}</span></div>`).join('')}</div></div>`;
 }
 
