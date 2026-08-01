@@ -96,6 +96,51 @@ describe('f103 — template library screens', () => {
     assert.equal(sandbox.tplLibPublished()[0].id, 'tpl_1', 'the menu reads the same cache');
   });
 
+  /* These read the generated markup rather than walking a DOM: test/dom.js is a
+     deliberate stand-in whose querySelector always returns null, so the markup
+     string is the only honest thing to assert against here. */
+  test('the section renders as cards in a grid, matching My templates', async () => {
+    const { sandbox } = stage();
+    const host = sandbox.document.getElementById('tpl-company-section');
+    await sandbox.renderCompanyTemplatesSection();
+    await settle();
+    const html = host.innerHTML;
+    assert.match(html, /grid-template-columns:repeat\(auto-fill,minmax\(240px,1fr\)\)/,
+      'the same auto-filling grid My templates uses, not a stack of full-width rows');
+    assert.equal((html.match(/border-left:4px solid/g) || []).length, 2,
+      'one card per template, each with the status stripe down its left edge');
+    assert.ok(!/border-bottom:1px solid var\(--color-divider\)">\s*<span style="width:34px/.test(html),
+      'and none of the old full-width table rows survive');
+  });
+
+  /* The reported bug. The row used to be a <button> with the "New contract"
+     <button> nested inside it. Nested buttons are invalid HTML and browsers
+     repair them by closing the outer one early, which threw the pill and the
+     chevron out of the row and dropped them underneath — the broken layout in
+     the report. A card is a <div>, so its buttons are ordinary children. */
+  test('no button is nested inside another button', async () => {
+    const { sandbox } = stage();
+    const host = sandbox.document.getElementById('tpl-company-section');
+    await sandbox.renderCompanyTemplatesSection();
+    await settle();
+    const html = host.innerHTML;
+    const nested = /<button[^>]*>(?:(?!<\/button>)[\s\S])*?<button/.exec(html);
+    assert.equal(nested, null,
+      nested ? `a <button> opens inside another <button>; a browser will eject it: ${nested[0].slice(-140)}` : '');
+  });
+
+  test('the card still opens the template, and still starts a contract', async () => {
+    const { sandbox } = stage();
+    sandbox.canEdit = () => true;          // the section asks before offering the verb
+    const host = sandbox.document.getElementById('tpl-company-section');
+    await sandbox.renderCompanyTemplatesSection();
+    await settle();
+    const html = host.innerHTML;
+    assert.ok(html.includes('data-tpllib-use="tpl_1"'), 'New contract on the published one');
+    assert.ok(!html.includes('data-tpllib-use="tpl_2"'), 'but never on a draft');
+    assert.ok(html.includes('data-tpllib-open="tpl_2"'), 'the draft is still reachable');
+  });
+
   test('a viewer gets no create verb (the server would 403 it anyway)', async () => {
     const { sandbox } = stage({ canManage: false });
     const host = sandbox.document.getElementById('tpl-company-section');

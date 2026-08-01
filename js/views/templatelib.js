@@ -89,35 +89,62 @@ function tplCompanySectionHtml() {
   const canManage = tplLibCanManage();
   const list = _tplLib.list;
   const fmtDay = iso => iso ? new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-  const rows = list.map(t => `
-    <button data-tpllib-open="${t.id}" class="w-full text-left" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer">
-      <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--tile-steel-bg);color:var(--tile-steel-fg)">${icon('copy', 'w-4 h-4')}</span>
-      <span style="min-width:0;flex:1">
-        <span style="display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600)">${TPLLIB_CATEGORIES[t.category] || 'Other'} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}</span>
-      </span>
-      <span style="flex:none;font-family:var(--font-mono);font-size:11px;color:var(--color-accent-700)" title="Current published version">${t.publishedVersion ? 'v' + t.publishedVersion : (canManage ? 'v' + t.latestVersion + ' draft' : '—')}</span>
-      <span style="flex:none;font-size:11px;color:var(--color-neutral-600);min-width:86px;text-align:right" title="Contracts created from this template">${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'}</span>
-      <span style="flex:none;font-size:11px;color:var(--color-neutral-600);min-width:92px;text-align:right" title="Last used">${fmtDay(t.lastUsedAt)}</span>
-      <span style="flex:none">${tplLibStatusBadge(t.status)}</span>
-      ${t.status === 'published' && typeof canEdit === 'function' && canEdit()
-        ? `<span style="flex:none"><button data-tpllib-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:3.5px 10px">${icon('plus', 'w-3 h-3')} New contract</button></span>` : ''}
-      <span style="flex:none;color:var(--color-neutral-400)">${icon('chevR', 'w-3.5 h-3.5')}</span>
-    </button>`).join('');
+  /* Cards, in the same grid and the same shape as My templates further down the
+     page — one Templates page should not have two visual languages for the same
+     idea. The card is a DIV, not a button: the row it replaces was a <button>
+     with the "New contract" <button> nested inside it, which is invalid HTML,
+     and browsers repair it by closing the outer button early. That ejected the
+     New-contract pill and the chevron out of the row and dropped them below it,
+     which is the broken layout this replaces. Opening is now a click on the
+     card body, so the buttons inside it are ordinary siblings.
+
+     One deliberate departure from My templates: the stripe down the left edge
+     shows STATUS rather than category. My templates colours by folder because
+     that is its only classification; here, draft-versus-published is the fact
+     you scan for, and a draft that looks published is the mistake worth
+     designing against. */
+  const st = t => TPLLIB_STATUS[t.status] || TPLLIB_STATUS.draft;
+  const cards = list.map(t => `
+    <div class="lift" style="${CARD};border-left:4px solid ${st(t).dot};padding:18px;display:flex;flex-direction:column;gap:7px">
+      <div data-tpllib-open="${t.id}" style="display:flex;align-items:center;gap:8px;cursor:pointer" title="Open “${esc(t.name)}”">
+        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--tile-steel-bg);color:var(--tile-steel-fg)">${icon('copy', 'w-3.5 h-3.5')}</span>
+        <span style="min-width:0;flex:1">
+          <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.name)}</span>
+          <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${TPLLIB_CATEGORIES[t.category] || 'Other'} · ${esc(TPLLIB_ORIGIN[t.origin] || '')}</span>
+        </span>
+        <span style="flex:none">${tplLibStatusBadge(t.status)}</span>
+      </div>
+      <div data-tpllib-open="${t.id}" style="font-size:10px;color:var(--color-neutral-500);cursor:pointer">Last used ${fmtDay(t.lastUsedAt)}</div>
+      <div data-tpllib-open="${t.id}" style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--color-neutral-600);cursor:pointer">
+        <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)" title="Current published version">${t.publishedVersion ? 'v' + t.publishedVersion : (canManage ? 'v' + t.latestVersion + ' draft' : '—')}</span>
+        <span>·</span><span title="Contracts created from this template">${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'}</span>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:2px;flex-wrap:wrap">
+        ${t.status === 'published' && typeof canEdit === 'function' && canEdit()
+          ? `<button data-tpllib-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">${icon('plus', 'w-3 h-3')} New contract</button>` : ''}
+        <button data-tpllib-open="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px;${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? '' : 'flex:1'}">Open</button>
+      </div>
+    </div>`).join('');
+  /* The section itself now matches My templates too: a padded card holding a
+     heading row and a grid, rather than a bordered table whose rows ran the
+     full width. Same auto-filling columns and same gap, so the two sections
+     line up as one page instead of two designs stacked. */
   return `
-    <section style="${CARD}">
-      <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--color-divider)">
+    <section style="${CARD};padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${list.length ? '12px' : '6px'}">
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Company standard templates</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${list.length} in the library · versioned &amp; permissioned</span>
         <span style="flex:1"></span>
         ${canManage ? `<button id="tpllib-upload" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
         <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} New template</button>` : ''}
       </div>
-      ${rows || `<div style="padding:30px;text-align:center;color:var(--color-neutral-500);font-size:12.5px">
+      ${cards
+        ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${cards}</div>`
+        : `<p style="font-size:12px;color:var(--color-neutral-600);margin:0;line-height:1.6">
         ${canManage
           ? 'No standard templates yet. Convert an uploaded Word document, save an existing contract as a template, or build one from scratch.'
-          : 'No published company templates yet — a template manager (Admin or Legal) publishes them here.'}</div>`}
-      ${canManage && rows ? `<p style="margin:0;padding:10px 16px;font-size:10.5px;color:var(--color-neutral-500);line-height:1.5;border-top:1px solid var(--color-divider)">
+          : 'No published company templates yet — a template manager (Admin or Legal) publishes them here.'}</p>`}
+      ${canManage && cards ? `<p style="margin:12px 0 0;font-size:10.5px;color:var(--color-neutral-500);line-height:1.5">
         Contracts created from a published version stay independent — publishing an edit makes a new version and never changes contracts already created.</p>` : ''}
     </section>`;
 }

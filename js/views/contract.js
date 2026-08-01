@@ -2603,7 +2603,8 @@ function renderWorkspace(){
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-history" title="The whole negotiation as one story — every proposal, decision, signature and renumbering, with filters" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} History</button>
-          <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
+          <button id="ws-pdf" title="Export a clean copy for sending — your branding, the wording and the signatures, with no HaTi marks on it" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
+          ${printIsHatiExecuted(c)?`<button id="ws-pdf-record" title="Export the full record for your own file — the same document plus HaTi's seal and the audit trail. Not the copy to send a counterparty." class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} Record</button>`:''}
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
         </div>
         ${''/* GIVE THE DOCUMENT THE ROOM. This header carries nine actions, a
@@ -2861,6 +2862,7 @@ function renderWorkspace(){
     else saveContractAsTemplate(c);
   });
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
   // The text-size stepper on the tab row: the control, its styles and its
   // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the
   // two tabs render one component reading one persisted preference. The

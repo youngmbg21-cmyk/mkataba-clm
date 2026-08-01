@@ -285,7 +285,7 @@ describe('removing the discussion panel left no dead controls', () => {
    4 — a printed contract carries its seal
    ============================================================ */
 describe('printing a signed contract', () => {
-  function printed(over = {}){
+  function printed(over = {}, opts){
     const p = buildPortal();
     p.win.print = () => {};
     p.win.persist = () => {};
@@ -299,7 +299,7 @@ describe('printing a signed contract', () => {
         signatures: [{ party: 'first', name: 'Young Mbagaya', email: 'youngmbg21@gmail.com',
           form: 'type', at: '2026-07-27T16:30:00Z' }] }),
       ...over });
-    p.win.exportPDF(c);
+    p.win.exportPDF(c, opts);
     return { c, win: p.win,
       html: p.win.document.getElementById('print-root').innerHTML,
       text: p.win.document.getElementById('print-root').textContent.replace(/\s+/g, ' ') };
@@ -359,8 +359,16 @@ describe('printing a signed contract', () => {
     assert.ok(!/DOCUMENT SEAL/.test(t));
   });
 
-  test('the audit trail still prints below it', () => {
-    const r = printed();
-    assert.match(r.text, /Audit trail/);
+  test('the audit trail prints below it on the record copy, and only there', () => {
+    /* Updated when the export was split in two. The trail used to print on
+       every export; it now belongs to the copy you keep. The seal and the
+       execution block are unaffected — those are the contract's own execution,
+       not HaTi describing itself, so they print on the copy you send as well. */
+    const kept = printed({}, { record: true });
+    assert.match(kept.text, /Audit trail/, 'the record copy carries it');
+
+    const sent = printed();
+    assert.ok(!/Audit trail/.test(sent.text), 'the copy that goes out does not');
+    assert.match(sent.text, /Executed & Sealed/, 'but it still shows the contract was executed');
   });
 });
