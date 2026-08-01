@@ -2652,7 +2652,11 @@ function renderWorkspace(){
   }
   // load the full contract body (comments, audit, execution text, extracted text) on first open
   if(API_MODE() && !c._loaded){
-    content.innerHTML=`<div class="view-enter grid place-items-center min-h-screen"><div class="text-center text-brand-800/70"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">Loading contract…</div></div></div>`;
+    /* No view-enter on the placeholder: opening a contract painted twice —
+       spinner fading in, then the real page fading in over it — and the two
+       back-to-back intros read as a double flash. The spinner appears plainly;
+       at most one intro plays, on the page itself. */
+    content.innerHTML=`<div class="grid place-items-center min-h-screen"><div class="text-center text-brand-800/70"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">Loading contract…</div></div></div>`;
     setActiveNav('workspace');
     ensureFull(c).then(()=>{ if(state.activeId===c.id) renderWorkspace(); })
       .catch(e=>{ if(state.activeId===c.id) content.innerHTML=`<div class="grid place-items-center min-h-screen text-sm text-rose-600">Could not load this contract: ${e.message}</div>`; });

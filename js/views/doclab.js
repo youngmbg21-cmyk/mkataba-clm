@@ -2080,7 +2080,9 @@ function renderDocLab(){
     return;
   }
   if(window.API_MODE && API_MODE() && !c._loaded && window.ensureFull){
-    content.innerHTML = `<div class="view-enter" style="display:grid;place-items:center;min-height:50vh;font-size:13px;color:var(--color-neutral-600)">Loading contract…</div>`;
+    /* No view-enter on the placeholder — same as renderWorkspace: one intro at
+       most, on the real page, never a double fade of spinner-then-content. */
+    content.innerHTML = `<div style="display:grid;place-items:center;min-height:50vh;font-size:13px;color:var(--color-neutral-600)">Loading contract…</div>`;
     ensureFull(c).then(() => { if(state.activeId === c.id && state.view === 'doclab') renderDocLab(); }).catch(() => {});
     return;
   }

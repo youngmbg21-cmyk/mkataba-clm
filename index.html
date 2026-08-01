@@ -374,6 +374,14 @@
      ⋯ menu) behind later rows and makes them look transparent. */
   .stagger>*{animation:rowIn .34s var(--ease) backwards}
   @keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  /* The intro plays for a NAVIGATION, not for a repaint. Every render rebuilds
+     its view from scratch, so to the browser a background refresh, a theme
+     flip or a search keystroke is indistinguishable from arriving at the page
+     — and the whole screen replayed the fade-and-slide, reading as a flash of
+     reload. setView marks #content with this class for same-view repaints
+     (and once a navigation's intro has finished), so only a genuine change of
+     page animates and everything else holds still. */
+  .no-view-anim .view-enter,.no-view-anim .stagger>*{animation:none!important;}
 
   /* live ping (workspace status + activity live dots) */
   @keyframes livePing{0%{box-shadow:0 0 0 0 rgba(13,148,136,.45)}70%{box-shadow:0 0 0 6px rgba(13,148,136,0)}100%{box-shadow:0 0 0 0 rgba(13,148,136,0)}}
@@ -1032,7 +1040,12 @@
 
     <!-- body grid: content + context panel -->
     <div id="body-grid" style="flex:1;display:grid;grid-template-columns:1fr 292px;min-height:0;">
-      <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;min-height:0;">
+      <!-- scrollbar-gutter keeps the gutter reserved whether or not this page
+           scrolls: without it, moving between a scrolling page (Home, Reports)
+           and a fixed-height one (Register, Queue) made the scrollbar appear
+           and vanish, shifting every pixel of content sideways — a horizontal
+           jolt on every navigation wherever scrollbars take up space. -->
+      <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;min-height:0;scrollbar-gutter:stable;">
         <div id="content"></div>
       </main>
 
