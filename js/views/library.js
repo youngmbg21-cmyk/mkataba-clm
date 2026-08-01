@@ -104,7 +104,7 @@ function openTemplateFillModal(t){
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
              same act. Saved templates create contracts through their own fill
              form, so adding the address to the guided wizard alone left every
-             contract made from "My templates" back where it started: asked in
+             contract made from "Counterparty Templates" back where it started: asked in
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
         <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">Their email<span style="font-weight:400;color:var(--color-neutral-500)"> → so you can send it to them</span></span>
@@ -162,7 +162,7 @@ function saveContractAsTemplate(c){
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Save as template</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>My templates</b> and in the New-contract menu.</p>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>Counterparty Templates</b> and in the New-contract menu.</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
         <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
@@ -225,7 +225,11 @@ function openCreateTemplateModal(mode){
           <select id="ct-folder" style="${FLD};background:var(--color-surface)">${opts}</select></label>
       </div>
 
-      <div id="ct-pane-paste">
+      <!-- Both panes share one grid cell, so the modal is as tall as the
+           taller pane whichever tab is showing — switching tabs must never
+           resize the panel, because a centred modal that resizes also moves. -->
+      <div id="ct-panes" style="display:grid">
+      <div id="ct-pane-paste" style="grid-area:1/1">
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
           <span style="font-size:11px;font-weight:600">Paste the contract here</span>
           <span style="flex:1"></span>
@@ -239,10 +243,11 @@ function openCreateTemplateModal(mode){
         <div id="ct-report" style="font-size:11px;margin-top:7px;min-height:16px;line-height:1.5"></div>
       </div>
 
-      <div id="ct-pane-upload" style="display:none">
+      <div id="ct-pane-upload" style="grid-area:1/1;visibility:hidden;pointer-events:none">
         <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">PDF or text (Word files must be saved as PDF first). HaTi reads the file and <b>rebuilds its structure</b> — headings, bold, italics, numbered clauses and indentation — from the type sizes and positions the PDF states. That recovers most of a document but not all of it: <b>pasting is still more faithful</b>, because the clipboard carries the structure outright instead of leaving it to be inferred.</p>
         <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Document file</span>
           <input id="ct-file" type="file" accept=".pdf,.docx,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:12px"/></label>
+      </div>
       </div>
 
       <div id="ct-status" style="font-size:11px;color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
@@ -264,8 +269,12 @@ function openCreateTemplateModal(mode){
       b.style.background=on?'var(--color-accent-100)':'var(--color-surface)';
       b.querySelector('span').style.color=on?'var(--color-accent-800)':'var(--color-neutral-800)';
     });
-    document.getElementById('ct-pane-paste').style.display = tab==='paste'?'':'none';
-    document.getElementById('ct-pane-upload').style.display= tab==='upload'?'':'none';
+    /* visibility, not display: the hidden pane keeps its place in the shared
+       grid cell, so the modal's height — and therefore its centred position —
+       is identical on both tabs. */
+    const pp=document.getElementById('ct-pane-paste'), pu=document.getElementById('ct-pane-upload');
+    pp.style.visibility = tab==='paste'?'':'hidden';  pp.style.pointerEvents = tab==='paste'?'':'none';
+    pu.style.visibility = tab==='upload'?'':'hidden'; pu.style.pointerEvents = tab==='upload'?'':'none';
     st('');
   };
   document.getElementById('ct-tabs').addEventListener('click',e=>{
@@ -427,7 +436,7 @@ async function importHatiSample(i, btn){
     const text=await extractDocText(dataUrl,'application/pdf');
     if(!text||text.length<40) throw new Error('no readable text in this PDF');
     saveTemplateRecord(s.name, s.folder, text, 'sample:'+s.file);
-    toast(`Sample “${s.name}” imported to My templates`);
+    toast(`Sample “${s.name}” imported to Counterparty Templates`);
     renderTemplatesPage();
   }catch(e){ toast('Import failed: '+e.message,'err'); if(btn){ btn.disabled=false; btn.textContent='Import as template'; } }
 }
@@ -1069,7 +1078,7 @@ function duplicateBuiltinTemplate(bid){
     { format:RICH_FORMAT, fields:keep, body, chars:text.length,
       version:1, versionAt:nowISO(), versionBy:u?.name||'—',
       versionNote:`Duplicated from the HaTi built-in “${t.name}”`, versions:[] });
-  toast(`Copied “${t.name}” into My templates — edit it freely, the built-in is unchanged`);
+  toast(`Copied “${t.name}” into Counterparty Templates — edit it freely, the built-in is unchanged`);
   if(state.view==='templates') renderTemplatesPage();
   updateSidebarCounts();
   setTimeout(()=>openTemplateEditor(rec.id), 120);
@@ -1237,7 +1246,7 @@ function renderTemplatesPage(){
         <button data-tpl-builtin="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">Use template</button>
         <button data-tpl-bulk-b="${t.id}" class="ui-btn" style="font-size:11px;padding:4px 9px">Bulk</button>
       </div>
-      <button data-tpl-dup="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;width:100%" title="HaTi's own templates are generated from code, so they cannot be edited in place. This makes an editable copy in My templates.">Duplicate &amp; edit</button>`:''}
+      <button data-tpl-dup="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;width:100%" title="HaTi's own templates are generated from code, so they cannot be edited in place. This makes an editable copy in Counterparty Templates.">Duplicate &amp; edit</button>`:''}
     </div>`).join('');
 
   const already=new Set(my.filter(t=>t.source&&t.source.startsWith('sample:')).map(t=>t.source.slice(7)));
@@ -1263,12 +1272,13 @@ function renderTemplatesPage(){
     <div id="tpl-company-section"></div>
 
     <section style="${CARD};padding:16px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${my.length?'12px':'6px'}">
-        <h4 style="${H4}">My templates</h4>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <h4 style="${H4}">Counterparty Templates</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${my.length} saved</span>
         <span style="flex:1"></span>
         ${canManage?`<button id="tpl-upload" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Create template</button>`:''}
       </div>
+      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 ${my.length?'12px':'6px'};line-height:1.5">Bring a counterparty's paper into HaTi — ask them for their contract, load it here, and run the negotiation through HaTi to conclusion.</p>
       ${my.length
         ?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${myCards}</div>`
         :`<p style="font-size:12px;color:var(--color-neutral-600);margin:0;line-height:1.6">No custom templates yet. <b>Create</b> one by pasting your company's standard paper straight out of Word, <b>import</b> a HaTi sample below, or open any contract and use <b>Save as template</b> in its workspace toolbar. Saved templates appear in the + New contract menu.</p>`}
