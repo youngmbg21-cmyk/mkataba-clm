@@ -334,7 +334,7 @@ function docDesignPaperStyle(b) {
   if (!b || !b.designId) return '';
   const accent = `--doc-design-accent:${brAccent(b)};`;
   if (b.designId !== 'formal-legal') return accent;
-  return `${accent}border:1px solid ${BR_RULE};box-shadow:inset 0 0 0 3px #fbfbfc,inset 0 0 0 4px ${BR_RULE};`;
+  return `${accent}border:1px solid ${BR_RULE};box-shadow:inset 0 0 0 3px var(--color-doc-surface),inset 0 0 0 4px ${BR_RULE};`;
 }
 
 /* The attribute that turns a design's BODY typography on: the paper div

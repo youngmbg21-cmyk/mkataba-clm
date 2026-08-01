@@ -54,7 +54,7 @@ function openKpiCustomizer(anchor){
   pop.id='kpi-cust-pop';
   pop.style.cssText='position:absolute;z-index:60;top:calc(100% + 6px);right:0;width:252px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:8px;padding:8px;';
   const row=id=>`
-    <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;" onmouseover="this.style.background='rgba(89,128,166,.08)'" onmouseout="this.style.background='none'">
+    <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;" onmouseover="this.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'" onmouseout="this.style.background='none'">
       <input type="checkbox" data-kpi-toggle="${id}" ${sel.includes(id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
       <span style="flex:1;">${KPI_META[id]}</span>
     </label>`;
@@ -111,14 +111,14 @@ function readyToSignRowsHtml(items){
   if(!items||!items.length) return '';
   return `
     <div style="margin-bottom:10px" id="dd-ready-rows">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#1e6b4d;margin-bottom:5px">Ready to sign — issue a signing link</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--st-green-fg);margin-bottom:5px">Ready to sign — issue a signing link</div>
       ${items.slice(0,6).map(r=>`
-        <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+        <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
             <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
             <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
           </span>
-          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#1e6b4d;flex:none">issue link</span>
+          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:var(--st-green-fg);flex:none">issue link</span>
         </button>`).join('')}
     </div>`;
 }
@@ -137,10 +137,10 @@ function renderDashboard(){
 
   // ---- slices ----
   const STAGE_DEF=[
-    {k:'Draft',        label:'Drafting',  color:'#98989b'},
-    {k:'Under Review', label:'In Review', color:'#b8862b'},
-    {k:'Signed',       label:'Executed',  color:'#2e8763'},
-    {k:'Declined',     label:'Closed',    color:'#b0453c'},
+    {k:'Draft',        label:'Drafting',  color:'var(--st-gray-dot)'},
+    {k:'Under Review', label:'In Review', color:'var(--st-amber-dot)'},
+    {k:'Signed',       label:'Executed',  color:'var(--st-green-dot)'},
+    {k:'Declined',     label:'Closed',    color:'var(--st-ruby-dot)'},
   ];
   const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
 

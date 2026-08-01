@@ -5,12 +5,12 @@
 /* ============================================================
    Copilot CONTRACT SCAN  (rule engine over live contract data)
    ============================================================ */
-// Severity chips use the design's exact warm hexes (arbitrary Tailwind values
-// so existing `${sm.chip}` className call-sites keep working unchanged).
+// Severity chips ride the status tokens (classes defined in index.html) so
+// they re-map in dark mode; `${sm.chip}` className call-sites keep working.
 const SEV_META = {
-  high:{label:'High', chip:'bg-[#F4E2DD] text-[#9A342A] border-[#E6C9C1]', dot:'bg-[#B23A2E]', text:'text-[#9A342A]'},
-  med:{label:'Medium', chip:'bg-[#F0E6CF] text-[#8A5E1B] border-[#E2D2AE]', dot:'bg-[#C79A3E]', text:'text-[#8A5E1B]'},
-  low:{label:'Low', chip:'bg-[#ECE7DC] text-[#6B6559] border-[#DED5C6]', dot:'bg-[#9A9484]', text:'text-[#6B6559]'},
+  high:{label:'High', chip:'sev-high', dot:'sev-dot-high', text:'sev-text-high'},
+  med:{label:'Medium', chip:'sev-med', dot:'sev-dot-med', text:'sev-text-med'},
+  low:{label:'Low', chip:'sev-low', dot:'sev-dot-low', text:'sev-text-low'},
 };
 const SEV_RANK = {high:3, med:2, low:1};
 const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
@@ -469,7 +469,7 @@ function scrollToQuote(quote){
       if(r.collapsed) continue;
       const mark=document.createElement('span');
       mark.className='anchor-flash';
-      mark.style.cssText='background:#fdf0c8;border-radius:2px;box-shadow:0 0 0 2px #fdf0c8';
+      mark.style.cssText='background:var(--st-amber-bg);border-radius:2px;box-shadow:0 0 0 2px var(--st-amber-bg)';
       r.surroundContents(mark);
       marks.push(mark);
     }catch(_){ /* a malformed node is skipped, not fatal */ }
@@ -1260,7 +1260,7 @@ function updateAiBrainPill(){
   const b=copilotBrainInfo();
   el.title=b.hint;
   el.innerHTML=b.live
-    ? `<span class="h-1.5 w-1.5 rounded-full live-dot" style="background:#2e8763;"></span>✦ ${b.label}`
+    ? `<span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span>✦ ${b.label}`
     : `<span class="h-1.5 w-1.5 rounded-full" style="background:#c79a3e;"></span>${b.label}`;
 }
 async function copilotAsk(messages, context){
@@ -1919,8 +1919,8 @@ function aiProposalPlacementHtml(p){
         aria-pressed="${on}" title="${e(AI_PLACEMENT_LABEL[x])} — nothing is re-drafted, only where it goes"
         style="font:inherit;font-size:10.5px;line-height:1;cursor:pointer;border-radius:999px;padding:4px 9px;
           border:1px solid ${on ? '#6366f1' : 'var(--color-divider)'};
-          background:${on ? '#e0e7ff' : 'var(--color-surface)'};
-          color:${on ? '#3730a3' : 'var(--color-neutral-600)'};
+          background:${on ? 'rgba(99,102,241,.18)' : 'var(--color-surface)'};
+          color:${on ? 'color-mix(in srgb,#6366f1 55%,var(--color-text))' : 'var(--color-neutral-600)'};
           font-weight:${on ? '700' : '500'}">${e(AI_PLACEMENT_SHORT[x])}</button>`;
     }).join('')}
   </div>`;
@@ -1930,29 +1930,29 @@ function aiProposalCardHtml(p){
   if (!p) return '';
   const e = _aiEsc;
   const done = p.status !== AI_PROPOSAL_OPEN;
-  const tone = { applied: ['#e6f1ec', '#1e6b4d', 'Applied as a redline'],
-    declined: ['#f4f4f5', '#52525b', 'Declined — nothing was changed'],
-    superseded: ['#f4f4f5', '#52525b', 'Superseded by a later proposal'] }[p.status];
+  const tone = { applied: ['var(--st-green-bg)', 'var(--st-green-fg)', 'Applied as a redline'],
+    declined: ['var(--st-gray-bg)', 'var(--st-gray-fg)', 'Declined — nothing was changed'],
+    superseded: ['var(--st-gray-bg)', 'var(--st-gray-fg)', 'Superseded by a later proposal'] }[p.status];
   return `
   <div class="ai-proposal" data-ai-proposal="${e(p.id)}"
-    style="border:1px solid ${done ? 'var(--color-divider)' : '#c7d2fe'};background:${done ? 'var(--color-bg)' : '#fff'};
+    style="border:1px solid ${done ? 'var(--color-divider)' : 'rgba(99,102,241,.35)'};background:${done ? 'var(--color-bg)' : 'var(--color-surface)'};
       border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;${done ? 'opacity:.72' : ''}">
     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
       <span style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-        background:#e0e7ff;color:#3730a3;border-radius:999px;padding:2px 8px">Proposed wording</span>
+        background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:999px;padding:2px 8px">Proposed wording</span>
       ${p.clauseLabel ? `<span style="font-size:10.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${e(p.clauseLabel)}</span>` : ''}
       ${p.strict === false ? `<span title="The Copilot did not return the structured shape, so this is its whole reply treated as wording."
-        style="font-size:9.5px;color:#7d5a14">unstructured reply</span>` : ''}
+        style="font-size:9.5px;color:var(--st-amber-fg)">unstructured reply</span>` : ''}
     </div>
     ${p.editing
       ? `<textarea data-ai-prop-edit="${e(p.id)}" class="ai-suggestion-editor" spellcheck="true" rows="6"
-          style="width:100%;font:inherit;font-size:12.5px;line-height:1.6;border:1px solid #c7d2fe;border-radius:7px;
+          style="width:100%;font:inherit;font-size:12.5px;line-height:1.6;border:1px solid rgba(99,102,241,.35);border-radius:7px;
             padding:9px 11px;background:var(--color-surface);color:inherit;resize:vertical">${e(p.text)}</textarea>`
       : `<div class="ai-proposal-text" style="font-size:12.5px;line-height:1.65;white-space:pre-wrap;
-          border-left:2px solid #c7d2fe;padding-left:10px;color:var(--color-neutral-800)">${e(p.text)}</div>`}
+          border-left:2px solid rgba(99,102,241,.45);padding-left:10px;color:var(--color-neutral-800)">${e(p.text)}</div>`}
     ${aiProposalAnchorHtml(p)}
     ${aiProposalPlacementHtml(p)}
-    ${p.note ? `<div style="font-size:11px;line-height:1.5;color:#7d5a14">${e(p.note)}</div>` : ''}
+    ${p.note ? `<div style="font-size:11px;line-height:1.5;color:var(--st-amber-fg)">${e(p.note)}</div>` : ''}
     ${done
       ? `<div style="font-size:11px;font-weight:600;border-radius:6px;padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
       : `<div style="display:flex;gap:7px;flex-wrap:wrap">

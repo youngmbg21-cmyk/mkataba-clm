@@ -63,7 +63,7 @@ function openWizard(preTid){
     }
     const t=TEMPLATES[tid], vars=templateVars(tid);
     const input=v=>{ const id='wz-'+String(v.key).replace(/[:]/g,'_');
-      const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:#8f322b">*</span>':''}${v.maps?`<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${tplMapLabel(v.maps)}</span>`:''}</span>`;
+      const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${v.maps?`<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${tplMapLabel(v.maps)}</span>`:''}</span>`;
       if(v.type==='select') return `<label style="display:block;">${lbl}
         <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;color:var(--color-text);outline:none;">
           ${(v.opts||[]).map(o=>`<option value="${String(o).replace(/"/g,'&quot;')}" ${v.def===o?'selected':''}>${o}</option>`).join('')}</select></label>`;

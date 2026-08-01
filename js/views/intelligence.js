@@ -14,8 +14,8 @@ const REL_SEEDS = [ // name-matched so IDs stay dynamic \u2014 traces the value 
   { from:'Crude Edible Oil Supply', to:'Tolling Agreement \u2014 Detergent Powder', label:'feeds' },
   { from:'Mutual NDA \u2014 New Product Development', to:'Contract Manufacturing \u2014 Bar Soap', label:'precedes' },
 ];
-const STATUS_BAR = {'Draft':'#98989b','Under Review':'#b8862b','Signed':'#2e8763','Declined':'#b0453c'};
-const KIND_TAG = {proc:{t:'PROC',c:'#2E9F80'},mfg:{t:'MFG',c:'#b45309'},dist:{t:'DIST',c:'#0369a1'},sales:{t:'SALES',c:'#b8862b'},mktg:{t:'MKTG',c:'#7c3aed'},corp:{t:'CORP',c:'#2e8763'},party:{t:'PARTY',c:'#2c455d'}};
+const STATUS_BAR = {'Draft':'var(--st-gray-dot)','Under Review':'var(--st-amber-dot)','Signed':'var(--st-green-dot)','Declined':'var(--st-ruby-dot)'};
+const KIND_TAG = {proc:{t:'PROC',c:'#2E9F80'},mfg:{t:'MFG',c:'#b45309'},dist:{t:'DIST',c:'#0369a1'},sales:{t:'SALES',c:'var(--st-amber-dot)'},mktg:{t:'MKTG',c:'#7c3aed'},corp:{t:'CORP',c:'var(--st-green-dot)'},party:{t:'PARTY',c:'#2c455d'}};
 
 function buildGraph(){
   const nodes=[], edges=[];
@@ -97,7 +97,7 @@ function scanPortfolio(){
    key is configured; otherwise the built-in interpreter.
    ============================================================ */
 const INTEL_CAP = 120;
-const STATUS_DOT = {'Draft':'#98989b','Under Review':'#b8862b','Signed':'#2e8763','Declined':'#b0453c'};
+const STATUS_DOT = {'Draft':'var(--st-gray-dot)','Under Review':'var(--st-amber-dot)','Signed':'var(--st-green-dot)','Declined':'var(--st-ruby-dot)'};
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilot*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
@@ -392,7 +392,7 @@ async function intelComplianceScan(q){
     return;
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
-    const col=s==='high'?['#fdece9','#8f322b']:s==='med'?['#fbf4e3','#7d5a14']:['#eef4fb','#2c455d'];
+    const col=s==='high'?['var(--st-ruby-bg)','var(--st-ruby-fg)']:s==='med'?['var(--st-amber-bg)','var(--st-amber-fg)']:['var(--st-gray-bg)','var(--st-gray-fg)'];
     return `<span style="display:inline-flex;align-items:center;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:999px;background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
   const top=rows.slice(0,8);
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
@@ -400,7 +400,7 @@ async function intelComplianceScan(q){
   html+=top.map(r=>{
     const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
     const more=r.findings.length>3?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
-    return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(29,31,32,.08)">
+    return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid color-mix(in srgb,var(--color-text) 9%,transparent)">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
         <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:12.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
         ${sevPill(r.worst)}
@@ -481,7 +481,7 @@ function buildGraphModel(){
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
-    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtMoneyShort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#98989b',
+    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtMoneyShort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'var(--st-gray-dot)',
       hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
     edges.push({from:'hub:'+g, to:c.id});   // hub -> contract: arrows fan outward
   });
@@ -511,13 +511,13 @@ function makeIntelGraph(model){
     g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')); n.g=g;
     const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
-    rect.setAttribute('fill', n.kind==='hub'?'#2c455d':'#ffffff');
+    rect.style.fill = n.kind==='hub'?'#2c455d':'var(--color-surface)';
     g.appendChild(rect);
     if(n.kind==='contract'){ const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
       bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
     const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
     lab.setAttribute('class','ig-lab'); lab.setAttribute('x',n.kind==='hub'?11:13); lab.setAttribute('y',n.sub?17:19);
-    lab.setAttribute('fill', n.kind==='hub'?'#eef6ff':'#2c455d'); lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
+    lab.style.fill = n.kind==='hub'?'#eef6ff':'var(--color-text)'; lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
     lab.textContent = n.label.length>24?n.label.slice(0,23)+'…':n.label; g.appendChild(lab);
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
@@ -526,7 +526,7 @@ function makeIntelGraph(model){
       const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
       const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
       br.setAttribute('x',n.w-bw+8); br.setAttribute('y',-8); br.setAttribute('width',bw); br.setAttribute('height',15); br.setAttribute('rx',7.5);
-      br.setAttribute('fill','#b8862b'); br.setAttribute('stroke','#ffffff'); br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
+      br.setAttribute('fill','var(--st-amber-dot)'); br.style.stroke='var(--color-surface)'; br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
       const bl=document.createElementNS('http://www.w3.org/2000/svg','text');
       bl.setAttribute('class','ig-badge-txt'); bl.setAttribute('x',n.w-bw+14); bl.setAttribute('y',2.5); bl.setAttribute('fill','#1d1f20');
       bl.textContent=bt; g.appendChild(bl); }
@@ -684,12 +684,12 @@ function renderIntel(){
       <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative">
         <svg id="ig-svg" class="w-full h-full block cursor-grab" style="width:100%;height:100%;display:block"><defs>
           <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b7b7ba"></path></marker>
-          <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5980a6"></path></marker>
+          <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--color-accent)"></path></marker>
         </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
         <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
         <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
       </div>
-      <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:#f2f5f9;border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
+      <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
     </div>
   </div>`;
 
@@ -804,7 +804,7 @@ function renderIntelDock(){
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:false,label:'Basic mode',hint:''};
         return b.live
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
-          :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:#F0E6CF;color:#8A5E1B">○ Basic mode</span>`; })()}
+          :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ Basic mode</span>`; })()}
       ${intel.history.length?`<button id="igd-history-clear" title="Clear conversation" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition">${intel.dockWide
         ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
@@ -942,7 +942,7 @@ function openPartyModal(name){
       <g class="mnode" ${n.type==='contract'?`data-open="${n.id}"`:''} transform="translate(${n.x},${n.y})">
         <rect class="chipbg" x="${-n.w/2}" y="${-n.h/2}" width="${n.w}" height="${n.h}" rx="8"/>
         <rect x="${-n.w/2}" y="${-n.h/2}" width="4" height="${n.h}" rx="2" fill="${n.bar}"/>
-        <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" fill="#2c455d">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
+        <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" style="fill:var(--color-text)">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
         <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" fill="#7a7a7d">${n.sub}</text>
       </g>`).join('')}
     </svg>

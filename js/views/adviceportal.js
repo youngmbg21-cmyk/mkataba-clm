@@ -84,7 +84,7 @@ function renderAdviceIntake(){
       <p style="font-size:11px;color:var(--color-neutral-600);margin:7px 0 8px;line-height:1.5">${s.blurb}</p>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10px">
         <span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:999px;padding:2px 8px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums">typically ${r.hoursMin}–${r.hoursMax} hrs · ${fmtMoneyShort(r.rate*r.hoursMin)}–${fmtMoneyShort(r.rate*r.hoursMax)}</span>
-        <span style="background:#e8f4ee;border:1px solid #cfe7d9;border-radius:999px;padding:2px 8px;color:#1e6b4d;font-variant-numeric:tabular-nums">feedback in ~${r.days} business day${r.days===1?'':'s'}</span>
+        <span style="background:var(--st-green-bg);border:1px solid var(--st-green-line);border-radius:999px;padding:2px 8px;color:var(--st-green-fg);font-variant-numeric:tabular-nums">feedback in ~${r.days} business day${r.days===1?'':'s'}</span>
       </div>
     </label>`;
   };
@@ -152,8 +152,8 @@ function renderAdviceIntake(){
     }catch(e){ toast(e.message,'err'); return; }
     const link=location.origin+location.pathname+'#advice='+(ADVICE_PORTAL.remote?'t:':'')+req.token;
     document.getElementById('ap-result').innerHTML=`
-      <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:14px">
-        <div style="display:flex;align-items:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px">${icon('check2','w-4 h-4')} Request ${pesc(req.id)} submitted</div>
+      <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:14px">
+        <div style="display:flex;align-items:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px">${icon('check2','w-4 h-4')} Request ${pesc(req.id)} submitted</div>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Estimated feedback by <strong>${fmtDay(req.eta)}</strong>. Follow every stage on your tracking page:</p>
         <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
@@ -174,7 +174,7 @@ function renderAdviceTracking(r){
     root.innerHTML=advicePortalShell(`
       <div style="display:grid;place-items:center;padding:40px 0">
         <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:32px;text-align:center;max-width:24rem">
-          <div style="color:#b0453c;margin-bottom:12px;display:flex;justify-content:center">${icon('ban','w-8 h-8')}</div>
+          <div style="color:var(--st-ruby-dot);margin-bottom:12px;display:flex;justify-content:center">${icon('ban','w-8 h-8')}</div>
           <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0">Request not found</h1>
           <p style="font-size:13px;color:var(--color-neutral-700);margin-top:6px;line-height:1.5">This tracking link is invalid or the request was removed. Check the link, or contact the legal team.</p>
         </div>
@@ -206,11 +206,11 @@ function renderAdviceTracking(r){
         </div>
       </div>`;
   }).join('');
-  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const row=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:12px"><span style="color:var(--color-neutral-600);flex:none">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
   const etaBanner = closed
-    ? `<div style="border:1px solid #f5d4cd;background:#fdece9;border-radius:6px;padding:12px 14px;font-size:12px;color:#8f322b;line-height:1.5">This request was closed without delivery${reached('Closed')?` on ${fmtDay(reached('Closed').at)}`:''}. Contact the legal team if that's unexpected.</div>`
+    ? `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--st-ruby-fg);line-height:1.5">This request was closed without delivery${reached('Closed')?` on ${fmtDay(reached('Closed').at)}`:''}. Contact the legal team if that's unexpected.</div>`
     : r.status==='Delivered'
-    ? `<div style="border:1px solid #cfe7d9;background:#e8f4ee;border-radius:6px;padding:12px 14px;font-size:12px;color:#1e6b4d;line-height:1.5"><strong>Delivered${reached('Delivered')?' '+fmtDay(reached('Delivered').at):''}.</strong> Your feedback is with you — reply to the team if anything needs a follow-up.</div>`
+    ? `<div style="border:1px solid var(--st-green-line);background:var(--st-green-bg);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--st-green-fg);line-height:1.5"><strong>Delivered${reached('Delivered')?' '+fmtDay(reached('Delivered').at):''}.</strong> Your feedback is with you — reply to the team if anything needs a follow-up.</div>`
     : `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--color-accent-800);line-height:1.5">Estimated feedback by <strong>${fmtDay(r.eta)}</strong>${left!=null?(left<0?` — running ${-left} day${-left===1?'':'s'} over, the team is on it`:left===0?' — that’s today':` — ${left} day${left===1?'':'s'} away`):''}.</div>`;
   root.innerHTML=advicePortalShell(`
     <div style="display:grid;gap:22px;align-items:start" class="portal-grid">

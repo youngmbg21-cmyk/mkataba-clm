@@ -788,14 +788,14 @@ function migAllowanceHtml(){
   const docsPct=a.docs>0?Math.min(100,Math.round((a.docsUsed||0)/a.docs*100)):0;
   const pct=Math.max(moneyPct,docsPct);
   const done=a.exhausted;
-  return `<div id="mig-allowance" style="font-size:11.5px;color:${done?'#8f322b':'var(--color-accent-800)'};background:${done?'#fdf4f2':'var(--color-accent-100)'};border:1px solid ${done?'#e6c9c1':'var(--color-divider)'};border-radius:4px;padding:8px 10px;margin-bottom:12px">
+  return `<div id="mig-allowance" style="font-size:11.5px;color:${done?'var(--st-ruby-fg)':'var(--color-accent-800)'};background:${done?'var(--st-ruby-bg)':'var(--color-accent-100)'};border:1px solid ${done?'var(--st-ruby-line)':'var(--color-divider)'};border-radius:4px;padding:8px 10px;margin-bottom:12px">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span style="font-weight:600">${done?'Onboarding allowance used up':'Onboarding allowance'}</span>
       ${a.budget>0?`<span style="font-family:var(--font-mono)">${migMoney(a.spent)} / ${migMoney(a.budget)}</span>`:'<span>no money cap</span>'}
       ${a.docs>0?`<span style="font-family:var(--font-mono)">${a.docsUsed} / ${a.docs} docs</span>`:''}
     </div>
-    <div style="height:5px;background:rgba(29,31,32,.1);border-radius:3px;overflow:hidden;margin-top:6px">
-      <div style="width:${pct}%;height:100%;background:${done?'#8f322b':pct>=80?'#b8862b':'#2e8763'};transition:width .3s"></div></div>
+    <div style="height:5px;background:color-mix(in srgb,var(--color-text) 10%,transparent);border-radius:3px;overflow:hidden;margin-top:6px">
+      <div style="width:${pct}%;height:100%;background:${done?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>
     ${done?`<div style="margin-top:6px;line-height:1.5">Migration carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Team &amp; Settings.</div>`:''}
   </div>`;
 }
@@ -813,15 +813,15 @@ const MIG_QSTATE = {
   reading:   {t:'Reading file…',  c:'var(--color-accent-700)'},
   extracting:{t:'Extracting text…',c:'var(--color-accent-700)'},
   ai:        {t:'Copilot extracting…', c:'var(--color-accent-700)'},
-  matching:  {t:'Pattern-matching…',c:'#7d5a14'},
+  matching:  {t:'Pattern-matching…',c:'var(--st-amber-fg)'},
   ocr:       {t:'Reading scan…',  c:'var(--color-accent-700)'},
-  saved:     {t:'Imported',       c:'#1e6b4d'},
-  duplicate: {t:'Duplicate',      c:'#7d5a14'},
-  dupe:      {t:'Duplicate?',     c:'#7d5a14'},
+  saved:     {t:'Imported',       c:'var(--st-green-fg)'},
+  duplicate: {t:'Duplicate',      c:'var(--st-amber-fg)'},
+  dupe:      {t:'Duplicate?',     c:'var(--st-amber-fg)'},
   skipped:   {t:'Skipped',        c:'var(--color-neutral-500)'},
-  word:      {t:'Word — not read',c:'#8f322b'},
+  word:      {t:'Word — not read',c:'var(--st-ruby-fg)'},
   cancelled: {t:'Cancelled',      c:'var(--color-neutral-500)'},
-  error:     {t:'Failed',         c:'#8f322b'},
+  error:     {t:'Failed',         c:'var(--st-ruby-fg)'},
 };
 function renderMigQueue(){
   const host=document.getElementById('mig-queue'); if(!host) return;
@@ -842,12 +842,12 @@ function renderMigQueue(){
         ${M.running?`<button id="mig-cancel" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Stop after current file</button>`:''}
       </div>
       <div style="height:6px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
-      ${M.ocrError?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
-      ${M.aiDown?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'Copilot unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Copilot extraction” once the limit resets.</div>`:''}
+      ${M.ocrError?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:4px;padding:7px 10px;margin-bottom:8px">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
+      ${M.aiDown?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'Copilot unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Copilot extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
         ${M.queue.map((q,i)=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
           const active=['reading','extracting','ai','matching','ocr'].includes(q.status);
-          return `<div style="padding:5px 2px;border-bottom:1px solid rgba(29,31,32,.05);font-size:12px">
+          return `<div style="padding:5px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:12px">
            <div style="display:flex;align-items:center;gap:9px">
             <span ${active?'class="scan-pulse"':''} style="width:7px;height:7px;border-radius:50%;background:${s.c};flex:none"></span>
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(q.name)}</span>
@@ -908,7 +908,7 @@ function migWireCancel(){
   document.getElementById('mig-cancel')?.addEventListener('click',()=>{ migState().running=false; toast('Stopping after the current file'); });
 }
 function migGateDots(c){
-  return migGates(c).map(g=>`<span title="${g.label}${g.ok?'':' — missing'}" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:${g.ok?'#2e8763':'#d9d5cd'};border:1px solid ${g.ok?'#2e8763':'#b8b2a6'}"></span>`).join('');
+  return migGates(c).map(g=>`<span title="${g.label}${g.ok?'':' — missing'}" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:${g.ok?'var(--st-green-dot)':'var(--color-neutral-300)'};border:1px solid ${g.ok?'var(--st-green-dot)':'var(--color-neutral-400)'}"></span>`).join('');
 }
 /* An import that was interrupted is the one thing the customer cannot discover
    for themselves: they have no per-file record of what they dropped, so a
@@ -935,7 +935,7 @@ function migUnfinishedHtml(){
   const M=migState();
   if(!M.unfinished||!M.unfinished.length) return '';
   return M.unfinished.map(b=>`
-    <div style="font-size:11.5px;color:#8f322b;background:#f9ecea;border:1px solid #e3c4bf;border-radius:4px;padding:9px 11px;margin-bottom:10px">
+    <div style="font-size:11.5px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border:1px solid var(--st-ruby-line);border-radius:4px;padding:9px 11px;margin-bottom:10px">
       <div style="font-weight:600;margin-bottom:4px">Batch ${migEsc(b.id)} did not finish — ${b.missed.length} file${b.missed.length===1?'':'s'} ${b.missed.length===1?'was':'were'} not imported.</div>
       <div style="margin-bottom:5px">Started ${migEsc(String(b.startedAt||'').slice(0,16).replace('T',' '))}${b.startedBy?' by '+migEsc(b.startedBy):''}. Drop these files again to finish the job:</div>
       <ul style="margin:0 0 6px;padding-left:16px;line-height:1.6">${b.missed.slice(0,15).map(x=>`<li>${migEsc(x.name)}${x.note?` — ${migEsc(x.note)}`:''}</li>`).join('')}</ul>
@@ -983,11 +983,11 @@ function renderMigration(){
       <!-- KPI strip -->
       <div id="mig-kpis" class="mig-kpis">
         ${kpi(k.agreements===k.total?k.total:`${k.agreements}<span style="font-size:13px;color:var(--color-neutral-500)"> · ${k.total}</span>`, k.agreements===k.total?'Contracts migrated':'Agreements · documents')}
-        ${kpi(k.complete,'Fully migrated', k.total&&k.complete===k.total?'#1e6b4d':undefined)}
-        ${kpi(k.review,'Need review', k.review?'#7d5a14':'#1e6b4d')}
-        ${kpi(k.blocked,'No readable text', k.blocked?'#8f322b':'#1e6b4d')}
-        ${k.linkPending?kpi(k.linkPending,'Link decision waiting','#7d5a14'):''}
-        ${recon?kpi(`${recon.matched}/${M.manifest.length}`,'Manifest matched', recon.matched===M.manifest.length?'#1e6b4d':'#7d5a14'):''}
+        ${kpi(k.complete,'Fully migrated', k.total&&k.complete===k.total?'var(--st-green-fg)':undefined)}
+        ${kpi(k.review,'Need review', k.review?'var(--st-amber-fg)':'var(--st-green-fg)')}
+        ${kpi(k.blocked,'No readable text', k.blocked?'var(--st-ruby-fg)':'var(--st-green-fg)')}
+        ${k.linkPending?kpi(k.linkPending,'Link decision waiting','var(--st-amber-fg)'):''}
+        ${recon?kpi(`${recon.matched}/${M.manifest.length}`,'Manifest matched', recon.matched===M.manifest.length?'var(--st-green-fg)':'var(--st-amber-fg)'):''}
       </div>
 
       ${canEdit()?`
@@ -1010,9 +1010,9 @@ function renderMigration(){
         </div>
         ${migAllowanceHtml()}
         ${migUnfinishedHtml()}
-        ${M.manifestError?`<div style="font-size:11.5px;color:#8f322b;background:#f9ecea;border:1px solid #e3c4bf;border-radius:4px;padding:7px 10px;margin-bottom:8px"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest?` Still using <strong>${migEsc(M.manifestName)}</strong>.`:''}</div>`:''}
+        ${M.manifestError?`<div style="font-size:11.5px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border:1px solid var(--st-ruby-line);border-radius:4px;padding:7px 10px;margin-bottom:8px"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest?` Still using <strong>${migEsc(M.manifestName)}</strong>.`:''}</div>`:''}
         ${M.manifest?`<div style="font-size:11.5px;color:var(--color-accent-800);background:var(--color-accent-100);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">Manifest <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction.${M.manifestDateOrder&&!M.manifestDateOrder.proven?` Slashed dates are being read as <strong>${M.manifestDateOrder.order==='mdy'?'month/day/year':'day/month/year'}</strong>${M.manifestDateOrder.conflict?' — this file contains both orders, so check them':' (nothing in the file settles it either way)'}.`:''} The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
-        ${(M.manifestProblems&&M.manifestProblems.length)?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:8px 10px;margin-bottom:12px">
+        ${(M.manifestProblems&&M.manifestProblems.length)?`<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);border-radius:4px;padding:8px 10px;margin-bottom:12px">
           <div style="font-weight:600;margin-bottom:4px">${M.manifestProblems.length} value${M.manifestProblems.length===1?'':'s'} in the manifest could not be read — those cells were left empty rather than guessed:</div>
           <ul style="margin:0;padding-left:16px;line-height:1.6">${M.manifestProblems.slice(0,12).map(p=>`<li><strong>${migEsc(p.label)}</strong> · ${migEsc(p.field)}: ${migEsc(p.message)}</li>`).join('')}</ul>
           ${M.manifestProblems.length>12?`<div style="margin-top:4px">…and ${M.manifestProblems.length-12} more.</div>`:''}
@@ -1054,15 +1054,15 @@ function renderMigration(){
                 <td style="padding-left:12px;font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
                 <td style="max-width:250px">
                   <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.parentId?`<span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10.5px">↳ ${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId} · </span>`:''}${migEsc(c.name)}</span>
-                  <span style="display:block;font-size:10.5px;color:${c.counterparty?'var(--color-neutral-600)':'#8f322b'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c.counterparty)||'No counterparty'} · ${migEsc((c.upload&&c.upload.fileName)||'')}</span>
+                  <span style="display:block;font-size:10.5px;color:${c.counterparty?'var(--color-neutral-600)':'var(--st-ruby-fg)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c.counterparty)||'No counterparty'} · ${migEsc((c.upload&&c.upload.fileName)||'')}</span>
                 </td>
                 <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${streamLabel(c)}</td>
                 <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
-                <td style="font-size:11.5px;white-space:nowrap">${c.expiry||m.expiryDate||(m.renewalType==='evergreen'?'evergreen':'<span style="color:#8f322b">—</span>')}</td>
+                <td style="font-size:11.5px;white-space:nowrap">${c.expiry||m.expiryDate||(m.renewalType==='evergreen'?'evergreen':'<span style="color:var(--st-ruby-fg)">—</span>')}</td>
                 <td>${statusChip(c.status)}</td>
                 <td><span style="display:inline-flex;gap:3px;align-items:center">${migGateDots(c)}</span>
-                  ${c.migration.blocked?`<span style="display:block;font-size:9.5px;color:#8f322b">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:9.5px;color:#7d5a14">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
-                  ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:9.5px;color:#7d5a14" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
+                  ${c.migration.blocked?`<span style="display:block;font-size:9.5px;color:var(--st-ruby-fg)">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:9.5px;color:var(--st-amber-fg)">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
+                  ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:9.5px;color:var(--st-amber-fg)" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
                 <td style="text-align:right;padding-right:12px;white-space:nowrap" onclick="event.stopPropagation()">
                   ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn" style="font-size:11px;padding:3.5px 10px;border-color:var(--color-accent);color:var(--color-accent-800)">Link?</button>`:''}
                   ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:3.5px 10px">Review</button>`:''}
@@ -1080,15 +1080,15 @@ function renderMigration(){
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:14px 16px">
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:14px;margin:0 0 8px">Reconciliation against the manifest</h3>
         ${recon.missing.length?`
-          <div style="font-size:12px;font-weight:600;color:#8f322b;margin-bottom:4px">${recon.missing.length} manifest row${recon.missing.length===1?'':'s'} with no file received:</div>
+          <div style="font-size:12px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:4px">${recon.missing.length} manifest row${recon.missing.length===1?'':'s'} with no file received:</div>
           <div class="scroll-thin" style="max-height:180px;overflow-y:auto;margin-bottom:8px">
-            ${recon.missing.map(r=>`<div style="display:flex;gap:8px;font-size:11.5px;padding:4px 2px;border-bottom:1px solid rgba(29,31,32,.05)">
+            ${recon.missing.map(r=>`<div style="display:flex;gap:8px;font-size:11.5px;padding:4px 2px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
               <span style="font-family:var(--font-mono);color:var(--color-neutral-600);flex:none">${migEsc(r.file||'—')}</span>
               <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(r.name||'')}${r.counterparty?' · '+migEsc(r.counterparty):''}</span>
             </div>`).join('')}
           </div>
           <p style="font-size:11px;color:var(--color-neutral-600);margin:0">Chase these with the customer — a contract on the checklist that never arrived is the most common way migrations silently lose paper.</p>`:''}
-        ${recon.extra?`<p style="font-size:11.5px;color:#7d5a14;margin:${recon.missing.length?'8px':'0'} 0 0">${recon.extra} imported file${recon.extra===1?'':'s'} had no manifest row — worth confirming they belong in this migration.</p>`:''}
+        ${recon.extra?`<p style="font-size:11.5px;color:var(--st-amber-fg);margin:${recon.missing.length?'8px':'0'} 0 0">${recon.extra} imported file${recon.extra===1?'':'s'} had no manifest row — worth confirming they belong in this migration.</p>`:''}
       </section>`:''}
     </div>
   </div>`;

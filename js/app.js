@@ -240,14 +240,14 @@ const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intell
    asked to. */
 function renderFailedHtml(view, e, cid){
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  return `<div style="max-width:640px;margin:40px auto;border:1px solid #e6c9c1;border-left:4px solid #b0453c;
-      background:#fdf4f2;border-radius:8px;padding:16px 20px">
-    <div style="font-size:14px;font-weight:600;color:#8f322b;margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
+  return `<div style="max-width:640px;margin:40px auto;border:1px solid var(--st-ruby-line);border-left:4px solid var(--st-ruby-dot);
+      background:var(--st-ruby-bg);border-radius:8px;padding:16px 20px">
+    <div style="font-size:14px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
     <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">
       Something in the portfolio stopped this screen from rendering${cid?` — the record involved is <b>${esc(cid)}</b>`:''}.
       Every other screen still works, and nothing has been changed or lost.
     </div>
-    <div style="margin-top:10px;font-family:var(--font-mono);font-size:11px;color:#8f322b;word-break:break-word">${esc((e&&e.message)||String(e))}</div>
+    <div style="margin-top:10px;font-family:var(--font-mono);font-size:11px;color:var(--st-ruby-fg);word-break:break-word">${esc((e&&e.message)||String(e))}</div>
   </div>`;
 }
 function setView(view){
@@ -347,15 +347,15 @@ function renderNewMenu(){
      re-renders the open menu when the list has moved. */
   const libTpls=(window.tplLibPublished&&canEdit())?tplLibPublished():[];
   menu.innerHTML=`
-    ${item('upload','#f1e6cd','#7d5a14','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
-    ${item('box','var(--color-accent-100)','var(--color-accent-800)','Bulk migration','Import a whole portfolio at once','id="menu-migrate"')}
-    ${item('sparkle','var(--color-accent-200)','var(--color-accent-800)','Guided setup','Pick a template &amp; answer a few questions','id="menu-wizard"')}
+    ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
+    ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Bulk migration','Import a whole portfolio at once','id="menu-migrate"')}
+    ${item('sparkle','var(--tile-steel-bg)','var(--tile-steel-fg)','Guided setup','Pick a template &amp; answer a few questions','id="menu-wizard"')}
     ${libTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Company standard templates</div>
-    ${libTpls.map(t=>item('copy','#e8f4ee','#1e6b4d',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
+    ${libTpls.map(t=>item('copy','var(--tile-emerald-bg)','var(--tile-emerald-fg)',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
     ${myTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">My templates</div>
-    ${myTpls.map(t=>item('copy','var(--color-accent-100)','var(--color-accent-800)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
+    ${myTpls.map(t=>item('copy','var(--tile-steel-bg)','var(--tile-steel-fg)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">HaTi standard templates</div>
     ${creatable.map(t=>item(t.ic,'var(--color-bg)','var(--color-accent-700)',t.name,'Template '+t.id,`data-new="${t.id}"`)).join('')}`;
   // A built-in template opens the SAME guided fill the Templates page opens.
@@ -430,7 +430,7 @@ function openCommandPalette(){
     if(active>=results.length) active=Math.max(0,results.length-1);
     if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:12.5px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
     list.innerHTML=results.map((r,i)=>`
-      <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:5px;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'rgba(89,128,166,.12)':'none'}">
+      <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:5px;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'color-mix(in srgb,var(--color-accent) 13%,transparent)':'none'}">
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:5px;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
@@ -474,7 +474,7 @@ function activityCategory(txt){
   if(/creat|draft|generat/.test(t)) return 'gray';
   return 'steel';
 }
-const CAT_DOT={gray:'#98989b',amber:'#b8862b',green:'#2e8763',ruby:'#b0453c',steel:'#5980a6'};
+const CAT_DOT={gray:'var(--st-gray-dot)',amber:'var(--st-amber-dot)',green:'var(--st-green-dot)',ruby:'var(--st-ruby-dot)',steel:'var(--color-accent)'};
 function activityRow(id,action,detail,at){
   const txt=detail||action||'';
   return {id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt)};
@@ -523,10 +523,10 @@ function renderContextPanel(){
   body.innerHTML=`
       <div style="padding:10px 12px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
-          <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:#2e8763;"></span>Live · whole workspace
+          <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>Live · whole workspace
         </div>
         ${feed.length?feed.map(a=>`
-          <button data-sel-act="${a.id}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+          <button data-sel-act="${a.id}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
             <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:4px;"></span>
             <span style="flex:1;min-width:0;">
               <span style="display:block;font-size:11.5px;line-height:1.4;">${a.txt}</span>
@@ -549,6 +549,10 @@ function toggleTheme(){
   const dark=!root.classList.contains('dark');
   applyTheme(dark?'dark':'light');
   try{ localStorage.setItem('hati-theme', dark?'dark':'light'); }catch(e){}
+  /* Everything on screen was rendered against the old theme — inline-styled
+     chips and render-time SVG colours don't respond to the class flip, so the
+     view is repainted, same as the jurisdiction switch below. */
+  if(window.setView && state && state.view) setView(state.view);
   if(window.toast) toast(dark?'Dark theme enabled':'Light theme enabled');
 }
 /* ---------- Jurisdiction switcher (top header) ----------

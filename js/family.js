@@ -244,7 +244,7 @@ function openLinkModal(c, onDone, opts={}){
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Relationship</span>${relSel}</label>
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Note (optional)</span>
         <input id="lk-note" placeholder="e.g. extends the term to 31 December 2028" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
-      <div id="lk-err" style="font-size:11px;color:#8f322b;min-height:15px;margin-bottom:8px"></div>
+      <div id="lk-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-bottom:8px"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">It's a standalone agreement</button>`:''}
         <button id="lk-cancel" class="ui-btn">Cancel</button>
@@ -257,7 +257,7 @@ function openLinkModal(c, onDone, opts={}){
   const draw=(q)=>{
     const t=String(q||'').toLowerCase();
     const list=candidates.filter(x=>!t || (x.name+' '+(x.counterparty||'')+' '+x.id).toLowerCase().includes(t)).slice(0,40);
-    results.innerHTML=list.length?list.map(x=>`<button type="button" data-lk-pick="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid rgba(29,31,32,.05);background:${picked===x.id?'var(--color-accent-100)':'none'};padding:6px 9px;cursor:pointer;font:inherit;font-size:11.5px">
+    results.innerHTML=list.length?list.map(x=>`<button type="button" data-lk-pick="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);background:${picked===x.id?'var(--color-accent-100)':'none'};padding:6px 9px;cursor:pointer;font:inherit;font-size:11.5px">
         <b style="font-family:var(--font-mono);flex:none">${_famEsc(x.id)}</b>
         <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
         <span style="flex:none;color:var(--color-neutral-600)">${_famEsc(x.counterparty||'')}</span></button>`).join('')
@@ -298,7 +298,7 @@ function renderFamilySection(c){
   const suggested=(c.linkSuggestions||[]).filter(s=>getContract(s.id));
   const eff=effectiveExpiry(c), from=expirySource(c);
   const btn='font:inherit;font-size:11.5px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 11px;cursor:pointer';
-  const row=(x,note)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:12px;color:inherit">
+  const row=(x,note)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:12px;color:inherit">
       <b style="font-family:var(--font-mono);font-size:11px;color:var(--color-accent-700);flex:none">${_famEsc(x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
       <span style="flex:none;font-size:10.5px;color:var(--color-neutral-600)">${_famEsc(note||'')}</span></button>`;
@@ -309,7 +309,7 @@ function renderFamilySection(c){
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Agreement family</h4>
         <span style="flex:1"></span>
         ${canEdit()?(parent
-          ? `<button id="fam-unlink" style="${btn};border-color:#e6c9c1;color:#8f322b">Unlink</button>`
+          ? `<button id="fam-unlink" style="${btn};border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">Unlink</button>`
           : `<button id="fam-add" style="${btn}">Add an amendment</button>
              <button id="fam-link" style="${btn}">Link to a parent agreement</button>`):''}
       </div>
@@ -321,9 +321,9 @@ function renderFamilySection(c){
            ${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}`
         : `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">A standalone agreement — no amendments or addenda are linked to it.</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
-        <div style="margin-top:10px;border:1px solid #f0e3c2;background:#fbf4e3;border-radius:5px;padding:9px 11px">
-          <div style="font-size:11px;font-weight:600;color:#7d5a14;margin-bottom:3px">This reads like an amendment</div>
-          <div style="font-size:11.5px;color:#7d5a14;line-height:1.5">HaTi proposed ${suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')} as the parent — <b>nothing has been linked</b>. Confirm the link, or mark it standalone.</div>
+        <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:9px 11px">
+          <div style="font-size:11px;font-weight:600;color:var(--st-amber-fg);margin-bottom:3px">This reads like an amendment</div>
+          <div style="font-size:11.5px;color:var(--st-amber-fg);line-height:1.5">HaTi proposed ${suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')} as the parent — <b>nothing has been linked</b>. Confirm the link, or mark it standalone.</div>
           ${canEdit()?`<div style="display:flex;gap:6px;margin-top:8px"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">Review the suggestion</button>
             <button id="fam-standalone" style="${btn}">It's standalone</button></div>`:''}
         </div>`:''}
