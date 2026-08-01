@@ -433,7 +433,7 @@ function renderVersionsSection(c){
         <h6 style="${H6};flex:1">Versions &amp; changes</h6>
         <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${vs.length} version${vs.length===1?'':'s'}</span>
       </div>
-      ${vs.length?`<div style="display:flex;flex-direction:column;gap:5px">${vs.slice().reverse().map(v=>`
+      ${vs.length?`<div class="scroll-thin" style="display:flex;flex-direction:column;gap:5px;max-height:190px;overflow-y:auto;padding-right:6px">${vs.slice().reverse().map(v=>`
         <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:6px 9px;font-size:11px">
           <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)">v${v.n}</span>
           <span style="color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${(v.label||'').replace(/</g,'&lt;')}</span>

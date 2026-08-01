@@ -462,9 +462,16 @@ function wireRegRows(){
     else if(act==='share') openShareModal(c);
     else if(act==='scan') runScanFor(c);
     else if(act==='delete') deleteContract(id).then(ok=>{ if(ok){
-      /* The reader was three pages down when they pressed Delete; the row
-         goes, the place stays. */
-      if(window.keepScroll) keepScroll(()=>renderRegister()); else renderRegister();
+      /* The reader was three pages down when they pressed Delete; the row goes,
+         the place stays. renderRegister() rebuilds the whole view and hard-resets
+         R.page to 1, and the table scrolls inside #reg-scroll (not the outer
+         #content-scroll) — so repaint only the body, which keeps the current page
+         (clamping just if this page emptied), and put #reg-scroll back where it was. */
+      const sc=document.getElementById('reg-scroll'); const top=sc?sc.scrollTop:0;
+      renderRegisterBody();
+      const sc2=document.getElementById('reg-scroll');
+      if(sc2){ sc2.scrollTop=top;
+        if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc2.scrollTop=top; }); }
     } });
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
