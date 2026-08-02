@@ -52,15 +52,19 @@ function startResendStub() {
 }
 
 const SEAL = 'e'.repeat(64);
+// A 1x1 PNG — stands in for the adopted signature mark the pad renders.
+const SIG_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 const bothSigned = [
-  { party: 'first', name: 'Amina Otieno', title: 'CEO', email: 'amina@highland.co.ke', at: '2026-08-02T09:00:00Z' },
-  { party: 'counterparty', name: 'Erik Lindqvist', title: 'MD', email: 'erik@nordfrakt.se', at: '2026-08-02T10:00:00Z' },
+  { party: 'first', name: 'Amina Otieno', title: 'CEO', email: 'amina@highland.co.ke', at: '2026-08-02T09:00:00Z', form: 'typed', image: SIG_PNG },
+  { party: 'counterparty', name: 'Erik Lindqvist', title: 'MD', email: 'erik@nordfrakt.se', at: '2026-08-02T10:00:00Z', form: 'typed', image: SIG_PNG },
 ];
-/* A generated contract, executed: frozen sealed wording on the record. */
+/* A generated contract, executed: frozen sealed wording on the record, plus
+   the design snapshot finalizeExecution stamps at sealing. */
 const executedGenerated = () => ({
   ...fixtureContract('MK-X1', 'Field Services Agreement', 'Nordfrakt', FOLDER_A, 5000000, 'Signed'),
   hash: SEAL, signedAt: '02 Aug 2026, 13:00 EAT', signatures: bothSigned,
-  execution: { at: '2026-08-02T10:00:01Z', firstParty: 'Highland Corporate Ltd',
+  branding: { designId: 'classic-letterhead', companyName: 'Highland Corporate Ltd', logoPosition: 'top-center' },
+  execution: { at: '2026-08-02T10:00:01Z', firstParty: 'Highland Corporate Ltd', textHash: 'f'.repeat(64),
     html: '<h2>FIELD SERVICES AGREEMENT</h2><p>The parties agree to Net-30 payment terms.</p>' },
 });
 /* An uploaded contract, executed: the original file is the document. */
@@ -108,10 +112,45 @@ describe('the fully-executed email carries the contract itself', () => {
       assert.match(doc, /FIELD SERVICES AGREEMENT/, 'the frozen wording is in the document');
       assert.match(doc, /Net-30 payment terms/);
       assert.match(doc, new RegExp(SEAL), 'the seal is printed in the document');
-      assert.match(doc, /Erik Lindqvist/, 'the signature table names the signers');
+      assert.match(doc, /Erik Lindqvist/, 'the signature panel names the signers');
       assert.match(doc, /Amina Otieno/);
     }
     assert.ok(r.recipients.every(x => x.status === 'delivered' && x.attached === true));
+  });
+
+  test('the attachment wears the SAME clothes as the platform copy', async () => {
+    // Field report: "why does the emailed contract look different from the one
+    // on screen?" — it must not. Same design chrome, same body typography
+    // rules, same signature panel, same adopted marks.
+    resend.reset();
+    await distribute('MK-X1');
+    const doc = Buffer.from(resend.mails[0].attachments[0].content, 'base64').toString('utf8');
+    assert.match(doc, /data-doc-design="classic-letterhead"/, 'the sealed design snapshot drives the header chrome');
+    assert.match(doc, /HIGHLAND CORPORATE LTD|Highland Corporate Ltd/, 'the company letterhead is on it');
+    assert.match(doc, /data-doc-body="classic-letterhead"/, 'the paper carries the body-typography switch');
+    assert.match(doc, /\[data-doc-body="classic-letterhead"\]/, 'and the SAME typography rules the screen uses, lifted from index.html');
+    assert.match(doc, /Executed &amp; Sealed/, 'the signature panel mirrors the screen');
+    assert.ok(doc.includes(SIG_PNG), 'the adopted signature marks are embedded — the exact images the screen shows');
+    assert.match(doc, /SEALED TEXT FINGERPRINT/, 'fingerprint box, as on screen');
+    assert.match(doc, /DOCUMENT SEAL \(SHA-256\)/, 'the dark seal box, as on screen');
+    assert.match(doc, /email one-time code \(counterparty\)/, 'and the verification note');
+  });
+
+  test('a contract sealed before designs existed still gets a clean document, not a crash', async () => {
+    resend.reset();
+    await distribute('MK-X3');           // half-signed → notice; use a design-less EXECUTED one below
+    resend.reset();
+    // strip the design from MK-X1's stored record via the API? Simpler: the
+    // upload fixture has no branding and the generated legacy path is covered
+    // by the header fallback — assert it directly on a design-less clone.
+    const legacy = { ...executedGenerated(), id: 'MK-X4', branding: undefined };
+    await W.admin.json('/api/contracts/MK-X4', { method: 'PUT', body: { contract: legacy, baseVersion: 0 } });
+    const r = await distribute('MK-X4');
+    assert.equal(r.attached, true);
+    const doc = Buffer.from(resend.mails[0].attachments[0].content, 'base64').toString('utf8');
+    assert.ok(!/data-doc-design=/.test(doc), 'no design snapshot → no invented chrome');
+    assert.match(doc, /Field Services Agreement/, 'the plain header names the contract');
+    assert.match(doc, /Executed &amp; Sealed/, 'the signature panel is there either way');
   });
 
   test('uploaded contract: the ORIGINAL file is what gets attached', async () => {

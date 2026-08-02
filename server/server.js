@@ -3438,6 +3438,20 @@ function signedParties(c) {
 
    Content is base64, as the provider expects. Files past ~10MB are not
    attached (provider limit headroom); the email still carries seal + link. */
+/* The per-design body typography, lifted from index.html AT RUNTIME — the
+   same [data-doc-body=…] rules the platform's own document canvas obeys, so
+   the attachment cannot drift from the screen without both drifting together.
+   Cached once; a missing/unreadable index.html degrades to the base serif. */
+let _docBodyCssCache = null;
+function docBodyDesignCss() {
+  if (_docBodyCssCache != null) return _docBodyCssCache;
+  try {
+    const page = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+    _docBodyCssCache = (page.match(/[^{}]+\[data-doc-body[^{}]*\{[^}]*\}/g) || []).join('\n');
+  } catch (_) { _docBodyCssCache = ''; }
+  return _docBodyCssCache;
+}
+
 function executedAttachment(c) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
   if (c.upload && c.upload.dataUrl) {
@@ -3448,22 +3462,105 @@ function executedAttachment(c) {
   }
   const html = c.execution && c.execution.html;
   if (!html) return null;
-  const sigRows = (Array.isArray(c.signatures) ? c.signatures : []).map(s =>
-    `<tr><td>${esc(s.name || '')}</td><td>${esc((s.party === 'counterparty' || s.party === 'external') ? (c.counterparty || 'Counterparty') : (c.execution && c.execution.firstParty) || 'First party')}</td><td>${esc(s.title || '')}</td><td>${esc(s.at || '')}</td></tr>`).join('');
+
+  /* THE SAME CLOTHES AS THE PLATFORM. The first version of this attachment
+     was deliberately plain, and the field report was immediate: "why does the
+     emailed contract look different from the one on screen?" — a fair worry,
+     because a copy that looks like a different document undermines the trust
+     the seal exists to create. So the attachment now dresses exactly as the
+     screen does: the design snapshot sealed onto the record (c.branding,
+     stamped at finalizeExecution) drives the same header/footer/paper chrome
+     the canvas renders (js/branding.js, dual-host on purpose), the body obeys
+     the same per-design typography rules (read from index.html above), and
+     the signature panel mirrors signatureBlock — the adopted signature marks
+     themselves are embedded PNGs, the same images the screen shows. */
+  const b = c.branding ? normalizeDesignBranding(c.branding) : null;
+  const designed = !!(b && b.designId);
+  const headerHtml = designed ? docDesignHeaderHtml(b, c) : `
+    <header style="border-bottom:2px solid #1d2733;padding-bottom:12px;margin-bottom:24px">
+      <h1 style="font-size:22px;margin:0 0 4px">${esc(c.name)}</h1>
+      <div style="font-size:12px;color:#57636b">${esc(c.id)}${c.counterparty ? ' · with ' + esc(c.counterparty) : ''} · Fully executed${c.signedAt ? ' · ' + esc(c.signedAt) : ''}</div>
+    </header>`;
+  const footerHtml = designed ? docDesignFooterHtml(b, c) : '';
+  const paperStyle = designed ? docDesignPaperStyle(b) : '';
+  const paperAttr = designed ? ` data-doc-body="${esc(b.designId)}"` : '';
+
+  // The signature panel, as the screen draws it (signatureBlock in
+  // js/views/contract.js): party cards with the adopted marks, the sealed-text
+  // fingerprint, the dark document-seal box, and the verification note.
+  const J = orgJx();
+  const partyLabel = s => s.party === 'counterparty' ? 'Counterparty' : s.party === 'first' ? 'First party' : (s.role || 'Signer');
+  const sigCards = (Array.isArray(c.signatures) ? c.signatures : []).map(s => `
+      <div class="sig-card">
+        <div class="sig-party">${esc(partyLabel(s))}</div>
+        ${s.image && /^data:image\//.test(String(s.image)) ? `<img src="${s.image}" alt="signature" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px;display:block">` : ''}
+        <div class="sig-name">${esc(s.name || '')}${s.title ? ', ' + esc(s.title) : ''}</div>
+        <div class="sig-sub">${[s.email, s.form ? s.form + ' signature' : s.method, s.at].filter(Boolean).map(esc).join(' · ')}</div>
+      </div>`).join('')
+    || `<div class="sig-card"><div class="sig-sub">${esc(c.signatory ? 'Signed by ' + c.signatory : 'Recorded in HaTi')}</div></div>`;
+  const sealPanel = `
+  <div class="seal-panel">
+    <div class="seal-row">
+      <svg width="62" height="62" viewBox="0 0 96 96" style="flex:none">
+        <circle cx="48" cy="48" r="46" fill="#fff"/>
+        <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
+        <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
+        <text x="48" y="45" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="12.5" fill="#086B54">SEALED</text>
+        <text x="48" y="58" text-anchor="middle" font-family="monospace" font-size="7" fill="#0b5c47">SHA-256</text>
+      </svg>
+      <div style="flex:1;min-width:0">
+        <div class="seal-title">Executed &amp; Sealed <span class="seal-chip">Executed</span></div>
+        <div class="seal-sub">${esc(J.esignatureShort || '')}</div>
+        <div class="sig-grid">${sigCards}</div>
+        ${c.execution && c.execution.textHash ? `
+        <div class="seal-box"><div class="seal-box-label">SEALED TEXT FINGERPRINT (SHA-256)</div>
+          <div class="seal-box-hash">${esc(c.execution.textHash)}</div></div>` : ''}
+        <div class="seal-dark">
+          <div class="seal-dark-label"># DOCUMENT SEAL (SHA-256)</div>
+          <div class="seal-dark-hash">${esc(c.hash || '')}</div>
+          <div class="seal-dark-time">${esc(c.signedAt || 'Timestamp recorded')}</div>
+        </div>
+        <div class="seal-note">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
+      </div>
+    </div>
+  </div>`;
+
   const doc = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(c.name)} — Executed</title>
-<style>body{font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;max-width:820px;margin:32px auto;padding:0 24px;line-height:1.55}
-header{border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:24px}
-h1{font-size:22px;margin:0 0 4px}.meta{font-size:12px;color:#444}
-footer{border-top:1px solid #999;margin-top:32px;padding-top:12px;font-size:12px;color:#333}
-table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #bbb;padding:6px 8px;text-align:left}
-.seal{font-family:monospace;font-size:11px;word-break:break-all;background:#f5f5f2;padding:8px;border:1px solid #ddd}
-@media print{body{margin:12px auto}}</style></head><body>
-<header><h1>${esc(c.name)}</h1><div class="meta">${esc(c.id)}${c.counterparty ? ' · with ' + esc(c.counterparty) : ''} · Fully executed${c.signedAt ? ' · ' + esc(c.signedAt) : ''}</div></header>
-${html}
-<footer><p><strong>Signatures</strong></p>
-<table><tr><th>Name</th><th>Party</th><th>Capacity</th><th>Signed at</th></tr>${sigRows || '<tr><td colspan="4">Recorded in HaTi</td></tr>'}</table>
-<p><strong>Document seal (SHA-256)</strong></p><div class="seal">${esc(c.hash || '')}</div>
-<p>This copy was distributed by HaTi CLM when the contract became fully executed. The master copy, the audit trail and seal verification live in HaTi. Open this file in any browser; print or save as PDF for filing.</p></footer>
+<style>
+body{margin:0;background:#eef1f0;padding:26px 12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.paper{max-width:840px;margin:0 auto;background:#fff;padding:44px 52px;box-shadow:0 2px 14px rgba(0,0,0,.08);border-radius:3px}
+.doc-surface{font-family:Georgia,'Times New Roman',Times,serif;color:#1d2733;font-size:13.5px;line-height:1.75}
+.doc-surface h1{font-size:1.55em;line-height:1.3}.doc-surface h2{font-size:1.15em;margin-top:1.6em}
+.doc-surface p{margin:.7em 0}
+${docBodyDesignCss()}
+.seal-panel{margin-top:34px;border-radius:16px;padding:24px;background:linear-gradient(135deg,#f0f7f4,#ffffff);box-shadow:0 2px 10px rgba(10,60,45,.10);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
+.seal-row{display:flex;gap:16px;align-items:flex-start}
+.seal-title{font-size:17px;font-weight:700;color:#132a24}
+.seal-chip{display:inline-block;vertical-align:2px;margin-left:6px;font-size:10.5px;font-weight:600;background:#e2f2ea;color:#086B54;border-radius:999px;padding:2px 9px}
+.seal-sub{font-size:11.5px;color:#4c5a56;margin-top:3px}
+.sig-grid{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
+.sig-card{flex:1 1 240px;background:#fff;border:1px solid #dcebe4;border-radius:9px;padding:10px 12px}
+.sig-party{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#5c6f68;margin-bottom:3px}
+.sig-name{font-size:12.5px;font-weight:600;color:#134639}
+.sig-sub{font-size:10px;color:#5c6f68;line-height:1.5;margin-top:2px}
+.seal-box{margin-top:12px;background:#fff;border:1px solid #dcebe4;border-radius:9px;padding:10px 12px}
+.seal-box-label{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#5c6f68;margin-bottom:3px}
+.seal-box-hash{font-family:monospace;font-size:10px;word-break:break-all;color:#134639}
+.seal-dark{margin-top:12px;background:#11332d;border-radius:9px;padding:12px 14px;font-family:monospace}
+.seal-dark-label{font-size:10px;color:#C79A3E;margin-bottom:4px}
+.seal-dark-hash{font-size:11px;color:#e8f2ee;word-break:break-all}
+.seal-dark-time{font-size:10.5px;color:#8fb3a8;margin-top:6px}
+.seal-note{font-size:9.5px;color:#5c6f68;line-height:1.5;margin-top:10px}
+.dist-note{font-size:10px;color:#6b7780;margin-top:22px;line-height:1.6;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif}
+@media print{body{background:#fff;padding:0}.paper{box-shadow:none;border-radius:0;padding:24px 8px}}
+</style></head><body>
+<div class="paper"${paperAttr} style="${paperStyle}">
+${headerHtml}
+<div class="doc-surface hati-doc">${html}</div>
+${sealPanel}
+${footerHtml}
+<p class="dist-note">This copy was distributed by HaTi CLM when the contract became fully executed. It is the same sealed text the platform holds — the master copy, the audit trail and seal verification live in HaTi. Open this file in any browser; print or save as PDF for filing.</p>
+</div>
 </body></html>`;
   const safeName = String(c.name || 'contract').replace(/[^\w\-. ]+/g, '').trim().slice(0, 60) || 'contract';
   return { filename: `${c.id} — Executed — ${safeName}.html`, content: Buffer.from(doc, 'utf8').toString('base64') };
@@ -5546,7 +5643,8 @@ const { FIELD_LIB: TPL_FIELD_LIB, fieldLibValidate } = require(path.join(__dirna
 const { templateFormDocHtml, templateFormResolveDefaults } = require(path.join(__dirname, '..', 'js', 'templateform.js'));
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
-const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS } = require(path.join(__dirname, '..', 'js', 'branding.js'));
+const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,
+  docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle } = require(path.join(__dirname, '..', 'js', 'branding.js'));
 /* Same registry, template_fields row shape (options may arrive as a JSON
    string straight from SQLite). Empty is a `required` question, not a type
    question — fieldLibValidate answers it first and separately. */

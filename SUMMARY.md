@@ -4522,3 +4522,34 @@ Three fixes, suite 2361 → 2369:
 3. **The row can send.** The NOT SENT row carries its own "Email their
    signing link" button wired to issueSigningRouteLinks — which finally gives
    counterparty-first routes a correct, bound way to start.
+
+---
+
+# Run 14 — The emailed copy wears the platform's clothes (2026-08-02)
+
+Young's field report: the executed contract attached to the email looked like
+a different document from the one on screen — same words (the seal guarantees
+that), different clothes, and a counterparty comparing the two could
+reasonably doubt they match. The attachment now dresses exactly as the
+platform copy:
+
+- **Same design chrome.** The design snapshot sealed onto the record
+  (c.branding, stamped at finalizeExecution) drives the same header, footer
+  and paper treatment the canvas renders — js/branding.js is dual-host, so
+  the SERVER now calls the same docDesignHeaderHtml / docDesignFooterHtml /
+  docDesignPaperStyle the browser does.
+- **Same body typography.** The [data-doc-body=…] rules are lifted from
+  index.html AT RUNTIME (cached), so the attachment obeys the identical
+  per-design typeface/heading/justification rules as the screen and cannot
+  drift from it separately.
+- **Same signature panel.** The Executed & Sealed panel mirrors
+  signatureBlock: the SEALED roundel, party cards with the ADOPTED SIGNATURE
+  MARKS embedded (the same PNGs the screen shows), the sealed-text
+  fingerprint box, the dark document-seal box, and the verification note.
+- A contract sealed before designs existed keeps a clean plain header — no
+  invented chrome — with the same signature panel.
+
+Suite 2369 → 2380, all green. Parked (Young's call): the PDF attachment build
+— corporate mail gateways may still filter .html attachments (the suspected
+cause of the Saint-Gobain non-delivery, panel says Delivered); a PDF is the
+filter-safe, file-ready permanent answer.
