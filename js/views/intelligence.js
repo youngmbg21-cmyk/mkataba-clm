@@ -754,7 +754,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-friction" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:18px 20px">${intelFrictionHtml()}</div>
+      <div id="ig-friction" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelFrictionHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     document.getElementById('ig-friction-clear')?.addEventListener('click',()=>{ intel.frictionFilter=null; renderIntel(); });
@@ -958,9 +958,9 @@ function intelFrictionHtml(){
 
   /* ---- left: the three sentences ---- */
   const top=st.clauses[0]||null;
-  const hero=(num,tone,body)=>`<div style="display:flex;gap:16px;padding:15px 0;${RULE}">
-    <div style="flex:none;min-width:74px;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
-    <div style="min-width:0;font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${body}</div>
+  const hero=(num,tone,body)=>`<div style="display:flex;gap:14px;padding:9px 0;${RULE}">
+    <div style="flex:none;min-width:62px;font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
+    <div style="min-width:0;font-size:12.5px;line-height:1.55;color:var(--color-neutral-800)">${body}</div>
   </div>`;
   const clauseHero=top?hero(pct(top.share)+'%','var(--color-text)',
     `of negotiations get stuck on <b>${igEsc(top.label)}</b>${top.extra!=null&&top.extra>0
@@ -980,13 +980,13 @@ function intelFrictionHtml(){
     `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
      ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)} →</button>`}`):'';
   const mini=(n,t)=>`<div style="min-width:0"><div style="font-size:16.5px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${n}</div><div style="font-size:10px;color:var(--color-neutral-600);font-weight:600;line-height:1.35">${t}</div></div>`;
-  const minis=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;padding-top:16px">
+  const minis=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;padding-top:10px">
     ${st.medianDays!=null?mini(st.medianDays<1?'&lt;1 day':Math.round(st.medianDays)+' days','median to signature'):''}
     ${st.medianDecisionMs!=null?mini(hrs(st.medianDecisionMs),'median decision time'):''}
     ${(st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?mini(`${st.oursAcceptShare!=null?pct(st.oursAcceptShare)+'%':'—'} / ${st.theirsAcceptShare!=null?pct(st.theirsAcceptShare)+'%':'—'}`,'our asks / their asks accepted'):''}
     ${st.round1Share!=null?mini(pct(st.round1Share)+'%','signed within round 1'):''}
   </div>`;
-  const left=`<div style="padding:18px 22px;min-width:0">
+  const left=`<div style="padding:12px 18px;min-width:0">
     <div style="font-size:16px;font-weight:700;letter-spacing:-.01em">What is slowing you down</div>
     <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${st.deals} negotiation${st.deals===1?'':'s'}${st.openedThisMonth?` · ${st.openedThisMonth} opened this month`:''} · ${st.avgRounds.toFixed(1)} rounds each on average</div>
     ${clauseHero}${deadHero}${slowHero}
@@ -1014,14 +1014,14 @@ function intelFrictionHtml(){
       <td style="padding:6px 8px;${RULE}">${chip}</td></tr>`;
   }).join('');
   const th=t=>`<th style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px 8px;${RULE}">${t}</th>`;
-  const right=`<div style="padding:18px 22px;border-left:1px solid var(--color-divider);min-width:0">
+  const right=`<div style="padding:12px 18px;border-left:1px solid var(--color-divider);min-width:0">
     <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">Most-contested clauses</span>
       <span style="font-size:10px;color:var(--color-neutral-500);margin-left:auto;white-space:nowrap">% of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds</span></div>
-    <div role="img" aria-label="Bar chart of most-contested clauses" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:7px 9px;align-items:center;margin:12px 0 18px">${bars}</div>
+    <div role="img" aria-label="Bar chart of most-contested clauses" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:5px 9px;align-items:center;margin:8px 0 12px">${bars}</div>
     <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">Friction by counterparty</span>
       <span style="font-size:10px;color:var(--color-accent-700);margin-left:auto;white-space:nowrap">click a row to filter the page</span></div>
     <div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table></div>
-    <div style="font-size:10.5px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:14px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
+    <div style="font-size:10.5px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
   </div>`;
 
   return `<div style="max-width:1120px;margin:0 auto">
