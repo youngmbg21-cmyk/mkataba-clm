@@ -23,6 +23,8 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
 const { startHati, seedWorkspace, fixtureContract, FOLDER_A, FIXTURES } = require('./helpers');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 
@@ -65,7 +67,11 @@ const executedGenerated = () => ({
   hash: SEAL, signedAt: '02 Aug 2026, 13:00 EAT', signatures: bothSigned,
   branding: { designId: 'classic-letterhead', companyName: 'Highland Corporate Ltd', logoPosition: 'top-center' },
   execution: { at: '2026-08-02T10:00:01Z', firstParty: 'Highland Corporate Ltd', textHash: 'f'.repeat(64),
-    html: '<h2>FIELD SERVICES AGREEMENT</h2><p>The parties agree to Net-30 payment terms.</p>' },
+    // The statute frozen at sealing — deliberately NOT the server's default
+    // market, to prove the frozen sentence wins over today's setting.
+    esignature: 'Electronic signature under Regulation (EU) No 910/2014 (eIDAS).',
+    // An <h4> clause heading, exactly as the built-in templates render them.
+    html: '<h2>FIELD SERVICES AGREEMENT</h2><div><h4>1. Scope of Supply</h4><p>The parties agree to Net-30 payment terms.</p></div>' },
 });
 /* An uploaded contract, executed: the original file is the document. */
 const executedUpload = () => ({
@@ -352,5 +358,57 @@ describe('a signing share addressed to a route signer is auto-bound to their row
       payload: { ...payloadFor('MK-R9'), purpose: 'view' }, channel: 'email',
       recipient: { name: 'Young', email: 'young@x.com' }, expiryDays: 30, durable: false, purpose: 'view' } });
     assert.ok(!r.signerId, 'a reading copy is not a signing turn');
+  });
+});
+
+describe('identical in every facet of substance (Young, 02 Aug 2026)', () => {
+  const pdfOf = () => Buffer.from(resend.mails.find(m => m.attachments).attachments[0].content, 'base64').toString('latin1');
+
+  test('THE HEADINGS: an <h4> clause title survives into the PDF', async () => {
+    resend.reset();
+    await distribute('MK-X1');
+    assert.match(pdfOf(), /1\. Scope of Supply/,
+      'the built-in templates mark clause headings as <h4> — dropping them cost contract WORDS');
+  });
+
+  test('THE STATUTE: the e-signature line frozen at sealing wins over today\'s market setting', async () => {
+    resend.reset();
+    await distribute('MK-X1');
+    assert.match(pdfOf(), /eIDAS/,
+      'the record was sealed under eIDAS; the server\'s default market (Kenya) must not rewrite it');
+    assert.ok(!/Business Laws \\\(Amendment\\\) Act/.test(pdfOf()), 'and the wrong statute is gone');
+  });
+
+  test('the market choice now lives server-side: PUT /api/org/jurisdiction', async () => {
+    const r = await W.admin.json('/api/org/jurisdiction', { method: 'PUT', body: { jurisdiction: 'sweden' } });
+    assert.equal(r.jurisdiction, 'sweden');
+    const boot = await W.admin.json('/api/bootstrap');
+    assert.equal(boot.org.jurisdiction, 'sweden', 'bootstrap carries it to every browser');
+    // A record sealed BEFORE the freeze existed falls back to the org market —
+    // which now resolves to Sweden on the server too, not the default.
+    const legacy = { ...executedGenerated(), id: 'MK-X5', branding: undefined };
+    delete legacy.execution.esignature;
+    await W.admin.json('/api/contracts/MK-X5', { method: 'PUT', body: { contract: legacy, baseVersion: 0 } });
+    resend.reset();
+    await distribute('MK-X5', RECIPIENTS.slice(0, 1));
+    assert.match(pdfOf(), /eIDAS/, 'server-built artefacts read the stored market');
+    // hygiene: bad input refused, non-admins refused
+    assert.equal((await W.admin.raw('/api/org/jurisdiction', { method: 'PUT', body: { jurisdiction: 'atlantis' } })).status, 400);
+    assert.equal((await W.restricted.raw('/api/org/jurisdiction', { method: 'PUT', body: { jurisdiction: 'kenya' } })).status, 403);
+    await W.admin.json('/api/org/jurisdiction', { method: 'PUT', body: { jurisdiction: 'kenya' } });  // restore for other tests
+  });
+
+  test('the client freezes the statute at sealing and prefers it everywhere it renders', () => {
+    const CONTRACT_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    const PORTAL_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'portal.js'), 'utf8');
+    const JX_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'jurisdiction.js'), 'utf8');
+    assert.match(CONTRACT_SRC, /esignature:\(typeof jxEsignatureShort==='function'\?jxEsignatureShort\(\):''\)/,
+      'finalizeExecution stamps the statute onto the execution record');
+    assert.match(CONTRACT_SRC, /\(c\.execution&&c\.execution\.esignature\)\|\|jxEsignatureShort\(\)/,
+      'the sealed face quotes the frozen sentence');
+    assert.match(PORTAL_SRC, /\(c\.execution&&c\.execution\.esignature\)\|\|jxEsignatureShort\(\)/,
+      'so does the print/portal block');
+    assert.match(JX_SRC, /api\('org\/jurisdiction', 'PUT'/,
+      'and choosing a market teaches the server, not just this browser');
   });
 });

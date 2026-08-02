@@ -2813,7 +2813,7 @@ function printExecutionBlock(c){
           <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
           <div style="font-size:10.5px;color:#666;margin-top:2px;line-height:1.5;">${external
             ? 'Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.'
-            : jxEsignatureShort()}</div>
+            : ((c.execution&&c.execution.esignature)||jxEsignatureShort())}</div>
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:8px;padding:9px 11px;">
             <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">Sealed text fingerprint (SHA-256)</div>

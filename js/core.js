@@ -983,7 +983,18 @@ function startApp(){
       document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pollNow('visible'); });
     }
     setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
-    window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
+    window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{});
+    /* One-time heal: workspaces whose market was chosen before the choice was
+       persisted server-side (see jxSet) have it only in this browser's local
+       store, and every server-built artefact fell back to the default market.
+       An admin whose browser knows better teaches the server once; from then
+       on bootstrap carries it to everyone. */
+    try{
+      const org=getOrg(), local=(typeof lsGet==='function'&&lsGet(JX_LS))||null;
+      if(isAdmin()&&org&&!org.jurisdiction&&local&&window.JURISDICTIONS&&JURISDICTIONS[local]&&local!==JX_DEFAULT)
+        api('org/jurisdiction','PUT',{ jurisdiction:local }).then(()=>{ org.jurisdiction=local; }).catch(()=>{});
+    }catch(_){}
+  }
   repairMigratedSignatories();
 }
 

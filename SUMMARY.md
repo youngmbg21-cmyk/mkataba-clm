@@ -4611,3 +4611,30 @@ Four fixes from Young's own send-and-receive test. Suite green (2382).
    alreadySentAt, and the dialog answers honestly: "Already sent — they
    received their link <when>, it is still live, no duplicate was sent, and
    it now shows the current version."
+
+---
+
+# Run 17 — Identical in every facet of substance (2026-08-02, Young's PDF comparison)
+
+Young compared the platform copy against the emailed PDF and found two
+substance gaps. The agreed standard, now pinned by tests: content and legal
+claims identical to the letter; appearance unmistakably the same document.
+Suite 2382 → 2386.
+
+1. **Headings restored.** The built-in templates render clause headings as
+   <h4>; the PDF's block parser knew h1–h3 only, so "1. Scope of Supply" et
+   al silently vanished from executed copies. h4–h6 are in the alternation
+   now — unrecognised markup must never cost contract words.
+2. **One market, one truth.** The jurisdiction choice lived only in the
+   choosing browser; the server's org record carried no country, so every
+   server-built artefact (executed PDF's statute, Copilot's market, playbook
+   law) fell back to Kenya while the screens said Sweden. New
+   PUT /api/org/jurisdiction (admin, validated); jxSet persists the choice;
+   bootstrap serves it to every browser; startApp one-time heal teaches the
+   server from an admin browser that chose before persistence existed.
+3. **The statute is frozen at sealing.** finalizeExecution stamps
+   execution.esignature (the exact e-signature sentence shown to the signer);
+   the sealed face, the portal/print block, the PDF and the HTML fallback all
+   quote the frozen sentence, falling back to the org market only for records
+   sealed before the freeze existed. A legal claim printed on an executed
+   copy can no longer drift with a later settings change.

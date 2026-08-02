@@ -136,6 +136,17 @@ function jxSet(id){
       if (typeof REMOTE !== 'undefined' && REMOTE && REMOTE.org) REMOTE.org.jurisdiction = id;
       else if (typeof lsSet === 'function' && typeof LS === 'object') lsSet(LS.org, org); }
   }catch(e){}
+  /* AND ON THE SERVER, which is the half that was missing: the choice lived
+     only in this browser, so every server-built artefact — the executed PDF's
+     statute line, the Copilot's market, the playbook's law — fell back to the
+     default while the screens said otherwise. Fire-and-forget: the local
+     setting above already took effect, and bootstrap serves the stored value
+     back to every browser from now on. */
+  try{
+    if (typeof window !== 'undefined' && typeof window.API_MODE === 'function' && window.API_MODE()
+        && typeof window.api === 'function')
+      window.api('org/jurisdiction', 'PUT', { jurisdiction: id }).catch(() => {});
+  }catch(e){}
   return true;
 }
 

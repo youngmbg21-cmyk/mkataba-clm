@@ -9,7 +9,7 @@ const express = require('express');
    signature rests on. Required from js/jurisdiction.js rather than restated
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
-const { jxPack, JX_DEFAULT } = require('../js/jurisdiction.js');
+const { jxPack, JX_DEFAULT, JURISDICTIONS } = require('../js/jurisdiction.js');
 const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org')) || {}).jurisdiction || JX_DEFAULT);
 const crypto = require('crypto');
 const path = require('path');
@@ -1823,6 +1823,23 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
   res.json({ ok: true, sharesRevoked: revoked, filesDeleted: fileIds.length });
 });
 
+/* ---- the workspace's market, stored where the SERVER can read it ----
+   The jurisdiction choice used to live only in the choosing browser (jxSet →
+   REMOTE.org + localStorage); the server's org record carried no country at
+   all, so every server-built artefact — the executed PDF's e-signature
+   statute, the Copilot's "operating in …", the playbook reviewer's law —
+   silently fell back to the default market while every SCREEN said otherwise
+   (field report: a Swedish workspace's executed copy citing the Kenyan Act).
+   One truth now: the client persists the choice here, bootstrap serves it
+   back to every browser, and orgJx() reads the same record. */
+app.put('/api/org/jurisdiction', auth, admin, (req, res) => {
+  const id = String((req.body || {}).jurisdiction || '').trim();
+  if (!JURISDICTIONS[id]) return res.status(400).json({ error: 'Unknown jurisdiction' });
+  const org = getSetting('org') || {};
+  setSetting('org', { ...org, jurisdiction: id });
+  res.json({ ok: true, jurisdiction: id });
+});
+
 app.put('/api/settings', auth, admin, (req, res) => {
   /* H-3: folderAccess is an access-control map, and it used to ride inside this
      one big blob that is overwritten wholesale on EVERY settings change. A
@@ -3575,7 +3592,12 @@ function pdfAssemble(pages, imgs) {
 function pdfHtmlBlocks(html) {
   const decode = s => String(s).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
-  const blocks = []; const re = /<(h1|h2|h3|p|li|blockquote)[^>]*>([\s\S]*?)<\/\1>/gi;
+  /* h4–h6 are IN the alternation: the built-in templates render every clause
+     heading as <h4> (js/views/contract.js), and a parser that only knew
+     h1–h3 silently dropped "1. Scope of Supply" from an executed copy —
+     the field report of 02 Aug 2026. Unrecognised markup must never cost
+     contract WORDS. */
+  const blocks = []; const re = /<(h1|h2|h3|h4|h5|h6|p|li|blockquote)[^>]*>([\s\S]*?)<\/\1>/gi;
   let m, found = false;
   while ((m = re.exec(String(html)))) { found = true; const t = decode(m[2]); if (t) blocks.push({ t: m[1].toLowerCase(), text: t }); }
   if (!found) for (const part of String(html).split(/<br\s*\/?>|\n{2,}/)) { const t = decode(part); if (t) blocks.push({ t: 'p', text: t }); }
@@ -3638,7 +3660,7 @@ function executedPdf(c) {
   // ---- the frozen sealed wording ----
   for (const blk of pdfHtmlBlocks(c.execution.html)) {
     if (blk.t === 'h1') para(blk.text, { size: 13.5, font: F.bold, before: 6, after: 6, align: centeredHeads ? 'center' : null });
-    else if (blk.t === 'h2' || blk.t === 'h3') para(blk.text, { size: 11, font: F.bold, before: 6, after: 4 });
+    else if (/^h[2-6]$/.test(blk.t)) para(blk.text, { size: 11, font: F.bold, before: 6, after: 4 });
     else if (blk.t === 'li') para('•  ' + blk.text, { x: PDF_ML + 12, width: CW - 12, after: 3 });
     else para(blk.text, { after: 6 });
   }
@@ -3648,8 +3670,13 @@ function executedPdf(c) {
   line('Executed & Sealed', { size: 13.5, font: 'F5', color: '11332d' });
   line('EXECUTED', { size: 8, font: 'F5', color: '086b54', align: 'right' });
   y -= 12;
+  /* The statute the signatures rest on is FROZEN onto the execution record at
+     sealing (finalizeExecution) — this copy must quote the law it was signed
+     under, not whatever the workspace's market setting resolves to today.
+     The live orgJx() is only the fallback for records sealed before the
+     freeze existed. */
   const J = orgJx();
-  para(J.esignatureShort || '', { size: 8, font: 'F4', color: '4c5a56', after: 8 });
+  para((c.execution && c.execution.esignature) || J.esignatureShort || '', { size: 8, font: 'F4', color: '4c5a56', after: 8 });
   const sigs = Array.isArray(c.signatures) ? c.signatures : [];
   const partyLabel = s => s.party === 'counterparty' ? 'COUNTERPARTY' : s.party === 'first' ? 'FIRST PARTY' : 'SIGNER';
   for (const s of sigs) {
@@ -3766,7 +3793,7 @@ function executedAttachmentHtml(c) {
       </svg>
       <div style="flex:1;min-width:0">
         <div class="seal-title">Executed &amp; Sealed <span class="seal-chip">Executed</span></div>
-        <div class="seal-sub">${esc(J.esignatureShort || '')}</div>
+        <div class="seal-sub">${esc((c.execution && c.execution.esignature) || J.esignatureShort || '')}</div>
         <div class="sig-grid">${sigCards}</div>
         ${c.execution && c.execution.textHash ? `
         <div class="seal-box"><div class="seal-box-label">SEALED TEXT FINGERPRINT (SHA-256)</div>

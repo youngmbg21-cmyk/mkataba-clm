@@ -1947,7 +1947,7 @@ function signatureBlock(c){
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
-          <div class="mt-1 text-xs text-brand-800/60">${jxEsignatureShort()}</div>
+          <div class="mt-1 text-xs text-brand-800/60">${(c.execution&&c.execution.esignature)||jxEsignatureShort()}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">${sigList}</div>
           ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
@@ -3654,7 +3654,13 @@ async function finalizeExecution(c, opts={}){
   const exec={ at, method:'session-authenticated', consent:true, ua:(typeof navigator!=='undefined'?navigator.userAgent:''), ip,
     // H-6: freeze the first-party name into the record so the seal binds the
     // name as it was at signing, not the live (renameable) workspace name.
-    firstParty:(typeof window!=='undefined'&&window.FIRST_PARTY)||(typeof FIRST_PARTY!=='undefined'?FIRST_PARTY:'') };
+    firstParty:(typeof window!=='undefined'&&window.FIRST_PARTY)||(typeof FIRST_PARTY!=='undefined'?FIRST_PARTY:''),
+    /* The statute the signatures rest on, frozen at the moment of sealing —
+       a legal claim printed on every copy of an executed contract, so it must
+       never follow a later change of the workspace's market setting, and the
+       server-built PDF must quote the same sentence the screen showed the
+       signer (the eIDAS-vs-Kenya divergence of 02 Aug 2026). */
+    esignature:(typeof jxEsignatureShort==='function'?jxEsignatureShort():'') };
   if(!isUpload(c)){
     exec.html=freezeContractHtml(c);
     // Record WHAT was sealed and HOW it was hashed, on the execution record
