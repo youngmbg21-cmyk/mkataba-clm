@@ -6417,3 +6417,12 @@ worth adding if a real deployment ever fronts HaTi with an aggressive proxy.
 `npm run test:browser` still **70/71** — `FAIL 13 the batch send is in the
 toolbar` — identical on the untouched tree since before this sequence began.
 Logged in the trust-pass entry; still nobody's regression.
+
+### (Run 10a addendum, 2026-08-02) Word-by-word streaming switched off on request
+
+Young's field call after trying it: keep the "what I'm doing" status lines,
+drop the typewriter effect — the answer now arrives whole. Documented in
+SUMMARY.md Run 10a; the token event name stays reserved and the machinery
+stays in place for a possible return. If it does return, the fix should start
+from why it read badly in the panel (likely the bubble reflowing on every
+token) rather than just flipping the switch back.

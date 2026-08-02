@@ -1314,11 +1314,14 @@ async function copilotAsk(messages, context, onEvent){
 }
 
 /* Live renderer for a streaming turn: progress events replace the typing
-   indicator's dots with the step's label; token events write the answer into
-   the bubble as it arrives. The bubble this drives is the `typing` one
-   renderAIFeed(true) painted last — and the eventual `final` goes through
-   aiRenderServerAnswer + a full repaint exactly as before, so formatting,
-   citation cards and the compare table change zero. */
+   indicator's dots with the step's label ("Reading MK-103…"), and the whole
+   answer then lands in one piece via `final`, which goes through
+   aiRenderServerAnswer + a full repaint exactly as before — so formatting,
+   citation cards and the compare table change zero. The token branch below
+   is kept although the server currently sends no token events (word-by-word
+   streaming is switched off server-side, 02 Aug 2026): it is the tolerance
+   that lets an older/newer server pairing degrade gracefully, and the
+   one-line re-enable path if the answer is ever streamed again. */
 function aiStreamRenderer(){
   let text='';
   const target=()=>{

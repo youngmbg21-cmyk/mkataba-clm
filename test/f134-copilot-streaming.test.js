@@ -1,12 +1,18 @@
-/* f134 — Copilot streaming (work order: copilot-streaming)
+/* f134 — Copilot streaming (work order: copilot-streaming, then softened)
    ============================================================
    POST /api/ai/chat/stream: the same tool loop as /api/ai/chat, delivered as
-   SSE — progress while tools run, the answer text as it is written, then one
-   `final` event carrying EXACTLY what the plain route returns (after
-   normalizeDeliver + quote verification + card resolution). The plain route
-   stays untouched as the fallback and the contract.
+   SSE — progress while tools run, then one `final` event carrying EXACTLY
+   what the plain route returns (after normalizeDeliver + quote verification
+   + card resolution). The plain route stays untouched as the fallback and
+   the contract.
 
-   The tests here drive the stream against the scripted stand-in (which plays
+   SOFTENED (Young, 02 Aug 2026): the word-by-word answer didn't read well in
+   the panel, so token events are switched OFF server-side. The wire now
+   carries progress lines and a whole answer — several tests below pin that
+   NO token events leak. The token protocol is reserved, and the machinery
+   kept, for a possible return.
+
+   The tests drive the stream against the scripted stand-in (which plays
    scripted content back as Anthropic's SSE protocol when the request carries
    stream:true), and the important one is parity: for the same scripted
    conversation, the stream's `final` must deep-equal the non-streaming
@@ -73,7 +79,7 @@ describe('the protocol, and the parity that matters', () => {
       { id: 'MK-A1', quote: 'The total contract value is KES 48,000,000 payable within thirty days.' }] }),
   ];
 
-  test('events arrive in order: progress → token → final, and the tokens are the answer', async () => {
+  test('events arrive as progress → final: status lines, then the whole answer in one piece', async () => {
     ai.reset(); ai.script(...script());
     const r = await askStream(W.admin, 'what are the terms on MK-A1?');
     assert.equal(r.status, 200);
@@ -82,9 +88,10 @@ describe('the protocol, and the parity that matters', () => {
     const evs = parseSse(r.text);
     const kinds = evs.map(e => e.event);
     assert.ok(!kinds.includes('error'), 'no error event on a clean turn');
-    const p = kinds.indexOf('progress'), t = kinds.indexOf('token'), f = kinds.indexOf('final');
-    assert.ok(p >= 0 && t > p && f > t, `progress → token → final, got: ${kinds.join(', ')}`);
+    const p = kinds.indexOf('progress'), f = kinds.indexOf('final');
+    assert.ok(p >= 0 && f > p, `progress → final, got: ${kinds.join(', ')}`);
     assert.equal(kinds.filter(k => k === 'final').length, 1, 'exactly one final');
+    assert.ok(!kinds.includes('token'), 'word-by-word streaming is OFF — no token events on the wire');
 
     const prog = evs[p].data;
     assert.equal(prog.tool, 'get_contract');
@@ -92,7 +99,7 @@ describe('the protocol, and the parity that matters', () => {
     assert.equal(prog.step, 1);
 
     const final = evs[f].data;
-    assert.equal(tokensOf(evs), final.answer, 'the streamed text IS the answer the user keeps');
+    assert.equal(final.answer, 'Sugar supply, KES 48M, net thirty.', 'the answer lands whole, in final');
   });
 
   test('THE parity test: final deep-equals the non-streaming response for the same conversation', async () => {
@@ -108,14 +115,14 @@ describe('the protocol, and the parity that matters', () => {
       'the verified quote survived on both paths');
   });
 
-  test('a plain-text turn (no tool call) streams as text deltas', async () => {
+  test('a plain-text turn (no tool call) also lands whole — no token events even for text deltas', async () => {
     ai.reset();
     ai.script([{ type: 'text', text: 'Line one.\nHe said "yes" — done.' }]);
     const evs = parseSse((await askStream(W.admin, 'just talk')).text);
-    assert.equal(tokensOf(evs), 'Line one.\nHe said "yes" — done.',
-      'JSON escapes and typography come out of the extractor/deltas intact');
+    assert.equal(tokensOf(evs), '', 'text deltas are reassembled server-side, not forwarded');
     const final = evs.find(e => e.event === 'final').data;
-    assert.equal(final.answer, 'Line one.\nHe said "yes" — done.');
+    assert.equal(final.answer, 'Line one.\nHe said "yes" — done.',
+      'JSON escapes and typography come out of the reassembly intact');
     assert.deepEqual(final.citations, []);
   });
 
@@ -142,14 +149,14 @@ describe('the protocol, and the parity that matters', () => {
 });
 
 describe('trust survives the stream', () => {
-  test('a fabricated quote streams as tokens but is absent from final', async () => {
+  test('a fabricated quote is absent from final on the stream route too', async () => {
     ai.reset();
     const q = 'stream-test: invented quote';
     ai.script(deliver({ answer: 'It has an indemnity clause.', citations: [
       { id: 'MK-A1', quote: 'The supplier shall indemnify the customer against every conceivable claim.' }] }));
     const evs = parseSse((await askStream(W.admin, q)).text);
-    assert.equal(tokensOf(evs), 'It has an indemnity clause.', 'the answer streamed normally');
     const final = evs.find(e => e.event === 'final').data;
+    assert.equal(final.answer, 'It has an indemnity clause.', 'the answer arrived whole');
     assert.equal(final.citations[0].quote, '', 'work order #1\'s verification still bites after the stream');
     assert.equal(final.citations[0].quoteDropped, true);
     assert.match(final.notice || '', /quoted excerpt could not be matched/);
@@ -226,7 +233,7 @@ describe('the client half', () => {
     return ctx.window;
   }
 
-  test('apiStream surfaces progress and tokens and resolves with the final payload', async () => {
+  test('apiStream surfaces progress and resolves with the final payload', async () => {
     ai.reset();
     ai.script(toolCall('get_contract', { id: 'MK-A1' }), deliver({ answer: 'From the stream.', citations: [{ id: 'MK-A1' }] }));
     const { apiStream } = loadApiJs();
@@ -238,7 +245,8 @@ describe('the client half', () => {
     // different Array prototype and strict deep-equality refuses the pair)
     assert.equal(final.cards.map(c => c.id).join(','), 'MK-A1');
     assert.ok(events.some(e => e.type === 'progress' && e.label === 'Reading MK-A1…'));
-    assert.equal(events.filter(e => e.type === 'token').map(e => e.text).join(''), 'From the stream.');
+    assert.equal(events.filter(e => e.type === 'token').length, 0,
+      'no token events reach the panel while word-by-word streaming is off');
   });
 
   test('a non-stream response makes apiStream throw — which is what triggers the fallback', async () => {

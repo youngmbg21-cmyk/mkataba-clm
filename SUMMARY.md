@@ -4406,3 +4406,18 @@ test asserts it on a live response header.
 All three orders are done. Parked list (digest, local-mode retirement, log
 viewer UI, retention policy, deep-bucket throttle for escalated chat) is
 unchanged and lives in BUGLOG.md / the sequence doc. Handing back to Young.
+
+---
+
+# Run 10a — Streaming softened to progress-only (2026-08-02, Young's call)
+
+Field feedback: the word-by-word answer didn't read well in the panel. Change:
+the stream route keeps its status lines ("Reading MK-103…", "Comparing 3
+contracts…") but no longer sends the answer token by token — the whole answer
+lands in one piece with the `final` event, exactly as the plain route shapes
+it. One argument removed server-side (the route no longer passes `onToken`);
+the token machinery, the client's token renderer and the `token` protocol
+name are all KEPT and marked reserved, so re-enabling is a one-line change.
+Fallback, abort handling, spend booking, the log, and the stream/plain parity
+guarantee are untouched. Tests updated to pin that no token events leak;
+suite still 2284, all green.

@@ -3015,9 +3015,15 @@ app.get('/api/ai/log', auth, admin, (req, res) => {
 
    Events (JSON per event, one `event:` name each):
      progress — { step, tool, label }   a tool is about to run
-     token    — { text }                a chunk of the answer being written
      final    — { answer, citations, compare, cards, notice? }
      error    — { message }, then the stream closes
+     token    — { text } RESERVED and currently OFF (Young, 02 Aug 2026): the
+                word-by-word answer didn't read well in the panel, so the
+                route sends progress only and the whole answer lands in the
+                final event. The token machinery (anthropicMessagesStream's
+                onToken + answerExtractor) is kept switched off, not deleted —
+                re-enabling is one onToken argument below, and the client
+                already renders token events if they ever return.
 
    Same-origin SSE is already permitted by the CSP: connect-src includes
    'self' (see the CSP block above) — verified, not assumed. */
@@ -3201,10 +3207,14 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
   try {
     for (let step = 0; step < 5; step++) {
       steps = step + 1;
+      /* No onToken: word-by-word answer streaming is switched OFF (see the
+         route comment above) — progress events flow, the answer arrives
+         whole in `final`. To re-enable, pass
+         onToken: text => { if (text) send('token', { text }); } */
       const resp = await anthropicMessagesStream(key, compared ? 'deep' : 'fast',
         { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working },
         { feature: 'chat' },
-        { signal: ac.signal, onToken: text => { if (text) send('token', { text }); } });
+        { signal: ac.signal });
       if (!resp.ok) {
         const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
