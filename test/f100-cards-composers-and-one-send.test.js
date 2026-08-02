@@ -782,6 +782,111 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     assert.equal(live.getAttribute('data-rl-open'), '1');
   });
 
+  /* ---- A DECISION THAT HAS GONE IS FINISHED BUSINESS ----
+     Reported from the field (Young, 02 Aug 2026): the counterparty answers a
+     dozen changes, sends them, and is left with a dozen full-height cards each
+     still offering a button, on a column where nothing is outstanding. The
+     owner's page goes quiet at the same moment — their settled changes leave
+     the column, and their own sent asks collapse because "Sent" is inert — so
+     the same component read as two different products.
+
+     The cause was one classification, not a second design: rlCardNeedsYou
+     counted "Change decision" as a move waiting on the reader, and a card with
+     a move on it is exempt from folding. It is not a move. It has gone, the
+     other side is holding it, and Change decision is an escape hatch — which is
+     what the peek is for.
+
+     UNDO IS NOT IN THE SAME BOX, and these tests pin that too, because the
+     obvious "collapse anything answered" is the version that bites: Undo sits
+     on an answer that has NOT been sent — the one state on this screen that
+     looks finished and is not — and the second after a click is exactly when a
+     mis-click needs its way back visible. It folds on its own once the round
+     goes. */
+  /* A DECISION IS ALWAYS ABOUT THE OTHER SIDE'S ASK — nobody rules on their
+     own — so this describe's own counterparty ask is the wrong card for these.
+     An owner ask is filed for them, which from this seat is the one the reader
+     answers. */
+  const ownerAsk = async p => {
+    const before = new Set(p.c.changes.map(x => x.id));
+    await p.win.negoFileProposal(p.c, p.win.negoResolvedText(p.c) + '\nA cap on liability.',
+      { side: 'owner', author: 'Young Mbagaya' });
+    return p.c.changes.find(x => !before.has(x.id));
+  };
+  const decided = async (p, status, over) => {
+    const ch = await ownerAsk(p);
+    ch.status = status;
+    const key = over === 'sent' ? 'sentDecisionIds' : 'heldDecisionIds';
+    return { ch, card: seat(p, { [key]: [ch.id] }).querySelector(`[data-nego-card="${ch.id}"]`) };
+  };
+
+  test('a decision that has been SENT folds to a line', async () => {
+    const p = await page();
+    const { card } = await decided(p, 'accepted', 'sent');
+    assert.match(card.querySelector('.rl-badge').textContent, /sent/,
+      'the state under test is answered AND gone');
+    assert.ok(verbsOf(card).includes('Change decision'),
+      'the escape hatch is still on the card — hidden, not removed');
+    assert.equal(card.getAttribute('data-rl-open'), '0', 'folded');
+    assert.equal(card.hasAttribute('data-rl-peek'), true, 'and it peeks on hover');
+  });
+
+  test('a REJECTION that has been sent folds the same way', async () => {
+    /* Accept and reject are the same act as far as the column is concerned:
+       answered, gone, nobody waiting. Asserted separately because the badge
+       and the verb list are built from the status, so "accepted works" is not
+       evidence about the other half of the decision. */
+    const p = await page();
+    const { card } = await decided(p, 'rejected', 'sent');
+    assert.match(card.querySelector('.rl-badge').textContent, /Rejected/);
+    assert.equal(card.getAttribute('data-rl-open'), '0');
+    assert.equal(card.hasAttribute('data-rl-peek'), true);
+  });
+
+  test('but the badge stays readable while it is folded', async () => {
+    /* The whole safety argument for folding this card: what it folds away is a
+       button nobody is waiting on, never the answer itself. The head — id,
+       origin, status — is outside .rl-card-body and survives. */
+    const p = await page();
+    const { card } = await decided(p, 'accepted', 'sent');
+    const body = card.querySelector('.rl-card-body');
+    assert.ok(body, 'the body is rendered, and hidden by CSS rather than dropped');
+    assert.ok(!body.contains(card.querySelector('.rl-badge')),
+      'the status badge is in the head, so folding cannot take it away');
+    assert.ok(!body.contains(card.querySelector('.rl-card-meta')),
+      'nor the clause it belongs to');
+  });
+
+  test('an answer that has NOT been sent stays open, with its Undo showing', async () => {
+    const p = await page();
+    const { card } = await decided(p, 'accepted', 'held');
+    assert.match(card.querySelector('.rl-badge').textContent, /held/,
+      'answered here, and nothing has left the page');
+    assert.deepEqual(verbsOf(card), ['Undo']);
+    assert.equal(card.getAttribute('data-rl-open'), '1',
+      'the state that looks finished and is not must not fold');
+    assert.equal(card.hasAttribute('data-rl-peek'), false,
+      'and Undo must not vanish under a moving mouse right after a click');
+  });
+
+  test('the exemption still holds for every verb somebody IS waiting on', async () => {
+    /* The guard against the obvious over-correction. Folding is decided by
+       reading the verbs, so this walks the states that carry a live one and
+       insists none of them folds. */
+    const p = await page();
+    const mine = p.c.changes[0].id;
+    const theirs = (await ownerAsk(p)).id;
+    const cases = [
+      ['our own unsent draft (Retract / Send)', { unsentIds: [mine] }, mine],
+      ['their pending ask (Accept / Reject)', {}, theirs],
+    ];
+    for (const [what, over, id] of cases){
+      const card = seat(p, over).querySelector(`[data-nego-card="${id}"]`);
+      assert.ok(card, `${what} is on the column`);
+      assert.equal(card.getAttribute('data-rl-open'), '1', `${what} must stay open`);
+      assert.equal(card.hasAttribute('data-rl-peek'), false, `${what} must not peek`);
+    }
+  });
+
   /* ---- THE MOUNT REPAINTS ITSELF, OR THE PIN NEVER LETS GO ---- */
   const mountPortal = p => {
     const host = p.doc.getElementById('share-root');

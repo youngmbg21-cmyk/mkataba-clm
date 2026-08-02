@@ -6763,11 +6763,33 @@ function rlCardStateKey(verbs){
    So the question is asked of the card itself: does it offer anything to DO?
    Edit and Sent do not count. Edit navigates (it opens the clause in the
    document, which pressing the card does anyway) and Sent is a disabled label.
-   Everything else — Accept, Reject, Withdraw, Undo, Change decision, Retract,
-   Send — is a move waiting on this reader, and a move you cannot see is a move
-   you do not make. Matched on the data attributes the handlers and the tests
-   both query, so a new verb cannot be added without this seeing it. */
-const RL_CARD_INERT = /data-rl-edit|data-rl-sent/;
+   Everything else — Accept, Reject, Withdraw, Undo, Retract, Send — is a move
+   waiting on this reader, and a move you cannot see is a move you do not make.
+   Matched on the data attributes the handlers and the tests both query, so a
+   new verb cannot be added without this seeing it.
+
+   ---- AND "CHANGE DECISION" IS NOT A MOVE WAITING ON ANYBODY ----
+   It used to count, so a counterparty who had answered a dozen changes and
+   sent them was left with a dozen full-height cards, each still offering a
+   button, on a column where nothing was outstanding. Their page stayed loud
+   after the work was finished, while the owner's went quiet — the owner's
+   settled changes leave the column entirely, and their own sent asks collapse
+   to a line because "Sent" is inert. Same component, opposite feel, for no
+   reason either reader could see.
+
+   The distinction that matters is not "is there a button" but "is anyone
+   waiting". A sent decision is finished business: it has gone, the other side
+   is holding it, and Change decision is an ESCAPE HATCH rather than a task.
+   Escape hatches belong behind the peek, which is exactly what the collapsed
+   state is for — hover, or tab to the card, and it is there.
+
+   UNDO IS DELIBERATELY NOT IN HERE, and it is the same reasoning rather than
+   an exception to it. Undo appears on a decision that is answered and has NOT
+   been sent — the one state on this screen that looks finished and is not. It
+   is also the state a reader is in for the second after a click, which is when
+   a mis-click is most likely and the worst possible moment to have hidden the
+   way back. It collapses on its own once the round is sent. */
+const RL_CARD_INERT = /data-rl-edit|data-rl-sent|data-nego-redecide/;
 function rlCardNeedsYou(verbs){
   return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
 }

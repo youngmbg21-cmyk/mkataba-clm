@@ -6659,3 +6659,54 @@ carry the correctness claim and the comparison only guards against a future fix
 landing on one door and not the other.
 
 `npm run test:parity` 35/35; browser 82/82.
+
+---
+
+## Run: a decision that has gone is finished business (2026-08-02)
+
+**What was wrong.** The counterparty answers a dozen changes, sends them, and is
+left with a dozen full-height cards each still offering a button — on a column
+where nothing is outstanding. The owner's page goes quiet at the same moment:
+their settled changes leave the column entirely, and their own sent asks fold to
+a line because "Sent" is an inert label. Same component, opposite feel, for no
+reason either reader could see.
+
+**Root cause — one classification, not a second design.** The fold-and-peek
+behaviour already existed and already did exactly what was asked for: a card
+with nothing left to do collapses to its head (id, origin, status badge) and
+slides its body back out on hover or keyboard focus, with a grace period so it
+cannot slam shut mid-reach and a tap-to-open fallback where there is no hover.
+Which cards take part is decided by `rlCardNeedsYou` — *does this card offer
+anything to DO?* — and `Change decision` was counted as a move waiting on the
+reader.
+
+It is not a move. The decision has gone, the other side is holding it, and
+`Change decision` is an **escape hatch**. Escape hatches are precisely what the
+peek is for.
+
+**The fix.** `data-nego-redecide` joins `data-rl-edit` and `data-rl-sent` in
+`RL_CARD_INERT`. Measured on the counterparty's page: a sent decision goes from
+**95px to 58px**, its buttons hidden, its "Accepted · sent" badge still readable;
+hovering restores it to 95px; leaving folds it again.
+
+**Undo is deliberately NOT in that set**, and it is the same reasoning rather
+than an exception to it. Undo sits on an answer that has been made and *not*
+sent — the one state on this screen that looks finished and is not — and the
+second after a click is exactly when a mis-click needs its way back visible.
+It folds on its own once the round goes. This was put to Young as the one open
+question and is his choice, not an inference.
+
+**Files touched.** `js/views/negotiation.js` (one regex, one comment).
+
+**How it was verified.** Five tests in
+`test/f100-cards-composers-and-one-send.test.js`, beside the peek tests they
+extend: a sent acceptance folds, a sent *rejection* folds the same way (built
+from the status, so one is not evidence about the other), the badge and clause
+survive the fold, a held answer stays open with Undo showing, and the exemption
+still holds for every state carrying a live verb. Two fail on the untouched
+tree. A correction worth recording: the first draft of these tests filed the
+decision against the reader's OWN ask, which passed — `sentHere` has no author
+guard — and was meaningless, since nobody rules on their own ask. They now file
+an owner ask, which is the card a counterparty actually answers.
+
+Full suite 2436/2436; browser 82/82; parity 35/35; selection 22/22.
