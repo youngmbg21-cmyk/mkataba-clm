@@ -2452,7 +2452,17 @@ async function openShareModal(c, opts={}){
   };
   document.querySelectorAll('#share-purpose [data-share-purpose]').forEach(b=>
     b.addEventListener('click',()=>{ purposeSel=b.getAttribute('data-share-purpose');
-      payloadObj.purpose=purposeSel; paintPurpose(); }));
+      /* BOTH fields move with the picker. purposeChosen was stamped when the
+         payload was built — from the DEFAULT — and only `purpose` moved here,
+         so a sender who opened Share on a clean round-1 contract (default
+         Sign) and picked Negotiate sent a payload still carrying
+         purposeChosen:'sign'. portalIssuedForSigning trusts purposeChosen,
+         so the counterparty's workbench mounted read-only — "the negotiation
+         is closed on this link" — and they could not redline anything until
+         the owner had proposed a change of their own, which is when the
+         default happens to agree with the picker. What the picker shows at
+         the moment of sending IS what the sender chose. */
+      payloadObj.purpose=purposeSel; payloadObj.purposeChosen=purposeSel; paintPurpose(); }));
   document.getElementById('share-close-1').addEventListener('click',closeModal);
   document.getElementById('share-next').addEventListener('click',()=>step(2));
   document.getElementById('share-back').addEventListener('click',()=>step(1));
