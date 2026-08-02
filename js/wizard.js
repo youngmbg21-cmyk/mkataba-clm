@@ -41,6 +41,40 @@ function myCreatableTemplates(){
   return Object.values(TEMPLATES).filter(t=>templateAllowedForRole(t.id, role));
 }
 
+/* ---- WO N6: the curated doorway ----
+   The picker used to open on the full flat grid — twelve cards tuned to the
+   original FMCG demo, nothing recommended, at the exact moment of highest
+   intent. Now a "For you" row of at most four leads, chosen in this order:
+   what this workspace has actually drafted from (heaviest first, demo seeds
+   excluded), then its named line of business, then four universal starters
+   any SME signs — an NDA, a services agreement, a lease, a marketing
+   engagement. Everything else waits behind a search box and an
+   "All templates" fold. The wizard itself is untouched — the doorway was
+   the problem, not the room. */
+const TEMPLATE_STARTERS=['ND','PS','LE','MK'];
+const INDUSTRY_TEMPLATES={
+  services:     ['PS','ND','MK','LE'],
+  manufacturing:['RM','PK','CM','EQ'],
+  distribution: ['WH','FF','DA','ND'],
+  retail:       ['RL','DA','LE','ND'],
+};
+const INDUSTRY_LABEL={ services:'Services & professional', manufacturing:'Manufacturing & production',
+  distribution:'Distribution & logistics', retail:'Retail & consumer trade' };
+/* Validated on read: a stored value the table no longer knows is no industry
+   at all, not a crash in the picker. */
+function workspaceIndustry(){ const v=state.settings&&state.settings.industry; return INDUSTRY_TEMPLATES[v]?v:null; }
+function builtinUsageCount(tid){ return (state.contracts||[]).filter(c=>c.template===tid && !c.seeded).length; }
+function forYouTemplates(tmpls){
+  const byId={}; tmpls.forEach(t=>{ byId[t.id]=t; });
+  const picked=[];
+  const take=id=>{ if(byId[id] && !picked.includes(id)) picked.push(id); };
+  tmpls.map(t=>({ id:t.id, n:builtinUsageCount(t.id) })).filter(x=>x.n>0)
+    .sort((a,b)=>b.n-a.n).forEach(x=>take(x.id));
+  (INDUSTRY_TEMPLATES[workspaceIndustry()]||[]).forEach(take);
+  TEMPLATE_STARTERS.forEach(take);
+  return picked.slice(0,4).map(id=>byId[id]);
+}
+
 /* ---- guided creation wizard ---- */
 function openWizard(preTid){
   if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
@@ -49,16 +83,74 @@ function openWizard(preTid){
   let tid=preTid&&tmpls.some(t=>t.id===preTid)?preTid:null;
   const renderStep=()=>{
     if(!tid){
-      openModal(`<div style="padding:22px 24px;">
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">New contract from a template</h3>
-        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 16px;line-height:1.5;">Pick a template, answer a few details, and HaTi drafts it for you.</p>
-        <div class="scroll-thin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;max-height:55vh;overflow-y:auto;">
-          ${tmpls.map(t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
+      const card=t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
             <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
             <span style="font-size:13px;font-weight:600;color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
-            <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`).join('')}
+            <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
+      const GRID='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;';
+      const EYE='display:block;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.1em;color:var(--color-neutral-500);text-transform:uppercase;margin:0 0 6px;';
+      const forYou=forYouTemplates(tmpls);
+      const curated=forYou.length>0;
+      /* Company standard templates stay pinned on top — the whole point of
+         publishing one is that it becomes the team's one-click default. */
+      const lib=(typeof tplLibPublished==='function'&&canEdit())?tplLibPublished():[];
+      const industry=workspaceIndustry();
+      const admin=(typeof isAdmin==='function')&&isAdmin();
+      openModal(`<div style="padding:22px 24px;">
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">New contract from a template</h3>
+        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">Pick a template, answer a few details, and HaTi drafts it for you.</p>
+        <div id="wz-pick" class="scroll-thin" style="max-height:62vh;overflow-y:auto;">
+          ${lib.length?`<div style="margin-bottom:14px">
+            <span style="${EYE}">Your company standard templates</span>
+            <div style="${GRID}">${lib.map(t=>`<button data-wz-lib="${t.id}" style="text-align:left;border:1.5px solid var(--color-accent);background:var(--color-accent-100);border-radius:6px;padding:12px;cursor:pointer;">
+              <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent);color:#fff;flex:none;">${icon('copy','w-3.5 h-3.5')}</span>
+              <span style="font-size:13px;font-weight:600;color:var(--color-text);">${String(t.name||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span></span>
+              <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);">v${t.publishedVersion} · pre-filled &amp; branded</span></button>`).join('')}</div>
+          </div>`:''}
+          ${curated?`<div style="margin-bottom:12px">
+            <span style="${EYE}">For you${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
+            <div style="${GRID}">${forYou.map(card).join('')}</div>
+          </div>`:''}
+          ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;color:var(--color-neutral-600)">Line of business — tunes this list
+            <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 8px;font:inherit;font-size:11.5px;color:inherit">
+              <option value="">— not set —</option>
+              ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
+            </select></label>`:''}
+          <input id="wz-search" type="search" placeholder="Search all templates — supply, lease, NDA…" autocomplete="off"
+            style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:8px 12px;font:inherit;font-size:12.5px;color:inherit;outline:none;margin-bottom:10px"/>
+          <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
+          <details id="wz-all" ${curated?'':'open'}>
+            <summary style="cursor:pointer;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:8px">All templates (${tmpls.length})</summary>
+            <div style="${GRID}">${tmpls.map(card).join('')}</div>
+          </details>
         </div></div>`);
-      document.querySelectorAll('[data-wz-tid]').forEach(b=>b.addEventListener('click',()=>{ tid=b.getAttribute('data-wz-tid'); renderStep(); }));
+      /* One delegated listener: the search box re-renders cards into #wz-hits,
+         and per-card wiring would quietly miss whichever render came second. */
+      const pick=document.getElementById('wz-pick');
+      pick.addEventListener('click',e=>{
+        const lb=e.target.closest('[data-wz-lib]');
+        if(lb){ closeModal(); if(window.tplLibNewContract) tplLibNewContract(lb.getAttribute('data-wz-lib')); return; }
+        const b=e.target.closest('[data-wz-tid]');
+        if(b){ tid=b.getAttribute('data-wz-tid'); renderStep(); }
+      });
+      const search=document.getElementById('wz-search'), hits=document.getElementById('wz-hits');
+      search.addEventListener('input',()=>{
+        const q=search.value.trim().toLowerCase();
+        const rows=q?tmpls.filter(t=>`${t.kind} ${t.name} ${t.blurb||''}`.toLowerCase().includes(q)):[];
+        hits.innerHTML=q?(rows.length?rows.map(card).join('')
+          :`<div style="grid-column:1/-1;font-size:11.5px;color:var(--color-neutral-600);padding:6px 2px">Nothing matches “${q.replace(/</g,'&lt;')}” — open All templates below, or create your own under Templates.</div>`):'';
+        const all=document.getElementById('wz-all');
+        if(all&&q) all.removeAttribute('open');
+      });
+      /* The one settings question, asked where its answer is used. Admin-only
+         because PUT /api/settings is admin-only — a select that fails to save
+         for everyone else would teach people to distrust the dialog. */
+      document.getElementById('wz-industry')?.addEventListener('change',e=>{
+        state.settings=state.settings||{};
+        state.settings.industry=e.target.value||undefined;
+        if(typeof saveSettings==='function') saveSettings();
+        renderStep();
+      });
       return;
     }
     const t=TEMPLATES[tid], vars=templateVars(tid);
@@ -156,4 +248,4 @@ function createFromWizard(tid, vars){
   setView('workspace'); renderSideFolders&&renderSideFolders();
 }
 
-Object.assign(window,{TEMPLATE_PRIMARY,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard});
+Object.assign(window,{TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,workspaceIndustry,builtinUsageCount,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard});
