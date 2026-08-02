@@ -61,9 +61,39 @@ const state = {
     mk('Vendor NDA — ERP Implementation','SAP East Africa',0,'Under Review','ND','14 Jul 2026',null),
   ],
 };
+/* ---------------- The grow-with-you sidebar (WO N5) ----------------
+   Surfaces that only mean something once a portfolio exists are EARNED into
+   view rather than shown to a brand-new workspace: Insights appears at five
+   contracts, wearing a small "New" tag until it is first visited. Power
+   users (and demos of depth) restore the full cockpit with one Settings
+   toggle — stored per browser like the theme, because which dials a person
+   wants is their seat's business, not the workspace's. The thresholds are a
+   table, not scattered ifs, so the sidebar and the tests read the same
+   truth. Queue, Advice Desk and Reports are NOT here: they live in the
+   Administration fold permanently — resurfacing them at a threshold would
+   give them two homes, which is the exact fault WO N1 removed. */
+const NAV_EARN_AT={ intel:5 };
+function navShowEverything(){ try{ return localStorage.getItem('hati.v1.nav-all')==='1'; }catch(e){ return false; } }
+function navSetShowEverything(on){
+  try{ localStorage.setItem('hati.v1.nav-all', on?'1':'0'); }catch(e){}
+  if(window.updateSidebarCounts) updateSidebarCounts();
+}
+function navEarned(view, total){
+  const at=NAV_EARN_AT[view];
+  return at==null || navShowEverything() || Number(total||0)>=at;
+}
+/* An unreadable store answers "seen" — a broken localStorage must never pin
+   a permanent "New" tag on the nav. */
+const navSeen=view=>{ try{ return localStorage.getItem('hati.v1.nav-seen.'+view)==='1'; }catch(e){ return true; } };
+const navMarkSeen=view=>{ try{ localStorage.setItem('hati.v1.nav-seen.'+view,'1'); }catch(e){} };
+
 const isMonetary = c => c.valueType !== 'none';
 function mk(name,cp,value,status,tmpl,date,expiry,valueType){
-  const c = { id:nextId(), name, counterparty:cp, value, status, template:tmpl,
+  /* `seeded` marks demo paper so surfaces that measure REAL progress — the
+     getting-started checklist on Home (WO N3) — can tell a pre-signed sample
+     from a contract the customer actually put in and signed. It survives the
+     server's light-list projection, unlike the audit entry below. */
+  const c = { id:nextId(), name, counterparty:cp, value, status, template:tmpl, seeded:true,
     folder:TEMPLATES[tmpl].folder, valueType:valueType||TEMPLATES[tmpl].valueType,
     lastAction:date, expiry:expiry||null, hash:null, signedAt:null,
     signatory:'A. Otieno, Director', compliance:{iprs:false,pki:false},
@@ -415,7 +445,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -1661,7 +1691,7 @@ function shareSummaryStepHtml(c, opts={}){
     </li>`).join('') : '';
   const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:8px 10px;font-size:12px;font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
   return `
-    <div id="share-step-1">
+    <div id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">What you are sending</h2></div>
       ${sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c))}
@@ -1702,6 +1732,47 @@ function readinessPanelHtml(c){
       <span>Send it anyway. I understand the counterparty will see the contract exactly as it is above.</span></label>`:''}
   </div>`;
 }
+/* ---------- step 0 of Share: the one-question send (WO N4) ----------
+   When everything the form asks for is already known — a recipient on the
+   record, a purpose the contract's own state decides, no blocking readiness
+   problems, a server to send through — the dialog opens as ONE SENTENCE and
+   one button. The full machinery is untouched one click away behind "Change
+   details": step 0 presses the SAME send handler the form's button presses,
+   with the same prefilled fields, so there is exactly one send path however
+   the dialog was answered. First-send is the activation moment; every visible
+   decision there adds hesitation exactly where confidence matters most. */
+function quickSendPhrase(p){
+  return p==='sign' ? 'to sign this exact wording'
+    : p==='view' ? 'to read it (view only)'
+    : 'to review it and propose changes';
+}
+function quickSendStepHtml(c, pre, purpose, warns){
+  /* Quotes escaped too, not just &<>: this is text content where a stored
+     quote is harmless, but a name like `x" onfocus="…` must never appear
+     verbatim anywhere in modal HTML — the escape-everything rule is cheaper
+     than deciding per call site which contexts are attribute-shaped. */
+  const q=s=>esc(s).replace(/"/g,'&quot;');
+  const who=pre.name?`${q(pre.name)} · ${q(pre.email)}`:q(pre.email);
+  const w=(warns||[]).map(x=>x.label);
+  return `
+  <div id="share-step-0">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('send')}</span>
+      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Send “${esc(c.name)}”</h2></div>
+    <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px;padding:14px 16px;margin-bottom:10px">
+      <p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--color-text)">To <b style="color:var(--color-accent-800)">${who}</b> — ${quickSendPhrase(purpose)}.</p>
+      <p style="margin:6px 0 0;font-size:11.5px;line-height:1.5;color:var(--color-neutral-600)">They open a secure link — no account needed. Sent by email · link valid 14 days.</p>
+    </div>
+    ${w.length?`<div style="display:flex;gap:7px;align-items:flex-start;margin:0 0 10px;font-size:11px;line-height:1.55;color:var(--st-amber-fg)"><span style="flex:none;display:inline-flex;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span><span>Worth checking: ${esc(w.slice(0,2).join(' '))}${w.length>2?' …':''}</span></div>`:''}
+    <div id="qs-result" style="margin:0 0 4px"></div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+      <button id="qs-details" class="ui-btn" style="font-size:12px" title="Recipient, purpose, WhatsApp instead, link life, a personal message — the full form">Change details ▾</button>
+      <span style="flex:1"></span>
+      <button id="qs-cancel" class="ui-btn">Cancel</button>
+      <button id="qs-send" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 18px">${icon('send','w-3.5 h-3.5')} Send it</button>
+    </div>
+  </div>`;
+}
+
 /* The allow-list that decides what a counterparty is shown. Everything the
    portal renders has to be in here; anything not in here does not exist as far
    as the other side is concerned. */
@@ -2244,6 +2315,14 @@ async function openShareModal(c, opts={}){
   // under the user's cursor.
   const priorShares=await contractShares(c);
   const pre=shareModalPrefill(priorShares, c);
+  /* WO N4 — the one-question send. Offered only when nothing needs asking:
+     the email channel works end to end (server mode), somebody to send to is
+     already on the record, and nothing on the readiness list BLOCKS — a block
+     needs the full panel and its explicit acknowledgement, never a shortcut
+     past it. Non-blocking warnings ride along as one quiet line. */
+  const qsWarns=contractReadiness(c).filter(x=>x.severity!=='block');
+  const quickOk = server && !!pre.email && !readinessBlocks(c).length && opts.quick!==false;
+  let qsActive=quickOk;
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
   const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;
@@ -2251,7 +2330,8 @@ async function openShareModal(c, opts={}){
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   openModal(`
     <div style="padding:22px 24px;">
-      ${shareSummaryStepHtml(c, { ...opts, purposeSel })}
+      ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
+      ${shareSummaryStepHtml(c, { ...opts, purposeSel, hiddenStart:quickOk })}
       <div id="share-step-2" class="hidden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
@@ -2307,6 +2387,9 @@ async function openShareModal(c, opts={}){
      on Next would mean wiring them all a second time, and the first one to be
      forgotten would be a silent dead control. */
   const step = n => {
+    qsActive = n===0;
+    const s0=document.getElementById('share-step-0');
+    if(s0) s0.classList.toggle('hidden', n!==0);
     document.getElementById('share-step-1').classList.toggle('hidden', n!==1);
     document.getElementById('share-step-2').classList.toggle('hidden', n!==2);
   };
@@ -2355,7 +2438,10 @@ async function openShareModal(c, opts={}){
      link is this" is a different fact from "did the email leave", and the
      channel branches below each write the whole box. */
   let reuseNote='';
-  const resultBox=(html)=>{ document.getElementById('sh-result').innerHTML=reuseNote+html; };
+  /* The outcome lands where the sender is standing: the quick panel's own box
+     when step 0 is live, the form's box otherwise. */
+  const resultBox=(html)=>{ const host=document.getElementById(qsActive?'qs-result':'sh-result');
+    if(host) host.innerHTML=reuseNote+html; };
   const copyBox=(link,note)=>`
     <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:12px;">
       ${note?`<div style="font-size:11.5px;color:var(--color-accent-800);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">${icon('check2','w-3.5 h-3.5')} ${note}</div>`:''}
@@ -2368,7 +2454,12 @@ async function openShareModal(c, opts={}){
     toast('Share link copied to clipboard');
   });
 
-  document.getElementById('share-send').addEventListener('click',async()=>{
+  /* ONE SEND, TWO DOORS (WO N4). The form's Send button and the quick panel's
+     Send button both press this. Every gate below — the email check, the
+     signing-approval refusal, the readiness acknowledgement, the address
+     confirmation — holds for both doors, because there is only one path.
+     Returns true only when a link actually went out (or was handed over). */
+  const doSend=async()=>{
     const name=fval('sh-name'), email=fval('sh-email'), phone=fval('sh-phone');
     /* The summary the sender approved on step 1 travels with the link: into the
        message body, and onto the payload so the landing page still shows it to
@@ -2377,8 +2468,8 @@ async function openShareModal(c, opts={}){
     const note=fval('sh-msg').trim();
     const msg=[summary,note].filter(Boolean).join('\n\n');
     payloadObj.contract.changeSummary=summary||null;
-    if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return; }
-    if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return; }
+    if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return false; }
+    if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return false; }
     /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
 
        Everything else on the readiness list is the sender's call — a missing
@@ -2400,7 +2491,7 @@ async function openShareModal(c, opts={}){
           : (ap.stale||[]).length ? 'it changed after it was approved'
           : `“${ap.next?ap.next.name:'approval'}” is still waiting on ${ap.approverLabel||'an approver'}`
         }. Send it to negotiate instead, or clear the approval first.`,'err');
-        return;
+        return false;
       }
     }
     // A share cannot be recalled, so an incomplete contract needs an explicit
@@ -2411,7 +2502,7 @@ async function openShareModal(c, opts={}){
       const panel=document.getElementById('share-readiness');
       if(panel){ panel.style.outline='2px solid var(--st-ruby-dot)'; setTimeout(()=>{ panel.style.outline=''; },1600);
                  panel.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
-      return;
+      return false;
     }
     /* H-7: a signing code is only as safe as the address it is sent to, and that
        address is whatever the sender typed. Before a BINDING signing link goes
@@ -2424,7 +2515,7 @@ async function openShareModal(c, opts={}){
         title:'Send the signing link to this address?',
         message:'The one-time signing code will go to '+email+' — and only to that address. Check it is exactly right; a signing code sent to the wrong inbox is hard to undo.',
         confirmLabel:'Send to '+email, cancelLabel:'Go back' });
-      if(!okAddr) return;
+      if(!okAddr) return false;
     }
     const rcptLabel=name||email||phone||c.counterparty||'counterparty';
     if(server){
@@ -2458,7 +2549,7 @@ async function openShareModal(c, opts={}){
               recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
               durable:wantDurable, purpose:payloadObj.purpose });
       }
-      catch(e){ toast(e.message,'err'); return; }
+      catch(e){ toast(e.message,'err'); return false; }
       reuseNote = reuse ? `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--color-accent-800);margin-bottom:8px">
         <b>${esc(name||email)} already had a link to this contract, so that link now shows this version.</b>
         No second link was created — there is still exactly one, and nothing older is left open.</div>` : '';
@@ -2542,6 +2633,7 @@ async function openShareModal(c, opts={}){
       if(typeof opts.onSent==='function')
         try{ opts.onSent({ channel:ch, recipient:rcptLabel, link:r.link||null,
           emailSent:!!r.emailSent, emailConfigured:!!r.emailConfigured }); }catch(e){}
+      return true;
     } else {
       // static mode: the whole payload travels in the URL fragment
       const link=location.href.split('#')[0]+'#share='+b64e(payloadObj);
@@ -2558,8 +2650,25 @@ async function openShareModal(c, opts={}){
       if(typeof opts.onSent==='function')
         try{ opts.onSent({ channel:ch, recipient:rcptLabel, link, emailSent:false, emailConfigured:false }); }catch(e){}
       persist(c); renderAuditSection(c);
+      return true;
     }
+  };
+  document.getElementById('share-send').addEventListener('click',doSend);
+  /* The quick panel's Send: same handler, and the button owns its outcome —
+     disabled while in flight, "Sent" once it went, re-armed if a gate said no
+     so the sender can fix the reason and press again. */
+  document.getElementById('qs-send')?.addEventListener('click',async e=>{
+    const b=e.currentTarget; if(b.disabled) return;
+    b.disabled=true; b.style.opacity='.75';
+    const ok=await doSend();
+    if(ok){
+      b.innerHTML=`${icon('check2','w-3.5 h-3.5')} Sent`;
+      const cxl=document.getElementById('qs-cancel'); if(cxl) cxl.textContent='Close';
+      const det=document.getElementById('qs-details'); if(det) det.remove();
+    } else { b.disabled=false; b.style.opacity='1'; }
   });
+  document.getElementById('qs-cancel')?.addEventListener('click',closeModal);
+  document.getElementById('qs-details')?.addEventListener('click',()=>step(1));
 }
 
 /* Nothing left the building. Say so plainly and hand over the link, rather
@@ -2634,6 +2743,70 @@ function counterpartySeenHtml(c, shares){
     </div>`;
 }
 
+/* ---------- the send journey, as lights with words (WO N4) ----------
+   Four moments — Sent, Opened, Responded, Signed — drawn as one strip at the
+   head of the contract's Shares panel. RULE: never a colour alone. Every
+   light carries plain words saying what happened, and the strip closes with
+   one sentence naming whose move it is — the difference between a status
+   display and an answer. Read from the same share records the panel lists
+   (sentAt / firstOpenedAt / respondedAt) and the contract's own status for
+   the last light; nothing here is a second source of truth. */
+function shareJourneyState(c, shares){
+  if(!c) return null;
+  const live=(shares||[]).filter(s=>s&&!s.revokedAt&&s.state!=='revoked'&&s.state!=='expired');
+  if(!live.length) return null;
+  const latest=live.slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
+  const who=latest.recipientName||latest.recipientEmail||latest.recipientPhone||'the counterparty';
+  const signed=c.status==='Signed';
+  const responded=!!latest.respondedAt;
+  const opened=!!latest.firstOpenedAt;
+  const days=_daysSince(latest.sentAt||latest.createdAt);
+  const stale=!opened&&!responded&&!signed&&days>=3;
+  const now=signed?'signed':responded?'responded':opened?'opened':'sent';
+  const sentence=
+    signed ? 'Signed and sealed — nothing is waiting on anyone.'
+    : responded ? `${who} answered — your move now.`
+    : opened ? `${who} is reading it. Nothing for you to do yet.`
+    : stale ? `${who} has not opened it in ${days} days — worth chasing, or check the link reached them.`
+    : `Out with ${who} — they have not opened it yet.`;
+  return { who, latest, signed, responded, opened, now, days, stale, sentence,
+    stages:[
+      { k:'sent', label:'Sent', on:true,
+        words:`${fmtDT(latest.sentAt||latest.createdAt)}${(latest.expiresAt&&!responded&&!signed)?` · link valid to ${String(latest.expiresAt).slice(0,10)}`:''}` },
+      { k:'opened', label:'Opened', on:opened||responded||signed,
+        words: opened?fmtDT(latest.firstOpenedAt):(responded||signed)?'answered directly':'not yet' },
+      { k:'responded', label:'Responded', on:responded||signed,
+        words: responded?`${fmtDT(latest.respondedAt)}${signed?'':' — your turn'}`:(signed?'—':'not yet') },
+      { k:'signed', label:'Signed', on:signed, words: signed?'sealed & filed':'not yet' },
+    ] };
+}
+function shareJourneyHtml(c, shares){
+  const j=shareJourneyState(c, shares);
+  if(!j) return '';
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));
+  const cell=s=>{
+    const cur=s.k===j.now;
+    const col=!s.on?'transparent'
+      : s.k==='signed'?'var(--st-green-dot)'
+      : (s.k==='responded'&&cur)?'var(--st-amber-dot)'
+      : 'var(--color-accent)';
+    return `<div data-journey="${s.k}" style="flex:1;min-width:108px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="flex:none;width:11px;height:11px;border-radius:50%;background:${col};border:2px solid ${s.on?col:'var(--color-neutral-400)'}"></span>
+        <span style="font-size:11px;font-weight:${cur?'700':'600'};color:${s.on?'var(--color-text)':'var(--color-neutral-500)'}">${s.label}</span>
+      </div>
+      <div style="font-size:10px;color:var(--color-neutral-600);margin:3px 0 0 18px;line-height:1.45">${esc(s.words)}</div>
+    </div>`;
+  };
+  return `<div id="share-journey" style="border:1px solid ${j.stale?'var(--st-amber-line)':'var(--color-divider)'};background:${j.stale?'var(--st-amber-bg)':'var(--color-bg)'};border-radius:8px;padding:11px 13px;margin-bottom:12px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">${j.stages.map(cell).join('')}</div>
+    <div style="display:flex;align-items:center;gap:9px;margin-top:9px;padding-top:8px;border-top:1px dashed var(--color-divider)">
+      <span style="flex:1;font-size:11.5px;line-height:1.5;font-weight:${(j.responded&&!j.signed)?'600':'500'};color:${j.signed?'var(--st-green-fg)':(j.responded||j.stale)?'var(--st-amber-fg)':'var(--color-neutral-700)'}">${esc(j.sentence)}</span>
+      ${(j.stale&&typeof canEdit==='function'&&canEdit())?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:11px;padding:5px 11px">Send it again</button>`:''}
+    </div>
+  </div>`;
+}
+
 /* ---- Shares panel (workspace): every dispatch for this contract with its
    traffic light, timestamps and per-share actions (copy / resend / revoke). */
 /* The shares this workspace has already fetched, by contract id. The Negotiation
@@ -2653,7 +2826,11 @@ async function renderSharesSection(c){
   const chLabel={email:'Email',whatsapp:'WhatsApp',link:'Link'};
   const live=s=>s.state==='sent'||s.state==='opened';
   host.innerHTML=`<div class="px-5 py-4">
-    ${counterpartySeenHtml(c, shares)}
+    ${''/* WO N4: the four-light journey replaced the single seen-state
+         sentence here; counterpartySeenState still answers for the
+         negotiation strip, and the chase button keeps its id so the
+         wiring below holds. */}
+    ${shareJourneyHtml(c, shares)}
     <div class="flex items-center gap-2 mb-3"><span class="text-brand-500">${icon('send')}</span>
       <h3 class="text-sm font-display font-600 text-brand-900">Shares</h3>
       <span class="ml-auto text-[10px] font-mono text-brand-800/60">${shares.length} sent</span></div>
@@ -3385,4 +3562,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

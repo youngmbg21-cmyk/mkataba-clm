@@ -873,90 +873,50 @@
     </div>
   </header>
 
-  <!-- ================= SIDEBAR (256px — wide enough that "Contract Repository" stays one line) ================= -->
+  <!-- ================= SIDEBAR (256px) ================= -->
   <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
-      <!-- The standard sections are ALWAYS OPEN — their headers are labels, not
-           toggles: a nav that can hide its own destinations makes people hunt
-           for tabs they use daily. Only ADMINISTRATION keeps the fold (its
-           header stays a button with data-section-toggle), because its items
-           are reached rarely and by choice. -->
+      <!-- ONE DOOR PER THING (WO N1). Day-to-day nav is five plain-English
+           destinations with no section labels to read past. A contract's
+           document and negotiation live INSIDE the contract (Docs · Negotiate
+           tabs on its page), so DocLab and Redline are no longer sidebar
+           doors — the workbench keeps its route (view-redline) and is reached
+           from the contract. Bulk import ("Migration") moved into the + New
+           contract menu; the playbook lives under Templates as "Our
+           standards". Every retired door stays a routable view, so saved
+           links keep working. Only ADMINISTRATION keeps the fold (its header
+           stays a button with data-section-toggle), because its items are
+           reached rarely and by choice. -->
       <div class="nav-section open" data-section="work">
-        <div class="nav-section-head static">Core Workspace</div>
         <div class="nav-section-body">
           <button data-view="dashboard" class="nav-item active" title="Home">
             <span class="nav-rail"></span>
             <!-- pie chart (the design's fa-chart-pie), drawn solid so it reads
                  at 15px the way the flat glyph does -->
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
-            <span style="flex:1;">Dashboard</span><span class="nav-count" data-count="dashboard"></span>
+            <span style="flex:1;">Home</span>
           </button>
-          <button data-view="workspace" class="nav-item" title="HaTi DocLab">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9h-5a2 2 0 0 1-2-2V2Z"/><path d="M15 2.4V6a1 1 0 0 0 1 1h3.6L15 2.4Z"/><path d="M7.2 16.4c1-1.3 1.7-.3 2.6 0s1.5-.5 2.5 0" fill="none" stroke="var(--color-surface)" stroke-width="1.5" stroke-linecap="round"/></svg>
-            <span style="flex:1;">HaTi DocLab</span><span id="nav-ai-active" class="nav-count" data-tone="teal" hidden
-              title="The Copilot brain is live — a Claude key is configured and answering">AI Active</span>
-          </button>
-          <!-- Redline workbench (the design's `nav-redline`): highlighter glyph,
-               and an amber "N Open" tag carrying the count of open changes.
-               Routed to `redline`, which renders the negotiation workbench as a
-               page (renderRedline in js/views/negotiation.js). The Doc Lab
-               module is still loaded but no longer reachable from the nav; it
-               is retired in the next step. -->
-          <button data-view="redline" class="nav-item" title="Redline workbench — tracked changes, rounds and discussion">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14.6 2.6a2 2 0 0 1 2.8 0l4 4a2 2 0 0 1 0 2.8l-7.1 7.1-6.8-6.8 7.1-7.1Z"/><path d="M6.4 10.9l6.7 6.7-2.6 2.6H8.9l-1.2 1.2H3.4l-.9-.9 1.4-1.4v-1.9l2.5-6.3Z"/></svg>
-            <span style="flex:1;">Redline</span>
-            <span id="nav-redline-count" class="nav-badge hidden"></span>
-          </button>
-        </div>
-      </div>
-
-      <div class="nav-section open" data-section="insight">
-        <div class="nav-section-head static">Insight</div>
-        <div class="nav-section-body">
-          <button data-view="intel" class="nav-item" title="Intel">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
-            <span style="flex:1;">Portfolio Intel</span><span class="nav-count" data-count="intel"></span>
-          </button>
-        </div>
-      </div>
-
-      <div class="nav-section open" data-section="contracts">
-        <div class="nav-section-head static">Contracts</div>
-        <div class="nav-section-body">
-          <button data-view="register" class="nav-item" title="Contract Repository">
+          <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
-            <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Contract Repository</span><span class="nav-count" data-count="register"></span>
+            <span style="flex:1;">Contracts</span><span class="nav-count" data-count="register"></span>
           </button>
           <button data-view="calendar" class="nav-item" title="Calendar">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
             <span style="flex:1;">Calendar</span><span class="nav-count" data-count="calendar"></span>
           </button>
-          <button data-view="migration" class="nav-item" title="Migration">
+          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving">
             <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H7a2 2 0 0 0-2 2v6h4.2l-1.6-1.6a1 1 0 0 1 1.4-1.4l3.3 3.3a1 1 0 0 1 0 1.4l-3.3 3.3a1 1 0 0 1-1.4-1.4L9.2 12H5v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8h-4a2 2 0 0 1-2-2V2Z"/><path d="M15 2.4V6a1 1 0 0 0 1 1h3.6L15 2.4Z"/></svg>
-            <span style="flex:1;">Migration</span><span class="nav-count" data-count="migration"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
+            <span style="flex:1;">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+              title="Newly unlocked — your portfolio is big enough for Insights to say something">New</span>
           </button>
-        </div>
-      </div>
-
-      <div class="nav-section open" data-section="build">
-        <div class="nav-section-head static">Build</div>
-        <div class="nav-section-body">
-          <button data-view="templates" class="nav-item" title="Templates">
+          <button data-view="templates" class="nav-item" title="Templates — your standard paper, including Our standards">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
-          </button>
-          <button data-view="playbook" class="nav-item" title="Playbook">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.5h13a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 18.5v-14a2 2 0 0 1 1-1.73V2.5Z"/><path d="M7.5 6.5h8v1.6h-8V6.5Zm0 3.4h8v1.6h-8V9.9Zm0 3.4h5v1.6h-5v-1.6Z" fill="var(--color-surface)"/></svg>
-            <span style="flex:1;">Playbook</span><span class="nav-count" data-count="playbook"></span>
           </button>
         </div>
       </div>

@@ -4741,7 +4741,7 @@ function redlineLayoutCss(){
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .redline-page .rl-shell-acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:none}
   .redline-page .rl-shell-acts .ui-btn{font-size:12px;padding:5px 10px}
-  /* The [Docs][Redline] switcher, in the Doc page's own clothes: a surface
+  /* The [Docs][Negotiate] switcher, in the Doc page's own clothes: a surface
      pill box, the active tab solid accent. Docs is a DOOR back to the
      workspace, not a pane — same contract, other tab. */
   .redline-page .rl-ws-tabs{display:flex;gap:3px;background:var(--color-surface);
@@ -5630,14 +5630,15 @@ function renderRedline(){
           <button type="button" data-rl-shell="compare" class="ui-btn" title="Compare versions &amp; review changes">Compare</button>
         </div>
       </section>
-      <!-- ONE STRIP under the shell: the [Docs][Redline] switcher the Doc page
-           carries (Redline pressed, Docs a door back), the round tag, and the
-           workbench's own verbs on the same line. -->
+      <!-- ONE STRIP under the shell: the [Docs][Negotiate] switcher the Doc
+           page carries (Negotiate pressed, Docs a door back), the round tag,
+           and the workbench's own verbs on the same line. The label matches
+           the contract page's tab (WO N1) — one name for one place. -->
       <section class="rl-head">
         <div class="rl-head-id">
-          <div class="rl-ws-tabs" role="tablist" aria-label="Docs or Redline">
+          <div class="rl-ws-tabs" role="tablist" aria-label="Docs or Negotiate">
             <button type="button" data-rl-back role="tab" aria-selected="false">Docs</button>
-            <button type="button" class="on" role="tab" aria-selected="true">Redline</button>
+            <button type="button" class="on" role="tab" aria-selected="true">Negotiate</button>
           </div>
           <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
           ${rlTypeStepHtml()}

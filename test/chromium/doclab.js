@@ -72,11 +72,12 @@ function check(name, ok, detail){
     await page.fill('#su-email', 'amina@wanjiru.co.ke');
     await page.fill('#su-pass', 'labtest12345');
     await page.click('#su-go');
-    /* The redesigned shell's nav leads with the Redline workbench; the lab is
-       no longer a nav item but remains a routable view (setView('doclab')) —
-       its wall and its checks below are unchanged. */
-    await page.waitForSelector('.nav-item[data-view="redline"]', { timeout: 20000 });
-    check('the shell boots to the redesigned nav (Redline present)', true);
+    /* WO N1: the sidebar has one door per thing — Contracts is the anchor
+       item. The workbench and the lab are no longer nav items but remain
+       routable views (setView('redline') / setView('doclab')) — the lab's
+       wall and its checks below are unchanged. */
+    await page.waitForSelector('.nav-item[data-view="register"]', { timeout: 20000 });
+    check('the shell boots to the one-home nav (Contracts present)', true);
 
     /* ---- open a contract ---- */
     const opened = await page.evaluate(() => {

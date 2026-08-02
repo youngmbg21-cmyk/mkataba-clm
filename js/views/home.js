@@ -122,6 +122,109 @@ function readyToSignRowsHtml(items){
         </button>`).join('')}
     </div>`;
 }
+/* ============================================================
+   GETTING STARTED (WO N3)
+   ============================================================
+   The checklist that walks a new workspace to first value: add a contract →
+   let Copilot scan it → send it → watch it come back signed. Every tick is
+   read from REAL state on every render — nothing is stored about progress,
+   so the card can never disagree with the portfolio. Only the dismissal is
+   remembered (per user, same pattern as the KPI picker), because "seen and
+   closed" is the one fact the data cannot carry.
+
+   Demo paper does not count. A workspace seeded with the sample portfolio
+   arrives with pre-signed contracts, and a checklist born fully ticked
+   teaches nothing — so "add" and "signed" require a NON-seed contract
+   (gsIsSeed). "Scan" and "send" count on any contract, seeds included:
+   scanning or sending a sample IS the customer learning the action. */
+const gsIsSeed=c=>!!(c&&(c.seeded||c.hash==='PRE-SEEDED'||c.signatory==='A. Otieno, Director'
+  ||(c.audit||[]).some(a=>a&&a.detail==='Seeded as sample data')));
+function gsKey(){ const u=(typeof currentUser==='function')&&currentUser(); return 'hati.v1.gs-hidden.'+((u&&u.id)||'anon'); }
+function gsHidden(){ try{ return localStorage.getItem(gsKey())==='1'; }catch(e){ return false; } }
+function gsHide(){ try{ localStorage.setItem(gsKey(),'1'); }catch(e){} }
+function gsSteps(){
+  const cs=state.contracts||[];
+  const mine=cs.filter(c=>!gsIsSeed(c));
+  /* Sent: the share overview covers server mode (light rows carry no audit);
+     the audit scan covers local mode, where every row is fully loaded. */
+  const sent=Object.keys(state.shareByContract||{}).length>0
+    ||cs.some(c=>(c.audit||[]).some(a=>a&&a.action==='Shared'));
+  return [
+    {k:'add',  t:'Add your first contract',      d:'Draft one from a template, or upload one you received.', done:mine.length>0},
+    {k:'scan', t:'Let Copilot scan a contract',  d:'A read-through that flags risky terms in plain English.', done:cs.some(c=>c.scan)},
+    {k:'send', t:'Send one to the other side',   d:'They get a secure link — no account needed.',             done:sent},
+    {k:'sign', t:'Watch it come back signed',    d:'Sealed, filed and on the record.',                        done:mine.some(c=>c.status==='Signed')},
+  ];
+}
+/* Where each step's button lands. Prefers the customer's own paper over a
+   seed, and never invents a target — a step with nowhere to go renders as
+   text, not as a button that shrugs. */
+function gsGo(k){
+  const cs=state.contracts||[];
+  if(k==='add'){
+    const nm=document.getElementById('new-menu');
+    if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); }
+    return;
+  }
+  let c=null;
+  if(k==='scan') c=cs.find(x=>!gsIsSeed(x)&&!x.scan)||cs.find(x=>!x.scan)||cs[0];
+  if(k==='send') c=cs.find(x=>!gsIsSeed(x)&&x.status!=='Signed')||cs.find(x=>x.status!=='Signed')||cs[0];
+  if(k==='sign'){ const sb=state.shareByContract||{};
+    c=cs.find(x=>sb[x.id])||cs.find(x=>x.status==='Under Review'); }
+  if(c&&window.openWorkspace) openWorkspace(c.id);
+}
+function gettingStartedHtml(){
+  if(gsHidden()) return '';
+  /* Viewers cannot draft, send or sign, so a to-do list of those verbs would
+     only advertise what their role withholds. */
+  if(typeof canEdit==='function'&&!canEdit()) return '';
+  const cs=state.contracts||[];
+  /* An empty workspace is the first-run welcome's moment (U-2, above the
+     fold with the same three entry points) — one guide at a time. */
+  if(!cs.length) return '';
+  const steps=gsSteps();
+  const done=steps.filter(s=>s.done).length;
+  const all=done===steps.length;
+  const cur=steps.find(s=>!s.done);
+  const CIRCLE='width:20px;height:20px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:10px;font-weight:700;font-family:var(--font-mono)';
+  const rows=steps.map((s,i)=>{
+    const isCur=!all&&cur&&s.k===cur.k;
+    const dot=s.done
+      ?`<span style="${CIRCLE};background:var(--st-green-dot);color:#fff">${icon('check2','w-3 h-3')}</span>`
+      :`<span style="${CIRCLE};background:none;border:2px solid ${isCur?'var(--color-accent)':'var(--color-divider)'};color:${isCur?'var(--color-accent-700)':'var(--color-neutral-500)'}">${i+1}</span>`;
+    const tone=s.done?'var(--color-neutral-500)':isCur?'var(--color-text)':'var(--color-neutral-500)';
+    const body=`${dot}
+      <span style="min-width:0;flex:1">
+        <span style="display:block;font-size:12.5px;font-weight:600;color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
+        ${isCur?`<span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
+      </span>
+      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:11.5px;font-weight:600;color:var(--color-accent-700)">Go &rarr;</span>`:''}`;
+    /* The whole current row is the button — a target the size of the step,
+       not a link the size of an arrow. */
+    return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
+      ?`<button data-gs-go="${s.k}" style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid color-mix(in srgb,var(--color-accent) 25%,transparent);border-radius:9px;background:color-mix(in srgb,var(--color-accent) 6%,transparent);cursor:pointer;font:inherit;text-align:left;color:inherit">${body}</button>`
+      :`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px">${body}</div>`;
+  }).join('');
+  return `
+    <section id="gs-card" style="border:1px solid var(--color-divider);border-radius:14px;background:var(--color-surface);padding:16px 18px 14px;">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+        <h2 style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:14.5px;color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
+        <span style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
+        <span style="flex:1"></span>
+        <button id="gs-dismiss" class="ui-btn" title="Hide this checklist — it will not come back" style="font-size:11px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
+      </div>
+      <div style="height:6px;border-radius:4px;background:var(--color-neutral-100);margin-bottom:10px"><i style="display:block;height:100%;border-radius:4px;background:var(--color-accent);width:${Math.round(done/steps.length*100)}%"></i></div>
+      ${all?`<p style="margin:0;font-size:12px;color:var(--color-neutral-600);line-height:1.55">Your workspace has done the whole journey — a contract in, scanned, sent and signed. Everything from here is more of the same.</p>`:rows}
+    </section>`;
+}
+/* "Watch it come back signed" is a wait, not a task — it is a button only
+   when there is a contract out with the other side to go and look at. */
+function gsGoTargetExists(k){
+  if(k!=='sign') return true;
+  const cs=state.contracts||[], sb=state.shareByContract||{};
+  return !!(cs.find(x=>sb[x.id])||cs.find(x=>x.status==='Under Review'));
+}
+
 function renderDashboard(){
   const cs=state.contracts;
   /* state.contracts, state.serverStats and state.shareOverview are already
@@ -445,6 +548,10 @@ function renderDashboard(){
     ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
     ${firstRunBanner}
 
+    <!-- Getting started (WO N3) — the visible path from "workspace exists"
+         to "first contract signed", ticked from real state on every render -->
+    ${gettingStartedHtml()}
+
     <!-- Welcome banner — what this workspace is for, and the button that starts work -->
     ${heroSection}
 
@@ -517,6 +624,12 @@ function renderDashboard(){
     else if(nb){ nb.click(); }
   });
   document.getElementById('fr-import')?.addEventListener('click',()=>setView('migration'));
+  /* Getting started (WO N3): the current step is one button; dismissal is
+     forever (per user), so the card never nags a workspace that closed it. */
+  document.querySelectorAll('[data-gs-go]').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation(); gsGo(el.getAttribute('data-gs-go')); }));
+  document.getElementById('gs-dismiss')?.addEventListener('click',e=>{
+    e.stopPropagation(); gsHide(); renderDashboard(); });
   document.getElementById('fr-explore')?.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.type='all'; R.sel={}; setView('register'); });
   document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage=el.getAttribute('data-stage'); R.type='all'; R.sel={}; setView('register'); }));
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
@@ -550,4 +663,4 @@ function renderDashboard(){
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard});
+Object.assign(window,{renderDashboard,gsSteps,gettingStartedHtml,gsIsSeed});
