@@ -185,6 +185,34 @@ function portalCompareBar(){
         title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">Compare wording</button>`:''}
     </div>`;
 }
+/* THE SAME TWO BUTTONS, WITHOUT THE CARD THEY USED TO ARRIVE IN.
+   On the counterparty's workbench the reading bar was a second card stacked
+   under the identity card: one sentence of explanation and two buttons, taking
+   a band of height off the top of the document on a page whose whole job is to
+   let somebody read a contract. The sentence is not carried up — carrying it up
+   would rebuild the bulk being removed — and it was never the thing being
+   clicked: each button's title says what it does, in the same words.
+
+   The buttons sit in the identity card beside the other reading controls (the
+   type stepper, focus), which is where a reader already looks for them, and
+   which means they now survive focus mode instead of folding away with the
+   banners — the same as every other control on that row.
+
+   portalCompareBar() stays for the older signing screen, whose header is a dark
+   band rather than a card with a row to join. */
+function portalReadingBtnsHtml(){
+  const hist=portalHasHistory();
+  const cmp=portalHasCompare();
+  if(!cmp && !hist) return '';
+  const S='flex:none;font-size:11.5px;padding:7px 12px;min-height:32px';
+  return `
+    <span class="pw-id-read" style="display:inline-flex;align-items:center;gap:7px;flex:none">
+      ${hist?`<button id="pt-hist" class="ui-btn ui-btn-secondary" style="${S}"
+        title="Every change on this contract, oldest first, with who asked and what was decided">Negotiation history</button>`:''}
+      ${cmp?`<button id="pt-compare" class="ui-btn ui-btn-secondary" style="${S}"
+        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">Compare wording</button>`:''}
+    </span>`;
+}
 /* ---- THE SAME HISTORY THE OWNER READS, ON THEIR SIDE OF THE GLASS ----
    openHistoryTimeline is the owner's screen and it is mounted here unchanged:
    one component, both chairs, exactly as the workbench itself already is. What
@@ -1925,6 +1953,12 @@ function portalWorkbenchStyle(){
          work order asks, instead of inheriting the desktop grid. */
       .pw-page{height:auto;overflow:visible;}
       .pw-mount{min-height:70vh;}
+      /* The identity row now carries the two reading buttons as well as the
+         stepper, the focus button and the name box. On a desktop that fits on
+         one line; on a phone it must be allowed to fall onto a second rather
+         than squeeze the contract's name to nothing. */
+      .pw-id{flex-wrap:wrap;}
+      .pw-id .nego-who{margin-left:0;}
     }`;
   document.head.appendChild(el);
 }
@@ -1964,6 +1998,10 @@ function renderShareWorkbench(p, opts={}){
              Filled ONLY from the share's named recipient, never from the
              counterparty ORGANISATION — see negoNameFieldHtml. An empty box
              asks the question; a wrong one answers it. */}
+      ${''/* Negotiation history and Compare wording — the two reading verbs,
+             on the row with the other reading controls rather than in a card
+             of their own below. See portalReadingBtnsHtml. */}
+      ${portalReadingBtnsHtml()}
       ${''/* The same reading controls the owner's bench carries — the
              counterparty is the customer, and squinting at 11px wording is
              not a seat-relative fact. The stepper is the shared component
@@ -1982,7 +2020,6 @@ function renderShareWorkbench(p, opts={}){
       ${portalClosedBanner()}
       ${portalRevisedBanner()}
       ${portalRoundBanner(c,p)}
-      ${portalCompareBar()}
       ${msg}
     </div>
     <div class="pw-mount"><div id="pt-nego"></div></div>
