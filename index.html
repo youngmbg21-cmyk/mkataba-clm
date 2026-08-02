@@ -1099,6 +1099,12 @@
 .ai-tone-neg{color:var(--st-ruby-fg);background:var(--st-ruby-bg)}
 .ai-tone-warn{color:var(--st-amber-fg);background:var(--st-amber-bg)}
 .ai-tone-mut{color:var(--color-neutral-600)}
+/* Copilot's read (Insights → Negotiation Friction): the chat feed's paragraph
+   rhythm is scoped to #ai-feed, so this out-of-feed surface sets its own —
+   and the bolded takeaway opening each paragraph reads as its heading. */
+.igf-ai-read .ai-p{margin:0 0 12px}
+.igf-ai-read .ai-p:last-child{margin-bottom:0}
+.igf-ai-read .ai-p>strong:first-child{color:var(--color-accent-700)}
 .ai-chart{border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;
   padding:10px 12px;margin:.5em 0}
 .ai-chart-title{font-family:var(--font-heading);font-weight:600;font-size:12px;margin-bottom:6px}
