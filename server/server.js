@@ -3452,6 +3452,249 @@ function docBodyDesignCss() {
   return _docBodyCssCache;
 }
 
+/* ---------- a minimal PDF writer, for the executed copy ----------
+   Corporate mail gateways treat .html attachments as a phishing disguise and
+   quarantine them (field report: the counterparty's copy read Delivered and
+   never surfaced). A PDF is the one format the world expects a contract to
+   arrive in — so the executed copy is now a real PDF, generated here with no
+   library: base-14 fonts, wrapped text from the frozen sealed wording, the
+   design's header treatment, the signature panel with the ADOPTED MARKS
+   embedded (the pad's PNGs, decoded and re-packed as PDF images), and the
+   seal. The styled HTML build below remains as the fallback if PDF assembly
+   ever fails on a record. */
+const PDF_PAGE_W = 595.28, PDF_PAGE_H = 841.89, PDF_ML = 56, PDF_MR = 56, PDF_MT = 58, PDF_MB = 64;
+const PDF_BASE_FONTS = { F1: 'Times-Roman', F2: 'Times-Bold', F3: 'Times-Italic', F4: 'Helvetica', F5: 'Helvetica-Bold', F6: 'Courier' };
+function pdfCharW(ch, font) {
+  if (font === 'F6') return 0.6;
+  if (/[iIl.,:;'|!()\[\]tfjr-]/.test(ch)) return 0.34;
+  if (/[mwMW@%]/.test(ch)) return 0.9;
+  if (/[A-HK-Z]/.test(ch)) return 0.71;
+  if (ch === ' ') return 0.28;
+  return 0.53;
+}
+function pdfTextW(s, size, font) { let w = 0; for (const ch of String(s)) w += pdfCharW(ch, font); return w * size; }
+function pdfEsc(s) {
+  const map = { '‘': '\x91', '’': '\x92', '“': '\x93', '”': '\x94', '–': '\x96', '—': '\x97', '…': '\x85', '•': '\x95', ' ': ' ', '\t': ' ', '\n': ' ' };
+  let out = '';
+  for (const ch of String(s)) {
+    let c = map[ch] !== undefined ? map[ch] : ch;
+    if (c.codePointAt(0) > 255) c = '?';
+    out += (c === '\\' || c === '(' || c === ')') ? '\\' + c : c;
+  }
+  return out;
+}
+function pdfWrap(s, size, font, width) {
+  const words = String(s).split(/\s+/).filter(Boolean);
+  const lines = []; let line = '';
+  for (const w of words) {
+    const probe = line ? line + ' ' + w : w;
+    if (pdfTextW(probe, size, font) <= width || !line) line = probe;
+    else { lines.push(line); line = w; }
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [''];
+}
+const pdfRgb = h => [0, 2, 4].map(i => (parseInt(h.slice(i, i + 2), 16) / 255).toFixed(3)).join(' ');
+/* Decode a canvas PNG (8-bit RGB/RGBA/gray, non-interlaced) into PDF image
+   parts. The pad's toDataURL output is exactly this shape. Null on anything
+   fancier — the caller falls back to the signer's name in italics. */
+function pdfPngImage(dataUrl) {
+  try {
+    const m = /^data:image\/png;base64,(.+)$/s.exec(String(dataUrl || ''));
+    if (!m) return null;
+    const buf = Buffer.from(m[1], 'base64');
+    if (buf.readUInt32BE(0) !== 0x89504e47) return null;
+    let pos = 8, w = 0, h = 0, depth = 0, ctype = -1, interlace = 0; const idat = [];
+    while (pos + 8 <= buf.length) {
+      const len = buf.readUInt32BE(pos), type = buf.toString('latin1', pos + 4, pos + 8);
+      const data = buf.slice(pos + 8, pos + 8 + len);
+      if (type === 'IHDR') { w = data.readUInt32BE(0); h = data.readUInt32BE(4); depth = data[8]; ctype = data[9]; interlace = data[12]; }
+      else if (type === 'IDAT') idat.push(data);
+      else if (type === 'IEND') break;
+      pos += 12 + len;
+    }
+    if (!w || !h || depth !== 8 || interlace !== 0 || ![0, 2, 6].includes(ctype) || !idat.length) return null;
+    if (w * h > 4e6) return null;
+    const ch = ctype === 6 ? 4 : ctype === 2 ? 3 : 1;
+    const raw = zlib.inflateSync(Buffer.concat(idat));
+    const stride = w * ch;
+    const out = Buffer.alloc(h * stride);
+    let prev = Buffer.alloc(stride);
+    for (let r = 0; r < h; r++) {
+      const f = raw[r * (stride + 1)];
+      const row = raw.slice(r * (stride + 1) + 1, (r + 1) * (stride + 1));
+      const cur = out.slice(r * stride, (r + 1) * stride);
+      for (let i = 0; i < stride; i++) {
+        const a = i >= ch ? cur[i - ch] : 0, b2 = prev[i], cc = i >= ch ? prev[i - ch] : 0;
+        let v = row[i];
+        if (f === 1) v += a; else if (f === 2) v += b2; else if (f === 3) v += (a + b2) >> 1;
+        else if (f === 4) { const p = a + b2 - cc, pa = Math.abs(p - a), pb = Math.abs(p - b2), pc = Math.abs(p - cc); v += pa <= pb && pa <= pc ? a : pb <= pc ? b2 : cc; }
+        cur[i] = v & 255;
+      }
+      prev = cur;
+    }
+    const rgb = Buffer.alloc(w * h * 3); let alpha = null;
+    if (ctype === 6) {
+      alpha = Buffer.alloc(w * h);
+      for (let i = 0; i < w * h; i++) { rgb[i * 3] = out[i * 4]; rgb[i * 3 + 1] = out[i * 4 + 1]; rgb[i * 3 + 2] = out[i * 4 + 2]; alpha[i] = out[i * 4 + 3]; }
+    } else if (ctype === 2) rgb.set(out);
+    else for (let i = 0; i < w * h; i++) { rgb[i * 3] = rgb[i * 3 + 1] = rgb[i * 3 + 2] = out[i]; }
+    return { w, h, rgb: zlib.deflateSync(rgb), alpha: alpha ? zlib.deflateSync(alpha) : null };
+  } catch (_) { return null; }
+}
+function pdfAssemble(pages, imgs) {
+  const enc = s => Buffer.from(s, 'latin1');
+  const chunks = []; const offsets = [0];
+  let objN = 0, bytes = 0;
+  const put = b => { chunks.push(b); bytes += b.length; };
+  put(enc('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'));
+  const obj = body => { objN++; offsets[objN] = bytes; put(enc(`${objN} 0 obj\n`)); put(body); put(enc('\nendobj\n')); return objN; };
+  const stream = (dict, data) => Buffer.concat([enc(`<< ${dict} /Length ${data.length} >>\nstream\n`), data, enc('\nendstream')]);
+  const fontIds = {};
+  for (const [k, base] of Object.entries(PDF_BASE_FONTS)) fontIds[k] = obj(enc(`<< /Type /Font /Subtype /Type1 /BaseFont /${base} /Encoding /WinAnsiEncoding >>`));
+  imgs.forEach((im, i) => {
+    let sm = null;
+    if (im.alpha) sm = obj(stream(`/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode`, im.alpha));
+    im.ref = obj(stream(`/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8${sm ? ` /SMask ${sm} 0 R` : ''} /Filter /FlateDecode`, im.rgb));
+    im.name = `Im${i + 1}`;
+  });
+  const contentIds = pages.map(ops => obj(stream('', enc(ops.join('\n')))));
+  const pagesRootId = objN + pages.length + 1;
+  const fontRes = Object.entries(fontIds).map(([k, id]) => `/${k} ${id} 0 R`).join(' ');
+  const xobjRes = imgs.length ? ` /XObject << ${imgs.map(im => `/${im.name} ${im.ref} 0 R`).join(' ')} >>` : '';
+  const pageIds = contentIds.map(cid => obj(enc(`<< /Type /Page /Parent ${pagesRootId} 0 R /MediaBox [0 0 ${PDF_PAGE_W} ${PDF_PAGE_H}] /Resources << /Font << ${fontRes} >>${xobjRes} >> /Contents ${cid} 0 R >>`)));
+  obj(enc(`<< /Type /Pages /Kids [${pageIds.map(id => id + ' 0 R').join(' ')}] /Count ${pageIds.length} >>`));
+  const catId = obj(enc(`<< /Type /Catalog /Pages ${pagesRootId} 0 R >>`));
+  const xrefAt = bytes;
+  let xref = `xref\n0 ${objN + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i <= objN; i++) xref += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+  put(enc(xref + `trailer\n<< /Size ${objN + 1} /Root ${catId} 0 R >>\nstartxref\n${xrefAt}\n%%EOF\n`));
+  return Buffer.concat(chunks);
+}
+// The frozen HTML, reduced to typed text blocks the PDF can flow.
+function pdfHtmlBlocks(html) {
+  const decode = s => String(s).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+  const blocks = []; const re = /<(h1|h2|h3|p|li|blockquote)[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m, found = false;
+  while ((m = re.exec(String(html)))) { found = true; const t = decode(m[2]); if (t) blocks.push({ t: m[1].toLowerCase(), text: t }); }
+  if (!found) for (const part of String(html).split(/<br\s*\/?>|\n{2,}/)) { const t = decode(part); if (t) blocks.push({ t: 'p', text: t }); }
+  return blocks;
+}
+
+function executedPdf(c) {
+  const b = c.branding ? normalizeDesignBranding(c.branding) : null;
+  const designed = !!(b && b.designId);
+  const serif = !designed || ['classic-letterhead', 'formal-legal', 'ceremonial'].includes(b.designId);
+  const F = { body: serif ? 'F1' : 'F4', bold: serif ? 'F2' : 'F5' };
+  const centeredHeads = designed && ['classic-letterhead', 'formal-legal', 'ceremonial'].includes(b.designId);
+  const accent = designed && /^#[0-9a-f]{6}$/i.test(b.accentColor || '') ? b.accentColor.slice(1) : '37474f';
+  const CW = PDF_PAGE_W - PDF_ML - PDF_MR;
+  const pages = []; const imgs = [];
+  let ops, y;
+  const pageChrome = () => {
+    if (designed && b.designId === 'formal-legal')
+      ops.push(`q 0.216 0.278 0.310 RG 0.8 w ${PDF_ML - 22} ${PDF_MB - 26} ${CW + 44} ${PDF_PAGE_H - PDF_MT - PDF_MB + 52} re S 0.4 w ${PDF_ML - 18} ${PDF_MB - 22} ${CW + 36} ${PDF_PAGE_H - PDF_MT - PDF_MB + 44} re S Q`);
+  };
+  const newPage = () => { pages.push(ops = []); y = PDF_PAGE_H - PDF_MT; pageChrome(); };
+  const ensure = h => { if (y - h < PDF_MB) newPage(); };
+  const line = (s, { x = PDF_ML, size = 10.5, font = F.body, color = '000000', align = null, width = CW } = {}) => {
+    let xx = x;
+    if (align === 'center') xx = x + (width - pdfTextW(s, size, font)) / 2;
+    if (align === 'right') xx = x + width - pdfTextW(s, size, font);
+    ops.push(`BT /${font} ${size} Tf ${pdfRgb(color)} rg 1 0 0 1 ${xx.toFixed(1)} ${y.toFixed(1)} Tm (${pdfEsc(s)}) Tj ET`);
+  };
+  const para = (s, { size = 10.5, font = F.body, color = '000000', align = null, lh = 1.5, before = 0, after = 6, x = PDF_ML, width = CW } = {}) => {
+    const lines = pdfWrap(s, size, font, width);
+    ensure(before + lines.length * size * lh + after);
+    y -= before + size;
+    for (const ln of lines) { line(ln, { x, size, font, color, align, width }); y -= size * lh; }
+    y += size * lh - size * (lh - 1); y -= after;
+  };
+  const hr = (color = '888888', wpt = 0.7, x1 = PDF_ML, x2 = PDF_PAGE_W - PDF_MR) =>
+    ops.push(`q ${pdfRgb(color)} RG ${wpt} w ${x1} ${y.toFixed(1)} m ${x2} ${y.toFixed(1)} l S Q`);
+  newPage();
+
+  // ---- header, per design family ----
+  const company = (b && b.companyName) || (c.execution && c.execution.firstParty) || '';
+  if (designed && b.designId === 'bold-corporate') {
+    ops.push(`q ${pdfRgb(accent)} rg ${PDF_ML - 10} ${(y - 34).toFixed(1)} ${CW + 20} 40 re f Q`);
+    y -= 24; line(company || c.name, { x: PDF_ML + 6, size: 13, font: 'F5', color: 'ffffff' }); y -= 30;
+  } else if (company || designed) {
+    y -= 4;
+    line((designed && (centeredHeads || b.designId === 'ceremonial')) ? String(company).toUpperCase() : company,
+      { size: serif ? 13 : 11, font: serif ? 'F2' : 'F5', align: centeredHeads ? 'center' : 'left' });
+    y -= 8;
+    if (designed && b.designId === 'classic-letterhead') { hr('37474f', 1.4); y -= 3; hr('37474f', 0.5); }
+    else if (designed && ['modern-minimal', 'modern-editorial', 'facing-parties', 'bold-corporate'].includes(b.designId))
+      ops.push(`q ${pdfRgb(accent)} rg ${PDF_ML} ${(y - 2).toFixed(1)} 46 3 re f Q`);
+    else hr('37474f', 0.7);
+    y -= 18;
+  }
+  para(`${c.name || 'Contract'}`, { size: 15, font: F.bold, align: centeredHeads ? 'center' : null, after: 2 });
+  para(`${c.id}${c.counterparty ? ' · with ' + c.counterparty : ''} · Fully executed${c.signedAt ? ' · ' + c.signedAt : ''}`,
+    { size: 8.5, color: '5c6a72', align: centeredHeads ? 'center' : null, after: 12 });
+
+  // ---- the frozen sealed wording ----
+  for (const blk of pdfHtmlBlocks(c.execution.html)) {
+    if (blk.t === 'h1') para(blk.text, { size: 13.5, font: F.bold, before: 6, after: 6, align: centeredHeads ? 'center' : null });
+    else if (blk.t === 'h2' || blk.t === 'h3') para(blk.text, { size: 11, font: F.bold, before: 6, after: 4 });
+    else if (blk.t === 'li') para('•  ' + blk.text, { x: PDF_ML + 12, width: CW - 12, after: 3 });
+    else para(blk.text, { after: 6 });
+  }
+
+  // ---- the Executed & Sealed panel ----
+  ensure(120); y -= 10; hr('9fbfae', 1); y -= 22;
+  line('Executed & Sealed', { size: 13.5, font: 'F5', color: '11332d' });
+  line('EXECUTED', { size: 8, font: 'F5', color: '086b54', align: 'right' });
+  y -= 12;
+  const J = orgJx();
+  para(J.esignatureShort || '', { size: 8, font: 'F4', color: '4c5a56', after: 8 });
+  const sigs = Array.isArray(c.signatures) ? c.signatures : [];
+  const partyLabel = s => s.party === 'counterparty' ? 'COUNTERPARTY' : s.party === 'first' ? 'FIRST PARTY' : 'SIGNER';
+  for (const s of sigs) {
+    const im = pdfPngImage(s.image);
+    const cardH = im ? 92 : 58;
+    ensure(cardH + 8);
+    ops.push(`q 0.86 0.92 0.89 RG 0.8 w ${PDF_ML} ${(y - cardH).toFixed(1)} ${CW} ${cardH} re S Q`);
+    y -= 14; line(partyLabel(s), { x: PDF_ML + 12, size: 7, font: 'F4', color: '5c6f68' });
+    if (im) {
+      imgs.push(im);
+      const dispH = 30, dispW = Math.min(150, im.w * (dispH / im.h));
+      ops.push(`q ${dispW.toFixed(1)} 0 0 ${dispH} ${PDF_ML + 12} ${(y - dispH - 4).toFixed(1)} cm /__IMG${imgs.length - 1}__ Do Q`);
+      y -= dispH + 8;
+    }
+    y -= 13; line(`${s.name || ''}${s.title ? ', ' + s.title : ''}`, { x: PDF_ML + 12, size: 10.5, font: 'F5', color: '134639' });
+    y -= 11; line([s.email, s.form ? s.form + ' signature' : s.method, s.at].filter(Boolean).join(' · '), { x: PDF_ML + 12, size: 7.5, font: 'F4', color: '5c6f68' });
+    y -= 14;
+  }
+  if (c.execution.textHash) {
+    ensure(34); y -= 10;
+    line('SEALED TEXT FINGERPRINT (SHA-256)', { size: 7, font: 'F4', color: '5c6f68' }); y -= 11;
+    line(c.execution.textHash, { size: 8, font: 'F6', color: '134639' }); y -= 6;
+  }
+  ensure(62); y -= 8;
+  ops.push(`q ${pdfRgb('11332d')} rg ${PDF_ML} ${(y - 50).toFixed(1)} ${CW} 54 re f Q`);
+  y -= 12; line('# DOCUMENT SEAL (SHA-256)', { x: PDF_ML + 12, size: 7.5, font: 'F6', color: 'c79a3e' });
+  y -= 13; line(String(c.hash || ''), { x: PDF_ML + 12, size: 8.5, font: 'F6', color: 'e8f2ee' });
+  y -= 13; line(String(c.signedAt || 'Timestamp recorded'), { x: PDF_ML + 12, size: 8, font: 'F6', color: '8fb3a8' });
+  y -= 18;
+  para('Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.',
+    { size: 7.5, font: 'F4', color: '5c6f68', before: 4, after: 4 });
+  para('This copy was distributed by HaTi CLM when the contract became fully executed. It is the same sealed text the platform holds; the master copy, the audit trail and seal verification live in HaTi.',
+    { size: 7.5, font: 'F4', color: '6b7780', after: 0 });
+
+  // footers, now the page count is known
+  pages.forEach((pOps, i) => {
+    pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${PDF_ML} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc([company, b && b.footerText].filter(Boolean).join(' · '))}) Tj ET`);
+    const pn = `Page ${i + 1} of ${pages.length}`;
+    pOps.push(`BT /F4 7.5 Tf ${pdfRgb('8a949b')} rg 1 0 0 1 ${(PDF_PAGE_W - PDF_MR - pdfTextW(pn, 7.5, 'F4')).toFixed(1)} ${(PDF_MB - 26).toFixed(1)} Tm (${pdfEsc(pn)}) Tj ET`);
+  });
+  // late-bind image names (assigned during assembly)
+  const pdf = pdfAssemble(pages.map(pOps => pOps.map(op => op.replace(/\/__IMG(\d+)__/g, (_, n) => '/Im' + (Number(n) + 1)))), imgs);
+  return pdf;
+}
+
 function executedAttachment(c) {
   const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
   if (c.upload && c.upload.dataUrl) {
@@ -3460,6 +3703,19 @@ function executedAttachment(c) {
       return { filename: String(c.upload.name || c.id + ' — executed file').slice(0, 120), content: m[2] };
     return null;
   }
+  if (!(c.execution && c.execution.html)) return null;
+  const safeName = String(c.name || 'contract').replace(/[^\w\-. ]+/g, '').trim().slice(0, 60) || 'contract';
+  try {
+    const pdf = executedPdf(c);
+    return { filename: `${c.id} — Executed — ${safeName}.pdf`, content: pdf.toString('base64') };
+  } catch (e) {
+    console.warn('[distribute] PDF build failed for ' + c.id + ' (' + e.message + ') — attaching the styled HTML copy instead.');
+    return executedAttachmentHtml(c);
+  }
+}
+
+function executedAttachmentHtml(c) {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
   const html = c.execution && c.execution.html;
   if (!html) return null;
 

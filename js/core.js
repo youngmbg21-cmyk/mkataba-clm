@@ -1965,6 +1965,15 @@ function buildSharePayload(c, docHash, who, opts){
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
     purpose:purpose, purposeChosen:purposeChosen,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
+      /* THE MARKS ALREADY TAKEN travel with the copy. The owner signing first
+         is a fact of the document — a counterparty reading a copy with no
+         record of it saw a bare "pending execution" placeholder and could not
+         tell a signed-and-waiting contract from an unsigned draft (field
+         report, 02 Aug 2026). Name, capacity, form, time and the adopted mark
+         image: the same face the executed copy will carry. */
+      signatures:(c.signatures||[]).length?c.signatures.map(s=>({ party:s.party, name:s.name,
+        title:s.title||null, email:s.email||null, at:s.at||null,
+        form:s.form||s.method||null, image:s.image||null })):undefined,
       /* The negotiation, as the other side must see it: the same fingerprints,
          the same statuses and the same baseline the owner's tab is reading. Two
          screens built from one payload cannot disagree about what was agreed. */

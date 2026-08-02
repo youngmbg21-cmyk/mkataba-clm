@@ -1960,6 +1960,29 @@ function signatureBlock(c){
       </div>
     </div>`;
   }
+  /* PARTIALLY SIGNED: the marks already taken are part of the document's
+     face. A counterparty opening a copy the owner signed first used to see
+     the bare "pending execution" placeholder — nothing anywhere said a
+     signature was already on it (field report, 02 Aug 2026). The recorded
+     marks render here exactly as they will on the executed face; the seal
+     still only applies when every party has signed. */
+  const sofar=(c.signatures||[]);
+  if(sofar.length){
+    const partyLabel=s=> s.party==='counterparty'?'Counterparty' : s.party==='first'?'First party' : (s.role||'Signer');
+    const cap=s=>(window.signatureCapacity?signatureCapacity(s):(s.title||''))||'';
+    const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${partyLabel(s)}</div>
+      ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
+      <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${cap(s)?', '+cap(s).replace(/</g,'&lt;'):''}</div>
+      <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div></div>`;
+    return `
+    <div class="mt-8 rounded-xl border border-brand-200 bg-brand-50/30 p-5" data-anchor="sig">
+      <div class="flex items-center gap-2"><span class="text-sm font-semibold text-brand-800/80">Signatures so far</span>
+        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-gold-50 text-gold-700">partially signed</span></div>
+      <div class="text-xs text-brand-800/65 mt-0.5 mb-3">The marks below are already on this contract. It is not yet fully executed — the seal is applied when every party has signed.</div>
+      <div class="grid sm:grid-cols-2 gap-3 text-xs">${sofar.map(card).join('')}</div>
+    </div>`;
+  }
   return `
     <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
       <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>

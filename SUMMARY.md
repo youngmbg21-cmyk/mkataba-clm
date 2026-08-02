@@ -4553,3 +4553,37 @@ Suite 2369 → 2380, all green. Parked (Young's call): the PDF attachment build
 — corporate mail gateways may still filter .html attachments (the suspected
 cause of the Saint-Gobain non-delivery, panel says Delivered); a PDF is the
 filter-safe, file-ready permanent answer.
+
+---
+
+# Run 15 — The PDF executed copy, and partial signatures on the document's face (2026-08-02)
+
+Two field reports from Young. Suite steady at 2380, all green (f136 reworked
+for the new format).
+
+## The executed copy is now a real PDF
+
+Corporate mail gateways quarantine .html attachments (the Saint-Gobain
+non-delivery: Delivered at the gateway, filtered inside). The executed copy
+is now a genuine PDF, generated server-side with no library: a minimal PDF
+writer (base-14 fonts, WinAnsi text, greedy wrap, multi-page flow, xref) plus
+a PNG decoder that re-packs the signature pad's adopted marks as real PDF
+images with transparency (8-bit RGB/RGBA/gray, unfiltering the scanlines).
+The design snapshot drives the look — letterhead treatments per family
+(centred double-rule, accent band, page border for Formal Legal, accent
+underline), serif/sans body to match, the Executed & Sealed panel with party
+cards, embedded marks, fingerprint, dark seal box and page footers. Verified
+end-to-end with poppler: parses, extracts the sealed text, rasterises. The
+styled HTML build remains as an automatic fallback if PDF assembly ever
+fails on a record; uploads still attach the original file.
+
+## A part-signed contract now shows its signatures — on both sides of the table
+
+The document's signature block used to show a bare "pending execution"
+placeholder until the seal, even when the owner had already signed — and the
+share payload never carried signatures at all, so the counterparty's page
+could not have shown them anyway. Now: signatureBlock renders a "Signatures
+so far · partially signed" card grid (same cards as the executed face) when
+marks exist, and buildSharePayload sends the marks (party, name, capacity,
+form, time, adopted image) so the portal's copy of the document shows the
+owner's signature exactly as the owner's own screen does.

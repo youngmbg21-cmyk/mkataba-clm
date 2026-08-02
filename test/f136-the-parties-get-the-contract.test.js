@@ -107,50 +107,45 @@ describe('the fully-executed email carries the contract itself', () => {
       assert.match(mail.subject, /Fully executed/);
       assert.match(mail.text, /is attached to this email/);
       assert.equal(mail.attachments.length, 1);
-      assert.match(mail.attachments[0].filename, /MK-X1 — Executed/);
-      const doc = Buffer.from(mail.attachments[0].content, 'base64').toString('utf8');
+      assert.match(mail.attachments[0].filename, /MK-X1 — Executed.*\.pdf$/, 'the copy is a real PDF now');
+      const doc = Buffer.from(mail.attachments[0].content, 'base64').toString('latin1');
+      assert.match(doc, /^%PDF-1\.4/, 'a genuine PDF header, not a renamed HTML file');
       assert.match(doc, /FIELD SERVICES AGREEMENT/, 'the frozen wording is in the document');
       assert.match(doc, /Net-30 payment terms/);
       assert.match(doc, new RegExp(SEAL), 'the seal is printed in the document');
       assert.match(doc, /Erik Lindqvist/, 'the signature panel names the signers');
       assert.match(doc, /Amina Otieno/);
+      assert.match(doc, /%%EOF/, 'the file is complete');
     }
     assert.ok(r.recipients.every(x => x.status === 'delivered' && x.attached === true));
   });
 
-  test('the attachment wears the SAME clothes as the platform copy', async () => {
-    // Field report: "why does the emailed contract look different from the one
-    // on screen?" — it must not. Same design chrome, same body typography
-    // rules, same signature panel, same adopted marks.
+  test('the PDF wears the platform look: letterhead, serif design, marks, seal panel', async () => {
     resend.reset();
     await distribute('MK-X1');
-    const doc = Buffer.from(resend.mails[0].attachments[0].content, 'base64').toString('utf8');
-    assert.match(doc, /data-doc-design="classic-letterhead"/, 'the sealed design snapshot drives the header chrome');
-    assert.match(doc, /HIGHLAND CORPORATE LTD|Highland Corporate Ltd/, 'the company letterhead is on it');
-    assert.match(doc, /data-doc-body="classic-letterhead"/, 'the paper carries the body-typography switch');
-    assert.match(doc, /\[data-doc-body="classic-letterhead"\]/, 'and the SAME typography rules the screen uses, lifted from index.html');
-    assert.match(doc, /Executed &amp; Sealed/, 'the signature panel mirrors the screen');
-    assert.ok(doc.includes(SIG_PNG), 'the adopted signature marks are embedded — the exact images the screen shows');
+    const doc = Buffer.from(resend.mails[0].attachments[0].content, 'base64').toString('latin1');
+    assert.match(doc, /HIGHLAND CORPORATE LTD/, 'the classic letterhead prints the company, centred caps');
+    assert.match(doc, /Times-Bold/, 'a serif design sets serif type, as on screen');
+    assert.match(doc, /Executed & Sealed/, 'the signature panel mirrors the screen');
     assert.match(doc, /SEALED TEXT FINGERPRINT/, 'fingerprint box, as on screen');
-    assert.match(doc, /DOCUMENT SEAL \(SHA-256\)/, 'the dark seal box, as on screen');
-    assert.match(doc, /email one-time code \(counterparty\)/, 'and the verification note');
+    assert.match(doc, new RegExp('f'.repeat(64)), 'with the sealed-text hash');
+    assert.match(doc, /DOCUMENT SEAL/, 'the dark seal box, as on screen');
+    assert.match(doc, /email one-time code \\\(counterparty\\\)/, 'and the verification note (parens are PDF-escaped)');
+    assert.match(doc, /\/Subtype \/Image/, 'the ADOPTED SIGNATURE MARKS are embedded as real images');
+    assert.match(doc, /\/SMask/, 'with their transparency intact');
+    assert.match(doc, /Page 1 of \d/, 'numbered pages for filing');
   });
 
-  test('a contract sealed before designs existed still gets a clean document, not a crash', async () => {
+  test('a contract sealed before designs existed still gets a clean PDF, not a crash', async () => {
     resend.reset();
-    await distribute('MK-X3');           // half-signed → notice; use a design-less EXECUTED one below
-    resend.reset();
-    // strip the design from MK-X1's stored record via the API? Simpler: the
-    // upload fixture has no branding and the generated legacy path is covered
-    // by the header fallback — assert it directly on a design-less clone.
     const legacy = { ...executedGenerated(), id: 'MK-X4', branding: undefined };
     await W.admin.json('/api/contracts/MK-X4', { method: 'PUT', body: { contract: legacy, baseVersion: 0 } });
     const r = await distribute('MK-X4');
     assert.equal(r.attached, true);
-    const doc = Buffer.from(resend.mails[0].attachments[0].content, 'base64').toString('utf8');
-    assert.ok(!/data-doc-design=/.test(doc), 'no design snapshot → no invented chrome');
+    const doc = Buffer.from(resend.mails[0].attachments[0].content, 'base64').toString('latin1');
+    assert.match(doc, /^%PDF-1\.4/);
     assert.match(doc, /Field Services Agreement/, 'the plain header names the contract');
-    assert.match(doc, /Executed &amp; Sealed/, 'the signature panel is there either way');
+    assert.match(doc, /Executed & Sealed/, 'the signature panel is there either way');
   });
 
   test('uploaded contract: the ORIGINAL file is what gets attached', async () => {
