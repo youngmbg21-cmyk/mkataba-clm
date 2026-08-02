@@ -1239,6 +1239,16 @@ const portalNegoComment = p => async (_c, ch, msg) => {
     toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
   }catch(e){ toast(e.message||'Could not send your comment','err'); }
 };
+/* Put the reader in front of the ask that still needs a reason, rather than
+   naming an id and leaving them to find it. The workbench's own jump does the
+   work — same control the owner's cards use. */
+function portalFocusReason(ch){
+  if(!ch) return;
+  if(window.rlJumpToClause && ch.clauseId) rlJumpToClause(ch.clauseId, { edit:true });
+  const box=document.querySelector(`[data-nego-why="${ch.clauseId}"]`);
+  if(box && box.focus) box.focus();
+}
+
 function wirePortalNego(c, p){
   /* ---- THE COUNTERPARTY'S PAGE IS THE WORKBENCH ----
      One negotiation surface, both sides of the table. This used to open the
@@ -2283,6 +2293,25 @@ async function portalRespond(p, action, extra){
     });
     if(action==='decisions' && !decisions.length && !withdrawn.length && !proposed.length){
       toast('Nothing to send — ask for a change or decide one first','err'); return; }
+    /* ---- THEIR POSTBOX IS HELD TO THE OWNER'S RULE ----
+       The same question, at the same moment, on the same terms: a round does
+       not leave without its reasons. Asked here rather than as each edit is
+       saved, because this is where the asks are seen TOGETHER — and because a
+       rule that interrupted their drafting five times, on a page they did not
+       ask to be on, is how a counterparty decides the portal is not worth it
+       and replies with a Word file instead.
+
+       Held work is never lost by this: everything stays in PORTAL_NEGO_PROPOSED
+       exactly as it was, and pressing Send again once the reasons are in sends
+       the whole round. */
+    const noWhy=proposed.filter(x=>!String(x.rationale||'').trim());
+    if(noWhy.length){
+      toast(`${noWhy.length===1?'One change still needs':`${noWhy.length} changes still need`} a reason`
+        +` — press Change on ${noWhy.length===1?'it':'each'} and say why. `
+        +`${esc((p&&p.org)||'The sender')} answers the reason, not just the wording.`,'err');
+      try{ portalFocusReason(noWhy[0]); }catch(_){}
+      return;
+    }
     /* READINESS AND THE DECISIONS TRAVEL TOGETHER, in one request.
 
        They used to be two: answer the changes, press Send, then separately say

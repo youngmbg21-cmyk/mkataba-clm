@@ -2653,6 +2653,25 @@ function negoUnsentAsks(c, side){
               it was sent to us, whatever the turn stamp says. */
            : me === 'owner'));
 }
+/* ---- WHICH ASKS ARE NOT YET READY TO GO ----
+   The round's own reasons, checked together at the moment it is sent rather
+   than one at a time as each is drafted.
+
+   Asking at the postbox is the whole design. At the moment of typing, the
+   author knows exactly why and gains nothing by writing it down, so a block
+   there buys "commercial" and moves on; at the postbox the reasons are seen as
+   a LIST, and "commercial / commercial / as discussed" is obviously thin beside
+   its neighbours in a way no single dialog can reveal. It is also the moment
+   the sender is already composing what to tell the other side.
+
+   Scoped to UNSENT asks of this side. A change already delivered in an earlier
+   round is not re-gated — the wording is with them and a rule invented today
+   must not lock a contract that was negotiated before it existed. */
+function negoAsksMissingReason(c, side){
+  return negoUnsentAsks(c, side)
+    .filter(x => !String((x && x.rationale) || '').trim());
+}
+
 function negoTurnBanner(c, side){
   negoInit(c);
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
@@ -2930,7 +2949,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoCopilotRecord, NEGO_COPILOT_CAP,
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
   negoIsLivePair, negoCompareVersions,
-  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,
+  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks, negoAsksMissingReason,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });

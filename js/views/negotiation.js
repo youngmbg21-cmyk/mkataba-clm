@@ -3646,22 +3646,22 @@ async function negoAiPropose(c, ctx){
      This is the path that produced the reported screen: every card read "Why
      they asked: Copilot — Shorten & Simplify", which records the TOOL and not
      the argument — and that note never crossed the table anyway, so the other
-     side got wording with no reason at all. Applying a suggestion is still
-     proposing a change, so it is asked the same question as a hand-typed one. */
+     side got wording with no reason at all.
+
+     Offered, not demanded. A prompt fired AFTER somebody has decided to apply a
+     suggestion interrupts a finished action, which is the surest way to harvest
+     a full stop; the requirement sits at the postbox with the rest of the
+     round. */
   foot.innerHTML = `
     ${canApply ? `<input type="text" data-ai-why maxlength="400" class="nego-why"
-        placeholder="Why is this change needed? The other side will see this." aria-label="Reason for this change"/>` : ''}
-    ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary" style="font-size:12px" disabled>Apply redline</button>` : ''}
+        placeholder="Why is this change needed? (you can add this before you send)" aria-label="Reason for this change"/>` : ''}
+    ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary" style="font-size:12px">Apply redline</button>` : ''}
     <button type="button" data-ai-cancel class="ui-btn" style="font-size:12px">Cancel</button>
     <span style="flex:1"></span>
     <span style="font-family:var(--n-font-ui);font-size:10.5px;color:var(--n-ink-soft);align-self:center">Nothing has changed yet</span>`;
   pop.appendChild(foot);
   place();
   const aiWhy = foot.querySelector('[data-ai-why]');
-  if (aiWhy) aiWhy.addEventListener('input', () => {
-    const b = foot.querySelector('[data-ai-apply]');
-    if (b) b.disabled = !aiWhy.value.trim();
-  });
   foot.querySelector('[data-ai-cancel]').addEventListener('click', () => pop.remove());
   foot.querySelector('[data-ai-apply]')?.addEventListener('click', async () => {
     const btn = foot.querySelector('[data-ai-apply]');
@@ -4148,32 +4148,40 @@ function wireNegotiationTab(c, opts = {}){
     }));
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
-    /* ---- THE REASON IS PART OF THE ASK, NOT AN AFTERTHOUGHT ----
+    /* ---- THE REASON, OFFERED HERE AND REQUIRED AT THE POSTBOX ----
        One bar, both chairs: the counterparty's portal mounts this same
-       component, so the question is put to whoever is typing. Save stays
-       disabled until it is answered, because a rationale collected by a toast
-       AFTER the change is filed is a rationale half of them will skip. */
+       component, so whoever is typing gets the same field. It is the FAST PATH,
+       deliberately not a gate — writing the argument while the wording is still
+       under your hands is the best moment there is, and anyone who wants it can
+       take it.
+
+       What it is not is a toll on every save. Blocking Save here interrupts
+       drafting five clauses in a row, and asks the question at the moment the
+       author is least able to answer it well; the answer that buys their way
+       past a block is "commercial", and a full stop is not a worse record than
+       nothing — it is worse, because it looks like data.
+
+       The requirement lives at the moment the round is SENT, where the reasons
+       are seen together as a list and a thin one is obvious beside its
+       neighbours. Nothing escapes in the meantime: unsent asks never travel
+       (buildSharePayload's holdUnsent), so a reasonless draft cannot reach
+       anybody. See negoAsksMissingReason. */
     bar.innerHTML = `<input class="nego-why" data-nego-why="${_ne(clauseId)}" type="text" maxlength="400"`
-      + ` placeholder="Why is this change needed? The other side will see this." aria-label="Reason for this change"/>`
-      + `<button class="b-save" data-nego-save="${_ne(clauseId)}" disabled>Save change</button>`
+      + ` placeholder="Why is this change needed? (you can add this before you send)" aria-label="Reason for this change"/>`
+      + `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
       + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button>`;
     holder.after(bar);
     if (holder.focus) holder.focus();
     const why = bar.querySelector('[data-nego-why]');
     const saveBtn = bar.querySelector('[data-nego-save]');
-    const syncWhy = () => { saveBtn.disabled = !why.value.trim(); };
-    why.addEventListener('input', syncWhy);
-    /* Enter in a one-line reason means "file it", not "submit nothing". */
+    /* Enter in a one-line reason means "file it". */
     why.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter' && why.value.trim()){ ev.preventDefault(); saveBtn.click(); } });
-    syncWhy();
+      if (ev.key === 'Enter'){ ev.preventDefault(); saveBtn.click(); } });
     bar.querySelector('[data-nego-cancel]').addEventListener('click', ev => { ev.stopPropagation(); again(); });
     saveBtn.addEventListener('click', ev => {
       ev.stopPropagation();
-      const reason = why.value.trim();
-      if (!reason){ why.focus(); return; }
       fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML,
-        { side, author: opts.by, rationale: reason }),
+        { side, author: opts.by, rationale: why.value.trim() }),
         ch => `#${ch.id} filed — ${ch.summary}`);
     });
   }));
@@ -4183,24 +4191,21 @@ function wireNegotiationTab(c, opts = {}){
     const clauseId = b.getAttribute('data-nego-del');
     const cl = negoClauseById(c, clauseId);
     if (!cl) return;
-    /* Striking a whole clause is the ask that most needs a reason, so the
-       confirmation IS the question: promptDialog both confirms the act and
-       collects the argument, rather than asking twice. Cancel answers null; an
-       empty box is a refusal to give a reason and is treated as one. */
+    /* The reason is asked for at the postbox with every other change in the
+       round, not in a second dialog stacked on this confirmation. An offer to
+       explain, made at the moment somebody has already decided to strike a
+       clause, is an interruption to a finished act — and interruptions are what
+       "commercial" gets typed into. */
     let reason = '';
     if (window.promptDialog){
       const answer = await promptDialog({ title: 'Propose deleting this clause?',
         message: `“${negoClauseLabel(cl)}” would be struck through for the other side to decide. `
           + 'The wording stays in the document until they accept the deletion.',
-        label: 'Why should this clause go? The other side will see this.',
+        label: 'Why should this clause go? (optional now — required before you send)',
         placeholder: 'e.g. covered already by clause 8, so this duplicates it',
         confirmLabel: 'Propose deletion' });
       if (answer == null) return;
       reason = String(answer).trim();
-      if (!reason){
-        if (window.toast) toast('Say why the clause should go — a deletion with no reason cannot be answered', 'err');
-        return;
-      }
     }
     fileAndRepaint(() => negoDeleteClause(c, clauseId, { side, author: opts.by, rationale: reason }),
       ch => `#${ch.id} filed — deletion proposed, the wording stays until it is accepted`);
@@ -6340,27 +6345,11 @@ async function rlAiPropose(ctx){
      now records the placement as well as the action, and the placement is not
      known until Apply is pressed — the reader may have corrected it since the
      model guessed. */
-  /* ONE QUESTION FOR THE WHOLE APPLY, asked before anything is filed. Every
-     Copilot filing route on this panel funnels through here, so the reason is
-     collected once rather than per job — a span that took four edits is still
-     one argument. Cancelling, or refusing to give a reason, files nothing. */
+  /* Filed without a question of its own: the round's reasons are collected at
+     the postbox, together, where a thin one shows up beside its neighbours. */
   const fileAll = (jobs, note) => {
     (async () => {
-    let rationale = '';
-    if (window.promptDialog){
-      const answer = await promptDialog({ title: 'Why is this change needed?',
-        message: 'The wording came from the Copilot; the reason is still yours to give. '
-          + 'The other side will see this alongside the change.',
-        label: 'Reason for this change',
-        placeholder: 'e.g. our insurers cannot accept an uncapped indemnity',
-        confirmLabel: 'File the change' });
-      if (answer == null) return;
-      rationale = String(answer).trim();
-      if (!rationale){
-        if (window.toast) toast('Nothing was filed — a change needs a reason the other side can answer', 'err');
-        return;
-      }
-    }
+    const rationale = '';
     await Promise.all(jobs.map(j => j.kind === 'delete'
       ? negoDeleteClause(c, j.clauseId, { side, author: opts && opts.by, note, rationale })
       : j.kind === 'insert'
