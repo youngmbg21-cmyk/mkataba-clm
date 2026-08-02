@@ -279,22 +279,40 @@ describe('the signer row reports sent → opened → signed, not route order', (
     // The Share dialog created links with no signer binding; the panel looked
     // only in the signer's pigeonhole and kept saying "not sent yet" about a
     // link sitting in their inbox.
-    const { html } = panel({ shares: [{ signerId: null, recipientEmail: 'y@x.com',
+    const { html } = panel({ shares: [{ signerId: null, purpose: 'sign', recipientEmail: 'y@x.com',
       sentAt: '2026-08-02T10:00:00Z', firstOpenedAt: null, revokedAt: null }] });
     assert.match(html, /contract sent — not opened yet/);
     assert.ok(!/NOT SENT YET/.test(html));
   });
 
   test('an unbound link they opened reads as opened', () => {
-    const { html } = panel({ shares: [{ signerId: null, recipientEmail: 'Y@X.COM',
+    const { html } = panel({ shares: [{ signerId: null, purpose: 'sign', recipientEmail: 'Y@X.COM',
       firstOpenedAt: '2026-08-02T11:00:00Z', revokedAt: null }] });
     assert.match(html, /contract opened — awaiting their signature/, 'and the email match is case-insensitive');
   });
 
   test('an unbound link to somebody ELSE does not credit this signer', () => {
-    const { html } = panel({ shares: [{ signerId: null, recipientEmail: 'lawyer@elsewhere.com',
+    const { html } = panel({ shares: [{ signerId: null, purpose: 'sign', recipientEmail: 'lawyer@elsewhere.com',
       sentAt: '2026-08-02T10:00:00Z', revokedAt: null }] });
     assert.match(html, /NOT SENT YET/);
+  });
+
+  test('a REVIEW copy once sent to the same address is not their signing turn', () => {
+    // Young's report: a row read SENT though no signing link had ever gone —
+    // an old negotiate/view link to the same email was being credited.
+    const { html } = panel({ shares: [
+      { signerId: null, purpose: 'negotiate', recipientEmail: 'y@x.com', sentAt: '2026-07-30T10:00:00Z', revokedAt: null },
+      { signerId: null, purpose: 'view', recipientEmail: 'y@x.com', sentAt: '2026-07-30T10:00:00Z', revokedAt: null }] });
+    assert.match(html, /NOT SENT YET/, 'only a SIGNING link counts as their turn reaching them');
+  });
+
+  test('an automatic send the provider refused reads SEND FAILED with a resend button', () => {
+    const { html } = panel({ shares: [{ signerId: 'S1', sentAt: null, firstOpenedAt: null,
+      sendError: 'The email provider refused the message.', revokedAt: null }] });
+    assert.match(html, /SEND FAILED/);
+    assert.match(html, /the automatic email did not go — resend it below/);
+    assert.match(html, /Resend their signing link/);
+    assert.ok(!/\bSENT\b/.test(html.replace(/SEND FAILED|NOT SENT YET/g, '')), 'no green SENT over an empty inbox');
   });
 
   test('the NOT SENT row carries its own send button; a sent row does not', () => {
@@ -351,6 +369,30 @@ describe('a signing share addressed to a route signer is auto-bound to their row
   test('a signing share to a stranger\'s email stays unbound', async () => {
     const r = await share('MK-R9', 'outside.counsel@lawfirm.com');
     assert.ok(!r.signerId, 'no route row matches — an ordinary share, exactly as before');
+  });
+
+  test('sent_at means the provider ACCEPTED it — a refused send records why instead', async () => {
+    const c = { id: 'MK-R8', name: 'Honest Send Deal', counterparty: 'Nordfrakt',
+      folder: FOLDER_A, value: 1000000, valueType: 'standard', template: 'RM',
+      status: 'Under Review', format: 'text', redlineText: 'Article 1\n\nAgreed wording.',
+      fields: {}, metadata: {}, comments: [], obligations: [], rounds: [], versions: [],
+      audit: [], signatures: [],
+      signerPlan: [{ id: 'S1', order: 1, party: 'counterparty', name: 'Erik', email: 'erik@n.se', signed: false }] };
+    await W.admin.json('/api/contracts/MK-R8', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+    resend.reset();
+    resend.failNextRequests(1);
+    const r = await share('MK-R8', 'erik@n.se');
+    assert.equal(r.emailSent, false, 'the provider refused it and the response says so');
+    let mine = (await W.admin.json('/api/contracts/MK-R8/shares')).shares.find(s => s.signerId === 'S1');
+    assert.equal(mine.sentAt, null, 'NO sent stamp for an email that never left');
+    assert.match(mine.sendError, /refused|Resend/i, 'the reason is on the record for the panel');
+    // The resend (same signer, link reused) succeeds and clears the failure.
+    const again = await share('MK-R8', 'erik@n.se');
+    assert.equal(again.reused, true);
+    assert.equal(again.emailSent, true);
+    mine = (await W.admin.json('/api/contracts/MK-R8/shares')).shares.find(s => s.signerId === 'S1');
+    assert.ok(mine.sentAt, 'now it truly went');
+    assert.equal(mine.sendError, null, 'and the old failure does not linger');
   });
 
   test('a non-sign share to the signer\'s email stays unbound too', async () => {

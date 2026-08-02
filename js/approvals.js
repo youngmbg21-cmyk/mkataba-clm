@@ -218,15 +218,22 @@ function signerLinkState(c, s){
   if(links.length){
     if(links.some(x=>x.firstOpenedAt)) return 'opened';
     if(links.some(x=>x.sentAt)) return 'sent';
+    /* An automatic send that the provider refused: sent_at was honestly NOT
+       stamped, and the reason is on the share. Say "failed", not "held" —
+       their turn is live and their inbox has nothing. */
+    if(links.some(x=>x.sendError)) return 'failed';
     return 'held';
   }
-  /* Links from before auto-binding existed (and hand-shared ones) carry no
-     signer binding — but a live link addressed to this signer's own email is
-     still the contract reaching them, and the panel must credit it rather
-     than keep saying "not sent". An unbound share exists because somebody
-     pressed send, so its existence IS the sent moment. */
+  /* SIGN-purpose links from before auto-binding existed (and hand-shared
+     signing links) carry no signer binding — but a live SIGNING link
+     addressed to this signer's own email is still their turn reaching them,
+     and the panel credits it. Deliberately narrow: a review or view-only
+     copy once sent to the same address is NOT their signing turn, and
+     counting it was how a row read SENT with no signing link ever sent
+     (Young's report, 02 Aug 2026). */
   const em=String(s.email||'').trim().toLowerCase();
-  const loose=em?all.filter(x=>!x.signerId && String(x.recipientEmail||'').trim().toLowerCase()===em):[];
+  const loose=em?all.filter(x=>!x.signerId && x.purpose==='sign'
+    && String(x.recipientEmail||'').trim().toLowerCase()===em):[];
   if(loose.length) return loose.some(x=>x.firstOpenedAt)?'opened':'sent';
   return 'unsent';
 }
@@ -426,6 +433,7 @@ function approvalPanelHtml(c){
             ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+s.signature.form+' signature':''}`
             : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
             : ls==='sent' ? `${ord(s.order)} · contract sent — not opened yet`
+            : ls==='failed' ? `${ord(s.order)} · the automatic email did not go — resend it below`
             : ls==='held' ? `${ord(s.order)} · link ready — it goes out when their turn arrives`
             : gated ? `${ord(s.order)} · link opens once internal signing is complete`
             : ls==='unsent' ? (isCur
@@ -437,6 +445,7 @@ function approvalPanelHtml(c){
           const badge=s.signed ? ''
             : ls==='opened' ? tag('bg-gold-100 text-gold-700','OPENED')
             : ls==='sent' ? tag('bg-gold-100 text-gold-700','SENT')
+            : ls==='failed' ? tag('bg-rose-50 text-rose-600','SEND FAILED')
             : ls==='held' ? tag('bg-slate-100 text-ink/50','LINK READY')
             : (ls==='unsent'&&isCur&&!gated) ? tag('bg-rose-50 text-rose-600','NOT SENT YET')
             : (ls==='unknown'||ls==='internal')&&isCur ? tag('bg-gold-100 text-gold-700','SIGNING NOW') : '';
@@ -451,8 +460,8 @@ function approvalPanelHtml(c){
                 ${badge}
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
-              ${(!s.signed&&s.party==='counterparty'&&ls==='unsent'&&!gated&&canEdit())
-                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">Email their signing link</button>`
+              ${(!s.signed&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
+                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
                 : ''}
             </div></div>`; }).join('')}
       </div>

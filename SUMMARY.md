@@ -4665,3 +4665,27 @@ panel and header still read as a different document. Closed:
 
 Suite 2386 green; verified by rasterising a generated PDF and comparing
 against Young's screenshots.
+
+---
+
+# Run 19 — Young's send rule, made true and honest (2026-08-02)
+
+The agreed rule, now dependable: **owner signs first → the next signer on the
+route is emailed automatically; counterparty signs first → nothing goes until
+the owner presses send.** The mechanics existed; what was missing was truth:
+
+1. **sent_at now means the provider ACCEPTED the email** — it was stamped
+   after every attempt, success or failure, so a refused auto-send wore a
+   green SENT over an empty inbox. All three send sites (bound-share create,
+   bound-share reuse, turn release) stamp only on success; a failure records
+   send_error on the share (new column, exposed as sendError).
+2. **The panel shows failure**: a live-turn link whose email did not go reads
+   "SEND FAILED · the automatic email did not go — resend it below" with a
+   Resend button (the row's send button, re-armed). A later successful send
+   clears the failure.
+3. **Only signing links count as "sent"**: the email-match fallback credited
+   ANY old link to the signer's address — a review or view-only copy made a
+   signing row read SENT though no signing link ever went (Young's "something
+   does not make sense"). The fallback now requires purpose 'sign'.
+
+Suite 2386 → 2389, all green.

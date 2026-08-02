@@ -346,6 +346,10 @@ addColumnIfMissing('shares', 'durable', 'INTEGER NOT NULL DEFAULT 0');
    NULL on every link created before purposes existed; those keep the old
    behaviour, where the reader's page inferred a phase from the change set. */
 addColumnIfMissing('shares', 'purpose', 'TEXT');
+/* Why the last automatic send of this link did not go — sent_at means THE
+   PROVIDER ACCEPTED IT now, never merely "we tried" (the false SENT of
+   02 Aug 2026). Cleared on a later successful send. */
+addColumnIfMissing('shares', 'send_error', 'TEXT');
 
 /* ---------- THE THIRD PURPOSE: 'view' ----------
    A view link shows the contract with its redlines painted in, to somebody
@@ -4282,6 +4286,8 @@ function shareInfo(s) {
     // its turn email has gone — the owner's panel can tell a held link from a
     // sent one without guessing.
     signerId: s.signer_id || null,
+    // Why the last automatic send failed, if it did — the panel's honest state.
+    sendError: s.send_error || null,
     // WP-1.6: a derived view link names its parent, so the owner's panel can
     // say "reading copy minted from Erik's link" rather than listing a
     // stranger.
@@ -4405,8 +4411,10 @@ async function releaseNextSignerLink(req, contractId) {
     let p = {}; try { p = JSON.parse(ns.payload) || {}; } catch (_) {}
     const mail = signerTurnEmail({ signer: next, plan: rt.plan, payload: p,
       link: shareUrl(req, ns.token), expiresAt: ns.expires_at });
-    await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`);
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), ns.token);
+    const r = await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`);
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), ns.token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(r.detail || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), ns.token);
   } catch (_) { /* the signature that triggered this is safe regardless */ }
 }
 
@@ -4490,7 +4498,10 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
           link: exLink, expiresAt: existing.expires_at });
         const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`);
         exSent = !!r2.sent; exErr = r2.detail || null;
-        db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), existing.token);
+        // sent_at means the provider ACCEPTED it; a failed attempt records why.
+        if (exSent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), existing.token);
+        else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+          .run(String(exErr || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), existing.token);
       }
       /* alreadySentAt: no email went THIS time because the turn email already
          went — a different fact from "the provider refused it", and the
@@ -4520,7 +4531,12 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires });
     const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`);
     emailSent = !!r.sent; emailError = r.detail || null;
-    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
+    // sent_at means the provider ACCEPTED it; a failed attempt records why,
+    // so the Signature-progress row can say "send failed — resend" instead of
+    // wearing a green SENT over an inbox that received nothing.
+    if (emailSent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), token);
   } else if (ch === 'email' && !heldForTurn) {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
     const body = [
