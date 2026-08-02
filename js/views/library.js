@@ -1,12 +1,14 @@
-// HaTi — Templates page + Playbook page (both own nav items).
+// HaTi — Templates page + the "Our standards" page (view-playbook).
 // Globals window-attached like every other view module.
 //
 // Templates: the built-in HaTi generators (TEMPLATES), the workspace's own
 // custom templates (uploaded documents or contracts saved as templates,
 // persisted in state.settings.customTemplates through saveSettings so they
 // work in both local and server mode), and the bundled HaTi sample PDFs.
-// Playbook: the clause library + per-type playbook that previously lived in
-// a Settings card, promoted to a full page, plus a portfolio deviations list.
+// Our standards (formerly the Playbook nav item — WO N1): the clause library
+// + per-type playbook plus a portfolio deviations list. It kept its route
+// (view-playbook) but is reached from the Templates page, where the paper a
+// company drafts from and the rules it holds other paper to live together.
 
 /* ============================================================ CUSTOM TEMPLATES */
 function customTemplates(){ return (state.settings&&state.settings.customTemplates)||[]; }
@@ -1271,6 +1273,18 @@ function renderTemplatesPage(){
          page for every kind of paper, not a second screen to know about. -->
     <div id="tpl-company-section"></div>
 
+    <!-- WO N1: the playbook's door lives here now. Templates is the paper you
+         draft from; Our standards is the rules you hold other paper to — two
+         halves of "how our company does contracts", on one page. -->
+    <section style="${CARD};padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--tile-emerald-bg);color:var(--tile-emerald-fg)">${icon('scroll','w-3.5 h-3.5')}</span>
+      <span style="min-width:0;flex:1">
+        <span style="display:block;font-size:13px;font-weight:600">Our standards</span>
+        <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.5">Your clause library and negotiation positions — the wording HaTi drafts with and checks incoming paper against.</span>
+      </span>
+      <button id="tpl-standards" class="ui-btn" style="font-size:12px;padding:5px 12px;flex:none">Open our standards →</button>
+    </section>
+
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
         <h4 style="${H4}">Counterparty Templates</h4>
@@ -1301,6 +1315,7 @@ function renderTemplatesPage(){
     </section>
   </div>`;
 
+  document.getElementById('tpl-standards')?.addEventListener('click',()=>setView('playbook'));
   document.getElementById('tpl-upload')?.addEventListener('click',()=>openCreateTemplateModal('paste'));
   document.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   document.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));

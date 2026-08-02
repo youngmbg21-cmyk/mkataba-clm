@@ -2003,7 +2003,7 @@ function docTabDefaults(c){
     _docTabsFor = c.id;
   }
 }
-/* ---- Workspace-level tabs: Docs · Redline ---------------------------------
+/* ---- Workspace-level tabs: Docs · Negotiate (internal key 'redline') ------
    A sibling of the Docs view, not a card inside it. The redline needs the full
    width of the window — the document whole, with the changes and the
    discussion beside it — and the right-hand panel here is a third of the
@@ -2749,13 +2749,14 @@ function renderWorkspace(){
 
     <div id="ws-strips" style="display:contents">${readyToSignStrip(c)}${returnedChangesStrip(c)}</div>
 
-    <!-- ============ TABS + STATUS, ONE ROW: Docs · Redline · next action ============
+    <!-- ============ TABS + STATUS, ONE ROW: Docs · Negotiate · next action ============
          Two ways of working on one contract. Docs is this page — the document,
-         the review panel, signing. Redline hands the contract to the workbench
-         at view-redline, where the wording is negotiated as tracked changes
-         with a fingerprint on each one. The count beside it is the number of
-         changes waiting on a decision, so a negotiation that needs an answer is
-         never discoverable only by clicking.
+         the review panel, signing. Negotiate (the tab a lawyer would call
+         "redline" — the internal key keeps that name) hands the contract to
+         the workbench at view-redline, where the wording is negotiated as
+         tracked changes with a fingerprint on each one. The count beside it is
+         the number of changes waiting on a decision, so a negotiation that
+         needs an answer is never discoverable only by clicking.
 
          The status strip ("Drafting — add the counterparty and value…") used
          to be a full-width band inside the header card, with this tab switcher
@@ -2766,7 +2767,7 @@ function renderWorkspace(){
     <div style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:3px;box-shadow:var(--shadow-sm)">
         ${wsTabBtn('docs','Docs','file')}
-        ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
+        ${wsTabBtn('redline','Negotiate','pencil')}${negoTabCountHtml(c)}
       </div>
       ${window.rlTypeStepHtml?rlTypeStepHtml():''}
       <button id="ws-focus" class="ui-btn" aria-pressed="false" style="width:30px;height:30px;padding:0;flex:none"

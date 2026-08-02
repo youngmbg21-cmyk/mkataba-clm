@@ -268,7 +268,7 @@ function renderTeam(){
 
         <section style="${cardStyle}">
           <h4 style="${h4Style}">Copilot engine</h4>
-          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Portfolio Intelligence graph. Without a key, Copilot features fall back to the built-in interpreter.</p>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Insights graph. Without a key, Copilot features fall back to the built-in interpreter.</p>
           <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">Checking…</div>
           ${isAdmin()?`
           <div style="display:flex;gap:8px;align-items:flex-end">
@@ -332,7 +332,7 @@ function renderTeam(){
           <!-- ---- onboarding allowance ---- -->
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
             <div style="font-size:12px;font-weight:600;color:var(--color-text)">Onboarding allowance</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">A one-off budget for bringing in a customer's back catalogue. Bulk migration and OCR draw on this instead of the day-to-day budget, so a 500-contract import isn't blocked by the daily ceiling. When it runs out, migration falls back to the pattern matcher and says so — it never hard-fails mid-batch.</p>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">A one-off budget for bringing in a customer's back catalogue. Bulk import and OCR draw on this instead of the day-to-day budget, so a 500-contract import isn't blocked by the daily ceiling. When it runs out, the import falls back to the pattern matcher and says so — it never hard-fails mid-batch.</p>
             <div id="ai-allowance-state" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:6px">—</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
               ${limitField('ai-allow-budget','Allowance budget (USD)','0 = no money cap',0)}
@@ -555,7 +555,7 @@ function renderTeam(){
       const b=allowBody();
       if(!(b.budget>0)&&!(b.docs>0)){ toast('Set a budget, a document count, or both','err'); return; }
       if(!await confirmDialog({title:'Open an onboarding allowance?',
-        message:`Bulk migration and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
+        message:`Bulk import and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
         confirmLabel:'Open allowance'})) return;
       try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast('Onboarding allowance opened'); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }

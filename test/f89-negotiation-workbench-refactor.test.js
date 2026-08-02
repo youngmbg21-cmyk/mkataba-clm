@@ -163,13 +163,15 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
     assert.ok(head.querySelector('.rl-round'), 'the round tag stays');
     /* The page's TITLE moved up into the Doc page's shell — same name, same
        status chip, same back arrow on both tabs — and the head now carries
-       the [Docs][Redline] switcher in its place. */
+       the [Docs][Negotiate] switcher in its place (the tab was labelled
+       "Redline" until WO N1 renamed the place; the artifact — a redline —
+       keeps its name). */
     const shell = p.$('#view-redline .rl-shell');
     assert.ok(shell, 'the Doc page\'s shell heads this tab too');
     assert.match(shell.textContent, /Supply and Services Agreement/);
     assert.deepEqual([...head.querySelectorAll('.rl-ws-tabs button')].map(b => b.textContent.trim()),
-      ['Docs', 'Redline']);
-    assert.ok(head.querySelector('.rl-ws-tabs button.on').textContent.includes('Redline'),
+      ['Docs', 'Negotiate']);
+    assert.ok(head.querySelector('.rl-ws-tabs button.on').textContent.includes('Negotiate'),
       'this tab knows which tab it is');
   });
 });

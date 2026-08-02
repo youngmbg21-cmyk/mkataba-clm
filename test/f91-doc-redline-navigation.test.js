@@ -225,10 +225,13 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
       'a listener left behind is how a removed feature comes back');
   });
 
-  test('the sub-navigation reads Docs · Redline', () => {
+  test('the sub-navigation reads Docs · Negotiate', () => {
+    /* WO N1 renamed the tab's LABEL from "Redline" to plain English; the
+       internal key stays 'redline', so every route and stored state built on
+       it keeps working. */
     const s = code();
     assert.match(s, /wsTabBtn\('docs','Docs'/);
-    assert.match(s, /wsTabBtn\('redline','Redline'/);
+    assert.match(s, /wsTabBtn\('redline','Negotiate'/);
     assert.ok(!/wsTabBtn\('negotiation'/.test(s), 'the old tab key must not linger');
   });
 
