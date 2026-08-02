@@ -796,7 +796,7 @@ function migAllowanceHtml(){
     </div>
     <div style="height:5px;background:color-mix(in srgb,var(--color-text) 10%,transparent);border-radius:3px;overflow:hidden;margin-top:6px">
       <div style="width:${pct}%;height:100%;background:${done?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width .3s"></div></div>
-    ${done?`<div style="margin-top:6px;line-height:1.5">Migration carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Team &amp; Settings.</div>`:''}
+    ${done?`<div style="margin-top:6px;line-height:1.5">The import carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Team &amp; Settings.</div>`:''}
   </div>`;
 }
 function migKpis(){
@@ -997,7 +997,7 @@ function renderMigration(){
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Bulk import</h3>
         </div>
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, Word .docx, image or text · max ${uploadMaxLabel()} each · legacy .doc must be re-saved as .docx or PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the Copilot engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real migration, run the HaTi server.</strong>'}</p>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, Word .docx, image or text · max ${uploadMaxLabel()} each · legacy .doc must be re-saved as .docx or PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the Copilot engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real bulk import, run the HaTi server.</strong>'}</p>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
           <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">Import as
             <select id="mig-status" style="${selStyle}">${statusOpts}</select></label>

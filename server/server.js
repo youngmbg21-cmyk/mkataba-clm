@@ -90,6 +90,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS resets (
     id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
   CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
+  CREATE TABLE IF NOT EXISTS activation (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event TEXT NOT NULL, contract_id TEXT, actor TEXT, at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS contracts (
     id TEXT PRIMARY KEY, json TEXT NOT NULL,
     name TEXT, counterparty TEXT, folder TEXT, status TEXT, value REAL, expiry TEXT, is_upload INTEGER,
@@ -1736,9 +1739,48 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
 
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
+  /* ---- WO N7: the four activation moments, observed where they land ----
+     added / scanned / signed are DIFFERENCES against the stored record, read
+     here because every client path — the wizard, the upload, the bulk
+     import, a counterparty's returned signature applied by the owner — funnels
+     through this one save. Observed server-side so nothing has to remember to
+     emit, and nothing can emit twice ('sent' is logged by POST /api/shares
+     the same way). Demo seeds don't count: a funnel born ticked measures
+     nothing. The log is append-only rows; /api/activation is the query. */
+  if (!c.seeded) {
+    const actor = (req.user && req.user.name) || null;
+    if (!prev) logActivation('added', c.id, actor);
+    if ((prev ? !prev.scan : true) && c.scan) logActivation('scanned', c.id, actor);
+    if ((prev ? prev.status : null) !== 'Signed' && c.status === 'Signed') logActivation('signed', c.id, actor);
+  }
   upsertContract(c, next);
   if (req.body.uid) setSetting('uid', req.body.uid);
   res.json({ ok: true, version: next });
+});
+
+const ACTIVATION_EVENTS = ['added', 'scanned', 'sent', 'signed'];
+function logActivation(event, contractId, actor) {
+  try {
+    db.prepare('INSERT INTO activation (event,contract_id,actor,at) VALUES (?,?,?,?)')
+      .run(event, contractId || null, actor || null, now());
+  } catch (_) { /* metrics must never break the write they observe */ }
+}
+/* The pilot's north star, answerable before customers arrive: did this
+   workspace send its first contract within seven days of being created?
+   Derived from the append-only event log and the org record — no analytics
+   vendor, a table and a query. Admin-only: it is an operator's instrument. */
+app.get('/api/activation', auth, admin, (req, res) => {
+  const org = getSetting('org') || {};
+  const rows = db.prepare('SELECT event, MIN(at) AS first, COUNT(*) AS n FROM activation GROUP BY event').all();
+  const events = {};
+  for (const e of ACTIVATION_EVENTS) events[e] = null;
+  for (const r of rows) if (ACTIVATION_EVENTS.includes(r.event)) events[r.event] = { first: r.first, count: r.n };
+  const created = org.createdAt || null;
+  const sentFirst = events.sent && events.sent.first;
+  const days = (created && sentFirst)
+    ? Math.floor((Date.parse(sentFirst) - Date.parse(created)) / 86400000) : null;
+  res.json({ workspaceCreatedAt: created, events,
+    northStar: { firstSendDays: days, withinSevenDays: days != null ? days <= 7 : null } });
 });
 
 /* Deleting a contract has to take everything with it — the interface's "only
@@ -3873,6 +3915,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
       String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
       String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp, signerId);
+  /* WO N7: a share created by the owner IS the "sent" moment, whatever the
+     channel — the derived view-links and payload refreshes are not. */
+  logActivation('sent', shareId, (req.user && req.user.name) || null);
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
   /* A bound link whose turn has not come yet is created but NOT delivered —

@@ -1015,43 +1015,134 @@ function findingsFromText(c, text){
   return F;
 }
 
+/* ---------------- Upload a received contract — FILE FIRST (WO N2) ----------
+   The old form collected name, counterparty, email, folder, value and expiry
+   UP FRONT, then ran extraction — whose whole job is to read exactly those
+   facts out of the document. The user typed what the machine was about to
+   read. The order is flipped: step 1 is a drop zone and nothing else; the
+   pipeline reads the file (Word text, PDF text, or OCR for scans) and
+   extracts the details; step 2 hands the SAME fields back pre-filled, marked
+   "✦ read from the document" where a value came from the paper, with only
+   what the machine could not find left to type — usually the counterparty's
+   email, which is never printed in the document itself.
+
+   Both steps are built once and toggled (the share dialog's pattern). Nothing
+   is created until "File contract" — closing the dialog at ANY point, drop
+   zone or mid-scan or on the confirm card, files nothing and leaves nothing
+   behind. The uploaded bytes go to the server only inside submitUpload, for
+   the same reason. */
+let _up=null;   // pipeline result carried from the drop to the confirm
 function openUploadModal(){
   if(!canEdit()){ toast('Viewers cannot add contracts','err'); return; }
-  const folderOpts=folderOptionsHtml(null, false);
+  _up=null;
   openModal(`
     <div class="p-6">
-      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
-        <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
-      <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, Copilot-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
-      <label class="block mb-3">
-        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, Word .docx, image or text · max ${uploadMaxLabel()} · legacy .doc must be re-saved first)</span></span>
-        <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
-      </label>
+      <div id="up-step-1">
+        <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
+          <h2 class="font-display font-700 text-brand-900">Add a received contract</h2></div>
+        <p class="text-xs text-brand-800/70 mb-4">A contract another company sent you — on their own paper. Drop the file: HaTi reads the counterparty, value and dates out of the document, and you check them before anything is filed.</p>
+        <div id="up-drop" role="button" tabindex="0" aria-label="Drop the contract file here, or press to choose one" style="border:2px dashed var(--color-accent);border-radius:12px;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background .15s">
+          <div style="font-size:15px;font-weight:600;color:var(--color-text)">Drop the contract here</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:5px">PDF · Word .docx · photo or text — or click to choose · max ${uploadMaxLabel()} · legacy .doc must be re-saved first</div>
+          <div style="font-size:11.5px;color:var(--color-accent-700);margin-top:8px;font-weight:600">That’s all — HaTi reads the rest</div>
+        </div>
+        <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
+        <div id="up-steps" class="hidden" style="margin-top:12px"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-neutral-600);cursor:pointer" title="The bulk importer — every file read the same way, reviewed in one pass">A whole back-catalogue? <u>Import many at once</u></button>
+          <span style="flex:1"></span>
+          <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
+        </div>
+      </div>
+      <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
+    </div>`);
+  const drop=document.getElementById('up-drop'), input=document.getElementById('up-file');
+  drop.addEventListener('click',()=>input.click());
+  drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); input.click(); } });
+  drop.addEventListener('dragover',e=>{ e.preventDefault(); drop.style.background='var(--color-accent-100)'; });
+  drop.addEventListener('dragleave',()=>{ drop.style.background='var(--color-bg)'; });
+  drop.addEventListener('drop',e=>{ e.preventDefault(); drop.style.background='var(--color-bg)';
+    const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) runUploadPipeline(f); });
+  input.addEventListener('change',()=>{ const f=input.files&&input.files[0]; if(f) runUploadPipeline(f); });
+  document.getElementById('up-cancel').addEventListener('click',closeModal);
+  document.getElementById('up-bulk').addEventListener('click',()=>{ closeModal(); setView('migration'); });
+}
+/* The confirm card — the old form's fields, handed back pre-answered. Called
+   with (null, null) for the skeleton built into the dialog (so the fields
+   exist from the first render), then re-rendered with the pipeline's result.
+   `meta` is the extraction outcome, null when the file yielded no readable
+   text — in which case the card says so and the person types, exactly as the
+   old form asked them to, but only in the case where the machine truly
+   could not help. */
+function uploadConfirmHtml(ext, meta){
+  const m=meta||{}, conf=m.confidence||{}, spans=m.sourceSpans||{};
+  const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const attr=s=>esc2(s).replace(/"/g,'&quot;');
+  const has=k=>meta!=null&&m[k]!=null&&m[k]!==''&&!(typeof m[k]==='number'&&!(m[k]>0));
+  const MARK=`<span style="font-family:var(--font-mono);font-size:8.5px;color:var(--color-accent-700);letter-spacing:.05em"> ✦ READ FROM THE DOCUMENT</span>`;
+  const found=k=>{ const q=spans[k]; if(!q) return '';
+    return `<span style="display:block;margin-top:2px;font-size:10px;line-height:1.4;color:var(--color-neutral-600)">found: <i>“${esc2(String(q).replace(/\s+/g,' ').trim().slice(0,140))}”</i></span>`; };
+  const fld=(id,label,opts={})=>{
+    const read=!!opts.read;
+    return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}${read?MARK:''}</span>
+      <input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--color-accent-100)"':''}/>${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-600)">${opts.sub}</span>`:''}</label>`;
+  };
+  const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
+  const nameFromDoc=has('contractType')&&has('counterparty');
+  const suggestedName=nameFromDoc?`${m.contractType} — ${m.counterparty}`:fileBase;
+  const readCount=['counterparty','value','expiryDate'].filter(has).length;
+  const intro=!ext?'':meta
+    ? `Everything marked <b style="color:var(--color-accent-700)">✦</b> was read out of the document — confirm or correct it. What the machine could not find is left for you.`
+    : `HaTi could not read text out of this file, so nothing could be pre-filled — add the details yourself. The file itself is attached either way.`;
+  /* The details beyond the essentials — renewal, notice, governing law — ride
+     along folded: read from the same document, applied on filing, corrected
+     here if wrong, but never a wall the first-timer has to climb. */
+  /* Guarded like every cross-module read: the node tests stage this file
+     without js/metadata.js on the floor. */
+  const extras=(typeof META_FIELDS!=='undefined'?META_FIELDS:[])
+    .filter(f=>!['counterparty','value','expiryDate'].includes(f.k)&&has(f.k));
+  const extraFld=f=>{
+    const v=m[f.k];
+    if(f.type==='select') return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${f.label}${MARK}</span>
+      <select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400">
+        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${RENEWAL_LABEL[o]||o}</option>`).join('')}</select>${found(f.k)}</label>`;
+    return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${f.label}${MARK}</span>
+      <input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/>${found(f.k)}</label>`;
+  };
+  return `
+      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
+        <h2 class="font-display font-700 text-brand-900">Check what HaTi read</h2></div>
+      ${intro?`<p class="text-xs text-brand-800/70 mb-3" style="line-height:1.55">${intro}</p>`:''}
+      ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:0 0 12px">
+        <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
+        <span>${esc2(ocrProvenanceLine(ext.upload))} Machine-read values are capped at <b>medium</b> confidence until you confirm them.</span></div>`:''}
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
-        ${upField('up-name','Contract name','e.g. Supply Agreement — Acme')}
-        ${upField('up-cp','Received from (counterparty)','e.g. Acme Ltd')}
-        ${upField('up-cpemail','Their email (so you can send it back)','them@company.co.ke','email')}
+        ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
+        ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
+        ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         <label class="block"><span class="text-xs font-medium text-brand-800/70">File under</span>
-          <select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOpts}</select></label>
+          <select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select></label>
         <label class="block"><span class="text-xs font-medium text-brand-800/70">Value type</span>
           <select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">
             <option value="estimated">Estimated value</option><option value="fixed">Fixed value</option><option value="none">Non-monetary</option></select></label>
       </div>
-      <div class="grid sm:grid-cols-2 gap-2 mb-4">
-        ${upField('up-value',`Contract value (${jxCurrency()})`,'e.g. 2500000','number')}
-        ${upField('up-expiry','Expiry date (optional)','','date')}
+      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+        ${fld('up-value',`Contract value (${jxCurrency()})`,{value:has('value')?m.value:'', ph:'e.g. 2500000', type:'number', read:has('value'), foundKey:'value'})}
+        ${fld('up-expiry','Expiry date (optional)',{value:has('expiryDate')?m.expiryDate:'', type:'date', read:has('expiryDate'), foundKey:'expiryDate'})}
       </div>
-      <div id="up-steps" class="hidden" style="margin-bottom:4px"></div>
-      <div id="up-actions" class="flex items-center gap-2 justify-end">
-        <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
-        <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('upload','w-3.5 h-3.5')} Add contract</button>
-      </div>
-    </div>`);
-  document.getElementById('up-cancel').addEventListener('click',closeModal);
-  document.getElementById('up-go').addEventListener('click',submitUpload);
-  bindFolderSelect(document.getElementById('up-folder'));
+      ${extras.length?`<details style="margin:0 0 12px;border:1px solid var(--color-divider);border-radius:8px;padding:8px 12px">
+        <summary style="cursor:pointer;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
+        <div class="grid sm:grid-cols-2 gap-2" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
+      </details>`:''}
+      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:11px;color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>File contract</b>.</p>`:''}
+      <div class="flex items-center gap-2">
+        <button id="up-back" class="rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">← Another file</button>
+        <span style="flex:1"></span>
+        <button id="up-cancel-2" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
+        <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('check2','w-3.5 h-3.5')} File contract</button>
+      </div>`;
 }
 /* Named progress line for an upload — turns the anxious wait into visible steps
    and reinforces that a human confirms at the end. active is 1-based; steps at
@@ -1076,38 +1167,35 @@ function renderUploadSteps(active, note){
      <span class="scan-pulse" style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);flex:none"></span>${String(note).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`:''}
   </div>`;
 }
-async function submitUpload(){
-  const fileInput=document.getElementById('up-file');
-  const file=fileInput.files&&fileInput.files[0];
-  if(!file){ toast('Choose a file to upload','err'); return; }
+/* The reading pipeline — everything between the drop and the confirm card.
+   Verbatim the old flow's machinery in the old order (read bytes → refuse
+   legacy .doc → Word/PDF text → OCR for scans → metadata extraction), with
+   one difference: it produces `_up` and repaints the dialog instead of
+   creating a record. Closing the dialog mid-read is handled by absence — the
+   step strip and the confirm card are looked up before writing, and a missing
+   host means the person left, so the result is dropped on the floor. */
+async function runUploadPipeline(file){
   if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
-  const cp=fval('up-cp');
-  const cpEmail=fval('up-cpemail');
-  if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
-  const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
-  const folder=document.getElementById('up-folder').value;
-  const vtype=document.getElementById('up-vtype').value;
-  const value=vtype==='none'?0:Number(fval('up-value')||0);
-  const expiry=fval('up-expiry')||null;
-  const btn=document.getElementById('up-go'); const cancelBtn=document.getElementById('up-cancel');
-  btn.disabled=true; if(cancelBtn) cancelBtn.disabled=true;
-  btn.innerHTML='<span class="animate-pulse">Working…</span>';
-  renderUploadSteps(1);   // Step 1 — Reading document
-  const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
-  if(!dataUrl){ toast('Could not read that file','err'); btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false; return; }
-  const mime=file.type||'application/octet-stream';
-  // Legacy .doc is still refused BEFORE anything is created — a silent empty
-  // shell in the register is worse than a clear refusal. Modern .docx is read
-  // for real (see js/docx.js) and goes through the same pipeline as a PDF.
-  const word=detectWordFile(dataUrl, mime, file.name);
+  const drop=document.getElementById('up-drop');
+  if(drop){ drop.style.pointerEvents='none'; drop.style.opacity='.55'; }
+  const revive=()=>{ const d=document.getElementById('up-drop');
+    if(d){ d.style.pointerEvents=''; d.style.opacity=''; }
+    const inp=document.getElementById('up-file'); if(inp) inp.value=''; };
   const refuse=(msg)=>{
     toast(msg,'err');
     const steps=document.getElementById('up-steps');
     if(steps){ steps.classList.remove('hidden');
       steps.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55">${msg}</div>`; }
-    btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false;
-    btn.innerHTML=`${icon('upload','w-3.5 h-3.5')} Add contract`;
+    revive();
   };
+  renderUploadSteps(1);   // Step 1 — Reading document
+  const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
+  if(!dataUrl){ refuse('Could not read that file'); return; }
+  const mime=file.type||'application/octet-stream';
+  // Legacy .doc is still refused BEFORE anything is read — a silent empty
+  // shell in the register is worse than a clear refusal. Modern .docx is read
+  // for real (see js/docx.js) and goes through the same pipeline as a PDF.
+  const word=detectWordFile(dataUrl, mime, file.name);
   if(word==='doc'){ refuse(WORD_REFUSAL); return; }
   const fileHash=await sha256(dataUrl);
   let extractedText, wordTracked=null;
@@ -1143,11 +1231,60 @@ async function submitUpload(){
     docKind:word||null, extractedText, textChars:extractedText.length, dataUrl, textSource,
     ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0, ocrTotalPages: ocr?ocr.totalPages:0,
     ocrIllegible: ocr?ocr.illegible:0 };
-  // API mode: store bytes on the server and keep only a reference in the synced record.
-  if(API_MODE()){
-    try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl });
+  // E1, flipped (WO N2): the machine reads BEFORE the person types. No seed —
+  // there is nothing typed yet to seed with; the person corrects on the card.
+  let meta=null;
+  if(extractedText && extractedText.length>200){
+    renderUploadSteps(2, isOcrText(textSource)?'Reading details out of the machine-read text…':null);
+    meta=await extractMetadata(extractedText, null);
+    // Anything read out of an OCR'd scan is capped at medium confidence — OCR
+    // misreads dates and amounts, and those are what the reminders fire on.
+    if(isOcrText(textSource)) capConfidenceForOcr(meta);
+  }
+  renderUploadSteps(3);   // Step 3 — Ready for your review
+  const s1=document.getElementById('up-step-1'), s2=document.getElementById('up-step-2');
+  if(!s1||!s2) return;    // the dialog was closed mid-read — nothing is filed
+  _up={ file, mime, word, wordTracked, extractedText, textSource, upload, meta };
+  s2.innerHTML=uploadConfirmHtml(_up, meta);
+  s1.classList.add('hidden');
+  s2.classList.remove('hidden');
+  bindFolderSelect(document.getElementById('up-folder'));
+  document.getElementById('up-go').addEventListener('click',submitUpload);
+  document.getElementById('up-cancel-2').addEventListener('click',closeModal);
+  document.getElementById('up-back').addEventListener('click',()=>{
+    _up=null;
+    s2.classList.add('hidden'); s2.innerHTML=uploadConfirmHtml(null,null);
+    s1.classList.remove('hidden');
+    const steps=document.getElementById('up-steps'); if(steps){ steps.classList.add('hidden'); steps.innerHTML=''; }
+    revive();
+  });
+}
+/* "File contract" — the one moment anything is created. Same validation, same
+   record shape, same destination as the old form's Add button; the metadata
+   block is assembled here the way openMetaReview assembled it, with the same
+   confidence rule: a value the person left as the machine read it keeps the
+   machine's confidence, a value they corrected is theirs and reads high. */
+async function submitUpload(){
+  if(!_up||!_up.file){ toast('Choose a file to upload','err'); return; }
+  const { file, mime, wordTracked, extractedText, textSource, upload, meta }=_up;
+  const cp=fval('up-cp');
+  const cpEmail=fval('up-cpemail');
+  if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
+  const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
+  const folder=document.getElementById('up-folder').value;
+  const vtype=document.getElementById('up-vtype').value;
+  const value=vtype==='none'?0:Number(fval('up-value')||0);
+  const expiry=fval('up-expiry')||null;
+  const btn=document.getElementById('up-go');
+  btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Filing…</span>';
+  // API mode: store bytes on the server and keep only a reference in the
+  // synced record. Done HERE, not in the pipeline — a person who read the
+  // card and pressed Cancel must leave no orphaned bytes behind.
+  if(API_MODE() && !upload.fileId){
+    try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl:upload.dataUrl });
       upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
   }
+  const u=currentUser();
   const c={ id:nextId(), name, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
@@ -1166,29 +1303,29 @@ async function submitUpload(){
   if(wordTracked&&(wordTracked.ins||wordTracked.del)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'Document',
     detail:trackedNote(wordTracked) });
   c._loaded=true; c._light=false; c._v=0;
-  const saveContract=(metadata)=>{
-    if(metadata){ applyMetadata(c, metadata); }
-    state.contracts.unshift(c);
-    state.activeId=c.id;
-    persist(c);
-    closeModal();
-    toast('Contract uploaded and filed in '+FOLDERS[folder].name);
-    setView('workspace');
-    renderSideFolders();
-  };
-  // E1: extract metadata from the text, then let the human confirm before saving.
-  if(extractedText && extractedText.length>200){
-    renderUploadSteps(2, isOcrText(textSource)?'Reading details out of the machine-read text…':null);
-    const meta=await extractMetadata(extractedText, {counterparty:cp, value, expiry});
-    // Anything read out of an OCR'd scan is capped at medium confidence — OCR
-    // misreads dates and amounts, and those are what the reminders fire on.
-    if(isOcrText(textSource)) capConfidenceForOcr(meta);
-    renderUploadSteps(3);   // Step 3 — Ready for your review (the confirm screen)
-    openMetaReview(meta, saveContract, { onCancel:()=>saveContract(null),
-      ocrNotice: isOcrText(textSource)?ocrProvenanceLine(upload):'' });
-  } else {
-    saveContract(null);
+  if(meta){
+    const conf=meta.confidence||{};
+    const out={ confidence:{} };
+    const setF=(k,v)=>{ if(v==null||v===''||(typeof v==='number'&&!(v>0)&&k==='value')) return;
+      out[k]=v; out.confidence[k]=(String(meta[k]!=null?meta[k]:'')===String(v)&&conf[k])?conf[k]:'high'; };
+    setF('counterparty',cp); setF('value',value); setF('expiryDate',expiry);
+    document.querySelectorAll('[data-umf]').forEach(el=>{ const k=el.getAttribute('data-umf'); let v=el.value;
+      const f=(typeof META_FIELDS!=='undefined'?META_FIELDS:[]).find(x=>x.k===k);
+      if(f&&f.type==='num') v=v===''?0:Number(v); setF(k,v); });
+    if(meta.sourceSpans) out.sourceSpans=meta.sourceSpans;
+    if(meta._payload) out._payload=meta._payload;
+    out._source=meta._source;
+    out.confirmedAt=nowISO(); out.confirmedBy=u?.name||'';
+    applyMetadata(c, out);
   }
+  _up=null;
+  state.contracts.unshift(c);
+  state.activeId=c.id;
+  persist(c);
+  closeModal();
+  toast('Contract uploaded and filed in '+FOLDERS[folder].name);
+  setView('workspace');
+  renderSideFolders();
 }
 /* Fold confirmed metadata back into the contract's own fields + a metadata block. */
 function applyMetadata(c, m){
@@ -2003,7 +2140,7 @@ function docTabDefaults(c){
     _docTabsFor = c.id;
   }
 }
-/* ---- Workspace-level tabs: Docs · Redline ---------------------------------
+/* ---- Workspace-level tabs: Docs · Negotiate (internal key 'redline') ------
    A sibling of the Docs view, not a card inside it. The redline needs the full
    width of the window — the document whole, with the changes and the
    discussion beside it — and the right-hand panel here is a third of the
@@ -2749,13 +2886,14 @@ function renderWorkspace(){
 
     <div id="ws-strips" style="display:contents">${readyToSignStrip(c)}${returnedChangesStrip(c)}</div>
 
-    <!-- ============ TABS + STATUS, ONE ROW: Docs · Redline · next action ============
+    <!-- ============ TABS + STATUS, ONE ROW: Docs · Negotiate · next action ============
          Two ways of working on one contract. Docs is this page — the document,
-         the review panel, signing. Redline hands the contract to the workbench
-         at view-redline, where the wording is negotiated as tracked changes
-         with a fingerprint on each one. The count beside it is the number of
-         changes waiting on a decision, so a negotiation that needs an answer is
-         never discoverable only by clicking.
+         the review panel, signing. Negotiate (the tab a lawyer would call
+         "redline" — the internal key keeps that name) hands the contract to
+         the workbench at view-redline, where the wording is negotiated as
+         tracked changes with a fingerprint on each one. The count beside it is
+         the number of changes waiting on a decision, so a negotiation that
+         needs an answer is never discoverable only by clicking.
 
          The status strip ("Drafting — add the counterparty and value…") used
          to be a full-width band inside the header card, with this tab switcher
@@ -2766,7 +2904,7 @@ function renderWorkspace(){
     <div style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:3px;box-shadow:var(--shadow-sm)">
         ${wsTabBtn('docs','Docs','file')}
-        ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
+        ${wsTabBtn('redline','Negotiate','pencil')}${negoTabCountHtml(c)}
       </div>
       ${window.rlTypeStepHtml?rlTypeStepHtml():''}
       <button id="ws-focus" class="ui-btn" aria-pressed="false" style="width:30px;height:30px;padding:0;flex:none"
@@ -3642,5 +3780,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});

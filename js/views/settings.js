@@ -268,7 +268,7 @@ function renderTeam(){
 
         <section style="${cardStyle}">
           <h4 style="${h4Style}">Copilot engine</h4>
-          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Portfolio Intelligence graph. Without a key, Copilot features fall back to the built-in interpreter.</p>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Insights graph. Without a key, Copilot features fall back to the built-in interpreter.</p>
           <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">Checking…</div>
           ${isAdmin()?`
           <div style="display:flex;gap:8px;align-items:flex-end">
@@ -332,7 +332,7 @@ function renderTeam(){
           <!-- ---- onboarding allowance ---- -->
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
             <div style="font-size:12px;font-weight:600;color:var(--color-text)">Onboarding allowance</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">A one-off budget for bringing in a customer's back catalogue. Bulk migration and OCR draw on this instead of the day-to-day budget, so a 500-contract import isn't blocked by the daily ceiling. When it runs out, migration falls back to the pattern matcher and says so — it never hard-fails mid-batch.</p>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">A one-off budget for bringing in a customer's back catalogue. Bulk import and OCR draw on this instead of the day-to-day budget, so a 500-contract import isn't blocked by the daily ceiling. When it runs out, the import falls back to the pattern matcher and says so — it never hard-fails mid-batch.</p>
             <div id="ai-allowance-state" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:6px">—</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
               ${limitField('ai-allow-budget','Allowance budget (USD)','0 = no money cap',0)}
@@ -418,6 +418,23 @@ function renderTeam(){
         </label>
       </section>`:''}
 
+      <section style="${cardStyle}">
+        <h4 style="${h4Style}">My sidebar</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">HaTi keeps the sidebar short while the portfolio is small — Insights appears on its own at five contracts. This shows every surface now instead:</p>
+        <label style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:5px;padding:10px;cursor:pointer;font-size:12px">
+          <input id="pref-nav-all" type="checkbox" ${(typeof navShowEverything==='function'&&navShowEverything())?'checked':''} style="margin-top:1px;width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
+          <span><span style="font-weight:600;display:block">Show everything</span>
+          <span style="color:var(--color-neutral-600);display:block;line-height:1.4">The full cockpit, thresholds ignored — just for you, on this device.</span></span>
+        </label>
+      </section>
+
+      ${(API_MODE()&&isAdmin())?`
+      <section style="${cardStyle}">
+        <h4 style="${h4Style}">Pilot activation</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The four moments that predict whether a workspace sticks — first contract in, first Copilot scan, first send, first signature back — observed by the server as they happen (demo samples don't count). The north star: <b>first send within 7 days</b>.</p>
+        <div id="activation-funnel" style="font-size:12px;color:var(--color-neutral-700)">Loading…</div>
+      </section>`:''}
+
       ${(API_MODE()&&isAdmin())?`
       <section style="${cardStyle}">
         <h4 style="${h4Style}">Email &amp; notifications</h4>
@@ -433,6 +450,31 @@ function renderTeam(){
   </div>`;
 
   if(API_MODE()&&isAdmin()){
+    /* WO N7: the activation funnel — four labelled steps, each with its first
+       time and count, and one sentence for the north star. Words, not colour:
+       "not yet" is an answer, not an absence. */
+    (async()=>{
+      const host=document.getElementById('activation-funnel'); if(!host) return;
+      try{
+        const r=await api('activation');
+        const STEP={ added:'First contract in', scanned:'First Copilot scan', sent:'First send', signed:'First signature back' };
+        host.innerHTML=`
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px">
+            ${Object.entries(STEP).map(([k,label])=>{ const e=r.events&&r.events[k];
+              return `<div style="border:1px solid var(--color-divider);border-radius:6px;padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:'not yet'}</div>
+              </div>`; }).join('')}
+          </div>
+          <div style="font-size:11.5px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
+            ${r.northStar.firstSendDays==null
+              ? 'North star not reached yet — no contract has been sent to a counterparty.'
+              : r.northStar.withinSevenDays
+                ? `<b>North star reached:</b> first send ${r.northStar.firstSendDays===0?'on day one':`after ${r.northStar.firstSendDays} day${r.northStar.firstSendDays===1?'':'s'}`}.`
+                : `First send took ${r.northStar.firstSendDays} days — outside the 7-day target.`}
+          </div>`;
+      }catch(e){ host.innerHTML=`<span style="color:var(--color-neutral-600)">Could not load activation data: ${esc(e.message)}</span>`; }
+    })();
     const loadOutbox=async()=>{
       try{ const r=await api('outbox');
         const host=document.getElementById('outbox-list'); if(!host) return;
@@ -454,6 +496,10 @@ function renderTeam(){
     });
   }
 
+  document.getElementById('pref-nav-all')?.addEventListener('change',e=>{
+    if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
+    toast(e.target.checked?'Sidebar shows everything':'Sidebar grows with the portfolio again');
+  });
   document.getElementById('pref-share-opens')?.addEventListener('change',async e=>{
     try{
       const r=await api('me/prefs','PUT',{ notifyShareOpens:e.target.checked });
@@ -555,7 +601,7 @@ function renderTeam(){
       const b=allowBody();
       if(!(b.budget>0)&&!(b.docs>0)){ toast('Set a budget, a document count, or both','err'); return; }
       if(!await confirmDialog({title:'Open an onboarding allowance?',
-        message:`Bulk migration and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
+        message:`Bulk import and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
         confirmLabel:'Open allowance'})) return;
       try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast('Onboarding allowance opened'); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }

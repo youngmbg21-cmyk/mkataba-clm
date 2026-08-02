@@ -111,7 +111,7 @@ describe('F17 — the dialog opens already filled in', () => {
       ensureFull: async () => {}, captureVersion: () => null, persist: () => {},
       sha256: async () => 'h'.repeat(64),
       buildSharePayload: () => ({ v: 1, kind: 'hati-share' }),
-      contractReadiness: () => ({ ok: true, blocks: [] }),
+      contractReadiness: () => [],
       readinessPanelHtml: () => '',
       isUpload: () => false,
     });
@@ -131,7 +131,7 @@ describe('F17 — the dialog opens already filled in', () => {
       api: async () => ({ shares: [share({ recipientName: 'Erik" onfocus="alert(1)' })] }),
       ensureFull: async () => {}, captureVersion: () => null, persist: () => {},
       sha256: async () => 'h'.repeat(64), buildSharePayload: () => ({}),
-      contractReadiness: () => ({ ok: true, blocks: [] }), readinessPanelHtml: () => '',
+      contractReadiness: () => [], readinessPanelHtml: () => '',
       isUpload: () => false,
     });
     await s.openShareModal({ id: 'MK-1', name: 'X', counterparty: 'Y', status: 'Under Review',
@@ -147,7 +147,7 @@ describe('F17 — the dialog opens already filled in', () => {
       api: async () => ({ shares: [] }),
       ensureFull: async () => {}, captureVersion: () => null, persist: () => {},
       sha256: async () => 'h'.repeat(64), buildSharePayload: () => ({}),
-      contractReadiness: () => ({ ok: true, blocks: [] }), readinessPanelHtml: () => '',
+      contractReadiness: () => [], readinessPanelHtml: () => '',
       isUpload: () => false,
     });
     await s.openShareModal({ id: 'MK-1', name: 'X', counterparty: 'Y', status: 'Under Review',

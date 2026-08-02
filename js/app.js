@@ -53,9 +53,15 @@ import './views/designstep.js';       // the Design step: pick a document design
 import './views/migration.js';
 
 /* ============================================================ NAV */
+/* WO N1 — one door per thing. Views that live INSIDE a contract (the
+   workspace, the negotiation workbench, the doc lab) and flows that feed the
+   register (a folder, the bulk import) light "Contracts", so the sidebar
+   never points at a door that no longer exists; the playbook page lights
+   "Templates", where it now lives as "Our standards". */
+const NAV_HOME_FOR={ folder:'register', workspace:'register', redline:'register',
+  doclab:'register', migration:'register', playbook:'templates' };
 function setActiveNav(view){
-  // 'folder' is a sub-view of Register in the new shell
-  const navFor = view==='folder' ? 'register' : view;
+  const navFor = NAV_HOME_FOR[view] || view;
   document.querySelectorAll('.nav-item').forEach(b=>{
     const on=b.getAttribute('data-view')===navFor;
     b.classList.toggle('active',on);
@@ -83,21 +89,20 @@ function commandMeta(view){
         : `${count.toLocaleString('en-KE')} contracts under management`;
       return ['Portfolio', `${head} · ${totalV} active value`];
     }
-    case 'register':  return ['Contract Register', 'filter, sort and act in bulk across the working set'];
+    case 'register':  return ['Contracts', 'filter, sort and act in bulk across the working set'];
     case 'templates': return ['Templates', 'company standard templates, HaTi standard paper and sample documents'];
-    case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
+    case 'playbook':  return ['Our standards', 'your clause library and negotiation positions — standard wording, playbook and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
-    // Named to match the nav item exactly. One feature answering to two names —
-    // "Portfolio Intel" in the sidebar, "Portfolio Intelligence" on the page —
+    // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
-    case 'intel':     return ['Portfolio Intel', 'negotiation friction control tower · Copilot contract graph'];
+    case 'intel':     return ['Insights', 'negotiation friction control tower · Copilot contract graph'];
     case 'calendar':  return ['Renewal Calendar & Obligations', 'expiry, renewal-decision deadlines and obligations — surfaced automatically from every contract'];
-    case 'migration': return ['Migration', 'bulk-import an existing portfolio · Copilot extraction with human review'];
+    case 'migration': return ['Import contracts', 'bulk-import an existing portfolio · Copilot extraction with human review'];
     case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
     case 'team':      return ['Team & Settings', 'members, roles, approval gate and the Copilot engine'];
     case 'folder': {
-      const f=FOLDERS[state.folderId]; return ['Register', f?`filtered to ${f.name}`:'filter, sort and act in bulk'];
+      const f=FOLDERS[state.folderId]; return ['Contracts', f?`filtered to ${f.name}`:'filter, sort and act in bulk'];
     }
     case 'workspace': {
       const c=getContract(state.activeId);
@@ -109,7 +114,7 @@ function commandMeta(view){
     }
     case 'redline': {
       const c=getContract(state.activeId);
-      return ['Redline', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+      return ['Negotiate', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
     }
     default: return ['HaTi', ''];
   }
@@ -189,7 +194,6 @@ function updateSidebarCounts(){
   const cs=state.contracts;
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
   const counts={
-    dashboard: total,
     register: total,
     pipeline: cs.filter(c=>c.status==='Under Review').length,
     advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
@@ -205,35 +209,43 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={dashboard:'teal',register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString('en-KE');
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
-  // The two right-aligned tags the design draws on the nav itself. "AI Active"
-  // on HaTi DocLab shows only while the Copilot brain is actually live —
-  // copilotAvailable is the one place that knows, so the tag can never claim
-  // an AI that isn't answering. "N Open" on Redline is the owner-seat actions
-  // open across the whole portfolio, from the same reading the workbench uses.
-  const ai=document.getElementById('nav-ai-active');
-  if(ai) ai.hidden=!((typeof copilotAvailable==='function')&&copilotAvailable());
-  const rl=document.getElementById('nav-redline-count');
-  if(rl){
-    const n=window.rlOwnerOpenTotal?rlOwnerOpenTotal():0;
-    rl.textContent=n?`${Number(n).toLocaleString('en-KE')} Open`:'';
-    rl.title=n?`${n} redline action${n===1?'':'s'} waiting on your side — changes to decide and drafts to send`:'';
-    rl.classList.toggle('hidden',!n);
+  /* The "AI Active" and "N Open" nav tags left with the DocLab and Redline
+     sidebar doors (WO N1): a negotiation waiting on the reader is announced
+     on the contract itself — the Negotiate tab's count — and on Home's
+     needs-attention surfaces, which is where the reader actually is. */
+  /* WO N5 — earned nav. An item below its threshold is hidden, not greyed:
+     a control that exists but refuses teaches nothing. The current view
+     always keeps its door (a restored session or the "Show everything"
+     toggle flipping off must never leave the reader on a page whose nav
+     item has vanished), and the "New" tag rides on Insights from the render
+     where it is earned until its first visit. */
+  if(typeof NAV_EARN_AT!=='undefined'){
+    document.querySelectorAll('.nav-item[data-view]').forEach(b=>{
+      const v=b.getAttribute('data-view');
+      if(!(v in NAV_EARN_AT)) return;
+      b.classList.toggle('hidden', !(navEarned(v,total) || state.view===v));
+    });
+    const nnew=document.getElementById('nav-intel-new');
+    if(nnew){
+      if(state.view==='intel') navMarkSeen('intel');
+      nnew.hidden=!(Number(total||0)>=NAV_EARN_AT.intel && !navSeen('intel'));
+    }
   }
 }
 
 /* ============================================================ SHELL VIEW SWITCH */
-const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
-  calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
-  pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
+const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
+  calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
+  pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
-  redline:'the Redline workbench' };
+  redline:'the negotiation workbench' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
 
@@ -413,10 +425,13 @@ function renderNewMenu(){
      one-click default. Served from the library cache; a background refresh
      re-renders the open menu when the list has moved. */
   const libTpls=(window.tplLibPublished&&canEdit())?tplLibPublished():[];
+  /* WO N1: the three ways a contract gets INTO HaTi, in one menu, named for
+     what they do. "Import many at once" is the door to the bulk-import page
+     that used to sit in the sidebar as "Migration". */
   menu.innerHTML=`
+    ${item('sparkle','var(--tile-steel-bg)','var(--tile-steel-fg)','Draft from a template','Pick a template &amp; answer a few questions','id="menu-wizard"')}
     ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
-    ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Bulk migration','Import a whole portfolio at once','id="menu-migrate"')}
-    ${item('sparkle','var(--tile-steel-bg)','var(--tile-steel-fg)','Guided setup','Pick a template &amp; answer a few questions','id="menu-wizard"')}
+    ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Import many at once','Bring a whole back-catalogue in one go','id="menu-migrate"')}
     ${libTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Company standard templates</div>
     ${libTpls.map(t=>item('copy','var(--tile-emerald-bg)','var(--tile-emerald-fg)',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
