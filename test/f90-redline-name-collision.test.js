@@ -51,7 +51,7 @@ function contractFixture(){
 async function page(){
   const w = buildWorld({ negotiationView: true, docLabView: true });
   const { win } = w;
-  win.promptDialog = async () => 'Because the commercial terms require it.';
+  win.promptDialog = async () => '';
   const c = contractFixture();
   win.negoInit(c);
   await win.negoFileProposal(c, win.negoBaseText(c).replace('thirty (30) days', 'sixty (60) days'),

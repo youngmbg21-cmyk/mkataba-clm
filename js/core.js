@@ -1722,7 +1722,6 @@ function shareSummaryStepHtml(c, opts={}){
           : `No changes have been proposed on this contract yet, so ${esc(c.counterparty||'the counterparty')} will receive the document as it currently stands.`}</p>
       ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:2px 11px">${rows}</ul>`
         :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
-      ${shareReasonsStepHtml(c)}
       <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently</span>
         <textarea id="sh-summary" rows="5" style="${FLD}">${esc(s?s.text:'')}</textarea></label>
       ${opts.handOver?`<div id="share-handover" style="margin-top:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.5;color:var(--st-green-fg)">
@@ -1731,50 +1730,6 @@ function shareSummaryStepHtml(c, opts={}){
         <button id="share-close-1" class="ui-btn">Close</button>
         <button id="share-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
-    </div>`;
-}
-
-/* ---- THE REASONS FOR THIS ROUND, ASKED WHERE THEY ARE READ TOGETHER ----
-   A redline says what should change; it has to say why, or the other side can
-   answer the wording and not the argument, and the argument goes back to
-   living in email — the fragmentation this product exists to end.
-
-   The question is put HERE, at the postbox, and not at the moment each change
-   was drafted. Three reasons, and they are the whole design:
-
-     · drafting five clauses in a row should not be interrupted five times, and
-       an author interrupted mid-flow types "commercial" to get past the block —
-       a full stop is a worse record than no reason at all, because it looks
-       like data;
-     · seen as a LIST, a thin reason is obvious beside its neighbours in a way
-       no single dialog can reveal;
-     · this is already the screen where the sender composes what to tell them.
-
-   Nothing escapes in the meantime: unsent asks never travel (holdUnsent, in
-   buildSharePayload), so a reasonless draft cannot reach anybody. And only
-   UNSENT asks are gated — a change delivered in an earlier round is with them
-   already, and a rule invented today must not lock a contract negotiated before
-   it existed. */
-function shareReasonsStepHtml(c){
-  const need = (window.negoAsksMissingReason ? negoAsksMissingReason(c, 'owner') : []);
-  if (!need.length) return '';
-  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 9px;font-size:12px;font-family:var(--font-body);color:var(--color-text);outline:none;';
-  const rows = need.map(x=>`
-    <li style="padding:8px 0;border-bottom:1px solid var(--color-divider)">
-      <div style="display:flex;gap:8px;align-items:baseline;margin-bottom:4px">
-        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-accent-800);flex:none">#${esc(x.id)}</span>
-        <span style="font-size:11.5px;color:var(--color-neutral-700);min-width:0">${esc(x.clauseLabel||x.clauseId||'')} — ${esc(x.summary||'')}</span>
-      </div>
-      <input type="text" data-share-why="${esc(x.id)}" maxlength="400" style="${FLD}"
-        value="${esc(x.rationale||'').replace(/"/g,'&quot;')}"
-        placeholder="Why is this needed? ${esc(c.counterparty||'They')} will see this."
-        aria-label="Reason for change ${esc(x.id)}"/>
-    </li>`).join('');
-  return `
-    <div id="share-reasons" style="margin:0 0 14px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:6px;padding:11px 14px">
-      <div style="font-size:12px;font-weight:600;color:var(--st-amber-fg);margin-bottom:2px">${need.length} change${need.length===1?'':'s'} still ${need.length===1?'needs':'need'} a reason</div>
-      <div style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.5;margin-bottom:6px">${esc(c.counterparty||'The counterparty')} answers the reason, not just the wording. These go out with the round and appear beside each change on their screen.</div>
-      <ul style="list-style:none;margin:0;padding:0;max-height:220px;overflow-y:auto">${rows}</ul>
     </div>`;
 }
 
@@ -1900,16 +1855,6 @@ function shareVersions(c, org){
    it is enforced by the server (refuseIfViewOnly, server/server.js), and named
    here so the share dialog can offer it and the portal can route on it. */
 const SHARE_PURPOSE = p => (['sign','negotiate','view'].includes(p) ? p : null);
-/* The author of a change, as the OTHER SIDE may be told it. The lab records
-   who drafted a redline and what drafted it in one string — see labFileChange
-   — and only the first half is theirs to know. Deliberately narrow: it removes
-   the ` · Copilot (…)` segment the lab appends and nothing else, so a person
-   whose real name contains a separator keeps it, and an author recorded by any
-   other path is passed through untouched. Trailing ', edited' goes with the
-   segment it qualifies; on its own it would say a suggestion had been reworked,
-   which is a fact about our drafting rather than about their contract. */
-const shareAuthorName = a => String(a==null?'':a)
-  .replace(/\s*·\s*Copilot\s*\([^)]*\)(\s*,\s*edited)?/gi,'').trim() || String(a||'').trim();
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
@@ -1965,33 +1910,7 @@ function buildSharePayload(c, docHash, who, opts){
       oldText:x.oldText, newText:x.newText, hash:x.hash, hashV:x.hashV||null,
       prevChangeHash:x.prevChangeHash||null, seq:x.seq||null, status:x.status,
       needsReview:x.needsReview||false, needsReviewWhy:x.needsReviewWhy||null,
-      /* THE HAND, NOT THE TOOL IT HELD. The note was walled below for exactly
-         this reason and the author was left open, so the leak simply moved
-         house: the lab writes provenance INTO the name —
-         `Young Mbagaya · Copilot (Shorten & Simplify)` (labFileChange,
-         js/views/doclab.js) — and that string travelled whole and is printed
-         on the counterparty's change cards. It tells them we used AI, which
-         action we reached for, and therefore which clause we felt exposed on:
-         the same disclosure the note wall exists to prevent, in the one field
-         nobody thought to check.
-
-         Their own name still travels in full — a card that cannot say whose
-         ask it is would be a worse screen (see f70) — so this strips the tool
-         and keeps the person. */
-      author:shareAuthorName(x.author), authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
-      /* THE REDACTION HAS TO BE DECLARED, or the copy accuses us of tampering.
-         `author` is INSIDE the fingerprint (negoHashInput), so a name we have
-         edited on the way out cannot be re-hashed to the value it was issued
-         with — and verifyChangeChain, finding the mismatch, reported the only
-         failure it knew: "the stored wording has been altered since it was
-         filed", in red, on a legal document, about a change nobody had
-         touched. Exactly the fault the revisionsOmitted count exists to
-         prevent, reintroduced through a different field.
-
-         So the copy says which changes carry an edited name. The link either
-         side of them is still checked; only their own hash is not, and the
-         verdict says so instead of guessing. */
-      authorRedacted:(shareAuthorName(x.author)!==String(x.author==null?'':x.author).trim())||undefined,
+      author:x.author, authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
       /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
          used to travel whole, and the counterparty's page printed it under
          "why they asked" — which for a Copilot-drafted change read
@@ -1999,14 +1918,6 @@ function buildSharePayload(c, docHash, who, opts){
          and WHICH clause we felt exposed on. Negotiation-sensitive twice over.
          Their own note comes back to them — they wrote it — and ours stays
          home. */
-      /* THE RATIONALE TRAVELS BOTH WAYS, and that is the whole point of it.
-         `note` below is an internal aside and ours stays home; this is the
-         reason the author wrote FOR the other side, and a reason that did not
-         reach them would be a form field with no reader. Null where a change
-         was filed before rationales were required, or arrived inbound on a
-         link minted before they existed — the card says "no reason given"
-         rather than pretending one was. */
-      rationale:x.rationale||null,
       summary:x.summary, note:(x.authorSide==='counterparty'&&x.note)?x.note:null, reply:x.reply||null,
       resolvedAt:x.resolvedAt||null,
       /* Whether a refused ask has been taken off the table by the side that
@@ -2259,17 +2170,6 @@ function shareRememberRecipient(c, info){
 }
 async function reshareToLastRecipient(c, opts={}){
   if(!canEdit()) throw new Error('Viewers cannot share contracts');
-  /* THE ONE-CLICK SEND IS STILL A SEND. This path has no dialog and therefore
-     no place to type a reason, so it refuses rather than quietly delivering
-     unexplained asks — and names the door that CAN collect them. A signing or
-     view link is not gated: neither carries a new ask. */
-  if(opts.purpose!=='sign' && opts.purpose!=='view' && window.negoAsksMissingReason){
-    const need=negoAsksMissingReason(c,'owner');
-    if(need.length) throw new Error(
-      `${need.length===1?'One change has':`${need.length} changes have`} no reason yet `
-      +`(${need.slice(0,3).map(x=>'#'+x.id).join(', ')}${need.length>3?'…':''}). `
-      +`Open Share to add ${need.length===1?'it':'them'} — the other side answers the reason, not just the wording.`);
-  }
   const shares=opts.shares||await contractShares(c);
   const last=counterpartyContact(c, shares);
   if(!last) throw new Error('This contract has not been shared with anyone yet');
@@ -2564,43 +2464,7 @@ async function openShareModal(c, opts={}){
          the moment of sending IS what the sender chose. */
       payloadObj.purpose=purposeSel; payloadObj.purposeChosen=purposeSel; paintPurpose(); }));
   document.getElementById('share-close-1').addEventListener('click',closeModal);
-  /* ---- THE ROUND DOES NOT LEAVE WITHOUT ITS REASONS ----
-     Written onto the change records as the sender types, so a dialog closed
-     half-finished loses nothing, and Next refuses while any unsent ask is still
-     unexplained — naming which ones rather than saying "some". A view-only or
-     signing link is not gated: neither delivers a new ask. */
-  const shareCollectReasons=()=>{
-    let wrote=false;
-    document.querySelectorAll('#share-reasons [data-share-why]').forEach(el=>{
-      const id=el.getAttribute('data-share-why');
-      const ch=(c.changes||[]).find(x=>x&&x.id===id);
-      if(!ch) return;
-      const v=String(el.value||'').trim();
-      if(String(ch.rationale||'')!==v){ ch.rationale=v||null; wrote=true; }
-    });
-    if(wrote) persist(c);
-  };
-  const shareReasonsReady=()=>{
-    shareCollectReasons();
-    if(purposeSel==='view'||purposeSel==='sign') return true;
-    const need=(window.negoAsksMissingReason?negoAsksMissingReason(c,'owner'):[]);
-    if(!need.length) return true;
-    toast(`${need.length===1?'One change still needs':`${need.length} changes still need`} a reason — `
-      +`${need.slice(0,3).map(x=>'#'+x.id).join(', ')}${need.length>3?'…':''}. `
-      +`${esc(c.counterparty||'They')} answers the reason, not just the wording.`,'err');
-    const panel=document.getElementById('share-reasons');
-    if(panel){
-      panel.style.outline='2px solid var(--st-amber-dot)';
-      setTimeout(()=>{ panel.style.outline=''; },1600);
-      panel.scrollIntoView({ block:'nearest', behavior:'smooth' });
-      panel.querySelector(`[data-share-why="${need[0].id}"]`)?.focus();
-    }
-    return false;
-  };
-  document.getElementById('share-next').addEventListener('click',()=>{
-    if(!shareReasonsReady()) return;
-    step(2);
-  });
+  document.getElementById('share-next').addEventListener('click',()=>step(2));
   document.getElementById('share-back').addEventListener('click',()=>step(1));
   const setCh=k=>{ ch=k;
     document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
@@ -3675,10 +3539,6 @@ async function applyNegoProposals(c, r, who){
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
         clauseLabel:(cl&&window.negoClauseLabel?negoClauseLabel(cl):p.clauseLabel)||null },
         { side:'counterparty', author:who, note:p.note||null, quiet:true,
-          /* Their reason, as they wrote it. `inbound` marks this as wording
-             authored in THEIR copy of the app rather than here — see the
-             rationale gate in negoFileChange for why that is not a loophole. */
-          rationale:p.rationale||null, inbound:true,
           via:`their link${p.id?` as ${p.id}`:''}` });
     }catch(e){ ch=null; }
     if(!ch) continue;
@@ -3781,4 +3641,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,shareAuthorName,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

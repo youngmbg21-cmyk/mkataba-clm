@@ -281,7 +281,7 @@ describe('F98e — the panel hands the exchange to the model', () => {
   async function page(){
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
-    win.promptDialog = async () => 'Because the commercial terms require it.';
+    win.promptDialog = async () => '';
     const c = { id: 'MK-980', name: 'Supply and Services Agreement',
       counterparty: 'Naivas Supermarkets', template: 'RM', status: 'Under Review',
       folder: 'proc', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],

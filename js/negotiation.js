@@ -453,7 +453,7 @@ function negoTimeline(c, f = {}){
     ev.push({ ...base, kind: 'proposed', at: ch.createdAt || ch.at || '', actor: ch.author || '',
       side: ch.authorSide || '', outcome: ch.status === 'pending' && !ch.withdrawn ? 'pending' : '',
       text: `${ch.author || 'Someone'} (${sideWord}) proposed #${ch.id} — ${ch.summary || ch.changeType}`,
-      note: ch.note || null, rationale: ch.rationale || null, ch });
+      note: ch.note || null, ch });
     if (ch.status === 'accepted' || ch.status === 'rejected')
       ev.push({ ...base, kind: 'decided', at: ch.resolvedAt || ch.createdAt || '',
         actor: ch.resolvedBy || '', side: otherSide(ch.authorSide), outcome: ch.status,
@@ -775,7 +775,7 @@ async function verifyChangeChain(c){
   negoInit(c);
   const list = negoIssuances(c);
   let prev = null;                       // the hash issued immediately before, in creation order
-  let omitted = 0, redacted = 0;                       // links this copy was never given (see below)
+  let omitted = 0;                       // links this copy was never given (see below)
   const lastOf = new Map();              // and the previous hash of each change's own history
   for (const iss of list){
     if (iss.hashV !== NEGO_HASH_V)
@@ -811,15 +811,6 @@ async function verifyChangeChain(c){
         detail: isRevision
           ? `#${iss.id} does not follow its own previous wording — a revision is missing from the record`
           : `#${iss.id} does not follow the change before it — the chain was reordered or a link is missing` };
-    /* A NAME THIS COPY WAS NOT GIVEN IN FULL. The share payload redacts the
-       tool out of an author string (shareAuthorName) and `author` is inside the
-       fingerprint, so this copy cannot recompute the hash it was issued with.
-       That is not evidence of tampering and must not be reported as it: the
-       change carries the declaration, the recompute is skipped, and the verdict
-       names how many. Same treatment, and the same reason, as revisionsOmitted
-       above — a redline that cries "altered" over its own redaction teaches
-       readers to ignore the one signal that matters. */
-    if (iss.authorRedacted){ redacted++; prev = iss.hash; lastOf.set(iss.id, iss.hash); continue; }
     const expect = await negoHash(c.id, iss);
     if (expect !== iss.hash)
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
@@ -838,18 +829,14 @@ async function verifyChangeChain(c){
       detail: 'This browser has no SHA-256 available (crypto.subtle needs a secure context), '
         + 'so these fingerprints were computed with a weak substitute and cannot be verified. '
         + 'Open this page over https to check the chain.' };
-  const gaps = [];
-  if (omitted) gaps.push(`${omitted} earlier revision${omitted === 1 ? '' : 's'} ${omitted === 1 ? 'is' : 'are'} not`
-    + ` carried by this copy, so the link${omitted === 1 ? '' : 's'} across ${omitted === 1 ? 'it' : 'them'} cannot be checked here`);
-  if (redacted) gaps.push(`${redacted} change${redacted === 1 ? '' : 's'} carr${redacted === 1 ? 'ies' : 'y'} a`
-    + ` shortened author name on this copy, so ${redacted === 1 ? 'its' : 'their'} own fingerprint cannot be`
-    + ` recomputed here`);
   return { ok: true, checked: list.length, failedAt: null, reason: null,
-    omitted, redacted, partial: omitted > 0 || redacted > 0,
+    omitted, partial: omitted > 0,
     detail: !list.length ? 'nothing filed yet'
-      : gaps.length
-        ? `${list.length} change record${list.length === 1 ? '' : 's'} checked. ${gaps.join('; ')}.`
-          + ` Nothing suggests the wording has been altered.`
+      : omitted
+        ? `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints.`
+          + ` ${omitted} earlier revision${omitted === 1 ? '' : 's'} ${omitted === 1 ? 'is' : 'are'} not carried by`
+          + ` this copy, so the link${omitted === 1 ? '' : 's'} across ${omitted === 1 ? 'it' : 'them'} cannot be`
+          + ` checked here. Nothing suggests the wording has been altered.`
         : `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints` };
 }
 
@@ -947,30 +934,6 @@ async function negoFileChange(c, draft, opts = {}){
     if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
     return null;
   }
-  /* ---------- NO WORDING CROSSES THE TABLE WITHOUT A REASON ----------
-     A redline says what should change. It has never been made to say WHY, so
-     the other side received "liability capped at EUR 250,000" with nothing to
-     answer but yes or no, and the reasoning lived in an email thread — the
-     fragmentation this product exists to end. Worse, an AI-drafted change
-     carried the only rationale anyone wrote: "Copilot — Shorten & Simplify",
-     which records the TOOL and not the argument, and was walled out of the
-     share payload anyway — so the other side got wording with no reason at all.
-
-     So a rationale is part of what a change IS, it travels in both directions,
-     and it is required of both chairs equally.
-
-     REQUIRED AT THE AUTHORING PATHS, RECORDED HERE. Unlike the executed-contract
-     guard above, this funnel is not the right door to refuse at: it is also
-     where a returned Word file, a pasted redraft and the other side's own
-     proposals are split into changes, and none of those has an author present
-     to be asked. Refusing here would not improve those rounds, it would destroy
-     them. So every route a HUMAN types a redline through asks the question and
-     will not file without an answer — the shared Direct Edit bar (both chairs),
-     proposed deletions, and both Copilot apply routes — and this records what
-     they gave. A change reaching here without one is legacy, inbound, or
-     machine-split, and its card says no reason was recorded rather than
-     leaving the row out and implying none was needed. */
-  const rationale = String(opts.rationale == null ? '' : opts.rationale).trim();
   negoInit(c);
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
   const author = String(opts.author || (side === 'owner'
@@ -1015,7 +978,7 @@ async function negoFileChange(c, draft, opts = {}){
       prevChangeHash: live.prevChangeHash, clauseId: live.clauseId, changeType: live.changeType,
       oldText: live.oldText, newText: live.newText, author: live.author,
       createdAt: live.createdAt, ops: live.ops, bodyHtml: live.bodyHtml,
-      summary: live.summary, rationale: live.rationale || null });
+      summary: live.summary });
     live.changeType = draft.changeType;
     live.oldText = oldText;
     live.newText = newText;
@@ -1025,9 +988,6 @@ async function negoFileChange(c, draft, opts = {}){
     live.createdAt = at;
     live.updatedAt = at;
     live.summary = String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText);
-    /* Changing your mind is a new argument, so the reason moves with the
-       wording. The previous one is already on the revision pushed above. */
-    if (rationale) live.rationale = rationale;
     await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });
     if (window.logAudit) logAudit(c, 'Negotiation',
       `#${live.id} revised by ${author} — “${live.summary}” on ${live.clauseLabel || live.clauseId};` +
@@ -1054,10 +1014,6 @@ async function negoFileChange(c, draft, opts = {}){
     roundN,
     clauseLabel: draft.clauseLabel || negoClauseLabel(cl) || null,
     summary: String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText),
-    /* The reason, in the author's own words. Unlike `note` — an internal aside
-       that stays home — this is written to be read by the other side, and it
-       travels in both directions. */
-    rationale: rationale || null,
     note: opts.note || null,
     thread: [],
     needsReview: !!draft.needsReview,
@@ -1128,13 +1084,6 @@ async function negoDeleteClause(c, clauseId, opts = {}){
    still recognised as the same clause. That is the honest reading of what a
    counterparty who edited our file actually did. */
 async function negoFileProposal(c, proposedText, opts = {}){
-  /* A WHOLE DOCUMENT COMING BACK IS NOT SOMEBODY TYPING A REDLINE. This is the
-     returned-Word-file and pasted-redraft route: the wording was authored in
-     the other side's word processor, arrives as one blob, and is split into
-     per-clause changes HERE. There is no author present to be asked why, and
-     refusing the import would destroy the round rather than improve it — so it
-     is filed inbound, and each card says no reason was recorded. */
-  opts = { inbound: true, ...opts };
   negoInit(c);
   const next = String(proposedText == null ? '' : proposedText);
   if (!next.trim()) return [];
@@ -2666,25 +2615,6 @@ function negoUnsentAsks(c, side){
               it was sent to us, whatever the turn stamp says. */
            : me === 'owner'));
 }
-/* ---- WHICH ASKS ARE NOT YET READY TO GO ----
-   The round's own reasons, checked together at the moment it is sent rather
-   than one at a time as each is drafted.
-
-   Asking at the postbox is the whole design. At the moment of typing, the
-   author knows exactly why and gains nothing by writing it down, so a block
-   there buys "commercial" and moves on; at the postbox the reasons are seen as
-   a LIST, and "commercial / commercial / as discussed" is obviously thin beside
-   its neighbours in a way no single dialog can reveal. It is also the moment
-   the sender is already composing what to tell the other side.
-
-   Scoped to UNSENT asks of this side. A change already delivered in an earlier
-   round is not re-gated — the wording is with them and a rule invented today
-   must not lock a contract that was negotiated before it existed. */
-function negoAsksMissingReason(c, side){
-  return negoUnsentAsks(c, side)
-    .filter(x => !String((x && x.rationale) || '').trim());
-}
-
 function negoTurnBanner(c, side){
   negoInit(c);
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
@@ -2962,7 +2892,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoCopilotRecord, NEGO_COPILOT_CAP,
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
   negoIsLivePair, negoCompareVersions,
-  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks, negoAsksMissingReason,
+  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });

@@ -9,12 +9,17 @@
    no story.
 
    THE HISTORY IS THE OWNER'S SCREEN, MOUNTED UNCHANGED. One component, both
-   chairs, exactly as the workbench already is. What makes that safe is not a
+   chairs, exactly as the workbench already is. What keeps it safe is not a
    filter added at the portal — it is that this page's contract is rebuilt from
    the SHARE PAYLOAD, which already decided what may cross the table: internal
-   notes never travelled, and the author string is stripped of the tool that
-   drafted it (f141). The wall that cannot be got wrong is the one made of
-   things that were never sent.
+   notes never travelled, so nothing drawn from a note can leak here. The wall
+   that cannot be got wrong is the one made of things that were never sent.
+
+   What the payload DOES send whole is the author string, and the timeline shows
+   it — as the change cards on this page always have. That is stated in the
+   tests below rather than wished away, because the fix is not a redaction on
+   the way out: the author sits inside the change's fingerprint, so an edited
+   name leaves their copy unable to verify the chain.
 
    AND THE EXPORT GOES WITH IT, with the colour fault fixed. The report is a
    standalone HTML file, but its ins/del rules named var(--st-green-bg) and
@@ -32,10 +37,7 @@ const CHANGE = {
   oldText: 'Payable within thirty (30) days.', newText: 'Payable within sixty (60) days.',
   ops: [{ op: 'del', text: 'thirty (30)' }, { op: 'ins', text: 'sixty (60)' }],
   summary: 'Payment terms extended to Net-60', authorSide: 'owner',
-  /* As the lab records it — the leak f141 closed, re-asserted here because the
-     history is a NEW surface and must inherit the wall rather than reopen it. */
-  author: 'Young Mbagaya · Copilot (Shorten & Simplify)',
-  rationale: 'Our cash cycle cannot support Net-30 on this volume.',
+  author: 'Young Mbagaya',
   note: 'Copilot — Shorten & Simplify',
 };
 
@@ -88,22 +90,23 @@ describe('f143 — they can reach the history at all', () => {
   });
 });
 
-describe('f143 — what they read carries no trace of how we drafted it', () => {
-  test('the timeline names the person, never the tool', async () => {
+describe('f143 — the internal note stays behind', () => {
+  test('our aside never reaches their timeline, because it never reached the page', async () => {
+    /* buildSharePayload walls `note` to the counterparty's own. The history is a
+       new surface and inherits that for free: it can only draw what was sent. */
     const v = theirPage();
     v.click('pt-hist');
     await settle();
-    const html = v.html();
-    assert.ok(/Young Mbagaya/.test(html), 'whose ask it is survives');
-    assert.ok(!/Copilot/i.test(html),
-      'the history is a new surface and inherits the wall — it does not reopen it');
+    assert.ok(!/Copilot — Shorten/.test(v.html()),
+      'the note is an internal aside and does not cross the table');
   });
 
-  test('but the reason we gave IS there, because it was written for them', async () => {
+  test('and whose ask it is still reads plainly', async () => {
     const v = theirPage();
     v.click('pt-hist');
     await settle();
-    assert.match(v.html(), /cash cycle cannot support Net-30/);
+    assert.match(v.html(), /Young Mbagaya/,
+      'a history that cannot say who asked would be a worse screen than none');
   });
 });
 
@@ -148,9 +151,9 @@ describe('f143 — the export, and the colour fault it used to have', () => {
     assert.match(e.html, /sixty \(60\)/);
   });
 
-  test('the file carries no trace of the tool, and no commentary of ours', async () => {
+  test('the file carries no internal note, and no commentary of ours', async () => {
     const e = await exported();
-    assert.ok(!/Copilot/i.test(e.html), 'it goes to the counterparty');
+    assert.ok(!/Copilot — Shorten/.test(e.html), 'the internal aside stayed home');
     assert.ok(!/custom propert|self-contained has to mean/i.test(e.html),
       'our reasoning about the fix is not theirs to read');
   });

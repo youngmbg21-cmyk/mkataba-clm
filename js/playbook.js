@@ -260,10 +260,7 @@ async function applyClauseRedline(c, clauseText, label){
     const ch=await negoInsertClause(c, after,
       { headingText:name, bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) },
       { side:'owner', author:(u&&u.name)||'This workspace',
-        summary:`Preferred wording inserted from the playbook — ${name}`,
-        /* Our standing wording is itself the argument — see the clause-library
-           insert in js/views/negotiation.js for why this needs no prompt. */
-        rationale:`This is our standard wording for ${name}.` });
+        summary:`Preferred wording inserted from the playbook — ${name}` });
     if(ch){
       c.clauseInserts=(c.clauseInserts||[]).concat([{ name, where:'end', at:nowISO(),
         by:(u&&u.name)||'System', changeId:ch.id }]);

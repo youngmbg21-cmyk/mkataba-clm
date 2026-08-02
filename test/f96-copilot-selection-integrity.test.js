@@ -78,7 +78,7 @@ function contractFixture(over = {}){
 async function page(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
-  win.promptDialog = async () => 'Because the commercial terms require it.';
+  win.promptDialog = async () => '';
   /* Layout, not logic: give every Range a rectangle so the menu will open. */
   win.Range.prototype.getBoundingClientRect = function (){
     return { left: 10, top: 10, right: 90, bottom: 30, width: 80, height: 20, x: 10, y: 10 };

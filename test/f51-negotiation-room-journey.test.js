@@ -124,7 +124,7 @@ function theirLink(c, o = {}){
 /* The owner's side of the wire — js/core.js's applyResponse, for real. */
 function ownerRecord(){
   const p = buildPortal();
-  p.win.promptDialog = async () => 'Because the commercial terms require it.';
+  p.win.promptDialog = async () => '';
   p.win.persist = () => {};
   p.win.saveContract = () => {};
   p.win.renderWorkspace = () => {};

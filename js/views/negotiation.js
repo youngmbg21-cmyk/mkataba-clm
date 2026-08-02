@@ -647,24 +647,10 @@ function negoStyleHtml(){
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
   .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
   .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
-  /* A column, not a row. The reason has to explain who reads the answer, and
-     sharing a line with Save and Cancel left it about 210px — the placeholder
-     truncated to "(you can a…", which is guidance nobody can read. */
-  .nego-edit-bar{display:flex;flex-direction:column;gap:6px;margin-top:6px;align-items:stretch;width:100%}
-  .nego-edit-acts{display:flex;gap:6px}
+  .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
   .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
-  /* The reason sits on the bar, level with Save, because it is a condition of
-     saving rather than a footnote to it. Same control on both sides of the
-     table — the portal mounts this component too. */
-  /* Its own row. Sharing the line with Save and Cancel left roughly 210px for a
-     placeholder that has to explain who reads the answer, so it truncated to
-     "(you can a…" — guidance nobody can read is not guidance. */
-  .nego-why{width:100%;min-width:0;font-family:inherit;font-size:11.5px;padding:6px 9px;
-    border:1.5px solid var(--n-line);border-radius:5px;background:var(--n-paper);color:var(--n-ink)}
-  .nego-why:focus{outline:none;border-color:var(--n-slate)}
-  .nego-edit-bar button[disabled]{opacity:.45;cursor:not-allowed}
   .nego-edit-bar .b-cancel{background:var(--n-paper);border-color:var(--n-line);color:var(--n-ink-soft)}
   /* The room sits above the application shell, and the shell is where HaTi's
      Copilot panel lives — which is why Ask Copilot could not simply open it.
@@ -1138,32 +1124,6 @@ const _HT_KIND_META = {
   sealed:     { mark: '🔏', word: 'Sealed' },
   copies:     { mark: '📤', word: 'Copies' },
 };
-/* ---------- WHY THIS WAS ASKED ----------
-   A reason is required of both chairs now (see the gate in negoFileChange), so
-   a change without one was either filed before that shipped or arrived inbound
-   on a link minted before it. Both say so plainly: a card that simply omitted
-   the row would read as "no reason was needed".
-
-   `rationale` first, `note` behind it. The note is the author's internal aside
-   and is the only thing older records carry, so it still answers here on OUR
-   screen — but it is walled out of the share payload, which is exactly why the
-   rationale had to exist as a separate field that travels. */
-const negoWhyText = x => String((x && (x.rationale || x.note)) || '').trim();
-function negoWhyCardHtml(ch){
-  const why = negoWhyText(ch);
-  if (!why) return `<div style="border-left:2px solid var(--n-line);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
-      <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-ink-soft)">Why they asked</span>
-      <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink-soft);font-style:italic">No reason was recorded with this change.</span></div>`;
-  return `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
-      <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
-      <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(why)}</span></div>`;
-}
-function negoWhyHtml(e, cls){
-  const why = negoWhyText(e);
-  return why ? `<div class="${cls}">Why they asked: ${_ne(why)}</div>`
-    : `<div class="${cls}" style="font-style:italic">No reason was recorded with this change.</div>`;
-}
-
 function negoTimelineEventHtml(c, e){
   const m = _HT_KIND_META[e.kind] || { mark: '·', word: e.kind };
   const when = e.at ? String(e.at).slice(0, 10) : '';
@@ -1176,7 +1136,7 @@ function negoTimelineEventHtml(c, e){
     ? `<span class="ht-clause" data-ht-clause="${_nea(e.clauseId || '')}">${_ne(e.clauseLabel)}</span>` : '';
   const body = e.kind === 'proposed' && e.ch
     ? `<div class="ht-redline">${negoChangeHtml(e.ch)}</div>`
-      + negoWhyHtml(e, 'ht-note')
+      + (e.note ? `<div class="ht-note">Why they asked: ${_ne(e.note)}</div>` : '')
     : e.kind === 'decided' && e.reply
     ? `<div class="ht-note">Reply: ${_ne(e.reply)}</div>`
     : '';
@@ -1951,7 +1911,9 @@ function negoLiveCardsHtml(c, opts){
                 you says nothing at all. It is a pill in the top row now, and the
                 card carries an edge. */}
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
-        ${negoWhyCardHtml(ch)}
+        ${ch.note ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
+          <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
+          <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
@@ -2068,7 +2030,9 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
-    ${negoWhyCardHtml(ch)}
+    ${ch.note ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
+      <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
+      <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
     ${msgs.length ? `<div class="nego-past-thread">
@@ -3649,26 +3613,13 @@ async function negoAiPropose(c, ctx){
       : `<p style="font-family:var(--n-font-ui);font-size:12.5px;color:var(--n-ink-soft);margin:0">No wording change was proposed${note ? ' — the note above is the whole answer' : ''}.</p>`);
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
   const foot = document.createElement('footer');
-  /* THE MODEL SUGGESTED THE WORDING; THE REASON IS STILL THE LAWYER'S.
-     This is the path that produced the reported screen: every card read "Why
-     they asked: Copilot — Shorten & Simplify", which records the TOOL and not
-     the argument — and that note never crossed the table anyway, so the other
-     side got wording with no reason at all.
-
-     Offered, not demanded. A prompt fired AFTER somebody has decided to apply a
-     suggestion interrupts a finished action, which is the surest way to harvest
-     a full stop; the requirement sits at the postbox with the rest of the
-     round. */
   foot.innerHTML = `
-    ${canApply ? `<input type="text" data-ai-why maxlength="400" class="nego-why"
-        placeholder="Why is this change needed? (you can add this before you send)" aria-label="Reason for this change"/>` : ''}
     ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary" style="font-size:12px">Apply redline</button>` : ''}
     <button type="button" data-ai-cancel class="ui-btn" style="font-size:12px">Cancel</button>
     <span style="flex:1"></span>
     <span style="font-family:var(--n-font-ui);font-size:10.5px;color:var(--n-ink-soft);align-self:center">Nothing has changed yet</span>`;
   pop.appendChild(foot);
   place();
-  const aiWhy = foot.querySelector('[data-ai-why]');
   foot.querySelector('[data-ai-cancel]').addEventListener('click', () => pop.remove());
   foot.querySelector('[data-ai-apply]')?.addEventListener('click', async () => {
     const btn = foot.querySelector('[data-ai-apply]');
@@ -3681,7 +3632,6 @@ async function negoAiPropose(c, ctx){
       const html = window.negoRichFromLines ? negoRichFromLines(proposed) : `<p>${e(proposed)}</p>`;
       const ch = await negoEditClause(c, clauseId, html, {
         side, author: opts.by,
-        rationale: aiWhy ? aiWhy.value.trim() : '',
         note: `Copilot — ${action.label.replace(/^\S+\s/, '')}` });
       if (!ch){ btn.disabled = false; btn.textContent = 'Apply redline';
         if (window.toast) toast('That wording matches the clause already — nothing filed'); return; }
@@ -3998,12 +3948,7 @@ function wireNegotiationTab(c, opts = {}){
       const ch = await negoInsertClause(c, after || null,
         { headingText: cl.name, bodyHtml: window.textToRich ? textToRich(cl.preferred) : `<p>${_ne(cl.preferred)}</p>` },
         { side, author: opts.by,
-          summary: `Preferred wording inserted from the playbook — ${cl.name}`,
-          /* The organisation's standing position IS the argument here, and it
-             is human-authored policy rather than a tool's fingerprint — so it
-             is a reason the other side can answer, and no second question is
-             put to the person picking it off the shelf. */
-          rationale: `This is our standard wording for ${cl.name}.` });
+          summary: `Preferred wording inserted from the playbook — ${cl.name}` });
       if (!ch){ if (window.toast) toast('That clause could not be inserted', 'err'); return; }
       _negoActive = ch.id;
       if (window.negoInvalidateVerification) negoInvalidateVerification(c);
@@ -4155,43 +4100,14 @@ function wireNegotiationTab(c, opts = {}){
     }));
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
-    /* ---- THE REASON, OFFERED HERE AND REQUIRED AT THE POSTBOX ----
-       One bar, both chairs: the counterparty's portal mounts this same
-       component, so whoever is typing gets the same field. It is the FAST PATH,
-       deliberately not a gate — writing the argument while the wording is still
-       under your hands is the best moment there is, and anyone who wants it can
-       take it.
-
-       What it is not is a toll on every save. Blocking Save here interrupts
-       drafting five clauses in a row, and asks the question at the moment the
-       author is least able to answer it well; the answer that buys their way
-       past a block is "commercial", and a full stop is not a worse record than
-       nothing — it is worse, because it looks like data.
-
-       The requirement lives at the moment the round is SENT, where the reasons
-       are seen together as a list and a thin one is obvious beside its
-       neighbours. Nothing escapes in the meantime: unsent asks never travel
-       (buildSharePayload's holdUnsent), so a reasonless draft cannot reach
-       anybody. See negoAsksMissingReason. */
-    bar.innerHTML = `<input class="nego-why" data-nego-why="${_ne(clauseId)}" type="text" maxlength="400"`
-      + ` placeholder="Why is this change needed?"`
-      + ` title="The other side sees this beside the change. You can also add it at the moment you send the round."`
-      + ` aria-label="Reason for this change — the other side sees this"/>`
-      + `<span class="nego-edit-acts">`
-      + `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
-      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button></span>`;
+    bar.innerHTML = `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
+      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button>`;
     holder.after(bar);
     if (holder.focus) holder.focus();
-    const why = bar.querySelector('[data-nego-why]');
-    const saveBtn = bar.querySelector('[data-nego-save]');
-    /* Enter in a one-line reason means "file it". */
-    why.addEventListener('keydown', ev => {
-      if (ev.key === 'Enter'){ ev.preventDefault(); saveBtn.click(); } });
     bar.querySelector('[data-nego-cancel]').addEventListener('click', ev => { ev.stopPropagation(); again(); });
-    saveBtn.addEventListener('click', ev => {
+    bar.querySelector('[data-nego-save]').addEventListener('click', ev => {
       ev.stopPropagation();
-      fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML,
-        { side, author: opts.by, rationale: why.value.trim() }),
+      fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML, { side, author: opts.by }),
         ch => `#${ch.id} filed — ${ch.summary}`);
     });
   }));
@@ -4201,23 +4117,14 @@ function wireNegotiationTab(c, opts = {}){
     const clauseId = b.getAttribute('data-nego-del');
     const cl = negoClauseById(c, clauseId);
     if (!cl) return;
-    /* The reason is asked for at the postbox with every other change in the
-       round, not in a second dialog stacked on this confirmation. An offer to
-       explain, made at the moment somebody has already decided to strike a
-       clause, is an interruption to a finished act — and interruptions are what
-       "commercial" gets typed into. */
-    let reason = '';
-    if (window.promptDialog){
-      const answer = await promptDialog({ title: 'Propose deleting this clause?',
+    if (window.confirmDialog){
+      const ok = await confirmDialog({ title: 'Propose deleting this clause?',
         message: `“${negoClauseLabel(cl)}” would be struck through for the other side to decide. `
           + 'The wording stays in the document until they accept the deletion.',
-        label: 'Why should this clause go? (optional now — required before you send)',
-        placeholder: 'e.g. covered already by clause 8, so this duplicates it',
         confirmLabel: 'Propose deletion' });
-      if (answer == null) return;
-      reason = String(answer).trim();
+      if (!ok) return;
     }
-    fileAndRepaint(() => negoDeleteClause(c, clauseId, { side, author: opts.by, rationale: reason }),
+    fileAndRepaint(() => negoDeleteClause(c, clauseId, { side, author: opts.by }),
       ch => `#${ch.id} filed — deletion proposed, the wording stays until it is accepted`);
   }));
 
@@ -5194,13 +5101,6 @@ function redlineLayoutCss(){
   }
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
     background:var(--st-amber-bg);color:var(--st-amber-fg);overflow-wrap:anywhere}
-  /* The reason reads as part of the ask rather than as an annotation on it, so
-     it leads the card body and is quieter than the amber internal note. */
-  .redline-page .rl-card-why{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;
-    line-height:1.5;background:var(--n-canvas,#f4f6f7);color:var(--n-ink,#1c2126);overflow-wrap:anywhere}
-  .redline-page .rl-card-why-h{display:block;font-size:8.5px;font-weight:700;letter-spacing:.09em;
-    text-transform:uppercase;opacity:.6;margin-bottom:2px}
-  .redline-page .rl-card-why-none{font-style:italic;opacity:.72}
   /* Compact pills, right-aligned: each verb is only as wide as its word, so the
      card's information leads and the actions follow. flex:1 stretched them into
      a wall of colour that outweighed the change itself. */
@@ -6355,17 +6255,13 @@ async function rlAiPropose(ctx){
      now records the placement as well as the action, and the placement is not
      known until Apply is pressed — the reader may have corrected it since the
      model guessed. */
-  /* Filed without a question of its own: the round's reasons are collected at
-     the postbox, together, where a thin one shows up beside its neighbours. */
   const fileAll = (jobs, note) => {
-    (async () => {
-    const rationale = '';
-    await Promise.all(jobs.map(j => j.kind === 'delete'
-      ? negoDeleteClause(c, j.clauseId, { side, author: opts && opts.by, note, rationale })
+    Promise.all(jobs.map(j => j.kind === 'delete'
+      ? negoDeleteClause(c, j.clauseId, { side, author: opts && opts.by, note })
       : j.kind === 'insert'
         ? negoInsertClause(c, j.clauseId, { bodyHtml: j.bodyHtml, headingText: j.headingText || '' },
-          { side, author: opts && opts.by, note, rationale })
-        : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note, rationale })))
+          { side, author: opts && opts.by, note })
+        : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note })))
       .then(chs => {
         const filed = chs.filter(Boolean);
         if (!filed.length){ if (window.toast) toast('That wording matches the clause already — nothing filed'); return; }
@@ -6378,7 +6274,6 @@ async function rlAiPropose(ctx){
         again();
       })
       .catch(err => { if (window.toast) toast(`Could not file that change: ${(err && err.message) || err}`, 'err'); });
-    })();
     return { ok: true };
   };
   const asHtml = t => (window.negoRichFromLines ? negoRichFromLines(t) : `<p>${_ne(t)}</p>`);
@@ -7577,13 +7472,8 @@ async function rlFilePlaybookProposal(c, item, wording){
   const author = (window.currentUser && currentUser()?.name) || 'This workspace';
   const note = `Playbook — ${item.v.category}${item.v.escalate ? ' (escalation position)' : ''}${
     item.v.position ? ': ' + String(item.v.position).slice(0, 300) : ''}`;
-  /* The playbook position is the reason, in the organisation's own words —
-     see the clause-library insert above for why that needs no second question. */
-  const rationale = String(item.v.position || '').trim()
-    ? `Our playbook position on ${item.v.category}: ${String(item.v.position).slice(0, 300)}`
-    : `Required by our playbook on ${item.v.category}.`;
   if (item.clauseId && window.negoEditClause && window.negoRichFromLines)
-    return await negoEditClause(c, item.clauseId, negoRichFromLines(words), { side: 'owner', author, note, rationale });
+    return await negoEditClause(c, item.clauseId, negoRichFromLines(words), { side: 'owner', author, note });
   if (window.negoInsertClause){
     /* ---- BEFORE THE SIGNATURES, NEVER AFTER ----
        A new operative clause anchors after the LAST clause ahead of the
@@ -7601,7 +7491,7 @@ async function rlFilePlaybookProposal(c, item, wording){
     if (after == null && clauses.length) after = clauses[clauses.length - 1].clauseId;
     const body = window.textToRich ? textToRich(words) : `<p>${_ne(words)}</p>`;
     return await negoInsertClause(c, after, { headingText: String(item.v.category || '').toUpperCase(), bodyHtml: body },
-      { side: 'owner', author, note, rationale,
+      { side: 'owner', author, note,
         summary: `Playbook position inserted — ${item.v.category}` });
   }
   return null;
@@ -7866,16 +7756,6 @@ function redlineChangeCardsHtml(c, opts = {}){
        someone flips to Counterparty View to check what they are sending. */
     const note = (ch.note && ch.authorSide === side)
       ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
-    /* THE REASON IS THE OPPOSITE OF THE NOTE, and so is its wall. A note is an
-       internal aside and shows only to the side that wrote it; a rationale was
-       written FOR the other side, travels in the payload, and therefore shows
-       on both — a reason only its author can read is not a reason, it is a
-       diary entry. Absence is stated rather than skipped: a card that simply
-       left the row out would read as "no reason was needed". */
-    const why = String(ch.rationale || '').trim();
-    const whyRow = why
-      ? `<div class="rl-card-why"><span class="rl-card-why-h">Why</span>${_ne(why)}</div>`
-      : `<div class="rl-card-why rl-card-why-none"><span class="rl-card-why-h">Why</span>No reason was recorded with this change.</div>`;
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
        card and not only the decidable ones: revising your own ask is the most
@@ -7966,7 +7846,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        column — repainting on mouseenter would fight the pointer and drop the
        node the event came from. Safe only because of the exemption above: a
        card that can be in the hidden state carries nothing but inert verbs. */
-    const body = `<div class="rl-card-body">${whyRow}${note}${
+    const body = `<div class="rl-card-body">${note}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"

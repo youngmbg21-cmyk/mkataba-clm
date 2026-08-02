@@ -64,7 +64,7 @@ function contractFixture(over = {}){
 async function page(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
-  win.promptDialog = async () => 'Because the commercial terms require it.';
+  win.promptDialog = async () => '';
   const c = opts.contract || contractFixture(
     opts.email ? { counterpartyEmail: opts.email, counterpartyName: 'Erik Lindqvist' } : {});
 

@@ -91,18 +91,12 @@ async function table(){
     card(id){ return t.$(`#rl-changes [data-nego-card="${id}"]`); },
     /* Direct Edit through the DOM: open the inline editor on a clause, swap
        the body, save. The same path a person's click takes. */
-    async edit(re, newHtml, why = 'The commercial terms require it.'){
+    async edit(re, newHtml){
       const cl = t.clauseByHead(re);
       cl.querySelector('[data-nego-edit]').click();
       const box = cl.querySelector('[data-nego-editor]');
       assert.ok(box, 'the inline editor must open on the clause itself');
       box.innerHTML = newHtml;
-      /* A change cannot be filed without a reason, so the person types one —
-         Save is disabled until they do. */
-      const reason = cl.querySelector('[data-nego-why]');
-      assert.ok(reason, 'the reason field must be on the edit bar');
-      reason.value = why;
-      reason.dispatchEvent(new win.Event('input', { bubbles: true }));
       cl.querySelector('[data-nego-save]').click();
       await new Promise(r => setTimeout(r, 25));
     },
