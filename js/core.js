@@ -63,7 +63,11 @@ const state = {
 };
 const isMonetary = c => c.valueType !== 'none';
 function mk(name,cp,value,status,tmpl,date,expiry,valueType){
-  const c = { id:nextId(), name, counterparty:cp, value, status, template:tmpl,
+  /* `seeded` marks demo paper so surfaces that measure REAL progress — the
+     getting-started checklist on Home (WO N3) — can tell a pre-signed sample
+     from a contract the customer actually put in and signed. It survives the
+     server's light-list projection, unlike the audit entry below. */
+  const c = { id:nextId(), name, counterparty:cp, value, status, template:tmpl, seeded:true,
     folder:TEMPLATES[tmpl].folder, valueType:valueType||TEMPLATES[tmpl].valueType,
     lastAction:date, expiry:expiry||null, hash:null, signedAt:null,
     signatory:'A. Otieno, Director', compliance:{iprs:false,pki:false},
