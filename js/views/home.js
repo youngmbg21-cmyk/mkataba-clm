@@ -390,17 +390,17 @@ function renderDashboard(){
   const REGION_LABEL={SE:'Sweden 🇸🇪', KE:'Kenya 🇰🇪'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
   const heroSection=`
-    <section style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px 26px;border-radius:18px;background:linear-gradient(115deg,#0f172a 0%,#134e4a 62%,#0d9488 130%);border:1px solid #134e4a;box-shadow:var(--shadow-md);color:#fff;">
-      <div style="position:absolute;right:-60px;top:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.28),transparent 68%);pointer-events:none;"></div>
-      <div style="position:relative;min-width:0;display:flex;flex-direction:column;gap:7px;">
-        <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:999px;background:rgba(20,184,166,.2);border:1px solid rgba(20,184,166,.34);color:#5eead4;font-size:11px;font-weight:600;">
+    <section style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-radius:14px;background:linear-gradient(115deg,#0f172a 0%,#134e4a 62%,#0d9488 130%);border:1px solid #134e4a;box-shadow:var(--shadow-md);color:#fff;">
+      <div style="position:absolute;right:-60px;top:-70px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.28),transparent 68%);pointer-events:none;"></div>
+      <div style="position:relative;min-width:0;display:flex;flex-direction:column;gap:3px;">
+        <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;background:rgba(20,184,166,.2);border:1px solid rgba(20,184,166,.34);color:#5eead4;font-size:10px;font-weight:600;">
           <span style="display:inline-flex;color:#5eead4;">${icon('check2','w-3 h-3',2)}</span>Multi-jurisdiction engine ready
         </span>
-        <h2 style="margin:0;font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SME Contract Control Center</h2>
-        <p style="margin:0;font-size:12.5px;color:#cbd5e1;max-width:62ch;">Fast, accessible execution for ${regionNow} operations · ${Number(countAll).toLocaleString('en-KE')} contracts under management.</p>
+        <h2 style="margin:0;font-size:19px;line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SME Contract Control Center</h2>
+        <p style="margin:0;font-size:12px;color:#cbd5e1;max-width:62ch;">Fast, accessible execution for ${regionNow} operations · ${Number(countAll).toLocaleString('en-KE')} contracts under management.</p>
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
-        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:var(--accent-solid);color:#fff;font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -6px rgba(13,148,136,.7);transition:background .15s;" onmouseover="this.style.background='#14b8a6'" onmouseout="this.style.background='var(--accent-solid)'">
+        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:0;border-radius:10px;background:var(--accent-solid);color:#fff;font:inherit;font-family:var(--font-heading);font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -6px rgba(13,148,136,.7);transition:background .15s;" onmouseover="this.style.background='#14b8a6'" onmouseout="this.style.background='var(--accent-solid)'">
           ${icon('plus','w-3.5 h-3.5',2)} Draft new agreement
         </button>
       </div>
@@ -544,7 +544,7 @@ function renderDashboard(){
       </div>
     </section>` : '';
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="display:flex;flex-direction:column;gap:18px;padding:16px 18px 28px;">
+  <div class="view-enter" style="display:flex;flex-direction:column;gap:9px;padding:12px 18px 18px;">
     ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
     ${firstRunBanner}
 
