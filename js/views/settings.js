@@ -430,6 +430,13 @@ function renderTeam(){
 
       ${(API_MODE()&&isAdmin())?`
       <section style="${cardStyle}">
+        <h4 style="${h4Style}">Pilot activation</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The four moments that predict whether a workspace sticks — first contract in, first Copilot scan, first send, first signature back — observed by the server as they happen (demo samples don't count). The north star: <b>first send within 7 days</b>.</p>
+        <div id="activation-funnel" style="font-size:12px;color:var(--color-neutral-700)">Loading…</div>
+      </section>`:''}
+
+      ${(API_MODE()&&isAdmin())?`
+      <section style="${cardStyle}">
         <h4 style="${h4Style}">Email &amp; notifications</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Contract share links, counterparty response alerts, share nudges (3 days unopened), renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span style="font-family:var(--font-mono)">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
@@ -443,6 +450,31 @@ function renderTeam(){
   </div>`;
 
   if(API_MODE()&&isAdmin()){
+    /* WO N7: the activation funnel — four labelled steps, each with its first
+       time and count, and one sentence for the north star. Words, not colour:
+       "not yet" is an answer, not an absence. */
+    (async()=>{
+      const host=document.getElementById('activation-funnel'); if(!host) return;
+      try{
+        const r=await api('activation');
+        const STEP={ added:'First contract in', scanned:'First Copilot scan', sent:'First send', signed:'First signature back' };
+        host.innerHTML=`
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:10px">
+            ${Object.entries(STEP).map(([k,label])=>{ const e=r.events&&r.events[k];
+              return `<div style="border:1px solid var(--color-divider);border-radius:6px;padding:9px 11px;background:${e?'var(--st-green-bg)':'var(--color-bg)'}">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:${e?'var(--st-green-fg)':'var(--color-neutral-600)'}">${e?icon('check2','w-3 h-3'):''}${label}</div>
+                <div style="font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-600);margin-top:3px">${e?`${fmtDT(e.first)} · ${e.count}×`:'not yet'}</div>
+              </div>`; }).join('')}
+          </div>
+          <div style="font-size:11.5px;line-height:1.5;color:${r.northStar.withinSevenDays===true?'var(--st-green-fg)':r.northStar.withinSevenDays===false?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
+            ${r.northStar.firstSendDays==null
+              ? 'North star not reached yet — no contract has been sent to a counterparty.'
+              : r.northStar.withinSevenDays
+                ? `<b>North star reached:</b> first send ${r.northStar.firstSendDays===0?'on day one':`after ${r.northStar.firstSendDays} day${r.northStar.firstSendDays===1?'':'s'}`}.`
+                : `First send took ${r.northStar.firstSendDays} days — outside the 7-day target.`}
+          </div>`;
+      }catch(e){ host.innerHTML=`<span style="color:var(--color-neutral-600)">Could not load activation data: ${esc(e.message)}</span>`; }
+    })();
     const loadOutbox=async()=>{
       try{ const r=await api('outbox');
         const host=document.getElementById('outbox-list'); if(!host) return;
