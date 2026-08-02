@@ -23,10 +23,13 @@ const BR_LOGO_OK = u => typeof u === 'string' && /^data:image\/(png|jpe?g|webp|s
 
 const DESIGN_LOGO_POSITIONS = ['top-left', 'top-center', 'top-right', 'footer'];
 
-/* The catalogue. Five designs, fixed — adding a sixth is a product decision,
+/* The catalogue. Eight designs, fixed — adding a ninth is a product decision,
    not a code path. `defaultLogoPos` is a starting point; the customer's saved
    position always wins. `usesAccent` drives the Design step's colour controls
-   (no point offering a colour the design will not show). */
+   (no point offering a colour the design will not show). Each design earns
+   its place with a distinct structural device: centred rule, thin line, page
+   border, horizontal band, summary box, vertical rule, centred ceremony,
+   parties panel — never two flavours of the same skeleton. */
 const DOC_DESIGNS = [
   { id: 'classic-letterhead', name: 'Classic Letterhead',
     blurb: 'Centred logo and company name over a double rule — traditional official letterhead.',
@@ -48,6 +51,18 @@ const DOC_DESIGNS = [
     blurb: 'Opens with a contract-at-a-glance box; the logo sits quietly in the footer.',
     bestFor: 'Procurement teams and busy signers',
     defaultLogoPos: 'footer', usesAccent: false },
+  { id: 'modern-editorial', name: 'Modern Editorial',
+    blurb: 'A slim vertical rule in your colour down the left edge, an asymmetric header and a confident title.',
+    bestFor: 'Consultancies, media, design-led firms',
+    defaultLogoPos: 'top-left', usesAccent: true },
+  { id: 'ceremonial', name: 'Ceremonial',
+    blurb: 'Centred crest, spaced capitals and an ornamented rule — treaty-grade formality, deliberately monochrome.',
+    bestFor: 'High-value signings, boards, landmark deals',
+    defaultLogoPos: 'top-center', usesAccent: false },
+  { id: 'facing-parties', name: 'Facing Parties',
+    blurb: 'Opens with both parties face-to-face in a tinted panel, the key facts on a line beneath.',
+    bestFor: 'Partnerships, distribution and joint work',
+    defaultLogoPos: 'top-left', usesAccent: true },
 ];
 const docDesignById = id => DOC_DESIGNS.find(d => d.id === id) || null;
 
@@ -304,6 +319,85 @@ function docDesignHeaderHtml(b, c, opts = {}) {
       ${factsBox}
     </div>`;
   }
+
+  if (d.id === 'modern-editorial') {
+    /* The vertical rule is the paper's (docDesignPaperStyle); the header is an
+       asymmetric two-sider: identity one side, a quiet document tag the other. */
+    const tag = `<span style="font-size:9px;letter-spacing:.22em;color:${brAccent(b)};text-transform:uppercase;border:1px solid ${BR_SOFT}40;border-radius:2px;padding:4px 10px;white-space:nowrap;align-self:flex-start">Commercial Agreement</span>`;
+    const identity = `<div style="min-width:0">
+        ${name ? `<div style="font-size:14.5px;font-weight:700;letter-spacing:.01em">${name}</div>` : ''}
+        ${ident ? `<div style="font-size:9.5px;color:${BR_SOFT};margin-top:2px">${ident}</div>` : ''}
+      </div>`;
+    const centered = pos === 'top-center' && logoTop ? `<div style="text-align:center;margin-bottom:10px">${logoTop}</div>` : '';
+    const row = pos === 'top-right'
+      ? `${identity}<span style="flex:1"></span>${logoTop}${logoTop ? '' : tag}`
+      : `${logoTop ? logoTop : ''}${identity}<span style="flex:1"></span>${tag}`;
+    return `<div data-doc-design="modern-editorial" style="margin-bottom:22px;font-family:${BR_SANS};color:${BR_INK}">
+      ${centered}
+      <div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:16px;border-bottom:1px solid #e2e8ea">${row}</div>
+    </div>`;
+  }
+
+  if (d.id === 'ceremonial') {
+    /* Centred ceremony. The crest position holds the logo when there is one
+       and a monogram ring when there is not — an empty circle would read as a
+       missing image, and a missing image on a treaty is a wound. */
+    const initial = (b.companyName || '').trim().charAt(0).toUpperCase();
+    const crest = logoTop
+      ? `<div style="margin:2px 0 12px">${logoTop}</div>`
+      : initial ? `<div style="width:46px;height:46px;border:1.5px solid ${BR_INK};border-radius:50%;margin:2px auto 12px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">${BR_ESC(initial)}</div>` : '';
+    const between = c && c.counterparty && b.companyName
+      ? `<div style="font-size:11px;letter-spacing:.06em;color:${BR_SOFT};margin-top:16px;line-height:2">entered into between<br>
+          <b style="color:${BR_INK};letter-spacing:.1em;text-transform:uppercase">${name}</b><br>and<br>
+          <b style="color:${BR_INK};letter-spacing:.1em;text-transform:uppercase">${BR_ESC(c.counterparty)}</b></div>` : '';
+    return `<div data-doc-design="ceremonial" style="text-align:center;margin-bottom:22px;font-family:${BR_SERIF};color:${BR_INK}">
+      ${crest}
+      ${name ? `<div style="font-size:15px;font-weight:700;letter-spacing:.26em;text-transform:uppercase">${name}</div>` : ''}
+      ${ident ? `<div style="font-size:9.5px;letter-spacing:.14em;color:${BR_SOFT};margin-top:5px;text-transform:uppercase">${ident}</div>` : ''}
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-top:14px">
+        <span style="height:1px;width:150px;background:${BR_INK}"></span>
+        <span style="width:7px;height:7px;border:1px solid ${BR_INK};transform:rotate(45deg)"></span>
+        <span style="height:1px;width:150px;background:${BR_INK}"></span>
+      </div>
+      ${between}
+    </div>`;
+  }
+
+  if (d.id === 'facing-parties') {
+    /* Both parties face-to-face — the one header where the counterparty is an
+       equal on page one. Facts on the meta line follow the compact-executive
+       rule: only what the contract actually states, nothing invented. */
+    const facts = [];
+    if (c) {
+      const eff = c.effectiveDate || (c.fields && c.fields.effDate);
+      if (eff) facts.push(['Effective', String(eff)]);
+      if (c.id) facts.push(['Ref', String(c.id)]);
+      if (c.expiry) facts.push(['Expires', String(c.expiry)]);
+    }
+    const metaLine = facts.length ? `<div style="display:flex;gap:22px;margin-top:12px;padding-top:10px;border-top:1px dashed #cfd8dc;font-size:9.5px;color:${BR_SOFT}">
+        ${facts.map(([k, v]) => `<span>${BR_ESC(k)} <b style="color:${brAccent(b)}">${BR_ESC(v)}</b></span>`).join('')}
+      </div>` : '';
+    const cp = c && c.counterparty ? BR_ESC(c.counterparty) : '';
+    const above = logoTop ? `<div style="margin-bottom:10px;${pos === 'top-right' ? 'text-align:right' : pos === 'top-center' ? 'text-align:center' : ''}">${logoTop}</div>` : '';
+    return `<div data-doc-design="facing-parties" style="margin-bottom:22px;font-family:${BR_SANS};color:${BR_INK}">
+      ${above}
+      <div style="background:#f1f4f5;border:1px solid #e2e8ea;border-left:4px solid ${brAccent(b)};border-radius:6px;padding:15px 19px">
+        <div style="font-size:8.5px;letter-spacing:.2em;color:${BR_SOFT};text-transform:uppercase;margin-bottom:10px">Agreement between</div>
+        <div style="display:flex;gap:18px;align-items:center">
+          <div style="flex:1;min-width:0">
+            ${name ? `<div style="font-size:13.5px;font-weight:700">${name}</div>` : ''}
+            ${ident ? `<div style="font-size:9.5px;color:${BR_SOFT};margin-top:3px;line-height:1.5">${ident}</div>` : ''}
+          </div>
+          ${cp ? `<div style="flex:none;width:30px;height:30px;border-radius:50%;background:${brAccent(b)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8.5px;letter-spacing:.05em;font-weight:700">AND</div>
+          <div style="flex:1;min-width:0;text-align:right">
+            <div style="font-size:13.5px;font-weight:700">${cp}</div>
+            <div style="font-size:9.5px;color:${BR_SOFT};margin-top:3px">as per the signature page</div>
+          </div>` : ''}
+        </div>
+        ${metaLine}
+      </div>
+    </div>`;
+  }
   return '';
 }
 
@@ -321,7 +415,11 @@ function docDesignFooterHtml(b, c) {
     return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid ${BR_RULE};text-align:center;font-family:${BR_SERIF};font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:${BR_SOFT}">${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
   if (d.id === 'bold-corporate')
     return `<div style="margin-top:26px;padding-top:10px;border-top:3px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:9.5px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
-  // modern-minimal + compact-executive: quiet left-aligned rule
+  if (d.id === 'ceremonial')
+    return `<div style="margin-top:30px;text-align:center;font-family:${BR_SERIF};font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:${BR_SOFT}"><span style="display:block;width:150px;height:1px;background:${BR_INK};margin:0 auto 10px"></span>${logoFoot ? logoFoot + '<br>' : ''}${line}</div>`;
+  if (d.id === 'facing-parties')
+    return `<div style="margin-top:26px;padding-top:9px;border-top:2px solid ${brAccent(b)};display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:9px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
+  // modern-minimal + compact-executive + modern-editorial: quiet left-aligned rule
   return `<div style="margin-top:26px;padding-top:9px;border-top:1px solid #d5dbd9;display:flex;align-items:center;gap:10px;font-family:${BR_SANS};font-size:9px;color:${BR_SOFT}">${logoFoot}<span style="flex:1">${line}</span></div>`;
 }
 
@@ -333,8 +431,12 @@ function docDesignFooterHtml(b, c) {
 function docDesignPaperStyle(b) {
   if (!b || !b.designId) return '';
   const accent = `--doc-design-accent:${brAccent(b)};`;
-  if (b.designId !== 'formal-legal') return accent;
-  return `${accent}border:1px solid ${BR_RULE};box-shadow:inset 0 0 0 3px var(--color-doc-surface),inset 0 0 0 4px ${BR_RULE};`;
+  if (b.designId === 'formal-legal')
+    return `${accent}border:1px solid ${BR_RULE};box-shadow:inset 0 0 0 3px var(--color-doc-surface),inset 0 0 0 4px ${BR_RULE};`;
+  // Modern Editorial's device is the paper's own left edge, in the accent.
+  if (b.designId === 'modern-editorial')
+    return `${accent}border-left:4px solid ${brAccent(b)};`;
+  return accent;
 }
 
 /* The attribute that turns a design's BODY typography on: the paper div

@@ -94,7 +94,7 @@ function dsPaint() {
       </div>
       ${b.accentSource !== 'manual' && !b.accentColor ? `<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:4px">${b.logoUrl ? 'No strong colour found in the logo — a dark neutral is used instead.' : 'Upload a logo and HaTi picks its colour automatically.'}</span>` : ''}
     </div>` : `
-    <div style="margin-top:14px;font-size:10px;color:var(--color-neutral-500);line-height:1.5">${esc(design.name)} is deliberately monochrome — the accent colour shows in Modern Minimal and Bold Corporate.</div>`;
+    <div style="margin-top:14px;font-size:10px;color:var(--color-neutral-500);line-height:1.5">${esc(design.name)} is deliberately monochrome — the accent colour shows in Modern Minimal, Bold Corporate, Modern Editorial and Facing Parties.</div>`;
 
   const paper = `
     <div${docDesignPaperAttr(b)} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;max-width:680px;margin:0 auto;${docDesignPaperStyle(b)}">

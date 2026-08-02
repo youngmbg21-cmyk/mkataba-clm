@@ -1196,143 +1196,239 @@ function openTemplatePreview(tpl){
 }
 
 /* ============================================================ TEMPLATES PAGE */
-function renderTemplatesPage(){
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px';
-  const H4='font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0';
-  const my=customTemplates();
-  const canManage=tplCanManage();
-  // tone icon-tile per value stream (tile-bg / tile-fg tokens)
-  const TPL_TONE={proc:'steel',mfg:'amber',dist:'emerald',sales:'steel',mktg:'amber',corp:'ruby'};
-  const tplTile=folder=>{ const t=TPL_TONE[folder]||'steel'; return `background:var(--tile-${t}-bg);color:var(--tile-${t}-fg)`; };
-
-  const myCards=my.map(t=>`
-    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:18px;display:flex;flex-direction:column;gap:7px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;${tplTile(t.folder)}">${icon('copy','w-3.5 h-3.5')}</span>
-        <span style="min-width:0;flex:1">
-          <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(t.name)}</span>
-          <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder]?.name||'—'} · ${(t.chars||t.text.length).toLocaleString()} chars</span>
-        </span>
-      </div>
-      <div style="font-size:10px;color:var(--color-neutral-500)">${_tplSourceLabel(t)} · ${t.at?fmtDT(t.at):''}</div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--color-neutral-600)">
-        <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)">v${templateVersionNo(t)}</span>
-        <span>·</span><span>${_tplEsc(templateUsageLabel(templateUsage(t.id)))}</span>
-        ${isRich(templateFormat(t))?`<span>·</span><span title="Keeps headings, emphasis and clause numbering">formatted</span>`:''}
-      </div>
-      <div style="display:flex;gap:6px;margin-top:2px;flex-wrap:wrap">
-        ${canManage?`<button data-tpl-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">Use</button>`:''}
-        ${canManage?`<button data-tpl-edit="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Edit</button>`:''}
-        <button data-tpl-prev="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Preview</button>
-        <button data-tpl-vers="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Version history — ${templateVersions(t).length+1} version${templateVersions(t).length?'s':''}">${icon('history','w-3 h-3')}</button>
-        ${canManage?`<button data-tpl-del="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 8px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" title="Delete template">${icon('trash','w-3 h-3')}</button>`:''}
-      </div>
-      ${canManage?`<div style="display:flex;gap:6px">
-        <button data-tpl-blanks="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;flex:1">${templateFields(t).length?`${templateFields(t).length} blank${templateFields(t).length===1?'':'s'}`:'Add blanks'}</button>
-        ${templateFields(t).length?`<button data-tpl-bulk="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;flex:1">Create in bulk</button>`:''}
-      </div>`:''}
-    </div>`).join('');
-
+/* ============================================================ THE LIBRARY PAGE
+   (redesign to the approved comp): a quiet rail on the left — what KIND of
+   paper, which value stream, and the door to Our standards — and one dense
+   table on the right that holds every template the workspace can draft from.
+   A table, not a card wall: past a dozen templates the facts a chooser needs
+   (origin, version, how often it is used) read faster as columns, and the
+   page stays the same height at 200 templates as at 12. Every verb the old
+   card grid offered is still here — Use, Open, bulk creation, blanks,
+   versions, delete — the rarer ones behind one … menu per row. */
+let _tplPage={ group:'all', stream:null, q:'', showAll:false };
+const TPL_GROUP_LABEL={ all:'All templates', company:'Company standard', cp:'Counterparty paper', builtin:'HaTi standard', sample:'Samples' };
+function tplPageRows(){
+  const rows=[];
+  const lib=(typeof tplLibAll==='function')?tplLibAll():{list:[],canManage:false};
+  for(const t of lib.list){
+    const draft=t.status!=='published';
+    rows.push({ kind:'company', id:t.id, name:t.name, draft,
+      sub:`${(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||'Company paper'}${draft?' · not published':''}`,
+      stream:null, origin:'Company standard',
+      version:t.publishedVersion?('v'+t.publishedVersion):null,
+      used:Number(t.contractsCreated)||0, at:t.lastUsedAt||'' });
+  }
+  for(const t of customTemplates()){
+    rows.push({ kind:'cp', id:t.id, name:t.name,
+      sub:`${FOLDERS[t.folder]?.name||'—'} · ${_tplSourceLabel(t)}${isRich(templateFormat(t))?' · formatted':''}`,
+      stream:t.folder, origin:'Counterparty paper', version:'v'+templateVersionNo(t),
+      used:templateUsage(t.id).count, at:t.at||'' });
+  }
   const myRole=currentUser()?.role||'viewer';
-  const builtinCards=Object.values(TEMPLATES).filter(t=>!canManage||templateAllowedForRole(t.id,myRole)).map(t=>`
-    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:18px;display:flex;flex-direction:column;gap:7px">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;${tplTile(t.folder)}">${icon(t.ic,'w-3.5 h-3.5')}</span>
-        <span style="min-width:0;flex:1">
-          <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
-          <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder].name} · Template ${t.id}</span>
-        </span>
-      </div>
-      <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.45;flex:1">${t.blurb||''}</div>
-      ${canManage?`<div style="display:flex;gap:6px;margin-top:2px">
-        <button data-tpl-builtin="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">Use template</button>
-        <button data-tpl-bulk-b="${t.id}" class="ui-btn" style="font-size:11px;padding:4px 9px">Bulk</button>
-      </div>
-      <button data-tpl-dup="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;width:100%" title="HaTi's own templates are generated from code, so they cannot be edited in place. This makes an editable copy in Counterparty Templates.">Duplicate &amp; edit</button>`:''}
-    </div>`).join('');
-
-  const already=new Set(my.filter(t=>t.source&&t.source.startsWith('sample:')).map(t=>t.source.slice(7)));
-  const sampleRows=HATI_SAMPLES.map((s,i)=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent)">
-      <span style="color:var(--color-neutral-500)">${icon('file','w-4 h-4')}</span>
-      <span style="min-width:0;flex:1">
-        <span style="display:block;font-size:12px;font-weight:500">${s.name}</span>
-        <span style="display:block;font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono)">${s.file} · ${FOLDERS[s.folder].name}</span>
-      </span>
-      ${already.has(s.file)
-        ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>Imported</span>`
-        :canManage?`<button data-sample-imp="${i}" class="ui-btn" style="font-size:11px;padding:4px 10px;flex:none">Import as template</button>`:''}
-    </div>`).join('');
-
-  document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:18px">
-
-    <div>${folderLegendHtml()}</div>
-
-    <!-- Company standard templates (the versioned library) render here — one
-         page for every kind of paper, not a second screen to know about. -->
-    <div id="tpl-company-section"></div>
-
-    <!-- WO N1: the playbook's door lives here now. Templates is the paper you
-         draft from; Our standards is the rules you hold other paper to — two
-         halves of "how our company does contracts", on one page. -->
-    <section style="${CARD};padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--tile-emerald-bg);color:var(--tile-emerald-fg)">${icon('scroll','w-3.5 h-3.5')}</span>
-      <span style="min-width:0;flex:1">
-        <span style="display:block;font-size:13px;font-weight:600">Our standards</span>
-        <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.5">Your clause library and negotiation positions — the wording HaTi drafts with and checks incoming paper against.</span>
-      </span>
-      <button id="tpl-standards" class="ui-btn" style="font-size:12px;padding:5px 12px;flex:none">Open our standards →</button>
-    </section>
-
-    <section style="${CARD};padding:16px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <h4 style="${H4}">Counterparty Templates</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">${my.length} saved</span>
-        <span style="flex:1"></span>
-        ${canManage?`<button id="tpl-upload" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Create template</button>`:''}
-      </div>
-      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 ${my.length?'12px':'6px'};line-height:1.5">Bring a counterparty's paper into HaTi — ask them for their contract, load it here, and run the negotiation through HaTi to conclusion.</p>
-      ${my.length
-        ?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${myCards}</div>`
-        :`<p style="font-size:12px;color:var(--color-neutral-600);margin:0;line-height:1.6">No custom templates yet. <b>Create</b> one by pasting your company's standard paper straight out of Word, <b>import</b> a HaTi sample below, or open any contract and use <b>Save as template</b> in its workspace toolbar. Saved templates appear in the + New contract menu.</p>`}
-    </section>
-
-    <section style="${CARD};padding:16px">
-      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
-        <h4 style="${H4}">HaTi standard templates</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, ${jxAdjective()} practice defaults</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${builtinCards}</div>
-    </section>
-
-    <section style="${CARD}">
-      <div style="display:flex;align-items:baseline;gap:10px;padding:13px 16px;border-bottom:1px solid var(--color-divider)">
-        <h4 style="${H4}">HaTi sample documents</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world ${jxAdjective()} examples — import one to start your library</span>
-      </div>
-      ${sampleRows}
-    </section>
-  </div>`;
-
-  document.getElementById('tpl-standards')?.addEventListener('click',()=>setView('playbook'));
-  document.getElementById('tpl-upload')?.addEventListener('click',()=>openCreateTemplateModal('paste'));
-  document.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
-  document.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
-  document.querySelectorAll('[data-tpl-edit]').forEach(b=>b.addEventListener('click',()=>openTemplateEditor(b.getAttribute('data-tpl-edit'))));
-  document.querySelectorAll('[data-tpl-vers]').forEach(b=>b.addEventListener('click',()=>openTemplateVersions(b.getAttribute('data-tpl-vers'))));
-  document.querySelectorAll('[data-tpl-dup]').forEach(b=>b.addEventListener('click',()=>duplicateBuiltinTemplate(b.getAttribute('data-tpl-dup'))));
-  // deletion puts the usage count in front of the decision rather than after it
-  document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',()=>deleteTemplateGuarded(b.getAttribute('data-tpl-del'))));
-  document.querySelectorAll('[data-tpl-builtin]').forEach(b=>b.addEventListener('click',()=>openWizard(b.getAttribute('data-tpl-builtin'))));
-  document.querySelectorAll('[data-tpl-blanks]').forEach(b=>b.addEventListener('click',()=>openBlanksEditor(b.getAttribute('data-tpl-blanks'))));
-  document.querySelectorAll('[data-tpl-bulk]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-bulk')); if(t) openBulkCreateModal(t); }));
-  document.querySelectorAll('[data-tpl-bulk-b]').forEach(b=>b.addEventListener('click',()=>{ const t=TEMPLATES[b.getAttribute('data-tpl-bulk-b')];
+  for(const t of Object.values(TEMPLATES)){
+    if(tplCanManage()&&!templateAllowedForRole(t.id,myRole)) continue;
+    rows.push({ kind:'builtin', id:t.id, name:t.name, sub:t.blurb||'', stream:t.folder,
+      origin:'HaTi standard', version:t.id, mono:true,
+      used:(typeof builtinUsageCount==='function')?builtinUsageCount(t.id):0, at:'' });
+  }
+  const already=new Set(customTemplates().filter(t=>t.source&&t.source.startsWith('sample:')).map(t=>t.source.slice(7)));
+  HATI_SAMPLES.forEach((s,i)=>rows.push({ kind:'sample', id:'smp'+i, i, name:s.name,
+    sub:`${FOLDERS[s.folder]?.name||''} · ${s.file}`, stream:s.folder, origin:'Sample',
+    version:null, used:null, imported:already.has(s.file), at:'' }));
+  /* Company paper leads (the whole point of publishing it), then the paper
+     you brought in, then HaTi's own, then samples — most-used first inside
+     each group. */
+  const ORD={company:0,cp:1,builtin:2,sample:3};
+  rows.sort((a,b)=>(ORD[a.kind]-ORD[b.kind])||((b.used||0)-(a.used||0))||String(a.name).localeCompare(String(b.name)));
+  return rows;
+}
+function tplPageFiltered(rows){
+  const q=_tplPage.q.trim().toLowerCase();
+  return rows.filter(r=>(_tplPage.group==='all'||r.kind===_tplPage.group)
+    &&(!_tplPage.stream||r.stream===_tplPage.stream)
+    &&(!q||`${r.name} ${r.sub} ${r.origin}`.toLowerCase().includes(q)));
+}
+function tplPageRowHtml(r){
+  const canManage=tplCanManage();
+  const RULE='border-bottom:1px solid var(--color-divider)';
+  const stripe=r.kind==='company'
+    ?(r.draft?'var(--st-amber-dot)':'var(--st-green-dot)')
+    :(r.stream?folderColor(r.stream):'var(--color-neutral-300)');
+  const version=r.version==null?`<span style="color:var(--color-neutral-400)">—</span>`
+    :r.mono?`<span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500)">${_tplEsc(r.version)}</span>`
+    :`<span style="font-weight:700;color:var(--color-accent-700)">${_tplEsc(r.version)}</span>`;
+  const B='class="ui-btn" style="font-size:11.5px;padding:4px 12px"';
+  const P='class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 12px"';
+  let acts='';
+  if(r.kind==='company') acts=r.draft
+    ?`<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>Continue editing</button>`
+    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>Use</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>Open</button>`;
+  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>Use</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>Open</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Edit, blanks, bulk, versions, delete">⋯</button>`:''}`;
+  else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>Use</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>Bulk</button>`:''}`;
+  else acts=r.imported
+    ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>Imported</span>`
+    :(canManage?`<button data-sample-imp="${r.i}" ${B}>Import as template</button>`:'');
+  return `<tr>
+    <td style="padding:10px 8px 10px 14px;${RULE}">
+      <div style="display:flex;gap:11px;align-items:flex-start">
+        <span style="flex:none;width:4px;height:30px;border-radius:3px;background:${stripe};margin-top:2px"></span>
+        <div style="min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span style="font-size:12.5px;font-weight:700;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(r.name)}</span>
+            ${r.draft?`<span style="flex:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--st-amber-bg);color:var(--st-amber-fg)">Draft</span>`:''}
+          </div>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">${_tplEsc(r.sub)}</div>
+        </div>
+      </div></td>
+    <td style="padding:10px 8px;${RULE};font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${_tplEsc(r.origin)}</td>
+    <td style="padding:10px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums">${version}</td>
+    <td style="padding:10px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--color-neutral-700)">${r.used==null?'—':r.used}</td>
+    <td style="padding:10px 14px 10px 8px;${RULE};text-align:right;white-space:nowrap"><div style="display:inline-flex;gap:6px">${acts}</div></td>
+  </tr>`;
+}
+function tplPagePaintRows(){
+  const host=document.getElementById('tpl-rows'); if(!host) return;
+  const all=tplPageRows();
+  const rows=tplPageFiltered(all);
+  const searching=!!_tplPage.q.trim()||_tplPage.group!=='all'||!!_tplPage.stream;
+  const CAP=8;
+  const shown=(_tplPage.showAll||searching)?rows:rows.slice(0,CAP);
+  const hidden=rows.length-shown.length;
+  const th=t=>`<th style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px 8px;border-bottom:1px solid var(--color-divider)">${t}</th>`;
+  const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
+    .map(([k,n])=>`${n} ${TPL_GROUP_LABEL[k]==='Samples'?'sample document'+(n===1?'':'s'):TPL_GROUP_LABEL[k]}`).join(', '):'';
+  const count=document.getElementById('tpl-count');
+  if(count) count.textContent=`${rows.length} template${rows.length===1?'':'s'} · company paper first, most-used first`;
+  host.innerHTML=rows.length?`
+    <table style="border-collapse:collapse;width:100%">
+      <tr>${th('Template')}${th('Origin')}${th('Version')}${th('Used')}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
+      ${shown.map(tplPageRowHtml).join('')}
+    </table>
+    ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:11.5px;color:var(--color-neutral-600)">
+      ${hidden} more · ${hiddenKinds}<span style="flex:1"></span>
+      <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">Show all →</button></div>`:''}`
+    :`<div style="padding:28px 14px;text-align:center;font-size:12px;color:var(--color-neutral-600)">Nothing matches — clear the search or pick another group.</div>`;
+  // row verbs (rebound on every paint — the rows are rebuilt wholesale)
+  host.querySelectorAll('[data-tpllib-use]').forEach(b=>b.addEventListener('click',()=>tplLibNewContract(b.getAttribute('data-tpllib-use'))));
+  host.querySelectorAll('[data-tpllib-open]').forEach(b=>b.addEventListener('click',()=>openTemplateLibDetail(b.getAttribute('data-tpllib-open'))));
+  host.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
+  host.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
+  host.querySelectorAll('[data-tpl-more]').forEach(b=>b.addEventListener('click',()=>tplRowMoreMenu(b.getAttribute('data-tpl-more'))));
+  host.querySelectorAll('[data-tpl-builtin]').forEach(b=>b.addEventListener('click',()=>openWizard(b.getAttribute('data-tpl-builtin'))));
+  host.querySelectorAll('[data-tpl-bulk-b]').forEach(b=>b.addEventListener('click',()=>{ const t=TEMPLATES[b.getAttribute('data-tpl-bulk-b')];
     if(!t) return;
     if(!templateAllowedForRole(t.id, currentUser()?.role||'viewer')){ toast('That template is not open to your role','err'); return; }
     openBulkCreateModal(t); }));
-  document.querySelectorAll('[data-sample-imp]').forEach(b=>b.addEventListener('click',()=>importHatiSample(Number(b.getAttribute('data-sample-imp')), b)));
-  if(window.renderCompanyTemplatesSection) renderCompanyTemplatesSection();
+  host.querySelectorAll('[data-sample-imp]').forEach(b=>b.addEventListener('click',()=>importHatiSample(Number(b.getAttribute('data-sample-imp')), b)));
+  document.getElementById('tpl-showall')?.addEventListener('click',()=>{ _tplPage.showAll=true; tplPagePaintRows(); });
+}
+/* The rarer verbs on a counterparty template, one … away: everything the old
+   card offered, none of it stealing a column from every row. */
+function tplRowMoreMenu(tid){
+  const t=customTemplates().find(x=>x.id===tid); if(!t) return;
+  const item=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:9px 12px;border-radius:8px" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+    <span style="display:block;font-size:12.5px;font-weight:600">${label}</span><span style="display:block;font-size:10.5px;color:var(--color-neutral-600)">${sub}</span></button>`;
+  openModal(`<div style="padding:16px 14px;min-width:280px">
+    <div style="font-size:13px;font-weight:700;padding:0 12px 8px">${_tplEsc(t.name)}</div>
+    ${item('tm-edit','Edit the wording','Every save becomes a new version')}
+    ${item('tm-blanks',templateFields(t).length?`Blanks (${templateFields(t).length})`:'Add blanks','The guided fields a drafter completes')}
+    ${templateFields(t).length?item('tm-bulk','Create in bulk','Many contracts from one CSV of answers'):''}
+    ${item('tm-vers',`Version history (${templateVersions(t).length+1})`,'What changed, when, by whom')}
+    ${item('tm-del','Delete template','Usage is shown before anything is removed')}
+    <div style="display:flex;justify-content:flex-end;padding:8px 12px 0"><button id="tm-close" class="ui-btn" style="font-size:12px">Close</button></div>
+  </div>`);
+  document.getElementById('tm-close')?.addEventListener('click',closeModal);
+  document.getElementById('tm-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
+  document.getElementById('tm-blanks')?.addEventListener('click',()=>{ closeModal(); openBlanksEditor(tid); });
+  document.getElementById('tm-bulk')?.addEventListener('click',()=>{ closeModal(); openBulkCreateModal(t); });
+  document.getElementById('tm-vers')?.addEventListener('click',()=>{ closeModal(); openTemplateVersions(tid); });
+  document.getElementById('tm-del')?.addEventListener('click',()=>{ closeModal(); deleteTemplateGuarded(tid); });
+}
+/* "+ New template" holds both kinds of paper a workspace creates — a company
+   standard (published, versioned, permissioned) and a counterparty's own
+   template. One button, one honest question, no third screen. */
+function tplNewMenu(){
+  const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
+  const companyOk=API_MODE()&&lib.canManage;
+  if(!companyOk){ openCreateTemplateModal('paste'); return; }
+  const opt=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:10px;padding:13px 15px;cursor:pointer;font:inherit;margin-bottom:8px">
+    <span style="display:block;font-size:13px;font-weight:700">${label}</span><span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:2px;line-height:1.45">${sub}</span></button>`;
+  openModal(`<div style="padding:20px 22px;max-width:380px">
+    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 10px">What kind of template?</h3>
+    ${opt('tn-company','Company standard','Published to the whole team — versioned, branded, one-click drafting.')}
+    ${opt('tn-cp','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
+    <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:12px">Cancel</button></div>
+  </div>`);
+  document.getElementById('tn-close')?.addEventListener('click',closeModal);
+  document.getElementById('tn-company')?.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });
+  document.getElementById('tn-cp')?.addEventListener('click',()=>{ closeModal(); openCreateTemplateModal('paste'); });
+}
+function renderTemplatesPage(){
+  const rows=tplPageRows();
+  const counts=rows.reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{});
+  const total=rows.length;
+  const lib=(typeof tplLibAll==='function')?tplLibAll():{canManage:false,loaded:true};
+  const canManage=tplCanManage();
+  const railIt=(key,label,n)=>`<button data-tpl-group="${key}" style="display:flex;align-items:center;gap:8px;width:100%;border:0;background:${_tplPage.group===key?'var(--color-accent-100)':'none'};color:${_tplPage.group===key?'var(--color-accent-800)':'var(--color-neutral-700)'};font:inherit;font-size:12.5px;font-weight:600;padding:7px 11px;border-radius:9px;cursor:pointer;text-align:left">
+    <span style="flex:1">${label}</span><span style="font-family:var(--font-mono);font-size:10px;color:${_tplPage.group===key?'var(--color-accent-700)':'var(--color-neutral-500)'}">${n}</span></button>`;
+  const streamIt=f=>`<button data-tpl-stream="${f.id}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:${_tplPage.stream===f.id?'var(--color-accent-100)':'none'};color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;padding:6px 11px;border-radius:9px;cursor:pointer;text-align:left">
+    <span style="flex:none;width:8px;height:14px;border-radius:3px;background:${folderColor(f.id)}"></span><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(f.name.split(' & ')[0].split(' — ')[0])}</span></button>`;
+  const HEAD='font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;color:var(--color-neutral-500);text-transform:uppercase;padding:0 11px;margin:0 0 6px';
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter" style="padding:16px 18px 28px">
+    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="min-width:0">
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:21px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">Templates</h1>
+        <p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500)">the paper you draft from — company standards, counterparty paper and HaTi's own</p>
+      </div>
+      <span style="flex:1"></span>
+      ${canManage?`<button id="tpl-convert" class="ui-btn" style="font-size:12px;padding:6px 13px">Convert a document</button>
+      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New template</button>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:196px 1fr;gap:16px;align-items:start">
+      <div>
+        <div style="${HEAD}">Library</div>
+        ${railIt('all',TPL_GROUP_LABEL.all,total)}
+        ${railIt('company',TPL_GROUP_LABEL.company,counts.company||0)}
+        ${railIt('cp',TPL_GROUP_LABEL.cp,counts.cp||0)}
+        ${railIt('builtin',TPL_GROUP_LABEL.builtin,counts.builtin||0)}
+        ${railIt('sample',TPL_GROUP_LABEL.sample,counts.sample||0)}
+        <div style="${HEAD};margin-top:16px">Value stream</div>
+        ${Object.values(FOLDERS).map(streamIt).join('')}
+        <div style="margin-top:18px;border-top:1px solid var(--color-divider);padding:12px 11px 0">
+          <div style="font-size:12.5px;font-weight:700;color:var(--color-text)">Our standards</div>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px">The clause library incoming paper is checked against.</div>
+          <button id="tpl-standards" style="border:0;background:none;padding:0;margin-top:6px;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer">Open our standards →</button>
+        </div>
+      </div>
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
+          <input id="tpl-search" type="search" placeholder="Search templates…" autocomplete="off" value="${_tplEsc(_tplPage.q)}"
+            style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:9px;padding:7px 12px;font:inherit;font-size:12px;color:inherit;outline:none"/>
+          <span id="tpl-count" style="font-size:11px;color:var(--color-neutral-500)"></span>
+        </div>
+        <div id="tpl-rows" style="overflow-x:auto"></div>
+      </div>
+    </div>
+  </div>`;
+  tplPagePaintRows();
+  document.querySelectorAll('[data-tpl-group]').forEach(b=>b.addEventListener('click',()=>{
+    _tplPage.group=b.getAttribute('data-tpl-group'); _tplPage.showAll=false; renderTemplatesPage(); }));
+  document.querySelectorAll('[data-tpl-stream]').forEach(b=>b.addEventListener('click',()=>{
+    const v=b.getAttribute('data-tpl-stream');
+    _tplPage.stream=_tplPage.stream===v?null:v; renderTemplatesPage(); }));
+  document.getElementById('tpl-search')?.addEventListener('input',e=>{ _tplPage.q=e.target.value; tplPagePaintRows(); });
+  document.getElementById('tpl-standards')?.addEventListener('click',()=>setView('playbook'));
+  document.getElementById('tpl-new')?.addEventListener('click',tplNewMenu);
+  document.getElementById('tpl-convert')?.addEventListener('click',()=>{
+    const lib2=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
+    if(API_MODE()&&lib2.canManage&&typeof tplLibUploadModal==='function') tplLibUploadModal();
+    else openCreateTemplateModal('upload');
+  });
+  /* Company templates come from the server cache; the first visit renders
+     before it is warm, so refresh and repaint the rows when the list moves. */
+  if(API_MODE()&&typeof tplLibRefresh==='function')
+    tplLibRefresh().then(changed=>{ if(state.view==='templates'&&(changed||!lib.loaded)) renderTemplatesPage(); });
   setActiveNav('templates');
 }
 
