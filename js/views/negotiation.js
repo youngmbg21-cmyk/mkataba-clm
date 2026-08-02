@@ -1285,6 +1285,22 @@ function negoVerifyResultHtml(r){
    off, each change as its rendered redline, and the integrity statement —
    result, when it was run, and the seal it was run against. Self-contained by
    construction: the styles ride inline and nothing references the app. */
+/* ---- THE ADDED AND THE REMOVED, IN A FILE THAT CARRIES ITS OWN COLOURS ----
+   The ins/del rules below once named var(--st-green-bg) and var(--st-ruby-bg).
+   Those custom properties are declared in the APP's stylesheet, and this export
+   is a standalone document that carries none of it — so both resolved to
+   nothing and every redline printed as flat text with no added/removed
+   distinction at all. Literal values, because self-contained has to mean
+   self-contained.
+
+   And not colour ALONE. This is a report people print and file: browsers drop
+   backgrounds when printing unless told otherwise, and a reader with a colour
+   vision deficiency gets nothing from a green wash either. So the strike and
+   the underline carry the meaning too, print-color-adjust asks for the wash on
+   top rather than instead of them, and a legend states the convention in words.
+
+   Everything explanatory stays HERE rather than in the emitted <style>: the
+   file goes to a counterparty, and our commentary is not theirs to read. */
 function negoHistoryExportHtml(c, report){
   const ev = negoTimeline(c, {});
   const sigs = (c.signatures || []).map(s =>
@@ -1294,13 +1310,19 @@ function negoHistoryExportHtml(c, report){
 <style>
   body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
   h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:12px;margin:0 0 18px}
-  .integrity{border:1.5px solid ${report.ok ? 'var(--st-green-dot)' : 'var(--st-ruby-dot)'};border-radius:6px;padding:12px 14px;margin:0 0 20px;font-size:12.5px}
+  .integrity{border:1.5px solid ${report.ok ? '#10b981' : '#f43f5e'};border-radius:6px;padding:12px 14px;margin:0 0 20px;font-size:12.5px}
   .ht-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e3e7ea;page-break-inside:avoid}
   .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid #cdd4da;font-size:11px}
   .ht-body{flex:1;min-width:0} .ht-text{font-size:12.5px} .ht-meta{font-size:10.5px;color:#5a6470}
   .ht-clause{font-weight:600}
   .ht-redline{border:1px solid #e3e7ea;border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px}
-  .ht-redline ins{background:var(--st-green-bg);text-decoration:none} .ht-redline del{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  /* added wording */
+  .ht-redline ins{background:#d1fae5;color:#047857;text-decoration:underline;
+    text-decoration-thickness:1px;text-underline-offset:2px}
+  .ht-redline del{background:#ffe4e6;color:#be123c;text-decoration:line-through}
+  .ht-redline ins,.ht-redline del{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ht-key{margin:0 0 14px;font-size:11px;color:#5a6470}
+  .ht-key ins,.ht-key del{padding:0 3px;border-radius:2px}
   /* OI-5: open the seam between a deletion and its replacement — display only */
   .ht-redline del+ins{margin-left:.3em}
   .ht-note{font-size:11px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
@@ -1313,6 +1335,8 @@ function negoHistoryExportHtml(c, report){
   <b>${report.ok ? '✓ Record verified' : '✗ Integrity check FAILED'}</b> — ${_ne(report.detail)}<br>
   Run ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC · ${report.chain.checked} chained record${report.chain.checked === 1 ? '' : 's'} recomputed${c.hash ? ` · document seal (SHA-256): <span style="font-family:monospace;font-size:10.5px;word-break:break-all">${_ne(c.hash)}</span>` : ' · not yet executed, so no seal to check'}
 </div>
+<p class="ht-key">In the redlines below, <ins>underlined green is wording added</ins> and
+ <del>struck red is wording removed</del>.</p>
 ${sigs ? `<p style="font-size:12px"><b>Signatures on the record:</b></p><ul style="font-size:12px">${sigs}</ul>` : ''}
 ${ev.map(e => negoTimelineEventHtml(c, e)).join('')}
 <p style="font-size:10.5px;color:#5a6470;margin-top:22px">This report stands alone: every sentence above was generated from the stored

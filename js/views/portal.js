@@ -121,21 +121,56 @@ function openPortalCompare(p){
    the answer to "how do I see what changed" when no banner happens to be up.
    Always available whenever the contract has been sent more than once; picks
    any two of the versions that travelled with the payload. */
+/* Has anything actually happened on this contract that a history could show?
+   Read from the change records the payload carried, so the button never opens
+   an empty screen on a contract nobody has proposed anything on. */
+function portalHasHistory(){
+  const src=(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.contract)||{};
+  const chs=Array.isArray(src.changes)?src.changes.filter(x=>x&&x.status!=='superseded'):[];
+  return chs.length>0;
+}
 function portalCompareBar(){
   const vs=portalVersions();
   const ch=portalChangedText();
-  if(vs.length<2 && !ch) return '';
+  const hist=portalHasHistory();
+  if(vs.length<2 && !ch && !hist) return '';
   const line = vs.length>1
     ? `This contract has <b>${vs.length} versions</b>, numbered the same as ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||'the sender')} sees them. You can compare any two.`
     : (ch&&ch.kind==='yourpaper'
         ? `The wording differs from the paper you sent. You can see exactly what was changed.`
-        : `The wording has moved since the copy you were sent. You can see exactly what changed.`);
+        : ch
+        ? `The wording has moved since the copy you were sent. You can see exactly what changed.`
+        /* THE HISTORY IS NOW A REASON FOR THIS BAR TO EXIST ON ITS OWN. It used
+           to appear only where there were two versions or a fresh revision, so a
+           counterparty on round one — asked to answer four changes — had no way
+           to read the story of how the wording got there. */
+        : `Every change proposed on this contract, in the order it happened, with what was decided.`);
   return `
     <div id="pt-history" style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:11px 16px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
       <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">${line}</span>
-      <button id="pt-compare" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">Compare versions</button>
+      ${hist?`<button id="pt-hist" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px"
+        title="Every change on this contract, oldest first, with who asked, why, and what was decided">Negotiation history</button>`:''}
+      ${vs.length>1||ch?`<button id="pt-compare" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">Compare versions</button>`:''}
     </div>`;
+}
+/* ---- THE SAME HISTORY THE OWNER READS, ON THEIR SIDE OF THE GLASS ----
+   openHistoryTimeline is the owner's screen and it is mounted here unchanged:
+   one component, both chairs, exactly as the workbench itself already is. What
+   makes that safe is not a filter added here — it is that this page's contract
+   is rebuilt from the SHARE PAYLOAD, which already decided what may cross the
+   table. Internal notes never travelled (buildSharePayload walls `note` to the
+   counterparty's own), and the author string is stripped of the tool that
+   drafted it (shareAuthorName). So the tool the owner reached for cannot
+   surface here, because it was never sent — the wall that cannot be got wrong.
+
+   The export rides along for the same reason: it is a pure function of this
+   same rebuilt contract, so it can carry nothing the page itself could not. */
+function openPortalHistory(p){
+  if(typeof window.openHistoryTimeline!=='function'){
+    toast('The history is not available on this page','err'); return;
+  }
+  openHistoryTimeline(portalNegoContract(p));
 }
 function openPortalVersionCompare(p){
   const vs=portalVersions().slice();
@@ -1878,6 +1913,13 @@ function renderShareWorkbench(p, opts={}){
      updates every mounted workbench root, this embed included), and focus is
      a class flip on the page — the banners fold, the button stays. */
   if(window.rlWireTypeStep) rlWireTypeStep(root);
+  /* The reading bar's own controls. They are rendered by portalCompareBar into
+     this screen as well as the signing one, and were only ever WIRED on the
+     signing screen — so on the negotiation link, which is where a reader most
+     needs them, both buttons were dead markup. */
+  document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
+  document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
+  document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
   document.getElementById('pt-focus')?.addEventListener('click',()=>{
     const pg=document.getElementById('pw-page'); if(!pg) return;
     const on=pg.classList.toggle('pw-focus');
@@ -2121,6 +2163,7 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-accept').addEventListener('click',()=>portalRespond(p,'accept'));
   document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
+  document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
   wirePortalTemplateForm(p);
