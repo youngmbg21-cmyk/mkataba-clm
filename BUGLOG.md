@@ -6659,3 +6659,120 @@ carry the correctness claim and the comparison only guards against a future fix
 landing on one door and not the other.
 
 `npm run test:parity` 35/35; browser 82/82.
+
+---
+
+## Run: a decision that has gone is finished business (2026-08-02)
+
+**What was wrong.** The counterparty answers a dozen changes, sends them, and is
+left with a dozen full-height cards each still offering a button — on a column
+where nothing is outstanding. The owner's page goes quiet at the same moment:
+their settled changes leave the column entirely, and their own sent asks fold to
+a line because "Sent" is an inert label. Same component, opposite feel, for no
+reason either reader could see.
+
+**Root cause — one classification, not a second design.** The fold-and-peek
+behaviour already existed and already did exactly what was asked for: a card
+with nothing left to do collapses to its head (id, origin, status badge) and
+slides its body back out on hover or keyboard focus, with a grace period so it
+cannot slam shut mid-reach and a tap-to-open fallback where there is no hover.
+Which cards take part is decided by `rlCardNeedsYou` — *does this card offer
+anything to DO?* — and `Change decision` was counted as a move waiting on the
+reader.
+
+It is not a move. The decision has gone, the other side is holding it, and
+`Change decision` is an **escape hatch**. Escape hatches are precisely what the
+peek is for.
+
+**The fix.** `data-nego-redecide` joins `data-rl-edit` and `data-rl-sent` in
+`RL_CARD_INERT`. Measured on the counterparty's page: a sent decision goes from
+**95px to 58px**, its buttons hidden, its "Accepted · sent" badge still readable;
+hovering restores it to 95px; leaving folds it again.
+
+**Undo is deliberately NOT in that set**, and it is the same reasoning rather
+than an exception to it. Undo sits on an answer that has been made and *not*
+sent — the one state on this screen that looks finished and is not — and the
+second after a click is exactly when a mis-click needs its way back visible.
+It folds on its own once the round goes. This was put to Young as the one open
+question and is his choice, not an inference.
+
+**Files touched.** `js/views/negotiation.js` (one regex, one comment).
+
+**How it was verified.** Five tests in
+`test/f100-cards-composers-and-one-send.test.js`, beside the peek tests they
+extend: a sent acceptance folds, a sent *rejection* folds the same way (built
+from the status, so one is not evidence about the other), the badge and clause
+survive the fold, a held answer stays open with Undo showing, and the exemption
+still holds for every state carrying a live verb. Two fail on the untouched
+tree. A correction worth recording: the first draft of these tests filed the
+decision against the reader's OWN ask, which passed — `sentHere` has no author
+guard — and was meaningless, since nobody rules on their own ask. They now file
+an owner ask, which is the card a counterparty actually answers.
+
+Full suite 2436/2436; browser 82/82; parity 35/35; selection 22/22.
+
+---
+
+## Run: the badge names a party, not a seat (2026-08-02)
+
+**What was wrong.** The change card's origin badge read **"Counterparty"** for
+the other side of the reader's table. That is correct from one chair and
+misleading from the other, because *counterparty* is what BOTH parties call the
+party opposite them. On the counterparty's own page it therefore labelled the
+**sender's** ask with the word that reader uses for themselves.
+
+Reported from the field as *"why is it that in the counterparty page, when you
+have accepted a decision you then have an option to change decision?"* — the
+card was the owner's ask all along, the decision was the counterparty's, and
+"Change decision" was theirs to press. Nothing was broken except the word.
+
+**The fix.** The badge names the organisation that actually asked.
+
+| | owner's page | counterparty's page |
+|---|---|---|
+| their ask | `Nordfrakt Logistik AB’s ask` | `Wanjiru Catering Ltd’s ask` |
+| your ask | `Your ask` | `Your ask` |
+
+"Your ask" stays, because the one party a reader can never mistake is
+themselves — and it is the phrasing `negoWhoseHtml` settled on for the room's
+cards years earlier, whose comment says exactly this:
+
+> **NAMED, NOT SIDED.** "Nordfrakt Logistik AB asked" beats "counterparty
+> asked" — the reader knows who they are talking to.
+
+The newer card had not inherited it. The organisation was already on the badge's
+tooltip; the label now reads from the same value, so the two cannot disagree.
+An empty counterparty field falls through to `Their ask` rather than to an
+apostrophe with nothing in front of it.
+
+**And it now carries text of unbounded length.** Companies are called things
+like "APEX LOGISTICS & WAREHOUSING KENYA LTD", in a card head that also holds
+the change id, the caret and the status badge, on a ~285px column. A fixed
+`max-width` was tried first and is worse than it looks — it elides a name that
+would have fitted and still cannot save a long one. `flex:0 1 auto` with
+`min-width:0` lets the row decide: measured, "Nordfrakt Logistik AB’s ask" shows
+in full at every layout, and the long name gives width back as the column
+narrows (252px → 181px → 132px of 274px at 1440 / 1180 / 1024) with the status
+badge on the row throughout and the full name on hover.
+
+**Files touched.** `js/views/negotiation.js`.
+
+**How it was verified.** `test/f93-party-badges-and-origin-filter.test.js`
+rewritten off the literal: it asserts the badge NAMES the party (read from the
+record, so a hard-coded label cannot rot into a test that has stopped reading
+what it is about), that it is not the bare word "Counterparty", that the empty
+field degrades readably, and that the CSS elides by the row rather than by a
+number. The seat-flip test — the one covering the page where the old label meant
+the reader themselves — now also asserts the label is never `c.counterparty`,
+which on that page is the reader. Section 10 of
+`test/chromium/parity-verify.js` measures the box model with a deliberately long
+name pushed through the real renderer. Both fail on the untouched tree.
+
+A correction worth recording: the first draft of that browser check mounted
+`redlineEmbed` on a host that only exists on the counterparty's surface, so on
+the owner's it silently did nothing and the check read the pre-existing card —
+it would have passed or failed for reasons unconnected to the name under test.
+It goes through the page's own `renderRedline()` now.
+
+Full suite 2438/2438; browser 82/82; parity 39/39; selection 22/22;
+timeline 19/19.

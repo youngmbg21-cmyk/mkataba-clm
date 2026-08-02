@@ -83,23 +83,59 @@ async function page(opts = {}){
 }
 
 describe('F93 (1) — every card names the side that asked', () => {
-  test('a counterparty ask wears the Counterparty badge', async () => {
+  /* ---- NAMED, NOT SIDED ----
+     This badge read "Counterparty" until 2026-08-02, and "counterparty" is what
+     BOTH parties call the party opposite them — so on the counterparty's own
+     page it labelled the SENDER's ask with the word that reader uses for
+     themselves. Reported from the field as "why can I change a decision on my
+     own ask?", when the card was the owner's ask all along.
+
+     Asserted as "it names the party" rather than against a literal string: the
+     organisation comes from the record, so a test that hard-codes the label is
+     a test that has stopped reading the thing it is about. */
+  test('an ask from the other side is named for the party that made it', async () => {
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
     const badge = card.querySelector('.rl-origin');
     assert.ok(badge, 'the origin badge must be on the card');
     assert.ok(badge.classList.contains('rl-origin-them'), 'indigo family — theirs');
-    assert.match(badge.textContent, /Counterparty/);
+    assert.match(badge.textContent, new RegExp(p.c.counterparty),
+      'the badge names the organisation, not the seat');
+    assert.doesNotMatch(badge.textContent, /^Counterparty$/,
+      'the word that means a different party depending on who is reading');
     assert.equal(card.getAttribute('data-rl-origin'), 'them');
   });
 
-  test('your own ask wears the Your Ask badge', async () => {
+  test('your own ask is still just yours — the one party nobody misreads', async () => {
     const p = await page({ theirChange: false, myChange: true });
     const card = p.$('#rl-changes [data-nego-card]');
     const badge = card.querySelector('.rl-origin');
     assert.ok(badge.classList.contains('rl-origin-us'), 'emerald family — yours');
-    assert.match(badge.textContent, /Your Ask/);
+    assert.equal(badge.textContent.trim(), 'Your ask');
     assert.equal(card.getAttribute('data-rl-origin'), 'us');
+  });
+
+  /* A contract can legitimately have no counterparty on it yet. The label must
+     degrade to something a person can read rather than to an apostrophe with
+     nothing in front of it. */
+  test('with no counterparty on the record it falls back to a readable label', async () => {
+    const p = await page({ contract: contractFixture({ counterparty: '' }) });
+    const badge = p.$('#rl-changes [data-nego-card] .rl-origin');
+    assert.equal(badge.textContent.trim(), 'Their ask');
+  });
+
+  /* The badge now carries a company name, and companies are called things like
+     "APEX LOGISTICS & WAREHOUSING KENYA LTD". The rule that keeps that from
+     shoving the status badge off a 285px card is asserted here; the box model
+     it produces is measured in test/chromium/parity-verify.js. */
+  test('a long name is elided by the row rather than capped at a number', async () => {
+    const p = await page();
+    const css = p.doc.getElementById('redline-layout-css').textContent;
+    const rule = (css.match(/\.redline-page \.rl-origin\{[^}]*\}/) || [''])[0];
+    assert.match(rule, /text-overflow:ellipsis/, 'it has to be able to run out');
+    assert.match(rule, /min-width:0/, 'or a flex item never shrinks and never elides');
+    assert.doesNotMatch(rule, /max-width/,
+      'a fixed cap elides names that would have fitted and still cannot save a long one');
   });
 
   test('the badge sits on the card top row, beside the fingerprint', async () => {
@@ -241,10 +277,13 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     const box = theirSeat(p);
     const ownerCard = box.querySelector('[data-rl-origin="them"]');
     const theirCard = box.querySelector('[data-rl-origin="us"]');
-    assert.match(ownerCard.querySelector('.rl-origin').textContent, /Counterparty/,
-      'the sender\'s ask is the other side of THEIR table');
-    assert.match(theirCard.querySelector('.rl-origin').textContent, /Your Ask/,
+    assert.match(ownerCard.querySelector('.rl-origin').textContent, /Wanjiru Catering Ltd/,
+      'the sender is NAMED from their chair — this is the seat where the old '
+      + '"Counterparty" label meant the reader themselves');
+    assert.equal(theirCard.querySelector('.rl-origin').textContent.trim(), 'Your ask',
       'and their own counter-ask is theirs');
+    assert.doesNotMatch(ownerCard.querySelector('.rl-origin').textContent, /Naivas/,
+      'c.counterparty on that page is the reader, and must never be the label');
   });
 
   test('the Counterparty tooltip names the SENDER, never the reader\'s own company', async () => {

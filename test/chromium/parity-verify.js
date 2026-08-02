@@ -26,6 +26,7 @@
      7  the owner's distribution and round controls are absent from their seat
      8  no AI control on their side
      9  the card's Edit route behaves identically on both seats
+    10  the origin badge names a party, and a long name still fits the card
 
    Every number comes from getBoundingClientRect or getComputedStyle. None is
    read out of a stylesheet.
@@ -304,6 +305,51 @@ const CARD_EDIT = async () => {
     check('9 the two seats edit a clause identically', same.length === 0,
       same.length ? same.map(k => `${k}: ${ownerEdit[k]} vs ${cpEdit[k]}`).join(' · ')
         : 'every measured property matches');
+  }
+
+  /* ---- 10. the origin badge names a party, and still fits the card ----
+     The badge read "Counterparty" until 2026-08-02 — the word both parties use
+     for the party opposite them, so on the counterparty's own page it labelled
+     the SENDER's ask with the reader's own word for themselves. It now names
+     the organisation that actually asked, which means it carries text of
+     unbounded length in a head that also holds the change id, the caret and the
+     status badge, on a column ~285px wide.
+
+     Measured rather than reasoned about, at the narrowest layout the grid
+     reaches: the status badge must still be on the row. That is the thing a
+     stylesheet cannot tell you. */
+  const badges = await page.evaluate(() => {
+    /* A company name long enough to be a problem, pushed through the real
+       renderer rather than hoped for in the fixture. */
+    window.CONTRACT.counterparty = 'APEX LOGISTICS & WAREHOUSING KENYA LTD';
+    /* Through the page's OWN renderer. An earlier draft mounted redlineEmbed on
+       a host that only exists on the counterparty's surface, so on this one it
+       silently did nothing and the check read the pre-existing card — passing
+       or failing for reasons unconnected to the name under test. */
+    renderRedline();
+    const card = document.querySelector('#rl-changes [data-rl-origin="them"]');
+    if (!card) return null;
+    const o = card.querySelector('.rl-origin');
+    const st = card.querySelector('.rl-badge');
+    const head = card.querySelector('.rl-card-top').getBoundingClientRect();
+    return { label: o.textContent.trim(),
+      elided: o.scrollWidth > o.clientWidth + 1,
+      statusOnRow: st.getBoundingClientRect().right <= head.right + 1,
+      badgeOnRow: o.getBoundingClientRect().right <= head.right + 1,
+      tooltip: o.getAttribute('title') || '' };
+  });
+  if (!badges){
+    check('10 the origin badge is on the card', false, 'no card carrying one');
+  } else {
+    check('10 the badge names the party rather than the seat',
+      /APEX LOGISTICS/.test(badges.label) && badges.label !== 'Counterparty', badges.label);
+    check('10 a long name does not shove the status badge off the row',
+      badges.statusOnRow && badges.badgeOnRow,
+      `badge on row: ${badges.badgeOnRow}, status on row: ${badges.statusOnRow}`);
+    check('10 it is elided when it runs out, not wrapped or clipped silently',
+      badges.elided, `elided: ${badges.elided}`);
+    check('10 and the full name is still readable on hover',
+      /APEX LOGISTICS & WAREHOUSING KENYA LTD/.test(badges.tooltip), badges.tooltip);
   }
 
   /* The owner's side is the control: if these were absent there too, every
