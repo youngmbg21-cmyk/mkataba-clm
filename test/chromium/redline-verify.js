@@ -18,7 +18,9 @@
     10  only live redlines have cards
     11  the four card verbs compute to the specified fills
     12  Edit scrolls the document to the clause and opens the editor
-    13  the batch send is in the toolbar, counted and animated
+   12b  an open editor is still dressed as the document it edits
+   12c  the clause you landed on is not shrunk to a dropdown's width
+    13  the batch send sits with the drafts it publishes, counted and animated
     14  a Tracked Changes card holds the delta and nothing else
     15  clause <-> card lights and scrolls, both directions, really scrolling
 
@@ -397,17 +399,45 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('15 contract -> card lights and scrolls the card', sync.fromClause.cardLit && sync.fromClause.cardSeen);
   check('15 exactly one pair is lit', sync.lit === 2, `${sync.lit} elements`);
 
-  /* ---- 13. the batch send ---- */
+  /* ---- 13. the batch send ----
+     RE-POINTED, AND WHY. This asserted `inHeader` — the batch send flashing in
+     the page toolbar — and had been red ever since negoIndexSendHtml
+     deliberately moved it. The header copy was a PROXY for the engine's own
+     control at the head of the Tracked Changes column: two buttons for one act,
+     and the pair crowded the toolbar until the contract picker clipped
+     mid-word. The proxy was removed and its identity (same words, same count,
+     same blast styling) moved onto the real control, beside the cards it
+     publishes.
+
+     So the check now asserts the send is where the DRAFTS are, which is the
+     claim the product actually makes — and is written to be capable of failing
+     both ways: it must be inside the Tracked Changes column, and it must NOT
+     have come back in the header beside it. A check that only said "it exists
+     somewhere" would have passed before the move and after it, which is how
+     this one came to sit red for a fortnight without anybody learning
+     anything from it. */
   const blast = await page.evaluate(() => {
     const b = document.querySelector('[data-rl-blast]');
     if (!b) return null;
     const s = getComputedStyle(b);
     const headBox = document.querySelector('.rl-head').getBoundingClientRect();
+    const col = document.getElementById('rl-changes-col');
+    const cards = document.getElementById('rl-changes');
     return { text: b.textContent.replace(/\s+/g, ' ').trim(), bg: s.backgroundColor,
       anim: s.animationName, inHeader: b.getBoundingClientRect().top < headBox.bottom + 1,
+      inChangesCol: !!col && col.contains(b),
+      /* Above the cards, not buried under them: the complaint that moved it was
+         that the only send was below the fold. */
+      aboveTheCards: !!cards && b.getBoundingClientRect().bottom <= cards.getBoundingClientRect().top + 1,
+      headerCopies: document.querySelectorAll('.rl-head [data-rl-blast]').length,
       unsent: negoUnsentAsks(CONTRACT, 'owner').length };
   });
-  check('13 the batch send is in the toolbar', !!blast && blast.inHeader);
+  check('13 the batch send sits with the drafts it publishes',
+    !!blast && blast.inChangesCol && blast.aboveTheCards,
+    blast && `in the column: ${blast.inChangesCol}, above the cards: ${blast.aboveTheCards}`);
+  check('13 and the toolbar proxy has not come back',
+    !!blast && !blast.inHeader && blast.headerCopies === 0,
+    blast && `${blast.headerCopies} in the header`);
   check('13 it counts the unsent drafts',
     !!blast && blast.text.indexOf(`(${blast.unsent})`) >= 0, blast && blast.text);
   check('13 it is animated', !!blast && blast.anim === 'rlBlast', blast && blast.anim);
@@ -493,7 +523,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     btn.click();
     await new Promise(r => setTimeout(r, 600));
     return { wasHidden, inView: seen(),
-      lit: clause.classList.contains('rl-jump'),
+      lit: clause.classList.contains('rl-arrived'),
       editing: !!clause.querySelector('[data-nego-editor]'),
       modals: document.querySelectorAll('#modal-root *').length };
   });
@@ -572,6 +602,47 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     `opacity ${dressed.toolsOpacity}, pointer-events ${dressed.toolsPE}`
       + `, still over the Save bar: ${dressed.overGeometrically}`);
   await page.screenshot({ path: path.join(OUT, '02b-edit-dressed.png') });
+
+  /* ---- 12c. THE CLAUSE YOU LANDED ON IS STILL A CLAUSE ----
+     Reported from the field with a screenshot, and invisible to every check
+     above: pressing Edit on a Tracked Changes card put `rl-jump` on the clause
+     to flash it, and `rl-jump` was ALSO the toolbar contract picker's class.
+     `.redline-page .rl-jump` is two classes, so the clause inherited a select's
+     dress — max-width:calc(220px + 9ch), overflow:hidden, white-space:nowrap,
+     11px mono — and collapsed to 285px inside a 626px sheet with its heading
+     clipped mid-word. It stuck until the next repaint.
+
+     Measured as a COMPARISON against the clause's own width a moment earlier,
+     so it cannot be satisfied by a magic number, and the two properties that
+     did the damage are named individually — a future collision that brings
+     back only `max-width` would otherwise hide inside a width that happens to
+     match. */
+  await page.reload({ waitUntil: 'load' });
+  await page.evaluate(() => window.READY);
+  await pause(250);
+  const landed = await page.evaluate(async () => {
+    const btn = document.querySelector('#rl-changes [data-rl-edit]');
+    const id = btn.getAttribute('data-rl-edit');
+    const clause = document.querySelector(`#rl-doc [data-clause="${CSS.escape(id)}"]`);
+    const w = el => Math.round(el.getBoundingClientRect().width);
+    const before = w(clause);
+    btn.click();
+    await new Promise(r => setTimeout(r, 700));
+    const s = getComputedStyle(clause);
+    const h = clause.querySelector('.rl-clause-h');
+    return { before, after: w(clause), maxWidth: s.maxWidth, overflowX: s.overflowX,
+      headWrap: h ? getComputedStyle(h).whiteSpace : null,
+      /* The flash still has to happen — the whole point of the class. */
+      lit: clause.classList.contains('rl-arrived') };
+  });
+  check('12c landing on a clause does not shrink it',
+    landed.after === landed.before, `${landed.before} -> ${landed.after}px`);
+  check('12c and does not hand it a dropdown\'s clamp or clipping',
+    landed.maxWidth === 'none' && landed.overflowX === 'visible',
+    `max-width:${landed.maxWidth}, overflow-x:${landed.overflowX}`);
+  check('12c the heading still wraps rather than being cut off',
+    landed.headWrap === 'normal', landed.headWrap);
+  check('12c and the clause still says it has arrived', landed.lit);
 
   /* ---- 3 / 4 / 5. the Copilot route ---- */
   await page.reload({ waitUntil: 'load' });

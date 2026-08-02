@@ -658,7 +658,7 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     btn.click();
     const clause = p.$(`#rl-doc [data-clause="${clauseId}"]`);
     assert.ok(clause, 'the target clause must exist in the canvas');
-    assert.ok(clause.classList.contains('rl-jump'),
+    assert.ok(clause.classList.contains('rl-arrived'),
       'a page that silently jumps has moved the reader without telling them where');
     assert.ok(clause.querySelector('[data-nego-editor]'),
       'Edit means edit — the engine\'s inline editor opens on the clause itself');

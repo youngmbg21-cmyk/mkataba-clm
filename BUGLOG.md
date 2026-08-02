@@ -6535,3 +6535,88 @@ browser `76/77`, `18/18` parity, `22/22` selection.
 
 `FAIL 13 the batch send is in the toolbar` — confirmed identical on the
 untouched tree at this commit. Still nobody's regression.
+
+---
+
+## Run: the narrow clause card — a class name two things were using (2026-08-02)
+
+Follow-up to the run above. The three faults fixed there were real and are
+fixed, but they were not the fault in the screenshot: the card was still half
+width. Young re-reported it with a second screenshot, and the second one is what
+made it findable — with the wrapping fixed, the wording now wrapped *to* the
+narrow box instead of spilling out of it, which said the box itself was the
+problem rather than the text.
+
+### 1. Pressing Edit on a card dressed the clause as a dropdown
+
+**What was broken.** `rlJumpToClause` — what the Tracked Changes card's **Edit**
+button calls — flashes the clause it lands on by adding the class `rl-jump`.
+`rl-jump` is *also* the class on the toolbar's contract picker
+(`#rl-contract-jump`), and the picker's rules were written as
+`.redline-page .rl-jump`: two classes, no element. So the clause matched them.
+
+A `<select>`'s dress, applied to a clause:
+
+| | the picker asks for | the clause got |
+|---|---|---|
+| `max-width` | `calc(220px + 9ch)` | **285.307px** inside a 626px sheet |
+| `overflow` | `hidden` | heading clipped mid-word |
+| `white-space` | `nowrap` | heading could not wrap |
+| `min-width` | `96px` | — |
+| type | 11px mono, 600 | — |
+
+Measured on the real page against a sibling clause: `max-width: 285.307px |
+other| none`. And it stuck — the class is only removed to *restart* the
+animation, so the clause stayed shrunk until the next repaint.
+
+**Why it took two passes to find.** Nothing about either part is wrong on its
+own, and nothing in the clause's own rules is wrong either — which is why
+reading the clause's stylesheet, its markup and its ancestors found nothing
+three times over. It also does not reproduce from the clause's own **Direct
+Edit** button, only from a *jump* — the card's Edit — so the obvious repro was
+the wrong one. It was found by booting the real `index.html` in Chromium with a
+seeded contract, taking the card route, and diffing the computed style of the
+narrow clause against a normal one property by property. `max-width` and
+`appearance: base-select` in that diff named the culprit immediately.
+
+**The fix.** Two changes, either of which would have been enough; both are here
+because the point is that this class of fault cannot recur.
+
+- The flash is now `rl-arrived` — named for what it means, the clause you have
+  *arrived* at, rather than for the gesture that got you there.
+- Every picker rule is now typed as `select.rl-jump`. A block that is a
+  select's dress should say so, and the element selector costs nothing.
+
+### 2. Re-pointed: `13 the batch send is in the toolbar`
+
+**What was broken.** Nothing in the product. This check asserted the batch send
+flashed in the page toolbar, and `negoIndexSendHtml` deliberately moved it: the
+header copy was a *proxy* for the engine's own control at the head of the
+Tracked Changes column, the pair crowded the toolbar until the contract picker
+clipped mid-word, and the proxy was removed with its identity — same words,
+same count, same blast styling — moved onto the real control beside the cards it
+publishes. The check had been red ever since, and had been logged as "parked,
+nobody's regression" three runs running.
+
+**The fix.** Re-pointed at the claim the product actually makes, and written to
+be capable of failing *both* ways: the send must be inside the Tracked Changes
+column and above the cards (the complaint that moved it was that the only send
+was below the fold), **and** no copy may have reappeared in the header. A check
+that only said "it exists somewhere" would have passed before the move and
+after it — which is how this one sat red for a fortnight teaching nobody
+anything.
+
+**Files touched.** `js/views/negotiation.js`.
+
+**How it was verified.** Three new jsdom tests in
+`test/f144-the-editor-is-the-clause.test.js` pin the separation: no `rl-jump`
+selector may exist without `select`, the jump must set `rl-arrived` and must not
+set `rl-jump`, and the flash must still have a rule. All three fail on the
+untouched tree. Check `12c` in `test/chromium/redline-verify.js` measures it in
+a real browser as a *comparison* — the clause's width before the jump against
+its width after — plus `max-width`, `overflow-x` and the heading's wrapping
+named individually, so a partial recurrence cannot hide inside a width that
+happens to match.
+
+**The browser suite is green for the first time in this sequence: 82/82.** Full
+jsdom suite 2431/2431; parity 18/18; selection 22/22; timeline 19/19.

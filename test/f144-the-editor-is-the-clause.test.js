@@ -166,6 +166,48 @@ describe('f144 — an open editor is not also a row of hover verbs', () => {
   });
 });
 
+describe('f144 — a clause you land on is not dressed as a dropdown', () => {
+  /* The fault the two screenshots were actually of, and the one no rule about
+     the clause could have found: rlJumpToClause flashed the clause by adding
+     `rl-jump`, which is ALSO the class on the toolbar's contract picker
+     (#rl-contract-jump). The picker's rule was written as `.redline-page
+     .rl-jump` — two classes, no element — so it dressed the CLAUSE too:
+     max-width:calc(220px + 9ch), overflow:hidden, white-space:nowrap, 11px
+     mono. Measured on the real page, the clause went from 626px to 285px with
+     its heading clipped mid-word, and stayed there until the next repaint.
+
+     Nothing about either part was wrong on its own. They just asked for the
+     same word. So what is pinned is the SEPARATION, three ways. */
+  test('the clause flash and the contract picker do not share a class', async () => {
+    const p = await page();
+    const jumpSel = p.pageCss()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('}').map(b => b.split('{')[0].trim()).filter(Boolean)
+      .flatMap(sel => sel.split(',').map(x => x.trim()))
+      .filter(sel => /\brl-jump\b/.test(sel));
+    assert.ok(jumpSel.length, 'the picker still has rules of its own');
+    for (const sel of jumpSel)
+      assert.match(sel, /select\.rl-jump/,
+        `"${sel}" would dress anything carrying rl-jump, not only the picker`);
+  });
+
+  test('the flash class is rl-arrived, and it is what the jump sets', async () => {
+    const p = await page();
+    const clause = p.preamble();
+    const jumped = p.win.rlJumpToClause(clause.getAttribute('data-clause'), { edit: false });
+    assert.ok(jumped, 'the jump found the clause');
+    assert.ok(clause.classList.contains('rl-arrived'), 'the clause says it has arrived');
+    assert.ok(!clause.classList.contains('rl-jump'),
+      'and does not take the picker\'s name with it');
+  });
+
+  test('the sheet still lights a clause that has arrived', async () => {
+    const p = await page();
+    assert.match(p.pageCss(), /\.rl-clause\.rl-arrived\{animation:rlJump/,
+      'renaming the class must not have left the flash without a rule');
+  });
+});
+
 describe('f144 — Direct Edit opens on the wording that is on the table', () => {
   test('the first edit opens on the baseline, because that is what is on the table', async () => {
     const p = await page();

@@ -4925,32 +4925,40 @@ function redlineLayoutCss(){
   /* 9ch wider than the pre-counterparty 220px, measured in the control's own
      11px mono figures — room for the name's first letters, nothing more.
      overflow:hidden so anything past the new edge disappears rather than
-     stretching the toolbar. */
-  .redline-page .rl-jump{flex:0 1 auto;min-width:96px;max-width:calc(220px + 9ch);overflow:hidden;
+     stretching the toolbar.
+
+     TYPED AS A SELECT, not left as a bare class. This block is a select's
+     dress — a hard max-width, nowrap, clipped overflow, 11px mono — and while
+     it named the class alone it reached anything on the page carrying that
+     word. It reached a CLAUSE, and shrank the contract to 285px (see the
+     rl-arrived note further down). The element selector costs nothing and
+     means the next thing to be called rl-jump cannot be dressed as a dropdown
+     by accident. */
+  .redline-page select.rl-jump{flex:0 1 auto;min-width:96px;max-width:calc(220px + 9ch);overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--color-divider);
     background:var(--color-surface);border-radius:9px;padding:6px 8px;font:inherit;font-family:var(--font-mono);
     font-size:11px;font-weight:600;color:var(--color-text);cursor:pointer}
-  .redline-page .rl-jump:hover{border-color:var(--color-neutral-300)}
+  .redline-page select.rl-jump:hover{border-color:var(--color-neutral-300)}
   /* THE OPEN LIST, DRESSED TOO. Browsers draw a select's popup themselves —
      the hard black edge — unless the select opts into base-select, which
      hands the picker to this stylesheet: soft grey border, rounded, the
      app's own hover and selection tints. Browsers without base-select
      ignore all of this and keep their native popup, which is the correct
      fallback: styling degrades, the control never does. */
-  .redline-page .rl-jump,
-  .redline-page .rl-jump::picker(select){appearance:base-select}
-  .redline-page .rl-jump::picker(select){border:1px solid var(--color-neutral-300);border-radius:10px;
+  .redline-page select.rl-jump,
+  .redline-page select.rl-jump::picker(select){appearance:base-select}
+  .redline-page select.rl-jump::picker(select){border:1px solid var(--color-neutral-300);border-radius:10px;
     background:var(--color-surface);padding:4px;margin-top:4px;
     box-shadow:0 8px 24px rgba(15,23,42,.14)}
-  html.dark .redline-page .rl-jump::picker(select){border-color:rgba(148,163,184,.35);
+  html.dark .redline-page select.rl-jump::picker(select){border-color:rgba(148,163,184,.35);
     box-shadow:0 8px 24px rgba(0,0,0,.5)}
-  .redline-page .rl-jump option{font:inherit;font-family:var(--font-mono);font-size:11px;font-weight:600;
+  .redline-page select.rl-jump option{font:inherit;font-family:var(--font-mono);font-size:11px;font-weight:600;
     color:var(--color-text);padding:6px 9px;border-radius:7px;cursor:pointer}
-  .redline-page .rl-jump option:hover,
-  .redline-page .rl-jump option:focus{background:var(--color-neutral-100)}
-  .redline-page .rl-jump option:checked{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
+  .redline-page select.rl-jump option:hover,
+  .redline-page select.rl-jump option:focus{background:var(--color-neutral-100)}
+  .redline-page select.rl-jump option:checked{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
     color:var(--color-accent-600)}
-  html.dark .redline-page .rl-jump option:checked{color:#2dd4bf}
+  html.dark .redline-page select.rl-jump option:checked{color:#2dd4bf}
   /* The playbook pass wears the Copilot's violet — an AI act, visibly not one
      of the engine's own verbs, and disabled it says it is thinking. */
   .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
@@ -5089,14 +5097,34 @@ function redlineLayoutCss(){
      Pressing Edit on a card scrolls the document to that clause, and the clause
      has to say so when it arrives — a page that silently jumps has moved the
      reader somewhere without telling them which line to look at. The ring
-     fades; the clause underneath it is untouched. */
-  .redline-page .rl-clause.rl-jump{animation:rlJump 1.6s ease 1}
+     fades; the clause underneath it is untouched.
+
+     ---- rl-arrived, AND NEVER rl-jump AGAIN ----
+     This class used to be called rl-jump, which is ALSO the class on the
+     contract picker in the toolbar (#rl-contract-jump). Its dress is a
+     select's dress — max-width:calc(220px + 9ch), overflow:hidden,
+     white-space:nowrap, 11px mono — and the rule was written as two classes,
+     so it matched the CLAUSE just as happily as the select.
+
+     What that did, reported from the field with a screenshot: press Edit on a
+     Tracked Changes card and the clause you land on collapses to 285px inside
+     a 626px sheet, its heading clipped mid-word with no wrap, its wording
+     jammed into a column half the width of the contract around it. Measured
+     on the real page, not inferred: max-width 285.307px against none on
+     every other clause. It stuck, too — the class is only removed to restart
+     the animation, so the clause stayed shrunk until the next repaint.
+
+     It could not be found from the clause's own rules, because there is
+     nothing wrong with them. Two unrelated parts of the page simply asked for
+     the same word. Naming this one for what it means — the clause you have
+     ARRIVED at — is what stops the next one. */
+  .redline-page .rl-clause.rl-arrived{animation:rlJump 1.6s ease 1}
   @keyframes rlJump{
     0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 55%,transparent)}
     70%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 30%,transparent)}
     100%{box-shadow:0 0 0 3px transparent}
   }
-  @media (prefers-reduced-motion:reduce){ .redline-page .rl-clause.rl-jump{animation:none;
+  @media (prefers-reduced-motion:reduce){ .redline-page .rl-clause.rl-arrived{animation:none;
     box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-solid) 45%,transparent)} }
   /* ---- WHO TOUCHED THIS WORDING ----
      Every marked span in the document carries a title naming the last hand on
@@ -6819,12 +6847,16 @@ function rlJumpToClause(clauseId, opts = {}){
   const clause = page.querySelector('#rl-doc ' + sel) || page.querySelector(sel);
   if (!clause) return null;
   if (clause.scrollIntoView) clause.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  clause.classList.remove('rl-jump');
+  /* rl-arrived, NOT rl-jump: the toolbar's contract picker owns that word, and
+     while this shared it the clause wore a dropdown's max-width and collapsed
+     to 285px the moment a card's Edit landed on it. See the note beside the
+     rule in the sheet. */
+  clause.classList.remove('rl-arrived');
   /* Re-triggering the animation needs the class off for a frame; without the
      reflow read the browser coalesces remove+add into no change at all, so a
      second press of the same card's Edit lit nothing. */
   void clause.offsetWidth;
-  clause.classList.add('rl-jump');
+  clause.classList.add('rl-arrived');
   if (opts.edit !== false){
     const editBtn = clause.querySelector('[data-nego-edit]');
     if (editBtn && !clause.querySelector('.nego-edit-bar')) editBtn.click();
