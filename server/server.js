@@ -4795,10 +4795,12 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        the page open, so the read itself IS the heartbeat — no new call from
        the portal, nothing stored beyond a name and a clock. */
     if (cid) presenceMap.set(cid, { name: s.recipient_name || 'Counterparty', at: Date.now() });
-    if (!s.first_opened_at) {
+    /* STAMPED, NOT ANNOUNCED. first_opened_at is what the owner's share panel
+       and the engagement timeline read to show "opened" on the page, so the
+       fact is still recorded and still visible — it just no longer sends an
+       email to say so. See responseIsWorthEmail for why. */
+    if (!s.first_opened_at)
       db.prepare('UPDATE shares SET first_opened_at=? WHERE token=?').run(now(), s.token);
-      notifyFirstOpen(s, payload);   // opt-in, fire-and-forget
-    }
   } catch (_) {}
   /* A durable link is never superseded — it IS the current copy, refreshed in
      place — and answering it once does not shut it: the next round comes back
@@ -4957,19 +4959,12 @@ function priorCopySeenBy(s) {
   return null;
 }
 
-// "Counterparty just opened it" ping to the sender — strictly opt-in per user.
-function notifyFirstOpen(s, payload) {
-  try {
-    if (!s.created_by) return;
-    const u = db.prepare('SELECT * FROM users WHERE id=?').get(s.created_by);
-    if (!u || !userPrefs(u).notifyShareOpens) return;
-    const cName = (payload && payload.contract && payload.contract.name) || s.contract_id || 'your contract';
-    const who = s.recipient_name || s.recipient_email || 'The counterparty';
-    sendEmail(u.email, `Opened: "${cName}"`,
-      `${who} just opened "${cName}" for the first time. You'll get another email when they respond. Track progress in HaTi.`,
-      'share first-open');
-  } catch (_) {}
-}
+/* The "counterparty just opened it" ping is gone. It was opt-in, which made it
+   the mildest of the alerts, but it was still an email whose entire content was
+   a fact the share panel already shows — and its closing line, "you'll get
+   another email when they respond", is a promise the product no longer makes.
+   The opening is recorded on the share and read from there; see the
+   first_opened_at stamp above and responseIsWorthEmail below. */
 
 app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shares panel
   if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
@@ -5468,21 +5463,43 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
    two addresses belong to the same person, as they do in a workspace that
    negotiates with itself, all six land in one inbox.
 
-   An email is now sent for exactly two kinds of event: WORDING MOVED (they
-   proposed something, decided something we proposed, or returned a redline or
-   a value), and THE DEAL ENDED (somebody signed, or declined). Everything else
-   — a readiness signal, an acceptance that changes no words, a receipt for the
-   sender's own act — is visible on the contract and does not need an inbox.
+   The receipt went first. WORDING MOVED goes now, and for the same reason
+   carried further: an owner answering a live round got one email per press of
+   Send, six in an evening, each one announcing a decision that was already on
+   their contract by the time they read it. The platform is where a negotiation
+   is watched — the app polls for exactly these answers and applies them to the
+   record while the owner is looking at it (pollPendingResponses, js/core.js) —
+   so the email was never the news, only a duplicate of it that arrived later
+   and could not be acted on where it landed. Moving people off email is the
+   product; alerting them by email that something happened in the product is
+   the opposite of it.
 
-   The receipt is gone entirely. It told the responder what the responder had
-   just done. */
+   What is left is the boundary, not the traffic across it. An email is sent
+   for exactly three events, and each one is a hand-off rather than a step:
+   SOMEBODY SIGNED, SOMEBODY DECLINED — the deal ended and there is no next
+   round to watch — and THEY ARE READY TO SIGN, which is the round closing and
+   the signing process beginning. The readiness rule is unchanged: a signal
+   that moves nothing has never been worth an inbox, and still is not. In
+   practice that turns an evening of six "Decisions returned" into one email at
+   the point the counterparty says they are done.
+
+   Nothing here touches signing itself — the signature request, the one-time
+   code and the countersigning chain are a different route and deliberately
+   still travel by email, because the person receiving them has no account. */
 function responseIsWorthEmail(r) {
   if (!r) return false;
   if (r.action === 'sign' || r.action === 'decline') return true;   // the deal ended
-  const moved = (Array.isArray(r.negoDecisions) && r.negoDecisions.length)
-    || (Array.isArray(r.negoProposed) && r.negoProposed.length)
-    || !!r.proposedText || r.proposedValue != null;
-  return !!moved;                                                   // wording moved
+  /* The hand-off into signing. Kept on its original trigger rather than
+     widened to every bare signal: this is a narrowing of email traffic, and it
+     would be a strange one that started sending a message it never sent. */
+  if (r.action === 'ready') {
+    return (Array.isArray(r.negoDecisions) && r.negoDecisions.length > 0)
+      || (Array.isArray(r.negoProposed) && r.negoProposed.length > 0)
+      || !!r.proposedText || r.proposedValue != null;
+  }
+  /* Decisions, counter-proposals, a returned redline, a proposed value — every
+     one of them lands on the contract and is read there. */
+  return false;
 }
 
 // Close the loop by email: the sender learns the outcome without opening HaTi.
@@ -5492,11 +5509,12 @@ function notifyShareResponse(s, r) {
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     const who = r.name + (r.title ? `, ${r.title}` : '');
+    /* Three subjects, because there are three events left. The "Decisions
+       returned" and "Changes requested" lines that used to sit here are gone
+       with the mail that carried them — see responseIsWorthEmail. */
     const subject = r.action === 'sign' ? `Signed: "${cName}"`
       : r.action === 'decline' ? `Declined: "${cName}"`
-      : r.action === 'ready' ? `Ready to sign: "${cName}"`
-      : r.action === 'decisions' ? `Decisions returned: "${cName}"`
-      : `Changes requested: "${cName}"`;
+      : `Ready to sign: "${cName}"`;
     const n = Array.isArray(r.negoDecisions) ? r.negoDecisions.length : 0;
     /* Wording of their own travels on the same response. An email that counted
        only the decisions told an owner "answered 0 proposed changes" for a round
@@ -5506,24 +5524,26 @@ function notifyShareResponse(s, r) {
       n ? `answered ${n} of yours` : ''].filter(Boolean).join(' and ') || 'replied';
     const detail = r.action === 'sign'
       ? `${who} approved and signed "${cName}"${r.email ? ` (email-verified as ${r.email})` : ''}.`
-      : r.action === 'ready'
-        ? `${who} has signalled they are ready to sign "${cName}".`
-          + `${(n || np) ? `\n\nThey ${answered} in the same step.` : ''}`
-          + `\n\nNothing has been signed. Open the contract in HaTi and issue a signing link to take it forward.`
-      : r.action === 'decisions'
-        ? `${who} ${answered} on "${cName}".`
-          + `\n\nIt is recorded on the contract — open Negotiation to see where the deal stands.`
       : r.action === 'decline'
         ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
-        : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +
-          `${r.proposedValue ? `\n\nProposed value: ${orgJx().currency} ${Number(r.proposedValue).toLocaleString(orgJx().locale)}` : ''}` +
-          `${r.proposedText ? `\n\nProposed edits (redline) are on the contract in HaTi — open Negotiation to review the diff.` : ''}`;
+        /* The round-closing email, and now the only one an owner gets out of a
+           negotiation. It carries the count because it is no longer preceded by
+           a message per answer — this is where they learn how the round went. */
+        : `${who} has signalled they are ready to sign "${cName}".`
+          + `${(n || np) ? `\n\nThey ${answered} in the same step.` : ''}`
+          + `\n\nNothing has been signed. Open the contract in HaTi and issue a signing link to take it forward.`;
     for (const to of shareOwnerEmails(s))
       sendEmail(to, subject, `${detail}\n\nThe response has been recorded on the contract in HaTi.`, `share response: ${r.action}`);
   } catch (_) {}
 }
 
-/* ---------- per-user notification preferences ---------- */
+/* ---------- per-user notification preferences ----------
+   The route is kept and its one key with it, though nothing reads that key any
+   more: it is stored on accounts in the wild, the settings page no longer
+   offers it, and dropping the key here would silently discard a stored value
+   on the next write of any preference. The place it USED to be read is where
+   the decision lives — see the first_opened_at stamp. When a second preference
+   arrives, this list is where it goes. */
 app.put('/api/me/prefs', auth, (req, res) => {
   const prefs = userPrefs(req.user);
   for (const k of ['notifyShareOpens']) if (k in (req.body || {})) prefs[k] = !!req.body[k];

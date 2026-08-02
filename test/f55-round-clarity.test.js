@@ -316,7 +316,7 @@ describe('F55 — the executed copy waits for every signature', () => {
   });
 });
 
-describe('F55 — a response is emailed when it moves something, and not otherwise', () => {
+describe('F55 — a negotiation is watched in the platform, and only its end is emailed', () => {
   let h, W, token;
   const CID = 'MK-RESP-1';
   const payload = { v: 1, kind: 'hati-share', org: 'Highland Corporate Ltd',
@@ -348,22 +348,39 @@ describe('F55 — a response is emailed when it moves something, and not otherwi
   });
   after(async () => { await h.stop(); });
 
-  /* THE RECEIPT IS GONE. It told the responder what the responder had just
-     done, and it doubled the traffic of every exchange — six messages for
-     three answers, all landing in one inbox where a workspace negotiates
-     through a single address. */
-  test('answering does not send the answerer a receipt', async () => {
+  /* THE RECEIPT WENT FIRST — it told the responder what the responder had just
+     done. THE ALERT GOES NOW, and for the reason the receipt did, carried to
+     its conclusion: an owner answering a live round got one email per press of
+     Send, each announcing a decision that the app had already applied to their
+     contract by the time they read it. Moving people off email is the product;
+     emailing them that something happened in the product is the opposite. */
+  test('answering emails nobody — it is on the contract, which is the point', async () => {
     const before = (await about()).length;
     await respond({ action: 'decisions', email: 'amara@savannah.co.ke',
       negoDecisions: [{ id: 'CHG-001', status: 'accepted' }] });
     const added = (await about()).slice(0, (await about()).length - before);
 
-    assert.ok(added.some(m => /^Decisions returned/.test(m.subject)),
-      'the sender still learns that a decision landed — got ' + JSON.stringify(added));
-    assert.ok(!added.some(m => /^Your response to/.test(m.subject)),
-      'and nobody is told what they themselves just did — got ' + JSON.stringify(added));
-    assert.ok(!added.some(m => m.to === 'amara@savannah.co.ke'),
-      'nothing goes back down the link it came from');
+    assert.equal(added.length, 0,
+      'a decision is read where it lands, not in an inbox — got ' + JSON.stringify(added));
+  });
+
+  /* The six in one evening, which is what this is really about: pressing Send
+     as you work through a round used to cost one email each time. */
+  test('a whole round of answers is a silent inbox', async () => {
+    const before = (await about()).length;
+    for (let i = 2; i <= 7; i++)
+      await respond({ action: 'decisions', email: 'amara@savannah.co.ke',
+        negoDecisions: [{ id: 'CHG-00' + i, status: 'accepted' }] });
+    assert.equal((await about()).length, before,
+      'six presses of Send, six things on the contract, nothing posted');
+  });
+
+  test('a counter-proposal of their own is not an alert either', async () => {
+    const before = (await about()).length;
+    await respond({ action: 'changes', email: 'amara@savannah.co.ke',
+      proposedText: 'Twenty-four (24) months.', comment: 'We need a longer term.' });
+    assert.equal((await about()).length, before,
+      'their wording lands in Negotiation, where it can actually be answered');
   });
 
   test('a readiness signal that moves nothing sends nothing', async () => {
@@ -371,6 +388,45 @@ describe('F55 — a response is emailed when it moves something, and not otherwi
     await respond({ action: 'ready' });
     assert.equal((await about()).length, before,
       'a signal is visible on the contract; it does not need an inbox');
+  });
+
+  /* THE HAND-OFF, and the one email a negotiation now produces. The round is
+     closing and the signing process is beginning, so the watching stops here
+     — and because no message preceded it, this is where the owner learns how
+     the round went. */
+  test('ready to sign, with the round on it, is the email that survives', async () => {
+    const before = (await about()).length;
+    await respond({ action: 'ready', email: 'amara@savannah.co.ke',
+      negoDecisions: [{ id: 'CHG-010', status: 'accepted' }, { id: 'CHG-011', status: 'rejected' }] });
+    const added = (await about()).slice(0, (await about()).length - before);
+
+    assert.equal(added.length, 1, 'one email, at the end — got ' + JSON.stringify(added));
+    assert.match(added[0].subject, /^Ready to sign:/);
+    assert.ok(!added.some(m => m.to === 'amara@savannah.co.ke'),
+      'nothing goes back down the link it came from');
+  });
+
+  /* THE OPENING IS RECORDED, NOT ANNOUNCED. The ping was opt-in, so it is
+     switched ON here before the link is opened — a test that left it off would
+     pass against the old code too and prove nothing. */
+  test('a counterparty opening the link is not an email, even opted in', async () => {
+    await W.admin.json('/api/me/prefs', { method: 'PUT', body: { notifyShareOpens: true } });
+    const s2 = await W.admin.json('/api/shares', { method: 'POST', body: {
+      payload, contractId: CID, durable: true, channel: 'email',
+      recipient: { name: 'Amara Njoroge', email: 'amara@savannah.co.ke' } } });
+    const before = (await outbox()).length;
+    await anon().json('/api/shares/' + s2.token);          // the first open
+    const added = (await outbox()).slice(0, (await outbox()).length - before);
+    assert.ok(!added.some(m => /^Opened:/.test(m.subject)),
+      'the share panel already shows it opened — got ' + JSON.stringify(added));
+  });
+
+  test('a decline is still worth an email — the deal ended', async () => {
+    const before = (await about()).length;
+    await respond({ action: 'decline', email: 'amara@savannah.co.ke', comment: 'Not this year.' });
+    const added = (await about()).slice(0, (await about()).length - before);
+    assert.ok(added.some(m => /^Declined:/.test(m.subject)),
+      'there is no next round to watch for — got ' + JSON.stringify(added));
   });
 
   test('a signature is always worth an email', async () => {

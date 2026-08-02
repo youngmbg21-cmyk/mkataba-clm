@@ -409,13 +409,17 @@ function renderTeam(){
 
       ${(API_MODE())?`
       <section style="${cardStyle}">
+        ${''/* THE FIRST-OPEN TOGGLE IS GONE, with the email it switched on.
+               A settings page that still offered the checkbox would be
+               offering a switch wired to nothing. What replaces it is the
+               answer to the question somebody comes to this page with — "will
+               HaTi email me about this contract?" — stated once, plainly. */}
         <h4 style="${h4Style}">My notifications</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">When a counterparty responds to a contract you shared (signs, requests changes or declines), you're always emailed. First-open alerts are optional:</p>
-        <label style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:5px;padding:10px;cursor:pointer;font-size:12px">
-          <input id="pref-share-opens" type="checkbox" ${me&&me.prefs&&me.prefs.notifyShareOpens?'checked':''} style="margin-top:1px;width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
-          <span><span style="font-weight:600;display:block">Email me on first open</span>
-          <span style="color:var(--color-neutral-600);display:block;line-height:1.4">Get one email the first time a counterparty opens a contract you shared.</span></span>
-        </label>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">A negotiation is watched here, not in your inbox. When a counterparty opens a contract, answers one of your changes or proposes one of their own, it lands on the contract in HaTi while you are looking at it — no email is sent, and none is needed.</p>
+        <div style="border:1px solid var(--color-divider);border-radius:5px;padding:10px;font-size:12px;line-height:1.5;color:var(--color-neutral-700)">
+          <span style="font-weight:600;display:block;color:var(--color-text)">You are still emailed at the end</span>
+          Three events reach your inbox, because each one ends the watching rather than continuing it: they are <b>ready to sign</b>, they <b>signed</b>, or they <b>declined</b>. Signing itself — the request, the one-time code, the countersigning chain — travels by email as it always has, because the person receiving it has no account here.
+        </div>
       </section>`:''}
 
       <section style="${cardStyle}">
@@ -500,13 +504,7 @@ function renderTeam(){
     if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
     toast(e.target.checked?'Sidebar shows everything':'Sidebar grows with the portfolio again');
   });
-  document.getElementById('pref-share-opens')?.addEventListener('change',async e=>{
-    try{
-      const r=await api('me/prefs','PUT',{ notifyShareOpens:e.target.checked });
-      if(REMOTE&&REMOTE.me) REMOTE.me.prefs=r.prefs;
-      toast(e.target.checked?'First-open alerts on':'First-open alerts off');
-    }catch(err){ toast(err.message,'err'); e.target.checked=!e.target.checked; }
-  });
+  /* No first-open toggle to wire — the alert it switched on is gone. */
   document.getElementById('tm-invite')?.addEventListener('click',()=>{ const n=document.getElementById('tm-name'); if(n){ n.scrollIntoView({block:'nearest'}); n.focus(); } });
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
   document.getElementById('brand-edit')?.addEventListener('click',()=>openDesignStep({ mode:'settings', onBack:()=>renderTeam() }));

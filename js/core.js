@@ -2606,7 +2606,7 @@ async function openShareModal(c, opts={}){
         // which of the three actually happened, and quote the reason.
         const link=r.link?`<div style="margin-top:8px"><span style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all">${esc(r.link)}</span></div>`:'';
         if(r.emailSent){
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Email sent</strong> to ${esc(email)}. You’ll be emailed when they open it${currentUser()?.prefs?.notifyShareOpens?'':' (if enabled in settings)'} and when they respond. Fill in another recipient to share again.</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Email sent</strong> to ${esc(email)}. Their answers land on the contract here as they make them — watch it in Negotiation rather than your inbox. Fill in another recipient to share again.</span></div>`);
         } else if(r.alreadySentAt){
           /* Nothing was refused: their live link already went, and no
              duplicate was emailed on purpose. Saying "Not delivered" here was
