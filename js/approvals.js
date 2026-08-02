@@ -255,7 +255,33 @@ function signersRemaining(c){ return signerPlan(c).filter(s=>!s.signed).length; 
    the server into sending a copy of a half-signed contract.
 
    A contract with no counterparty named has one side to hear from. One filed as
-   executed outside HaTi carries the paper, which is already both. */
+   executed outside HaTi carries the paper, which is already both.
+
+   ---- A SIGNING ROUTE IS THE ANSWER, NOT A CLUE TOWARDS IT ----
+   Field report (Young, 02 Aug 2026): a contract signed right through its route
+   sat sealed, locked and captioned "Executed & sealed" with a "Partially
+   signed" chip beside it, and no copy ever reached anybody.
+
+   Two authorities were deciding "is this done" and they were reading different
+   records. Sealing asks the ROUTE (allSigned) — every named signer has signed,
+   so the wording stops moving and finalizeExecution runs. This asked the change
+   set of SIGNATURES instead, classified them by their `party` field, and
+   inferred that a counterparty still owed one from nothing more than
+   c.counterparty holding a name. A route whose rows are all internal — the
+   owner and a colleague, two directors, a witness — completes, seals the
+   document and locks it, while this went on reporting a missing signature that
+   nobody was ever going to add. Terminal: no later signature can arrive to
+   settle it, distributeExecuted refuses to send a half-signed copy, and the
+   contract can never leave that state.
+
+   The route is the owner's explicit statement of who must sign — the editor's
+   own words are "signers execute in order" and "counterparty signers each get
+   their own secure link", so a counterparty who has to sign belongs ON it. When
+   there is a route, it answers this question, exactly as it already answers
+   when to seal. Where there is NO route the inference below is untouched: that
+   is the single-signer path, where the owner signs, the contract seals, and the
+   counterparty's mark lands afterwards through their share link — the flow f135
+   exists to protect. */
 function executionParties(c){
   const sigs=Array.isArray(c&&c.signatures)?c.signatures:[];
   const isTheirs=s=>!!s&&(s.party==='counterparty'||s.party==='external');
@@ -263,10 +289,13 @@ function executionParties(c){
   const offPlatform=!!(window.isExternallyExecuted&&isExternallyExecuted(c));
   const expectsCounterparty=!!String((c&&c.counterparty)||'').trim();
   const nameOf=list=>String((list[0]&&(list[0].name||list[0].email))||'').trim();
-  return { ours:ours.length, theirs:theirs.length,
+  const plan=signerPlan(c);
+  const routed=plan.length>0, routeDone=routed&&plan.every(s=>s&&s.signed);
+  return { ours:ours.length, theirs:theirs.length, routed, routeDone,
     ourName:nameOf(ours)||(window.FIRST_PARTY||'this workspace'),
     theirName:nameOf(theirs)||String((c&&c.counterparty)||'the counterparty'),
-    fully: offPlatform || (ours.length>0 && (theirs.length>0 || !expectsCounterparty)) };
+    fully: offPlatform || (routed ? routeDone
+      : (ours.length>0 && (theirs.length>0 || !expectsCounterparty))) };
 }
 const bothPartiesSigned = c => executionParties(c).fully;
 

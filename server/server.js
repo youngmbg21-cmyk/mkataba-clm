@@ -3425,7 +3425,16 @@ app.post('/api/sign-meta', auth, (req, res) => {
 
    Fully executed means both named sides have signed. A contract with no
    counterparty named has only one side to hear from; one filed as executed
-   outside HaTi carries the paper, which is already both. */
+   outside HaTi carries the paper, which is already both.
+
+   A SIGNING ROUTE ANSWERS THIS OUTRIGHT. Where the owner named the signers,
+   that list is who must sign — and it is already the list that decides when the
+   document seals. Inferring a missing counterparty signature from c.counterparty
+   holding a name left a route of internal signers sealed, locked and reported as
+   half-done for ever, with the copy withheld from everybody (Young, 02 Aug 2026).
+   This mirrors executionParties() in js/approvals.js; the two are deliberately
+   the same rule computed on both sides of the wire, so a stale page and the
+   server cannot disagree about whether a contract is executed. */
 function signedParties(c) {
   const sigs = Array.isArray(c && c.signatures) ? c.signatures : [];
   const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
@@ -3435,12 +3444,15 @@ function signedParties(c) {
     || (c.migration && c.migration.executedOutside)));
   const expectsCounterparty = !!String((c && c.counterparty) || '').trim();
   const nameOf = list => String((list[0] && (list[0].name || list[0].email)) || '').trim();
+  const plan = Array.isArray(c && c.signerPlan) ? c.signerPlan : [];
+  const routed = plan.length > 0, routeDone = routed && plan.every(s => s && s.signed);
   return {
-    ours: ours.length, theirs: theirs.length,
+    ours: ours.length, theirs: theirs.length, routed, routeDone,
     ourName: nameOf(ours) || 'this workspace',
     theirName: nameOf(theirs) || String((c && c.counterparty) || 'the counterparty'),
     counterparty: String((c && c.counterparty) || '').trim(),
-    fully: offPlatform || (ours.length > 0 && (theirs.length > 0 || !expectsCounterparty)),
+    fully: offPlatform || (routed ? routeDone
+      : (ours.length > 0 && (theirs.length > 0 || !expectsCounterparty))),
   };
 }
 

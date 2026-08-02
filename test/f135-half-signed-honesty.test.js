@@ -41,14 +41,19 @@ function loadCore(overrides = {}) {
   w.allSigned = c => (c.signerPlan || []).length > 0 && c.signerPlan.every(s => s.signed);
   // The REAL parties test (mirrors approvals.js executionParties), because the
   // late-distribution trigger and the chip both hang off it.
+  // Carries the route branch f140 added, so this mirror cannot quietly drift
+  // from the rule it copies. Every fixture below is route-less, which is the
+  // point: the no-route inference is exactly what this file protects.
   w.executionParties = c => {
     const sigs = Array.isArray(c && c.signatures) ? c.signatures : [];
     const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
     const theirs = sigs.filter(isTheirs), ours = sigs.filter(s => s && !isTheirs(s));
     const offPlatform = !!(c && (c.hash === 'MIGRATED' || (c.execution && c.execution.offPlatform)));
     const expects = !!String((c && c.counterparty) || '').trim();
-    return { ours: ours.length, theirs: theirs.length, ourName: 'us', theirName: 'them',
-      fully: offPlatform || (ours.length > 0 && (theirs.length > 0 || !expects)) };
+    const plan = Array.isArray(c && c.signerPlan) ? c.signerPlan : [];
+    const routed = plan.length > 0, routeDone = routed && plan.every(s => s && s.signed);
+    return { ours: ours.length, theirs: theirs.length, routed, routeDone, ourName: 'us', theirName: 'them',
+      fully: offPlatform || (routed ? routeDone : (ours.length > 0 && (theirs.length > 0 || !expects))) };
   };
   w.bothPartiesSigned = c => w.executionParties(c).fully;
   w.finalizeExecution = async () => {};
