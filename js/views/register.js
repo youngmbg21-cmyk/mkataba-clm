@@ -366,12 +366,13 @@ const REG_ROW_ACTIONS=[
   // permanent delete — only offered while a contract is still a draft or in review
   {k:'delete', label:'Delete permanently', ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
-/* THE ROW'S PRIMARY VERB, as the reference writes it.
-   The prototype does not repeat one generic "Open" down the column — each row
-   offers the thing that stage actually calls for: a contract in review is
-   opened to be argued over, an executed one is opened to be read. The wording
-   is the reference's; the destination is the engine's own workspace either
-   way, so nothing here routes anywhere the ⋯ menu could not. */
+/* THE ROW'S PRIMARY VERB.
+   Not one generic "Open" down the column — each row offers the thing that
+   stage actually calls for: a contract in review is opened to be argued over,
+   an executed one is opened to be read. The destination is the engine's own
+   workspace either way, so nothing here routes anywhere the ⋯ menu could not
+   — which is also why the labels must not name surfaces ("Vault", "DocLab")
+   that the platform no longer has. */
 /* THE TITLE COLUMN IS THE TITLE, not the party.
    Everywhere else in HaTi a contract is headed by the OTHER SIDE — cPrimary
    returns the counterparty and falls back to the name (see js/core.js): on a
@@ -385,10 +386,10 @@ function regTitleOf(c){
 }
 function regPrimaryAction(c){
   const s = String((c && c.status) || 'Draft');
-  if (s === 'Signed')       return 'View Vault';
-  if (s === 'Under Review') return 'Review Terms';
+  if (s === 'Signed')       return 'View contract';
+  if (s === 'Under Review') return 'Review terms';
   if (s === 'Declined')     return 'View record';
-  return 'Open DocLab';
+  return 'Open draft';
 }
 function regRowsHtml(cs){
   const R=regState();
@@ -482,7 +483,7 @@ function wireRegRows(){
   }));
   // empty-state actions
   document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
-  document.getElementById('reg-empty-new')?.addEventListener('click',()=>{ const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu'); if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); } else if(nb){ nb.click(); } });
+  document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
    and stage/stream pills resolve to, not just the page on screen. The old body
