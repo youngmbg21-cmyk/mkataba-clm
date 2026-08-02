@@ -102,3 +102,69 @@ describe('f141 — the counterparty page never prints it', () => {
     assert.ok(!/Copilot/i.test(html), 'what drafted it does not');
   });
 });
+
+describe('f141 — redacting the name must not accuse us of tampering', () => {
+  /* `author` is INSIDE the fingerprint (negoHashInput). So a name edited on the
+     way out cannot be re-hashed to the value it was issued with, and the first
+     cut of this fix made the counterparty's copy report "the stored wording has
+     been altered since it was filed" — in red, on a legal document, about a
+     change nobody had touched. That is precisely the fault revisionsOmitted
+     exists to prevent, arriving through a different field.
+
+     The copy therefore DECLARES which names it carries in short form. The links
+     either side are still checked; only the redacted change's own hash is not,
+     and the verdict says which rather than guessing. */
+  const build = async (win, author) => {
+    const c = { id: 'MK-900', name: 'Supply Agreement', counterparty: 'Nordkust Industri AB',
+      template: 'RM', status: 'Under Review', folder: 'proc', fields: {}, metadata: {},
+      audit: [], rounds: [], versions: [], signatures: [], comments: [],
+      redlineText: '<h2>1. PAYMENT</h2><p>Payable within thirty (30) days.</p>', format: 'rich' };
+    win.negoInit(c);
+    await win.negoEditClause(c, win.negoClauseList(c)[0].clauseId,
+      '<p>Payable within sixty (60) days.</p>',
+      { side: 'owner', author, rationale: 'Our cash cycle cannot support Net-30.' });
+    return c;
+  };
+
+  test('THE REGRESSION — a redacted copy verifies, and is not called altered', async () => {
+    const p = buildPortal();
+    const c = await build(p.win, labAuthor('Young Mbagaya', 'Shorten & Simplify'));
+    assert.equal((await p.win.verifyChangeChain(c)).ok, true, 'it verifies on our own record');
+
+    const sentChanges = sharePayloadFor(p, c).contract.changes;
+    const theirs = await p.win.verifyChangeChain({ ...c, changes: sentChanges });
+    assert.equal(theirs.ok, true,
+      'a copy that cries "altered" over its own redaction teaches readers to ignore the one signal that matters');
+    assert.equal(theirs.redacted, 1, 'and it counts what it could not recompute');
+    assert.match(theirs.detail, /shortened author name/, 'saying so in words');
+    assert.match(theirs.detail, /Nothing suggests the wording has been altered/);
+  });
+
+  test('the redaction is declared on the change itself, not inferred', async () => {
+    const p = buildPortal();
+    const c = await build(p.win, labAuthor('Young Mbagaya', 'Shorten & Simplify'));
+    assert.equal(sharePayloadFor(p, c).contract.changes[0].authorRedacted, true);
+  });
+
+  test('an untouched name declares nothing and is still fully checked', async () => {
+    const p = buildPortal();
+    const c = await build(p.win, 'Young Mbagaya');
+    const sentChanges = sharePayloadFor(p, c).contract.changes;
+    assert.equal(sentChanges[0].authorRedacted, undefined, 'nothing was edited, so nothing is claimed');
+    const theirs = await p.win.verifyChangeChain({ ...c, changes: sentChanges });
+    assert.equal(theirs.ok, true);
+    assert.equal(theirs.redacted, 0, 'its fingerprint IS recomputed — the exemption is not a blanket');
+    assert.match(theirs.detail, /verified against their fingerprints/);
+  });
+
+  test('a genuinely altered change is still caught on their copy', async () => {
+    /* The exemption must not become a way to smuggle a rewrite past the check. */
+    const p = buildPortal();
+    const c = await build(p.win, 'Young Mbagaya');
+    const sentChanges = sharePayloadFor(p, c).contract.changes;
+    sentChanges[0].newText = 'Payable within ninety (90) days.';
+    const theirs = await p.win.verifyChangeChain({ ...c, changes: sentChanges });
+    assert.equal(theirs.ok, false);
+    assert.match(theirs.detail, /has been altered/);
+  });
+});

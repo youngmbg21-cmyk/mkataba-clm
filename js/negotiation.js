@@ -775,7 +775,7 @@ async function verifyChangeChain(c){
   negoInit(c);
   const list = negoIssuances(c);
   let prev = null;                       // the hash issued immediately before, in creation order
-  let omitted = 0;                       // links this copy was never given (see below)
+  let omitted = 0, redacted = 0;                       // links this copy was never given (see below)
   const lastOf = new Map();              // and the previous hash of each change's own history
   for (const iss of list){
     if (iss.hashV !== NEGO_HASH_V)
@@ -811,6 +811,15 @@ async function verifyChangeChain(c){
         detail: isRevision
           ? `#${iss.id} does not follow its own previous wording — a revision is missing from the record`
           : `#${iss.id} does not follow the change before it — the chain was reordered or a link is missing` };
+    /* A NAME THIS COPY WAS NOT GIVEN IN FULL. The share payload redacts the
+       tool out of an author string (shareAuthorName) and `author` is inside the
+       fingerprint, so this copy cannot recompute the hash it was issued with.
+       That is not evidence of tampering and must not be reported as it: the
+       change carries the declaration, the recompute is skipped, and the verdict
+       names how many. Same treatment, and the same reason, as revisionsOmitted
+       above — a redline that cries "altered" over its own redaction teaches
+       readers to ignore the one signal that matters. */
+    if (iss.authorRedacted){ redacted++; prev = iss.hash; lastOf.set(iss.id, iss.hash); continue; }
     const expect = await negoHash(c.id, iss);
     if (expect !== iss.hash)
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
@@ -829,14 +838,18 @@ async function verifyChangeChain(c){
       detail: 'This browser has no SHA-256 available (crypto.subtle needs a secure context), '
         + 'so these fingerprints were computed with a weak substitute and cannot be verified. '
         + 'Open this page over https to check the chain.' };
+  const gaps = [];
+  if (omitted) gaps.push(`${omitted} earlier revision${omitted === 1 ? '' : 's'} ${omitted === 1 ? 'is' : 'are'} not`
+    + ` carried by this copy, so the link${omitted === 1 ? '' : 's'} across ${omitted === 1 ? 'it' : 'them'} cannot be checked here`);
+  if (redacted) gaps.push(`${redacted} change${redacted === 1 ? '' : 's'} carr${redacted === 1 ? 'ies' : 'y'} a`
+    + ` shortened author name on this copy, so ${redacted === 1 ? 'its' : 'their'} own fingerprint cannot be`
+    + ` recomputed here`);
   return { ok: true, checked: list.length, failedAt: null, reason: null,
-    omitted, partial: omitted > 0,
+    omitted, redacted, partial: omitted > 0 || redacted > 0,
     detail: !list.length ? 'nothing filed yet'
-      : omitted
-        ? `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints.`
-          + ` ${omitted} earlier revision${omitted === 1 ? '' : 's'} ${omitted === 1 ? 'is' : 'are'} not carried by`
-          + ` this copy, so the link${omitted === 1 ? '' : 's'} across ${omitted === 1 ? 'it' : 'them'} cannot be`
-          + ` checked here. Nothing suggests the wording has been altered.`
+      : gaps.length
+        ? `${list.length} change record${list.length === 1 ? '' : 's'} checked. ${gaps.join('; ')}.`
+          + ` Nothing suggests the wording has been altered.`
         : `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints` };
 }
 

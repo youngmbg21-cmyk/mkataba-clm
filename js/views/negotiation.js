@@ -647,14 +647,21 @@ function negoStyleHtml(){
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
   .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
   .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
-  .nego-edit-bar{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center}
+  /* A column, not a row. The reason has to explain who reads the answer, and
+     sharing a line with Save and Cancel left it about 210px — the placeholder
+     truncated to "(you can a…", which is guidance nobody can read. */
+  .nego-edit-bar{display:flex;flex-direction:column;gap:6px;margin-top:6px;align-items:stretch;width:100%}
+  .nego-edit-acts{display:flex;gap:6px}
   .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
   /* The reason sits on the bar, level with Save, because it is a condition of
      saving rather than a footnote to it. Same control on both sides of the
      table — the portal mounts this component too. */
-  .nego-why{flex:1;min-width:210px;font-family:inherit;font-size:11.5px;padding:5px 9px;
+  /* Its own row. Sharing the line with Save and Cancel left roughly 210px for a
+     placeholder that has to explain who reads the answer, so it truncated to
+     "(you can a…" — guidance nobody can read is not guidance. */
+  .nego-why{width:100%;min-width:0;font-family:inherit;font-size:11.5px;padding:6px 9px;
     border:1.5px solid var(--n-line);border-radius:5px;background:var(--n-paper);color:var(--n-ink)}
   .nego-why:focus{outline:none;border-color:var(--n-slate)}
   .nego-edit-bar button[disabled]{opacity:.45;cursor:not-allowed}
@@ -4167,9 +4174,12 @@ function wireNegotiationTab(c, opts = {}){
        (buildSharePayload's holdUnsent), so a reasonless draft cannot reach
        anybody. See negoAsksMissingReason. */
     bar.innerHTML = `<input class="nego-why" data-nego-why="${_ne(clauseId)}" type="text" maxlength="400"`
-      + ` placeholder="Why is this change needed? (you can add this before you send)" aria-label="Reason for this change"/>`
+      + ` placeholder="Why is this change needed?"`
+      + ` title="The other side sees this beside the change. You can also add it at the moment you send the round."`
+      + ` aria-label="Reason for this change — the other side sees this"/>`
+      + `<span class="nego-edit-acts">`
       + `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
-      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button>`;
+      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button></span>`;
     holder.after(bar);
     if (holder.focus) holder.focus();
     const why = bar.querySelector('[data-nego-why]');

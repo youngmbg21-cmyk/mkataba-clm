@@ -1979,6 +1979,19 @@ function buildSharePayload(c, docHash, who, opts){
          ask it is would be a worse screen (see f70) — so this strips the tool
          and keeps the person. */
       author:shareAuthorName(x.author), authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
+      /* THE REDACTION HAS TO BE DECLARED, or the copy accuses us of tampering.
+         `author` is INSIDE the fingerprint (negoHashInput), so a name we have
+         edited on the way out cannot be re-hashed to the value it was issued
+         with — and verifyChangeChain, finding the mismatch, reported the only
+         failure it knew: "the stored wording has been altered since it was
+         filed", in red, on a legal document, about a change nobody had
+         touched. Exactly the fault the revisionsOmitted count exists to
+         prevent, reintroduced through a different field.
+
+         So the copy says which changes carry an edited name. The link either
+         side of them is still checked; only their own hash is not, and the
+         verdict says so instead of guessing. */
+      authorRedacted:(shareAuthorName(x.author)!==String(x.author==null?'':x.author).trim())||undefined,
       /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
          used to travel whole, and the counterparty's page printed it under
          "why they asked" — which for a Copilot-drafted change read
