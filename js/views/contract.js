@@ -3552,7 +3552,15 @@ async function finalizeExecution(c, opts={}){
     if(typeof renderActionBar==='function') renderActionBar(c);
     renderSignButton(c); renderAuditSection(c);
   }catch(e){ /* not on screen — fine */ }
-  if(!opts.silent) toast('Signed & sealed — the exact text is frozen and fingerprinted');
+  if(!opts.silent){
+    // Say what actually happened. With a counterparty still to sign, "Signed
+    // & sealed" alone reads as "done" — which is exactly the misreading the
+    // Partially-signed chip exists to prevent.
+    const waiting = window.bothPartiesSigned && !bothPartiesSigned(c);
+    toast(waiting
+      ? `Sealed with your signature — ${c.counterparty||'the counterparty'} still has to sign. Copies go out when their signature lands.`
+      : 'Signed & sealed — the exact text is frozen and fingerprinted');
+  }
   distributeExecuted(c);                 // email a sealed copy to every party
   } finally { _sealingInFlight.delete(c.id); }   // H-5: release the seal lock
 }
@@ -3575,18 +3583,26 @@ async function distributeExecuted(c, opts={}){
   if(!opts.force && window.bothPartiesSigned && !bothPartiesSigned(c)) return;
   const recipients=(typeof distributionRecipients==='function')?distributionRecipients(c):[];
   if(!recipients.length){ return; }
+  /* `fully` is stamped onto the record so a later reader can tell WHICH send
+     this was: the executed copy, or only a part-signed progress notice. The
+     late-distribution catch in applyResponse (core.js) reads it — a progress
+     notice must not stand in for the copy when the last signature lands. */
+  const fully=!window.bothPartiesSigned||bothPartiesSigned(c);
   if(API_MODE()){
     try{
       const appUrl=location.origin+location.pathname;
       const res=await api('contracts/'+c.id+'/distribute','POST',{ recipients, appUrl });
-      c.distribution={ at:res.at||nowISO(), triggeredBy:'auto', recipients:res.recipients||recipients.map(r=>({...r,status:'queued'})) };
+      c.distribution={ at:res.at||nowISO(), triggeredBy:'auto',
+        fully:(res.fullyExecuted!==undefined?!!res.fullyExecuted:fully),
+        recipients:res.recipients||recipients.map(r=>({...r,status:'queued'})) };
     }catch(e){
-      c.distribution={ at:nowISO(), triggeredBy:'auto', error:e.message, recipients:recipients.map(r=>({...r,status:'failed'})) };
+      // fully:false on a failed request, so the next signature landing (or a
+      // manual Send again) retries rather than treating the failure as sent.
+      c.distribution={ at:nowISO(), triggeredBy:'auto', fully:false, error:e.message, recipients:recipients.map(r=>({...r,status:'failed'})) };
     }
   } else {
-    c.distribution={ at:nowISO(), triggeredBy:'manual', recipients:recipients.map(r=>({...r,status:'mailto'})) };
+    c.distribution={ at:nowISO(), triggeredBy:'manual', fully, recipients:recipients.map(r=>({...r,status:'mailto'})) };
   }
-  const fully=!window.bothPartiesSigned||bothPartiesSigned(c);
   logAudit(c,'Distributed',fully
     ? `Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`
     : `Part-signed progress notice ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s) — no copy and no seal were sent, because not every party has signed`);

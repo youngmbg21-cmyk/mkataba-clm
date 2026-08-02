@@ -239,12 +239,41 @@ function contractExpired(c){
   const d=window.daysUntil?daysUntil(day):null;
   return d!=null && !isNaN(d) && d<0;
 }
+/* ---- THE SEAL WITH ONE SIGNATURE ON IT ----
+
+   A single-signer contract seals on the first signature — correctly, the
+   wording has to stop moving — and its stored status becomes 'Signed', whose
+   chip reads "Executed". But sealing is a fact about the DOCUMENT and
+   execution is a fact about the PARTIES, and a contract with a named
+   counterparty who has not signed is not executed; it is waiting. The chip
+   said Executed anyway, on every surface, which is how an owner signed alone
+   and read the deal as done.
+
+   Same pattern as Expired above: DERIVED, never stored. The stored status
+   stays 'Signed' so filters, the executed-immutability guards and the server
+   are untouched; only what the reader is told changes. The evidence gate
+   (ours>0 || theirs>0) keeps legacy records honest the other way — a
+   pre-seeded or imported contract marked Signed with no signature rows at
+   all is making no claim about who signed, and is left reading Executed
+   rather than accused of being half-done. */
+function contractPartiallySigned(c){
+  if(!c || c.status!=='Signed') return false;
+  if(typeof window==='undefined' || typeof window.executionParties!=='function') return false;
+  const p=window.executionParties(c);
+  return !p.fully && (p.ours>0 || p.theirs>0);
+}
 /* The stage to SHOW for this contract, as against the one stored on it. The
    stored status is untouched — filters, the server and every existing query
-   keep working on Draft/Under Review/Signed/Declined exactly as before. */
-const contractStage = c => contractExpired(c) ? 'Expired' : (c&&c.status);
+   keep working on Draft/Under Review/Signed/Declined exactly as before.
+   Partially-signed outranks Expired: a contract missing a signature was
+   never fully in force, and "Expired" would read as "it was". */
+const contractStage = c => contractPartiallySigned(c) ? 'Partially signed'
+  : contractExpired(c) ? 'Expired' : (c&&c.status);
 const EXPIRED_META = {label:'Expired', dot:'var(--st-gray-dot)', bg:'var(--st-gray-bg)', tx:'var(--st-gray-fg)', bd:'var(--st-gray-line)'};
-const contractStatusChip = c => contractExpired(c)
+const PARTIAL_META = {label:'Partially signed', dot:'var(--st-amber-dot)', bg:'var(--st-amber-bg)', tx:'var(--st-amber-fg)', bd:'var(--st-amber-line)'};
+const contractStatusChip = c => contractPartiallySigned(c)
+  ? `<span class="badge" title="Sealed — awaiting the counterparty's signature. Copies go out when every party has signed." style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
+  : contractExpired(c)
   ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
   : statusChip(c&&c.status);
 // Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
@@ -2915,6 +2944,22 @@ async function applyResponse(c, r, opts={}){
       await finalizeExecution(c, { silent:!!opts.background });
       return true;
     }
+    /* THE SEAL CAME FIRST, THE LAST SIGNATURE SECOND. In the single-signer
+       flow the owner's own signature seals immediately — status 'Signed',
+       document frozen — and the counterparty's mark lands HERE afterwards,
+       on an already-sealed record. finalizeExecution will not run again
+       (there is nothing left to seal), and it was the only caller of
+       distributeExecuted — so the copy the design promises "when the last
+       signature lands" never went out. This is that moment, caught. A
+       part-signed progress notice sent earlier does not count as the copy
+       (distribution.fully records which kind went); it is cleared and the
+       real executed copy goes now. */
+    if(c.status==='Signed' && window.bothPartiesSigned && bothPartiesSigned(c)
+       && window.distributeExecuted && (!c.distribution || c.distribution.fully!==true)){
+      if(c.distribution) delete c.distribution;
+      try{ await distributeExecuted(c); }
+      catch(e){ console.warn('executed-copy distribution failed: '+(e&&e.message)); }
+    }
   } else if(r.action==='accept'){
     /* Agreement to the wording, which is not execution. The contract keeps its
        status and its seal stays unwritten; what changes is that the other side
@@ -3340,4 +3385,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

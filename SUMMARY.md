@@ -4421,3 +4421,37 @@ name are all KEPT and marked reserved, so re-enabling is a one-line change.
 Fallback, abort handling, spend booking, the log, and the stream/plain parity
 guarantee are untouched. Tests updated to pin that no token events leak;
 suite still 2284, all green.
+
+---
+
+# Run 11 — Half-signed honesty (2026-08-02, Young's field report)
+
+Two signing-flow defects, one root cause: sealing is a fact about the
+document, execution a fact about the parties, and the surfaces read one for
+the other. Suite 2284 → 2295, all green.
+
+## Bug fixed — the executed copy now follows the LAST signature
+
+In the commonest flow (owner signs first → contract seals immediately →
+counterparty signs later via the share link), the copy never went out:
+auto-distribution only ran inside finalizeExecution, which refuses to run on
+an already-sealed record. applyResponse now catches exactly that moment — a
+counterparty signature landing on a sealed contract that completes the party
+set — and distributes. `c.distribution.fully` records WHICH send went out
+(the executed copy vs a part-signed progress notice), so an earlier notice
+cannot stand in for the copy, a failed attempt retries, and a copy already
+sent is never duplicated.
+
+## Gap closed — one signature no longer reads as "Executed"
+
+New derived stage, same never-stored pattern as Expired: a sealed contract
+with signature evidence from only one side now shows a "Partially signed"
+amber chip (with a hover explanation) on every surface that renders the
+status — register, workspace header, meta panel, negotiation room, AI cards.
+The stored status stays 'Signed', so filters, immutability guards and the
+server are untouched. Deliberate honesty guards: a one-party document (no
+counterparty named) still reads Executed on one signature; so do migrated /
+paper-executed records and legacy Signed rows with no signature evidence at
+all. Partially-signed outranks Expired. The sealing toast now also says
+plainly, when the counterparty has still to sign, that copies go out when
+their signature lands.
