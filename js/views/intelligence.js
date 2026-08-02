@@ -1061,7 +1061,7 @@ function intelFrictionCopilotHtml(st){
     body=`<div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--color-neutral-600);padding:2px 0">
       <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>Reading the counted figures above…</div>`;
   }else if(ai&&ai.html&&ai.key===key){
-    body=`<div style="font-size:12.5px;line-height:1.65;color:var(--color-neutral-800)">${ai.html}</div>
+    body=`<div class="igf-ai-read" style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:10px;color:var(--color-neutral-500)">
         <span style="flex:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg)">AI commentary</span>
         <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures above — the numbers are the app's, the interpretation is Copilot's.</span>
@@ -1123,7 +1123,7 @@ async function intelFrictionAsk(){
     f&&f.days?`- Window: these figures cover the last ${f.days} days only`:'',
     f&&f.counterparty?`- Filter: these figures cover only deals with ${f.counterparty}`:'',
   ].filter(Boolean).join('\n');
-  const prompt=`You are commenting on the Negotiation Friction report the reader is looking at. The figures below were COUNTED by the app from the tracked changes its negotiations recorded — treat them as ground truth.\n\n${facts}\n\nInterpret these figures: what pattern do they suggest about where deals get stuck, and what are the one or two most useful actions this week? Rules: never recalculate, extrapolate or invent a number — only repeat figures exactly as listed above. Write 2-3 short paragraphs, each opening with a **bolded one-sentence takeaway**. No headings, no bullet lists, no preamble, no closing offer of further help.`;
+  const prompt=`You are commenting on the Negotiation Friction report the reader is looking at. The figures below were COUNTED by the app from the tracked changes its negotiations recorded — treat them as ground truth.\n\n${facts}\n\nInterpret these figures: what pattern do they suggest about where deals get stuck, and what are the one or two most useful actions this week? Rules: never recalculate, extrapolate or invent a number — only repeat figures exactly as listed above. Write 2-3 short paragraphs separated by blank lines, each opening with a **bolded one-sentence takeaway**. Highlight the phrases the reader must not miss with tone markers, sparingly — at most two per paragraph, each wrapping a short plain phrase with no bold or other formatting inside it: {!…} around a recommended action or a figure that demands a decision, {-…} around a figure that is costing rounds or money, {+…} around a genuinely healthy figure. Never place a marker inside the bolded takeaway. No headings, no bullet lists, no preamble, no closing offer of further help.`;
   try{
     const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'});
     const rich=igFmtRich(res.answer||'');
