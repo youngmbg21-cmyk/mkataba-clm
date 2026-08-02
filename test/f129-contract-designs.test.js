@@ -21,9 +21,10 @@ const { startHati, seedWorkspace } = require('./helpers');
 const branding = require('../js/branding.js');
 
 describe('f129 — the design catalogue and renderers (pure)', () => {
-  const IDS = ['classic-letterhead', 'modern-minimal', 'formal-legal', 'bold-corporate', 'compact-executive'];
+  const IDS = ['classic-letterhead', 'modern-minimal', 'formal-legal', 'bold-corporate', 'compact-executive',
+    'modern-editorial', 'ceremonial', 'facing-parties'];
 
-  test('exactly five designs, stable ids, each with a default logo position the picker offers', () => {
+  test('exactly eight designs, stable ids, each with a default logo position the picker offers', () => {
     assert.deepEqual(branding.DOC_DESIGNS.map(d => d.id), IDS);
     for (const d of branding.DOC_DESIGNS)
       assert.ok(branding.DESIGN_LOGO_POSITIONS.includes(d.defaultLogoPos), d.id + ' default position is offerable');
@@ -74,12 +75,14 @@ describe('f129 — the design catalogue and renderers (pure)', () => {
     assert.ok(branding.docDesignHeaderHtml(b, {}).includes('#c76b2e'), 'the band wears the accent');
   });
 
-  test('only Formal Legal asks the paper for a border; every design pins its accent for the body rules', () => {
+  test('only Formal Legal frames the page and only Modern Editorial rules its left edge; every design pins its accent', () => {
     for (const id of IDS) {
       const style = branding.docDesignPaperStyle(branding.normalizeDesignBranding({ designId: id, accentColor: '#1a7f6b' }));
       assert.ok(style.includes('--doc-design-accent:#1a7f6b;'), id + ' pins the accent custom property');
       if (id === 'formal-legal') assert.ok(/border:/.test(style));
-      else assert.ok(!/border:/.test(style), id + ' asks for no border');
+      else assert.ok(!/border:/.test(style), id + ' asks for no full border');
+      if (id === 'modern-editorial') assert.ok(/border-left:4px solid #1a7f6b/.test(style), 'the editorial rule wears the accent');
+      else assert.ok(!/border-left/.test(style), id + ' asks for no left rule');
     }
     assert.equal(branding.docDesignPaperStyle(null), '');
   });
