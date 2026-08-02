@@ -102,6 +102,7 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
+  frictionAI:null /*Copilot's read on the friction brief: {busy,key,html,at,err}*/,
   busy:false, dockOpen:true,
   // Horizon-style leftward expand; the preference sticks per device.
   dockWide:(()=>{ try{ return !!(typeof lsGet==='function'&&lsGet('hati.v1.intelWide')); }catch(_){ return false; } })(),
@@ -785,6 +786,7 @@ function renderIntel(){
       intel.frictionFilter={...(intel.frictionFilter||{}), counterparty:el.getAttribute('data-igf-cp')};
       renderIntel();
     }));
+    intelFrictionWireAI();
     setActiveNav('intel');
     return;
   }
@@ -1025,8 +1027,113 @@ function intelFrictionHtml(){
   </div>`;
 
   return `<div style="max-width:1120px;margin:0 auto">
-    <div style="display:grid;grid-template-columns:1fr 1.15fr;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">${left}${right}</div>
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">
+      <div style="display:grid;grid-template-columns:1fr 1.15fr">${left}${right}</div>
+      ${intelFrictionCopilotHtml(st)}
+    </div>
   </div>`;
+}
+
+/* ---- COPILOT'S READ (hybrid layer under the counted brief) ----
+   The brief above stays pure arithmetic; this strip is the only AI on the
+   page, and it runs ONLY on click. The model is handed the already-counted
+   figures and asked to interpret them — never to compute — so a wrong number
+   cannot enter through here. The read is keyed to the figures it was written
+   from: when the numbers move (new activity, a filter), a stored read is not
+   shown as if it were current — the button comes back instead. */
+function intelFrictionKey(st){
+  return JSON.stringify([intel.frictionFilter||null, st.deals, st.deadlocks,
+    st.avgRounds.toFixed(2),
+    st.clauses.slice(0,3).map(c=>[c.label,Math.round(c.share*100),c.extra]),
+    st.slowest?[st.slowest.name,st.slowest.avgRounds.toFixed(1)]:null]);
+}
+function intelFrictionCopilotHtml(st){
+  const key=intelFrictionKey(st);
+  const ai=intel.frictionAI;
+  const on=(typeof copilotAvailable==='function')&&copilotAvailable();
+  const head=`<div style="display:flex;align-items:center;gap:8px">
+    <span style="width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:6px;background:var(--color-accent-100);color:var(--color-accent-700)">${icon('sparkle','w-3 h-3',2)}</span>
+    <span style="font-size:12.5px;font-weight:700">Copilot's read</span>
+    <span style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--color-accent-100);color:var(--color-accent-700)">Optional · AI</span>
+  </div>`;
+  let body;
+  if(ai&&ai.busy&&ai.key===key){
+    body=`<div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--color-neutral-600);padding:2px 0">
+      <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>Reading the counted figures above…</div>`;
+  }else if(ai&&ai.html&&ai.key===key){
+    body=`<div class="igf-ai-read" style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:10px;color:var(--color-neutral-500)">
+        <span style="flex:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg)">AI commentary</span>
+        <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures above — the numbers are the app's, the interpretation is Copilot's.</span>
+        <button id="igf-ai-regen" style="margin-left:auto;border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent-700);flex:none;white-space:nowrap">↻ Regenerate</button>
+      </div>`;
+  }else if(ai&&ai.err&&ai.key===key){
+    body=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--st-ruby-fg)">${igEsc(ai.err)}</span>
+      <button id="igf-ai-ask" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">Try again →</button>
+    </div>`;
+  }else{
+    const stale=!!(ai&&ai.html);
+    const hint=!on
+      ?'Add an Anthropic key in Team &amp; Settings → Copilot engine to turn this on. The counted report above works without it.'
+      :stale?'The figures above have changed since the last read — generate a fresh one. Nothing runs until you click.'
+      :'Copilot explains what is behind the figures above and what to do this week. Nothing runs until you click — the counted report never depends on it.';
+    body=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button id="igf-ai-ask" ${on?'':'disabled'} style="display:inline-flex;align-items:center;gap:7px;border:0;border-radius:9px;padding:7px 15px;background:${on?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-300)'};color:#fff;font:inherit;font-family:var(--font-heading);font-size:12px;font-weight:700;cursor:${on?'pointer':'not-allowed'};flex:none">${icon('sparkle','w-3 h-3',2)} Interpret these numbers</button>
+      <span style="font-size:11px;color:var(--color-neutral-600);line-height:1.5;max-width:56ch">${hint}</span>
+    </div>`;
+  }
+  return `<div id="igf-copilot" style="border-top:1px solid var(--color-divider);background:linear-gradient(180deg,color-mix(in srgb,var(--color-accent) 4%,transparent),transparent 70%);padding:11px 20px 13px">
+    ${head}<div style="margin-top:8px">${body}</div>
+  </div>`;
+}
+function intelFrictionWireAI(){
+  document.getElementById('igf-ai-ask')?.addEventListener('click',()=>intelFrictionAsk());
+  document.getElementById('igf-ai-regen')?.addEventListener('click',()=>intelFrictionAsk());
+}
+/* Repaint the strip alone, so a generation landing does not rebuild the page
+   and throw away the reader's scroll position. */
+function intelFrictionRepaintAI(){
+  const el=document.getElementById('igf-copilot'); if(!el) return;
+  el.outerHTML=intelFrictionCopilotHtml(intelFrictionStats(intel.frictionFilter||null));
+  intelFrictionWireAI();
+}
+async function intelFrictionAsk(){
+  if(!((typeof copilotAvailable==='function')&&copilotAvailable())) return;
+  if(intel.frictionAI&&intel.frictionAI.busy) return;
+  const f=intel.frictionFilter||null;
+  const st=intelFrictionStats(f);
+  if(!st.deals) return;
+  const key=intelFrictionKey(st);
+  intel.frictionAI={busy:true,key};
+  intelFrictionRepaintAI();
+  const pct=v=>Math.round(v*100);
+  const hrs=ms=>{ const h=ms/3600000; return h<1?'under 1 hour':h<48?Math.round(h)+' hours':Math.round(h/24)+' days'; };
+  const facts=[
+    `- Negotiations analysed: ${st.deals}${st.openedThisMonth?` (${st.openedThisMonth} opened this month)`:''}`,
+    `- Average rounds per deal: ${st.avgRounds.toFixed(1)}`,
+    st.medianDays!=null?`- Median time to signature: ${st.medianDays<1?'under 1 day':Math.round(st.medianDays)+' days'}`:'',
+    st.medianDecisionMs!=null?`- Median decision time on a change: ${hrs(st.medianDecisionMs)}`:'',
+    st.oursAcceptShare!=null?`- Our asks accepted by the other side: ${pct(st.oursAcceptShare)}%`:'',
+    st.theirsAcceptShare!=null?`- Their asks accepted by us: ${pct(st.theirsAcceptShare)}%`:'',
+    st.round1Share!=null?`- Signed within round 1: ${pct(st.round1Share)}%`:'',
+    `- Changes refused and still open (deadlocks): ${st.deadlocks}${st.deadlockList.length?' — '+st.deadlockList.slice(0,5).map(x=>`${x.name} (${x.clause})`).join('; '):''}`,
+    st.clauses.length?`- Most-contested clauses (share of deals · extra rounds when contested): ${st.clauses.slice(0,5).map(c=>`${c.label} ${pct(c.share)}%${c.extra!=null?` · ${c.extra>=0?'+':''}${c.extra.toFixed(1)}r`:''}`).join('; ')}`:'',
+    st.slowest?`- Slowest counterparty: ${st.slowest.name} at ${st.slowest.avgRounds.toFixed(1)} rounds/deal over ${st.slowest.deals} deals${st.slowest.acceptUs!=null?`, accepting ${pct(st.slowest.acceptUs)}% of our asks`:''}`:'',
+    f&&f.days?`- Window: these figures cover the last ${f.days} days only`:'',
+    f&&f.counterparty?`- Filter: these figures cover only deals with ${f.counterparty}`:'',
+  ].filter(Boolean).join('\n');
+  const prompt=`You are commenting on the Negotiation Friction report the reader is looking at. The figures below were COUNTED by the app from the tracked changes its negotiations recorded — treat them as ground truth.\n\n${facts}\n\nInterpret these figures: what pattern do they suggest about where deals get stuck, and what are the one or two most useful actions this week? Rules: never recalculate, extrapolate or invent a number — only repeat figures exactly as listed above. Write 2-3 short paragraphs separated by blank lines, each opening with a **bolded one-sentence takeaway**. Highlight the phrases the reader must not miss with tone markers, sparingly — at most two per paragraph, each wrapping a short plain phrase with no bold or other formatting inside it: {!…} around a recommended action or a figure that demands a decision, {-…} around a figure that is costing rounds or money, {+…} around a genuinely healthy figure. Never place a marker inside the bolded takeaway. No headings, no bullet lists, no preamble, no closing offer of further help.`;
+  try{
+    const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'});
+    const rich=igFmtRich(res.answer||'');
+    intel.frictionAI={busy:false,key,html:rich.html,
+      at:new Date().toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})};
+  }catch(e){
+    intel.frictionAI={busy:false,key,
+      err:(e&&e.needsKey)?'No Copilot key configured — add one in Team & Settings → Copilot engine.':'Copilot was unavailable — '+(e&&e.message?e.message:String(e))};
+  }
+  if(state.view==='intel'&&intel.tab==='friction') intelFrictionRepaintAI();
 }
 
 /* ---- right-hand Copilot dock ---- */
