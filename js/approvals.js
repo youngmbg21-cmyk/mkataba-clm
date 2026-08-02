@@ -195,6 +195,31 @@ function resubmitApproval(c, note){
    c.signerPlan = [{ id, party:'internal'|'counterparty', name, email, order, signed, at }]
    Seal is applied when the final signature lands (handled in contract.js). */
 function signerPlan(c){ return c.signerPlan||[]; }
+/* What has ACTUALLY happened to a counterparty signer's turn, read from their
+   bound link rather than from route order. The panel used to stamp "SIGNING
+   NOW" on whoever was next in the plan — before any link existed, before
+   anything was sent — announcing a turn nobody had been told about. The
+   server already records the whole journey on the bound share (created /
+   turn email sent / first opened / signed); this reads it from the same
+   per-contract cache the shares panel fills.
+     'signed'  — their mark is on the record
+     'opened'  — they opened their link, signature pending
+     'sent'    — their link went out, not opened yet
+     'held'    — link created, held until their turn arrives
+     'unsent'  — no link exists: the contract has not been sent to them
+     'internal'— not a counterparty row (internal signers sign in-app)
+     'unknown' — static mode: links are not tracked, keep the legacy wording */
+function signerLinkState(c, s){
+  if(s.signed) return 'signed';
+  if(s.party!=='counterparty') return 'internal';
+  if(!(typeof API_MODE==='function' && API_MODE())) return 'unknown';
+  const links=((typeof cachedShares==='function'?cachedShares(c):[])||[])
+    .filter(x=>x && String(x.signerId||'')===String(s.id) && !x.revokedAt);
+  if(!links.length) return 'unsent';
+  if(links.some(x=>x.firstOpenedAt)) return 'opened';
+  if(links.some(x=>x.sentAt)) return 'sent';
+  return 'held';
+}
 function nextSigner(c){ return signerPlan(c).slice().sort((a,b)=>a.order-b.order).find(s=>!s.signed)||null; }
 function allSigned(c){ const p=signerPlan(c); return p.length>0 && p.every(s=>s.signed); }
 // The internal-then-counterparty gate: every internal signer must be done
@@ -378,12 +403,33 @@ function approvalPanelHtml(c){
         ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>
       <div class="relative">
         ${sorted.map((s,i)=>{ const isCur=ns&&ns.id===s.id; const st=s.signed?'done':isCur?'cur':'wait';
-          const gated=!s.signed&&s.party==='counterparty'&&!internalAllSigned(c);
+          /* Behind an unsigned INTERNAL step, by ORDER — not the old blanket
+             "any internal unsigned", which mislabelled a counterparty-FIRST
+             route as gated when it was simply never sent. */
+          const gated=!s.signed&&s.party==='counterparty'
+            &&sorted.some(x=>x.party==='internal'&&!x.signed&&(x.order||0)<(s.order||0));
+          /* The journey of THEIR link, not the route's opinion of whose turn
+             it is: not sent → sent → opened → signed. "SIGNING NOW" only
+             appears once the contract is genuinely in front of them. */
+          const ls=signerLinkState(c,s);
           const meta=s.signed
             ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+s.signature.form+' signature':''}`
-            : isCur ? `${ord(s.order)} · their turn now`
+            : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
+            : ls==='sent' ? `${ord(s.order)} · contract sent — not opened yet`
+            : ls==='held' ? `${ord(s.order)} · link ready — it goes out when their turn arrives`
             : gated ? `${ord(s.order)} · link opens once internal signing is complete`
+            : ls==='unsent' ? (isCur
+                ? `${ord(s.order)} · not sent yet — send the contract to start their turn`
+                : `${ord(s.order)} · waiting — link not issued yet`)
+            : isCur ? `${ord(s.order)} · their turn now`
             : `${ord(s.order)} · waiting`;
+          const tag=(cls,txt)=>`<span class="text-[8.5px] font-mono px-1 py-px rounded ${cls}">${txt}</span>`;
+          const badge=s.signed ? ''
+            : ls==='opened' ? tag('bg-gold-100 text-gold-700','OPENED')
+            : ls==='sent' ? tag('bg-gold-100 text-gold-700','SENT')
+            : ls==='held' ? tag('bg-slate-100 text-ink/50','LINK READY')
+            : (ls==='unsent'&&isCur&&!gated) ? tag('bg-rose-50 text-rose-600','NOT SENT YET')
+            : (ls==='unknown'||ls==='internal')&&isCur ? tag('bg-gold-100 text-gold-700','SIGNING NOW') : '';
           return `<div class="flex gap-3 ${i<sorted.length-1?'pb-3':''} relative">
             ${i<sorted.length-1?`<span class="absolute left-[13px] top-7 bottom-0 w-0.5 ${s.signed?'bg-brand-500':'bg-slate-200'}"></span>`:''}
             ${node(st, s.signed?'✓':String(s.order))}
@@ -392,7 +438,7 @@ function approvalPanelHtml(c){
                 <span class="text-[12.5px] font-600 ${s.signed?'text-ink':'text-ink/70'}">${(s.name||'').replace(/</g,'&lt;')}</span>
                 ${s.role?`<span class="text-[10.5px] text-ink/50">· ${s.role.replace(/</g,'&lt;')}</span>`:''}
                 <span class="text-[8.5px] font-mono px-1 py-px rounded ${s.party==='counterparty'?'bg-gold-50 text-gold-700':'bg-brand-50 text-brand-600'}">${s.party}</span>
-                ${isCur?`<span class="text-[8.5px] font-mono px-1 py-px rounded bg-gold-100 text-gold-700">SIGNING NOW</span>`:''}
+                ${badge}
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
             </div></div>`; }).join('')}
@@ -450,4 +496,4 @@ async function loadEngagement(c){
       <span class="ml-auto font-mono text-ink/45">${fmtDT(e.at)}${e.ip?' · '+e.ip:''}</span></div>`).join('')}</div></div>`;
 }
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});
+Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});

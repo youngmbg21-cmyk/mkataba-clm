@@ -4455,3 +4455,45 @@ paper-executed records and legacy Signed rows with no signature evidence at
 all. Partially-signed outranks Expired. The sealing toast now also says
 plainly, when the counterparty has still to sign, that copies go out when
 their signature lands.
+
+---
+
+# Run 12 — The parties get the contract; the route panel stops guessing (2026-08-02)
+
+Young's field report, two fixes. Suite 2348 → 2361, all green.
+
+## The executed contract now travels WITH the email
+
+The "fully executed" email carried a link and the seal — never the document.
+And execution itself closes the counterparty's share link, so their email
+could arrive with no way to the contract at all. Now:
+
+- A generated contract attaches its FROZEN sealed wording (c.execution.html,
+  captured at sealing) as a self-contained, print-ready document — parties,
+  full text, signature table, seal — that opens in any browser and prints or
+  saves to PDF in one click.
+- An uploaded contract attaches the original file bytes (≤~10MB).
+- A legacy record with neither goes as before — attaching a reconstruction
+  would be a claim the seal does not back.
+- A part-signed progress notice still deliberately carries nothing.
+- sendEmail gained provider-shaped attachments; the outbox notes attachment
+  names so a queued message is honest about what it would have carried.
+
+Per-recipient outcomes stop lying: 'sent' used to cover both "provider
+refused it" and "email isn't configured at all". Now delivered / outbox /
+failed, with the provider's reason carried onto the distribution record and
+shown in the panel — plus a DOC ATTACHED tag per recipient.
+
+## The Signature-progress panel reports the link's journey
+
+"SIGNING NOW · their turn now" used to be stamped on whoever was next in
+route order — before any link existed. Each counterparty row now reads its
+own bound link (the share records the server already keeps): not sent yet →
+contract sent → contract opened → signed, with matching badges, and NOT SENT
+YET carries the call to action ("send the contract to start their turn").
+"SIGNING NOW" survives only where it is true: internal signers whose turn it
+is (they sign in-app) and static mode (links untracked, legacy wording). The
+gate text ("link opens once internal signing is complete") now applies by
+ORDER — the old any-internal-unsigned test mislabelled counterparty-first
+routes, which is exactly the route in Young's screenshot. The sign area
+repaints when the share cache fills so the truth lands without a reload.

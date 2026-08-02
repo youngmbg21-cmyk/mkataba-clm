@@ -1117,9 +1117,18 @@ async function resendError(r) {
     catch (_) { return t.slice(0, 400); }
   } catch (_) { return ''; }
 }
-async function sendEmail(to, subject, body, devHint) {
+/* `opts.attachments` — [{ filename, content }] with content base64-encoded —
+   rides through to the provider (Resend accepts exactly that shape). The
+   outbox row notes the attachment names in `detail` so a queued message is
+   honest about what it would have carried; the bytes themselves are not
+   duplicated into the outbox. */
+async function sendEmail(to, subject, body, devHint, opts = {}) {
   const id = 'e_' + rid(8), at = now();
   let sent = 0, provider = 'outbox', detail = null;
+  const attachments = Array.isArray(opts.attachments)
+    ? opts.attachments.filter(a => a && a.filename && a.content)
+        .map(a => ({ filename: String(a.filename).slice(0, 120), content: String(a.content) }))
+    : [];
   if (EMAIL_ON()) {
     const from = process.env.EMAIL_FROM || 'HaTi <onboarding@resend.dev>';
     try {
@@ -1128,7 +1137,7 @@ async function sendEmail(to, subject, body, devHint) {
       const r = await fetch((process.env.RESEND_BASE_URL || 'https://api.resend.com') + '/emails', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to: [to], subject, text: body }),
+        body: JSON.stringify({ from, to: [to], subject, text: body, ...(attachments.length ? { attachments } : {}) }),
       });
       if (r.ok) { sent = 1; provider = 'resend'; }
       else { provider = 'resend-http-' + r.status; detail = (await resendError(r)) || `Resend rejected this message (${r.status}).`; }
@@ -1140,6 +1149,7 @@ async function sendEmail(to, subject, body, devHint) {
     // visible anywhere in the product.
     if (detail) detail += ` · sent from ${from}`;
   }
+  if (attachments.length) detail = [detail, 'attachments: ' + attachments.map(a => a.filename).join(', ')].filter(Boolean).join(' · ');
   db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
     .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), detail, at);
   return { id, sent, provider, detail };
@@ -3413,10 +3423,56 @@ function signedParties(c) {
   };
 }
 
+/* ---- the executed document itself, as an email attachment ----
+   The "fully executed" email used to carry a link and the seal — and for the
+   counterparty the link points at a share the execution itself just closed,
+   so their email could arrive with no way to the document at all. Nobody was
+   ever actually GIVEN the contract. This builds the thing to give them:
+
+   · a generated contract attaches its FROZEN sealed wording (c.execution.html,
+     captured at the moment of sealing) wrapped as a self-contained, print-
+     ready document with the parties, the signature table and the seal;
+   · an uploaded contract attaches the original file bytes;
+   · a legacy record with neither returns null and the email goes as before —
+     attaching a reconstruction would be a claim the seal does not back.
+
+   Content is base64, as the provider expects. Files past ~10MB are not
+   attached (provider limit headroom); the email still carries seal + link. */
+function executedAttachment(c) {
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[x]));
+  if (c.upload && c.upload.dataUrl) {
+    const m = String(c.upload.dataUrl).match(/^data:([^;]*);base64,(.*)$/s);
+    if (m && m[2] && m[2].length <= 14 * 1024 * 1024)
+      return { filename: String(c.upload.name || c.id + ' — executed file').slice(0, 120), content: m[2] };
+    return null;
+  }
+  const html = c.execution && c.execution.html;
+  if (!html) return null;
+  const sigRows = (Array.isArray(c.signatures) ? c.signatures : []).map(s =>
+    `<tr><td>${esc(s.name || '')}</td><td>${esc((s.party === 'counterparty' || s.party === 'external') ? (c.counterparty || 'Counterparty') : (c.execution && c.execution.firstParty) || 'First party')}</td><td>${esc(s.title || '')}</td><td>${esc(s.at || '')}</td></tr>`).join('');
+  const doc = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(c.name)} — Executed</title>
+<style>body{font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;max-width:820px;margin:32px auto;padding:0 24px;line-height:1.55}
+header{border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:24px}
+h1{font-size:22px;margin:0 0 4px}.meta{font-size:12px;color:#444}
+footer{border-top:1px solid #999;margin-top:32px;padding-top:12px;font-size:12px;color:#333}
+table{border-collapse:collapse;width:100%;font-size:12px}td,th{border:1px solid #bbb;padding:6px 8px;text-align:left}
+.seal{font-family:monospace;font-size:11px;word-break:break-all;background:#f5f5f2;padding:8px;border:1px solid #ddd}
+@media print{body{margin:12px auto}}</style></head><body>
+<header><h1>${esc(c.name)}</h1><div class="meta">${esc(c.id)}${c.counterparty ? ' · with ' + esc(c.counterparty) : ''} · Fully executed${c.signedAt ? ' · ' + esc(c.signedAt) : ''}</div></header>
+${html}
+<footer><p><strong>Signatures</strong></p>
+<table><tr><th>Name</th><th>Party</th><th>Capacity</th><th>Signed at</th></tr>${sigRows || '<tr><td colspan="4">Recorded in HaTi</td></tr>'}</table>
+<p><strong>Document seal (SHA-256)</strong></p><div class="seal">${esc(c.hash || '')}</div>
+<p>This copy was distributed by HaTi CLM when the contract became fully executed. The master copy, the audit trail and seal verification live in HaTi. Open this file in any browser; print or save as PDF for filing.</p></footer>
+</body></html>`;
+  const safeName = String(c.name || 'contract').replace(/[^\w\-. ]+/g, '').trim().slice(0, 60) || 'contract';
+  return { filename: `${c.id} — Executed — ${safeName}.html`, content: Buffer.from(doc, 'utf8').toString('base64') };
+}
+
 /* Distribution: email each party their copy of the executed contract. The
    platform copy remains the source of truth; this is the convenience copy
-   (link + seal). Idempotency is enforced client-side via c.distribution, but
-   re-sends are allowed (Send again).
+   (attached document + seal + link). Idempotency is enforced client-side via
+   c.distribution, but re-sends are allowed (Send again).
 
    THE COPY GOES OUT ONLY WHEN BOTH PARTIES HAVE SIGNED, and that is the whole
    point of the split below. A half-executed contract is not a document anybody
@@ -3439,6 +3495,9 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   const subject = st.fully
     ? `Fully executed — "${c.name}"`
     : `Signed by ${who || 'one party'} — "${c.name}"`;
+  // The document travels ONLY with the fully-executed message — a progress
+  // notice deliberately carries no copy and no seal.
+  const attachment = st.fully ? executedAttachment(c) : null;
   const out = [];
   for (const r of recipients) {
     const email = String((r && r.email) || '').trim();
@@ -3472,6 +3531,7 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
       ? `Hello${r.name ? ' ' + r.name : ''},\n\n` +
         `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
         `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
+        (attachment ? `Your copy of the fully executed contract is attached to this email (${attachment.filename}).\n\n` : '') +
         `Document seal (SHA-256):\n${seal}\n\n` +
         doorLine +
         `This is an automated notice from HaTi CLM.`
@@ -3482,10 +3542,20 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
         `This is a progress notice only.\n\n` +
         `This is an automated notice from HaTi CLM.`;
     const sent = await sendEmail(email, subject, body,
-      st.fully ? `executed copy: ${c.id}` : `part-signed notice: ${c.id}`);
-    out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '', status: sent.sent ? 'delivered' : 'sent', via: sent.provider, at: now() });
+      st.fully ? `executed copy: ${c.id}` : `part-signed notice: ${c.id}`,
+      attachment ? { attachments: [attachment] } : undefined);
+    /* Say what actually happened to each message. 'sent' used to stand for
+       every non-delivered outcome, so a provider refusal and a not-configured
+       outbox both wore a green light. Delivered / outbox / failed now, with
+       the provider's own reason carried for the panel to show. */
+    const status = sent.sent ? 'delivered' : sent.provider === 'outbox' ? 'outbox' : 'failed';
+    const why = sent.sent ? '' : sent.provider === 'outbox'
+      ? 'Email is not configured on this server — the message is filed in the internal outbox (Team & Settings → Email).'
+      : (sent.detail || 'The email provider refused the message.');
+    out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '',
+      status, ...(why ? { detail: why } : {}), attached: !!attachment, via: sent.provider, at: now() });
   }
-  res.json({ at: now(), fullyExecuted: st.fully, recipients: out });
+  res.json({ at: now(), fullyExecuted: st.fully, attached: !!attachment, recipients: out });
 });
 
 // "It's your turn to sign" nudge to the next internal signer on a route.

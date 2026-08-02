@@ -2821,6 +2821,11 @@ async function renderSharesSection(c){
   let shares=[];
   try{ const r=await api('contracts/'+c.id+'/shares'); shares=r.shares||[]; }catch(e){ host.innerHTML=''; return; }
   _shareCache.set(c.id, shares);
+  /* The Signature-progress rows read this cache (signerLinkState) to say
+     whether each signer's link is unsent / sent / opened. The sign area
+     painted BEFORE this fetch answered, so repaint it now the truth is in —
+     otherwise the panel keeps route-order guesses until the next full render. */
+  try{ if((c.signerPlan||[]).length && typeof renderSignButton==='function') renderSignButton(c); }catch(_){}
   if(!shares.length){ host.innerHTML=''; return; }
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));
   const chLabel={email:'Email',whatsapp:'WhatsApp',link:'Link'};

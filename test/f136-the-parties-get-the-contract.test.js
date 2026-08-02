@@ -1,0 +1,235 @@
+/* ============================================================
+   f136 — the parties actually GET the contract, and the panel tells the truth
+   ============================================================
+   Field report (Young, 02 Aug 2026), two defects:
+
+   1. The "fully executed" email carried a link and the seal — never the
+      document. And the counterparty's link is closed by execution itself, so
+      their email could arrive with no way to the contract at all. The
+      fully-executed email now ATTACHES the executed document: the frozen
+      sealed wording as a self-contained print-ready file for generated
+      contracts, the original file bytes for uploads. A progress notice still
+      deliberately carries nothing.
+
+   2. The Signature-progress panel stamped "SIGNING NOW · their turn now" on
+      whoever was first in the route — before any link existed, before
+      anything was sent. Each counterparty row now reports the journey of
+      THEIR OWN bound link: not sent → sent → opened → signed, read from the
+      same share records the server already keeps.
+
+   Plus: per-recipient outcomes stop lying. 'sent' used to cover both "the
+   provider refused it" and "email isn't configured at all"; it is now
+   delivered / outbox / failed, with the reason carried to the panel. */
+const { test, describe, before, after } = require('node:test');
+const assert = require('node:assert/strict');
+const http = require('node:http');
+const { startHati, seedWorkspace, fixtureContract, FOLDER_A, FIXTURES } = require('./helpers');
+const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
+
+/* ---------- a Resend stand-in that records every payload ---------- */
+function startResendStub() {
+  const mails = [];
+  let failNext = 0;
+  const server = http.createServer((req, res) => {
+    let raw = '';
+    req.on('data', d => { raw += d; });
+    req.on('end', () => {
+      let body = {}; try { body = JSON.parse(raw); } catch (_) {}
+      mails.push(body);
+      if (failNext > 0) { failNext--; res.writeHead(500, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ message: 'stubbed provider refusal' })); }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ id: 'em_stub' }));
+    });
+  });
+  return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve({
+    base: 'http://127.0.0.1:' + server.address().port,
+    mails,
+    failNextRequests(n) { failNext = n; },
+    reset() { mails.length = 0; failNext = 0; },
+    stop() { return new Promise(r => server.close(r)); },
+  })));
+}
+
+const SEAL = 'e'.repeat(64);
+const bothSigned = [
+  { party: 'first', name: 'Amina Otieno', title: 'CEO', email: 'amina@highland.co.ke', at: '2026-08-02T09:00:00Z' },
+  { party: 'counterparty', name: 'Erik Lindqvist', title: 'MD', email: 'erik@nordfrakt.se', at: '2026-08-02T10:00:00Z' },
+];
+/* A generated contract, executed: frozen sealed wording on the record. */
+const executedGenerated = () => ({
+  ...fixtureContract('MK-X1', 'Field Services Agreement', 'Nordfrakt', FOLDER_A, 5000000, 'Signed'),
+  hash: SEAL, signedAt: '02 Aug 2026, 13:00 EAT', signatures: bothSigned,
+  execution: { at: '2026-08-02T10:00:01Z', firstParty: 'Highland Corporate Ltd',
+    html: '<h2>FIELD SERVICES AGREEMENT</h2><p>The parties agree to Net-30 payment terms.</p>' },
+});
+/* An uploaded contract, executed: the original file is the document. */
+const executedUpload = () => ({
+  ...fixtureContract('MK-X2', 'Scanned Lease', 'Pwani Properties', FOLDER_A, 2000000, 'Signed'),
+  hash: SEAL, signatures: bothSigned, source: 'upload',
+  upload: { name: 'signed-lease.pdf', dataUrl: 'data:application/pdf;base64,JVBERi0xLjQlstub' },
+});
+/* Sealed but half-signed: only our side has signed. */
+const halfSigned = () => ({
+  ...fixtureContract('MK-X3', 'Half Signed Deal', 'Nordfrakt', FOLDER_A, 1000000, 'Signed'),
+  hash: SEAL, signatures: [bothSigned[0]],
+  execution: { at: '2026-08-02T09:00:01Z', html: '<p>Wording.</p>' },
+});
+
+const RECIPIENTS = [
+  { name: 'Amina Otieno', email: 'amina@highland.co.ke', role: 'CEO', party: 'first' },
+  { name: 'Erik Lindqvist', email: 'erik@nordfrakt.se', role: 'MD', party: 'counterparty' },
+];
+
+let resend, h, W;
+before(async () => {
+  resend = await startResendStub();
+  h = await startHati({ RESEND_API_KEY: 're_test_stub', RESEND_BASE_URL: resend.base });
+  W = await seedWorkspace(h, { contracts: FIXTURES.concat([executedGenerated(), executedUpload(), halfSigned()]) });
+});
+after(async () => { await h.stop(); await resend.stop(); });
+
+const distribute = (id, recipients = RECIPIENTS) =>
+  W.admin.json(`/api/contracts/${id}/distribute`, { method: 'POST', body: { recipients, appUrl: 'https://hati.example/' } });
+
+describe('the fully-executed email carries the contract itself', () => {
+  test('generated contract: the frozen sealed wording travels as a print-ready attachment', async () => {
+    resend.reset();
+    const r = await distribute('MK-X1');
+    assert.equal(r.fullyExecuted, true);
+    assert.equal(r.attached, true);
+    assert.equal(resend.mails.length, 2, 'one email per party');
+    for (const mail of resend.mails) {
+      assert.match(mail.subject, /Fully executed/);
+      assert.match(mail.text, /is attached to this email/);
+      assert.equal(mail.attachments.length, 1);
+      assert.match(mail.attachments[0].filename, /MK-X1 — Executed/);
+      const doc = Buffer.from(mail.attachments[0].content, 'base64').toString('utf8');
+      assert.match(doc, /FIELD SERVICES AGREEMENT/, 'the frozen wording is in the document');
+      assert.match(doc, /Net-30 payment terms/);
+      assert.match(doc, new RegExp(SEAL), 'the seal is printed in the document');
+      assert.match(doc, /Erik Lindqvist/, 'the signature table names the signers');
+      assert.match(doc, /Amina Otieno/);
+    }
+    assert.ok(r.recipients.every(x => x.status === 'delivered' && x.attached === true));
+  });
+
+  test('uploaded contract: the ORIGINAL file is what gets attached', async () => {
+    resend.reset();
+    const r = await distribute('MK-X2');
+    assert.equal(r.attached, true);
+    assert.equal(resend.mails[0].attachments[0].filename, 'signed-lease.pdf');
+    assert.equal(resend.mails[0].attachments[0].content, 'JVBERi0xLjQlstub',
+      'the exact uploaded bytes, not a reconstruction');
+  });
+
+  test('a part-signed progress notice still carries NOTHING', async () => {
+    resend.reset();
+    const r = await distribute('MK-X3');
+    assert.equal(r.fullyExecuted, false);
+    assert.equal(r.attached, false);
+    for (const mail of resend.mails) {
+      assert.match(mail.subject, /Signed by/);
+      assert.ok(!mail.attachments, 'no document on a half-signed contract');
+      assert.match(mail.text, /No copy of the contract is attached/);
+    }
+  });
+
+  test('a provider refusal reads as FAILED with the reason, not as "sent"', async () => {
+    resend.reset();
+    resend.failNextRequests(2);
+    const r = await distribute('MK-X1');
+    assert.ok(r.recipients.every(x => x.status === 'failed'), 'both refusals are called failures');
+    assert.match(r.recipients[0].detail || '', /refused|rejected|Resend/i, 'and the reason travels to the panel');
+  });
+});
+
+describe('no email provider: the truth is "outbox", not a green light', () => {
+  test('recipients read status outbox with a plain explanation', async () => {
+    const h2 = await startHati();            // default: RESEND_API_KEY unset
+    try {
+      const W2 = await seedWorkspace(h2, { contracts: FIXTURES.concat([executedGenerated()]) });
+      const r = await W2.admin.json('/api/contracts/MK-X1/distribute', { method: 'POST',
+        body: { recipients: RECIPIENTS, appUrl: 'https://hati.example/' } });
+      assert.ok(r.recipients.every(x => x.status === 'outbox'));
+      assert.match(r.recipients[0].detail, /not configured|outbox/i);
+    } finally { await h2.stop(); }
+  });
+});
+
+/* ---------- the Signature-progress panel tells the link's truth ---------- */
+describe('the signer row reports sent → opened → signed, not route order', () => {
+  function panel({ shares = [], apiMode = true, plan } = {}) {
+    const w = loadViews(['js/approvals.js'], {
+      TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS,
+      API_MODE: () => apiMode,
+      cachedShares: () => shares,
+      canEdit: () => true, currentUser: () => ({ id: 'u1', name: 'Amina', role: 'admin' }),
+      fmtDT: x => String(x), icon: () => '', toast() {}, persist() {}, logAudit() {},
+      getUsers: () => [], orgDirectory: () => [],
+      state: { settings: {}, contracts: [] },
+    });
+    const c = { id: 'MK-9', name: 'Deal', counterparty: 'Nordfrakt', status: 'Under Review',
+      value: 1, fields: {}, audit: [], comments: [], signatures: [],
+      signerPlan: plan || [
+        { id: 'S1', order: 1, party: 'counterparty', name: 'Young Mbagaya', email: 'y@x.com', signed: false },
+        { id: 'S2', order: 2, party: 'internal', name: 'Young Mbagaya', memberId: 'u1', signed: false },
+      ] };
+    return { html: w.approvalPanelHtml(c), w, c };
+  }
+
+  test('THE SCREENSHOT: counterparty first, nothing sent → "not sent yet", never SIGNING NOW', () => {
+    const { html } = panel({ shares: [] });
+    assert.match(html, /NOT SENT YET/);
+    assert.match(html, /not sent yet — send the contract to start their turn/);
+    assert.ok(!/SIGNING NOW/.test(html), 'no turn is announced before anything was sent');
+  });
+
+  test('link issued and emailed → "contract sent — not opened yet"', () => {
+    const { html } = panel({ shares: [{ signerId: 'S1', sentAt: '2026-08-02T10:00:00Z', firstOpenedAt: null, revokedAt: null }] });
+    assert.match(html, /SENT/);
+    assert.match(html, /contract sent — not opened yet/);
+    assert.ok(!/NOT SENT YET/.test(html));
+  });
+
+  test('they opened it → "contract opened — awaiting their signature"', () => {
+    const { html } = panel({ shares: [{ signerId: 'S1', sentAt: '2026-08-02T10:00:00Z', firstOpenedAt: '2026-08-02T11:00:00Z', revokedAt: null }] });
+    assert.match(html, /OPENED/);
+    assert.match(html, /contract opened — awaiting their signature/);
+  });
+
+  test('a link created but held for its turn says so — not "sent"', () => {
+    const { html } = panel({ shares: [{ signerId: 'S1', sentAt: null, firstOpenedAt: null, revokedAt: null }] });
+    assert.match(html, /LINK READY/);
+    assert.match(html, /goes out when their turn arrives/);
+  });
+
+  test('a revoked link does not count as sent', () => {
+    const { html } = panel({ shares: [{ signerId: 'S1', sentAt: '2026-08-01T10:00:00Z', firstOpenedAt: null, revokedAt: '2026-08-01T12:00:00Z' }] });
+    assert.match(html, /NOT SENT YET/, 'the live truth: they currently have no way in');
+  });
+
+  test('an INTERNAL signer whose turn it is still reads SIGNING NOW — they sign in-app', () => {
+    const { html } = panel({ plan: [
+      { id: 'S1', order: 1, party: 'internal', name: 'Amina', memberId: 'u1', signed: false },
+      { id: 'S2', order: 2, party: 'counterparty', name: 'Erik', email: 'e@n.se', signed: false },
+    ] });
+    assert.match(html, /SIGNING NOW/);
+  });
+
+  test('static mode (no tracked links) keeps the legacy wording rather than claiming "not sent"', () => {
+    const { html } = panel({ apiMode: false, shares: [] });
+    assert.match(html, /their turn now/);
+    assert.ok(!/NOT SENT YET/.test(html));
+  });
+
+  test('a signed row keeps its date and signature form', () => {
+    const { html } = panel({ plan: [
+      { id: 'S1', order: 1, party: 'counterparty', name: 'Erik', email: 'e@n.se', signed: true,
+        at: '2026-08-02T10:00:00Z', signature: { form: 'typed' } },
+      { id: 'S2', order: 2, party: 'internal', name: 'Amina', memberId: 'u1', signed: false },
+    ] });
+    assert.match(html, /typed signature/);
+    assert.match(html, /1 of 2 signed/);
+  });
+});

@@ -3762,8 +3762,10 @@ async function notifyNextSigner(c, nxt){
 /* Distribution panel shown in the sign area once a contract is executed. */
 function distributionPanelHtml(c){
   const d=c.distribution;
-  const dot=st=>['delivered','queued','sent'].includes(st)?'var(--st-green-dot)':['failed','bounced'].includes(st)?'var(--st-ruby-dot)':'#8a8f95';
-  const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st;
+  const dot=st=>['delivered','queued','sent'].includes(st)?'var(--st-green-dot)'
+    :['failed','bounced'].includes(st)?'var(--st-ruby-dot)'
+    :st==='outbox'?'var(--st-amber-dot)':'#8a8f95';
+  const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st==='outbox'?'In outbox — email not set up':st;
   /* WHY NOTHING HAS GONE OUT YET, said before anyone has to wonder. The copy is
      held until every party has signed; a panel that simply showed the button
      and never fired it would read as a broken feature rather than a rule. */
@@ -3780,9 +3782,12 @@ function distributionPanelHtml(c){
         : 'Send a progress notice to all parties'}</button>
     </div>`;
   }
-  const rows=(d.recipients||[]).map(r=>`<div class="flex items-center gap-2 py-1 text-[11px]">
-    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
+  const rows=(d.recipients||[]).map(r=>`<div class="py-1 text-[11px]">
+    <div class="flex items-center gap-2">
+    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}${r.attached?` <span class="text-[8.5px] font-mono px-1 py-px rounded bg-brand-50 text-brand-600" title="The executed contract document was attached to this email">DOC ATTACHED</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
     <span class="text-[9.5px] font-mono flex items-center gap-1 shrink-0" style="color:${dot(r.status)}"><span style="width:6px;height:6px;border-radius:999px;background:${dot(r.status)}"></span>${stTxt(r.status)}</span>
+    </div>
+    ${r.detail?`<div class="text-[9.5px] mt-0.5" style="color:${dot(r.status)}">${String(r.detail).replace(/</g,'&lt;')}</div>`:''}
   </div>`).join('');
   return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
     <div class="flex items-center gap-2 mb-1"><span class="text-[11px] font-600 text-ink">Copies sent</span>
