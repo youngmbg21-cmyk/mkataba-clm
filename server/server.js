@@ -3559,6 +3559,59 @@ function pdfPngImage(dataUrl) {
     return { w, h, rgb: zlib.deflateSync(rgb), alpha: alpha ? zlib.deflateSync(alpha) : null };
   } catch (_) { return null; }
 }
+/* JPEG logos embed as-is (/DCTDecode); only the pixel size must be read from
+   the SOF marker. PNGs go through pdfPngImage. Anything else is skipped. */
+function pdfJpegImage(dataUrl) {
+  try {
+    const m = /^data:image\/jpe?g;base64,(.+)$/s.exec(String(dataUrl || ''));
+    if (!m) return null;
+    const buf = Buffer.from(m[1], 'base64');
+    if (buf[0] !== 0xFF || buf[1] !== 0xD8) return null;
+    let pos = 2;
+    while (pos + 9 < buf.length) {
+      if (buf[pos] !== 0xFF) { pos++; continue; }
+      const marker = buf[pos + 1];
+      if (marker >= 0xC0 && marker <= 0xCF && marker !== 0xC4 && marker !== 0xC8 && marker !== 0xCC)
+        return { w: buf.readUInt16BE(pos + 7), h: buf.readUInt16BE(pos + 5), jpeg: buf };
+      pos += 2 + buf.readUInt16BE(pos + 2);
+    }
+    return null;
+  } catch (_) { return null; }
+}
+const pdfImageFromDataUrl = u => pdfPngImage(u) || pdfJpegImage(u);
+// A circle as four beziers — PDF has no circle primitive.
+function pdfCircleOps(cx, cy, r) {
+  const k = 0.5523 * r;
+  return `${(cx + r).toFixed(1)} ${cy.toFixed(1)} m ` +
+    `${(cx + r).toFixed(1)} ${(cy + k).toFixed(1)} ${(cx + k).toFixed(1)} ${(cy + r).toFixed(1)} ${cx.toFixed(1)} ${(cy + r).toFixed(1)} c ` +
+    `${(cx - k).toFixed(1)} ${(cy + r).toFixed(1)} ${(cx - r).toFixed(1)} ${(cy + k).toFixed(1)} ${(cx - r).toFixed(1)} ${cy.toFixed(1)} c ` +
+    `${(cx - r).toFixed(1)} ${(cy - k).toFixed(1)} ${(cx - k).toFixed(1)} ${(cy - r).toFixed(1)} ${cx.toFixed(1)} ${(cy - r).toFixed(1)} c ` +
+    `${(cx + k).toFixed(1)} ${(cy - r).toFixed(1)} ${(cx + r).toFixed(1)} ${(cy - k).toFixed(1)} ${(cx + r).toFixed(1)} ${cy.toFixed(1)} c `;
+}
+/* Signature times, formatted AS THE PLATFORM SHOWS THEM. The screen renders
+   in the signer's own clock; the server cannot know that timezone — but the
+   record carries it implicitly: c.signedAt is the client-formatted seal time
+   ("2 Aug 2026, 14:55 EAT") and c.execution.at the same instant in UTC, so
+   their difference IS the offset, and the label rides on signedAt. Records
+   without the pair fall back to plain UTC. */
+function pdfSigTime(iso, c) {
+  const t = Date.parse(String(iso || ''));
+  if (!Number.isFinite(t)) return String(iso || '');
+  let offMin = 0, label = 'UTC';
+  try {
+    const sm = /^(\d{1,2}) (\w{3}) (\d{4}), (\d{2}):(\d{2})(?::\d{2})?\s*(\S+)?$/.exec(String(c.signedAt || '').trim());
+    const base = Date.parse(String((c.execution && c.execution.at) || ''));
+    if (sm && Number.isFinite(base)) {
+      const walls = Date.UTC(Number(sm[3]), ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(sm[2]), Number(sm[1]), Number(sm[4]), Number(sm[5]));
+      offMin = Math.round((walls - base) / 60000 / 15) * 15;
+      label = sm[6] || '';
+    }
+  } catch (_) {}
+  const d = new Date(t + offMin * 60000);
+  const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()];
+  return `${d.getUTCDate()} ${mon} ${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}${label ? ' ' + label : ''}`;
+}
+
 function pdfAssemble(pages, imgs) {
   const enc = s => Buffer.from(s, 'latin1');
   const chunks = []; const offsets = [0];
@@ -3570,9 +3623,13 @@ function pdfAssemble(pages, imgs) {
   const fontIds = {};
   for (const [k, base] of Object.entries(PDF_BASE_FONTS)) fontIds[k] = obj(enc(`<< /Type /Font /Subtype /Type1 /BaseFont /${base} /Encoding /WinAnsiEncoding >>`));
   imgs.forEach((im, i) => {
-    let sm = null;
-    if (im.alpha) sm = obj(stream(`/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode`, im.alpha));
-    im.ref = obj(stream(`/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8${sm ? ` /SMask ${sm} 0 R` : ''} /Filter /FlateDecode`, im.rgb));
+    if (im.jpeg) {
+      im.ref = obj(stream(`/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode`, im.jpeg));
+    } else {
+      let sm = null;
+      if (im.alpha) sm = obj(stream(`/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode`, im.alpha));
+      im.ref = obj(stream(`/Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8${sm ? ` /SMask ${sm} 0 R` : ''} /Filter /FlateDecode`, im.rgb));
+    }
     im.name = `Im${i + 1}`;
   });
   const contentIds = pages.map(ops => obj(stream('', enc(ops.join('\n')))));
@@ -3637,18 +3694,46 @@ function executedPdf(c) {
     ops.push(`q ${pdfRgb(color)} RG ${wpt} w ${x1} ${y.toFixed(1)} m ${x2} ${y.toFixed(1)} l S Q`);
   newPage();
 
-  // ---- header, per design family ----
+  // ---- header, per design family: logo, name, identity line, the band ----
   const company = (b && b.companyName) || (c.execution && c.execution.firstParty) || '';
+  const ident = designed ? [b.registrationNumber, b.address].filter(Boolean).join(' · ') : '';
+  const logo = designed && b.logoUrl ? pdfImageFromDataUrl(b.logoUrl) : null;
+  const logoDims = maxH => logo ? { w: Math.min(120, logo.w * (maxH / logo.h)), h: maxH } : null;
+  const drawLogo = (x, yy, maxH) => {
+    if (!logo) return null;
+    const d = logoDims(maxH);
+    imgs.push(logo);
+    ops.push(`q ${d.w.toFixed(1)} 0 0 ${d.h.toFixed(1)} ${x.toFixed(1)} ${(yy - d.h).toFixed(1)} cm /__IMG${imgs.length - 1}__ Do Q`);
+    return d;
+  };
   if (designed && b.designId === 'bold-corporate') {
-    ops.push(`q ${pdfRgb(accent)} rg ${PDF_ML - 10} ${(y - 34).toFixed(1)} ${CW + 20} 40 re f Q`);
-    y -= 24; line(company || c.name, { x: PDF_ML + 6, size: 13, font: 'F5', color: 'ffffff' }); y -= 30;
+    /* The platform's band: name + identity inside the accent band, the logo
+       on a white chip at the logoPosition end. */
+    const bandH = 46;
+    ops.push(`q ${pdfRgb(accent)} rg ${PDF_ML - 12} ${(y - bandH + 10).toFixed(1)} ${CW + 24} ${bandH} re f Q`);
+    const chipD = logo ? logoDims(24) : null;
+    const chipW = chipD ? chipD.w + 12 : 0;
+    const logoRight = b.logoPosition !== 'top-left';
+    if (chipD) {
+      const chipX = logoRight ? PDF_ML + CW - chipW - 2 : PDF_ML + 2;
+      ops.push(`q 1 1 1 rg ${chipX.toFixed(1)} ${(y - 8 - chipD.h - 6).toFixed(1)} ${chipW} ${chipD.h + 12} re f Q`);
+      drawLogo(chipX + 6, y - 8 - 3, 24);
+    }
+    const tx = (!logoRight && chipD) ? PDF_ML + chipW + 14 : PDF_ML + 8;
+    y -= ident ? 22 : 28;
+    line(company || c.name, { x: tx, size: 13, font: 'F5', color: 'ffffff' });
+    if (ident) { y -= 12; line(ident, { x: tx, size: 7.5, font: 'F4', color: 'e8ecef' }); y -= 22; }
+    else y -= 28;
   } else if (company || designed) {
     y -= 4;
+    if (centeredHeads && logo) { drawLogo(PDF_ML + (CW - logoDims(30).w) / 2, y, 30); y -= 36; }
+    else if (logo) { drawLogo(PDF_ML, y, 26); y -= 32; }
     line((designed && (centeredHeads || b.designId === 'ceremonial')) ? String(company).toUpperCase() : company,
       { size: serif ? 13 : 11, font: serif ? 'F2' : 'F5', align: centeredHeads ? 'center' : 'left' });
+    if (ident) { y -= 11; line(ident, { size: 7, font: serif ? 'F1' : 'F4', color: '6b7780', align: centeredHeads ? 'center' : 'left' }); }
     y -= 8;
     if (designed && b.designId === 'classic-letterhead') { hr('37474f', 1.4); y -= 3; hr('37474f', 0.5); }
-    else if (designed && ['modern-minimal', 'modern-editorial', 'facing-parties', 'bold-corporate'].includes(b.designId))
+    else if (designed && ['modern-minimal', 'modern-editorial', 'facing-parties'].includes(b.designId))
       ops.push(`q ${pdfRgb(accent)} rg ${PDF_ML} ${(y - 2).toFixed(1)} 46 3 re f Q`);
     else hr('37474f', 0.7);
     y -= 18;
@@ -3665,47 +3750,80 @@ function executedPdf(c) {
     else para(blk.text, { after: 6 });
   }
 
-  // ---- the Executed & Sealed panel ----
-  ensure(120); y -= 10; hr('9fbfae', 1); y -= 22;
-  line('Executed & Sealed', { size: 13.5, font: 'F5', color: '11332d' });
-  line('EXECUTED', { size: 8, font: 'F5', color: '086b54', align: 'right' });
-  y -= 12;
-  /* The statute the signatures rest on is FROZEN onto the execution record at
-     sealing (finalizeExecution) — this copy must quote the law it was signed
-     under, not whatever the workspace's market setting resolves to today.
-     The live orgJx() is only the fallback for records sealed before the
-     freeze existed. */
-  const J = orgJx();
-  para((c.execution && c.execution.esignature) || J.esignatureShort || '', { size: 8, font: 'F4', color: '4c5a56', after: 8 });
+  // ---- the Executed & Sealed panel, as the screen draws it ----
   const sigs = Array.isArray(c.signatures) ? c.signatures : [];
   const partyLabel = s => s.party === 'counterparty' ? 'COUNTERPARTY' : s.party === 'first' ? 'FIRST PARTY' : 'SIGNER';
-  for (const s of sigs) {
-    const im = pdfPngImage(s.image);
-    const cardH = im ? 92 : 58;
-    ensure(cardH + 8);
-    ops.push(`q 0.86 0.92 0.89 RG 0.8 w ${PDF_ML} ${(y - cardH).toFixed(1)} ${CW} ${cardH} re S Q`);
-    y -= 14; line(partyLabel(s), { x: PDF_ML + 12, size: 7, font: 'F4', color: '5c6f68' });
-    if (im) {
-      imgs.push(im);
-      const dispH = 30, dispW = Math.min(150, im.w * (dispH / im.h));
-      ops.push(`q ${dispW.toFixed(1)} 0 0 ${dispH} ${PDF_ML + 12} ${(y - dispH - 4).toFixed(1)} cm /__IMG${imgs.length - 1}__ Do Q`);
-      y -= dispH + 8;
-    }
-    y -= 13; line(`${s.name || ''}${s.title ? ', ' + s.title : ''}`, { x: PDF_ML + 12, size: 10.5, font: 'F5', color: '134639' });
-    y -= 11; line([s.email, s.form ? s.form + ' signature' : s.method, s.at].filter(Boolean).join(' · '), { x: PDF_ML + 12, size: 7.5, font: 'F4', color: '5c6f68' });
-    y -= 14;
+  const sigImgs = sigs.map(s => pdfPngImage(s.image));
+  const rowH = i => Math.max(...[sigImgs[i], sigImgs[i + 1]].map(im => im === undefined ? 0 : im ? 96 : 62));
+  let panelH = 96 + (c.execution.textHash ? 40 : 0) + 66 + 60;
+  for (let i = 0; i < sigs.length; i += 2) panelH += rowH(i) + 8;
+  /* One panel, one page. The seal box drifting onto a page of its own (field
+     report) read as a broken document; the whole panel moves to a fresh page
+     rather than straddle. Taller-than-a-page panels still flow. */
+  ensure(Math.min(panelH, PDF_PAGE_H - PDF_MT - PDF_MB - 10));
+  y -= 10; hr('9fbfae', 1); y -= 24;
+  // the SEALED roundel, then the panel column beside it — as on screen
+  const rx = PDF_ML + 22, ry = y - 12;
+  ops.push(`q 1 1 1 rg ${pdfCircleOps(rx, ry, 22)} f Q`);
+  ops.push(`q ${pdfRgb('086b54')} RG 1.4 w ${pdfCircleOps(rx, ry, 22)} S Q`);
+  ops.push(`q 0.945 0.973 0.961 rg ${pdfCircleOps(rx, ry, 17)} f Q`);
+  ops.push(`q ${pdfRgb('c79a3e')} RG 0.9 w ${pdfCircleOps(rx, ry, 17)} S Q`);
+  ops.push(`BT /F5 6.5 Tf ${pdfRgb('086b54')} rg 1 0 0 1 ${(rx - pdfTextW('SEALED', 6.5, 'F5') / 2).toFixed(1)} ${(ry - 1).toFixed(1)} Tm (SEALED) Tj ET`);
+  ops.push(`BT /F6 4.5 Tf ${pdfRgb('0b5c47')} rg 1 0 0 1 ${(rx - pdfTextW('SHA-256', 4.5, 'F6') / 2).toFixed(1)} ${(ry - 9).toFixed(1)} Tm (SHA-256) Tj ET`);
+  const px = PDF_ML + 56, pw = CW - 56;   // the panel column, beside the roundel
+  line('Executed & Sealed', { x: px, size: 13.5, font: 'F5', color: '11332d' });
+  const chipW = pdfTextW('Executed', 7.5, 'F5') + 14;
+  ops.push(`q 0.886 0.949 0.918 rg ${(px + pdfTextW('Executed & Sealed', 13.5, 'F5') + 10).toFixed(1)} ${(y - 3).toFixed(1)} ${chipW.toFixed(1)} 13 re f Q`);
+  line('Executed', { x: px + pdfTextW('Executed & Sealed', 13.5, 'F5') + 17, size: 7.5, font: 'F5', color: '086b54' });
+  y -= 13;
+  /* The statute is FROZEN at sealing (finalizeExecution) — this copy quotes
+     the law it was signed under, never today's market setting. orgJx() is
+     only the fallback for records sealed before the freeze existed. */
+  const J = orgJx();
+  para((c.execution && c.execution.esignature) || J.esignatureShort || '', { size: 8, font: 'F4', color: '4c5a56', after: 10, x: px, width: pw });
+  // signature cards, two to a row — the screen's grid
+  for (let i = 0; i < sigs.length; i += 2) {
+    const pair = [i, i + 1].filter(j => j < sigs.length);
+    const h = rowH(i);
+    ensure(h + 8);
+    const cw2 = pair.length === 2 ? (pw - 10) / 2 : pw;
+    const rowTop = y;
+    pair.forEach((j, k) => {
+      const s = sigs[j], im = sigImgs[j];
+      const cx = px + k * (cw2 + 10);
+      let yy = rowTop;
+      ops.push(`q 1 1 1 rg 0.86 0.92 0.89 RG 0.8 w ${cx.toFixed(1)} ${(yy - h).toFixed(1)} ${cw2.toFixed(1)} ${h} re B Q`);
+      yy -= 14;
+      ops.push(`BT /F4 6.5 Tf ${pdfRgb('5c6f68')} rg 1 0 0 1 ${(cx + 10).toFixed(1)} ${yy.toFixed(1)} Tm (${pdfEsc(partyLabel(s))}) Tj ET`);
+      if (im) {
+        imgs.push(im);
+        const dispH = 28, dispW = Math.min(cw2 - 24, im.w * (dispH / im.h));
+        ops.push(`q ${dispW.toFixed(1)} 0 0 ${dispH} ${(cx + 10).toFixed(1)} ${(yy - dispH - 4).toFixed(1)} cm /__IMG${imgs.length - 1}__ Do Q`);
+        yy -= dispH + 8;
+      }
+      yy -= 13;
+      ops.push(`BT /F5 10 Tf ${pdfRgb('134639')} rg 1 0 0 1 ${(cx + 10).toFixed(1)} ${yy.toFixed(1)} Tm (${pdfEsc(`${s.name || ''}${s.title ? ', ' + s.title : ''}`)}) Tj ET`);
+      yy -= 11;
+      const sub = [s.email, s.form ? s.form + ' signature' : s.method, pdfSigTime(s.at, c)].filter(Boolean).join(' · ');
+      pdfWrap(sub, 7, 'F4', cw2 - 20).slice(0, 2).forEach(lnTxt => {
+        ops.push(`BT /F4 7 Tf ${pdfRgb('5c6f68')} rg 1 0 0 1 ${(cx + 10).toFixed(1)} ${yy.toFixed(1)} Tm (${pdfEsc(lnTxt)}) Tj ET`);
+        yy -= 9;
+      });
+    });
+    y = rowTop - h - 8;
   }
   if (c.execution.textHash) {
-    ensure(34); y -= 10;
-    line('SEALED TEXT FINGERPRINT (SHA-256)', { size: 7, font: 'F4', color: '5c6f68' }); y -= 11;
-    line(c.execution.textHash, { size: 8, font: 'F6', color: '134639' }); y -= 6;
+    ensure(38); y -= 8;
+    ops.push(`q 1 1 1 rg 0.86 0.92 0.89 RG 0.8 w ${px.toFixed(1)} ${(y - 30).toFixed(1)} ${pw.toFixed(1)} 36 re B Q`);
+    y -= 6; line('SEALED TEXT FINGERPRINT (SHA-256)', { x: px + 10, size: 6.5, font: 'F4', color: '5c6f68' }); y -= 11;
+    line(c.execution.textHash, { x: px + 10, size: 7.5, font: 'F6', color: '134639' }); y -= 15;
   }
-  ensure(62); y -= 8;
-  ops.push(`q ${pdfRgb('11332d')} rg ${PDF_ML} ${(y - 50).toFixed(1)} ${CW} 54 re f Q`);
-  y -= 12; line('# DOCUMENT SEAL (SHA-256)', { x: PDF_ML + 12, size: 7.5, font: 'F6', color: 'c79a3e' });
-  y -= 13; line(String(c.hash || ''), { x: PDF_ML + 12, size: 8.5, font: 'F6', color: 'e8f2ee' });
-  y -= 13; line(String(c.signedAt || 'Timestamp recorded'), { x: PDF_ML + 12, size: 8, font: 'F6', color: '8fb3a8' });
-  y -= 18;
+  ensure(64); y -= 6;
+  ops.push(`q ${pdfRgb('11332d')} rg ${px.toFixed(1)} ${(y - 50).toFixed(1)} ${pw.toFixed(1)} 56 re f Q`);
+  y -= 12; line('# DOCUMENT SEAL (SHA-256)', { x: px + 12, size: 7.5, font: 'F6', color: 'c79a3e' });
+  y -= 13; line(String(c.hash || ''), { x: px + 12, size: 8.5, font: 'F6', color: 'e8f2ee' });
+  y -= 13; line(String(c.signedAt || 'Timestamp recorded'), { x: px + 12, size: 8, font: 'F6', color: '8fb3a8' });
+  y -= 20;
   para('Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.',
     { size: 7.5, font: 'F4', color: '5c6f68', before: 4, after: 4 });
   para('This copy was distributed by HaTi CLM when the contract became fully executed. It is the same sealed text the platform holds; the master copy, the audit trail and seal verification live in HaTi.',

@@ -4638,3 +4638,30 @@ Suite 2382 → 2386.
    quote the frozen sentence, falling back to the org market only for records
    sealed before the freeze existed. A legal claim printed on an executed
    copy can no longer drift with a later settings change.
+
+---
+
+# Run 18 — The PDF seal panel and header, matched to the screen (2026-08-02)
+
+Young's side-by-side round two: the statute now matched, but the PDF's seal
+panel and header still read as a different document. Closed:
+
+- **The SEALED roundel** is drawn (vector circles, green + gold rings, the
+  SEALED / SHA-256 lettering) beside the panel title, as on screen.
+- **Signature cards sit two-abreast** in the screen's grid, with the adopted
+  marks, names, capacities and emails.
+- **Timestamps are human**: signature times print as the platform shows them
+  ("2 Aug 2026, 14:54 EAT") — the signer's clock offset is recovered from the
+  signedAt/execution.at pair already on the record, so the PDF matches the
+  screen to the minute and label without the server guessing timezones.
+- **The panel stays on one page**: its height is measured up front and the
+  whole panel moves to a fresh page rather than leaving the document-seal box
+  stranded alone (the "Page 1 of 2" split in Young's screenshot).
+- **The header is the real letterhead**: the company LOGO now embeds (PNG
+  decoded, JPEG passed through), the identity line (registration · address)
+  prints, and Bold Corporate renders the full accent band with the white logo
+  chip at the chosen end — matching the platform's band. Other design
+  families get logo + identity in their own arrangements.
+
+Suite 2386 green; verified by rasterising a generated PDF and comparing
+against Young's screenshots.
