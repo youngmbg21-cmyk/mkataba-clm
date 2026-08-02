@@ -366,12 +366,13 @@ const REG_ROW_ACTIONS=[
   // permanent delete — only offered while a contract is still a draft or in review
   {k:'delete', label:'Delete permanently', ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
-/* THE ROW'S PRIMARY VERB, as the reference writes it.
-   The prototype does not repeat one generic "Open" down the column — each row
-   offers the thing that stage actually calls for: a contract in review is
-   opened to be argued over, an executed one is opened to be read. The wording
-   is the reference's; the destination is the engine's own workspace either
-   way, so nothing here routes anywhere the ⋯ menu could not. */
+/* THE ROW'S PRIMARY VERB.
+   Not one generic "Open" down the column — each row offers the thing that
+   stage actually calls for: a contract in review is opened to be argued over,
+   an executed one is opened to be read. The destination is the engine's own
+   workspace either way, so nothing here routes anywhere the ⋯ menu could not
+   — which is also why the labels must not name surfaces ("Vault", "DocLab")
+   that the platform no longer has. */
 /* THE TITLE COLUMN IS THE TITLE, not the party.
    Everywhere else in HaTi a contract is headed by the OTHER SIDE — cPrimary
    returns the counterparty and falls back to the name (see js/core.js): on a
@@ -385,10 +386,10 @@ function regTitleOf(c){
 }
 function regPrimaryAction(c){
   const s = String((c && c.status) || 'Draft');
-  if (s === 'Signed')       return 'View Vault';
-  if (s === 'Under Review') return 'Review Terms';
+  if (s === 'Signed')       return 'View contract';
+  if (s === 'Under Review') return 'Review terms';
   if (s === 'Declined')     return 'View record';
-  return 'Open DocLab';
+  return 'Open draft';
 }
 function regRowsHtml(cs){
   const R=regState();
