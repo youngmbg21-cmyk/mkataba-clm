@@ -731,6 +731,11 @@ function tplFormPopover(c, idx, anchor) {
 }
 
 Object.assign(window, {
+  /* The whole cached list, drafts included, for surfaces that render company
+     templates as rows of their own (the Templates page's library table)
+     rather than through renderCompanyTemplatesSection's card grid. */
+  tplLibAll: () => ({ list: _tplLib.list.slice(), canManage: _tplLib.canManage, loaded: _tplLib.loaded }),
+  tplLibUploadModal, tplLibCreateModal,
   renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh,
   openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
   saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,

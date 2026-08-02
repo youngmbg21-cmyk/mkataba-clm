@@ -716,6 +716,19 @@ function renderIntel(){
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['risk','Risk'],['source','Origin']];
   const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="border:0;border-radius:6px;padding:5px 13px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${intel.tab===k?'var(--accent-solid,var(--color-accent))':'none'};color:${intel.tab===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
   const tabsHtml=`<div style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;flex:none">${tabBtn('friction','Negotiation Friction')}${tabBtn('map','Contract Graph')}</div>`;
+  /* The friction levers live IN the header strip (the approved comp): the
+     period toggle and the counterparty select sit beside the tabs, so the
+     panel below is all answer and no chrome. */
+  const ff=intel.frictionFilter||null;
+  const ffCps=[...new Set(((window.state&&state.contracts)||[]).map(c=>c&&String(c.counterparty||'').trim()).filter(Boolean))].sort();
+  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:${(ff&&ff.days)===days||(!ff||!ff.days)&&days==null?'var(--accent-solid,var(--color-accent))':'none'};color:${(ff&&ff.days)===days||(!ff||!ff.days)&&days==null?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
+  const frictionControls=`
+      <div style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;flex:none">${ffSeg(null,'All time')}${ffSeg(90,'Last 90 days')}</div>
+      <select id="igf-cp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:5px 9px;font:inherit;font-size:11px;font-weight:600;color:var(--color-text);max-width:200px;flex:none">
+        <option value="">All counterparties</option>
+        ${ffCps.map(x=>`<option value="${igEsc(x)}"${ff&&ff.counterparty===x?' selected':''}>${igEsc(x)}</option>`).join('')}
+      </select>
+      ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
   const headerHtml=`
     <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
@@ -723,6 +736,7 @@ function renderIntel(){
         ? 'where deals get stuck — counted from the fingerprinted changes the negotiations already recorded'
         : `${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses`}</span>
       <span style="flex:1"></span>
+      ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
         <span style="position:relative;display:inline-flex;align-items:center">
           <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:4px;cursor:pointer;outline:none">
@@ -758,6 +772,19 @@ function renderIntel(){
       if(!Object.keys(intel.frictionFilter).length) intel.frictionFilter=null;
       renderIntel();
     });
+    /* The brief's own verbs (WO friction redesign): the clause link opens Our
+       standards; "See the six" unfolds the named deadlocks in place; any
+       counterparty — hero link or table row — filters the page to them; a
+       deadlock row opens its contract. */
+    document.querySelector('[data-igf-standards]')?.addEventListener('click',()=>setView('playbook'));
+    document.querySelector('[data-igf-deadlocks]')?.addEventListener('click',()=>{
+      document.getElementById('igf-deadlist')?.classList.toggle('hidden'); });
+    document.querySelectorAll('[data-igf-open]').forEach(b=>b.addEventListener('click',e=>{
+      e.stopPropagation(); openWorkspace(b.getAttribute('data-igf-open')); }));
+    document.querySelectorAll('[data-igf-cp]').forEach(el=>el.addEventListener('click',()=>{
+      intel.frictionFilter={...(intel.frictionFilter||{}), counterparty:el.getAttribute('data-igf-cp')};
+      renderIntel();
+    }));
     setActiveNav('intel');
     return;
   }
@@ -817,7 +844,7 @@ function intelFrictionStats(filter){
     .filter(c=>!f||!f.counterparty||String(c&&c.counterparty||'').toLowerCase()
       .includes(String(f.counterparty).toLowerCase()));
   const per=new Map(); const cps=new Map(); const dealRounds=new Map();
-  const days=[]; const decideMs=[];
+  const days=[]; const decideMs=[]; const deadlockList=[];
   let deals=0, roundsSum=0, deadlocks=0, openedThisMonth=0;
   let oursAcc=0, oursRej=0, theirsAcc=0, theirsRej=0;
   let signed=0, signedRound1=0;
@@ -855,7 +882,11 @@ function intelFrictionStats(filter){
       if(ch.status==='accepted'){ ours?oursAcc++:theirsAcc++; if(ours) cp.acc++; }
       if(ch.status==='rejected'){
         ours?oursRej++:theirsRej++; if(ours) cp.rej++;
-        if(!ch.withdrawn) deadlocks++;
+        if(!ch.withdrawn){ deadlocks++;
+          /* Named, not just counted — "See the six" has to have six to show. */
+          if(deadlockList.length<12) deadlockList.push({ id:c.id, name:String(c.name||c.id),
+            clause:String(ch.clauseLabel||ch.headingText||'a clause').replace(/\s+/g,' ').trim().slice(0,60) });
+        }
       }
       if((ch.status==='accepted'||ch.status==='rejected')&&ch.resolvedAt&&ch.createdAt){
         const ms=new Date(ch.resolvedAt)-new Date(ch.createdAt);
@@ -887,80 +918,114 @@ function intelFrictionStats(filter){
   let insight=null;
   if(ranked.length&&deals>=3&&ranked[0].extra!=null&&ranked[0].extra>0.05)
     insight={ label:ranked[0].label, share:ranked[0].share, extra:ranked[0].extra };
+  /* The slowest counterparty a reader can act on: most rounds per deal, named
+     party preferred over the anonymous bucket, two deals before the label
+     sticks — one slow deal is an anecdote, not a pattern. */
+  const named=[...cps.values()].filter(cp=>cp.name!=='(no counterparty)');
+  const slowPool=(named.length?named:[...cps.values()]).filter(cp=>cp.deals>=2);
+  const slowest=slowPool.length?slowPool
+    .map(cp=>({name:cp.name, deals:cp.deals, avgRounds:cp.rounds/cp.deals,
+      acceptUs:(cp.acc+cp.rej)?cp.acc/(cp.acc+cp.rej):null}))
+    .sort((a,b)=>b.avgRounds-a.avgRounds)[0]:null;
   return { deals, openedThisMonth, avgRounds: deals?roundsSum/deals:0,
-    avgDays: days.length?avg(days):null,
+    avgDays: days.length?avg(days):null, medianDays: median(days),
     oursAcceptShare:(oursAcc+oursRej)?oursAcc/(oursAcc+oursRej):null,
     theirsAcceptShare:(theirsAcc+theirsRej)?theirsAcc/(theirsAcc+theirsRej):null,
-    deadlocks, medianDecisionMs:median(decideMs),
+    deadlocks, deadlockList, medianDecisionMs:median(decideMs),
     round1Share: signed?signedRound1/signed:null, signed,
-    clauses: ranked, counterparties, insight };
+    clauses: ranked, counterparties, slowest, insight };
 }
+/* THE FRICTION PAGE, AS A BRIEF (redesign to the approved comp).
+
+   One panel, two columns. The LEFT answers "what is slowing you down" in
+   three sentences a reader can act on — the costliest clause, the refused
+   changes nobody withdrew, the slowest counterparty — each with its number
+   leading and one link that does the obvious thing. The RIGHT keeps the
+   evidence: the contested-clauses bars and the per-counterparty table,
+   click-to-filter. Colour is never alone: a teal bar means the clause costs
+   extra rounds and the +N figure beside it says how many (in red, a cost); a
+   grey bar with a green −N means fighting it actually shortens deals. */
 function intelFrictionHtml(){
   const f=intel.frictionFilter||null;
   const st=intelFrictionStats(f);
   const pct=v=>Math.round(v*100);
-  /* Filters are real controls, not chat commands: the pinned Copilot left
-     this tab (questions go through the regular Copilot, which carries these
-     KPIs in its snapshot), so the levers moved onto the page itself. */
-  const cps=[...new Set(((window.state&&state.contracts)||[]).map(c=>c&&String(c.counterparty||'').trim()).filter(Boolean))].sort();
-  const seg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:${(f&&f.days)===days||(!f||!f.days)&&days==null?'var(--accent-solid,var(--color-accent))':'none'};color:${(f&&f.days)===days||(!f||!f.days)&&days==null?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
-  const filters=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-    <div style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px">${seg(null,'All time')}${seg(90,'Last 90 days')}</div>
-    <select id="igf-cp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:5px 9px;font:inherit;font-size:11px;font-weight:600;color:var(--color-text);max-width:220px">
-      <option value="">All counterparties</option>
-      ${cps.map(x=>`<option value="${igEsc(x)}"${f&&f.counterparty===x?' selected':''}>${igEsc(x)}</option>`).join('')}
-    </select>
-    ${f&&(f.counterparty||f.days||f.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent)">✕ Clear filters</button>`:''}
-  </div>`;
-  if(!st.deals) return `<div style="max-width:960px;margin:0 auto">${filters}
+  if(!st.deals) return `<div style="max-width:960px;margin:0 auto">
     <div style="max-width:560px;margin:40px auto;text-align:center;color:var(--color-neutral-600);font-size:13px;line-height:1.6">
-    <b style="color:var(--color-text)">${f?'Nothing matches these filters.':'No negotiations recorded yet.'}</b><br/>${f?'Clear the filters above to see everything again.':'Once contracts go through the Redline bench, this control tower counts which clauses get contested, what each fight costs, and who moves fast — straight from the tracked changes.'}</div></div>`;
-  const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'<1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
-  const tile=(n,t,d)=>`<div style="flex:1;min-width:112px;border:1px solid var(--color-divider);border-radius:10px;padding:9px 13px;background:var(--color-surface)">
-    <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums">${n}</div>
-    <div style="font-size:10px;color:var(--color-neutral-600);font-weight:600;line-height:1.3">${t}</div>
-    ${d?`<div style="font-size:9.5px;font-weight:700;color:var(--color-accent)">${d}</div>`:''}</div>`;
-  const kpis=`<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">
-    ${tile(String(st.deals),'negotiations',st.openedThisMonth?`▲ ${st.openedThisMonth} this month`:'')}
-    ${tile(st.avgRounds.toFixed(1),'avg rounds per deal')}
-    ${st.avgDays!=null?tile(st.avgDays<1?'&lt;1 day':Math.round(st.avgDays)+' days','to signature (signed deals)'):''}
-    ${st.oursAcceptShare!=null?tile(pct(st.oursAcceptShare)+'%','our asks accepted'):''}
-    ${st.theirsAcceptShare!=null?tile(pct(st.theirsAcceptShare)+'%','their asks accepted'):''}
-    ${tile(String(st.deadlocks),'deadlocks open (refused, not withdrawn)')}
-    ${st.medianDecisionMs!=null?tile(hrs(st.medianDecisionMs),'median decision time'):''}
-    ${st.round1Share!=null?tile(pct(st.round1Share)+'%','signed within round 1'):''}
+    <b style="color:var(--color-text)">${f?'Nothing matches these filters.':'No negotiations recorded yet.'}</b><br/>${f?'Clear the filters in the header to see everything again.':'Once contracts go through the negotiation bench, this page counts which clauses get contested, what each fight costs, and who moves fast — straight from the tracked changes.'}</div></div>`;
+  const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'&lt;1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
+  const RULE='border-bottom:1px solid var(--color-divider)';
+  const LINK='display:inline-block;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
+
+  /* ---- left: the three sentences ---- */
+  const top=st.clauses[0]||null;
+  const hero=(num,tone,body)=>`<div style="display:flex;gap:16px;padding:15px 0;${RULE}">
+    <div style="flex:none;min-width:74px;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
+    <div style="min-width:0;font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${body}</div>
   </div>`;
+  const clauseHero=top?hero(pct(top.share)+'%','var(--color-text)',
+    `of negotiations get stuck on <b>${igEsc(top.label)}</b>${top.extra!=null&&top.extra>0
+      ?` — and when they do, the deal takes <b>${top.extra.toFixed(1)} more round${top.extra>=1.95?'s':''}</b>. It is the single change worth making to your standard paper.`
+      :` — contested more than any other clause${top.extra!=null&&top.extra<0?', though the fights there tend to settle quickly':''}.`}
+    <br><button data-igf-standards style="${LINK}">Open the clause in Our standards →</button>`):'';
+  const dl=st.deadlockList;
+  const dealCount=new Set(dl.map(x=>x.id)).size;
+  const deadHero=hero(String(st.deadlocks), st.deadlocks?'var(--st-amber-fg,#b45309)':'var(--color-text)',
+    st.deadlocks
+      ?`change${st.deadlocks===1?' is':'s are'} <b>refused and still open</b> — nobody withdrew ${st.deadlocks===1?'it':'them'}, so ${dealCount===1?'one deal is':dealCount+' deals are'} waiting on a decision somebody has to make.
+        <br><button data-igf-deadlocks style="${LINK}">See the ${st.deadlocks<=12?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][st.deadlocks]:st.deadlocks} →</button>
+        <div id="igf-deadlist" class="hidden" style="margin-top:8px">${dl.map(x=>`<button data-igf-open="${igEsc(x.id)}" style="display:flex;gap:8px;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;padding:4px 0;color:var(--color-neutral-700)"><b style="color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${igEsc(x.name)}</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.clause)}</span><span style="margin-left:auto;color:var(--color-accent-700);font-weight:700;white-space:nowrap">open →</span></button>`).join('')}</div>`
+      :`changes are refused and still open — every refusal on the book has been answered or withdrawn. Nothing is deadlocked.`);
+  const sl=st.slowest;
+  const slowHero=(sl&&st.counterparties.length>1)?hero(sl.avgRounds.toFixed(1),'var(--color-text)',
+    `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
+     ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)} →</button>`}`):'';
+  const mini=(n,t)=>`<div style="min-width:0"><div style="font-size:16.5px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em">${n}</div><div style="font-size:10px;color:var(--color-neutral-600);font-weight:600;line-height:1.35">${t}</div></div>`;
+  const minis=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;padding-top:16px">
+    ${st.medianDays!=null?mini(st.medianDays<1?'&lt;1 day':Math.round(st.medianDays)+' days','median to signature'):''}
+    ${st.medianDecisionMs!=null?mini(hrs(st.medianDecisionMs),'median decision time'):''}
+    ${(st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?mini(`${st.oursAcceptShare!=null?pct(st.oursAcceptShare)+'%':'—'} / ${st.theirsAcceptShare!=null?pct(st.theirsAcceptShare)+'%':'—'}`,'our asks / their asks accepted'):''}
+    ${st.round1Share!=null?mini(pct(st.round1Share)+'%','signed within round 1'):''}
+  </div>`;
+  const left=`<div style="padding:18px 22px;min-width:0">
+    <div style="font-size:16px;font-weight:700;letter-spacing:-.01em">What is slowing you down</div>
+    <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${st.deals} negotiation${st.deals===1?'':'s'}${st.openedThisMonth?` · ${st.openedThisMonth} opened this month`:''} · ${st.avgRounds.toFixed(1)} rounds each on average</div>
+    ${clauseHero}${deadHero}${slowHero}
+    ${minis}
+  </div>`;
+
+  /* ---- right: the evidence ---- */
+  const extraTxt=cl=>cl.extra==null?`<span style="color:var(--color-neutral-500)">—</span>`
+    :cl.extra>0.05?`<span style="color:var(--st-ruby-fg,#b91c1c);font-weight:700">+${cl.extra.toFixed(1)}</span>`
+    :cl.extra<-0.05?`<span style="color:var(--st-green-fg,#047857);font-weight:700">−${Math.abs(cl.extra).toFixed(1)}</span>`
+    :`<span style="color:var(--color-neutral-500)">0.0</span>`;
   const bars=st.clauses.map(cl=>`
     <span style="font-size:11.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${igEsc(cl.label)}">${igEsc(cl.label)}</span>
-    <span style="position:relative;height:13px;border-radius:4px;min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:var(--accent-solid,var(--color-accent));border-radius:4px"></span></span>
+    <span style="position:relative;height:13px;border-radius:4px;background:var(--color-neutral-100);min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:${cl.extra!=null&&cl.extra>0.05?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-400)'};border-radius:4px"></span></span>
     <span style="font-size:11.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;text-align:right">${pct(cl.share)}%</span>
-    <span style="font-size:10.5px;color:var(--color-neutral-500);font-variant-numeric:tabular-nums;text-align:right">${cl.extra!=null?(cl.extra>0?'+':'')+cl.extra.toFixed(1)+' rd':'—'}</span>`).join('');
+    <span style="font-size:11px;font-variant-numeric:tabular-nums;text-align:right">${extraTxt(cl)}</span>`).join('');
   const cpRows=st.counterparties.map(cp=>{
     const chip=cp.avgRounds>=st.avgRounds+0.5?`<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309)">slow</span>`
       :cp.avgRounds<=Math.max(1,st.avgRounds-0.3)?`<span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--st-green-bg,#d1fae5);color:var(--st-green-fg,#047857)">smooth</span>`:'';
-    return `<tr>
-      <td style="padding:5px 8px;border-bottom:1px solid var(--color-divider);font-size:11.5px;font-weight:600">${igEsc(cp.name)}</td>
-      <td style="padding:5px 8px;border-bottom:1px solid var(--color-divider);font-size:11.5px;font-variant-numeric:tabular-nums">${cp.deals}</td>
-      <td style="padding:5px 8px;border-bottom:1px solid var(--color-divider);font-size:11.5px;font-variant-numeric:tabular-nums">${cp.avgRounds.toFixed(1)}</td>
-      <td style="padding:5px 8px;border-bottom:1px solid var(--color-divider);font-size:11.5px;font-variant-numeric:tabular-nums">${cp.acceptUs!=null?pct(cp.acceptUs)+'%':'—'}</td>
-      <td style="padding:5px 8px;border-bottom:1px solid var(--color-divider)">${chip}</td></tr>`;
+    return `<tr data-igf-cp="${igEsc(cp.name)}" style="cursor:pointer" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 4%,transparent)'" onmouseout="this.style.background='none'">
+      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-weight:600">${igEsc(cp.name)}</td>
+      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums">${cp.deals}</td>
+      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums">${cp.avgRounds.toFixed(1)}</td>
+      <td style="padding:6px 8px;${RULE};font-size:11.5px;font-variant-numeric:tabular-nums">${cp.acceptUs!=null?pct(cp.acceptUs)+'%':'—'}</td>
+      <td style="padding:6px 8px;${RULE}">${chip}</td></tr>`;
   }).join('');
-  const th=t=>`<th style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px 8px;border-bottom:1px solid var(--color-divider)">${t}</th>`;
-  return `<div style="max-width:1020px;margin:0 auto">
-    ${filters}
-    ${kpis}
-    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;align-items:start">
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:12px;padding:14px 18px">
-        <div style="font-size:12px;font-weight:700">Most-contested clauses <span style="font-weight:400;color:var(--color-neutral-500)">· % of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds when contested</span></div>
-        <div role="img" aria-label="Bar chart of most-contested clauses" style="display:grid;grid-template-columns:170px 1fr 40px 46px;gap:6px 9px;align-items:center;margin-top:11px">${bars}</div>
-      </div>
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:12px;padding:14px 18px;overflow-x:auto">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px">Friction by counterparty</div>
-        <table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table>
-      </div>
-    </div>
-    ${st.insight?`<div style="display:flex;gap:9px;align-items:flex-start;background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:12px;line-height:1.55">&#128161;&nbsp;<span><b>${igEsc(st.insight.label)}</b> is contested in ${pct(st.insight.share)}% of negotiations and adds about <b>${st.insight.extra.toFixed(1)} extra round${st.insight.extra>=1.95?'s':''}</b> when it is. If the fight keeps ending in the same place, consider moving the template default there.</span></div>`:''}
-    <div style="font-size:11px;color:var(--color-neutral-500);margin-top:12px">Counted from the fingerprinted tracked changes in each negotiation's record — live rounds and archived ones alike. No sampling, no model. Ask the Copilot (sidebar launcher) to probe any of these numbers — it carries the same KPIs.</div>
+  const th=t=>`<th style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px 8px;${RULE}">${t}</th>`;
+  const right=`<div style="padding:18px 22px;border-left:1px solid var(--color-divider);min-width:0">
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">Most-contested clauses</span>
+      <span style="font-size:10px;color:var(--color-neutral-500);margin-left:auto;white-space:nowrap">% of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds</span></div>
+    <div role="img" aria-label="Bar chart of most-contested clauses" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:7px 9px;align-items:center;margin:12px 0 18px">${bars}</div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">Friction by counterparty</span>
+      <span style="font-size:10px;color:var(--color-accent-700);margin-left:auto;white-space:nowrap">click a row to filter the page</span></div>
+    <div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table></div>
+    <div style="font-size:10.5px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:14px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
+  </div>`;
+
+  return `<div style="max-width:1120px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:1fr 1.15fr;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">${left}${right}</div>
   </div>`;
 }
 

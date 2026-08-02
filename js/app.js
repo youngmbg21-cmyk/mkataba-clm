@@ -157,7 +157,7 @@ function pageActionHtml(kind){
 
    Everything else is a list or a tool with no name of its own, and says who it
    is here. */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'doclab'];
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'doclab', 'templates'];
 function renderPageHeader(view){
   const host=document.getElementById('page-head'); if(!host) return;
   if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
