@@ -482,7 +482,7 @@ function wireRegRows(){
   }));
   // empty-state actions
   document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
-  document.getElementById('reg-empty-new')?.addEventListener('click',()=>{ const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu'); if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); } else if(nb){ nb.click(); } });
+  document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
    and stage/stream pills resolve to, not just the page on screen. The old body

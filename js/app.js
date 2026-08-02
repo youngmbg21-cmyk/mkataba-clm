@@ -453,6 +453,21 @@ function renderNewMenu(){
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
 }
+/* The menu is position:fixed, so every opener must anchor it to its own
+   trigger — a caller that only unhides it inherits wherever the previous
+   opener left it (which for a first open is the viewport's far left). */
+function openNewMenu(anchor){
+  const nm=document.getElementById('new-menu'); if(!nm) return;
+  renderNewMenu();
+  const el=(anchor&&anchor.getBoundingClientRect)?anchor:document.querySelector('[data-page-new]');
+  if(el){
+    const r=el.getBoundingClientRect();
+    nm.style.top=Math.round(r.bottom+6)+'px';
+    nm.style.left=Math.round(Math.min(Math.max(8,r.right-300),window.innerWidth-308))+'px';
+  }
+  nm.classList.remove('hidden');
+}
+window.openNewMenu=openNewMenu;
 
 /* ============================================================ EXPORT (command bar) */
 function exportWorkingSetCsv(){
