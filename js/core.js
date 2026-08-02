@@ -61,6 +61,32 @@ const state = {
     mk('Vendor NDA — ERP Implementation','SAP East Africa',0,'Under Review','ND','14 Jul 2026',null),
   ],
 };
+/* ---------------- The grow-with-you sidebar (WO N5) ----------------
+   Surfaces that only mean something once a portfolio exists are EARNED into
+   view rather than shown to a brand-new workspace: Insights appears at five
+   contracts, wearing a small "New" tag until it is first visited. Power
+   users (and demos of depth) restore the full cockpit with one Settings
+   toggle — stored per browser like the theme, because which dials a person
+   wants is their seat's business, not the workspace's. The thresholds are a
+   table, not scattered ifs, so the sidebar and the tests read the same
+   truth. Queue, Advice Desk and Reports are NOT here: they live in the
+   Administration fold permanently — resurfacing them at a threshold would
+   give them two homes, which is the exact fault WO N1 removed. */
+const NAV_EARN_AT={ intel:5 };
+function navShowEverything(){ try{ return localStorage.getItem('hati.v1.nav-all')==='1'; }catch(e){ return false; } }
+function navSetShowEverything(on){
+  try{ localStorage.setItem('hati.v1.nav-all', on?'1':'0'); }catch(e){}
+  if(window.updateSidebarCounts) updateSidebarCounts();
+}
+function navEarned(view, total){
+  const at=NAV_EARN_AT[view];
+  return at==null || navShowEverything() || Number(total||0)>=at;
+}
+/* An unreadable store answers "seen" — a broken localStorage must never pin
+   a permanent "New" tag on the nav. */
+const navSeen=view=>{ try{ return localStorage.getItem('hati.v1.nav-seen.'+view)==='1'; }catch(e){ return true; } };
+const navMarkSeen=view=>{ try{ localStorage.setItem('hati.v1.nav-seen.'+view,'1'); }catch(e){} };
+
 const isMonetary = c => c.valueType !== 'none';
 function mk(name,cp,value,status,tmpl,date,expiry,valueType){
   /* `seeded` marks demo paper so surfaces that measure REAL progress — the
@@ -390,7 +416,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a

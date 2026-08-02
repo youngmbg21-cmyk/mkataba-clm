@@ -220,6 +220,24 @@ function updateSidebarCounts(){
      sidebar doors (WO N1): a negotiation waiting on the reader is announced
      on the contract itself — the Negotiate tab's count — and on Home's
      needs-attention surfaces, which is where the reader actually is. */
+  /* WO N5 — earned nav. An item below its threshold is hidden, not greyed:
+     a control that exists but refuses teaches nothing. The current view
+     always keeps its door (a restored session or the "Show everything"
+     toggle flipping off must never leave the reader on a page whose nav
+     item has vanished), and the "New" tag rides on Insights from the render
+     where it is earned until its first visit. */
+  if(typeof NAV_EARN_AT!=='undefined'){
+    document.querySelectorAll('.nav-item[data-view]').forEach(b=>{
+      const v=b.getAttribute('data-view');
+      if(!(v in NAV_EARN_AT)) return;
+      b.classList.toggle('hidden', !(navEarned(v,total) || state.view===v));
+    });
+    const nnew=document.getElementById('nav-intel-new');
+    if(nnew){
+      if(state.view==='intel') navMarkSeen('intel');
+      nnew.hidden=!(Number(total||0)>=NAV_EARN_AT.intel && !navSeen('intel'));
+    }
+  }
 }
 
 /* ============================================================ SHELL VIEW SWITCH */

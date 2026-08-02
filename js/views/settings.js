@@ -418,6 +418,16 @@ function renderTeam(){
         </label>
       </section>`:''}
 
+      <section style="${cardStyle}">
+        <h4 style="${h4Style}">My sidebar</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">HaTi keeps the sidebar short while the portfolio is small — Insights appears on its own at five contracts. This shows every surface now instead:</p>
+        <label style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:5px;padding:10px;cursor:pointer;font-size:12px">
+          <input id="pref-nav-all" type="checkbox" ${(typeof navShowEverything==='function'&&navShowEverything())?'checked':''} style="margin-top:1px;width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
+          <span><span style="font-weight:600;display:block">Show everything</span>
+          <span style="color:var(--color-neutral-600);display:block;line-height:1.4">The full cockpit, thresholds ignored — just for you, on this device.</span></span>
+        </label>
+      </section>
+
       ${(API_MODE()&&isAdmin())?`
       <section style="${cardStyle}">
         <h4 style="${h4Style}">Email &amp; notifications</h4>
@@ -454,6 +464,10 @@ function renderTeam(){
     });
   }
 
+  document.getElementById('pref-nav-all')?.addEventListener('change',e=>{
+    if(typeof navSetShowEverything==='function') navSetShowEverything(e.target.checked);
+    toast(e.target.checked?'Sidebar shows everything':'Sidebar grows with the portfolio again');
+  });
   document.getElementById('pref-share-opens')?.addEventListener('change',async e=>{
     try{
       const r=await api('me/prefs','PUT',{ notifyShareOpens:e.target.checked });
