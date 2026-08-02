@@ -504,6 +504,75 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('12 no modal was opened to do it', jump.modals === 0, jump.modals);
   await page.screenshot({ path: path.join(OUT, '02-edit-jump.png') });
 
+  /* ---- 12b. AN OPEN EDITOR STILL READS AS THE DOCUMENT ----
+     Reported with a screenshot (f144): the clause card came apart the moment
+     Direct Edit opened on it. Every typographic rule for a clause body is
+     written for .nego-body, and the editor REPLACES .nego-body with
+     .nego-editing — so the wording lost its wrapping, its block spacing, its
+     table width and its preformatted overflow all at once.
+
+     This is the half that cannot be asserted from a stylesheet. f144 pins the
+     rule-level claim (every .nego-body rule has a .nego-editing twin); these
+     four are the box model, taken from the SAME clause before and after the
+     editor opens, so each is a comparison rather than a magic number.
+
+     And the hover row: :focus-within is what reveals it, a caret in the editor
+     IS focus within the clause, and the row is absolutely positioned at
+     bottom:-9px — right where the editor's own Save change / Cancel bar lands.
+     It was painted over the two buttons the writer actually needed. */
+  const dressed = await page.evaluate(async () => {
+    const clause = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')]
+      .find(s => s.querySelector('[data-nego-edit]') && s.querySelector('.nego-body p'));
+    const read = el => { const s = getComputedStyle(el);
+      return { ws: s.whiteSpace, size: s.fontSize, lh: s.lineHeight }; };
+    const before = read(clause.querySelector('.nego-body p'));
+    clause.querySelector('[data-nego-edit]').click();
+    await new Promise(r => setTimeout(r, 120));
+    const ed = clause.querySelector('[data-nego-editor]');
+    const after = read(ed.querySelector('p'));
+    const w = el => Math.round(el.getBoundingClientRect().width);
+    const tools = clause.querySelector('.rl-tools');
+    const bar = clause.querySelector('.nego-edit-bar');
+    const t = tools.getBoundingClientRect(), b = bar.getBoundingClientRect();
+    return { before, after,
+      /* Injected rather than looked for: the harness contract has no table or
+         pre in a clause body, and the failure is about how the editor DRESSES
+         them, not about whether this fixture happens to carry one. */
+      blocks: (() => {
+        ed.insertAdjacentHTML('beforeend',
+          '<table><tbody><tr><td>BUYER</td><td>SUPPLIER</td></tr></tbody></table>'
+          + '<pre>Name: [Authorised Officer]        Title: Procurement Director</pre>');
+        const tbl = ed.querySelector('table'), pre = ed.querySelector('pre');
+        return { tableW: w(tbl), editorW: w(ed),
+          preOverflow: pre.scrollWidth - w(pre), preOx: getComputedStyle(pre).overflowX };
+      })(),
+      gap: getComputedStyle(ed.firstElementChild).marginBottom,
+      toolsOpacity: getComputedStyle(tools).opacity,
+      toolsPE: getComputedStyle(tools).pointerEvents,
+      /* Recorded, not asserted: the row is still geometrically over the bar,
+         and that is fine as long as it is invisible and takes no clicks. */
+      overGeometrically: !(t.right < b.left || t.left > b.right || t.bottom < b.top || t.top > b.bottom) };
+  });
+  check('12b the wording wraps in the editor exactly as it does in the document',
+    dressed.after.ws === dressed.before.ws && dressed.after.ws !== 'pre-wrap',
+    `${dressed.before.ws} → ${dressed.after.ws}`);
+  check('12b and is set at the same size and leading',
+    dressed.after.size === dressed.before.size && dressed.after.lh === dressed.before.lh,
+    `${dressed.before.size}/${dressed.before.lh} → ${dressed.after.size}/${dressed.after.lh}`);
+  check('12b a table in the editor fills the clause',
+    dressed.blocks.tableW === dressed.blocks.editorW,
+    `${dressed.blocks.tableW} of ${dressed.blocks.editorW}px`);
+  check('12b a preformatted block scrolls inside the clause rather than out of it',
+    dressed.blocks.preOx === 'auto' && dressed.blocks.preOverflow <= 0,
+    `overflow-x:${dressed.blocks.preOx}, spilling ${dressed.blocks.preOverflow}px`);
+  check('12b the blocks keep the document\'s 9px between them',
+    dressed.gap === '9px', dressed.gap);
+  check('12b and the hover verbs stand down while the clause is being typed in',
+    dressed.toolsOpacity === '0' && dressed.toolsPE === 'none',
+    `opacity ${dressed.toolsOpacity}, pointer-events ${dressed.toolsPE}`
+      + `, still over the Save bar: ${dressed.overGeometrically}`);
+  await page.screenshot({ path: path.join(OUT, '02b-edit-dressed.png') });
+
   /* ---- 3 / 4 / 5. the Copilot route ---- */
   await page.reload({ waitUntil: 'load' });
   await page.evaluate(() => window.READY);

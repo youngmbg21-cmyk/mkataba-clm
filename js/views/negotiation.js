@@ -525,28 +525,62 @@ function negoStyleHtml(){
 
      Real markup carries its own structure, so pre-wrap is turned back OFF
      inside it: the source HTML's own indentation between tags is not content
-     and must not print. */
-  .nego-clause .nego-body>*{margin:0 0 9px}
-  .nego-clause .nego-body>*:last-child{margin-bottom:0}
-  .nego-clause .nego-body p,.nego-clause .nego-body li{white-space:normal}
-  .nego-clause .nego-body ol,.nego-clause .nego-body ul{margin:7px 0 9px;padding-left:26px}
-  .nego-clause .nego-body li{margin:0 0 5px}
-  .nego-clause .nego-body li:last-child{margin-bottom:0}
+     and must not print.
+
+     ---- AND THE EDITOR IS THE SAME DOCUMENT ----
+     Every rule below names .nego-editing beside .nego-body, because Direct Edit
+     REPLACES the body with the editor (see wireNegotiationTab) and the two used
+     to be styled as though they were different kinds of thing. They are not:
+     the editor holds the same clause, in the same markup, and a writer has to
+     be able to see what they are changing.
+
+     Written out longhand rather than folded into :is(.nego-body,.nego-editing).
+     f36 walks this sheet selector by selector and requires every one to be
+     namespaced to the component; it splits on commas, so a comma INSIDE :is()
+     hands it fragments like "h2" that belong to no component. The guard is
+     right and the shorthand is what has to give.
+
+     What the divergence actually cost, measured in Chromium on one clause (the
+     numbers are check 12b in test/chromium/redline-verify.js): a paragraph fell
+     back to the pre-wrap above, so every newline in the stored HTML printed as
+     a hard break; a table dropped from the card's full width to 126px of 648;
+     a pre-formatted party block lost its overflow-x and hung outside the card;
+     and the 9px between blocks went to nothing. A preamble — many paragraphs,
+     a party table, a signature block — collapsed into the wall of clipped lines
+     this comment exists to stop coming back. */
+  .nego-clause .nego-body>*,.nego-clause .nego-editing>*{margin:0 0 9px}
+  .nego-clause .nego-body>*:last-child,.nego-clause .nego-editing>*:last-child{margin-bottom:0}
+  .nego-clause .nego-body p,.nego-clause .nego-body li,
+  .nego-clause .nego-editing p,.nego-clause .nego-editing li{white-space:normal}
+  .nego-clause .nego-body ol,.nego-clause .nego-body ul,
+  .nego-clause .nego-editing ol,.nego-clause .nego-editing ul{margin:7px 0 9px;padding-left:26px}
+  .nego-clause .nego-body li,.nego-clause .nego-editing li{margin:0 0 5px}
+  .nego-clause .nego-body li:last-child,.nego-clause .nego-editing li:last-child{margin-bottom:0}
   .nego-clause .nego-body ol ol,.nego-clause .nego-body ul ul,
-  .nego-clause .nego-body ol ul,.nego-clause .nego-body ul ol{margin:5px 0 0}
-  .nego-clause .nego-body strong,.nego-clause .nego-body b{font-weight:700}
-  .nego-clause .nego-body em,.nego-clause .nego-body i{font-style:italic}
-  .nego-clause .nego-body u{text-decoration:underline}
+  .nego-clause .nego-body ol ul,.nego-clause .nego-body ul ol,
+  .nego-clause .nego-editing ol ol,.nego-clause .nego-editing ul ul,
+  .nego-clause .nego-editing ol ul,.nego-clause .nego-editing ul ol{margin:5px 0 0}
+  .nego-clause .nego-body strong,.nego-clause .nego-body b,
+  .nego-clause .nego-editing strong,.nego-clause .nego-editing b{font-weight:700}
+  .nego-clause .nego-body em,.nego-clause .nego-body i,
+  .nego-clause .nego-editing em,.nego-clause .nego-editing i{font-style:italic}
+  .nego-clause .nego-body u,.nego-clause .nego-editing u{text-decoration:underline}
   .nego-clause .nego-body h1,.nego-clause .nego-body h2,.nego-clause .nego-body h3,
-  .nego-clause .nego-body h4,.nego-clause .nego-body h5,.nego-clause .nego-body h6{
+  .nego-clause .nego-body h4,.nego-clause .nego-body h5,.nego-clause .nego-body h6,
+  .nego-clause .nego-editing h1,.nego-clause .nego-editing h2,.nego-clause .nego-editing h3,
+  .nego-clause .nego-editing h4,.nego-clause .nego-editing h5,.nego-clause .nego-editing h6{
     font-family:var(--n-font-doc);font-size:14.5px;font-weight:700;margin:12px 0 5px}
-  .nego-clause .nego-body table{border-collapse:collapse;width:100%;margin:9px 0;font-size:13px}
-  .nego-clause .nego-body td,.nego-clause .nego-body th{
+  .nego-clause .nego-body table,.nego-clause .nego-editing table{
+    border-collapse:collapse;width:100%;margin:9px 0;font-size:13px}
+  .nego-clause .nego-body td,.nego-clause .nego-body th,
+  .nego-clause .nego-editing td,.nego-clause .nego-editing th{
     border:1px solid var(--n-line);padding:5px 8px;text-align:left;vertical-align:top}
-  .nego-clause .nego-body th{font-weight:700;background:var(--n-badge-bg)}
-  .nego-clause .nego-body pre{white-space:pre;overflow-x:auto;
+  .nego-clause .nego-body th,
+  .nego-clause .nego-editing th{font-weight:700;background:var(--n-badge-bg)}
+  .nego-clause .nego-body pre,.nego-clause .nego-editing pre{white-space:pre;overflow-x:auto;
     font-family:var(--n-font-mono);font-size:12px;line-height:1.5}
-  .nego-clause .nego-body blockquote{margin:8px 0 8px 18px;padding-left:12px;
+  .nego-clause .nego-body blockquote,
+  .nego-clause .nego-editing blockquote{margin:8px 0 8px 18px;padding-left:12px;
     border-left:2px solid var(--n-line);color:var(--n-ink-soft)}
   .nego-clause.is-active{background:#f3f7fb;box-shadow:0 0 0 2px var(--n-slate-soft)}
   html.dark .nego-clause.is-active{background:rgba(127,163,200,.12)}
@@ -4071,12 +4105,63 @@ function wireNegotiationTab(c, opts = {}){
        numbering and tables did not survive being proposed on. */
     const cl = negoClauseById(c, clauseId);
     if (!cl) return;
+    /* ---- THE EDITOR OPENS ON THE WORDING THAT IS ON THE TABLE ----
+       Not on the baseline underneath it. This used to read cl.bodyHtml
+       unconditionally, and cl is the ROUND BASELINE clause — so a writer who
+       filed a redline, then pressed Direct Edit again to change one word of
+       it, was handed the ORIGINAL wording back with their proposal nowhere on
+       screen. Saving from there re-filed against the baseline and their first
+       ask was gone: not refused, not withdrawn, silently overwritten. What
+       makes it worse than a lost keystroke is that the document beside the
+       editor still showed the redline, so the page disagreed with itself about
+       what was being proposed.
+
+       The live pending change is the right base whichever side filed it. On
+       our own ask it is our own draft, continued. On theirs it is what a
+       counter-proposal actually counter-proposes — the same marked-up wording
+       the clause is displaying an inch above — and negoFileChange already
+       knows the difference: it revises in place when the same hand comes back
+       and stacks a new change when a different one does.
+
+       Only PENDING. An accepted change is in the baseline already, and a
+       rejected one means the baseline stands — reopening either from the
+       change would edit wording the record no longer carries. A proposed
+       DELETION carries no replacement wording at all, so it falls through to
+       the baseline too, which is exactly what the document is still showing.
+       And bodyHtml is not guaranteed on a change (one lifted from returned
+       text may have only ops), so the baseline stays the floor.
+
+       WHICH change is read off the CLAUSE ITSELF — the id the renderer wrote
+       into the block it drew — rather than searched for in the record. The
+       record holds changes this page is deliberately not showing: the wall
+       keeps the other side's unsent drafts out of the document (see the
+       hiddenIds note at negoDocHtml), and a search of c.changes would have
+       walked straight past it and opened the editor on wording the reader is
+       not entitled to see. Reading the block's own anchor means the editor can
+       only ever open on the wording already on the screen. */
+    const shownId = block.getAttribute('data-nego-card-anchor')
+      || block.getAttribute('data-change');
+    const onTable = shownId
+      ? (typeof negoChanges === 'function' ? negoChanges(c) : [])
+        .find(x => x && x.id === shownId && x.status === 'pending'
+          && x.changeType !== 'deleteClause' && x.changeType !== 'insertClause')
+      : null;
+    const openOn = (onTable && String(onTable.bodyHtml || '').trim())
+      || cl.bodyHtml || `<p>${_ne(cl.text)}</p>`;
     const holder = document.createElement('div');
     holder.className = 'nego-editing';
     holder.setAttribute('contenteditable', 'true');
     holder.setAttribute('data-nego-editor', clauseId);
-    holder.innerHTML = cl.bodyHtml || `<p>${_ne(cl.text)}</p>`;
+    /* Sanitised on the way IN as well as on the way out. Every other surface
+       that shows a clause runs its stored markup through sanitizeRich at
+       render time — the rule js/richdoc.js states in its own header, because
+       the counterparty portal serves people outside the workspace — and this
+       one path assigned storage straight into a live element. */
+    holder.innerHTML = window.sanitizeRich ? sanitizeRich(openOn) : openOn;
     body.replaceWith(holder);
+    /* The clause says it is being written in, so its hover verbs can stand
+       down; the repaint that closes the editor takes the class with it. */
+    block.classList.add('is-editing');
     /* ---- THE FORMATTING TOOLBAR, BOTH SIDES ----
        The editor has always been rich — Ctrl+B worked — but a control you
        have to know about is a control half the writers never find, and the
@@ -4981,9 +5066,15 @@ function redlineLayoutCss(){
      size on both tabs (the seamlessness this scale exists for). The cards
      keep --rl-type: a two-line pointer is not the document, and setting the
      stack at contract size would halve how many changes fit on a screen.
-     Declared on the page rather than in :root so neither can leak. */
+     Declared on the page rather than in :root so neither can leak.
+
+     The editor is named here for the same reason it is named beside .nego-body
+     in the room's rules above: it IS the clause body while it is open, and a
+     writer whose wording changes size the moment they start typing is being
+     shown a different document from the one they are editing. */
   .redline-page .rl-clause-p,
   .redline-page .rl-doc .nego-body,
+  .redline-page .rl-doc .nego-editing,
   .redline-page .rl-doc .rl-line{margin:0;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
   /* the sheet keeps its auto margins — margin:0 here beat the centring rule
      (three classes to two) and pinned the paper to the left of the column */
@@ -5333,6 +5424,20 @@ function redlineLayoutCss(){
     opacity:0;pointer-events:none;transition:opacity .15s ease}
   .redline-page .rl-clause:hover .rl-tools,
   .redline-page .rl-clause:focus-within .rl-tools{opacity:1;pointer-events:auto}
+  /* ---- BUT NOT WHILE THE CLAUSE IS BEING TYPED IN ----
+     :focus-within is what reveals the row, and a caret inside the editor IS
+     focus within the clause — so the moment Direct Edit opened, the three
+     hover verbs latched on and stayed on. They are absolutely positioned at
+     bottom:-9px, which is exactly where the editor's own Save change / Cancel
+     bar sits, so "Add Note/Tag ✎ Direct Edit 🗑 Propose deletion" was painted
+     on top of the two buttons the writer actually needed, at z-index 3.
+
+     Hidden rather than moved. A clause under edit already carries its verbs —
+     Save and Cancel — and offering "Direct Edit" beside them names a door the
+     reader is standing in. is-editing is set by wireNegotiationTab when the
+     editor opens and disappears with the repaint that closes it, so there is
+     no state here that can outlive the editor. */
+  .redline-page .rl-clause.is-editing .rl-tools{opacity:0;pointer-events:none}
   /* On a touch screen there is no hover, so hidden tools would be unreachable
      tools — the objection test/f44 records against hover-only controls.
      There, and only there, they return to the flow and stay visible: the
@@ -5340,6 +5445,10 @@ function redlineLayoutCss(){
      is not. */
   @media (hover:none){
     .redline-page .rl-tools{position:static;opacity:1;pointer-events:auto;margin-top:7px}
+    /* …and there they are in the flow, above the editor rather than over it,
+       so the same rule holds: an open editor shows Save and Cancel, not a
+       second Direct Edit under them. */
+    .redline-page .rl-clause.is-editing .rl-tools{display:none}
   }
   .redline-page .rl-tool{border:1px solid var(--color-divider);background:var(--color-surface);
     border-radius:999px;padding:3px 10px;font:inherit;font-size:10.5px;font-weight:600;line-height:1.6;

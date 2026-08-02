@@ -6426,3 +6426,112 @@ SUMMARY.md Run 10a; the token event name stays reserved and the machinery
 stays in place for a possible return. If it does return, the fix should start
 from why it read badly in the panel (likely the bubble reflowing on every
 token) rather than just flipping the switch back.
+
+---
+
+## Run: the clause card breaks when you go back to edit a redline (2026-08-02)
+
+Reported from the field (Young, 02 Aug 2026), with a screenshot, against **both**
+the owner's Redline page and the counterparty's: file a redline, press **Direct
+Edit** again to change a word of it, and the clause card falls apart — the
+wording spills out of its box, the paragraphs run together, and the three hover
+verbs sit on top of the Save change bar.
+
+One report, three separate faults, which is why it looked like one bug.
+
+### 1. The editor was styled as a different kind of thing from the clause
+
+**What was broken.** Every typographic rule for a clause body is written for
+`.nego-body`, and Direct Edit **replaces** `.nego-body` with `.nego-editing`
+(`wireNegotiationTab`, `js/views/negotiation.js`). So the moment the editor
+opened, the clause lost the lot.
+
+Measured in Chromium on one preamble clause, before → after opening the editor:
+
+| | reading | editing |
+|---|---|---|
+| paragraphs | `white-space:normal` | **`pre-wrap`** — every newline in the stored markup printed as a hard break |
+| a party table | full width of the card | **126px** of 648px |
+| a preformatted signature block | `overflow-x:auto`, scrolls inside the card | **`visible`**, hangs outside it |
+| between blocks | 9px | **0** |
+
+A short one-paragraph clause survived it unchanged, which is why this stood as
+long as it did — and why the reported document (a preamble with several
+paragraphs, a party table and a signature block) was the worst case.
+
+**The fix.** Every `.nego-body` content rule in the room's sheet now names
+`.nego-editing` beside it, and `.nego-editing` joins `.nego-body` in the
+Redline page's canvas type rule. Written **longhand** rather than folded into
+`:is(.nego-body,.nego-editing)`: f36 walks this sheet selector by selector and
+requires every one to be namespaced to the component, splitting on commas — so
+a comma inside `:is()` hands it fragments like `h2` that belong to no
+component. The guard is right; the shorthand is what gave.
+
+### 2. The hover verbs would not stand down while the clause was being typed in
+
+**What was broken.** `.rl-tools` is revealed on `:focus-within`, and a caret in
+the editor *is* focus within the clause. The row is absolutely positioned at
+`bottom:-9px`, z-index 3 — exactly where the editor's own Save change / Cancel
+bar sits. Measured: `opacity:0.93`, `pointer-events:auto`, geometrically over
+the bar. The buttons the writer needed were underneath the buttons they didn't.
+
+**The fix.** The clause carries `is-editing` while its editor is open, and the
+sheet takes the tools off a clause that says so — hidden rather than moved,
+because a clause under edit already carries its verbs (Save, Cancel) and
+offering "Direct Edit" beside them names a door the reader is standing in. The
+class is set when the editor opens and disappears with the repaint that closes
+it, so no state here can outlive the editor. The touch reading (`hover:none`,
+where the tools sit in the flow) gets the same treatment.
+
+### 3. Going back to edit threw the redline away
+
+**What was broken.** The editor loaded `cl.bodyHtml` — the **round baseline**
+clause — and never looked at the pending change. So a second edit opened on the
+original wording with the writer's own proposal nowhere on screen, and saving
+re-filed against the baseline: the first ask was not refused and not withdrawn,
+it was silently overwritten. The document beside the editor went on showing the
+redline the whole time, so the page disagreed with itself about what was being
+proposed. Reproduced on the owner's page and on the counterparty portal.
+
+**The fix.** The editor opens on the wording that is **on the table** — the live
+pending change's `bodyHtml`, falling back to the baseline. Three judgements are
+worth stating:
+
+- **Whichever side filed it.** On our own ask it is our draft, continued; on
+  theirs it is what a counter-proposal actually counter-proposes — the same
+  marked-up wording the clause is displaying an inch above. `negoFileChange`
+  already knows the difference: it revises in place when the same hand returns
+  and stacks a new change when a different one does.
+- **Pending only.** An accepted change is in the baseline already and a rejected
+  one means the baseline stands, so reopening from either would edit wording the
+  record no longer carries. A proposed deletion carries no replacement wording,
+  so it falls through to the baseline too — which is what the document is still
+  showing.
+- **The change id is read off the CLAUSE, not searched for in the record.** The
+  wall keeps the other side's unsent drafts out of the document; a search of
+  `c.changes` would have walked straight past it and opened the editor on
+  wording the reader is not entitled to see. Reading the block's own
+  `data-nego-card-anchor` means the editor can only ever open on what is already
+  on the screen.
+
+Also fixed in passing: the editor assigned stored markup straight into a live
+element. Every other surface runs a clause through `sanitizeRich` at render
+time — the rule `js/richdoc.js` states in its own header, because the
+counterparty portal serves people outside the workspace with no login — and this
+one path did not. It does now.
+
+**Files touched.** `js/views/negotiation.js`.
+
+**How it was verified.** `test/f144-the-editor-is-the-clause.test.js` (11 tests)
+pins the behaviour and the rule-level styling claim — including a check that
+every `.nego-body` content rule has a `.nego-editing` twin, so a rule added next
+year without its twin fails the build. jsdom has no box model, so the styling
+half is *measured* in `test/chromium/redline-verify.js` (six new checks, 12b):
+each is a before/after comparison on the same clause rather than a magic number.
+All six fail on the untouched tree and pass after. Full suite `2428/2428`;
+browser `76/77`, `18/18` parity, `22/22` selection.
+
+### 4. Parked (unchanged): the one pre-existing redline browser check
+
+`FAIL 13 the batch send is in the toolbar` — confirmed identical on the
+untouched tree at this commit. Still nobody's regression.
