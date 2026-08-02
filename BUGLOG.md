@@ -6710,3 +6710,69 @@ guard — and was meaningless, since nobody rules on their own ask. They now fil
 an owner ask, which is the card a counterparty actually answers.
 
 Full suite 2436/2436; browser 82/82; parity 35/35; selection 22/22.
+
+---
+
+## Run: the badge names a party, not a seat (2026-08-02)
+
+**What was wrong.** The change card's origin badge read **"Counterparty"** for
+the other side of the reader's table. That is correct from one chair and
+misleading from the other, because *counterparty* is what BOTH parties call the
+party opposite them. On the counterparty's own page it therefore labelled the
+**sender's** ask with the word that reader uses for themselves.
+
+Reported from the field as *"why is it that in the counterparty page, when you
+have accepted a decision you then have an option to change decision?"* — the
+card was the owner's ask all along, the decision was the counterparty's, and
+"Change decision" was theirs to press. Nothing was broken except the word.
+
+**The fix.** The badge names the organisation that actually asked.
+
+| | owner's page | counterparty's page |
+|---|---|---|
+| their ask | `Nordfrakt Logistik AB’s ask` | `Wanjiru Catering Ltd’s ask` |
+| your ask | `Your ask` | `Your ask` |
+
+"Your ask" stays, because the one party a reader can never mistake is
+themselves — and it is the phrasing `negoWhoseHtml` settled on for the room's
+cards years earlier, whose comment says exactly this:
+
+> **NAMED, NOT SIDED.** "Nordfrakt Logistik AB asked" beats "counterparty
+> asked" — the reader knows who they are talking to.
+
+The newer card had not inherited it. The organisation was already on the badge's
+tooltip; the label now reads from the same value, so the two cannot disagree.
+An empty counterparty field falls through to `Their ask` rather than to an
+apostrophe with nothing in front of it.
+
+**And it now carries text of unbounded length.** Companies are called things
+like "APEX LOGISTICS & WAREHOUSING KENYA LTD", in a card head that also holds
+the change id, the caret and the status badge, on a ~285px column. A fixed
+`max-width` was tried first and is worse than it looks — it elides a name that
+would have fitted and still cannot save a long one. `flex:0 1 auto` with
+`min-width:0` lets the row decide: measured, "Nordfrakt Logistik AB’s ask" shows
+in full at every layout, and the long name gives width back as the column
+narrows (252px → 181px → 132px of 274px at 1440 / 1180 / 1024) with the status
+badge on the row throughout and the full name on hover.
+
+**Files touched.** `js/views/negotiation.js`.
+
+**How it was verified.** `test/f93-party-badges-and-origin-filter.test.js`
+rewritten off the literal: it asserts the badge NAMES the party (read from the
+record, so a hard-coded label cannot rot into a test that has stopped reading
+what it is about), that it is not the bare word "Counterparty", that the empty
+field degrades readably, and that the CSS elides by the row rather than by a
+number. The seat-flip test — the one covering the page where the old label meant
+the reader themselves — now also asserts the label is never `c.counterparty`,
+which on that page is the reader. Section 10 of
+`test/chromium/parity-verify.js` measures the box model with a deliberately long
+name pushed through the real renderer. Both fail on the untouched tree.
+
+A correction worth recording: the first draft of that browser check mounted
+`redlineEmbed` on a host that only exists on the counterparty's surface, so on
+the owner's it silently did nothing and the check read the pre-existing card —
+it would have passed or failed for reasons unconnected to the name under test.
+It goes through the page's own `renderRedline()` now.
+
+Full suite 2438/2438; browser 82/82; parity 39/39; selection 22/22;
+timeline 19/19.

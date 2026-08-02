@@ -5166,7 +5166,24 @@ function redlineLayoutCss(){
      are. The dark overrides keep the hue and drop the fill to a tint so the
      badge reads as a label, not a button. .rl-origin carries the .rl-badge
      metrics itself rather than the class — see the card markup for why. */
-  .redline-page .rl-origin{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+  /* ---- IT CARRIES A COMPANY NAME NOW, SO IT HAS TO BE ABLE TO RUN OUT ----
+     The badge names the organisation that asked (see the note at the origin
+     badge), and organisations are called things like "APEX LOGISTICS &
+     WAREHOUSING KENYA LTD". Left at nowrap with no bound, one of those would
+     push the status badge off the end of a 285px card. Bounded and elided
+     instead: the first words identify the party, and the full name is in the
+     title the badge already carried.
+
+     BOUNDED BY THE ROW, not by a number. A fixed max-width was tried first and
+     is worse than it looks: it elides a name that would have fitted, and it
+     still cannot save a long one. flex:0 1 auto with min-width:0 lets the badge
+     take its natural width whenever the head has room and give width back only
+     when the id, the caret and the status badge need it — so the common name
+     reads in full and only a genuinely long one is cut. min-width:0 is what
+     makes that possible at all: a flex item will not shrink below its content
+     without it, and the ellipsis would never appear. */
+  .redline-page .rl-origin{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;
+    white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .redline-page .rl-origin-us{background:#d1fae5;color:#065f46;border:1px solid rgba(5,150,105,.35)}
   .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
   html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
@@ -7989,12 +8006,34 @@ function redlineChangeCardsHtml(c, opts = {}){
        "the other side" there is the sender — opts.org, which is what the
        portal passes. The badge label stays seat-relative ("Counterparty" =
        the other side of your table), like the verbs beneath it. */
-    const originOrg = ch.authorSide === 'counterparty'
-      ? (c.counterparty || 'the counterparty')
-      : (opts.org || window.FIRST_PARTY || 'the other side');
+    /* ---- NAMED, NOT SIDED ----
+       This badge used to read "Counterparty" for the other side of the
+       reader's table, which is correct from one chair and misleading from the
+       other: "counterparty" is what BOTH parties call the party opposite them.
+       On the counterparty's own page it therefore labelled the SENDER's ask
+       with the word that reader uses for themselves — reported from the field
+       as "why can I change a decision on my own ask?", when the card was in
+       fact the owner's ask and the decision was theirs to change.
+
+       So the badge names the organisation that actually wrote it. "Your ask"
+       stays as it is, because the one party a reader can never mistake is
+       themselves, and it is the same phrasing negoWhoseHtml settled on for the
+       room's cards — one wording for one idea, across the product.
+
+       originName is the AUTHOR's organisation on either seat and is read for
+       the label as well as the tooltip, so the two can never disagree. Empty
+       falls through to "Their ask" rather than to an apostrophe with nothing
+       in front of it: a contract with no counterparty filled in is a real
+       state, not a bug to render badly. */
+    const originName = String(ch.authorSide === 'counterparty'
+      ? (c.counterparty || '')
+      : (opts.org || window.FIRST_PARTY || '')).trim();
+    const originOrg = originName
+      || (ch.authorSide === 'counterparty' ? 'the counterparty' : 'the other side');
+    const theirLabel = originName ? `${originName}’s ask` : 'Their ask';
     const origin = theirs
-      ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Counterparty</span>`
-      : `<span class="rl-origin rl-origin-us" title="Proposed by your side${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Your Ask</span>`;
+      ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${_ne(theirLabel)}</span>`
+      : `<span class="rl-origin rl-origin-us" title="Proposed by your side${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Your ask</span>`;
     /* Open or a line — see rlCardIsOpen. A collapsed card keeps its head and
        nothing else; the note and the verbs are what unfold. The caret is the
        only affordance saying there is more, so it is drawn on every card that
