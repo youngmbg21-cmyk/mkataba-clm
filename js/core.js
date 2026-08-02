@@ -1627,13 +1627,18 @@ const shareMessageText=(c,link,msg,expiresAt)=>
    it has started, and the dialog states the answer out loud where the sender
    can change it. */
 function defaultSharePurpose(c){
-  if(!c) return 'negotiate';
+  if(!c) return 'sign';
   if(c.status==='Signed') return 'sign';
   /* Read c.changes directly rather than through negoChanges: this is asked of
      contracts loaded as summaries, and a read must not stamp clause ids into a
      document (see negoAlignment for the same care). */
   const live=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='superseded');
-  if(!live.length) return 'negotiate';          // nothing negotiated yet — never a signature request
+  /* Sign is the default when nothing is on the table (Young, 02 Aug 2026):
+     most contracts go out to be signed, not argued over, and the sender who
+     wants a review round picks Negotiate consciously. The one state that
+     still preselects Negotiate is an OPEN negotiation — a signing link over
+     unresolved changes is the mistake the room exists to prevent. */
+  if(!live.length) return 'sign';
   const settled=live.every(x=>x.status==='accepted'||(x.status==='rejected'&&x.withdrawn));
   return settled?'sign':'negotiate';
 }
@@ -1661,7 +1666,12 @@ function sharePurposePickerHtml(c, sel){
     </button>`; };
   return `<div id="share-purpose" style="margin:0 0 14px">
     <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">What is this link for?</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('negotiate')}${btn('sign')}</div>
+    ${''/* Sign leads: most sends are "here it is, sign it" (Young, 02 Aug
+         2026). The default SELECTION still follows the contract's reality —
+         defaultSharePurpose keeps Negotiate preselected while changes are
+         open, because a signing link over an unresolved argument is the
+         mistake the rest of the product exists to prevent. */}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('sign')}${btn('negotiate')}</div>
   </div>`;
 }
 
@@ -2330,7 +2340,13 @@ async function openShareModal(c, opts={}){
      needs the full panel and its explicit acknowledgement, never a shortcut
      past it. Non-blocking warnings ride along as one quiet line. */
   const qsWarns=contractReadiness(c).filter(x=>x.severity!=='block');
-  const quickOk = server && !!pre.email && !readinessBlocks(c).length && opts.quick!==false;
+  /* WO N4's one-question quick send is RETIRED (Young, 02 Aug 2026): it let a
+     contract go out without the sender ever consciously choosing negotiate vs
+     sign — the one decision that changes what the recipient can DO with the
+     link. The dialog now always opens on "What is this link for?". The
+     machinery stays (quickSendStepHtml et al.) in case a safer shortcut is
+     wanted later. */
+  const quickOk = false;
   let qsActive=quickOk;
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
   const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
@@ -2570,6 +2586,11 @@ async function openShareModal(c, opts={}){
         const link=r.link?`<div style="margin-top:8px"><span style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all">${esc(r.link)}</span></div>`:'';
         if(r.emailSent){
           resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Email sent</strong> to ${esc(email)}. You’ll be emailed when they open it${currentUser()?.prefs?.notifyShareOpens?'':' (if enabled in settings)'} and when they respond. Fill in another recipient to share again.</span></div>`);
+        } else if(r.alreadySentAt){
+          /* Nothing was refused: their live link already went, and no
+             duplicate was emailed on purpose. Saying "Not delivered" here was
+             the false alarm of 02 Aug 2026. */
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Already sent.</strong> ${esc(email)} received their link ${fmtDT(r.alreadySentAt)}, and it is still live — no duplicate was sent. This link now shows the current version.${link}</span></div>`);
         } else if(r.emailConfigured){
           resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Not delivered — the mail provider refused it.</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:' No reason was given.'}${link}</span></div>`);
         } else {
@@ -2662,7 +2683,30 @@ async function openShareModal(c, opts={}){
       return true;
     }
   };
-  document.getElementById('share-send').addEventListener('click',doSend);
+  /* The Send button owns its outcome (Young, 02 Aug 2026): silence after a
+     click read as "nothing happened", people clicked again, and the repeat
+     sends produced false "Not delivered" reports. In flight it locks and says
+     Sending…; success shows Sent ✓ and re-arms after a beat (the dialog
+     supports sending to another recipient); a refused gate re-arms at once so
+     the sender can fix the reason and press again. */
+  const shareSendBtn=document.getElementById('share-send');
+  shareSendBtn.addEventListener('click',async()=>{
+    if(shareSendBtn.dataset.busy) return;
+    const lbl=document.getElementById('sh-send-lbl');
+    const was=lbl?lbl.textContent:'';
+    shareSendBtn.dataset.busy='1'; shareSendBtn.disabled=true; shareSendBtn.style.opacity='.75';
+    if(lbl) lbl.textContent='Sending…';
+    let ok=false;
+    try{ ok=await doSend(); }catch(e){ toast(e&&e.message||'Could not send','err'); }
+    if(ok){
+      if(lbl) lbl.textContent='Sent ✓';
+      setTimeout(()=>{ if(lbl) lbl.textContent=was;
+        shareSendBtn.disabled=false; shareSendBtn.style.opacity='1'; delete shareSendBtn.dataset.busy; },2500);
+    } else {
+      if(lbl) lbl.textContent=was;
+      shareSendBtn.disabled=false; shareSendBtn.style.opacity='1'; delete shareSendBtn.dataset.busy;
+    }
+  });
   /* The quick panel's Send: same handler, and the button owns its outcome —
      disabled while in flight, "Sent" once it went, re-armed if a gate said no
      so the sender can fix the reason and press again. */

@@ -4347,9 +4347,14 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         exSent = !!r2.sent; exErr = r2.detail || null;
         db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), existing.token);
       }
+      /* alreadySentAt: no email went THIS time because the turn email already
+         went — a different fact from "the provider refused it", and the
+         dialog must not dress one as the other (the false "Not delivered"
+         of 02 Aug 2026). */
       return res.json({ ok: true, token: existing.token, link: exLink, reused: true,
         expiresAt: existing.expires_at, channel: existing.channel || ch, durable: false,
-        signerId, heldForTurn, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr });
+        signerId, heldForTurn, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr,
+        alreadySentAt: (!exSent && existing.sent_at) ? existing.sent_at : null });
     }
   }
   db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose,signer_id)

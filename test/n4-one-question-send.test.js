@@ -48,17 +48,37 @@ function modalWorld(shares, over = {}) {
   return { s, html: () => modalHtml };
 }
 
-describe('N4 (1) — when nothing needs asking, the dialog is one sentence', () => {
-  test('a known recipient opens on step 0: their address, the purpose, one Send', async () => {
+describe('N4 (1) — the dialog opens on the one decision that matters', () => {
+  /* RETIRED BY THE USER IT WAS BUILT FOR (Young, 02 Aug 2026): the quick
+     panel let a contract go out without the sender consciously choosing
+     negotiate vs sign — the decision that changes what the recipient can DO
+     with the link. The dialog now always opens on "What is this link for?".
+     These tests pin the retirement; the gates the panel shared with the full
+     form (blocks, static mode) are pinned unchanged below. */
+  test('even a known recipient opens on the purpose step, never the quick panel', async () => {
     const { s, html } = modalWorld([share()]);
     await s.openShareModal(contract());
     const h = html();
-    assert.match(h, /id="share-step-0"/, 'the quick panel leads');
-    assert.match(h, /erik@nordkust\.se/);
-    assert.match(h, /to review it and propose changes/, 'the purpose is said in words');
-    assert.match(h, /link valid 14 days/);
-    assert.match(h, /id="qs-send"/); assert.match(h, /Change details/);
-    assert.match(h, /id="share-step-1" class="hidden"/, 'the full flow waits behind the fold');
+    assert.ok(!/id="share-step-0"/.test(h), 'the quick panel is retired — no send without choosing the purpose');
+    assert.match(h, /What is this link for\?/, 'the purpose question leads');
+    assert.match(h, /id="share-step-1"(?! class="hidden")/, 'the full flow IS the flow');
+  });
+
+  test('Sign is the first option the sender reads', async () => {
+    const { s, html } = modalWorld([share()]);
+    await s.openShareModal(contract());
+    const h = html();
+    const sign = h.indexOf('data-share-purpose="sign"'), nego = h.indexOf('data-share-purpose="negotiate"');
+    assert.ok(sign > -1 && nego > -1 && sign < nego, 'most sends are "here it is, sign it" — Sign leads');
+  });
+
+  test('the default purpose is Sign when nothing is on the table, Negotiate while changes are open', () => {
+    const s = core();
+    assert.equal(s.defaultSharePurpose(contract()), 'sign', 'a clean contract goes out to be signed');
+    assert.equal(s.defaultSharePurpose(contract({ changes: [{ id: 'x', status: 'pending' }] })), 'negotiate',
+      'an open negotiation still preselects Negotiate — a signing link over unresolved changes is the known mistake');
+    assert.equal(s.defaultSharePurpose(contract({ changes: [{ id: 'x', status: 'accepted' }] })), 'sign',
+      'a settled negotiation asks for the signature');
   });
 
   test('no recipient on record — the full dialog, exactly as before', async () => {
@@ -81,12 +101,11 @@ describe('N4 (1) — when nothing needs asking, the dialog is one sentence', () 
     assert.ok(!/share-step-0/.test(html()), 'a shortcut past a block would bypass the acknowledgement');
   });
 
-  test('non-blocking warnings ride along as one quiet line', async () => {
+  test('non-blocking warnings no longer summon the retired quick panel', async () => {
     const { s, html } = modalWorld([share()],
       { contractReadiness: () => [{ severity: 'warn', key: 'term', label: 'No expiry is recorded.' }] });
     await s.openShareModal(contract());
-    assert.match(html(), /share-step-0/, 'a warning is worth a line, not a form');
-    assert.match(html(), /Worth checking: No expiry is recorded\./);
+    assert.ok(!/share-step-0/.test(html()), 'the quick panel is retired in every state');
   });
 
   test('the sentence follows the purpose — a settled contract asks for a signature', () => {

@@ -4587,3 +4587,27 @@ so far · partially signed" card grid (same cards as the executed face) when
 marks exist, and buildSharePayload sends the marks (party, name, capacity,
 form, time, adopted image) so the portal's copy of the document shows the
 owner's signature exactly as the owner's own screen does.
+
+---
+
+# Run 16 — The send flow, straightened (2026-08-02, Young's walkthrough)
+
+Four fixes from Young's own send-and-receive test. Suite green (2382).
+
+1. **The quick-send card is retired.** It committed to a purpose the sender
+   never chose. The Share dialog now always opens on "What is this link
+   for?" — one conscious decision, every time. (Machinery kept, N4 tests
+   re-pinned to the retirement.)
+2. **Sign leads.** Sign is now the first option and the default when nothing
+   is on the table; Negotiate stays preselected only while changes are
+   genuinely open — a signing link over an unresolved argument remains the
+   mistake the room exists to prevent.
+3. **The Send button owns its outcome.** Sending… while in flight (locked
+   against double-clicks), Sent ✓ on success, re-armed after a beat; a
+   refused gate re-arms immediately.
+4. **"Already sent" stopped masquerading as "Not delivered".** A repeat send
+   to a signer whose live link already went was reported as "the mail
+   provider refused it — no reason was given". The server now says
+   alreadySentAt, and the dialog answers honestly: "Already sent — they
+   received their link <when>, it is still live, no duplicate was sent, and
+   it now shows the current version."
