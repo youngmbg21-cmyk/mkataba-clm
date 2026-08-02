@@ -363,6 +363,11 @@
   .ui-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent);}
   .ui-btn-primary{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid);box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 55%,transparent);}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
+  /* Secondary action beside a primary: outlined in the accent so it reads as
+     a button against the page background, without competing with the filled
+     primary next to it. */
+  .ui-btn-secondary{color:var(--color-accent-700);border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);}
+  .ui-btn-secondary:hover{background:color-mix(in srgb,var(--accent-solid) 9%,transparent);border-color:var(--accent-solid);}
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
 
   /* view enter */

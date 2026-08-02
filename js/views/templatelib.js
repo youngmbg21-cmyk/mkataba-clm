@@ -135,7 +135,7 @@ function tplCompanySectionHtml() {
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Company standard templates</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${list.length} in the library · versioned &amp; permissioned</span>
         <span style="flex:1"></span>
-        ${canManage ? `<button id="tpllib-upload" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
+        ${canManage ? `<button id="tpllib-upload" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:5px 12px">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
         <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} New template</button>` : ''}
       </div>
       ${cards
