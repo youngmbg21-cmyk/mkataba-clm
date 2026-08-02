@@ -25,6 +25,7 @@
      6  exactly one document surface on the counterparty's page
      7  the owner's distribution and round controls are absent from their seat
      8  no AI control on their side
+     9  the card's Edit route behaves identically on both seats
 
    Every number comes from getBoundingClientRect or getComputedStyle. None is
    read out of a stylesheet.
@@ -116,6 +117,42 @@ const MEASURE = () => {
   };
 };
 
+/* ---- THE EDIT ROUTE, AS A PROBE ----
+   Pressing Edit on a Tracked Changes card: jump to the clause, land on it, open
+   its editor. One function so the two seats cannot be measured differently —
+   the whole point is the comparison. Returns { error } rather than throwing, so
+   a seat that has no card Edit at all fails as a readable check instead of as a
+   stack trace. */
+const CARD_EDIT = async () => {
+  const btn = document.querySelector('#rl-changes [data-rl-edit]');
+  if (!btn) return { error: 'no card Edit button on this seat' };
+  const id = btn.getAttribute('data-rl-edit');
+  const clause = document.querySelector(`#rl-doc [data-clause="${CSS.escape(id)}"]`);
+  if (!clause) return { error: 'the card names a clause the document does not draw' };
+  const w = el => Math.round(el.getBoundingClientRect().width);
+  const before = w(clause);
+  btn.click();
+  await new Promise(r => setTimeout(r, 800));
+  const s = getComputedStyle(clause);
+  const head = clause.querySelector('.rl-clause-h');
+  const ed = clause.querySelector('[data-nego-editor]');
+  const tools = clause.querySelector('.rl-tools');
+  const para = ed && ed.querySelector('p');
+  return { before, after: w(clause),
+    maxWidth: s.maxWidth, overflowX: s.overflowX,
+    headWrap: head ? getComputedStyle(head).whiteSpace : null,
+    arrived: clause.classList.contains('rl-arrived'),
+    wearsPickerClass: clause.classList.contains('rl-jump'),
+    editorOpen: !!ed, editing: clause.classList.contains('is-editing'),
+    paraWrap: para ? getComputedStyle(para).whiteSpace : null,
+    toolsOpacity: tools ? getComputedStyle(tools).opacity : null,
+    toolsPointer: tools ? getComputedStyle(tools).pointerEvents : null,
+    /* The wording the editor opened ON. The fixture files Net-45 over a Net-30
+       baseline, so which of the two comes back says whether the editor
+       continues the redline or silently restarts from underneath it. */
+    opensOn: ed ? ed.textContent.replace(/\s+/g, ' ').trim() : null };
+};
+
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const srv = await serve();
@@ -134,6 +171,30 @@ const MEASURE = () => {
   await pause(400);
   const cp = await page.evaluate(MEASURE);
   await page.screenshot({ path: path.join(OUT, '02-counterparty.png'), fullPage: true });
+
+  /* ---- 9. the reported edit route, driven on BOTH seats ----
+     Everything above measures the page AT REST. This drives it: press Edit on a
+     Tracked Changes card, which is the route the field report took, and read
+     what the clause becomes on each side.
+
+     It is here rather than in redline-verify because the failure it guards is a
+     parity failure by nature. The counterparty's page mounts the same component
+     through a different door — redlineEmbed under .redline-page.rl-embed, no
+     #view-redline, no contract picker in its toolbar — so "the owner's page is
+     fixed" is not evidence about theirs. Three of the four faults in this
+     sequence lived in shared code and one lived in a shared stylesheet; all
+     four could have been fixed on one seat and not the other, and no check
+     would have said so.
+
+     Measured on each side and then COMPARED, so a future fix applied to one
+     door and not the other fails here even if both look individually plausible. */
+  const cpEdit = await page.evaluate(CARD_EDIT);
+  await page.screenshot({ path: path.join(OUT, '03-counterparty-editing.png') });
+  await page.reload({ waitUntil: 'load' });
+  await page.evaluate(() => window.READY);
+  await pause(300);
+  const ownerEdit = await page.evaluate(CARD_EDIT);
+  await page.screenshot({ path: path.join(OUT, '04-owner-editing.png') });
 
   /* ---- 1. the contract pane ---- */
   if (!owner.doc || !cp.doc){
@@ -200,6 +261,50 @@ const MEASURE = () => {
     /Accept all/i.test(cp.bulkLabels.join(' ')), cp.bulkLabels.join(' | ') || 'MISSING');
   check('8 and the owner still gets the risk-sorted one',
     /Non-Risk/i.test(owner.bulkLabels.join(' ')), owner.bulkLabels.join(' | ') || 'MISSING');
+
+  /* ---- 9. the edit route behaves the same on both seats ---- */
+  if (cpEdit.error || ownerEdit.error){
+    check('9 both seats offer the card\'s Edit route', false,
+      `owner: ${ownerEdit.error || 'ok'} · counterparty: ${cpEdit.error || 'ok'}`);
+  } else {
+    for (const [who, r] of [['owner', ownerEdit], ['counterparty', cpEdit]]){
+      /* THE REPORTED DEFECT. rl-jump was the clause's flash AND the toolbar
+         contract picker's class, so landing on a clause clamped it to a
+         dropdown's width. Compared against the clause's own width a moment
+         earlier — never a fixed number. */
+      check(`9 ${who}: landing on a clause does not shrink it`,
+        r.after === r.before, `${r.before} -> ${r.after}px`);
+      check(`9 ${who}: no dropdown clamp or clipping on the clause`,
+        r.maxWidth === 'none' && r.overflowX === 'visible',
+        `max-width:${r.maxWidth}, overflow-x:${r.overflowX}`);
+      check(`9 ${who}: the clause heading wraps rather than being cut off`,
+        r.headWrap === 'normal', r.headWrap);
+      check(`9 ${who}: the clause says it has arrived, without the picker's name`,
+        r.arrived && !r.wearsPickerClass,
+        `arrived:${r.arrived} wearsPickerClass:${r.wearsPickerClass}`);
+      check(`9 ${who}: the editor opened, and the clause knows it`,
+        r.editorOpen && r.editing, `editor:${r.editorOpen} is-editing:${r.editing}`);
+      /* The editor is the clause: the room's body rules have to reach it, or
+         the wording changes shape the moment it is edited. */
+      check(`9 ${who}: the wording wraps in the editor as it does in the document`,
+        r.paraWrap === 'normal', r.paraWrap);
+      check(`9 ${who}: the hover verbs stand down while the clause is typed in`,
+        r.toolsOpacity === '0' && r.toolsPointer === 'none',
+        `opacity ${r.toolsOpacity}, pointer-events ${r.toolsPointer}`);
+      /* Net-45 is the filed redline; Net-30 is the baseline under it. */
+      check(`9 ${who}: the editor continues the redline, it does not restart it`,
+        /Net-45/.test(r.opensOn) && !/Net-30/.test(r.opensOn),
+        (r.opensOn || '').slice(0, 80));
+    }
+    /* AND THE TWO AGREE. Each assertion above could pass on one seat and fail
+       on the other; this is the one that says they are the same product. */
+    const same = ['maxWidth', 'overflowX', 'headWrap', 'arrived', 'wearsPickerClass',
+      'editorOpen', 'editing', 'paraWrap', 'toolsOpacity', 'toolsPointer']
+      .filter(k => String(ownerEdit[k]) !== String(cpEdit[k]));
+    check('9 the two seats edit a clause identically', same.length === 0,
+      same.length ? same.map(k => `${k}: ${ownerEdit[k]} vs ${cpEdit[k]}`).join(' · ')
+        : 'every measured property matches');
+  }
 
   /* The owner's side is the control: if these were absent there too, every
      assertion above would be passing for the wrong reason. */

@@ -6620,3 +6620,42 @@ happens to match.
 
 **The browser suite is green for the first time in this sequence: 82/82.** Full
 jsdom suite 2431/2431; parity 18/18; selection 22/22; timeline 19/19.
+
+### 3. Verified: the counterparty's page carried all four faults, and carries all four fixes
+
+Asked for directly, and worth having asked: "the owner's page is fixed" is not
+evidence about the counterparty's. Their page mounts the same component through
+a **different door** — `redlineEmbed` under `.redline-page.rl-embed`, no
+`#view-redline`, no contract picker in its toolbar — so every one of the four
+faults could have been fixed on one seat and not the other with nothing to say
+so. Three lived in shared code and one in a shared stylesheet, which makes the
+parity *likely* and not *proven*.
+
+Measured, not reasoned about. `test/chromium/parity-verify.js` now drives the
+reported route — press **Edit** on a Tracked Changes card — on both seats
+through one shared probe, and asserts eight things per seat plus one comparison
+between them:
+
+| | before | after |
+|---|---|---|
+| clause width on landing | 648 → **289px** | 648 → 648px |
+| `max-width` / `overflow-x` | **288.884px** / `hidden` | `none` / `visible` |
+| heading | **`nowrap`**, cut off | wraps |
+| flash class | **`rl-jump`** (the picker's) | `rl-arrived` |
+| clause knows it is being edited | **no** | yes |
+| wording in the editor | **`pre-wrap`** | `normal` |
+| hover verbs while typing | **opacity 1, clickable** | hidden, unclickable |
+| editor opens on | **Net-30, the baseline** | Net-45, the filed redline |
+
+Identical on both seats, before and after — so the counterparty's page had all
+four and now has none. Against the pre-fix tree all 16 per-seat checks fail;
+against this one all pass.
+
+One judgement worth recording: the summary check ("the two seats edit a clause
+identically") **passed even on the broken tree**, because both sides were
+equally broken. That is correct behaviour for a parity assertion and a good
+reminder of its limits — parity is not correctness, so the eight per-seat checks
+carry the correctness claim and the comparison only guards against a future fix
+landing on one door and not the other.
+
+`npm run test:parity` 35/35; browser 82/82.
