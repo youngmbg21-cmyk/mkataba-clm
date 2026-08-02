@@ -139,6 +139,17 @@ function portalHasHistory(){
 function portalHasCompare(){
   const now=portalCurrentText();
   if(portalVersions().length>1 || portalChangedText()) return true;
+  /* A LIVE ROUND IS THE COMMONEST CASE OF ALL, and it used to be the one with
+     no button. Pending changes do not move the document — the agreed wording
+     has not shifted — so the original and the current copy read word for word
+     the same while three asks sit on the table, and every "is there anything to
+     compare" test answered no. The owner's Compare solved this long ago by
+     offering the PROPOSED state as its own comparable (js/versioning.js); the
+     same is true here, so the same answer applies. */
+  const src=(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.contract)||{};
+  const pend=(Array.isArray(src.changes)?src.changes:[])
+    .filter(x=>x&&x.status==='pending'&&!x.withdrawn).length;
+  if(pend) return true;
   const orig=portalOriginalText();
   return !!(orig && now && normText(orig)!==normText(now));
 }
@@ -236,6 +247,28 @@ function openPortalVersionCompare(p){
   items.push(...vs.map(v=>({ label:cap(v), text:v.text })));
   const last=vs[vs.length-1];
   if(now&&(!last||normText(last.text)!==normText(now))) items.push({ label:'Current — the copy you are reading', text:now });
+  /* ---- WHAT THE DOCUMENT WOULD SAY IF EVERY LIVE ASK WERE ACCEPTED ----
+     The owner has had this since js/versioning.js:496 and the counterparty had
+     not, which is why Compare read as broken on their side exactly when it was
+     most wanted: mid-round, two texts that are word-for-word identical because
+     tracked changes have not moved the wording yet.
+
+     Built by the product's own negoBuildBody over THIS page's rebuilt contract,
+     so it is the same construction the owner sees rather than a second one that
+     can disagree. Last in the list, which also makes it the default right-hand
+     side — so opening Compare on a live round shows "where we started" against
+     "what is being asked for" without touching a control. */
+  try{
+    if(window.negoBuildBody && window.richToText && window.negoChanges){
+      const nc=portalNegoContract(p);
+      const pend=negoChanges(nc).filter(x=>x&&x.status==='pending'&&!x.withdrawn).length;
+      if(pend){
+        const prop=richToText(negoBuildBody(nc,x=>x&&(x.status==='accepted'||(x.status==='pending'&&!x.withdrawn))));
+        if(prop.trim() && normText(prop)!==normText(now||''))
+          items.push({ label:`Proposed — with ${pend} pending redline${pend===1?'':'s'}`, text:prop });
+      }
+    }
+  }catch(_){ /* one malformed change must not take Compare down */ }
   if(items.length<2) return;
   const opts=items.map((it,i)=>`<option value="${i}">${esc(it.label)}</option>`).join('');
   const SEL='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:7px 9px;border-radius:4px;color:inherit;min-width:0;flex:1';
