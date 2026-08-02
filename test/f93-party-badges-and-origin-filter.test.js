@@ -43,7 +43,7 @@ function contractFixture(over = {}){
 async function page(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
-  win.promptDialog = async () => '';
+  win.promptDialog = async () => 'Because the commercial terms require it.';
   win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
   win.copilotAvailable = () => false;
   win.openShareModal = () => {};

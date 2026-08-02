@@ -49,7 +49,7 @@ function ownerContract(over = {}){
 async function negotiated(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
-  win.promptDialog = async () => '';
+  win.promptDialog = async () => 'Because the commercial terms require it.';
   const c = ownerContract();
   win.negoInit(c);
   const filed = await win.negoFileProposal(c, BASE
@@ -73,7 +73,7 @@ async function negotiated(opts = {}){
    can run the record-side apply path for real rather than a copy of it. */
 function recordStage(){
   const p = buildPortal();
-  p.win.promptDialog = async () => '';
+  p.win.promptDialog = async () => 'Because the commercial terms require it.';
   /* applyResponse writes the record it just changed. That stage is a browser on
      an opaque origin, where reaching for localStorage throws, so the save is
      stood in for — the logic under test is what applyResponse DECIDES, not where
@@ -580,7 +580,7 @@ describe('a rich contract survives the trip to the counterparty and back', () =>
   test('the formatted document is negotiated clause by clause on both sides', async () => {
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
-    win.promptDialog = async () => '';
+    win.promptDialog = async () => 'Because the commercial terms require it.';
     const c = supplyContract();
     win.negoInit(c);
     const filed = await win.negoFileProposal(c,

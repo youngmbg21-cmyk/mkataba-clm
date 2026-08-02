@@ -2233,7 +2233,10 @@ async function portalRespond(p, action, extra){
       return { id, clauseId:x.clauseId, changeType:x.changeType||'modify',
         oldText:x.oldText||'', newText:x.newText||'', bodyHtml:x.bodyHtml||null,
         headingText:x.headingText||null, afterClauseId:x.afterClauseId||null,
-        clauseLabel:x.clauseLabel||null, note:x.note||null };
+        /* The reason they gave. Required of them at the moment of asking, the
+           same as it is of us — a redline the owner cannot answer the argument
+           of is the gap this closes. */
+        clauseLabel:x.clauseLabel||null, rationale:x.rationale||null, note:x.note||null };
     });
     if(action==='decisions' && !decisions.length && !withdrawn.length && !proposed.length){
       toast('Nothing to send — ask for a change or decide one first','err'); return; }

@@ -1941,6 +1941,14 @@ function buildSharePayload(c, docHash, who, opts){
          and WHICH clause we felt exposed on. Negotiation-sensitive twice over.
          Their own note comes back to them — they wrote it — and ours stays
          home. */
+      /* THE RATIONALE TRAVELS BOTH WAYS, and that is the whole point of it.
+         `note` below is an internal aside and ours stays home; this is the
+         reason the author wrote FOR the other side, and a reason that did not
+         reach them would be a form field with no reader. Null where a change
+         was filed before rationales were required, or arrived inbound on a
+         link minted before they existed — the card says "no reason given"
+         rather than pretending one was. */
+      rationale:x.rationale||null,
       summary:x.summary, note:(x.authorSide==='counterparty'&&x.note)?x.note:null, reply:x.reply||null,
       resolvedAt:x.resolvedAt||null,
       /* Whether a refused ask has been taken off the table by the side that
@@ -3562,6 +3570,10 @@ async function applyNegoProposals(c, r, who){
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
         clauseLabel:(cl&&window.negoClauseLabel?negoClauseLabel(cl):p.clauseLabel)||null },
         { side:'counterparty', author:who, note:p.note||null, quiet:true,
+          /* Their reason, as they wrote it. `inbound` marks this as wording
+             authored in THEIR copy of the app rather than here — see the
+             rationale gate in negoFileChange for why that is not a loophole. */
+          rationale:p.rationale||null, inbound:true,
           via:`their link${p.id?` as ${p.id}`:''}` });
     }catch(e){ ch=null; }
     if(!ch) continue;

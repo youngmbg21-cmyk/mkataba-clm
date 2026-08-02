@@ -38,7 +38,7 @@ function contractFixture(over = {}){
 async function room(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
-  win.promptDialog = async () => '';
+  win.promptDialog = async () => 'Because the commercial terms require it.';
   /* jsdom serves an opaque origin, where window.localStorage is a getter that
      THROWS. It is also getter-only, so a plain assignment fails silently and
      leaves the throwing one in place — defineProperty is the only way to stand

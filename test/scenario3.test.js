@@ -78,7 +78,7 @@ function stage(){
   win.renderNegotiationSection = () => {};
   win.renderAuditSection = () => {};
   win.renderVersionsSection = () => {};
-  win.promptDialog = async () => '';
+  win.promptDialog = async () => 'Because the commercial terms require it.';
   win.currentUser = () => ({ id: 'u_w', name: 'Wanjiru Kamau', role: 'legal' });
   win.canEdit = () => true;
   win.FIRST_PARTY = 'Wanjiru Catering Ltd';

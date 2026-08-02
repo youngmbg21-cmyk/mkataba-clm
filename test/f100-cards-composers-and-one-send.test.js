@@ -124,7 +124,7 @@ describe('F100b — the card is a handle, not a copy', () => {
   async function page(){
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
-    win.promptDialog = async () => '';
+    win.promptDialog = async () => 'Because the commercial terms require it.';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
     win.openShareModal = () => {};
@@ -541,7 +541,7 @@ describe('F100e — looking at a card is not deciding anything', () => {
   async function page(){
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
-    win.promptDialog = async () => '';
+    win.promptDialog = async () => 'Because the commercial terms require it.';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
     win.openShareModal = () => {};
@@ -712,7 +712,7 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
   async function page(){
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
-    win.promptDialog = async () => '';
+    win.promptDialog = async () => 'Because the commercial terms require it.';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
     win.openShareModal = () => {};

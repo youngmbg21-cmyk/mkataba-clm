@@ -453,7 +453,7 @@ function negoTimeline(c, f = {}){
     ev.push({ ...base, kind: 'proposed', at: ch.createdAt || ch.at || '', actor: ch.author || '',
       side: ch.authorSide || '', outcome: ch.status === 'pending' && !ch.withdrawn ? 'pending' : '',
       text: `${ch.author || 'Someone'} (${sideWord}) proposed #${ch.id} — ${ch.summary || ch.changeType}`,
-      note: ch.note || null, ch });
+      note: ch.note || null, rationale: ch.rationale || null, ch });
     if (ch.status === 'accepted' || ch.status === 'rejected')
       ev.push({ ...base, kind: 'decided', at: ch.resolvedAt || ch.createdAt || '',
         actor: ch.resolvedBy || '', side: otherSide(ch.authorSide), outcome: ch.status,
@@ -934,6 +934,30 @@ async function negoFileChange(c, draft, opts = {}){
     if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
     return null;
   }
+  /* ---------- NO WORDING CROSSES THE TABLE WITHOUT A REASON ----------
+     A redline says what should change. It has never been made to say WHY, so
+     the other side received "liability capped at EUR 250,000" with nothing to
+     answer but yes or no, and the reasoning lived in an email thread — the
+     fragmentation this product exists to end. Worse, an AI-drafted change
+     carried the only rationale anyone wrote: "Copilot — Shorten & Simplify",
+     which records the TOOL and not the argument, and was walled out of the
+     share payload anyway — so the other side got wording with no reason at all.
+
+     So a rationale is part of what a change IS, it travels in both directions,
+     and it is required of both chairs equally.
+
+     REQUIRED AT THE AUTHORING PATHS, RECORDED HERE. Unlike the executed-contract
+     guard above, this funnel is not the right door to refuse at: it is also
+     where a returned Word file, a pasted redraft and the other side's own
+     proposals are split into changes, and none of those has an author present
+     to be asked. Refusing here would not improve those rounds, it would destroy
+     them. So every route a HUMAN types a redline through asks the question and
+     will not file without an answer — the shared Direct Edit bar (both chairs),
+     proposed deletions, and both Copilot apply routes — and this records what
+     they gave. A change reaching here without one is legacy, inbound, or
+     machine-split, and its card says no reason was recorded rather than
+     leaving the row out and implying none was needed. */
+  const rationale = String(opts.rationale == null ? '' : opts.rationale).trim();
   negoInit(c);
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
   const author = String(opts.author || (side === 'owner'
@@ -978,7 +1002,7 @@ async function negoFileChange(c, draft, opts = {}){
       prevChangeHash: live.prevChangeHash, clauseId: live.clauseId, changeType: live.changeType,
       oldText: live.oldText, newText: live.newText, author: live.author,
       createdAt: live.createdAt, ops: live.ops, bodyHtml: live.bodyHtml,
-      summary: live.summary });
+      summary: live.summary, rationale: live.rationale || null });
     live.changeType = draft.changeType;
     live.oldText = oldText;
     live.newText = newText;
@@ -988,6 +1012,9 @@ async function negoFileChange(c, draft, opts = {}){
     live.createdAt = at;
     live.updatedAt = at;
     live.summary = String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText);
+    /* Changing your mind is a new argument, so the reason moves with the
+       wording. The previous one is already on the revision pushed above. */
+    if (rationale) live.rationale = rationale;
     await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });
     if (window.logAudit) logAudit(c, 'Negotiation',
       `#${live.id} revised by ${author} — “${live.summary}” on ${live.clauseLabel || live.clauseId};` +
@@ -1014,6 +1041,10 @@ async function negoFileChange(c, draft, opts = {}){
     roundN,
     clauseLabel: draft.clauseLabel || negoClauseLabel(cl) || null,
     summary: String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText),
+    /* The reason, in the author's own words. Unlike `note` — an internal aside
+       that stays home — this is written to be read by the other side, and it
+       travels in both directions. */
+    rationale: rationale || null,
     note: opts.note || null,
     thread: [],
     needsReview: !!draft.needsReview,
@@ -1084,6 +1115,13 @@ async function negoDeleteClause(c, clauseId, opts = {}){
    still recognised as the same clause. That is the honest reading of what a
    counterparty who edited our file actually did. */
 async function negoFileProposal(c, proposedText, opts = {}){
+  /* A WHOLE DOCUMENT COMING BACK IS NOT SOMEBODY TYPING A REDLINE. This is the
+     returned-Word-file and pasted-redraft route: the wording was authored in
+     the other side's word processor, arrives as one blob, and is split into
+     per-clause changes HERE. There is no author present to be asked why, and
+     refusing the import would destroy the round rather than improve it — so it
+     is filed inbound, and each card says no reason was recorded. */
+  opts = { inbound: true, ...opts };
   negoInit(c);
   const next = String(proposedText == null ? '' : proposedText);
   if (!next.trim()) return [];

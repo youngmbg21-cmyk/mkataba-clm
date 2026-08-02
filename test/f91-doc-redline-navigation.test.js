@@ -46,7 +46,7 @@ function fixture(id, over = {}){
 function bench(contracts){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
-  win.promptDialog = async () => '';
+  win.promptDialog = async () => 'Because the commercial terms require it.';
   const list = contracts.map(x => (typeof x === 'string' ? fixture(x) : x));
   list.forEach(c => win.negoInit(c));
   win.state = Object.assign({}, win.state, { contracts: list, activeId: null, view: 'redline' });

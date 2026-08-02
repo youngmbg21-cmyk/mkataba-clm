@@ -252,7 +252,7 @@ function contractFixture(){
 async function page(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
-  win.promptDialog = async () => '';
+  win.promptDialog = async () => 'Because the commercial terms require it.';
   const c = contractFixture();
 
   const panel = { opened: [], pushed: [], proposals: [], sessions: [], cards: [], said: [] };
@@ -499,6 +499,10 @@ const FLAT = ['<p>The Supplier shall deliver the goods to the named warehouse.</
 async function spanPage(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
+  /* Applying a Copilot redline asks for the reason before it files anything —
+     see the rationale gate in js/views/negotiation.js. Without a stub the real
+     promptDialog opens a modal nothing answers, and nothing is ever filed. */
+  win.promptDialog = async () => 'Because the commercial terms require it.';
   const c = { id: 'MK-980', name: 'Flat Supply Agreement', counterparty: 'Naivas Supermarkets',
     template: 'RM', status: 'Under Review', folder: 'proc', fields: {}, metadata: {}, audit: [],
     rounds: [], versions: [], signatures: [], comments: [], redlineText: FLAT, format: 'rich' };
