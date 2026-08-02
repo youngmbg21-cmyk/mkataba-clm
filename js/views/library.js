@@ -1382,7 +1382,7 @@ function renderTemplatesPage(){
         <p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500)">the paper you draft from — company standards, counterparty paper and HaTi's own</p>
       </div>
       <span style="flex:1"></span>
-      ${canManage?`<button id="tpl-convert" class="ui-btn" style="font-size:12px;padding:6px 13px">Convert a document</button>
+      ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:6px 13px">Convert a document</button>
       <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New template</button>`:''}
     </div>
     <div style="display:grid;grid-template-columns:196px 1fr;gap:16px;align-items:start">
