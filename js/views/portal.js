@@ -129,29 +129,49 @@ function portalHasHistory(){
   const chs=Array.isArray(src.changes)?src.changes.filter(x=>x&&x.status!=='superseded'):[];
   return chs.length>0;
 }
+/* IS THERE A SECOND TEXT TO MEASURE AGAINST? Compare used to be offered only
+   where two versions had been sent or the wording had moved since the reader's
+   last copy — so on a FIRST round, when a counterparty is looking at four asks
+   and most wants to know what the document used to say, the button was not
+   there at all. The original travels in the payload, so on round one it is the
+   comparison, and this asks the honest question: is there anything to put
+   beside what they are reading? */
+function portalHasCompare(){
+  const now=portalCurrentText();
+  if(portalVersions().length>1 || portalChangedText()) return true;
+  const orig=portalOriginalText();
+  return !!(orig && now && normText(orig)!==normText(now));
+}
 function portalCompareBar(){
   const vs=portalVersions();
   const ch=portalChangedText();
   const hist=portalHasHistory();
-  if(vs.length<2 && !ch && !hist) return '';
+  const cmp=portalHasCompare();
+  if(!cmp && !hist) return '';
   const line = vs.length>1
     ? `This contract has <b>${vs.length} versions</b>, numbered the same as ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||'the sender')} sees them. You can compare any two.`
     : (ch&&ch.kind==='yourpaper'
         ? `The wording differs from the paper you sent. You can see exactly what was changed.`
         : ch
         ? `The wording has moved since the copy you were sent. You can see exactly what changed.`
-        /* THE HISTORY IS NOW A REASON FOR THIS BAR TO EXIST ON ITS OWN. It used
-           to appear only where there were two versions or a fresh revision, so a
-           counterparty on round one — asked to answer four changes — had no way
-           to read the story of how the wording got there. */
+        /* THE HISTORY AND THE COMPARISON ARE EACH A REASON FOR THIS BAR TO
+           EXIST. It used to appear only where there were two versions or a
+           fresh revision, so a counterparty on round one — asked to answer four
+           changes — could neither read the story of how the wording got there
+           nor put it beside the wording it started as. */
+        : cmp && hist
+        ? `Read every change in the order it happened, or put the wording beside the original.`
+        : cmp
+        ? `Put the wording you are reading beside the original, and see exactly what moved.`
         : `Every change proposed on this contract, in the order it happened, with what was decided.`);
   return `
     <div id="pt-history" style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:11px 16px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
       <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">${line}</span>
-      ${hist?`<button id="pt-hist" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px"
-        title="Every change on this contract, oldest first, with who asked, why, and what was decided">Negotiation history</button>`:''}
-      ${vs.length>1||ch?`<button id="pt-compare" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">Compare versions</button>`:''}
+      ${hist?`<button id="pt-hist" class="ui-btn ui-btn-secondary" style="flex:none;font-size:12.5px;padding:8px 14px"
+        title="Every change on this contract, oldest first, with who asked and what was decided">Negotiation history</button>`:''}
+      ${cmp?`<button id="pt-compare" class="ui-btn ui-btn-secondary" style="flex:none;font-size:12.5px;padding:8px 14px"
+        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">Compare wording</button>`:''}
     </div>`;
 }
 /* ---- THE SAME HISTORY THE OWNER READS, ON THEIR SIDE OF THE GLASS ----
@@ -181,11 +201,28 @@ function openPortalHistory(p){
   }
   openHistoryTimeline(portalNegoContract(p));
 }
+/* THE WORDING THIS NEGOTIATION STARTED FROM. Round 1's baseline travels in the
+   payload (buildSharePayload sends negotiation.baselineText), so "what has been
+   done to this contract since the beginning" is answerable on their side even
+   when only one version has ever been sent — which is every first round, and
+   was exactly when Compare used to disappear. */
+function portalOriginalText(){
+  const sn=(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.contract&&PORTAL_OPTS.payload.contract.negotiation)||{};
+  const rounds=Array.isArray(sn.rounds)?sn.rounds:[];
+  const first=rounds.length?rounds.slice().sort((a,b)=>(a.n||0)-(b.n||0))[0]:null;
+  return String((first&&first.baselineText)||sn.baselineText||'').trim();
+}
 function openPortalVersionCompare(p){
   const vs=portalVersions().slice();
   const now=portalCurrentText();
   const items=[];
   const filed=(p&&p.contract&&p.contract.upload&&p.contract.upload.extractedText)||'';
+  /* The original leads the list: it is the thing a reader most often wants to
+     measure against, and on a first round it is the only other text there is. */
+  const orig=portalOriginalText();
+  if(orig && normText(orig)!==normText(now||'') && !vs.some(v=>normText(v.text)===normText(orig))
+     && normText(orig)!==normText(filed||''))
+    items.push({ label:'The original — before anything was proposed', text:orig });
   // Same caption on both sides of the deal — "v2 · Edited by Young Mbagaya"
   // reads identically here and in HaTi, so a version can be named out loud.
   const cap=v=>{
