@@ -1855,6 +1855,16 @@ function shareVersions(c, org){
    it is enforced by the server (refuseIfViewOnly, server/server.js), and named
    here so the share dialog can offer it and the portal can route on it. */
 const SHARE_PURPOSE = p => (['sign','negotiate','view'].includes(p) ? p : null);
+/* The author of a change, as the OTHER SIDE may be told it. The lab records
+   who drafted a redline and what drafted it in one string — see labFileChange
+   — and only the first half is theirs to know. Deliberately narrow: it removes
+   the ` · Copilot (…)` segment the lab appends and nothing else, so a person
+   whose real name contains a separator keeps it, and an author recorded by any
+   other path is passed through untouched. Trailing ', edited' goes with the
+   segment it qualifies; on its own it would say a suggestion had been reworked,
+   which is a fact about our drafting rather than about their contract. */
+const shareAuthorName = a => String(a==null?'':a)
+  .replace(/\s*·\s*Copilot\s*\([^)]*\)(\s*,\s*edited)?/gi,'').trim() || String(a||'').trim();
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
@@ -1910,7 +1920,20 @@ function buildSharePayload(c, docHash, who, opts){
       oldText:x.oldText, newText:x.newText, hash:x.hash, hashV:x.hashV||null,
       prevChangeHash:x.prevChangeHash||null, seq:x.seq||null, status:x.status,
       needsReview:x.needsReview||false, needsReviewWhy:x.needsReviewWhy||null,
-      author:x.author, authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
+      /* THE HAND, NOT THE TOOL IT HELD. The note was walled below for exactly
+         this reason and the author was left open, so the leak simply moved
+         house: the lab writes provenance INTO the name —
+         `Young Mbagaya · Copilot (Shorten & Simplify)` (labFileChange,
+         js/views/doclab.js) — and that string travelled whole and is printed
+         on the counterparty's change cards. It tells them we used AI, which
+         action we reached for, and therefore which clause we felt exposed on:
+         the same disclosure the note wall exists to prevent, in the one field
+         nobody thought to check.
+
+         Their own name still travels in full — a card that cannot say whose
+         ask it is would be a worse screen (see f70) — so this strips the tool
+         and keeps the person. */
+      author:shareAuthorName(x.author), authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
       /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
          used to travel whole, and the counterparty's page printed it under
          "why they asked" — which for a Copilot-drafted change read
@@ -3641,4 +3664,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,shareAuthorName,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
