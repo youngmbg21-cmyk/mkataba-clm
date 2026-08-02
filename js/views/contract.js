@@ -2130,9 +2130,13 @@ function focusKeyTerms(c){
    across re-renders of the same contract, and reset when a different contract
    opens. */
 let _docTopTab='screening';                 // 'screening' (= Draft & Review) | 'signing'
-let _docInnerTab='signing';                 // Signing tab inner: 'signing' | 'obligations' | 'audit'
+let _docInnerTab='signing';                 // Signing tab inner: 'signing' | 'audit'
 let _docTabsFor=null;                        // contract id the choices belong to
-const DOC_INNER_TABS=['signing','obligations','audit'];
+/* Two inner tabs, not three: the per-contract Obligations surface was
+   retired as premature — obligations still exist as data (the Calendar and
+   Home count and complete them), but a dedicated tab per contract was more
+   cockpit than this stage of the product needs. */
+const DOC_INNER_TABS=['signing','audit'];
 function docTabDefaults(c){
   if(_docTabsFor!==c.id){                    // first open of this contract → sensible defaults
     _docTopTab = (c.status==='Signed') ? 'signing' : 'screening';
@@ -3024,7 +3028,6 @@ function renderWorkspace(){
           <div style="${CARD};overflow:hidden;display:flex;flex-direction:column">
             <div id="doc-innertabs" style="display:flex;gap:2px;padding:6px 6px 0;border-bottom:1px solid var(--color-divider)">
               ${innerTabBtn('signing','Signing','finger')}
-              ${innerTabBtn('obligations','Obligations','check2')}
               ${innerTabBtn('audit','Audit','history')}
             </div>
             <div style="padding:11px">
@@ -3039,14 +3042,12 @@ function renderWorkspace(){
                 <div id="sign-wrap"></div>
               </div>
 
-              <!-- OBLIGATIONS (post-execution commitments to track) -->
-              <div data-inner-pane="obligations" style="display:none;flex-direction:column;gap:12px">
-                <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-              </div>
-
-              <!-- AUDIT (the record) -->
+              <!-- AUDIT (the record). The Agreement-family card that used to
+                   sit above the trail was retired with the Obligations tab —
+                   amendment linking is machinery this stage doesn't need in
+                   front of every reader; the family model itself stays (the
+                   dashboard still counts agreements family-aware). -->
               <div data-inner-pane="audit" style="display:none;flex-direction:column;gap:12px">
-                <div id="family-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
                 <div id="audit-section" style="${CARD};overflow:hidden"></div>
               </div>
 
@@ -3071,9 +3072,9 @@ function renderWorkspace(){
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wsTabDefaults(c);    // Docs by default; the choice persists per contract
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); loadEngagement(c); renderAuditSection(c);
   if(window.renderTemplateFormSection) renderTemplateFormSection(c);
-  wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
+  wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Audit inner tabs
   wireWsTabs(c);   // Docs | Negotiation — the workspace-level pair
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
   wireChangesStrip(c);   // the returned-changes strip above the document
@@ -3170,7 +3171,6 @@ function keyTermsProgress(c){
   }
   renderActionBar(c);
   renderSignButton(c);
-  window.renderObligationsSection&&renderObligationsSection(c);
 }
 function wireDocumentSync(c){
   const canvas=document.getElementById('doc-canvas');
