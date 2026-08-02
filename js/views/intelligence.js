@@ -1028,14 +1028,19 @@ function intelFrictionHtml(){
 
   return `<div style="max-width:1120px;margin:0 auto">
     <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">
-      <div style="display:grid;grid-template-columns:1fr 1.15fr">${left}${right}</div>
       ${intelFrictionCopilotHtml(st)}
+      <div style="display:grid;grid-template-columns:1fr 1.15fr">${left}${right}</div>
     </div>
   </div>`;
 }
 
-/* ---- COPILOT'S READ (hybrid layer under the counted brief) ----
-   The brief above stays pure arithmetic; this strip is the only AI on the
+/* ---- COPILOT'S READ (hybrid layer over the counted brief) ----
+   It sits at the top of the card, above the figures it reads, because it is
+   the first thing worth offering somebody who has just opened the page — not
+   a footnote they have to scroll past the whole brief to find. The order is
+   the only thing that moved: it still runs on click alone, and the counted
+   report below is still the page whether it is ever run or not.
+   The brief below stays pure arithmetic; this strip is the only AI on the
    page, and it runs ONLY on click. The model is handed the already-counted
    figures and asked to interpret them — never to compute — so a wrong number
    cannot enter through here. The read is keyed to the figures it was written
@@ -1059,12 +1064,12 @@ function intelFrictionCopilotHtml(st){
   let body;
   if(ai&&ai.busy&&ai.key===key){
     body=`<div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--color-neutral-600);padding:2px 0">
-      <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>Reading the counted figures above…</div>`;
+      <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>Reading the counted figures below…</div>`;
   }else if(ai&&ai.html&&ai.key===key){
     body=`<div class="igf-ai-read" style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:10px;color:var(--color-neutral-500)">
         <span style="flex:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg)">AI commentary</span>
-        <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures above — the numbers are the app's, the interpretation is Copilot's.</span>
+        <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures below — the numbers are the app's, the interpretation is Copilot's.</span>
         <button id="igf-ai-regen" style="margin-left:auto;border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent-700);flex:none;white-space:nowrap">↻ Regenerate</button>
       </div>`;
   }else if(ai&&ai.err&&ai.key===key){
@@ -1075,15 +1080,15 @@ function intelFrictionCopilotHtml(st){
   }else{
     const stale=!!(ai&&ai.html);
     const hint=!on
-      ?'Add an Anthropic key in Team &amp; Settings → Copilot engine to turn this on. The counted report above works without it.'
-      :stale?'The figures above have changed since the last read — generate a fresh one. Nothing runs until you click.'
-      :'Copilot explains what is behind the figures above and what to do this week. Nothing runs until you click — the counted report never depends on it.';
+      ?'Add an Anthropic key in Team &amp; Settings → Copilot engine to turn this on. The counted report below works without it.'
+      :stale?'The figures below have changed since the last read — generate a fresh one. Nothing runs until you click.'
+      :'Copilot explains what is behind the figures below and what to do this week. Nothing runs until you click — the counted report never depends on it.';
     body=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button id="igf-ai-ask" ${on?'':'disabled'} style="display:inline-flex;align-items:center;gap:7px;border:0;border-radius:9px;padding:7px 15px;background:${on?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-300)'};color:#fff;font:inherit;font-family:var(--font-heading);font-size:12px;font-weight:700;cursor:${on?'pointer':'not-allowed'};flex:none">${icon('sparkle','w-3 h-3',2)} Interpret these numbers</button>
       <span style="font-size:11px;color:var(--color-neutral-600);line-height:1.5;max-width:56ch">${hint}</span>
     </div>`;
   }
-  return `<div id="igf-copilot" style="border-top:1px solid var(--color-divider);background:linear-gradient(180deg,color-mix(in srgb,var(--color-accent) 4%,transparent),transparent 70%);padding:11px 20px 13px">
+  return `<div id="igf-copilot" style="border-bottom:1px solid var(--color-divider);background:linear-gradient(180deg,color-mix(in srgb,var(--color-accent) 4%,transparent),transparent 70%);padding:12px 20px 13px">
     ${head}<div style="margin-top:8px">${body}</div>
   </div>`;
 }
