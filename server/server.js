@@ -3935,6 +3935,25 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      document it serves would supersede the wrong links. */
   const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
     : SHARE_PURPOSES.includes(purpose) ? purpose : null;
+  /* ---- THE SHARE BUTTON REACHES THE ROUTE (auto-bind) ----
+     Only the route's own issued links used to carry the signer binding, so a
+     contract sent through the ordinary Share dialog created an UNBOUND link —
+     the signature still landed on the right row, but the Signature-progress
+     panel (which reads the binding) kept saying "not sent yet" about a link
+     sitting in the signer's inbox. And a counterparty-FIRST route had no
+     auto-issue moment at all, so the dialog was the only door. Now: a signing
+     share addressed to an unsigned counterparty signer's own email is bound
+     to their row as though the route had issued it — one signer one link,
+     held for its turn, recorded where the panel looks. Earliest unsigned row
+     wins when one address appears twice on the route. */
+  if (purp === 'sign' && email && !((req.body || {}).signerId != null && String(req.body.signerId).trim())) {
+    const rt = signerRouteFor(shareId);
+    const match = rt && rt.plan
+      .filter(x => x && x.party === 'counterparty' && !x.signed
+        && String(x.email || '').trim().toLowerCase() === email)
+      .sort((a, b) => (a.order || 0) - (b.order || 0))[0];
+    if (match) req.body.signerId = match.id;
+  }
   /* ---- W7: BIND THE LINK TO ONE ROW OF THE SIGNING ROUTE ----
      A bound link belongs to one signer, opens only in that signer's turn, and
      is the row an incoming signature is recorded against. Validated against

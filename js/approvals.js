@@ -213,12 +213,22 @@ function signerLinkState(c, s){
   if(s.signed) return 'signed';
   if(s.party!=='counterparty') return 'internal';
   if(!(typeof API_MODE==='function' && API_MODE())) return 'unknown';
-  const links=((typeof cachedShares==='function'?cachedShares(c):[])||[])
-    .filter(x=>x && String(x.signerId||'')===String(s.id) && !x.revokedAt);
-  if(!links.length) return 'unsent';
-  if(links.some(x=>x.firstOpenedAt)) return 'opened';
-  if(links.some(x=>x.sentAt)) return 'sent';
-  return 'held';
+  const all=((typeof cachedShares==='function'?cachedShares(c):[])||[]).filter(x=>x&&!x.revokedAt);
+  const links=all.filter(x=>String(x.signerId||'')===String(s.id));
+  if(links.length){
+    if(links.some(x=>x.firstOpenedAt)) return 'opened';
+    if(links.some(x=>x.sentAt)) return 'sent';
+    return 'held';
+  }
+  /* Links from before auto-binding existed (and hand-shared ones) carry no
+     signer binding — but a live link addressed to this signer's own email is
+     still the contract reaching them, and the panel must credit it rather
+     than keep saying "not sent". An unbound share exists because somebody
+     pressed send, so its existence IS the sent moment. */
+  const em=String(s.email||'').trim().toLowerCase();
+  const loose=em?all.filter(x=>!x.signerId && String(x.recipientEmail||'').trim().toLowerCase()===em):[];
+  if(loose.length) return loose.some(x=>x.firstOpenedAt)?'opened':'sent';
+  return 'unsent';
 }
 function nextSigner(c){ return signerPlan(c).slice().sort((a,b)=>a.order-b.order).find(s=>!s.signed)||null; }
 function allSigned(c){ const p=signerPlan(c); return p.length>0 && p.every(s=>s.signed); }
@@ -441,6 +451,9 @@ function approvalPanelHtml(c){
                 ${badge}
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
+              ${(!s.signed&&s.party==='counterparty'&&ls==='unsent'&&!gated&&canEdit())
+                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">Email their signing link</button>`
+                : ''}
             </div></div>`; }).join('')}
       </div>
     </div>`;
@@ -474,6 +487,31 @@ function wireApprovalPanel(c){
     resubmitApproval(c, String(note||'').trim()||null);
   });
   document.getElementById('sp-edit')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  /* The NOT-SENT row's own send: issue the route's bound links right here, so
+     a counterparty-first route (which has no auto-issue moment) has a correct
+     door — and the panel's call to action does the thing it names. */
+  document.querySelectorAll('[data-sp-send]').forEach(b=>b.addEventListener('click',async()=>{
+    b.disabled=true; b.textContent='Sending…';
+    let out=null;
+    try{ out=window.issueSigningRouteLinks?await issueSigningRouteLinks(c):null; }catch(e){ out=null; }
+    if(out&&out.links){
+      const first=out.links.find(x=>!x.heldForTurn);
+      toast(first&&first.emailSent
+        ? `${first.signer.name} has been emailed their signing link`
+        : first
+        ? `Signing link ready for ${first.signer.name}${first.emailConfigured===false?' — email is not configured, copy it from the Shares panel':''}`
+        : 'Signing links issued — each is released when its turn arrives');
+    } else if(out&&out.missingEmails){
+      toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it via edit route`,'err');
+    } else {
+      toast('Could not issue the signing links — check the route and try again','err');
+    }
+    try{
+      if(typeof renderSignButton==='function') renderSignButton(c);
+      if(typeof renderAuditSection==='function') renderAuditSection(c);
+      if(typeof renderSharesSection==='function') renderSharesSection(c);
+    }catch(_){}
+  }));
 }
 
 /* ---- engagement timeline (E5-T4): show share-link opens ---- */

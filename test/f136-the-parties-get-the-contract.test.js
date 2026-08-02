@@ -232,4 +232,91 @@ describe('the signer row reports sent → opened → signed, not route order', (
     assert.match(html, /typed signature/);
     assert.match(html, /1 of 2 signed/);
   });
+
+  /* ---- the field bug's second half: the dialog's link carried no binding ---- */
+
+  test('FIELD BUG: an UNBOUND link addressed to the signer\'s own email still counts as sent', () => {
+    // The Share dialog created links with no signer binding; the panel looked
+    // only in the signer's pigeonhole and kept saying "not sent yet" about a
+    // link sitting in their inbox.
+    const { html } = panel({ shares: [{ signerId: null, recipientEmail: 'y@x.com',
+      sentAt: '2026-08-02T10:00:00Z', firstOpenedAt: null, revokedAt: null }] });
+    assert.match(html, /contract sent — not opened yet/);
+    assert.ok(!/NOT SENT YET/.test(html));
+  });
+
+  test('an unbound link they opened reads as opened', () => {
+    const { html } = panel({ shares: [{ signerId: null, recipientEmail: 'Y@X.COM',
+      firstOpenedAt: '2026-08-02T11:00:00Z', revokedAt: null }] });
+    assert.match(html, /contract opened — awaiting their signature/, 'and the email match is case-insensitive');
+  });
+
+  test('an unbound link to somebody ELSE does not credit this signer', () => {
+    const { html } = panel({ shares: [{ signerId: null, recipientEmail: 'lawyer@elsewhere.com',
+      sentAt: '2026-08-02T10:00:00Z', revokedAt: null }] });
+    assert.match(html, /NOT SENT YET/);
+  });
+
+  test('the NOT SENT row carries its own send button; a sent row does not', () => {
+    const unsent = panel({ shares: [] });
+    assert.match(unsent.html, /data-sp-send="S1"/);
+    assert.match(unsent.html, /Email their signing link/);
+    const sent = panel({ shares: [{ signerId: 'S1', sentAt: '2026-08-02T10:00:00Z', revokedAt: null }] });
+    assert.ok(!/data-sp-send/.test(sent.html), 'no send button once their link is out');
+  });
+});
+
+/* ---- the fix at the source: the Share dialog's link binds to the route ---- */
+describe('a signing share addressed to a route signer is auto-bound to their row', () => {
+  const payloadFor = id => ({ kind: 'hati-share', purpose: 'sign', purposeChosen: 'sign',
+    org: 'Highland Corporate Ltd', sharedBy: 'Amina Otieno', at: new Date().toISOString(),
+    contract: { id, name: 'Routed Deal', docText: 'Article 1\n\nAgreed wording.' } });
+  const share = (id, email, extra = {}) => W.admin.json('/api/shares', { method: 'POST', body: {
+    payload: payloadFor(id), channel: 'email', recipient: { name: 'Young', email },
+    expiryDays: 30, durable: false, purpose: 'sign', ...extra } });
+
+  before(async () => {
+    /* Young's screenshot: counterparty FIRST, internal second — the route
+       shape that has no auto-issue moment, so the dialog is the only door. */
+    const c = { id: 'MK-R9', name: 'Routed Deal', counterparty: 'Nordfrakt',
+      folder: FOLDER_A, value: 1000000, valueType: 'standard', template: 'RM',
+      status: 'Under Review', format: 'text', redlineText: 'Article 1\n\nAgreed wording.',
+      fields: {}, metadata: {}, comments: [], obligations: [], rounds: [], versions: [],
+      audit: [], signatures: [],
+      signerPlan: [
+        { id: 'S1', order: 1, party: 'counterparty', name: 'Young (counterparty)', email: 'young@x.com', signed: false },
+        { id: 'S2', order: 2, party: 'internal', name: 'Young (internal)', email: 'admin@example.co.ke', signed: false },
+      ] };
+    await W.admin.json('/api/contracts/MK-R9', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+  });
+
+  test('the ordinary Share dialog send binds to the matching signer and the panel can see it', async () => {
+    resend.reset();
+    const r = await share('MK-R9', 'young@x.com');
+    assert.equal(r.signerId, 'S1', 'bound as though the route had issued it');
+    assert.equal(r.heldForTurn, false, 'counterparty-first: their turn is live');
+    assert.equal(r.emailSent, true, 'and their turn email went out');
+    const list = await W.admin.json('/api/contracts/MK-R9/shares');
+    const mine = list.shares.find(s => s.signerId === 'S1');
+    assert.ok(mine, 'the stored share carries the binding the panel reads');
+    assert.ok(mine.sentAt, 'with its sent moment recorded — the panel will say SENT, not NOT SENT YET');
+  });
+
+  test('sent twice, one signer still has one link', async () => {
+    const again = await share('MK-R9', 'young@x.com');
+    assert.equal(again.signerId, 'S1');
+    assert.equal(again.reused, true, 'the live bound link is refreshed in place, not duplicated');
+  });
+
+  test('a signing share to a stranger\'s email stays unbound', async () => {
+    const r = await share('MK-R9', 'outside.counsel@lawfirm.com');
+    assert.ok(!r.signerId, 'no route row matches — an ordinary share, exactly as before');
+  });
+
+  test('a non-sign share to the signer\'s email stays unbound too', async () => {
+    const r = await W.admin.json('/api/shares', { method: 'POST', body: {
+      payload: { ...payloadFor('MK-R9'), purpose: 'view' }, channel: 'email',
+      recipient: { name: 'Young', email: 'young@x.com' }, expiryDays: 30, durable: false, purpose: 'view' } });
+    assert.ok(!r.signerId, 'a reading copy is not a signing turn');
+  });
 });

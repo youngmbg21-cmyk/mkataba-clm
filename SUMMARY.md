@@ -4497,3 +4497,28 @@ gate text ("link opens once internal signing is complete") now applies by
 ORDER — the old any-internal-unsigned test mislabelled counterparty-first
 routes, which is exactly the route in Young's screenshot. The sign area
 repaints when the share cache fills so the truth lands without a reload.
+
+---
+
+# Run 13 — The Share button reaches the route (2026-08-02, Young's re-test)
+
+Follow-up to Run 12: Young sent the contract and the panel still said NOT
+SENT YET. Root cause: only the route's own issued links carried the signer
+binding the panel reads; the ordinary Share dialog created an UNBOUND link —
+the signature still landed correctly, but the panel looked in the signer's
+pigeonhole and found nothing. And a counterparty-FIRST route (Young's exact
+setup) has no auto-issue moment at all, so the dialog was the only door.
+Three fixes, suite 2361 → 2369:
+
+1. **Bind at the source.** POST /api/shares now auto-binds a signing share
+   addressed to an unsigned counterparty signer's own email to their route
+   row, exactly as though the route had issued it — one-signer-one-link reuse,
+   held-for-turn discipline, the turn email, the lot. Earliest unsigned row
+   wins on a duplicate address; non-sign shares and stranger emails stay
+   unbound.
+2. **Credit what's already out there.** signerLinkState falls back to unbound
+   live links whose recipient email matches the signer (case-insensitive) —
+   pre-fix links and hand-shared ones now read sent/opened instead of unsent.
+3. **The row can send.** The NOT SENT row carries its own "Email their
+   signing link" button wired to issueSigningRouteLinks — which finally gives
+   counterparty-first routes a correct, bound way to start.
