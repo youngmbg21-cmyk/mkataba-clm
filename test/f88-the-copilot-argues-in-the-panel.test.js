@@ -256,14 +256,6 @@ describe('F88c — an offset that survives the edit before it', () => {
     assert.equal(R.redlineRebaseOffset(BASE, BASE, 9999), BASE.length);
   });
 
-  test('the lab re-resolves at Apply rather than reusing what it opened with', () => {
-    const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'doclab.js'), 'utf8');
-    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-    assert.ok(/const live = labFor\(c\.id\)/.test(code),
-      'the record is re-read: `lab` in the closure is the one the panel opened with');
-    assert.ok(/redlineRebaseOffset\(first\.working, nowWorking, first\.at\)/.test(code),
-      'and the remembered offset is carried across whatever moved in between');
-  });
 });
 
 describe('F88d — discarding a draft nobody has seen', () => {
@@ -382,23 +374,29 @@ describe('F88e — the export is a Word file, not a picture of one', () => {
   });
 });
 
-describe('F88g — the rephrase action asks before it drafts', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'doclab.js'), 'utf8');
+/* Written against the workbench itself. These assertions were first made on the
+   Doc Lab sandbox, which is where the conversational action was tried before it
+   shipped; the lab is gone and the shipped list is RL_SEL_ACTIONS. */
+describe('F88g — the conversational action asks before it drafts', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+  const selBlock = () => src.slice(src.indexOf('const RL_SEL_ACTIONS'),
+    src.indexOf('function rlSelActions'));
 
   test('the button says what it does and nothing about a direction', () => {
-    assert.match(src, /label:'✨ Rephrase with Copilot'/,
+    const block = selBlock().replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(block, /label: '✨ Edit with Copilot'/,
       'the label the reader presses');
-    assert.ok(!/Rephrase for Buyer Advantage/.test(src.replace(/\/\*[\s\S]*?\*\//g, '')),
+    assert.ok(!/Rephrase for Buyer Advantage/.test(block),
       'and it no longer decides, on their behalf, that rephrase means favour my side');
   });
 
   test('it is marked as the conversational one, and carries the question it asks', () => {
-    const block = src.slice(src.indexOf('const LAB_AI_ACTIONS'), src.indexOf('function labActingParty'));
-    assert.match(block, /converse:true/);
-    assert.match(block, /greeting:'How would you like me to help rephrase this passage\?'/);
-    /* Shorten & Simplify stays immediate: it already carries an instruction, and
-       asking a person to retype what they just pressed is a step for nothing. */
-    assert.equal((block.match(/converse:true/g) || []).length, 1);
+    const block = selBlock().replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(block, /converse: true/);
+    assert.match(block, /greeting: 'What would you like to add or change here\?'/);
+    /* Simplify stays immediate: it already carries an instruction, and asking a
+       person to retype what they just pressed is a step for nothing. */
+    assert.equal((block.match(/converse: true/g) || []).length, 1);
   });
 
   /* The playbook holds category VERDICTS on a contract and no preferred wording
@@ -407,7 +405,7 @@ describe('F88g — the rephrase action asks before it drafts', () => {
      own house style back, wearing the playbook's authority. A reviewer who
      reads "aligned with playbook" on a redline stops checking it. */
   test('"Align with Corporate Playbook" is deleted from every selection menu', () => {
-    for (const rel of ['js/views/doclab.js', 'js/views/negotiation.js']){
+    for (const rel of ['js/views/negotiation.js']){
       const file = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
       const code = file.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       assert.ok(!/Align with Corporate Playbook/.test(code),
@@ -427,9 +425,9 @@ describe('F88g — the rephrase action asks before it drafts', () => {
 
   test('a conversational action seeds a session instead of asking a model', () => {
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-    assert.ok(/if\(action\.converse && window\.aiOpenRephraseSession\)\{/.test(code),
+    assert.ok(/if \(action\.converse && window\.aiOpenRephraseSession\)\{/.test(code),
       'the branch exists');
-    const branch = code.slice(code.indexOf('if(action.converse'));
+    const branch = code.slice(code.indexOf('if (action.converse'));
     assert.ok(branch.indexOf('return;') < branch.indexOf('propose(\'\')'),
       'and it returns before the direct-proposal path — nothing is spent until '
       + 'the reader has said what they want');
@@ -437,12 +435,11 @@ describe('F88g — the rephrase action asks before it drafts', () => {
 });
 
 describe('F88h — the drawer floats and nothing under it moves', () => {
-  const lab = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'doclab.js'), 'utf8');
   const shell = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const ai = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
 
   test('the drawer is a fixed, full-height, top-of-stack overlay', () => {
-    for (const [name, src] of [['doclab.js', lab], ['index.html', shell]]){
+    for (const [name, src] of [['index.html', shell]]){
       const rule = src.slice(src.indexOf('.docked{'), src.indexOf('.docked{') + 400);
       assert.match(rule, /position:\s*fixed/, `${name}: taken out of flow`);
       assert.match(rule, /top:\s*0/, name);
@@ -461,33 +458,14 @@ describe('F88h — the drawer floats and nothing under it moves', () => {
       'aiSyncDock may only CLEAR the shell offset, never set one');
     assert.ok(!/AI_DOCK_MIN_WIDTH/.test(code),
       'and the two-column fallback threshold is gone with the two-column mode');
-    assert.match(lab, /#app-shell\{right:0 !important\}/,
+    assert.match(shell, /#app-shell\{right:0!important;\}/,
       'with a rule on the page that would notice, so a reintroduced dock fails '
       + 'loudly rather than silently reflowing a contract');
   });
 });
 
-describe('F88f — the header collapses, and remembers', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'doclab.js'), 'utf8');
-
-  test('the three stacked banners are one bar with the class the spec names', () => {
-    assert.match(src, /doclab-status-header flex items-center justify-between p-3 bg-slate-50 border-b/);
-  });
-
-  test('the toggle and the preference are both there', () => {
-    assert.match(src, /id="toggle-header-btn"/);
-    assert.match(src, /const LAB_HEADER_KEY = 'doclab_header_collapsed'/);
-    const code = src.replace(/\/\*[\s\S]*?\*\//g, '');
-    assert.ok(/localStorage\.setItem\(LAB_HEADER_KEY, v \? 'true' : 'false'\)/.test(code),
-      'a preference that is not written is a preference the reader sets again every visit');
-  });
-
-  test('the mode chip is outside the part that collapses', () => {
-    /* "Internal sandbox drafting" against "published round" is the difference
-       between a note nobody has seen and a position that has left the building.
-       A reader must not have to expand anything to know which they are in. */
-    const head = src.slice(src.indexOf('function labStatusHeaderHtml'));
-    const row = head.slice(head.indexOf('doclab-status-row'), head.indexOf('doclab-status-detail'));
-    assert.match(row, /\$\{modeChip\}/);
-  });
-});
+/* F88f — the Doc Lab's collapsing status header — is retired with the lab. It
+   pinned the sandbox's own status strip (the 🔒 "Internal sandbox drafting"
+   chip, its collapse toggle and the preference behind it), and none of that
+   markup was ever adopted by the workbench, which states the round in its own
+   head card. There is nothing left for it to hold. */

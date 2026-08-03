@@ -371,7 +371,7 @@ const REG_ROW_ACTIONS=[
    stage actually calls for: a contract in review is opened to be argued over,
    an executed one is opened to be read. The destination is the engine's own
    workspace either way, so nothing here routes anywhere the ⋯ menu could not
-   — which is also why the labels must not name surfaces ("Vault", "DocLab")
+   — which is also why the labels must not name surfaces ("Vault", "Doc Lab")
    that the platform no longer has. */
 /* THE TITLE COLUMN IS THE TITLE, not the party.
    Everywhere else in HaTi a contract is headed by the OTHER SIDE — cPrimary

@@ -32,9 +32,6 @@ import './dedupe.js';
 import './family.js';
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
-// the sandbox beside the Doc page: internal-vs-shared tried on a page that
-// cannot write to a contract or reach a share payload (see views/doclab.js)
-import './views/doclab.js';
 import './pdfrich.js';
 import './views/intelligence.js';
 import './ai.js';
@@ -54,12 +51,12 @@ import './views/migration.js';
 
 /* ============================================================ NAV */
 /* WO N1 — one door per thing. Views that live INSIDE a contract (the
-   workspace, the negotiation workbench, the doc lab) and flows that feed the
-   register (a folder, the bulk import) light "Contracts", so the sidebar
-   never points at a door that no longer exists; the playbook page lights
+   workspace, the negotiation workbench) and flows that feed the register
+   (a folder, the bulk import) light "Contracts", so the sidebar never
+   points at a door that no longer exists; the playbook page lights
    "Templates", where it now lives as "Our standards". */
 const NAV_HOME_FOR={ folder:'register', workspace:'register', redline:'register',
-  doclab:'register', migration:'register', playbook:'templates' };
+  migration:'register', playbook:'templates' };
 function setActiveNav(view){
   const navFor = NAV_HOME_FOR[view] || view;
   document.querySelectorAll('.nav-item').forEach(b=>{
@@ -108,10 +105,6 @@ function commandMeta(view){
       const c=getContract(state.activeId);
       return ['Contract Workspace', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
     }
-    case 'doclab': {
-      const c=getContract(state.activeId);
-      return ['Doc Lab (sandbox)', c?`${c.id} · trying internal vs shared — nothing here is saved to the contract`:'open a contract from the register'];
-    }
     case 'redline': {
       const c=getContract(state.activeId);
       return ['Negotiate', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
@@ -153,11 +146,10 @@ function pageActionHtml(kind){
      redline    the workbench's own head card names the contract and the round,
                 and carries the view toggle, Accept All and Publish Round
      workspace  the contract page leads with the contract's own name
-     doclab     the lab's status strip does the same for the sandbox
 
    Everything else is a list or a tool with no name of its own, and says who it
    is here. */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'doclab', 'templates'];
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates'];
 function renderPageHeader(view){
   const host=document.getElementById('page-head'); if(!host) return;
   if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
@@ -216,8 +208,8 @@ function updateSidebarCounts(){
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
-  /* The "AI Active" and "N Open" nav tags left with the DocLab and Redline
-     sidebar doors (WO N1): a negotiation waiting on the reader is announced
+  /* The "AI Active" and "N Open" nav tags left with the sidebar doors they
+     sat on (WO N1): a negotiation waiting on the reader is announced
      on the contract itself — the Negotiate tab's count — and on Home's
      needs-attention surfaces, which is where the reader actually is. */
   /* WO N5 — earned nav. An item below its threshold is hidden, not greyed:
@@ -244,7 +236,7 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Our standards',
-  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
+  team:'Team & settings', workspace:'the contract workspace',
   redline:'the negotiation workbench' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
@@ -333,7 +325,6 @@ function setView(view){
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
-    else if(view==='doclab') renderDocLab();
     else if(view==='redline') renderRedline();
     else renderWorkspace();
   }catch(e){

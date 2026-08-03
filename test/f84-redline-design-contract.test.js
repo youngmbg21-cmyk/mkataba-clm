@@ -20,12 +20,11 @@
      · the grid is twelve real columns at 6/3/3, folding to 8/4;
      · the header's three actions press the engine's controls rather than
        lookalikes, and disable themselves when the engine has nothing to press;
-     · the clause toolbar files against the CONTRACT, not the Doc Lab sandbox.
+     · the clause toolbar files against the CONTRACT.
 
    The last one is the one worth having. AI Assist / Add Note/Tag / Direct Edit
-   exist in js/views/doclab.js too, look identical, and write to hati.lab.v1 —
-   a store that by design cannot reach a contract. Wired onto this page they
-   would appear to work and file nothing. */
+   must write to the contract record itself: a lookalike toolbar wired to any
+   other store would appear to work and file nothing. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
@@ -507,7 +506,10 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
       'Direct Edit must carry the attribute wireNegotiationTab binds the propose dialog to');
   });
 
-  test('nothing on this page reaches for the Doc Lab\'s sandbox store', async () => {
+  /* The sandbox this guards against is gone — the lab was deleted once the
+     internal wall shipped — but the guard stays: it is cheap, and it is the one
+     thing that would make this page appear to work while filing nothing. */
+  test('nothing on this page reaches for a sandbox store', async () => {
     const p = await page();
     const raw = require('node:fs').readFileSync(
       require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');

@@ -4468,9 +4468,7 @@ function wireNegotiationTab(c, opts = {}){
        just opened. The menu was removed by the gesture that asked for it.
 
        So the gesture is read first: pressing a button, a link or a field is
-       somebody operating the page, not selecting words in it. The Doc Lab hit
-       this and fixed it the same way (see fromControl in js/views/doclab.js);
-       this is that fix on the engine the workbench actually files through. */
+       somebody operating the page, not selecting words in it. */
     const fromControl = t => !!(t && t.closest && t.closest(
       '.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, ' +
       '[data-nego-editor], button, a, input, textarea, select'));
@@ -7264,8 +7262,8 @@ function rlSetSideMode(mode){
   return m;
 }
 /* The old fold's name, kept as the compatibility surface: the master design
-   and the Doc Lab both call rlToggleDiscussion by name (see f90 — the lab
-   WRAPS this binding and delegates back when the workbench owns the page).
+   calls rlToggleDiscussion by name from an `onclick=` attribute, so the NAME
+   is part of the contract this page is held to.
    force=true meant "discussion off", which is now the Tracked Changes mode;
    force=false meant "discussion on", now the Discussion mode. The return
    value keeps the old contract: true = discussion is not showing. */

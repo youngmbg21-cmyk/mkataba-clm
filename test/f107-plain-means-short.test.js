@@ -277,7 +277,7 @@ describe('F107e — it reaches the model, and it is not frozen at load', () => {
        strict one: outside its own declaration and the export list, a mention
        must be a call. */
     const NAMES = ['AI_PROPOSAL_FORMAT', 'AI_EDIT_FORMAT', 'AI_ADVICE_FIELD'];
-    for (const f of ['js/ai.js', 'js/views/negotiation.js', 'js/views/doclab.js']){
+    for (const f of ['js/ai.js', 'js/views/negotiation.js']){
       const src = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       for (const name of NAMES){
         for (let i = src.indexOf(name); i !== -1; i = src.indexOf(name, i + 1)){
