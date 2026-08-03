@@ -421,6 +421,15 @@ describe('F89 (3b) — a refusal names the actual problem, read off the selectio
 });
 
 describe('F89 (5) — three actions on a passage, and only three', () => {
+  test('Compare to our standard carries this workspace\u2019s own positions', async () => {
+    const p = await page();
+    const a = p.win.rlStandardAction(p.c);
+    assert.match(a.ask, /MATCHES, DEVIATES, or is NOT COVERED/,
+      'the action has to ask for a verdict, not for a rewrite');
+    assert.ok(a.ask.length > 120,
+      'and it has to carry the standard it is measuring against, or the model invents one');
+  });
+
   test('the menu is exactly the standardised set', async () => {
     const p = await page();
     const ids = p.win.RL_SEL_ACTIONS.map(a => a.id);
@@ -429,13 +438,19 @@ describe('F89 (5) — three actions on a passage, and only three', () => {
        fourth door beside it — two entries that read the same to anyone moving
        at speed is the duplicate-door problem this page already argued out. */
     assert.equal(ids.length, 3, 'three verbs, no more');
-    assert.equal(ids.join(','), 'edit,shorten,tag');
+    assert.equal(ids.join(','), 'edit,shorten,standard');
     const labels = p.win.RL_SEL_ACTIONS.map(a => a.label);
     assert.match(labels[0], /Edit with Copilot/);
+    /* "Tag with internal note" was the third and is now "Compare to our
+       standard": a private remark about a fragment answered nobody in the next
+       round, and the question a negotiator actually has with wording
+       highlighted is whether it matches what this workspace accepts. */
+    assert.match(labels[2], /Compare to our standard/);
+    assert.ok(!labels.some(l => /internal note|Tag/i.test(l)),
+      'the tag action is gone from the menu, not merely renamed around');
     assert.ok(!labels.some(l => /Rephrase/.test(l)),
       'and "rephrase" is gone from the menu — it named half the job');
     assert.match(labels[1], /Shorten & Simplify/);
-    assert.match(labels[2], /Tag with internal note/);
   });
 
   test('the rendered menu offers those and nothing else', async () => {
@@ -447,30 +462,7 @@ describe('F89 (5) — three actions on a passage, and only three', () => {
       'the playbook cannot draft, so it must not appear to');
   });
 
-  test('Tag posts into the Discussion thread, with internal pressed', async () => {
-    const p = await page();
-    p.win.rlSetSideMode('changes');                 // the composer is display:none
-    const ch = p.win.negoChanges(p.c)[0];
-    const ok = p.win.rlTagInternalNote({ c: p.c, clauseId: ch.clauseId, text: 'thirty (30) days' });
-    assert.equal(ok, true);
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc',
-      'focusing an input inside a hidden panel silently does nothing');
-    const input = p.$('#nego-ti-' + ch.id);
-    assert.ok(input, 'it must aim at the Discussion column\'s own composer');
-    assert.match(input.value, /thirty \(30\) days/, 'the selected wording is quoted into the note');
-    const pressed = p.$$(`[data-nego-vis][data-for="${ch.id}"]`)
-      .filter(b => b.getAttribute('aria-pressed') === 'true')
-      .map(b => b.getAttribute('data-nego-vis'));
-    assert.deepEqual(pressed, ['internal'],
-      'a note tagged from the document is internal by name — leaving it shared is how a private remark travels');
-  });
 
-  test('a clause with nothing on the table says so rather than filing a change', async () => {
-    const p = await page({ theirChange: false });
-    const cl = p.win.negoClauseList(p.c)[0];
-    assert.equal(p.win.rlTagInternalNote({ c: p.c, clauseId: cl.clauseId, text: 'anything' }), false);
-    assert.match(p.w.toastText(), /Propose an edit/);
-  });
 });
 
 describe('F89 (6) — the document that was uploaded is the document that is drawn', () => {

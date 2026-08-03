@@ -96,8 +96,13 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
       assert.ok(v.$(`[data-sent="${f.id}"]`), 'and the card says the answer has gone');
       assert.match(v.$(`[data-nego-card="${f.id}"]`).textContent, /Accepted/,
         'with the answer itself on it');
-      assert.ok(v.$(`[data-rl-change="${f.id}"]`),
-        'talking about it is always allowed — the note tool still names the change');
+      /* The note shortcut that used to carry data-rl-change is gone (Young,
+         03 Aug 2026). Talking about a decided change is still allowed, and the
+         Discussion column now offers a starter per change rather than one
+         borrowed composer — which is what that shortcut used to re-aim. */
+      if (v.win.rlSetSideMode) v.win.rlSetSideMode('disc');
+      assert.ok(v.$(`#nego-ti-${f.id}`) || v.$(`[data-nego-send="${f.id}"]`),
+        'talking about it is always allowed');
     }
     assert.equal(v.$('#nego-send-decisions'), null, 'with nothing left waiting to go');
   });
@@ -141,7 +146,9 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
     const theirVerbs = verbsOn(v.win.document, filed[0].id);
     assert.ok(!theirVerbs.includes('accept') && !theirVerbs.includes('reject'),
       'no verdict is offered on a change that already has one: ' + theirVerbs.join(', '));
-    assert.ok(v.$(`[data-rl-change="${filed[0].id}"]`), 'and they can still talk about it');
+    if (v.win.rlSetSideMode) v.win.rlSetSideMode('disc');
+    assert.ok(v.$(`#nego-ti-${filed[0].id}`) || v.$(`[data-nego-send="${filed[0].id}"]`),
+      'and they can still talk about it');
   });
 });
 

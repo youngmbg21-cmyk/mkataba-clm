@@ -328,7 +328,7 @@ describe('F97c — the menu renamed rather than grew a fourth door', () => {
   test('the action is Edit, it offers placements, and rephrase is gone', async () => {
     const p = await page();
     const ids = p.win.RL_SEL_ACTIONS.map(a => a.id);
-    assert.equal(ids.join(','), 'edit,shorten,tag', 'still three verbs');
+    assert.equal(ids.join(','), 'edit,shorten,standard', 'still three verbs');
     assert.match(p.action.label, /Edit with Copilot/);
     assert.equal(p.action.placements, true);
     /* The sparkle stays: Direct Edit on the clause toolbar already wears a

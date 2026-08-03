@@ -453,7 +453,7 @@ function negoTimeline(c, f = {}){
     ev.push({ ...base, kind: 'proposed', at: ch.createdAt || ch.at || '', actor: ch.author || '',
       side: ch.authorSide || '', outcome: ch.status === 'pending' && !ch.withdrawn ? 'pending' : '',
       text: `${ch.author || 'Someone'} (${sideWord}) proposed #${ch.id} — ${ch.summary || ch.changeType}`,
-      note: ch.note || null, ch });
+      note: ch.why || ch.note || null, ch });
     if (ch.status === 'accepted' || ch.status === 'rejected')
       ev.push({ ...base, kind: 'decided', at: ch.resolvedAt || ch.createdAt || '',
         actor: ch.resolvedBy || '', side: otherSide(ch.authorSide), outcome: ch.status,
@@ -1015,6 +1015,15 @@ async function negoFileChange(c, draft, opts = {}){
     clauseLabel: draft.clauseLabel || negoClauseLabel(cl) || null,
     summary: String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText),
     note: opts.note || null,
+    /* WHY THE ASKER ASKED, IN THEIR OWN WORDS — and deliberately not `note`.
+       `note` is provenance: "Copilot — Shorten & Simplify", written by the
+       tool that produced the wording, and it is an internal aside that has
+       never crossed the table (f143 holds that line). A reason is the opposite
+       kind of thing: a person explaining what they wanted, written to be read
+       by the other side. Putting them in one field would either leak which
+       clauses a model drafted or silence the reasons — one field cannot mean
+       both. */
+    why: String(opts.why || '').trim() || null,
     thread: [],
     needsReview: !!draft.needsReview,
     needsReviewWhy: draft.needsReviewWhy || null,

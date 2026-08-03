@@ -97,7 +97,10 @@ async function table(){
       const box = cl.querySelector('[data-nego-editor]');
       assert.ok(box, 'the inline editor must open on the clause itself');
       box.innerHTML = newHtml;
-      cl.querySelector('[data-nego-save]').click();
+      /* Two steps: wording, then why. Skipped here — this simulation is about
+         the rounds, not the reasons. */
+      cl.querySelector('[data-nego-next]').click();
+      (cl.querySelector('[data-nego-skip]') || cl.querySelector('[data-nego-save]')).click();
       await new Promise(r => setTimeout(r, 25));
     },
     async pause(ms = 25){ return new Promise(r => setTimeout(r, ms)); } };
@@ -192,12 +195,15 @@ describe('F92 — the six-round negotiation, end to end', () => {
     const storage = win.negoChanges(c).find(x => _liveOf(win, c, 'owner').includes(x.id));
     function _liveOf(w2, c2, side){ return w2.negoUnsentAsks(c2, side).map(x => x.id); }
     assert.ok(storage, 'the new ask is a draft of ours');
-    assert.equal(win.rlTagInternalNote({ c, clauseId: storage.clauseId, text: 'ninety (90) days' }), true,
-      'G3: tagging must work on whichever change the note is about');
-    const input = t.doc.getElementById('nego-ti-' + storage.id);
-    assert.ok(input, 'G3: the composer is aimed at the nominated change');
-    input.value = 'Floor is 90 days — walk if they push past 100.';
-    t.$(`[data-nego-send="${storage.id}"]`).click();
+    /* THE TAG SHORTCUT IS GONE (Young, 03 Aug 2026) — the two buttons that
+       opened the Discussion composer pre-set to internal were removed, because
+       a reason for a change now travels ON the change where the other side can
+       read it, and a private remark about a fragment answered nobody in the
+       next round. Internal notes themselves are untouched: the Discussion
+       panel still writes them, and this asserts the thing that always
+       mattered — that one filed internal stays internal and stays home. */
+    win.negoPostComment(c, storage.id, 'Floor is 90 days — walk if they push past 100.',
+      { side: 'owner', visibility: 'internal' });
     await t.pause();
     const noteMsg = (win.negoChanges(c).find(x => x.id === storage.id).thread || [])[0];
     assert.equal(noteMsg.visibility, 'internal', 'the tagged note filed internal');

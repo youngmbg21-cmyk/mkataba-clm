@@ -698,6 +698,12 @@ function negoStyleHtml(){
      on its own, and overflow-wrap:anywhere handles the case it will not break
      by itself — a pasted reference or URL with no spaces in it. */
   .nego-reason{display:block;margin-top:8px}
+  .nego-reason.hidden,.nego-fmt-bar.hidden{display:none}
+  /* Step two: the wording is still there and still exactly where it was, but it
+     is being read rather than typed in — so it loses the caret ring and stops
+     looking like an open field. */
+  .nego-editing.is-review{outline:1px solid var(--n-line);background:var(--n-well,#f8fafc);
+    cursor:default}
   .nego-reason>span{display:block;font-size:10px;font-weight:700;letter-spacing:.04em;
     text-transform:uppercase;color:var(--n-ink-soft);margin-bottom:3px}
   .nego-reason textarea{display:block;box-sizing:border-box;width:100%;max-width:100%;
@@ -1970,9 +1976,9 @@ function negoLiveCardsHtml(c, opts){
                 you says nothing at all. It is a pill in the top row now, and the
                 card carries an edge. */}
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
-        ${ch.note ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
+        ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
           <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
-          <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
+          <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
@@ -2089,9 +2095,9 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
-    ${ch.note ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
+    ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
       <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
-      <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
+      <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
     ${msgs.length ? `<div class="nego-past-thread">
@@ -4208,34 +4214,76 @@ function wireNegotiationTab(c, opts = {}){
       ev.preventDefault(); ev.stopPropagation();
       try{ document.execCommand(fb.getAttribute('data-nego-fmt')); }catch(_){ /* an engine without execCommand still has the keyboard */ }
     }));
-    /* The reason, between the wording and the buttons — while the wording is
-       still being chosen, which is when a reason is a reason rather than a
-       formality typed at the door. Optional, deliberately: this component is
-       also mounted on a page with no login, and a required box there collects
-       a full stop. */
+    /* ---- SAVE IS TWO STEPS, IN THE SAME BOX ----
+       A reason sitting under the wording as one more optional field is a field
+       people scroll past, and the record ends up full of changes nobody can
+       explain a round later. So Save leads INTO the question instead: step one
+       is the wording, step two asks why, and the change is not filed until one
+       of them is answered or skipped. Nothing is ever recorded without the
+       question having been put.
+
+       In the box rather than over it, deliberately. A dialog per redline is
+       unmissable and it is also six dialogs in a six-clause pass — which is
+       the moment somebody starts typing a full stop to get through it, and a
+       full stop in the record is worse than a blank because it reads as an
+       answer. Nothing covers the contract, nothing moves, and the shaded
+       clause keeps its width (asserted in test/chromium/live-verify.js).
+
+       SKIPPABLE, ON PURPOSE. The question is unavoidable; the answer is not.
+       Skip is a visible button, so a blank reason means somebody decided
+       against giving one — and on the counterparty's page there is no login
+       and no support desk, where a required box collects punctuation. */
     const why = document.createElement('label');
-    why.className = 'nego-reason';
-    why.innerHTML = `<span>Why? &mdash; shown beside this change (optional)</span>`
+    why.className = 'nego-reason hidden';
+    why.innerHTML = `<span>Why this change? &mdash; the other side sees it beside the redline</span>`
       + `<textarea data-nego-reason="${_ne(clauseId)}" rows="2" wrap="soft" spellcheck="true"`
       + ` placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment."></textarea>`;
     holder.after(why);
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
-    bar.innerHTML = `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
+    const step1 = `<button class="b-save" data-nego-next="${_ne(clauseId)}">Save change &rarr;</button>`
       + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button>`;
+    const step2 = `<button class="b-save" data-nego-save="${_ne(clauseId)}">File change</button>`
+      + `<button class="b-cancel" data-nego-skip="${_ne(clauseId)}">Skip &mdash; file without a reason</button>`
+      + `<button class="b-cancel" data-nego-back="${_ne(clauseId)}">&larr; Back to wording</button>`;
+    bar.innerHTML = step1;
     why.after(bar);
-    /* The wording keeps the focus: the reason is the second thing somebody
-       writes, and stealing the caret into it would be the editor arguing with
-       the person who just pressed Change. */
     if (holder.focus) holder.focus();
-    bar.querySelector('[data-nego-cancel]').addEventListener('click', ev => { ev.stopPropagation(); again(); });
-    bar.querySelector('[data-nego-save]').addEventListener('click', ev => {
-      ev.stopPropagation();
+
+    const file = () => {
       const note = String((why.querySelector('textarea') || {}).value || '').trim();
       fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML,
-        { side, author: opts.by, note: note || undefined }),
+        { side, author: opts.by, why: note || undefined }),
         ch => `#${ch.id} filed — ${ch.summary}`);
-    });
+    };
+    const wire = () => {
+      bar.querySelector('[data-nego-cancel]')?.addEventListener('click', ev => { ev.stopPropagation(); again(); });
+      bar.querySelector('[data-nego-back]')?.addEventListener('click', ev => { ev.stopPropagation(); toStep(1); });
+      bar.querySelector('[data-nego-skip]')?.addEventListener('click', ev => {
+        ev.stopPropagation();
+        /* Skip means file with no reason, not file with whatever half-sentence
+           is sitting in the box. */
+        const t = why.querySelector('textarea'); if (t) t.value = '';
+        file();
+      });
+      bar.querySelector('[data-nego-save]')?.addEventListener('click', ev => { ev.stopPropagation(); file(); });
+      bar.querySelector('[data-nego-next]')?.addEventListener('click', ev => { ev.stopPropagation(); toStep(2); });
+    };
+    const toStep = n => {
+      const two = n === 2;
+      /* The wording stays in the DOM on step two rather than being torn down
+         and rebuilt: Back has to return the reader to what they typed, not to
+         what the clause said before they started. */
+      holder.setAttribute('contenteditable', two ? 'false' : 'true');
+      holder.classList.toggle('is-review', two);
+      fmt.classList.toggle('hidden', two);
+      why.classList.toggle('hidden', !two);
+      bar.innerHTML = two ? step2 : step1;
+      wire();
+      const t = why.querySelector('textarea');
+      if (two && t) t.focus(); else if (holder.focus) holder.focus();
+    };
+    wire();
   }));
 
   host.querySelectorAll('[data-nego-del]').forEach(b => b.addEventListener('click', async e => {
@@ -5419,7 +5467,10 @@ function redlineLayoutCss(){
     color:var(--color-neutral-600)}
   .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
-  .redline-page .rl-starter-note{margin:7px 0 0;font-size:10px;line-height:1.5;color:var(--color-neutral-500)}
+  .redline-page .rl-starter-head{font-family:var(--n-font-mono,ui-monospace);font-size:10px;font-weight:700;
+    letter-spacing:.04em;color:var(--n-ink-soft);margin-bottom:5px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .rl-starter-note{margin:7px 0 0;font-size:10px;line-height:1.5;color:var(--color-neutral-500)}
   /* ---- TWO PANES AND A HANDLE ----
      The twelve-column deal is gone: the document takes the left pane (two
      thirds by default, the Doc tab's own split) and everything else lives in
@@ -6296,8 +6347,50 @@ const RL_SEL_ACTIONS = [
      offering the field would only invite the model to use it. */
   { id: 'shorten', label: '✂️ Shorten & Simplify', noteLabel: 'Shorten & Simplify',
     ask: 'Rewrite this contract wording more concisely and in plainer language, without changing its legal effect. Keep defined terms exactly as they are.' },
-  { id: 'tag', label: '🏷️ Tag with internal note', tag: true }
+  /* ---------- "TAG WITH INTERNAL NOTE" IS GONE, AND THIS TOOK ITS PLACE ----------
+     Tagging opened the Discussion panel with the visibility switch pressed to
+     internal and the passage quoted — a private remark about a fragment. It
+     went for two reasons. It needed a change to exist on the clause first, so
+     the commonest moment to want it (reading wording nobody has touched yet)
+     was the one moment it refused. And a reason for a change now belongs on
+     the change itself, asked for when the change is filed, where the other
+     side can read it — a private note about wording is the version of that
+     nobody else ever sees.
+
+     What replaces it answers the question a negotiator actually has with a
+     clause highlighted, and it is not "let me write that down": it is "is this
+     normal?". The workspace already keeps the answer — the playbook's standard
+     positions and the clause library's preferred wording — and until now the
+     only way to consult it was Review vs Playbook, which reads the WHOLE
+     document. This is that check, aimed at the words in front of you. */
+  { id: 'standard', label: '⚖️ Compare to our standard', noteLabel: 'Compare to our standard',
+    standard: true }
 ];
+/* Built at click time rather than declared above, because the standard is a
+   property of THIS contract — its playbook key decides which positions apply —
+   and the constant has no contract in scope. */
+function rlStandardAction(c){
+  const lines = (() => {
+    try{
+      if (typeof resolvePlaybook !== 'function' || typeof playbookKeyFor !== 'function') return '';
+      const pb = resolvePlaybook(playbookKeyFor(c));
+      const pos = (pb.positions || []).map(p => {
+        const cl = p.clause && typeof clauseById === 'function' ? clauseById(p.clause) : null;
+        const pref = cl && cl.preferred ? `: our wording is “${String(cl.preferred).slice(0, 240)}”` : '';
+        return `- ${p.category}${pref || (p.note ? `: ${p.note}` : '')}`;
+      });
+      const rng = (pb.ranges || []).map(r =>
+        `- ${r.label}: ${[r.op, r.value].filter(x => x != null).join(' ')}`.trim());
+      return [...pos, ...rng].filter(Boolean).join('\n');
+    }catch(_){ return ''; }
+  })();
+  return { id: 'standard', noteLabel: 'Compare to our standard',
+    ask: `Measure this passage against the workspace's own standard positions below. Say plainly whether it MATCHES, DEVIATES, or is NOT COVERED — name the position you measured against and quote the words that decide it.
+
+${lines || 'No standard positions are recorded for this workspace. Say exactly that rather than inventing a standard to measure against.'}
+
+If it deviates, propose the standard wording for this passage. If it already matches, say so and return the passage unchanged rather than rewriting wording that is already right.` };
+}
 function rlSelActions(){ return RL_SEL_ACTIONS.slice(); }
 /* What the change record says it did. A change card carries this note to the
    other side, and "Copilot — Edit" over a clause that grew three sub-paragraphs
@@ -6347,7 +6440,7 @@ function rlSelMenu(ctx){
     const action = actions.find(a => a.id === b.getAttribute('data-nego-ai'));
     _negoKillSelMenu();
     if (!action) return;
-    if (action.tag){ rlTagInternalNote(ctx); return; }
+    if (action.standard){ rlAiPropose({ ...ctx, action: rlStandardAction(ctx.c) }); return; }
     rlAiPropose({ ...ctx, action });
   }));
   return menu;
@@ -6699,108 +6792,6 @@ async function rlAiPropose(ctx){
    the clause has none yet this says so rather than filing an empty change to
    hang a note on — a fingerprint nobody proposed is worse than a message that
    explains itself. */
-function rlTagInternalNote(ctx){
-  const { c, clauseId } = ctx;
-  const quote = String(ctx.text || '').trim();
-  const changes = (typeof negoChanges === 'function') ? negoChanges(c) : [];
-  const changeId = ctx.changeId
-    || (changes.find(x => x.clauseId === clauseId && _rlIsLive(x))
-      || changes.find(x => x.clauseId === clauseId && x.status !== 'superseded') || {}).id;
-  if (!changeId){
-    if (window.toast) toast('Propose an edit on this clause first — a note attaches to a change', 'err');
-    return false;
-  }
-  /* Switching the sidebar to Discussion first: the composer lives in that
-     panel, and focusing an input inside a display:none panel silently does
-     nothing. rlSetSideMode paints every mounted root — the page and any
-     embed alike — so one call covers both. */
-  const unfold = () => rlSetSideMode('disc');
-  unfold();
-  /* THE COMPOSER MAY BE AIMED AT A DIFFERENT CHANGE. A change with no thread
-     yet has no reply box of its own — the column's one starter serves the
-     first silent change, and this note may be about the third. Found during
-     the six-round simulation: tagging a note on any silent change that was
-     not silent[0] found no input and silently did nothing. So the change is
-     NOMINATED and the column repainted; the starter honours the nomination
-     (see redlineDiscussionHtml) and the input exists by the time it is
-     focused below. */
-  if (!document.getElementById('nego-ti-' + changeId)){
-    _rlStarterFor = changeId;
-    if (typeof ctx.rerender === 'function') ctx.rerender(); else renderRedline();
-    unfold();
-  }
-  /* Internal, pressed for them. The visibility switch defaults to shared on a
-     reply, and a note tagged from the document is by name an internal one —
-     leaving the reader to notice and flip it is how a private remark reaches
-     the counterparty. */
-  document.querySelectorAll(`[data-nego-vis][data-for="${_nea(changeId)}"]`).forEach(b =>
-    b.setAttribute('aria-pressed', String(b.getAttribute('data-nego-vis') === 'internal')));
-  const input = document.getElementById('nego-ti-' + changeId);
-  if (!input) return false;
-  if (quote && !input.value)
-    input.value = `“${quote.length > 90 ? quote.slice(0, 89) + '…' : quote}” — `;
-  if (input.scrollIntoView) input.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  if (input.focus) input.focus();
-  if (input.setSelectionRange) { try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {} }
-  return true;
-}
-
-/* ---------- THE CLAUSE AND ITS CARD ARE ONE THING SHOWN TWICE ----------
-   Two columns showing the same change, and until now neither knew about the
-   other: clicking a clause lit nothing in the index, and clicking a card lit
-   nothing in the document. On a contract with a dozen asks that meant reading
-   a card, scrolling the document by eye to find which clause it was about, and
-   losing your place in the column doing it — twice, because the way back was
-   the same search in reverse.
-
-   So both ends light together, and whichever one was NOT clicked is scrolled
-   to. Scrolling the one that was clicked would yank the thing under the
-   reader's pointer out from under it: they can already see that one, it is
-   what they just pressed.
-
-   The engine's own negoFocus is not used here and cannot be: it finds panes by
-   the `nb-`/`nw-` ids the two-pane comparison mints, and this page draws one
-   document with `data-nego-card-anchor` instead. Calling it would silently do
-   nothing, which is what it did. */
-/* ---------- WHEN A CARD IS OPEN, AND WHEN IT IS A LINE ----------
-   The card used to carry the redline itself, which put the changed wording on
-   the screen twice: once in the document pane the reader is looking at, and
-   again in a two-line clamp beside it. The clamp was the lesser copy — cut
-   mid-sentence, no surrounding clause, no way to act on it — and a column of
-   them made six asks look like six paragraphs.
-
-   So the card is a HANDLE now: who asked, on what, where it stands, and the
-   verbs. The wording lives in exactly one place, and clicking the card takes
-   you there (rlLinkFocus, unchanged).
-
-   OPEN WHILE IT NEEDS YOU, A LINE WHEN IT DOES NOT. That is the whole rule,
-   and it falls out of the record rather than being set anywhere:
-
-     · your unsent draft      — open. It has verbs you are about to press.
-     · their pending ask      — open. Accept and Reject have to be in reach.
-     · your sent ask          — collapsed. The next move is theirs.
-     · anything decided       — collapsed. It is history until you reopen it.
-
-   A reader can always overrule it by pressing the card, and that choice is
-   remembered for the session — including collapsing something the rule would
-   open, because a reader working through a long column knows which ones they
-   have finished with better than the rule does. */
-/* ---- A CHOICE ABOUT A CARD IN A STATE, NOT ABOUT A CARD FOREVER ----
-   This was a pair of id Sets, and remembering an id forever was the bug: press
-   a sent card to check it went — the most natural move there is, right after
-   sending — and it never folded again, through every later state change. From
-   the reader's chair the feature simply did not work: "the cards are not
-   collapsing."
-
-   The mirror of it is the dangerous half. A card SHUT by hand while it was your
-   draft stayed shut when the counterparty answered and it came back carrying
-   Accept and Reject — live controls, on a decision waiting on you, hidden
-   behind a preference expressed about something else.
-
-   So the choice is stored against the state it was made in. The card's verb set
-   IS that state — it is what the open/shut rule reads, so anything that changes
-   the rule's answer also changes the key — and when it moves, the choice lapses
-   and the rule takes over again. */
 /* ---- PEEK, PIN, AND THE ONE THING THAT MUST NEVER HAPPEN ----
    Working through a round left a column of cards the reader had opened and now
    had to close one by one. So a card you have merely LOOKED at closes itself,
@@ -6836,6 +6827,12 @@ const _rlCardChoice = new Map();    // id -> { open, key } — the PINS
    reader moves to another contract, so a pin cannot arrive on a card the
    reader has never seen. */
 let _rlPinnedFor = null;
+/* rlTagInternalNote is gone with the two buttons that called it. It switched
+   the sidebar to Discussion, nominated a change, pressed the visibility switch
+   to internal and quoted the passage — a private remark about a fragment, and
+   it required a change to exist on the clause first, so the commonest moment
+   to want one was the moment it refused. Reasons live on the change now. The
+   Discussion panel still writes notes, internal ones included. */
 function rlCardForgetPins(contractId){
   const id = String(contractId == null ? '' : contractId);
   if (_rlPinnedFor === id) return;
@@ -6997,11 +6994,8 @@ function rlWireClauseTools(c, host, opts){
      supplies), because highlighting the words is itself the statement of
      scope. The [data-rl-ai] wiring went with the button. */
 
-  host.querySelectorAll('[data-rl-note]').forEach(btn => btn.addEventListener('click', () => {
-    rlTagInternalNote({ c, clauseId: btn.getAttribute('data-rl-note'),
-      changeId: btn.getAttribute('data-rl-change') || null,
-      host, rerender: again });
-  }));
+  /* No [data-rl-note] wiring: the button it served is gone. See the clause
+     toolbar for why. */
 
   /* The card's Edit — light both ends, scroll the document to the clause and
      open the editor on it. Stopped from bubbling because the card itself links
@@ -7451,9 +7445,19 @@ function redlineDocHtml(c, opts = {}){
        the toolbar four verbs wide. The three that remain are each dressed in
        their own colour: a row of identical grey pills over a white contract is
        a row nobody can tell apart at speed. */
+    /* "ADD NOTE/TAG" IS GONE FROM THIS TOOLBAR, with its twin in the
+             selection menu. A note about wording, kept privately beside the
+             wording, is the weakest version of the thing this screen is for:
+             the reason a change was asked for now travels ON the change, given
+             when the change is filed, where the other side can read it and
+             where the history keeps it. A private remark that never leaves the
+             workspace answers nobody's question in the next round.
+
+             The capability is not lost, only its shortcut: the Discussion
+             panel still composes notes and still has the shared/internal
+             switch. What went is the two doors that opened it pre-set to
+             internal and pointed at a fragment. */
     return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
-      <button type="button" class="rl-tool rl-tool-note" data-rl-note="${id}"${ch ? ` data-rl-change="${_ne(ch.id)}"` : ''}
-        title="Attach an internal or shared note to this clause">&#128172; Add Note/Tag</button>
       <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
         title="Edit this clause's wording directly">&#9998; Direct Edit</button>
       <button type="button" class="rl-tool rl-tool-del" data-nego-del="${id}"
@@ -7871,7 +7875,6 @@ const rlMsgVisible = (m, side) =>
   !!m && (m.visibility === 'shared' || (m.side || 'owner') === (side === 'counterparty' ? 'counterparty' : 'owner'));
 /* Which silent change the discussion column's one starter composer is aimed
    at. Nominated by rlTagInternalNote, honoured by redlineDiscussionHtml. */
-let _rlStarterFor = null;
 /* ---------- THE CARD SHOWS THE CHANGE, NOT THE CLAUSE ----------
    A card used to render the whole ops array, keeps included — so a one-word
    amendment to a four-line clause arrived as four lines of unchanged wording
@@ -8389,25 +8392,33 @@ function redlineDiscussionHtml(c, opts = {}){
   const silent = changes.filter(ch => !(window.negoMergedThread
     ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []))
     .filter(m => rlMsgVisible(m, side)).length);
-  /* WHICH silent change the composer aims at. It used to be silent[0], always
-     — so "Tag with internal note" on any OTHER silent change found no input
-     with its id and silently did nothing. rlTagInternalNote now nominates the
-     change it is about (_rlStarterFor) and repaints; the starter honours the
-     nomination when that change is still silent, and falls back to the first
-     one when it is not. */
-  const target = silent.find(ch => ch.id === _rlStarterFor) || silent[0];
-  const starter = (canComment && silent.length) ? `
-    <div class="rl-starter">
+  /* ONE STARTER PER SILENT CHANGE, which is what the rest of this column
+     already does — a change that HAS a thread carries its own reply box, and
+     there was never a reason a change without one should have to borrow
+     somebody else's.
+
+     It used to be a single composer aimed at silent[0], and "Tag with internal
+     note" existed partly to re-aim it: the button nominated a change
+     (_rlStarterFor) and the column honoured the nomination. That button is
+     gone — a reason for a change belongs on the change now, where the other
+     side can read it — and without this, changes two onward would have had no
+     way to start a thread at all. Removing a shortcut must not remove the
+     thing it was a shortcut TO. */
+  const starterFor = ch => `
+    <div class="rl-starter" data-starter-for="${_ne(ch.id)}">
+      <div class="rl-starter-head">${_ne(ch.id)} · ${_ne(ch.clauseLabel || ch.clauseId || '')}</div>
       <div class="nego-visswitch" role="group" aria-label="Who can read this">
-        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(target.id)}" aria-pressed="true">&#128274; Internal</button>
-        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(target.id)}" aria-pressed="false">&#127760; Shared</button>
+        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="true">&#128274; Internal</button>
+        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="false">&#127760; Shared</button>
       </div>
       <div class="rl-reply-row">
-        <textarea class="chat-field" rows="1" id="nego-ti-${_ne(target.id)}" placeholder="Start a thread on ${_ne(target.id)}…" aria-label="Start a thread on change ${_ne(target.id)}"></textarea>
-        <button data-nego-send="${_ne(target.id)}" title="Start the thread">&uarr;</button>
+        <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Start a thread on ${_ne(ch.id)}…" aria-label="Start a thread on change ${_ne(ch.id)}"></textarea>
+        <button data-nego-send="${_ne(ch.id)}" title="Start the thread">&uarr;</button>
       </div>
-      <p class="rl-starter-note">Internal is the default — a forgotten field stays home, never the other way round.</p>
-    </div>` : '';
+    </div>`;
+  const starter = (canComment && silent.length) ? `
+    ${silent.map(starterFor).join('')}
+    <p class="rl-starter-note">Internal is the default — a forgotten field stays home, never the other way round.</p>` : '';
 
   return `${head}
     <div class="rl-disc-body" id="rl-threads">
@@ -8452,7 +8463,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
-  RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
+  RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,

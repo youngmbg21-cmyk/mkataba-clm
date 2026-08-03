@@ -2054,7 +2054,19 @@ function buildSharePayload(c, docHash, who, opts){
          and WHICH clause we felt exposed on. Negotiation-sensitive twice over.
          Their own note comes back to them — they wrote it — and ours stays
          home. */
-      summary:x.summary, note:(x.authorSide==='counterparty'&&x.note)?x.note:null, reply:x.reply||null,
+      /* TWO FIELDS, BECAUSE THEY ARE TWO DIFFERENT THINGS.
+         `note` is provenance — "Copilot — Shorten & Simplify", written by the
+         tool that produced the wording. It is an internal aside and stays
+         walled to the counterparty's own, exactly as before: telling the other
+         side which of our clauses a model drafted is nobody's business but
+         ours.
+         `why` is the asker's own explanation, typed into the editor under a
+         label that promises the other side will read it. It travels whichever
+         side wrote it, because a reason the recipient cannot see is a reason
+         that does nothing. What still never travels is the internal name of
+         whoever RULED on a change — the organisation speaks there. */
+      summary:x.summary, note:(x.authorSide==='counterparty'&&x.note)?x.note:null,
+      why:x.why||null, reply:x.reply||null,
       resolvedAt:x.resolvedAt||null,
       /* Whether a refused ask has been taken off the table by the side that
          made it. It travels because "Ready to sign" is gated on it: a reader

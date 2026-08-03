@@ -471,18 +471,22 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
 });
 
 describe('F84 — the clause toolbar files against the contract, not the sandbox', () => {
-  test('every clause carries the three verbs, each in its own colour — and no AI Assist', async () => {
+  test('every clause carries its verbs, each in its own colour — and no AI Assist', async () => {
     const p = await page();
     const clause = p.$('#rl-doc .rl-clause');
     const tools = [...clause.querySelectorAll('.rl-tool')];
     const labels = tools.map(b => b.textContent.trim());
     assert.ok(!labels.some(t => /AI Assist/.test(t)),
       'the Copilot opens from a text selection only — highlighting words IS the scope');
-    assert.ok(labels.some(t => /Add Note\/Tag/.test(t)));
+    /* "Add Note/Tag" was removed (Young, 03 Aug 2026): a private remark kept
+       beside the wording answered nobody in the next round, and the reason for
+       a change now travels ON the change, asked for when it is filed. */
+    assert.ok(!labels.some(t => /Add Note|Tag/i.test(t)),
+      'the note shortcut is gone from the toolbar');
     assert.ok(labels.some(t => /Direct Edit/.test(t)));
     assert.ok(labels.some(t => /Propose deletion/.test(t)));
     /* the colour themes: indigo to talk, emerald to write, rose to strike */
-    assert.ok(clause.querySelector('.rl-tool.rl-tool-note[data-rl-note]'));
+    assert.equal(clause.querySelector('[data-rl-note]'), null);
     assert.ok(clause.querySelector('.rl-tool.rl-tool-edit[data-nego-edit]'));
     assert.ok(clause.querySelector('.rl-tool.rl-tool-del[data-nego-del]'));
     const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
@@ -559,24 +563,7 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
       'a mouseup on a control is somebody operating the page, not selecting words in it');
   });
 
-  test('Add Note/Tag on a clause with no change says so instead of filing one', async () => {
-    const p = await page({ withChange: false });
-    const note = [...p.$$('#rl-doc .rl-tool')].find(b => /Add Note\/Tag/.test(b.textContent));
-    assert.ok(!note.hasAttribute('data-rl-change'), 'there is no change to hang a note on');
-    note.click();
-    assert.match(p.w.toastText(), /Propose an edit/,
-      'an empty change filed to hold a note is a fingerprint nobody proposed');
-  });
 
-  test('Add Note/Tag switches the sidebar to Discussion before aiming at the composer', async () => {
-    const p = await page();
-    p.win.rlSetSideMode('changes');              // the composer is now display:none
-    const note = [...p.$$('#rl-doc .rl-tool')].find(b => b.hasAttribute('data-rl-change'));
-    assert.ok(note, 'the changed clause should offer a note');
-    note.click();
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc',
-      'focusing an input inside a hidden panel silently does nothing');
-  });
 });
 
 /* F84 — focus mode was here. The toggle, its state and the twelve-column

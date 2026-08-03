@@ -135,6 +135,29 @@ const READ = () => {
     check('editor: Change opens an editor on a clause', opened);
     await page.waitForTimeout(500);
 
+    /* Step one is the wording. The reason is behind Save, which is the point of
+       the two-step: you cannot file a change without the question being put. */
+    const s1 = await page.evaluate(() => ({
+      next: !!document.querySelector('[data-nego-next]'),
+      reasonHidden: !document.querySelector('[data-nego-reason]')
+        || document.querySelector('[data-nego-reason]').offsetParent === null,
+      blockW: (() => { const b = document.querySelector('.nego-clause');
+        return b ? Math.round(b.getBoundingClientRect().width) : null; })(),
+    }));
+    check('editor: step one offers Save, not a reason box', s1.next && s1.reasonHidden);
+    check('editor: the box has not moved on step one', s1.blockW === before,
+      `${before}px → ${s1.blockW}px`);
+
+    await page.evaluate(() => document.querySelector('[data-nego-next]').click());
+    await page.waitForTimeout(350);
+    const s2 = await page.evaluate(() => ({
+      file: !!document.querySelector('[data-nego-save]'),
+      skip: !!document.querySelector('[data-nego-skip]'),
+      back: !!document.querySelector('[data-nego-back]'),
+    }));
+    check('editor: step two asks why, and can be skipped',
+      s2.file && s2.skip && s2.back, `file:${s2.file} skip:${s2.skip} back:${s2.back}`);
+
     const m = await page.evaluate(() => {
       const ta = document.querySelector('[data-nego-reason]');
       const blk = ta && ta.closest('.nego-clause');

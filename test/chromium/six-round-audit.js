@@ -126,7 +126,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const ed = scope.querySelector('[data-nego-editor]') || document.querySelector('[data-nego-editor]');
       if (!ed) return 'no editor';
       ed.innerHTML = ed.innerHTML.replace(new RegExp(replaceRe), replacement);
-      const save = (ed.parentElement.querySelector('[data-nego-save]')
+      const next = (ed.parentElement.querySelector('[data-nego-next]')
+        || document.querySelector('[data-nego-next]'));
+      if (next) next.click();          // step 1 → step 2 (why), skipped below
+      const save = (ed.parentElement.querySelector('[data-nego-skip]')
+        || document.querySelector('[data-nego-skip]')
+        || ed.parentElement.querySelector('[data-nego-save]')
         || document.querySelector('[data-nego-save]'));
       if (!save) return 'no save';
       save.click();
