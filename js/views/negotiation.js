@@ -4291,14 +4291,37 @@ function wireNegotiationTab(c, opts = {}){
     const clauseId = b.getAttribute('data-nego-del');
     const cl = negoClauseById(c, clauseId);
     if (!cl) return;
-    if (window.confirmDialog){
+    /* ---- A DELETION IS A CHANGE, SO IT IS ASKED WHY LIKE ANY OTHER ----
+       The reason went onto the clause editor first and stopped there, which
+       left the change hardest to argue with — striking a clause out — as the
+       one nobody had to explain. The confirm step was already there, so the
+       question costs no extra press: the box IS the confirmation.
+
+       Skippable on the same terms as the editor's: Cancel abandons the
+       deletion, and confirming with an empty box files it with no reason.
+       null means cancelled, '' means "no reason given" — two different
+       answers, and the dialog can tell them apart. */
+    let why = '';
+    if (window.promptDialog){
+      const answer = await promptDialog({
+        title: 'Propose deleting this clause?',
+        message: `“${negoClauseLabel(cl)}” would be struck through for the other side to decide. `
+          + 'The wording stays in the document until they accept the deletion.',
+        label: 'Why this deletion? — the other side sees it beside the change (optional)',
+        placeholder: 'e.g. This is covered by clause 12 already, so it reads twice.',
+        multiline: true, value: '',
+        confirmLabel: 'Propose deletion' });
+      if (answer === null) return;          // cancelled — nothing is proposed
+      why = String(answer || '').trim();
+    } else if (window.confirmDialog){
       const ok = await confirmDialog({ title: 'Propose deleting this clause?',
         message: `“${negoClauseLabel(cl)}” would be struck through for the other side to decide. `
           + 'The wording stays in the document until they accept the deletion.',
         confirmLabel: 'Propose deletion' });
       if (!ok) return;
     }
-    fileAndRepaint(() => negoDeleteClause(c, clauseId, { side, author: opts.by }),
+    fileAndRepaint(() => negoDeleteClause(c, clauseId,
+      { side, author: opts.by, why: why || undefined }),
       ch => `#${ch.id} filed — deletion proposed, the wording stays until it is accepted`);
   }));
 
@@ -5292,6 +5315,12 @@ function redlineLayoutCss(){
   .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
   html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
   html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
+  .redline-page .rl-card-why{margin-top:6px;border-left:2px solid var(--color-accent);
+    background:color-mix(in srgb,var(--color-accent) 6%,transparent);border-radius:0 4px 4px 0;
+    padding:6px 9px;font-size:11.5px;line-height:1.55;color:var(--color-text);
+    overflow-wrap:anywhere}
+  .redline-page .rl-card-why-k{display:block;font-size:9px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px}
   .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5}
   /* ---- THE CARD NO LONGER CARRIES THE REDLINE ----
      It used to, clamped to two lines, which put the changed wording on screen
@@ -8017,6 +8046,19 @@ function redlineChangeCardsHtml(c, opts = {}){
        someone flips to Counterparty View to check what they are sending. */
     const note = (ch.note && ch.authorSide === side)
       ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
+    /* ---- AND THE REASON, WHICH IS THE OPPOSITE OF THAT NOTE ----
+       The note above is an internal aside: shown only to the side that wrote
+       it, padlocked, because "Copilot — Shorten & Simplify" is nobody else's
+       business. A reason is written to be read by the other side — the field
+       asking for it says so — so it renders on BOTH seats, unlocked, and it is
+       the thing the whole two-step save exists to collect.
+
+       It was going onto two other card renderers and not this one, which is
+       the card in the change column that people actually read. A reason
+       nobody sees is a reason nobody gives. */
+    const whyBlock = ch.why
+      ? `<div class="rl-card-why"><span class="rl-card-why-k">Why they asked</span>${_ne(ch.why)}</div>`
+      : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
        card and not only the decidable ones: revising your own ask is the most
@@ -8129,7 +8171,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        column — repainting on mouseenter would fight the pointer and drop the
        node the event came from. Safe only because of the exemption above: a
        card that can be in the hidden state carries nothing but inert verbs. */
-    const body = `<div class="rl-card-body">${note}${
+    const body = `<div class="rl-card-body">${whyBlock}${note}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"

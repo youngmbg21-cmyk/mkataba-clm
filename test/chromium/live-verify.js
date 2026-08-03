@@ -194,6 +194,71 @@ const READ = () => {
       check('editor: and it wraps instead of scrolling sideways', !stressed.sideways);
       check('editor: the page still does not scroll sideways', !stressed.pageOverflow);
     }
+    /* ---- AND THE REASON HAS TO REACH THE CARD, FROM EVERY ACTION ----
+       The two-step save shipped asking for a reason that then appeared
+       nowhere: it was written onto two card renderers and not the third — the
+       one in the change column that people actually read. And the reason was
+       only asked for on the clause editor, so the change hardest to argue
+       with, striking a clause out, was the one nobody had to explain.
+
+       Both were invisible to every test in the suite, because the tests
+       checked that the FIELD existed rather than that the answer arrived. So
+       these walk each action all the way to the card and look for the words
+       that were typed. */
+    const REASON = 'LIVE-REASON-our-AP-cycle-runs-monthly';
+    const DELWHY = 'LIVE-DELETE-REASON-covered-by-clause-12';
+
+    /* The stress test above left the editor on step two with a long string in
+       the box. Walk back to the wording, change it for real, and come forward
+       again — a save that files no wording change files nothing to look for. */
+    await page.evaluate(() => document.querySelector('[data-nego-back]')?.click());
+    await page.waitForTimeout(250);
+    await page.evaluate(() => {
+      const ed = document.querySelector('[data-nego-editor]');
+      ed.innerHTML = '<p>The Parties may explore a relationship.</p>';
+      document.querySelector('[data-nego-next]').click();
+    });
+    await page.waitForTimeout(300);
+    await page.evaluate(r => {
+      const t = document.querySelector('[data-nego-reason]');
+      t.value = r; t.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('[data-nego-save]').click();
+    }, REASON);
+    await page.waitForTimeout(900);
+    const edited = await page.evaluate(() => [...document.querySelectorAll('[data-nego-card]')]
+      .map(e => e.textContent).join(''));
+    check('reason: an edited clause carries its reason onto the card',
+      edited.includes(REASON), edited.includes(REASON) ? '' : 'the card shows no reason');
+    check('reason: and the card names it', /Why they asked/i.test(edited));
+
+    const asked = await page.evaluate(() => {
+      const b = document.querySelector('[data-nego-del]');
+      if (!b) return null; b.click(); return true;
+    });
+    await page.waitForTimeout(600);
+    const delBox = await page.evaluate(() => {
+      const t = document.querySelector('#prompt-overlay #pd-input');
+      if (!t) return null;
+      const cs = getComputedStyle(t);
+      return { tag: t.tagName, wrap: t.wrap, overflowWrap: cs.overflowWrap, boxSizing: cs.boxSizing };
+    });
+    check('reason: proposing a deletion asks why', !!asked && !!delBox,
+      delBox ? '' : 'a deletion is a change and gets no reason field');
+    if (delBox){
+      check('reason: the deletion box wraps like the editor\'s',
+        delBox.tag === 'TEXTAREA' && delBox.wrap === 'soft'
+        && delBox.overflowWrap === 'anywhere' && delBox.boxSizing === 'border-box',
+        `${delBox.tag} / ${delBox.wrap} / ${delBox.overflowWrap}`);
+      await page.evaluate(w => {
+        document.querySelector('#pd-input').value = w;
+        document.getElementById('pd-ok').click();
+      }, DELWHY);
+      await page.waitForTimeout(900);
+      const deleted = await page.evaluate(() => [...document.querySelectorAll('[data-nego-card]')]
+        .map(e => e.textContent).join(''));
+      check('reason: a proposed deletion carries its reason onto the card too',
+        deleted.includes(DELWHY), deleted.includes(DELWHY) ? '' : 'the deletion card shows no reason');
+    }
     await ctx.close();
   }
 

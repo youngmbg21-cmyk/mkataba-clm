@@ -1322,8 +1322,17 @@ function promptDialog(opts={}){
         ${message?`<p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 12px;padding-left:46px">${esc(message)}</p>`:''}
         <div style="padding-left:46px">
           ${label?`<label for="pd-input" style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${esc(label)}</label>`:''}
-          <input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;font:inherit;font-size:13px;outline:none"/>
+          ${opts.multiline
+            ? /* A REASON IS NOT A ONE-LINE ANSWER. box-sizing so the padding
+                 counts inside, width:100% so it tracks the dialog rather than
+                 its own cols attribute, and overflow-wrap so a pasted
+                 reference with no spaces in it wraps instead of scrolling the
+                 field sideways. Same three declarations as the clause
+                 editor's reason box, and for the same reason. */
+              `<textarea id="pd-input" rows="3" wrap="soft" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
+                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:70px;resize:vertical;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;font:inherit;font-size:13px;line-height:1.6;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
+            : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
+                 style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;font:inherit;font-size:13px;outline:none"/>`}
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
             <button id="pd-cancel" class="ui-btn">${esc(cancelLabel)}</button>
             <button id="pd-ok" class="ui-btn ui-btn-primary">${esc(confirmLabel)}</button>
@@ -1335,14 +1344,16 @@ function promptDialog(opts={}){
     const done=val=>{ ov.remove(); document.removeEventListener('keydown',onKey,true); resolve(val); };
     function onKey(e){
       if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); done(null); }
-      else if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); done(input.value); }
+      /* Enter submits a one-line field and types a newline in a multiline one,
+         which is what every text box on every platform already does. */
+      else if(e.key==='Enter' && !opts.multiline){ e.preventDefault(); e.stopPropagation(); done(input.value); }
     }
     // capture phase: an open modal behind this one may also listen for Escape
     document.addEventListener('keydown',onKey,true);
     ov.querySelector('#pd-cancel').addEventListener('click',()=>done(null));
     ov.querySelector('#pd-ok').addEventListener('click',()=>done(input.value));
     ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(null); });
-    input.focus(); input.select();
+    input.focus(); if (input.select && !opts.multiline) input.select();
   });
 }
 
