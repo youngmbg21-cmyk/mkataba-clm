@@ -2614,10 +2614,22 @@ function renderSharePortal(p, opts={}){
   });
   document.getElementById('pt-redline-submit')?.addEventListener('click',()=>portalRespond(p,'redline'));
   // prefill the recipient's details from the share (they can still edit them)
+  const setIf=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
   if(opts.share){
-    const setIf=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
     setIf('pt-name',opts.share.recipientName); setIf('pt-email',opts.share.recipientEmail);
   }
+  /* ---- AND THE NAME THIS BROWSER ALREADY GAVE ----
+     Under the share's own name, never over it: the sender addressed this to
+     somebody, and that is who it is for. Below that, a reader who has typed
+     their name here before does not get asked again on every refresh — which
+     is what a page you work through a round of changes on has to stop doing.
+     The other box, #nego-cp-name in the room, is seeded and kept by
+     negoNameFieldHtml; this is the same fact on the page underneath it. */
+  if(window.negoRememberedName) setIf('pt-name', negoRememberedName());
+  /* Keeping what is typed is negoWireNameMemory's job — one delegated
+     listener covering this box and the room's, so the two cannot disagree
+     about what was remembered. */
+  if(window.negoWireNameMemory) negoWireNameMemory();
 }
 async function portalRespond(p, action, extra){
   const name=portalResponderName(), title=fval('pt-title'), email=fval('pt-email');

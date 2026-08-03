@@ -2868,13 +2868,66 @@ function negoTabHtml(c, opts = {}){
    Prefilled from the share's recipient where the sender addressed it to a
    person, and still theirs to correct: the sender's address book is not
    evidence of who is actually at the keyboard. */
+/* ---------- THE NAME THIS BROWSER HAS ALREADY GIVEN ----------
+   The box asks who is at the keyboard, and it asked again on every refresh:
+   a counterparty working through a round of changes typed their own name back
+   in each time the page reloaded, to answer a question they had already
+   answered. Kept per browser, because that is the scope of the fact — one
+   person, at one keyboard, whose name does not change between visits.
+
+   NOT the same thing as filling the box with an organisation. The rule this
+   sits beside still holds: opts.by is refused as a seed because it falls back
+   to the counterparty COMPANY, and a company is not who signed. This is the
+   reader's own previous answer, given by them, in this box. */
+const NEGO_NAME_KEY = 'hati.v1.responderName';
+function negoRememberedName(){
+  try { return String(localStorage.getItem(NEGO_NAME_KEY) || '').trim(); }
+  catch(e){ return ''; }
+}
+function negoRememberName(v){
+  const s = String(v == null ? '' : v).trim();
+  try { if (s) localStorage.setItem(NEGO_NAME_KEY, s); else localStorage.removeItem(NEGO_NAME_KEY); }
+  catch(e){}
+}
+/* ONE LISTENER, ON THE DOCUMENT. The box is drawn in more places than any one
+   host can see: the room's own top bar (negoRoomHtml), the workbench, and the
+   portal's respond panel underneath it — and on the counterparty's seat it sits
+   OUTSIDE the pane mount, which is why a host-scoped listener saved nothing
+   there. Delegated and installed once, so every mount is covered and a repaint
+   cannot stack a second copy.
+
+   focusout as well as change: a reader who types their name and presses Send
+   without leaving the field never fires change in some browsers, and losing
+   the name at the exact moment they used it is the whole complaint. */
+function negoWireNameMemory(){
+  if (typeof document === 'undefined' || document._negoNameWired) return;
+  document._negoNameWired = true;
+  const keep = e => {
+    const t = e && e.target;
+    if (t && (t.id === 'nego-cp-name' || t.id === 'pt-name')) negoRememberName(t.value);
+  };
+  document.addEventListener('change', keep, true);
+  document.addEventListener('focusout', keep, true);
+}
+
 function negoNameFieldHtml(opts = {}){
   /* ONLY from the share's recipient. Not from opts.by, which falls back to the
      counterparty ORGANISATION when nobody is named — filling this box with
      "Nordfrakt Logistik AB" would file a company as the person who answered,
      and would do it silently because the box would look already-filled. An
-     empty box asks the question; a wrong one answers it. */
-  const v = String(opts.recipientName || '').trim();
+     empty box asks the question; a wrong one answers it.
+
+     The share's name still wins where there is one: that is who the sender
+     addressed this to. The remembered name is the fallback under it. */
+  const v = String(opts.recipientName || '').trim() || negoRememberedName();
+  /* INSTALLED WHERE THE BOX IS DRAWN. A side effect in a render function is
+     not free, and it is here deliberately: this is the ONLY point every mount
+     of this box passes through. Hanging the listener off a wiring pass instead
+     missed the counterparty's seat, where the box sits in the room's top bar
+     rather than inside the pane host that pass is scoped to — which is exactly
+     the seat the name kept being lost on. Idempotent, so drawing the box a
+     hundred times installs one listener. */
+  negoWireNameMemory();
   return `<label class="nego-who" title="The name recorded against your answers">
     <span class="lbl">You</span>
     <input id="nego-cp-name" type="text" value="${_ne(v)}" placeholder="Your full name"
@@ -4088,6 +4141,21 @@ function wireNegotiationTab(c, opts = {}){
       if (typeof opts.onIssueSigningLink === 'function') opts.onIssueSigningLink(c);
       else if (window.toast) toast('That action is not available on this screen', 'err');
     });
+  }
+
+  /* ---- WHAT IS TYPED IN THE NAME BOX IS KEPT ----
+     Bound wherever the box is mounted — the room, the workbench, the portal
+     all render it through negoNameFieldHtml — and guarded so a repaint cannot
+     stack listeners on the same input. Saved on the way out of the field
+     rather than on every keystroke: a half-typed name is not an answer. */
+  const nameBox = host.querySelector('#nego-cp-name');
+  /* dataset guarded for the same reason the rest of this file guards it: the
+     node stage's elements do not carry one. */
+  if (nameBox && nameBox.dataset && !nameBox.dataset.negoNameWired){
+    nameBox.dataset.negoNameWired = '1';
+    const keep = () => negoRememberName(nameBox.value);
+    nameBox.addEventListener('change', keep);
+    nameBox.addEventListener('blur', keep);
   }
 
   const send = host.querySelector('#nego-send');
@@ -9058,7 +9126,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
   negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound, negoWhoseHtml,
-  negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
+  negoIndexSendHtml, negoNameFieldHtml, negoRememberedName, negoRememberName, negoWireNameMemory, NEGO_NAME_KEY, negoReadySignalHtml, negoRoomHasExit, negoPick,
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   negoRenumberPreviewHtml, negoRenumberOpen,
   negoTimelineScreenHtml, negoTimelineEventHtml, openHistoryTimeline,
