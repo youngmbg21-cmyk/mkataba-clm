@@ -450,7 +450,8 @@ describe('F89 (5) — three actions on a passage, and only three', () => {
       'the tag action is gone from the menu, not merely renamed around');
     assert.ok(!labels.some(l => /Rephrase/.test(l)),
       'and "rephrase" is gone from the menu — it named half the job');
-    assert.match(labels[1], /Shorten & Simplify/);
+    assert.match(labels[1], /Simplify/);
+    assert.ok(!/Shorten &/.test(labels[1]), 'renamed to the outcome, once');
   });
 
   test('the rendered menu offers those and nothing else', async () => {

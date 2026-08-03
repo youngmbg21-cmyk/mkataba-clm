@@ -125,7 +125,7 @@ describe('the clause tools are visible without hunting for them', () => {
      around it. That is not how anybody drafts a clause, and a control nobody
      can use well is worse than its absence. Wording still enters through the
      template, through an edit, or as a redline from the other side. */
-  test('every clause carries both tools, always rendered', async () => {
+  test('every clause carries its tool, always rendered', async () => {
     const m = await mounted();
     const clauses = m.$$('#nego-room .nego-pane.working .nego-clause');
     assert.equal(clauses.length, 6);
@@ -139,7 +139,12 @@ describe('the clause tools are visible without hunting for them', () => {
          tracked change for the other side to accept or reject. Someone sent a
          contract to negotiate was meeting two verbs in this room, Decline and
          Ready to sign, and nothing named the one act the room exists for. */
-      assert.deepEqual(Array.from(labels), ['Change', 'Delete']);
+      /* 'Delete' went the way 'Add clause' did (Young, 03 Aug 2026): striking
+         a whole clause out no longer earns an always-visible verb beside every
+         clause, on either seat. Deletion CHANGES stay first-class — a record
+         carrying one still renders and gets decided — but originating one is
+         not a per-clause button. */
+      assert.deepEqual(Array.from(labels), ['Change']);
     }
   });
 

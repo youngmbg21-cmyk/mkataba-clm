@@ -1504,7 +1504,7 @@ function aiNormalizePlacement(v){
 const aiIsInsert = p => aiNormalizePlacement(p) !== 'replace';
 
 /* The contract with the model when placement is on the table. The base format
-   above stays exactly as it was — "✂️ Shorten & Simplify" and the contract
+   above stays exactly as it was — "✂️ Simplify" and the contract
    tab's own actions carry their instruction and cannot mean anything but a
    replacement, so offering them a placement field would only invite one.
 
@@ -1925,7 +1925,7 @@ function aiParseProposal(raw){
 
    `placements: true` opens the four placements up (see AI_PLACEMENTS) so the
    answer can ADD wording rather than only swap it. It is opt-in per action
-   because most callers cannot mean anything else: "✂️ Shorten & Simplify"
+   because most callers cannot mean anything else: "✂️ Simplify"
    carries its own instruction and a shortening that inserts is not a
    shortening. Offering the field where it has no meaning would only invite the
    model to use it. */
@@ -2065,7 +2065,7 @@ function aiProposalAnchorHtml(p){
    on the card is the wording the reader has read and may have edited; throwing
    it away to re-draft it because they corrected WHERE it goes would punish them
    for using the control. Only shown where the action offered placements at all
-   — "✂️ Shorten & Simplify" cannot mean an insert, so it gets no choice. */
+   — "✂️ Simplify" cannot mean an insert, so it gets no choice. */
 function aiProposalPlacementHtml(p){
   if (!p.placements || p.status !== AI_PROPOSAL_OPEN) return '';
   const e = _aiEsc;

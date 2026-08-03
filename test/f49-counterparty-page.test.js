@@ -141,7 +141,8 @@ describe('while there is something to negotiate, the link is the room', () => {
     const v = theirPage(c);
     assert.ok(v.$$('#pt-nego [id="rl-doc"] [data-nego-edit]').length,
       'proposing wording is the whole point of sending them the link');
-    assert.ok(v.$$('#pt-nego [data-nego-del]').length, 'and proposing a deletion');
+    assert.equal(v.$$('#pt-nego [data-nego-del]').length, 0,
+      'proposing a deletion is gone from their seat too — the same toolbar serves both');
   });
 
   /* REWRITTEN, and it reverses what this file asserted a round ago: "leaving

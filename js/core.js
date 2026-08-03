@@ -2066,7 +2066,7 @@ function buildSharePayload(c, docHash, who, opts){
          Their own note comes back to them — they wrote it — and ours stays
          home. */
       /* TWO FIELDS, BECAUSE THEY ARE TWO DIFFERENT THINGS.
-         `note` is provenance — "Copilot — Shorten & Simplify", written by the
+         `note` is provenance — "Copilot — Simplify", written by the
          tool that produced the wording. It is an internal aside and stays
          walled to the counterparty's own, exactly as before: telling the other
          side which of our clauses a model drafted is nobody's business but

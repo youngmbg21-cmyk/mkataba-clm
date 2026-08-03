@@ -165,7 +165,7 @@ async function page(opts = {}){
      the Copilot is a round trip and the proposal card exists on the other side
      of it. */
   const settle = () => new Promise(r => setImmediate(r));
-  const press = async (menu, re = /Shorten/) => {
+  const press = async (menu, re = /Simplify/) => {
     assert.ok(menu, 'no selection menu opened for that highlight');
     const btn = [...menu.querySelectorAll('[data-nego-ai]')].find(b => re.test(b.textContent));
     assert.ok(btn, `no menu item matching ${re}`);

@@ -205,7 +205,8 @@ describe('F57 — everything the wrapper carries still works', () => {
     assert.equal(block.getAttribute('data-clause'), r.parties.clauseId, 'sync-highlight anchors on this');
     assert.equal(block.id, 'nw-' + r.win.negoDomId(r.parties.clauseId), 'and so does negoFocus');
     assert.ok(block.querySelector(`[data-nego-edit="${r.parties.clauseId}"]`), 'Change is still there');
-    assert.ok(block.querySelector(`[data-nego-del="${r.parties.clauseId}"]`), 'and Delete');
+    assert.equal(block.querySelector(`[data-nego-del="${r.parties.clauseId}"]`), null,
+      'Delete is gone from the toolbar — deletions are no longer originated here');
     assert.match(block.querySelector('h2').textContent, /Clause 1 · Parties and Recitals/);
   });
 

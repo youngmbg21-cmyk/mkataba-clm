@@ -165,7 +165,8 @@ describe('the clause tools are Edit and Delete', () => {
   test('but editing and deleting a clause both survive', async () => {
     const d = await room();
     assert.ok(d.querySelector('[data-nego-edit]'), 'wording is still proposable');
-    assert.ok(d.querySelector('[data-nego-del]'));
+    assert.equal(d.querySelector('[data-nego-del]'), null,
+      'Propose deletion was removed from both seats');
   });
 });
 

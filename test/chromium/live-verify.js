@@ -206,7 +206,6 @@ const READ = () => {
        these walk each action all the way to the card and look for the words
        that were typed. */
     const REASON = 'LIVE-REASON our AP cycle runs monthly and our finance committee only approves payment runs on the last Thursday, so Net-30 forces an out-of-cycle payment almost every month and both sides handle exceptions.';
-    const DELWHY = 'LIVE-DELETE-REASON-covered-by-clause-12';
 
     /* The stress test above left the editor on step two with a long string in
        the box. Walk back to the wording, change it for real, and come forward
@@ -251,50 +250,12 @@ const READ = () => {
       !!clamp && clamp.hasBtn && clamp.opened === true,
       clamp ? `btn:${clamp.hasBtn} opened:${clamp.opened}` : '');
 
-    const asked = await page.evaluate(() => {
-      const b = document.querySelector('[data-nego-del]');
-      if (!b) return null; b.click(); return true;
-    });
-    await page.waitForTimeout(600);
-    /* IN PLACE, NOT A DIALOG. The first shipped version asked in a pop-up —
-       the shape this feature exists to avoid, and it covered the neighbouring
-       clauses a reader weighs before striking one out. The question now opens
-       under the clause, like the editor's step two, and this asserts the
-       shape as well as the field: same panel, no overlay, document visible. */
-    const delBox = await page.evaluate(() => {
-      const panel = document.querySelector('.nego-del-ask');
-      const t = panel && panel.querySelector('[data-nego-del-why]');
-      if (!t) return null;
-      const cs = getComputedStyle(t);
-      const blk = panel.closest('.nego-clause');
-      return { tag: t.tagName, wrap: t.wrap, overflowWrap: cs.overflowWrap,
-        boxSizing: cs.boxSizing, popup: !!document.getElementById('prompt-overlay'),
-        inClause: !!blk,
-        blockW: blk ? Math.round(blk.getBoundingClientRect().width) : null };
-    });
-    check('reason: proposing a deletion asks why', !!asked && !!delBox,
-      delBox ? '' : 'a deletion is a change and gets no reason field');
-    if (delBox){
-      check('reason: it asks under the clause, not over the document',
-        delBox.inClause && !delBox.popup,
-        delBox.popup ? 'a pop-up opened — the shape this feature exists to avoid' : '');
-      check('reason: the deletion panel does not widen the clause',
-        delBox.blockW === before, `${delBox.blockW}px vs ${before}px`);
-      check('reason: the deletion box wraps like the editor\'s',
-        delBox.tag === 'TEXTAREA' && delBox.wrap === 'soft'
-        && delBox.overflowWrap === 'anywhere' && delBox.boxSizing === 'border-box',
-        `${delBox.tag} / ${delBox.wrap} / ${delBox.overflowWrap}`);
-      await page.evaluate(w => {
-        const panel = document.querySelector('.nego-del-ask');
-        panel.querySelector('[data-nego-del-why]').value = w;
-        panel.querySelector('[data-nego-del-go]').click();
-      }, DELWHY);
-      await page.waitForTimeout(900);
-      const deleted = await page.evaluate(() => [...document.querySelectorAll('[data-nego-card]')]
-        .map(e => e.textContent).join(''));
-      check('reason: a proposed deletion carries its reason onto the card too',
-        deleted.includes(DELWHY), deleted.includes(DELWHY) ? '' : 'the deletion card shows no reason');
-    }
+    /* No deletion checks: the Propose deletion buttons were removed on both
+       seats (Young, 03 Aug 2026). What must now be true is the opposite — no
+       clause offers one. Deletion CHANGES remain first-class in the engine. */
+    const delBtns = await page.evaluate(() => document.querySelectorAll('[data-nego-del]').length);
+    check('deletion: no clause offers Propose deletion any more', delBtns === 0,
+      delBtns ? `${delBtns} delete buttons still render` : '');
     await ctx.close();
   }
 

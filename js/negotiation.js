@@ -1016,7 +1016,7 @@ async function negoFileChange(c, draft, opts = {}){
     summary: String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText),
     note: opts.note || null,
     /* WHY THE ASKER ASKED, IN THEIR OWN WORDS — and deliberately not `note`.
-       `note` is provenance: "Copilot — Shorten & Simplify", written by the
+       `note` is provenance: "Copilot — Simplify", written by the
        tool that produced the wording, and it is an internal aside that has
        never crossed the table (f143 holds that line). A reason is the opposite
        kind of thing: a person explaining what they wanted, written to be read

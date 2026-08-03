@@ -711,11 +711,6 @@ function negoStyleHtml(){
     font:inherit;font-size:10px;font-weight:700;color:var(--color-accent-700,#0f766e)}
   .nego-why-more:focus-visible{outline:2px solid var(--color-accent,#0d9488);outline-offset:2px;border-radius:3px}
   .nego-reason{display:block;margin-top:8px}
-  /* The deletion's in-place question. Bordered like a held draft rather than
-     shaded like an error: nothing has happened yet. */
-  .nego-del-ask{margin-top:8px;border:1px solid var(--n-line);border-left:3px solid var(--n-reject,#b91c1c);
-    border-radius:6px;padding:9px 11px;background:var(--n-paper)}
-  .nego-del-say{font-size:11.5px;line-height:1.55;color:var(--n-ink-soft)}
   .nego-reason.hidden,.nego-fmt-bar.hidden{display:none}
   /* Step two: the wording is still there and still exactly where it was, but it
      is being read rather than typed in — so it loses the caret ring and stops
@@ -1584,7 +1579,14 @@ function negoDocHtml(c, opts){
              Removed rather than left as a control nobody could use well.
              Wording still enters through the template, through an edit, or as a
              redline from the other side. */}
-      <button class="nego-tool danger" data-nego-del="${_ne(cl.clauseId)}" title="Propose deleting this clause">Delete</button>
+      ${''/* "Delete" is gone from this toolbar, and "Propose deletion" from
+             the workbench's, both seats at once (Young, 03 Aug 2026). Striking
+             a whole clause out stopped earning its own always-visible verb:
+             the ENGINE keeps deletions as first-class changes — records that
+             carry one still render, travel and get accepted or rejected
+             exactly as before, and the Copilot's span replace still files
+             them — but originating one is no longer a single button beside
+             every clause. */}
     </div>` : '';
 
   /* ---------- THE TWO WAYS A CLAUSE IS DRAWN ----------
@@ -4304,63 +4306,9 @@ function wireNegotiationTab(c, opts = {}){
     wire();
   }));
 
-  host.querySelectorAll('[data-nego-del]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();
-    const clauseId = b.getAttribute('data-nego-del');
-    const cl = negoClauseById(c, clauseId);
-    if (!cl) return;
-    /* ---- A DELETION ASKS WHY IN PLACE, THE SAME SHAPE AS AN EDIT ----
-       The first version of this question was a pop-up, and it was a pop-up for
-       an accident of history: deletion already had a confirm dialog, so the
-       reason field was dropped into the box that happened to be there. That
-       left one question wearing two shapes — a panel under the clause when you
-       edit, a window over the document when you delete — and the argument
-       against dialogs (they cover the clauses either side, which is exactly
-       what a reader weighs before striking one out) applies MORE to deletion,
-       not less.
-
-       So the panel opens under the clause, and the step itself is the
-       confirmation: Propose deletion files it with the reason, Skip files it
-       without one, Cancel abandons it. Same three answers the dialog gave,
-       same skippable terms as the editor's step two, none of the document
-       hidden while it is asked. */
-    const block = host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`)
-      || b.closest('.nego-clause');
-    /* One question at a time on a clause: an open editor or an open deletion
-       panel keeps the button inert rather than stacking a second flow. */
-    if (!block || block.querySelector('.nego-edit-bar') || block.querySelector('.nego-del-ask')) return;
-    const ask = document.createElement('div');
-    ask.className = 'nego-del-ask';
-    ask.innerHTML = `
-      <div class="nego-del-say">“${_ne(negoClauseLabel(cl))}” would be struck through for the
-        other side to decide. The wording stays until they accept the deletion.</div>
-      <label class="nego-reason">
-        <span>Why this deletion? &mdash; the other side sees it beside the change (optional)</span>
-        <textarea data-nego-del-why="${_ne(clauseId)}" rows="2" wrap="soft" spellcheck="true"
-          placeholder="e.g. This is covered by clause 12 already, so it reads twice."></textarea>
-      </label>
-      <div class="nego-edit-bar">
-        <button class="b-save" data-nego-del-go="${_ne(clauseId)}">Propose deletion</button>
-        <button class="b-cancel" data-nego-del-skip="${_ne(clauseId)}">Skip &mdash; no reason</button>
-        <button class="b-cancel" data-nego-del-cancel="${_ne(clauseId)}">Cancel</button>
-      </div>`;
-    block.appendChild(ask);
-    block.classList.add('is-editing');   // the hover verbs stand down, as in an edit
-    const file = why => fileAndRepaint(() => negoDeleteClause(c, clauseId,
-      { side, author: opts.by, why: why || undefined }),
-      ch => `#${ch.id} filed — deletion proposed, the wording stays until it is accepted`);
-    ask.querySelector('[data-nego-del-cancel]').addEventListener('click', ev => {
-      ev.stopPropagation(); ask.remove(); block.classList.remove('is-editing');
-    });
-    ask.querySelector('[data-nego-del-skip]').addEventListener('click', ev => {
-      ev.stopPropagation(); file('');
-    });
-    ask.querySelector('[data-nego-del-go]').addEventListener('click', ev => {
-      ev.stopPropagation();
-      file(String(ask.querySelector('textarea').value || '').trim());
-    });
-    ask.querySelector('textarea').focus();
-  }));
+  /* No [data-nego-del] wiring: both delete buttons are gone — see the clause
+     toolbars. Deletion CHANGES remain first-class in the engine; only the
+     buttons that originated them were removed. */
 
   /* A BADGE IN THE MARGIN NARROWS THE INDEX TO ITS OWN CHANGE.
 
@@ -5686,11 +5634,8 @@ function redlineLayoutCss(){
   .redline-page .rl-tool.rl-tool-note:hover{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
   .redline-page .rl-tool.rl-tool-edit{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
   .redline-page .rl-tool.rl-tool-edit:hover{background:#d1fae5;border-color:#059669}
-  .redline-page .rl-tool.rl-tool-del{background:#fff1f2;border-color:#fecdd3;color:#be123c}
-  .redline-page .rl-tool.rl-tool-del:hover{background:#ffe4e6;border-color:#f43f5e}
   html.dark .redline-page .rl-tool.rl-tool-note{background:rgba(99,102,241,.16);border-color:rgba(99,102,241,.45);color:#c7d2fe}
   html.dark .redline-page .rl-tool.rl-tool-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
-  html.dark .redline-page .rl-tool.rl-tool-del{background:rgba(244,63,94,.16);border-color:rgba(244,63,94,.45);color:#fda4af}
   .redline-page .rl-btn-ghost{background:var(--color-neutral-100);color:var(--color-neutral-600)}
   .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
@@ -6361,7 +6306,7 @@ function rlPaintPresence(v){
         old action supplied one on the reader's behalf — favour my side — which
         was the wrong job about half the time. The answer typed into the panel
         is the instruction.
-     ✂️ Shorten & Simplify — already carries its instruction, so it goes
+     ✂️ Simplify — already carries its instruction, so it goes
         straight to a proposal. Asking somebody to retype what they just
         pressed is a step for nothing.
      🏷️ Tag with internal note — not an AI action at all, and deliberately in
@@ -6412,7 +6357,10 @@ const RL_SEL_ACTIONS = [
   /* No placements: a shortening that inserts is not a shortening. The action
      carries its own instruction and cannot mean anything but a replacement, so
      offering the field would only invite the model to use it. */
-  { id: 'shorten', label: '✂️ Shorten & Simplify', noteLabel: 'Shorten & Simplify',
+  /* "Shorten & Simplify" said the mechanism twice; "Simplify" names the
+     outcome once (Young, 03 Aug 2026). Same id, same instruction — records
+     filed under the old provenance label keep it. */
+  { id: 'shorten', label: '✂️ Simplify', noteLabel: 'Simplify',
     ask: 'Rewrite this contract wording more concisely and in plainer language, without changing its legal effect. Keep defined terms exactly as they are.' },
   /* ---------- "TAG WITH INTERNAL NOTE" IS GONE, AND THIS TOOK ITS PLACE ----------
      Tagging opened the Discussion panel with the visibility switch pressed to
@@ -7536,8 +7484,6 @@ function redlineDocHtml(c, opts = {}){
     return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
       <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
         title="Edit this clause's wording directly">&#9998; Direct Edit</button>
-      <button type="button" class="rl-tool rl-tool-del" data-nego-del="${id}"
-        title="Propose deleting this clause — the wording stays until the other side accepts the deletion">&#128465; Propose deletion</button>
     </div>`;
   };
   /* ---- THE HEADING THE DOCUMENT ACTUALLY CARRIES ----
@@ -8095,7 +8041,7 @@ function redlineChangeCardsHtml(c, opts = {}){
       ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
     /* ---- AND THE REASON, WHICH IS THE OPPOSITE OF THAT NOTE ----
        The note above is an internal aside: shown only to the side that wrote
-       it, padlocked, because "Copilot — Shorten & Simplify" is nobody else's
+       it, padlocked, because "Copilot — Simplify" is nobody else's
        business. A reason is written to be read by the other side — the field
        asking for it says so — so it renders on BOTH seats, unlocked, and it is
        the thing the whole two-step save exists to collect.

@@ -902,7 +902,7 @@ const LAB_AI_ACTIONS = [
      of those arrived as an advantage-grab and then had to be argued back.
 
      So this action asks. It opens the Copilot with the passage in front of it
-     and one question, and the answer is the instruction. "Shorten & Simplify"
+     and one question, and the answer is the instruction. "Simplify"
      below keeps going straight to a proposal because it ALREADY carries an
      instruction — it says what it wants, and asking a person to retype that
      would be a step for nothing. */
@@ -928,7 +928,7 @@ const LAB_AI_ACTIONS = [
      The playbook itself is untouched — it still drives the risk signals that
      hold changes back from a batch accept. What has gone is the claim that it
      can draft. */
-  { id:'shorten', label:'✂️ Shorten & Simplify',
+  { id:'shorten', label:'✂️ Simplify',
     ask:'Rewrite this contract wording more concisely and in plainer language, without changing its legal effect. Keep defined terms exactly as they are.' },
   /* Not an AI action at all, and deliberately in the same menu: the thing a
      reader most often wants to do with a passage they have just read is say
@@ -1420,7 +1420,7 @@ async function labAiPropose(ctx){
   };
 
   /* ---------- THE TWO SHAPES OF ACTION ----------
-     An action that CARRIES an instruction — "✂️ Shorten & Simplify" — goes
+     An action that CARRIES an instruction — "✂️ Simplify" — goes
      straight to a proposal, because asking a person to retype what they just
      pressed is a step for nothing.
 

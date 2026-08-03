@@ -683,10 +683,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      runs them on every push, and the failing item list is passed as the detail
      below, so a failure prints the menu rather than only the verdict — the one
      fact that tells "the label changed" from "the menu never opened".) */
-  check('5 they are edit, shorten, tag',
+  check('5 they are edit, simplify, compare-to-standard',
     /Edit with Copilot/.test(menu.items[0] || '')
-    && /Shorten & Simplify/.test(menu.items[1] || '')
-    && /Tag with internal note/.test(menu.items[2] || ''),
+    && /Simplify/.test(menu.items[1] || '') && !/Shorten &/.test(menu.items[1] || '')
+    && /Compare to our standard/.test(menu.items[2] || ''),
     JSON.stringify(menu.items));
   /* A SEPARATE CLAIM, and worth its own check: not merely that the first item
      is Edit, but that Rephrase is nowhere. The rename could have been done as a
@@ -720,25 +720,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('3 no modal anywhere on the redline route', routed.modals === 0, routed.modals);
   await page.screenshot({ path: path.join(OUT, '04-copilot-panel.png') });
 
-  /* Tagging goes to the Discussion column, not to a dialog either. */
-  const tagged = await page.evaluate(async () => {
+  /* Tagging is gone (Young, 03 Aug 2026) — the shortcut that opened the
+     Discussion composer pre-set to internal was removed with the reason-on-
+     the-change work. What must hold now is its absence, plus the thing the
+     old check was really guarding: each silent change still has its own
+     thread starter in the Discussion column. */
+  const tagGone = await page.evaluate(() => {
     const ch = negoChanges(CONTRACT).find(x => x.status === 'pending');
-    const ok = rlTagInternalNote({ c: CONTRACT, clauseId: ch.clauseId, text: 'thirty (30) days' });
-    await new Promise(r => setTimeout(r, 120));
-    const input = document.getElementById('nego-ti-' + ch.id);
-    const pressed = [...document.querySelectorAll(`[data-nego-vis][data-for="${ch.id}"]`)]
-      .filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-nego-vis'));
-    return { ok, focused: document.activeElement === input, value: input ? input.value : '',
-      inDiscussion: !!(input && input.closest('#rl-disc-col')), pressed,
-      dialogs: document.querySelectorAll('.nego-aipop, .lab-notepop').length };
+    rlSetSideMode('disc');
+    return { fnGone: typeof window.rlTagInternalNote !== 'function',
+      noteBtns: document.querySelectorAll('[data-rl-note]').length,
+      starter: !!document.getElementById('nego-ti-' + ch.id) };
   });
-  check('5 Tag lands in the Discussion column', tagged.ok && tagged.inDiscussion);
-  check('5 with the internal switch pressed',
-    tagged.pressed.length === 1 && tagged.pressed[0] === 'internal', JSON.stringify(tagged.pressed));
-  check('5 the field is focused and carries the quote',
-    tagged.focused && /thirty \(30\) days/.test(tagged.value), tagged.value);
-  check('3 and it opened no dialog', tagged.dialogs === 0);
-  await page.screenshot({ path: path.join(OUT, '05-tag-note.png') });
+  check('5 the tag shortcut is gone', tagGone.fnGone && tagGone.noteBtns === 0,
+    JSON.stringify({ fnGone: tagGone.fnGone, noteBtns: tagGone.noteBtns }));
+  check('5 and the change can still be talked about', tagGone.starter);
 
   await browser.close();
   srv.close();

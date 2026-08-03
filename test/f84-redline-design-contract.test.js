@@ -484,15 +484,19 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     assert.ok(!labels.some(t => /Add Note|Tag/i.test(t)),
       'the note shortcut is gone from the toolbar');
     assert.ok(labels.some(t => /Direct Edit/.test(t)));
-    assert.ok(labels.some(t => /Propose deletion/.test(t)));
+    /* Propose deletion was removed from both seats (Young, 03 Aug 2026) —
+       deletion changes stay first-class in the engine; the originating button
+       is gone. */
+    assert.ok(!labels.some(t => /Propose deletion|Delete/.test(t)),
+      'the delete verb is gone from the toolbar');
     /* the colour themes: indigo to talk, emerald to write, rose to strike */
     assert.equal(clause.querySelector('[data-rl-note]'), null);
     assert.ok(clause.querySelector('.rl-tool.rl-tool-edit[data-nego-edit]'));
-    assert.ok(clause.querySelector('.rl-tool.rl-tool-del[data-nego-del]'));
+    assert.equal(clause.querySelector('[data-nego-del]'), null);
     const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
     assert.match(css, /\.rl-tool\.rl-tool-note\{[^}]*background:#eef2ff/, 'Add Note/Tag is indigo');
     assert.match(css, /\.rl-tool\.rl-tool-edit\{[^}]*background:#ecfdf5/, 'Direct Edit is emerald');
-    assert.match(css, /\.rl-tool\.rl-tool-del\{[^}]*background:#fff1f2/, 'Propose deletion is rose');
+    assert.ok(!/rl-tool-del\{/.test(css), 'and its rose styling went with it');
     assert.ok(!/data-rl-ai/.test(p.html()), 'and the old whole-clause AI hook is gone from the page');
   });
 

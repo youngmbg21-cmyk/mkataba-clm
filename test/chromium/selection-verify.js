@@ -192,7 +192,7 @@ const INSTRUMENT = () => {
     const a = window.__point(cl, 'Either party may terminate', 'start', 0);
     const b = window.__point(cl, 'services already rendered', 'end', 0);
     const got = await window.__select(a, b);
-    const pressed = window.__press('Shorten');
+    const pressed = window.__press('Simplify');
     await new Promise(r => setTimeout(r, 60));
     return { ...got, pressed, asked: window.__seen.asked.length,
       refused: window.__said('couldn.t be matched|pending edits|more than one') };
@@ -226,7 +226,7 @@ const INSTRUMENT = () => {
     const sel = window.getSelection();
     const swept = sel.toString();
     const menu = !!document.querySelector('.nego-selmenu');
-    const pressed = window.__press('Shorten');
+    const pressed = window.__press('Simplify');
     await new Promise(r => setTimeout(r, 60));
     return { swept, pressed, menu, asked: window.__seen.asked.length,
       passage: (window.__seen.asked[0] || {}).passage || '',
@@ -262,7 +262,7 @@ const INSTRUMENT = () => {
     cl.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, view: window }));
     await window.__settle();
     const menu = !!document.querySelector('.nego-selmenu');
-    const pressed = window.__press('Shorten');
+    const pressed = window.__press('Simplify');
     await new Promise(r2 => setTimeout(r2, 60));
     return { menu, pressed, asked: window.__seen.asked.length,
       spanned: window.__said('more than one clause') };
@@ -284,7 +284,7 @@ const INSTRUMENT = () => {
     const b = window.__point(cl, 'date of issue', 'end', 0);
     if (!a || !b) return { skip: true };
     await window.__select(a, b);
-    const pressed = window.__press('Shorten');
+    const pressed = window.__press('Simplify');
     await new Promise(r => setTimeout(r, 60));
     return { pressed, asked: window.__seen.asked.length, pending: window.__said('pending edits') };
   });
@@ -302,7 +302,7 @@ const INSTRUMENT = () => {
     const b = window.__point(b0, 'date of issue', 'end', 0);
     if (!a || !b) return { skip: true };
     await window.__select(a, b, a0);
-    const pressed = window.__press('Shorten');
+    const pressed = window.__press('Simplify');
     await new Promise(r => setTimeout(r, 60));
     return { pressed, asked: window.__seen.asked.length, spanned: window.__said('more than one clause') };
   });
