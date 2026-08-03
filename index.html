@@ -463,7 +463,48 @@
   .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:12.5px;flex:1;min-width:0;color:inherit;}
 
   /* top-header square icon buttons (theme toggle, notifications) */
+  /* ============================================================
+     THE SIDEBAR, COLLAPSED TO ITS ICONS
+     ============================================================
+     One class on the shell, and the 256px column becomes a 64px rail. The
+     doors do not change, their order does not change and none of them is
+     dropped — only the words come off, and they come off to the `title` each
+     button already carries, so the labels move rather than disappear.
+
+     WHY NATIVE TOOLTIPS AND NOT A DRAWN ONE. #nav is a scroller
+     (overflow-y:auto), which clips a ::after tooltip at the rail's edge — the
+     one place it has to be able to reach. The browser's own tooltip is not
+     clipped by anything, is already wired to markup that has carried titles
+     since the sidebar was written, and is reachable from the keyboard.
+
+     WHAT IS DELIBERATELY NOT HIDDEN: the workspace status at the foot. It
+     loses its wording and keeps its dot, because "is this workspace live" is
+     the one thing on the sidebar that is not navigation and not recoverable by
+     opening the door to look. */
+  #app-shell.rail aside #nav{padding:12px 0;align-items:center;}
+  #app-shell.rail aside .nav-item{width:44px;justify-content:center;padding:9px 0;gap:0;margin:0 auto;}
+  /* The label spans carry inline flex:1, so this has to outrank them. */
+  #app-shell.rail aside .nav-item>span:not(.nav-rail),
+  #app-shell.rail aside .nav-count{display:none!important;}
+  #app-shell.rail aside .nav-item .nav-rail{left:-8px;}
+  /* A section heading cannot be re-worded from CSS, so its text is set to
+     nothing and the stub is drawn in its place — ADMINISTRATION does not fit
+     in 64px and an ellipsis of it says less than three letters do. */
+  #app-shell.rail aside .nav-section-head{font-size:0;justify-content:center;padding:12px 0 4px;}
+  #app-shell.rail aside .nav-section-head::before{content:"ADM";font-size:9px;font-weight:700;letter-spacing:.1em;}
+  #app-shell.rail aside .nav-plus{display:none;}
+  #app-shell.rail aside .copilot-wrap{padding:8px 0;display:flex;justify-content:center;}
+  #app-shell.rail aside #side-copilot{width:44px;padding:10px 0;}
+  #app-shell.rail aside .sc-label{display:none;}
+  #app-shell.rail aside .foot-wrap{padding:10px 0;}
+  #app-shell.rail aside .foot-wrap>div{background:none;border:0;padding:0;align-items:center;}
+  #app-shell.rail aside .foot-status{justify-content:center;}
+  #app-shell.rail aside #side-status,
+  #app-shell.rail aside #side-ai-usage-txt{display:none;}
+  #app-shell.rail aside #side-ai-usage{justify-content:center;}
+
   .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:12px;color:var(--color-neutral-600);cursor:pointer;transition:background .15s,color .15s;}
+  .hdr-icon-btn[aria-pressed="true"]{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);border-color:color-mix(in srgb,var(--accent-solid) 26%,transparent);color:var(--color-accent-600);}
   .hdr-icon-btn:hover{background:var(--color-neutral-200);color:var(--color-text);}
 
   /* jurisdiction switcher (Sweden / Kenya) */
@@ -956,6 +997,16 @@
 
       <button id="cmd-panel" class="hdr-icon-btn" title="Toggle the Activity panel">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+      </button>
+
+      <!-- Collapse the sidebar to its icons. It lives HERE rather than in the
+           sidebar for the reason the collapsed sidebar exists: the control has
+           to be reachable and the same size in both states, and a button
+           inside a 64px rail is neither. Beside the Activity panel toggle
+           because they are the same kind of act — this is the other side of
+           the window. -->
+      <button id="cmd-rail" class="hdr-icon-btn" title="Collapse the sidebar to icons" aria-pressed="false">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
       </button>
 
       <!-- regional profile badge — renderSideUser() (js/core.js) fills these -->

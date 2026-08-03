@@ -5497,6 +5497,68 @@ function redlineLayoutCss(){
      the sidebar gets pushed off the row instead of the text wrapping. */
   .redline-page .rl-grid{flex:1;min-height:0;position:relative;display:grid;gap:14px;
     grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:stretch}
+  /* ---- THREE COLUMNS WHEN THE QUEUE IS THERE ----
+     The starting widths only. rlLayoutResizer writes the real ones inline the
+     moment the page has a layout, and it reads the queue's width back off this
+     rule — so the breakpoint below is the single copy of the number. */
+  .redline-page .rl-grid.has-queue{--rl-queue-w:300px;
+    grid-template-columns:var(--rl-queue-w) minmax(0,2fr) minmax(0,1fr)}
+  /* A laptop cannot afford 300px of queue AND a readable contract, and the
+     contract is what is being judged. The queue gives up the width first. */
+  @media (max-width:1439px){
+    .redline-page .rl-grid.has-queue{--rl-queue-w:248px}
+  }
+
+  /* ---- THE QUEUE ----
+     A reading order, so it is set quiet: no card chrome inside the card, no
+     verbs, no counts competing with the change stack's own. The only loud
+     thing on it is the row you are meant to answer next. */
+  .redline-page .rl-queue{min-width:0}
+  .redline-page .rl-q-scroll{flex:1;min-height:0;overflow-y:auto;
+    padding:14px 12px 16px;display:flex;flex-direction:column}
+  .redline-page .rl-q-label{margin:0 0 8px;padding-left:4px;font-size:9.5px;font-weight:800;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)}
+  .redline-page .rl-q-row{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+    font:inherit;font-size:12.5px;color:var(--color-text);cursor:pointer;background:none;
+    border:1px solid transparent;border-radius:9px;padding:8px 10px;margin-bottom:2px}
+  .redline-page .rl-q-row:hover{background:var(--color-neutral-100)}
+  .redline-page .rl-q-k{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-q-st{flex:none;font-size:10.5px;font-weight:600}
+  /* The count chip appears only where a row stands for more than one change,
+     so its absence is itself information: this row is one ask. */
+  .redline-page .rl-q-n{flex:none;font-family:var(--font-mono);font-size:9.5px;font-weight:700;
+    background:var(--color-neutral-100);color:var(--color-neutral-600);
+    border:1px solid var(--color-divider);border-radius:999px;padding:0 6px}
+  /* The mark column is a fixed width on every row, answered or not, so the
+     clause names line up down the list instead of stepping in and out. */
+  .redline-page .rl-q-mark{flex:none;width:14px;text-align:center;font-weight:800;line-height:1}
+  .redline-page .rl-q-row.is-done{color:var(--st-green-fg)}
+  .redline-page .rl-q-row.is-done .rl-q-st{color:var(--st-green-fg)}
+  .redline-page .rl-q-row.is-waiting{color:var(--color-neutral-400)}
+  .redline-page .rl-q-row.is-waiting .rl-q-mark::before{content:"";display:block;
+    width:8px;height:8px;margin:0 auto;border-radius:50%;background:var(--color-neutral-200);
+    border:1px solid var(--color-neutral-400);opacity:.8}
+  .redline-page .rl-q-row.is-held{color:var(--st-amber-fg)}
+  .redline-page .rl-q-row.is-held .rl-q-st{font-size:10px;letter-spacing:.04em;text-transform:uppercase}
+  .redline-page .rl-q-row.is-held .rl-q-mark::before{content:"";display:block;
+    width:8px;height:8px;margin:0 auto;border-radius:50%;background:var(--st-amber-dot);opacity:.6}
+  /* THE ONE ROW THAT IS LOUD. A box and a live dot, because "which one am I on"
+     is the single question this column exists to answer at a glance. */
+  .redline-page .rl-q-row.is-now{font-weight:700;border-color:#33475c;
+    background:color-mix(in srgb,#456a8f 9%,transparent)}
+  .redline-page .rl-q-row.is-now .rl-q-st{color:var(--st-amber-fg);font-weight:700}
+  .redline-page .rl-q-row.is-now .rl-q-mark::before{content:"";display:block;
+    width:9px;height:9px;margin:0 auto;border-radius:50%;background:var(--st-amber-dot);
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--st-amber-dot) 22%,transparent)}
+  html.dark .redline-page .rl-q-row.is-now{border-color:#7fa3c8}
+  .redline-page .rl-q-split{border:0;border-top:1px dashed var(--color-divider);margin:14px 4px 12px}
+  .redline-page .rl-q-why{margin:0 4px;font-size:11px;line-height:1.5;color:var(--st-amber-fg)}
+  .redline-page .rl-q-empty{margin:4px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-500)}
+  /* The count sits at the FOOT and is pushed there, so it stays on the floor of
+     a short queue instead of hanging under the last row. */
+  .redline-page .rl-q-foot{margin-top:auto;padding:13px 4px 0;font-size:11px;
+    color:var(--color-neutral-500);border-top:1px solid var(--color-divider)}
+  .redline-page .rl-q-foot b{color:var(--color-text)}
   /* ---- THE SIDEBAR IS ONE CARD WITH TWO FACES ----
      Tracked Changes OR Discussion — data-rl-side-mode on the workbench root
      decides, and this pair is the whole mechanism: the panels stay mounted
@@ -5644,6 +5706,11 @@ function redlineLayoutCss(){
   @media (max-width:1023px){
     .redline-page .rl-grid{grid-template-columns:minmax(0,1fr)!important;height:auto}
     .redline-page .rl-doc,.redline-page .rl-side{grid-column:auto;min-height:280px}
+    /* The queue stacks with the panes rather than being dropped: it is the
+       reading order, and it is the pane that matters MOST on a small screen,
+       so it keeps its place at the top of the stack. It does not need 280px of
+       it — a queue is as tall as its rows. */
+    .redline-page .rl-queue{grid-column:auto;min-height:0;max-height:46vh}
     .redline-page .rl-resizer{display:none}
   }
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
@@ -7021,6 +7088,42 @@ function rlWireClauseTools(c, host, opts){
   /* No [data-rl-note] wiring: the button it served is gone. See the clause
      toolbar for why. */
 
+  /* ---- A QUEUE ROW TAKES YOU TO THE CLAUSE AND OPENS ITS CARD ----
+     One press, both ends: the document scrolls to the wording and the change's
+     card opens beside it, because deciding needs the passage and the verbs
+     together and the reader has already said which change they mean.
+
+     rlLinkFocus does the lighting and the scrolling for both panes — the same
+     call the card stack makes — so the queue cannot drift from the behaviour
+     of the column it points at. Source 'queue' rather than 'card' or 'clause'
+     because neither of those is where the press came from, and both of them
+     mean "do not scroll the end I came from".
+
+     THE ROW POINTS AT ITS FIRST UNANSWERED CHANGE. A row can stand for several
+     changes (one row per clause) and only one card can be opened; the one
+     still awaiting a decision is the one the reader is being sent to do
+     something about. rlQueueRows picks it as `lead`; a fully answered row
+     falls back to its first change, so a settled row still navigates. */
+  host.querySelectorAll('[data-rl-queue]').forEach(row => row.addEventListener('click', ev => {
+    ev.preventDefault();
+    const id = row.getAttribute('data-rl-queue');
+    const clauseId = row.getAttribute('data-rl-queue-clause');
+    /* Opening the card is a repaint, so it happens FIRST and the focus runs
+       against the card that comes back — the node this handler could reach is
+       about to be replaced. Mirrors the card stack's own collapsed-card path. */
+    const card = id ? host.querySelector(`[data-nego-card="${window.CSS && CSS.escape ? CSS.escape(id) : id}"]`) : null;
+    if (card && card.getAttribute('data-rl-open') === '0'){
+      rlCardSetOpen(id, true, card.getAttribute('data-rl-state'));
+      again();
+    }
+    if (id && rlLinkFocus(c, id, 'queue')) return;
+    /* No card and no anchor — a clause whose change has left the live set.
+       Falling back to the clause itself still answers "take me to it", and
+       edit:false because a queue row is a place to LOOK, not an invitation to
+       start typing in the contract. */
+    if (clauseId) rlJumpToClause(clauseId, { edit: false });
+  }));
+
   /* The card's Edit — light both ends, scroll the document to the clause and
      open the editor on it. Stopped from bubbling because the card itself links
      on click, and that would scroll the column back over the jump. */
@@ -7288,20 +7391,84 @@ function _rlLeftFrac(){
     return (v >= RL_FMIN - 0.001 && v <= RL_FMAX + 0.001) ? v : RL_F0; }
   catch (e) { return RL_F0; }
 }
+/* WHAT THE CONTRACT COLUMN MUST KEEP. The sheet is typeset to the Doc page's
+   720px measure so the two tabs set the contract to the same line length, and
+   it floats on the column with a gutter either side. Below this the sheet can
+   no longer hold its measure and the two tabs start disagreeing about what a
+   line of the contract looks like — which is the one thing the floating sheet
+   was introduced to fix.
+
+   The number is the 720px measure plus what the column spends around it — its
+   own padding and the scrollbar the canvas carries — measured in Chromium
+   rather than derived, because the padding is set in the sheet below and the
+   scrollbar width is the platform's. */
+const RL_SHEET_COL_MIN = 772;
+/* And the narrowest the queue can be and still read: "#12 · Payment Terms"
+   with a status beside it. Below this it is not a narrower queue, it is an
+   unreadable one, so the sheet gives way instead. */
+const RL_QUEUE_MIN = 210;
+
+/* HOW WIDE THE QUEUE WANTS TO BE. Read off the CSS custom property rather than
+   off the rendered box, deliberately: this function WRITES the rendered width
+   a few lines below, so measuring the box would feed last paint's answer back
+   in and the column would ratchet down a little on every resize and never grow
+   back. The property is the declared intent, and the sheet keeps the only copy
+   of the number — the laptop breakpoint lives there. Returns 0 when the queue
+   is absent or the narrow-width fallback has stacked it, which is also the
+   signal that the original two-column maths applies unchanged. */
+function _rlQueueW(grid){
+  const q = grid && grid.querySelector('#rl-queue');
+  if (!q || q.offsetParent === null) return 0;
+  const want = parseFloat(getComputedStyle(grid).getPropertyValue('--rl-queue-w'));
+  if (!(want > 0)) return 0;
+  /* Stacked: the fallback drops the grid to one column, so the queue is as
+     wide as the grid and there is no split left to place. */
+  return (q.getBoundingClientRect().width < grid.clientWidth - 80) ? want : 0;
+}
 function rlLayoutResizer(host){
   const scope = (host && host.querySelector) ? host : document;
   const grid = scope.querySelector('.redline-page .rl-grid');
   const rez = grid && grid.querySelector('#rl-resizer');
   if (!grid || !rez) return;
-  const avail = grid.clientWidth - RL_GAP;
+  /* THE HANDLE SITS ON A BOUNDARY, and the queue moved it. This function
+     writes the grid's columns inline, so a third column has to be accounted
+     for here as well as in the sheet — a CSS-only change would be overwritten
+     the moment anything called this, and the handle would keep its old
+     position, drawn straight down the middle of the contract. */
+  let qw = _rlQueueW(grid);
+  const solve = q => {
+    const avail = grid.clientWidth - (q ? RL_GAP * 2 : RL_GAP) - q;
+    let left = Math.round(_rlLeftFrac() * avail);
+    if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
+      left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN);
+    return { avail, left };
+  };
+  let s = solve(qw);
+  /* ---- THE CONTRACT KEEPS ITS MEASURE; THE QUEUE GIVES UP THE WIDTH ----
+     Three columns, a 720px sheet and a readable change stack do not all fit on
+     a 1440px laptop, and something has to yield. It is the queue: it is a list
+     of short labels and loses almost nothing by narrowing, while the contract
+     column is where the wording is actually judged and a sheet that cannot
+     hold its measure makes the Doc and Negotiate tabs typeset differently.
+     Only down to RL_QUEUE_MIN — past that the queue would stop being readable
+     to save a measure, which is trading one broken thing for another. */
+  if (qw && s.left < RL_SHEET_COL_MIN){
+    /* Solved, not stepped. Giving the queue's width back to the document one
+       pixel for one pixel undershoots every time — the document only takes its
+       own share of what is freed, so a naive subtraction lands short and the
+       measure stays broken. Ask instead how much room the split needs to put
+       RL_SHEET_COL_MIN on the left, and hand the queue whatever is over. */
+    const need = RL_SHEET_COL_MIN / Math.max(0.01, _rlLeftFrac());
+    const room = grid.clientWidth - RL_GAP * 2 - need;
+    const want = Math.max(RL_QUEUE_MIN, Math.min(qw, Math.floor(room)));
+    if (want < qw){ qw = want; s = solve(qw); }
+  }
   /* Unmeasured (a stage with no layout) or stacked to one column: the CSS
      fallback columns hold, and writing 0px here would break them. */
-  if (avail < 160) return;
-  let leftPx = Math.round(_rlLeftFrac() * avail);
-  if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
-    leftPx = Math.min(Math.max(leftPx, RL_LEFT_MIN), avail - RL_RIGHT_MIN);
-  grid.style.gridTemplateColumns = leftPx + 'px minmax(0,1fr)';
-  rez.style.left = leftPx + 'px';
+  if (s.avail < 160) return;
+  grid.style.gridTemplateColumns =
+    (qw ? qw + 'px ' : '') + s.left + 'px minmax(0,1fr)';
+  rez.style.left = (qw ? qw + RL_GAP : 0) + s.left + 'px';
 }
 /* ---------- THE CONTRACT TEXT SIZE, STEPPED ----------
    A⁻ / readout / A⁺ on the sub-header strip. It drives --rl-doc-type — the
@@ -8238,6 +8405,186 @@ function redlineWallHtml(c, opts = {}){
   </div>`;
 }
 
+/* ---------- THIS ROUND'S QUEUE ----------
+   The reading order for a negotiation: what has been answered, what is being
+   answered now, what is still waiting. Tracked Changes already lists every
+   change — this is the same set asked a different question. The column answers
+   "what do I do next"; the card stack answers "what is on the table".
+
+   ONE ROW PER CLAUSE, not one per change. The engine files changes
+   individually, so two asks against Clause 12 are two records with two
+   fingerprints — correct for the card stack, wrong for a queue, where the unit
+   of attention is the passage you read, not the number of edits somebody made
+   to it. Grouping is done here and nowhere else: no change record is merged,
+   renamed or hidden, and every row still points at real change ids.
+
+   NOTHING IS STORED. Every field below is derived on render from negoChanges,
+   negoClauseList and negoRiskOf, for the same reason negoReadyToSign is a read
+   rather than a flag: a stored queue could disagree with the changes it claims
+   to summarise, and this column's whole value is that it cannot. */
+function rlQueueRows(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  /* Through the wall, the same reading the card stack uses: a seat never sees
+     work it is not entitled to see. */
+  const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
+  /* DELIBERATELY NOT _rlIsLive. That predicate means "pending and not
+     withdrawn" — the right reading for the Tracked Changes count, which asks
+     what is outstanding, and the wrong one here. A queue whose answered rows
+     disappear the moment they are answered is a queue that cannot show
+     progress: the ticks ARE the feature, and the reader loses the account of
+     what they have already settled this round. So the filter is the one
+     negoProgress uses — everything on the table that has not been superseded —
+     minus withdrawn asks, which are off the table by definition. */
+  const live = (typeof negoChanges === 'function' ? negoChanges(c) : [])
+    .filter(x => x && x.status !== 'superseded' && !x.withdrawn && !hidden.has(x.id));
+
+  /* DOCUMENT ORDER, read off the baseline rather than off the change list.
+     Changes are filed in the order somebody happened to make them; a queue
+     that does not run top-to-bottom down the contract is not a reading order. */
+  const order = new Map();
+  (typeof negoClauseList === 'function' ? negoClauseList(c) : [])
+    .forEach((cl, i) => { if (cl && cl.clauseId) order.set(cl.clauseId, i); });
+
+  const rows = new Map();
+  for (const ch of live){
+    /* A change carrying no clause id is a clause being INSERTED — it has no
+       place in the baseline to be grouped against, so it gets its own row. */
+    const key = ch.clauseId || ('chg:' + ch.id);
+    let row = rows.get(key);
+    if (!row){
+      const parsed = window.clauseParseHeading
+        ? clauseParseHeading(ch.clauseLabel || '') : { num: '', title: '' };
+      row = { key, clauseId: ch.clauseId || null,
+        num: parsed.num || '', title: parsed.title || String(ch.clauseLabel || '').trim(),
+        at: order.has(key) ? order.get(key) : Number.MAX_SAFE_INTEGER,
+        changes: [], pending: 0, held: 0, accepted: 0, rejected: 0, why: [], lead: null };
+      rows.set(key, row);
+    }
+    row.changes.push(ch);
+    if (ch.status === 'pending'){
+      row.pending++;
+      if (!row.lead) row.lead = ch;
+      /* The SAME risk read that decides what "Accept All Non-Risk" holds back,
+         called rather than re-implemented: a queue that disagreed with the
+         batch button about what is safe would be worse than no queue. */
+      const r = (typeof negoRiskOf === 'function')
+        ? negoRiskOf(c, ch, side) : { risky: false, why: [] };
+      if (r.risky){
+        row.held++;
+        for (const w of (r.why || [])) if (!row.why.includes(w)) row.why.push(w);
+      }
+    }
+    else if (ch.status === 'rejected') row.rejected++;
+    else row.accepted++;
+  }
+
+  const out = Array.from(rows.values());
+  for (const row of out){
+    if (!row.lead) row.lead = row.changes[0] || null;
+    if (!row.num && !row.title) row.title = 'New clause';
+    /* THE ROLL-UP, and the rule it is written to keep: a row must never read
+       as finished while something underneath it is unanswered. So anything
+       pending outranks every answer beside it, and a row whose answers
+       disagree says "decided" rather than picking one of them to report. */
+    row.state = row.pending
+      ? (row.held === row.pending ? 'held' : 'open')
+      : (row.rejected && !row.accepted) ? 'rejected'
+      : (row.accepted && !row.rejected) ? 'accepted'
+      : 'decided';
+  }
+  out.sort((a, b) => a.at - b.at
+    || String(a.num).localeCompare(String(b.num), undefined, { numeric: true }));
+
+  /* "NOW" is the first row in document order that still owes an answer — a
+     held row included. Held means "this one needs a person", not "skip it";
+     marking it as next is the difference between a queue that hands you the
+     hard change and one that quietly buries it. */
+  const now = out.find(r => r.pending > 0);
+  if (now) now.now = true;
+  return out;
+}
+
+/* The word on the right of a row. A waiting row says nothing: the queue is
+   read downwards, and printing "waiting" six times says only that the reader
+   has not got there yet. */
+function rlQueueWord(row){
+  if (!row) return '';
+  if (row.now) return 'now';
+  if (row.state === 'held') return 'held';
+  if (row.state === 'accepted') return 'accepted';
+  if (row.state === 'rejected') return 'rejected';
+  if (row.state === 'decided') return 'decided';
+  return '';
+}
+
+function rlQueueHtml(c, opts = {}){
+  const rows = rlQueueRows(c, opts);
+  /* THE COUNT IS SUMMED OFF THE ROWS, not read from negoProgress. The two
+     would agree on the owner's page and disagree on the counterparty's, where
+     the wall hides changes that negoProgress still counts — and a footer
+     reading "2 of 7" under five visible rows is the column calling itself a
+     liar. Same definition as negoProgress (answered over on-the-table),
+     applied to the set this seat can actually see. */
+  const p = rows.reduce((a, r) => {
+    a.total += r.changes.length;
+    a.done += r.accepted + r.rejected;
+    return a;
+  }, { total: 0, done: 0 });
+  const held = rows.filter(r => r.state === 'held' || (r.now && r.held));
+
+  const body = rows.length ? rows.map(row => {
+    const label = row.num ? `#${_ne(row.num)} · ${_ne(row.title)}` : _ne(row.title);
+    const word = rlQueueWord(row);
+    const many = row.changes.length > 1;
+    /* The tooltip carries what the row cannot: why it is held, and how many
+       changes the one line stands for. */
+    const tip = [
+      many ? `${row.changes.length} changes on this clause` : '',
+      row.why.length ? `Held: ${row.why.join('; ')}` : '',
+    ].filter(Boolean).join(' · ');
+    const done = !row.pending;
+    return `<button type="button" class="rl-q-row${row.now ? ' is-now' : ''}${
+      row.state === 'held' ? ' is-held' : ''}${done ? ' is-done' : ''}${
+      !row.now && !done ? ' is-waiting' : ''}"
+      data-rl-queue="${_ne(row.lead && row.lead.id || '')}"
+      data-rl-queue-clause="${_ne(row.clauseId || '')}"
+      ${row.now ? 'aria-current="true" ' : ''}${tip ? `title="${_ne(tip)}"` : ''}>
+      <span class="rl-q-mark" aria-hidden="true">${done ? '&#10003;' : ''}</span>
+      <span class="rl-q-k">${label}</span>
+      ${many ? `<span class="rl-q-n">${row.changes.length}</span>` : ''}
+      <span class="rl-q-st">${_ne(word)}</span>
+    </button>`;
+  }).join('')
+    /* THE EMPTY STATE MUST NOT NAME A VERB THIS SEAT HAS NOT GOT. A signing
+       link and a closed round render this same column read-only, and
+       "press Direct Edit" there points at a control that is deliberately not
+       on the page — an invitation back into a negotiation that is over.
+       f113 asserts exactly this, and caught it. */
+    : (opts.readonly
+      ? '<p class="rl-q-empty">No changes on the table.</p>'
+      : `<p class="rl-q-empty">No changes on the table yet. Ask for different
+          wording on any clause and it lands here.</p>`);
+
+  /* The held note names them rather than defining a word. One held row says
+     which and why; several say how many and what they have in common, because
+     six reasons in a 300px column is a paragraph nobody reads. */
+  const note = !held.length ? '' : held.length === 1
+    ? `<p class="rl-q-why">${held[0].num ? `#${_ne(held[0].num)}` : _ne(held[0].title)} is held
+        back for you${held[0].why.length ? ` &mdash; ${_ne(held[0].why[0])}` : ''}.</p>`
+    : `<p class="rl-q-why">${held.length} clauses are held back for you &mdash; each trips a
+        playbook, scan or review signal.</p>`;
+
+  return `<aside class="rl-col rl-queue" id="rl-queue" aria-label="This round's queue">
+    <div class="rl-q-scroll">
+      <p class="rl-q-label">This round's queue</p>
+      ${body}
+      ${rows.length ? '<hr class="rl-q-split">' : ''}
+      ${note}
+      <div class="rl-q-foot"><b>${p.done} of ${p.total}</b> decided this round</div>
+    </div>
+  </aside>`;
+}
+
 /* The design's grid. Everything inside it is the engine's, arranged the way the
    design arranges it rather than the way the comparison workbench does. */
 function redlinePanesHtml(c, opts = {}){
@@ -8287,7 +8634,12 @@ function redlinePanesHtml(c, opts = {}){
          divider, same defaults: two thirds to the contract). nego-work is kept
          on the grid because the engine scopes its clause tooling under it
          (.nego-work .nego-pane …). -->
-    <div class="rl-grid nego-work" id="rl-grid" style="--nego-f:1;--nego-c:320px">
+    <div class="rl-grid nego-work has-queue" id="rl-grid" style="--nego-f:1;--nego-c:320px">
+      <!-- THE QUEUE COMES FIRST because it is read first: what to answer next,
+           then the wording, then the change record. It is a grid column rather
+           than an overlay so it scrolls and stacks with the panes instead of
+           floating over the contract. -->
+      ${rlQueueHtml(c, opts)}
       <!-- keeps the nego-pane working classes: the engine's clause tools
            (Change, Delete, the fingerprint margin) are styled through them, and
            without them they render as unlabelled empty boxes -->
@@ -8549,6 +8901,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,
+  rlQueueRows, rlQueueHtml, rlQueueWord,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
