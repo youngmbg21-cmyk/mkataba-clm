@@ -143,9 +143,35 @@ function accentLegible(hex) {
 /* The dominant saturated colour in an RGBA pixel array — white, black and
    greys ignored, hues bucketed so anti-aliasing noise cannot outvote the
    brand colour. Returns '#rrggbb' or null (a monochrome logo has no accent
-   to offer, and that is an honest answer). Pure for the same reason. */
+   to offer, and that is an honest answer). Pure for the same reason.
+
+   THE DEFECT THIS REPLACES. The winning bucket used to be averaged whole,
+   and the average of a hue bucket is not that hue's ink — it is the ink
+   diluted by its own anti-aliased edge. Every letterform is a core of solid
+   colour surrounded by a fringe of pixels part-way to the paper behind it,
+   and on a logo made of LETTERING rather than a solid block the fringe
+   outnumbers the core. Measured on a real customer wordmark: ink #004c78,
+   answer #2b6b8e — a navy returned as washed-out steel, on every contract
+   that company sends. The old sample size made it worse (see
+   extractAccentFromLogo): shrunk to 48x48, a wide wordmark is almost nothing
+   BUT fringe.
+
+   The fix is to stop treating the fringe as evidence. Fringe pixels are
+   exactly the desaturated members of the bucket — blending toward white
+   drains saturation — so the ink is whatever is saturated like the most
+   saturated thing present. A solid-block logo is unaffected: its pixels are
+   all equally saturated, so the subset is the whole and the answer does not
+   move.
+
+   The floor is there so one anomalous pixel cannot become the brand. If the
+   saturation threshold admits fewer than the floor, the floor wins and the
+   next-most-saturated pixels are taken instead — a compression artefact gets
+   a vote, never a veto. */
+const BR_INK_SAT = 0.8;        // keep pixels at least this share of the bucket's peak saturation
+const BR_INK_FLOOR = 8;        // …but never average fewer than this many
+
 function pickAccentFromPixels(rgba) {
-  const buckets = new Map();  // hue bucket → {n, r, g, b}
+  const buckets = new Map();  // hue bucket → [{r,g,b,sat}, …]
   for (let i = 0; i + 3 < rgba.length; i += 4) {
     const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2], a = rgba[i + 3];
     if (a < 128) continue;
@@ -159,14 +185,24 @@ function pickAccentFromPixels(rgba) {
     else if (max === g) h = (b - r) / (max - min) + 2;
     else h = (r - g) / (max - min) + 4;
     const bucket = Math.round(((h * 60) + 360) % 360 / 20);
-    const cur = buckets.get(bucket) || { n: 0, r: 0, g: 0, b: 0 };
-    cur.n++; cur.r += r; cur.g += g; cur.b += b;
+    const cur = buckets.get(bucket) || [];
+    cur.push({ r, g, b, sat });
     buckets.set(bucket, cur);
   }
   let best = null;
-  for (const v of buckets.values()) if (!best || v.n > best.n) best = v;
-  if (!best || best.n < 8) return null;                // too few pixels to call it a brand colour
-  const hex = '#' + [best.r, best.g, best.b].map(t => Math.round(t / best.n).toString(16).padStart(2, '0')).join('');
+  for (const v of buckets.values()) if (!best || v.length > best.length) best = v;
+  if (!best || best.length < 8) return null;           // too few pixels to call it a brand colour
+
+  /* The ink, not the ink's edge. */
+  best.sort((p, q) => q.sat - p.sat);
+  const floor = Math.min(best.length, BR_INK_FLOOR);
+  const cut = best[0].sat * BR_INK_SAT;
+  let keep = 0;
+  while (keep < best.length && best[keep].sat >= cut) keep++;
+  keep = Math.max(keep, floor);
+  let r = 0, g = 0, b = 0;
+  for (let i = 0; i < keep; i++) { r += best[i].r; g += best[i].g; b += best[i].b; }
+  const hex = '#' + [r, g, b].map(t => Math.round(t / keep).toString(16).padStart(2, '0')).join('');
   return accentLegible(hex);
 }
 
@@ -178,9 +214,25 @@ function extractAccentFromLogo(dataUrl) {
     const img = new Image();
     img.onload = () => {
       try {
-        const w = 48, h = 48;
+        /* SAMPLE BIG ENOUGH TO HAVE AN INSIDE. At 48x48 a wide wordmark has
+           almost no interior left — every stroke is a pixel or two across, so
+           nearly every sample is part ink and part paper, and the colour read
+           back is a blend of the brand and the background it happened to sit
+           on. 200px on the long edge keeps the strokes several pixels wide,
+           which is what gives pickAccentFromPixels a solid core to find.
+           Aspect is preserved for the same reason: squashing a 2500x1169
+           wordmark into a square thins the strokes it is trying to measure.
+           Still one pass over ~40k pixels, once, at upload — never per render. */
+        const LONG = 200;
+        const scale = Math.min(1, LONG / Math.max(img.width || LONG, img.height || LONG));
+        const w = Math.max(1, Math.round((img.width || LONG) * scale));
+        const h = Math.max(1, Math.round((img.height || LONG) * scale));
         const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');
+        /* Smoothing off: the browser's default resampling invents intermediate
+           colours between ink and paper, which is precisely the fringe this
+           function is trying not to be fooled by. */
+        cx.imageSmoothingEnabled = false;
         cx.drawImage(img, 0, 0, w, h);
         resolve(pickAccentFromPixels(cx.getImageData(0, 0, w, h).data));
       } catch (e) { resolve(null); }   // tainted canvas / bad image — no accent, not an error
