@@ -205,7 +205,7 @@ const READ = () => {
        checked that the FIELD existed rather than that the answer arrived. So
        these walk each action all the way to the card and look for the words
        that were typed. */
-    const REASON = 'LIVE-REASON-our-AP-cycle-runs-monthly';
+    const REASON = 'LIVE-REASON our AP cycle runs monthly and our finance committee only approves payment runs on the last Thursday, so Net-30 forces an out-of-cycle payment almost every month and both sides handle exceptions.';
     const DELWHY = 'LIVE-DELETE-REASON-covered-by-clause-12';
 
     /* The stress test above left the editor on step two with a long string in
@@ -228,8 +228,28 @@ const READ = () => {
     const edited = await page.evaluate(() => [...document.querySelectorAll('[data-nego-card]')]
       .map(e => e.textContent).join(''));
     check('reason: an edited clause carries its reason onto the card',
-      edited.includes(REASON), edited.includes(REASON) ? '' : 'the card shows no reason');
+      edited.includes('LIVE-REASON'), edited.includes('LIVE-REASON') ? '' : 'the card shows no reason');
     check('reason: and the card names it', /Why they asked/i.test(edited));
+
+    /* ---- THE CARD ARRIVES TWO LINES TALL, WHATEVER WAS WRITTEN ----
+       Agreed, rendered in the mockup, and then not built in the product — the
+       card showed the whole paragraph. Asserted on the painted node: the
+       clamped block genuinely overflows its two lines, Show more is offered
+       because of that measurement, and pressing it unfolds. */
+    const clamp = await page.evaluate(() => {
+      const el = document.querySelector('[data-nego-card] .nego-why-clamp');
+      if (!el) return null;
+      const btn = el.closest('[data-nego-card]').querySelector('.nego-why-more');
+      const clamped = el.scrollHeight > el.clientHeight + 1;
+      let opened = null;
+      if (btn){ btn.click(); opened = el.scrollHeight <= el.clientHeight + 1; }
+      return { found: true, clamped, hasBtn: !!btn, opened };
+    });
+    check('reason: the card clamps a long reason to two lines',
+      !!clamp && clamp.clamped, clamp ? '' : 'no clamped block on the card');
+    check('reason: Show more is offered, and unfolds it',
+      !!clamp && clamp.hasBtn && clamp.opened === true,
+      clamp ? `btn:${clamp.hasBtn} opened:${clamp.opened}` : '');
 
     const asked = await page.evaluate(() => {
       const b = document.querySelector('[data-nego-del]');

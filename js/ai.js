@@ -707,6 +707,15 @@ function renderAISuggest(){
 
 function renderAIFeed(typing=false){
   const feed=document.getElementById('ai-feed');
+  /* A repaint rebuilds every card from state, so anything typed into a live
+     card's reason box and not yet captured would be wiped by the very paint
+     that follows pressing Edit or a new message landing. Read the boxes back
+     into their proposals first — the same courtesy the wording editor gets
+     via aiProposalLiveText. */
+  if (feed) feed.querySelectorAll('[data-ai-prop-why]').forEach(t => {
+    const pr = aiProposals.get(t.getAttribute('data-ai-prop-why'));
+    if (pr && pr.status === AI_PROPOSAL_OPEN) pr.why = String(t.value || '').trim();
+  });
   feed.innerHTML=ai.history.map(m=>{
     if(m.role==='user'){
       return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;
@@ -2104,6 +2113,12 @@ function aiProposalCardHtml(p){
     ${aiProposalAnchorHtml(p)}
     ${aiProposalPlacementHtml(p)}
     ${p.note ? `<div style="font-size:11px;line-height:1.5;color:var(--st-amber-fg)">${e(p.note)}</div>` : ''}
+    ${done ? '' : `<label style="display:block">
+        <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">Why this change? — the other side sees it beside the redline (optional)</span>
+        <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
+          placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment."
+          style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:6px;padding:7px 9px;font:inherit;font-size:11.5px;line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
+      </label>`}
     ${done
       ? `<div style="font-size:11px;font-weight:600;border-radius:6px;padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
       : `<div style="display:flex;gap:7px;flex-wrap:wrap">
@@ -2195,6 +2210,11 @@ function aiProposalApply(id){
   const text = aiProposalLiveText(p).trim();
   if (!text){ if (window.toast) toast('There is no wording to apply', 'err'); return; }
   p.text = text;
+  /* The reason typed on the card travels with the apply — read here, at the
+     moment of pressing, for the same reason the placement is: the box is live
+     DOM and the proposal object only learns what it held when it matters. */
+  const whyBox = document.querySelector(`[data-ai-prop-why="${(window.CSS && CSS.escape) ? CSS.escape(p.id) : p.id}"]`);
+  if (whyBox) p.why = String(whyBox.value || '').trim();
   const res = p.onApply ? p.onApply(text, p) : null;
   /* A handler that refuses says why and the card stays open — the wording is
      still in the box and the reader has not lost their edit. */

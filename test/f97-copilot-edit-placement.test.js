@@ -713,3 +713,39 @@ describe('F97g — the card says what it will do, and the reader can correct it'
     assert.equal(p.status, 'applied');
   });
 });
+
+/* ============================================================
+   The reason on the proposal card travels into the filed change
+   ============================================================
+   Every other way of filing a redline asks why; the Copilot's Apply was the
+   one that did not, so a change drafted by the model arrived with LESS
+   explanation than one typed by hand. The card now carries an optional reason
+   box, and whatever it holds when Apply is pressed lands on the change as
+   `why` — the field the other side reads — while `note` keeps its provenance
+   job ("Copilot — Edit") and stays internal. */
+describe('F97 — the reason typed on the proposal card is filed with the change', () => {
+  test('card.why lands on the change as why, beside the provenance note', async () => {
+    const p = await page({ wording: 'Payment within forty-five (45) days.', placement: 'replace' });
+    const card = await p.ask('All invoices are payable within thirty (30) days from the date of issue.', 'extend to net-45');
+    assert.ok(card, 'a proposal card must open');
+    const res = await card.onApply(card.proposedText,
+      { placement: 'replace', why: 'COPILOT-WHY our AP cycle runs monthly' });
+    assert.ok(!res || res.ok !== false, 'the apply must not refuse');
+    await new Promise(r => setTimeout(r, 0));
+    const ch = p.win.negoChanges(p.c).slice(-1)[0];
+    assert.ok(ch, 'a change was filed');
+    assert.equal(ch.why, 'COPILOT-WHY our AP cycle runs monthly',
+      'the reason travels on the field the other side reads');
+    assert.match(String(ch.note || ''), /^Copilot — /,
+      'and provenance stays its own field, internal as ever');
+  });
+
+  test('no reason typed files a change with none — skippable here too', async () => {
+    const p = await page({ wording: 'Payment within forty-five (45) days.', placement: 'replace' });
+    const card = await p.ask('All invoices are payable within thirty (30) days from the date of issue.', 'extend to net-45');
+    await card.onApply(card.proposedText, { placement: 'replace' });
+    await new Promise(r => setTimeout(r, 0));
+    const ch = p.win.negoChanges(p.c).slice(-1)[0];
+    assert.ok(!ch.why, 'optional means absent, not an empty string');
+  });
+});

@@ -697,6 +697,19 @@ function negoStyleHtml(){
      Long reasoning wraps rather than scrolling sideways: a textarea soft-wraps
      on its own, and overflow-wrap:anywhere handles the case it will not break
      by itself — a pasted reference or URL with no spaces in it. */
+  /* ---- THE CARD ARRIVES SMALL, WHATEVER THE REASON'S LENGTH ----
+     Agreed and then not built: the card was to show at most two lines of the
+     reason, with Show more unfolding the rest, so one long note cannot push
+     three cards below the fold. The mockup had it; the product did not. The
+     button is added by negoWireWhyClamp ONLY when the text actually overflows
+     — measured, not guessed from characters, because two lines of a narrow
+     column is a different count every time the panel is resized. */
+  .nego-why-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+    overflow:hidden;overflow-wrap:anywhere}
+  .nego-why-clamp.open{display:block;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+  .nego-why-more{display:block;margin-top:3px;border:0;background:none;padding:0;cursor:pointer;
+    font:inherit;font-size:10px;font-weight:700;color:var(--color-accent-700,#0f766e)}
+  .nego-why-more:focus-visible{outline:2px solid var(--color-accent,#0d9488);outline-offset:2px;border-radius:3px}
   .nego-reason{display:block;margin-top:8px}
   /* The deletion's in-place question. Bordered like a held draft rather than
      shaded like an error: nothing has happened yet. */
@@ -1983,7 +1996,7 @@ function negoLiveCardsHtml(c, opts){
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
         ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
           <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
-          <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
+          <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
@@ -2102,7 +2115,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
     ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
       <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
-      <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
+      <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
     ${msgs.length ? `<div class="nego-past-thread">
@@ -4357,6 +4370,7 @@ function wireNegotiationTab(c, opts = {}){
      they have to keep their place in. Clicking the badge now also FILTERS —
      one change, its thread, and a way back — and clicking the same badge again
      clears it, so the narrowing is never a state you can get stuck in. */
+  negoWireWhyClamp(host);
   host.querySelectorAll('[data-badge]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const id = b.getAttribute('data-badge');
@@ -6633,13 +6647,13 @@ async function rlAiPropose(ctx){
      now records the placement as well as the action, and the placement is not
      known until Apply is pressed — the reader may have corrected it since the
      model guessed. */
-  const fileAll = (jobs, note) => {
+  const fileAll = (jobs, note, why) => {
     Promise.all(jobs.map(j => j.kind === 'delete'
-      ? negoDeleteClause(c, j.clauseId, { side, author: opts && opts.by, note })
+      ? negoDeleteClause(c, j.clauseId, { side, author: opts && opts.by, note, why })
       : j.kind === 'insert'
         ? negoInsertClause(c, j.clauseId, { bodyHtml: j.bodyHtml, headingText: j.headingText || '' },
-          { side, author: opts && opts.by, note })
-        : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note })))
+          { side, author: opts && opts.by, note, why })
+        : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note, why })))
       .then(chs => {
         const filed = chs.filter(Boolean);
         if (!filed.length){ if (window.toast) toast('That wording matches the clause already — nothing filed'); return; }
@@ -6681,6 +6695,14 @@ async function rlAiPropose(ctx){
       ? aiNormalizePlacement(card && card.placement) : 'replace';
     const noteLabel = action.noteLabel || action.label.replace(/^\S+\s/, '');
     const note = `Copilot — ${noteLabel}${RL_PLACEMENT_NOTE[placement] || ''}`;
+    /* The reason typed on the proposal card, if any. Distinct from `note`
+       above on purpose: note is provenance ("Copilot — Edit"), internal, and
+       never crosses the table; the reason is the person's own case for the
+       change, written to be read by the other side. Every other way of filing
+       a redline asks this question — the Copilot's Apply was the one that did
+       not, so a change drafted by the model arrived with less explanation
+       than one typed by hand, which is backwards. */
+    const why = String((card && card.why) || '').trim() || undefined;
     const moved = { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
 
     /* ---- A WHOLE NEW CLAUSE ----
@@ -6710,7 +6732,7 @@ async function rlAiPropose(ctx){
       if (!(window.negoClauseById && negoClauseById(c, anchorId)))
         return { ok: false, message: 'The clause this would follow is no longer in the document. Reselect a current clause and try again.' };
       return fileAll([{ kind: 'insert', clauseId: anchorId, bodyHtml: asHtml(String(wording)),
-        headingText: (card && card.headingText) || '' }], note);
+        headingText: (card && card.headingText) || '' }], note, why);
     }
 
     /* ---- THE SPAN CASE ----
@@ -6734,7 +6756,7 @@ async function rlAiPropose(ctx){
         const hit = negoResolvePassage(t, p);
         if (!hit) return moved;
         return fileAll([{ kind: 'edit', clauseId: p.clauseId,
-          html: asHtml(insertAt(t, placement === 'after' ? hit.end : hit.start, wording)) }], note);
+          html: asHtml(insertAt(t, placement === 'after' ? hit.end : hit.start, wording)) }], note, why);
       }
       const jobs = [];
       for (let i = 0; i < parts.length; i++){
@@ -6754,7 +6776,7 @@ async function rlAiPropose(ctx){
           jobs.push({ kind: 'delete', clauseId: p.clauseId });
         }
       }
-      return fileAll(jobs, note);
+      return fileAll(jobs, note, why);
     }
 
     const live = window.negoClauseById ? negoClauseById(c, clauseId) : null;
@@ -6775,7 +6797,7 @@ async function rlAiPropose(ctx){
         ? insertAt(nowText, isWhole ? nowText.length : hit.end, wording)
         : insertAt(nowText, isWhole ? 0 : hit.start, wording);
     if (proposed === nowText) return { ok: false, message: 'That wording matches the clause already — nothing was filed.' };
-    return fileAll([{ kind: 'edit', clauseId, html: asHtml(proposed) }], note);
+    return fileAll([{ kind: 'edit', clauseId, html: asHtml(proposed) }], note, why);
   };
 
   const refine = async (instruction, prev, extra) => {
@@ -7226,6 +7248,7 @@ function rlWireClauseTools(c, host, opts){
      is only one send: everything unsent goes in one round. A per-change send
      would let a reader believe they had published one ask while three others
      stayed home. */
+  negoWireWhyClamp(host);
   host.querySelectorAll('[data-rl-send]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     /* Whose postbox a card's Send presses depends on whose card it is: the
@@ -8081,7 +8104,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        the card in the change column that people actually read. A reason
        nobody sees is a reason nobody gives. */
     const whyBlock = ch.why
-      ? `<div class="rl-card-why"><span class="rl-card-why-k">Why they asked</span>${_ne(ch.why)}</div>`
+      ? `<div class="rl-card-why"><span class="rl-card-why-k">Why they asked</span><span class="nego-why-clamp">${_ne(ch.why)}</span></div>`
       : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
@@ -8495,6 +8518,37 @@ function redlineDiscussionHtml(c, opts = {}){
 }
 /* A timestamp a person can read, falling back to the raw value rather than
    inventing one when the record has no parseable date. */
+/* Adds Show more to any clamped reason that actually overflows its two lines.
+   Measured on the painted node rather than guessed from length. A card whose
+   body is hidden (shut, waiting to peek) measures 0 — those get a listener on
+   the card itself and are measured the first time they become visible. */
+function negoWireWhyClamp(host){
+  const scope = (host && host.querySelectorAll) ? host : document;
+  scope.querySelectorAll('.nego-why-clamp').forEach(el => {
+    if (el.dataset.whyWired) return;
+    if (!el.clientHeight){
+      const card = el.closest('[data-nego-card]');
+      if (card && !card.dataset.whyPeekWired){
+        card.dataset.whyPeekWired = '1';
+        const later = () => negoWireWhyClamp(card);
+        card.addEventListener('mouseenter', later);
+        card.addEventListener('focusin', later);
+      }
+      return;
+    }
+    el.dataset.whyWired = '1';
+    if (el.scrollHeight <= el.clientHeight + 1) return;   // it fits — no verb
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'nego-why-more'; btn.textContent = 'Show more';
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const open = el.classList.toggle('open');
+      btn.textContent = open ? 'Show less' : 'Show more';
+    });
+    el.after(btn);
+  });
+}
+
 function negoWhen(at){
   const t = Date.parse(at || '');
   if (isNaN(t)) return '';
