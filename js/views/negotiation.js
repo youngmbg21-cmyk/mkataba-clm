@@ -681,6 +681,31 @@ function negoStyleHtml(){
     box-shadow:0 1px 2px rgba(15,23,42,.08);transition:background .12s,border-color .12s}
   .nego-fmt-bar button:hover{border-color:var(--n-ink-soft,#94a3b8);background:var(--n-well,#f8fafc)}
   .nego-fmt-bar button:active{box-shadow:none;transform:translateY(.5px)}
+  /* ---- WHY THE CHANGE, ASKED WHERE THE CHANGE IS MADE ----
+     The field, the storage and the display all existed already: a change
+     carries a note, the card renders it under "Why they asked", and the old
+     portal editor asked for one. The editor both seats actually use never did,
+     so every change arrived as bare wording and the owner had to go and ask.
+
+     WIDTH IS THE THING TO BE CAREFUL ABOUT. A textarea does not shrink to fit
+     — left alone it takes its size from its cols attribute and can push its container
+     wider, which is how this shaded box lost its width once before. Three
+     declarations prevent that and none of them are optional: box-sizing so the
+     padding is counted inside, width:100% so it tracks the clause rather than
+     its own content, and max-width:100% so it can never exceed it.
+
+     Long reasoning wraps rather than scrolling sideways: a textarea soft-wraps
+     on its own, and overflow-wrap:anywhere handles the case it will not break
+     by itself — a pasted reference or URL with no spaces in it. */
+  .nego-reason{display:block;margin-top:8px}
+  .nego-reason>span{display:block;font-size:10px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--n-ink-soft);margin-bottom:3px}
+  .nego-reason textarea{display:block;box-sizing:border-box;width:100%;max-width:100%;
+    min-height:52px;resize:vertical;border:1px solid var(--n-line);border-radius:5px;
+    padding:7px 9px;font:inherit;font-size:11.5px;line-height:1.6;
+    background:var(--n-paper);color:var(--n-ink);outline:none;
+    white-space:pre-wrap;overflow-wrap:anywhere}
+  .nego-reason textarea:focus{border-color:var(--n-focus)}
   .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
   .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
@@ -4183,16 +4208,32 @@ function wireNegotiationTab(c, opts = {}){
       ev.preventDefault(); ev.stopPropagation();
       try{ document.execCommand(fb.getAttribute('data-nego-fmt')); }catch(_){ /* an engine without execCommand still has the keyboard */ }
     }));
+    /* The reason, between the wording and the buttons — while the wording is
+       still being chosen, which is when a reason is a reason rather than a
+       formality typed at the door. Optional, deliberately: this component is
+       also mounted on a page with no login, and a required box there collects
+       a full stop. */
+    const why = document.createElement('label');
+    why.className = 'nego-reason';
+    why.innerHTML = `<span>Why? &mdash; shown beside this change (optional)</span>`
+      + `<textarea data-nego-reason="${_ne(clauseId)}" rows="2" wrap="soft" spellcheck="true"`
+      + ` placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment."></textarea>`;
+    holder.after(why);
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
     bar.innerHTML = `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
       + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button>`;
-    holder.after(bar);
+    why.after(bar);
+    /* The wording keeps the focus: the reason is the second thing somebody
+       writes, and stealing the caret into it would be the editor arguing with
+       the person who just pressed Change. */
     if (holder.focus) holder.focus();
     bar.querySelector('[data-nego-cancel]').addEventListener('click', ev => { ev.stopPropagation(); again(); });
     bar.querySelector('[data-nego-save]').addEventListener('click', ev => {
       ev.stopPropagation();
-      fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML, { side, author: opts.by }),
+      const note = String((why.querySelector('textarea') || {}).value || '').trim();
+      fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML,
+        { side, author: opts.by, note: note || undefined }),
         ch => `#${ch.id} filed — ${ch.summary}`);
     });
   }));

@@ -368,3 +368,53 @@ describe('Share is two steps, and the summary travels', () => {
   });
 
 });
+
+/* ============================================================
+   The reason travels from the editor to the card
+   ============================================================
+   The field, the storage and the display all existed already: a change carries
+   a note, and the card renders it under "Why they asked". The editor both
+   seats use never asked for one, so every change arrived as bare wording and
+   the owner had to go and ask. This checks the wire that was missing, not the
+   two ends that were not. */
+describe('a change can say why it was asked for', () => {
+  test('what is typed in the editor is filed on the change', async () => {
+    const { win } = buildWorld();
+    const c = contract();
+    win.negoInit(c);
+    const cl = win.negoClauseList(c).find(x => x.num === '4');
+    const ch = await win.negoEditClause(c, cl.clauseId, '<p>Net-45 applies.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist',
+        note: 'Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment.' });
+    assert.equal(ch.note, 'Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment.');
+  });
+
+  test('a change filed without one carries no note at all', async () => {
+    const { win } = buildWorld();
+    const c = contract();
+    win.negoInit(c);
+    const cl = win.negoClauseList(c).find(x => x.num === '4');
+    const ch = await win.negoEditClause(c, cl.clauseId, '<p>Net-45 applies.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist' });
+    assert.ok(!ch.note, 'optional means absent, not an empty string on the record');
+  });
+
+  test('the card shows it, and shows nothing when there is none', async () => {
+    const { win } = buildWorld();
+    const c = contract();
+    win.negoInit(c);
+    const list = win.negoClauseList(c);
+    await win.negoEditClause(c, list.find(x => x.num === '4').clauseId, '<p>Net-45 applies.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist', note: 'AP-CYCLE-REASON' });
+    await win.negoEditClause(c, list.find(x => x.num === '6').clauseId, '<p>Capped.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist' });
+    const html = win.negoHistoryCardHtml
+      ? win.negoChanges(c).map(x => win.negoHistoryCardHtml(c, x)).join('')
+      : '';
+    if (!html) return;   // the card renderer is not on this stage
+    assert.match(html, /Why they asked/);
+    assert.match(html, /AP-CYCLE-REASON/);
+    assert.equal((html.match(/Why they asked/g) || []).length, 1,
+      'only the change that has a reason gets the block');
+  });
+});

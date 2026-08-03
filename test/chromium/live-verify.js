@@ -107,6 +107,73 @@ const READ = () => {
     await ctx.close();
   }
 
+  /* ---------- THE SHADED EDIT BOX KEEPS ITS WIDTH ----------
+     Asked for by name, because it has been broken before and cost rounds to
+     find. A textarea does not shrink to fit: dropped into a container without
+     box-sizing and a width it can push that container wider, and the clause
+     the reader is editing changes shape under them.
+
+     Measured, not reasoned about — the clause block before the editor opens
+     and after, and again with a long unbroken string in the reason field,
+     which is the input that actually widens a box. */
+  {
+    const token = await mk('negotiate');
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 950 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errors.push(`editor: ${e.message}`));
+    await page.goto(`${h.base}/#share=t:${token}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+
+    const before = await page.evaluate(() => {
+      const b = document.querySelector('.nego-clause');
+      return b ? Math.round(b.getBoundingClientRect().width) : null;
+    });
+    const opened = await page.evaluate(() => {
+      const b = document.querySelector('[data-nego-edit]');
+      if (!b) return false; b.click(); return true;
+    });
+    check('editor: Change opens an editor on a clause', opened);
+    await page.waitForTimeout(500);
+
+    const m = await page.evaluate(() => {
+      const ta = document.querySelector('[data-nego-reason]');
+      const blk = ta && ta.closest('.nego-clause');
+      if (!ta || !blk) return null;
+      const cs = getComputedStyle(ta);
+      return { blockW: Math.round(blk.getBoundingClientRect().width),
+        taW: Math.round(ta.getBoundingClientRect().width),
+        boxSizing: cs.boxSizing, overflowWrap: cs.overflowWrap, wrap: ta.wrap };
+    });
+    check('editor: the reason field is there', !!m);
+    if (m){
+      check('editor: the shaded clause box keeps its width', m.blockW === before,
+        `${before}px before, ${m.blockW}px with the editor open`);
+      check('editor: the reason field fills the box and no more',
+        m.taW === m.blockW, `${m.taW}px in ${m.blockW}px`);
+      check('editor: it is sized from the box, not from its own content',
+        m.boxSizing === 'border-box', m.boxSizing);
+      check('editor: text wraps rather than running sideways',
+        m.wrap === 'soft' && m.overflowWrap === 'anywhere', `${m.wrap} / ${m.overflowWrap}`);
+
+      const stressed = await page.evaluate(() => {
+        const ta = document.querySelector('[data-nego-reason]');
+        ta.value = 'Our AP cycle runs monthly and the committee approves runs on the last '
+          + 'Thursday, so Net-30 forces an out-of-cycle payment. '
+          + 'REF-SUPPLIERAGREEMENTSCHEDULEB-PAYMENTTERMS-2026-REVISION-FOURTEEN-NO-SPACES';
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        const blk = ta.closest('.nego-clause');
+        return { blockW: Math.round(blk.getBoundingClientRect().width),
+          sideways: ta.scrollWidth > ta.clientWidth + 1,
+          pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+      });
+      check('editor: a long unbroken reason does not widen the box',
+        stressed.blockW === before, `${stressed.blockW}px`);
+      check('editor: and it wraps instead of scrolling sideways', !stressed.sideways);
+      check('editor: the page still does not scroll sideways', !stressed.pageOverflow);
+    }
+    await ctx.close();
+  }
+
   await browser.close();
   await h.stop();
   errors.slice(0, 5).forEach(e => check('no page error', false, e));
