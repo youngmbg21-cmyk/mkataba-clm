@@ -5868,6 +5868,23 @@ function redlineEmbed(host, c, opts = {}){
      that reused this mount for a second contract would open a card on it that
      this reader has never seen. */
   rlCardForgetPins(c && c.id);
+  /* ---- THE SCROLL SURVIVES THE REPAINT HERE TOO ----
+     renderRedline has kept the three scroll boxes across a rebuild for a long
+     time. This mount — the counterparty's whole negotiation seat, and the only
+     one they get — never did, so every decision, every card press and every
+     reply dropped the contract to its title and then travelled back down to the
+     clause. Same fault the owner reported, same shape on the screen, and it
+     survived the owner's fix because the fix was written where the owner's page
+     rebuilds rather than where the panes do.
+
+     Scoped to this mount rather than to the document: the ids belong to the
+     panes, and a host that mounts one beside anything else must not have its
+     positions read off a different copy. */
+  const _embedScroll = {};
+  ['nego-scroll-work', 'nego-cards', 'rl-threads'].forEach(id => {
+    const n = el.querySelector('#' + id);
+    if (n && n.scrollTop) _embedScroll[id] = n.scrollTop;
+  });
   /* .redline-page carries every rule this layout is drawn with; without it the
      mount renders as unstyled stacked divs. The height bound matters just as
      much: the panes scroll INSIDE themselves, and panes with no bounded
@@ -5889,6 +5906,12 @@ function redlineEmbed(host, c, opts = {}){
       back.addEventListener('click', () => o.onSendDecisions(c));
     }
   }
+  /* Last, after every pane exists and is wired — and through rlRestoreScroll,
+     so the position is PUT BACK rather than travelled to. See its note: under
+     scroll-behavior:smooth a bare assignment is a request to animate from the
+     top, which is the second half of the same fault. */
+  Object.keys(_embedScroll).forEach(id =>
+    rlRestoreScroll(el.querySelector('#' + id), _embedScroll[id]));
   return true;
 }
 
