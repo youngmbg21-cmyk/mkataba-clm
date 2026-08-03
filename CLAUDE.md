@@ -4,21 +4,17 @@ The owner is not a developer. Explain everything in simple English. Keep summari
 
 Do not rewrite the Bug Fix Rules section without asking the owner first. Updating THE MAP to match the code is encouraged and does not need permission — but say in the summary what changed.
 
-Bug Fix Rules
+## Bug Fix Rules
 
-DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
+1. DUPLICATION WARNING: This app draws the same UI in several places. Never assume a fix in one place fixes them all.
 
-Before fixing any bug or changing any feature:
+2. Before writing ANY code — a bug fix, a new feature, a refactor, or a cleanup — find every place the thing you are changing appears. Do this thoroughly and internally. Do NOT list file paths or locations back to me; I don't need to see them. Just make sure you have actually looked before you start.
 
-Search the ENTIRE codebase for every place that feature, layout, or logic appears.
+3. Fix every place it appears. If you deliberately leave one alone, that decision must reach me in plain English — never silently.
 
-Write out the full list of locations found before touching any code.
+4. Testing rule: test where the USER looks, not where you edited. Verify the result is visible in the actual browser view for every affected place, not just the file you changed.
 
-Fix ALL locations, or explicitly state which ones you are skipping and why, and ask me before skipping.
-
-Testing rule: test where the USER looks, not where you edited. After a fix, verify the change is visible in the actual browser view for EVERY affected location, not just the file you changed.
-
-At the end of every fix, list: (a) all locations changed, (b) all locations tested, (c) anything deliberately left alone.
+5. At the end, write a short plain-English summary for a non-developer: what you fixed, whether it is fixed everywhere it appears, anything you deliberately left alone and why, and anything you were unsure about. No file paths, no line numbers, no location lists — just plain sentences about what happened.
 
 THE MAP — how changes get filed (verified 2026-08-03, post Doc Lab removal)
 
