@@ -608,8 +608,14 @@ function selectContract(id){ openWorkspace(id); }
    takes it, and it stays taken until they say otherwise. Per browser, like
    the redline split and the document type size. */
 const RAIL_KEY = 'hati.v1.railCollapsed';
+/* COLLAPSED IS THE DEFAULT. The rail is what the workspace is meant to look
+   like: seven glyphs down the edge and the width given to the contract, which
+   is the thing anybody opened this to read. The labels are one press away and
+   the press is remembered, so nobody who wants the words has to keep asking.
+   A stored value always wins — `null` means "never chosen", not "chose no". */
 function railCollapsed(){
-  try { return localStorage.getItem(RAIL_KEY) === '1'; } catch(e){ return false; }
+  try { const v = localStorage.getItem(RAIL_KEY); return v === null ? true : v === '1'; }
+  catch(e){ return true; }
 }
 function applyRail(){
   const shell=document.getElementById('app-shell'); if(!shell) return;
@@ -622,6 +628,13 @@ function applyRail(){
   if(btn){
     btn.setAttribute('aria-pressed',on?'true':'false');
     btn.title=on?'Show the sidebar labels':'Collapse the sidebar to icons';
+    /* THE CHEVRON POINTS THE WAY THE PRESS GOES. Without it this button is a
+       rectangle with a line in it, sitting beside the Activity panel toggle
+       which is also a rectangle with a line in it — mirrored, at 15px, which
+       is no difference at all. The arrow is what makes the pair readable, and
+       it has to turn round or it describes the wrong half of the toggle. */
+    const chev=btn.querySelector('.rail-chev');
+    if(chev) chev.setAttribute('d',on?'M13 9.5 15.5 12 13 14.5':'M15.5 9.5 13 12l2.5 2.5');
   }
   /* THE PAGE HAS TO BE TOLD. The negotiation panel writes its own column
      widths from a measurement (rlLayoutResizer) — it solves how much the round's
