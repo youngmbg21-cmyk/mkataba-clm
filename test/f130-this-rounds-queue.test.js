@@ -265,6 +265,70 @@ describe('which one am I on', () => {
 });
 
 /* ============================================================
+   4b — the ring and the word are two different facts
+   ============================================================ */
+describe('the highlight follows the press', () => {
+  test('with nothing pressed, the ring sits on the next row owing an answer', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    const a = await ask(win, c, '2', '<p>Fortnightly consignments.</p>');
+    await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    win.negoResolve(c, a.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
+
+    const rows = win.rlQueueRows(c, { side: 'owner' });
+    assert.equal(row(rows, '4').now, true);
+    assert.equal(row(rows, '4').sel, true, 'they start on the same row');
+  });
+
+  test('pressing a row moves the ring and leaves "now" where it was', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    const later = await ask(win, c, '9', '<p>Notices may be sent by email.</p>');
+
+    win.rlQueueSelect(c, later.id);
+    const rows = win.rlQueueRows(c, { side: 'owner' });
+    assert.equal(row(rows, '9').sel, true, 'the ring went where it was told');
+    assert.equal(row(rows, '9').now, undefined, 'and pressing a row answers nothing');
+    assert.equal(row(rows, '4').now, true, '"now" is still the first one owing an answer');
+    assert.equal(row(rows, '4').sel, undefined);
+    assert.equal(rows.filter(r => r.sel).length, 1, 'exactly one ring');
+  });
+
+  test('a settled row can be read without the queue claiming it is next', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    const done = await ask(win, c, '2', '<p>Fortnightly consignments.</p>');
+    await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    win.negoResolve(c, done.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
+
+    win.rlQueueSelect(c, done.id);
+    const rows = win.rlQueueRows(c, { side: 'owner' });
+    assert.equal(row(rows, '2').sel, true);
+    assert.equal(win.rlQueueWord(row(rows, '2')), 'accepted',
+      'the word still reports the answer, not the reading position');
+    assert.equal(row(rows, '4').now, true);
+  });
+
+  test('a selection does not survive onto another contract', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const a = contract({ id: 'MK-Q1' });
+    const b = contract({ id: 'MK-Q2' });
+    win.negoInit(a); win.negoInit(b);
+    const ch = await ask(win, a, '9', '<p>Notices may be sent by email.</p>');
+    await ask(win, b, '4', '<p>Payable within forty-five (45) days.</p>');
+
+    win.rlQueueSelect(a, ch.id);
+    assert.equal(win.rlQueueSelected(a), ch.id);
+    assert.equal(win.rlQueueSelected(b), null,
+      'a ring pointing at a change this contract has never seen is no ring at all');
+  });
+});
+
+/* ============================================================
    5 — the markup
    ============================================================ */
 describe('what the column renders', () => {
@@ -320,5 +384,7 @@ describe('what the column renders', () => {
     const html = win.rlQueueHtml(c, { side: 'owner' });
     assert.match(html, new RegExp(`data-rl-queue="${ch.id}"`));
     assert.match(html, /data-rl-queue-clause="cl_/);
+    assert.match(html, new RegExp(`data-rl-queue-ids="[^"]*${ch.id}`),
+      'the row carries every id it stands for, so a card press can find it');
   });
 });

@@ -628,13 +628,11 @@ function applyRail(){
   if(btn){
     btn.setAttribute('aria-pressed',on?'true':'false');
     btn.title=on?'Show the sidebar labels':'Collapse the sidebar to icons';
-    /* THE CHEVRON POINTS THE WAY THE PRESS GOES. Without it this button is a
-       rectangle with a line in it, sitting beside the Activity panel toggle
-       which is also a rectangle with a line in it — mirrored, at 15px, which
-       is no difference at all. The arrow is what makes the pair readable, and
-       it has to turn round or it describes the wrong half of the toggle. */
+    /* THE CHEVRON POINTS THE WAY THE PRESS GOES, not the way the sidebar
+       currently is. Pointing at the state rather than the act is how a toggle
+       comes to describe the wrong half of itself. */
     const chev=btn.querySelector('.rail-chev');
-    if(chev) chev.setAttribute('d',on?'M13 9.5 15.5 12 13 14.5':'M15.5 9.5 13 12l2.5 2.5');
+    if(chev) chev.setAttribute('d',on?'M9.5 6 15.5 12l-6 6':'M14.5 6 8.5 12l6 6');
   }
   /* THE PAGE HAS TO BE TOLD. The negotiation panel writes its own column
      widths from a measurement (rlLayoutResizer) — it solves how much the round's

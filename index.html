@@ -481,6 +481,30 @@
      loses its wording and keeps its dot, because "is this workspace live" is
      the one thing on the sidebar that is not navigation and not recoverable by
      opening the door to look. */
+  /* ---- THE HEADER BAR THE CONTROL LIVES ON ----
+     Deep green, so the one control that changes the shape of the window reads
+     as chrome rather than as another door in the list below it. It is the only
+     filled block on the sidebar, which is what makes it findable at a glance in
+     both states — the thing that was missing when this was a grey square in the
+     far corner. */
+  .rail-head{flex:none;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
+    background:linear-gradient(135deg,#0f4c46,#115e59 70%);color:#fff;}
+  .rail-head-label{font-family:var(--font-heading);font-size:10px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.72);min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rail-toggle{margin-left:auto;flex:none;width:26px;height:26px;border-radius:50%;
+    display:grid;place-items:center;border:1px solid rgba(255,255,255,.3);
+    background:rgba(255,255,255,.14);color:#fff;cursor:pointer;padding:0;
+    transition:background .12s,transform .12s;}
+  .rail-toggle:hover{background:rgba(255,255,255,.3);}
+  .rail-toggle:active{transform:scale(.94);}
+  .rail-toggle:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+  /* Collapsed the bar keeps its height and its colour and centres the control,
+     so the rail still opens on the same block rather than on a door. */
+  #app-shell.rail .rail-head{justify-content:center;padding:0;}
+  #app-shell.rail .rail-head-label{display:none;}
+  #app-shell.rail .rail-toggle{margin-left:0;}
+
   #app-shell.rail aside #nav{padding:12px 0;align-items:center;}
   #app-shell.rail aside .nav-item{width:44px;justify-content:center;padding:9px 0;gap:0;margin:0 auto;}
   /* The label spans carry inline flex:1, so this has to outrank them. */
@@ -504,7 +528,6 @@
   #app-shell.rail aside #side-ai-usage{justify-content:center;}
 
   .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:12px;color:var(--color-neutral-600);cursor:pointer;transition:background .15s,color .15s;}
-  .hdr-icon-btn[aria-pressed="true"]{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);border-color:color-mix(in srgb,var(--accent-solid) 26%,transparent);color:var(--color-accent-600);}
   .hdr-icon-btn:hover{background:var(--color-neutral-200);color:var(--color-text);}
 
   /* jurisdiction switcher (Sweden / Kenya) */
@@ -1005,9 +1028,6 @@
            inside a 64px rail is neither. Beside the Activity panel toggle
            because they are the same kind of act — this is the other side of
            the window. -->
-      <button id="cmd-rail" class="hdr-icon-btn" title="Show the sidebar labels" aria-pressed="true">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path class="rail-chev" d="M13 9.5 15.5 12 13 14.5"/></svg>
-      </button>
 
       <!-- regional profile badge — renderSideUser() (js/core.js) fills these -->
       <div style="display:flex;align-items:center;gap:10px;padding-left:12px;border-left:1px solid var(--color-divider);">
@@ -1027,6 +1047,19 @@
 
   <!-- ================= SIDEBAR (256px) ================= -->
   <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+
+    <!-- ---- THE COLLAPSE CONTROL, ON THE THING IT COLLAPSES ----
+         It lived beside the Activity panel toggle in the top header, which put
+         a control for the LEFT edge of the window at the far right of it, drawn
+         as the fifth small grey square in a row of small grey squares. It could
+         not be found by somebody looking straight at it, twice.
+         A control belongs on the thing it acts on. -->
+    <div class="rail-head">
+      <span class="rail-head-label">Menu</span>
+      <button id="cmd-rail" class="rail-toggle" title="Show the sidebar labels" aria-pressed="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="rail-chev" d="M9.5 6 15.5 12l-6 6"/></svg>
+      </button>
+    </div>
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
       <!-- ONE DOOR PER THING (WO N1). Day-to-day nav is five plain-English

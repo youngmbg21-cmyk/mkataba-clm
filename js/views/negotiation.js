@@ -5542,15 +5542,17 @@ function redlineLayoutCss(){
   .redline-page .rl-q-row.is-held .rl-q-st{font-size:10px;letter-spacing:.04em;text-transform:uppercase}
   .redline-page .rl-q-row.is-held .rl-q-mark::before{content:"";display:block;
     width:8px;height:8px;margin:0 auto;border-radius:50%;background:var(--st-amber-dot);opacity:.6}
-  /* THE ONE ROW THAT IS LOUD. A box and a live dot, because "which one am I on"
-     is the single question this column exists to answer at a glance. */
-  .redline-page .rl-q-row.is-now{font-weight:700;border-color:#33475c;
+  /* TWO MARKS, TWO FACTS. The ring says WHERE YOU ARE and moves when you press
+     a row; the amber dot and the word say WHAT IS NEXT and move only when a
+     change is answered. Collapsing them into one mark is what made the
+     highlight refuse to follow a press. */
+  .redline-page .rl-q-row.is-sel{font-weight:700;border-color:#33475c;
     background:color-mix(in srgb,#456a8f 9%,transparent)}
+  html.dark .redline-page .rl-q-row.is-sel{border-color:#7fa3c8}
   .redline-page .rl-q-row.is-now .rl-q-st{color:var(--st-amber-fg);font-weight:700}
   .redline-page .rl-q-row.is-now .rl-q-mark::before{content:"";display:block;
     width:9px;height:9px;margin:0 auto;border-radius:50%;background:var(--st-amber-dot);
     box-shadow:0 0 0 3px color-mix(in srgb,var(--st-amber-dot) 22%,transparent)}
-  html.dark .redline-page .rl-q-row.is-now{border-color:#7fa3c8}
   .redline-page .rl-q-split{border:0;border-top:1px dashed var(--color-divider);margin:14px 4px 12px}
   .redline-page .rl-q-why{margin:0 4px;font-size:11px;line-height:1.5;color:var(--st-amber-fg)}
   .redline-page .rl-q-empty{margin:4px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-500)}
@@ -5881,6 +5883,32 @@ function redlineEmbed(host, c, opts = {}){
     }
   }
   return true;
+}
+
+/* ---------- PUTTING A SCROLL BACK IS NOT TRAVELLING TO IT ----------
+   The negotiation canvas is `scroll-behavior:smooth`, which is right for every
+   scroll a reader ASKS for — pressing a change card should visibly travel to
+   its clause, so the eye can follow the page rather than being teleported and
+   having to re-find itself.
+
+   It is exactly wrong for restoring a position after a repaint. A rebuilt
+   scroller starts at 0, and `el.scrollTop = 1800` under a smooth rule is a
+   REQUEST TO ANIMATE from 0 to 1800: the contract visibly shot to the title
+   and crawled back down on every decision, every card press and every save.
+   The page was not going anywhere — it was being put back — and putting
+   something back should take no time at all.
+
+   So the rule is suspended for the width of the assignment. Deliberately not
+   removed from the stylesheet: the smooth rule is what makes rlLinkFocus read
+   as a journey to the clause, and that is a feature this screen is built on. */
+function rlRestoreScroll(el, top){
+  if (!el || top == null) return;
+  const prev = el.style.scrollBehavior;
+  el.style.scrollBehavior = 'auto';
+  el.scrollTop = top;
+  /* Restored rather than left at auto: the next scroll this element makes is a
+     reader's, and that one is meant to be smooth. */
+  el.style.scrollBehavior = prev;
 }
 
 function renderRedline(){
@@ -6292,7 +6320,7 @@ function renderRedline(){
   if (window.chatFieldWire) chatFieldWire(host);
   Object.keys(_keepScroll).forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.scrollTop = _keepScroll[id];
+    if (el) rlRestoreScroll(el, _keepScroll[id]);
   });
   /* Every decision, send and retract repaints this page — which is exactly
      when the nav's "N Open" tag and this toolbar's dropdown counts moved. */
@@ -7018,6 +7046,16 @@ function rlLinkFocus(c, changeId, source){
      and the reader is looking at exactly one of the two. */
   const thread = page.querySelector('#rl-threads [data-rl-thread="' + q(id) + '"]');
   const mode = page.getAttribute('data-rl-side-mode') === 'disc' ? 'disc' : 'changes';
+  /* THE QUEUE IS THE FOURTH END OF THIS LINK. A card, a clause and a thread
+     already light together; the row that covers the same change has to move
+     with them, or pressing a card leaves the queue pointing somewhere else and
+     the two disagree about what the reader is doing. Guarded on a match: a
+     change with no row (the queue is not mounted, or the change is behind this
+     seat's wall) must not clear a ring that is still true. */
+  if (rlQueueMark(page, id) && typeof rlQueueSelect === 'function'){
+    const cur = (typeof negoChanges === 'function' && c) ? c : null;
+    if (cur) rlQueueSelect(cur, id);
+  }
   if (clause){
     clause.classList.add('is-linked');
     if (source !== 'clause' && clause.scrollIntoView)
@@ -7108,6 +7146,12 @@ function rlWireClauseTools(c, host, opts){
     ev.preventDefault();
     const id = row.getAttribute('data-rl-queue');
     const clauseId = row.getAttribute('data-rl-queue-clause');
+    /* THE RING MOVES ON THE PRESS, BEFORE ANYTHING ELSE HAPPENS. Recorded in
+       module state so a repaint keeps it, and moved in the DOM immediately so
+       the answer does not wait on one — a highlight that arrives after a
+       render is a highlight the reader has already stopped believing in. */
+    rlQueueSelect(c, id);
+    rlQueueMark(row.closest('.redline-page') || host, id);
     /* Opening the card is a repaint, so it happens FIRST and the focus runs
        against the card that comes back — the node this handler could reach is
        about to be replaced. Mirrors the card stack's own collapsed-card path. */
@@ -8501,7 +8545,49 @@ function rlQueueRows(c, opts = {}){
      hard change and one that quietly buries it. */
   const now = out.find(r => r.pending > 0);
   if (now) now.now = true;
+
+  /* ---- AND "SELECTED" IS A SEPARATE FACT FROM "NEXT" ----
+     They were the same thing, and that was the bug: the box sat on the derived
+     next row and would not move, so pressing #4 took you to clause 4 while the
+     queue went on insisting you were on #2. A reader who presses a row has told
+     you where they are, and a list that argues with that is a list you stop
+     trusting.
+
+     So the box follows the press and the word does not. "now" stays what it
+     always was — the next thing owing an answer, which does not change because
+     somebody looked further down the list — and the ring marks what you are
+     reading. Until the first press they are the same row, which is why nothing
+     looks different until you use it. */
+  const selId = rlQueueSelected(c);
+  const sel = (selId ? out.find(r => r.changes.some(x => x.id === selId)) : null) || now;
+  if (sel) sel.sel = true;
   return out;
+}
+
+/* Which row the reader is on. Module state, like the card pin and the side
+   mode — a working preference on this contract's column, never written to the
+   record. Keyed by contract so opening another one does not inherit a
+   selection pointing at a change it has never seen. */
+let _rlQueueSel = null;
+function rlQueueSelect(c, changeId){
+  _rlQueueSel = { id: c && c.id, change: String(changeId == null ? '' : changeId) };
+}
+function rlQueueSelected(c){
+  return (_rlQueueSel && _rlQueueSel.id === (c && c.id)) ? _rlQueueSel.change : null;
+}
+/* Move the ring without a repaint. Pressing a row must not cost a rebuild of
+   the document beside it — and the DOM already holds every id each row stands
+   for, so the answer is a class swap rather than a render. Returns whether
+   anything matched, so a caller can tell "no such row" from "moved". */
+function rlQueueMark(scope, changeId){
+  const root = (scope && scope.querySelectorAll) ? scope : document;
+  const id = String(changeId == null ? '' : changeId);
+  if (!id) return false;
+  const rows = Array.from(root.querySelectorAll('.rl-q-row'));
+  const hit = rows.find(r => (r.getAttribute('data-rl-queue-ids') || '').split(' ').includes(id));
+  if (!hit) return false;
+  rows.forEach(r => r.classList.toggle('is-sel', r === hit));
+  return true;
 }
 
 /* The word on the right of a row. A waiting row says nothing: the queue is
@@ -8544,11 +8630,15 @@ function rlQueueHtml(c, opts = {}){
     ].filter(Boolean).join(' · ');
     const done = !row.pending;
     return `<button type="button" class="rl-q-row${row.now ? ' is-now' : ''}${
+      row.sel ? ' is-sel' : ''}${
       row.state === 'held' ? ' is-held' : ''}${done ? ' is-done' : ''}${
       !row.now && !done ? ' is-waiting' : ''}"
       data-rl-queue="${_ne(row.lead && row.lead.id || '')}"
       data-rl-queue-clause="${_ne(row.clauseId || '')}"
-      ${row.now ? 'aria-current="true" ' : ''}${tip ? `title="${_ne(tip)}"` : ''}>
+      ${''/* every id this one line stands for, so a press on a CARD can find
+             the row that covers it without asking the model again */}
+      data-rl-queue-ids="${_ne(row.changes.map(x => x.id).join(' '))}"
+      ${row.sel ? 'aria-current="true" ' : ''}${tip ? `title="${_ne(tip)}"` : ''}>
       <span class="rl-q-mark" aria-hidden="true">${done ? '&#10003;' : ''}</span>
       <span class="rl-q-k">${label}</span>
       ${many ? `<span class="rl-q-n">${row.changes.length}</span>` : ''}
@@ -8901,7 +8991,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,
-  rlQueueRows, rlQueueHtml, rlQueueWord,
+  rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
+  rlRestoreScroll,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
