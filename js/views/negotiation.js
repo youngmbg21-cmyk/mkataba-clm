@@ -6419,7 +6419,7 @@ const RL_PLACEMENT_NOTE = { replace: '', after: ' (added after)',
    every refusal on this path, because a refusal belongs in the conversation the
    reader just opened rather than in a toast that is gone in four seconds. */
 function rlSayInPanel(text){
-  if (window.openAI) openAI(null, { docked: true });
+  if (window.openAI) openAI(null, { docked: true, summoned: true });
   if (window.aiPush) aiPush('assistant', { text: _ne(text) });
   if (window.renderAIFeed) renderAIFeed();
   else if (window.toast) toast(text, 'err');
@@ -6476,8 +6476,11 @@ async function rlAiPropose(ctx){
   /* THE DRAWER OPENS FIRST, before anything is asked and before anything can
      fail. Pressing a menu item has to do something visible on the same gesture;
      a control that opens a panel only once a model has answered reads as broken
-     for as long as the round trip takes, and permanently if it fails. */
-  if (window.openAI) openAI(null, { docked: true });
+     for as long as the round trip takes, and permanently if it fails.
+     SUMMONED: opened for this errand, so settling the proposal closes it again
+     — unless the reader had the panel open already, in which case it is theirs
+     and stays (see ai.summoned, js/ai.js). */
+  if (window.openAI) openAI(null, { docked: true, summoned: true });
   /* What was asked, in the reader's own stream — otherwise the panel answers a
      question it never shows, and the Copilot reads as volunteering wording
      nobody asked for. */

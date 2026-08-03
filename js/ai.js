@@ -508,6 +508,14 @@ const ai = { open:false, minimized:false, unread:false, busy:false, history:[],
      know whether it is a follow-up on a rewrite or a fresh question, and a
      card's markup is rebuilt on every repaint. */
   activeProposal:null,
+  /* WHY the panel is open. True only when a selection action summoned it to
+     show a proposal the reader did not have a panel open for — in which case
+     settling that proposal (Apply, Decline) is the end of the errand and the
+     panel steps back out of the way. A panel the reader opened themselves is
+     theirs, and stays until they close it; a summons landing on an
+     already-open panel changes nothing, because the panel was not opened for
+     the errand. */
+  summoned:false,
   /* PLAIN or LEGAL. Not a personality setting — it changes what an answer is
      allowed to leave out. Plain says "this one runs out next month"; Legal says
      "clause 12.1, expiry 14 Aug 2026, 45 days' notice, so the window closes on
@@ -614,6 +622,11 @@ function aiSyncDock(){
 function openAI(prefill,opts){
   const o=opts||{};
   ai.docked=!!o.docked;
+  /* Remember WHY it opened — see `ai.summoned`. A deliberate open always
+     clears the flag, including a re-open of a panel a summons left behind:
+     the reader reaching for the launcher is the reader claiming the panel. */
+  if(!o.summoned) ai.summoned=false;
+  else if(!ai.open) ai.summoned=true;
   document.getElementById('ai-panel').classList.add('open');
   /* The saved register, restored on first open rather than at load: the panel
      may never be opened in a session, and reading storage costs nothing here. */
@@ -644,6 +657,7 @@ function closeAI(){
      stopped looking at. Minimize deliberately does NOT do this: that is "keep
      this going, I will be back". */
   if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
+  ai.summoned=false;   // whatever errand opened it, closing settles it
   ai.minimized=false; updateAIBadge();   // full close: no minimized dot (unread glow may still arrive)
 }
 /* Minimize: hide the panel but keep the conversation "live" — the launcher
@@ -651,7 +665,9 @@ function closeAI(){
 function minimizeAI(){
   document.getElementById('ai-panel').classList.remove('open');
   document.getElementById('ai-scrim').classList.remove('open');
-  ai.open=false; ai.minimized=true; aiSyncDock(); updateAIBadge();
+  /* Minimize is "keep this going, I will be back" — the reader claiming the
+     panel, so it is no longer merely summoned and will stick around. */
+  ai.open=false; ai.minimized=true; ai.summoned=false; aiSyncDock(); updateAIBadge();
 }
 function clearAIHistory(){
   // cleared immediately — no confirm prompt (history is local and cheap to rebuild)
@@ -2208,6 +2224,15 @@ const aiActiveProposal = () => {
   const p = ai.activeProposal ? aiProposals.get(ai.activeProposal) : null;
   return p && p.status === AI_PROPOSAL_OPEN ? p : null;
 };
+/* A panel that was summoned for a proposal leaves when the proposal is
+   settled. Only Apply and Decline call this — they are the two ways an errand
+   ENDS. Edit, a placement flip, or a refine in between change nothing here:
+   the errand is still running, and the flag survives it, so the panel still
+   steps back after the final decision. An Apply the handler refused never
+   reaches this — the card is still open and so is the question. */
+function aiStepBackIfSummoned(){
+  if (ai.summoned && typeof closeAI === 'function') closeAI();
+}
 /* Read whatever is in the editor before acting, so pressing Apply straight out
    of an edit files what is on the screen rather than what was there before it. */
 function aiProposalLiveText(p){
@@ -2232,6 +2257,7 @@ function aiProposalApply(id){
   p.status = 'applied'; p.editing = false; p.note = '';
   if (ai.activeProposal === id) ai.activeProposal = null;
   renderAIFeed();
+  aiStepBackIfSummoned();
 }
 /* DECLINE TOUCHES NOTHING. There is no baseline to restore because nothing was
    ever written to it — the proposal lived in this panel and only here — so the
@@ -2244,6 +2270,7 @@ function aiProposalDecline(id){
   if (ai.activeProposal === id) ai.activeProposal = null;
   if (p.onDecline) p.onDecline(p);
   renderAIFeed();
+  aiStepBackIfSummoned();
 }
 function aiProposalToggleEdit(id){
   const p = aiProposals.get(id);
@@ -2613,5 +2640,5 @@ Object.assign(window,{
   AI_SESSION_TURNS,aiRephraseRemember,aiRephraseHistory,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
-  aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,
+  aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
   AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

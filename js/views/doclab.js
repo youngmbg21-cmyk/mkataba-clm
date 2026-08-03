@@ -1169,7 +1169,7 @@ function labProposeRefusal(kind, ctx){
    "Björn & Co"; the feed does the opposite, so the escaping moves here and the
    ampersand comes out right at the other end. */
 function labSayInPanel(text){
-  if(window.openAI && !(window.ai && ai.open)) openAI(null, { docked: true });
+  if(window.openAI && !(window.ai && ai.open)) openAI(null, { docked: true, summoned: true });
   if(window.aiPush){
     aiPush('assistant', { text: `<div>${esc(text)}</div>` });
     if(window.renderAIFeed) renderAIFeed();
@@ -1240,8 +1240,11 @@ async function labAiPropose(ctx){
      fail. Pressing a menu item has to do something visible on the same gesture;
      a button that opens a panel only once a model has answered reads as broken
      for as long as the round trip takes, and reads as broken permanently if the
-     round trip fails. */
-  if(window.openAI) openAI(null, { docked: true });
+     round trip fails.
+     SUMMONED: opened for this errand, so settling the proposal closes it again
+     — unless the reader had the panel open already, in which case it is theirs
+     and stays (see ai.summoned, js/ai.js). */
+  if(window.openAI) openAI(null, { docked: true, summoned: true });
   /* WHAT WAS ASKED, IN THE READER'S OWN STREAM. Without this the panel answers
      a question it never shows, and a conversation whose first turn is missing
      reads as the Copilot volunteering wording nobody asked for. */
