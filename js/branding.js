@@ -66,6 +66,63 @@ const DOC_DESIGNS = [
 ];
 const docDesignById = id => DOC_DESIGNS.find(d => d.id === id) || null;
 
+/* ---------- structures ----------
+
+   A DESIGN dresses the document: header, footer, typeface, accent. It never
+   touches the words. A STRUCTURE re-lays out the body those words sit in —
+   the page architecture rather than the outfit. The two are chosen
+   independently, so a customer can put counsel-grade typography on a
+   two-column page without one choice dictating the other.
+
+   THE RULE EVERY STRUCTURE OBEYS: clause text, clause numbering and field
+   values are never rewritten. A structure may restyle the body and it may ADD
+   navigation in front of it (a contents page). It may not reorder, reword or
+   renumber what is already there — the negotiation record files changes
+   against `data-clause-id` on the heading that opens a clause, and moving that
+   heading re-points every change filed against it (see js/clausemodel.js).
+
+   That rule is why four of the five below are pure CSS, keyed off
+   `data-doc-structure` on the paper div exactly as the designs key off
+   `data-doc-body`. Nothing about the document HTML changes, so the five render
+   surfaces, the sealed copy and the PDF all pick the structure up for free.
+   `contents-first` is the one that emits anything, and it only PREPENDS. */
+const DOC_STRUCTURES = [
+  { id: 'standard-flow', name: 'Standard Flow',
+    blurb: 'One column, top to bottom — the layout every contract uses today.',
+    bestFor: 'A straight replacement for an existing paper form',
+    device: 'none' },
+  { id: 'margin-numbers', name: 'Margin Numbers',
+    blurb: 'Clause headings hang out into a ruled left margin, so the numbers line up in their own column.',
+    bestFor: 'Long agreements that get referred back to in disputes',
+    device: 'css' },
+  { id: 'two-column', name: 'Two Columns',
+    blurb: 'The body sets in two narrow columns, the way a policy booklet reads. Usually saves a page.',
+    bestFor: 'Standard terms that ride behind every order',
+    device: 'css' },
+  { id: 'ruled-clauses', name: 'Ruled Clauses',
+    blurb: 'A rule above every clause and room around it, so no clause can be skimmed past.',
+    bestFor: 'Procurement teams comparing supplier terms',
+    device: 'css' },
+  { id: 'contents-first', name: 'Contents First',
+    blurb: 'A contents page built from the clause headings, in front of the document. It rebuilds itself if a clause is added.',
+    bestFor: 'Agreements over about ten clauses',
+    device: 'prepend' },
+];
+const docStructureById = id => DOC_STRUCTURES.find(s => s.id === id) || null;
+const DEFAULT_STRUCTURE = 'standard-flow';
+
+/* Pairings the product refuses, and the reason a customer is given. A style
+   and a structure can each be sound and still fight each other on the page;
+   the Design step greys the structure out and says why rather than letting a
+   customer publish something that reads badly. Keyed "<designId>|<structureId>". */
+const STRUCTURE_BLOCKED = {
+  'ceremonial|two-column': 'Ceremonial spaces its capitals for a full-width line — two narrow columns break the words up.',
+  'ceremonial|ruled-clauses': 'Ceremonial is drawn for a signing page; rules between every clause fight its ornament.',
+  'compact-executive|two-column': 'Compact Executive is already tightened to fit more on a page — two columns squeeze it past reading size.',
+};
+const structureBlockedReason = (designId, structureId) =>
+  STRUCTURE_BLOCKED[String(designId) + '|' + String(structureId)] || null;
+
 /* ---------- accent colour ---------- */
 
 /* Keep the accent readable as a rule/band on white paper: a colour lighter
@@ -141,8 +198,19 @@ function extractAccentFromLogo(dataUrl) {
 function normalizeDesignBranding(b) {
   if (!b || typeof b !== 'object') return null;
   const design = docDesignById(b.designId);
+  /* NULL, not 'standard-flow', when the record names no structure or names one
+     this build does not know. Two reasons, both load-bearing:
+       · null emits no attribute and no transform, so a document with no
+         structure renders byte-for-byte as it did before this feature — the
+         same promise designId already makes;
+       · brCompact() below carries only non-null snapshot fields over the org
+         default. Defaulting here would make every pre-structure snapshot claim
+         "standard flow" and silently override a company default of, say, Two
+         Columns on every draft shared before today. */
+  const structure = docStructureById(b.structureId);
   return {
     designId: design ? design.id : null,
+    structureId: structure ? structure.id : null,
     logoUrl: BR_LOGO_OK(b.logoUrl) ? b.logoUrl : null,
     companyName: String(b.companyName || '').slice(0, 200),
     registrationNumber: String(b.registrationNumber || '').slice(0, 100),
@@ -439,14 +507,84 @@ function docDesignPaperStyle(b) {
   return accent;
 }
 
-/* The attribute that turns a design's BODY typography on: the paper div
-   carries data-doc-body="<designId>" and the stylesheet in index.html
-   restyles .doc-surface underneath it — typeface, heading treatment,
-   justification. An attribute rather than inline styles because the body's
-   own classes (.doc-surface, .hati-doc) must be out-specified in print,
-   where --font-doc is enforced with !important. */
+/* The attributes the paper div carries, for BOTH choices:
+
+     data-doc-body="<designId>"        typeface, heading treatment, justification
+     data-doc-structure="<structureId>" the page architecture
+
+   The stylesheet in index.html restyles .doc-surface underneath each. An
+   attribute rather than inline styles because the body's own classes
+   (.doc-surface, .hati-doc) must be out-specified in print, where --font-doc
+   is enforced with !important.
+
+   Both attributes ride on one function on purpose: every surface that draws a
+   contract already calls this once for the paper div, so a structure reaches
+   the screen, the portal, the print sheet, the PDF and the sealed copy without
+   five separate edits and the drift that invites. No structure, no attribute,
+   no CSS — the document renders exactly as it did before the feature. */
 function docDesignPaperAttr(b) {
-  return b && b.designId ? ` data-doc-body="${b.designId}"` : '';
+  if (!b) return '';
+  const design = b.designId ? ` data-doc-body="${b.designId}"` : '';
+  const structure = b.structureId && b.structureId !== DEFAULT_STRUCTURE && docStructureById(b.structureId)
+    ? ` data-doc-structure="${b.structureId}"` : '';
+  return design + structure;
+}
+
+/* The one structure that emits markup rather than restyling. Everything else
+   in the catalogue is CSS, so this function returns the body untouched for
+   them — and untouched means the SAME STRING, not an equivalent one, so a
+   sealed document's bytes cannot drift.
+
+   Contents First PREPENDS a contents page. It never reorders, rewords or
+   renumbers the body, which is what keeps `data-clause-id` — and every
+   negotiation change filed against it — pointing where it always did.
+
+   The headings are read with a boundary regex rather than a DOM parse because
+   this module is dual-host: the server renders the executed copy in Node,
+   where there is no document. The input is always our own sanitised fragment
+   (js/richdoc.js allowlist) or templateFormDocHtml output, so the markup is
+   well-formed and the tags are known. */
+const BR_HEADING_RE = /<h([1-4])\b[^>]*>([\s\S]*?)<\/h\1>/gi;
+/* Tags out, entities LEFT ALONE. The heading's inner HTML arrives already
+   escaped — it came through the sanitiser or through templateFormDocHtml,
+   both of which escape text before they emit it. Running BR_ESC over it again
+   would double-encode, so "Fees &amp; Charges" would reach the contents page
+   as "Fees &amp;amp; Charges" and a customer would read the ampersand's source
+   code. Stripping the markup leaves escaped text, which is exactly what is
+   safe to interpolate. */
+const brStripTags = s => String(s).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+
+function docStructureBodyHtml(b, bodyHtml) {
+  const html = bodyHtml == null ? '' : String(bodyHtml);
+  if (!b || b.structureId !== 'contents-first') return html;
+
+  const heads = [];
+  let m;
+  BR_HEADING_RE.lastIndex = 0;
+  while ((m = BR_HEADING_RE.exec(html)) !== null) {
+    const label = brStripTags(m[2]);
+    if (label) heads.push({ rank: Number(m[1]), label });
+  }
+  /* The document's own title is the first heading and is not a destination.
+     Drop it only when it really is a lone top-rank heading at the front. */
+  if (heads.length && heads[0].rank === 1) heads.shift();
+  /* A contents page for two clauses is furniture, not navigation. Below the
+     threshold the structure quietly does nothing rather than adding a page
+     that helps no one. */
+  if (heads.length < 3) return html;
+
+  const rows = heads.map(h => `<li style="display:flex;align-items:baseline;gap:.5em;margin:0 0 .45em;${
+    h.rank > 2 ? 'padding-left:1.4em;' : ''}">
+      <span style="min-width:0">${h.label}</span>
+      <span style="flex:1;border-bottom:1px dotted var(--color-doc-rule,#c9ccd1);height:.6em"></span>
+    </li>`).join('');
+
+  return `<nav data-doc-contents="1" style="page-break-after:always;break-after:page;margin:0 0 1.6em">
+    <div style="font-size:.82em;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+      color:var(--doc-design-accent,var(--color-doc-muted,#4a4f54));padding-bottom:.35em;
+      margin-bottom:.7em;border-bottom:1px solid var(--color-doc-rule,#c9ccd1)">Contents</div>
+    <ol style="list-style:none;margin:0;padding:0">${rows}</ol>
+  </nav>${html}`;
 }
 
 /* The branded cover page for a raw upload whose layout is baked in (print
@@ -476,8 +614,10 @@ function docDesignCoverPageHtml(b, c) {
 if (typeof module !== 'undefined' && module.exports)
   module.exports = { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, docDesignHeaderHtml, docDesignFooterHtml,
-    docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml };
+    docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml,
+    DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml };
 if (typeof window !== 'undefined')
   Object.assign(window, { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, docDesignById, normalizeDesignBranding,
     accentLegible, pickAccentFromPixels, extractAccentFromLogo, resolveDocBranding, orgBrandingSnapshot,
-    docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml });
+    docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle, docDesignPaperAttr, docDesignCoverPageHtml,
+    DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, structureBlockedReason, docStructureBodyHtml });

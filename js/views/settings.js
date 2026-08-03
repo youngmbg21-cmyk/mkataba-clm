@@ -370,7 +370,7 @@ function renderTeam(){
 
       <section style="${cardStyle}">
         <h4 style="${h4Style}">Company design</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The standard look every contract wears when it is published, shared or exported — one of five fixed designs, your logo, your colour. The wording of a contract never changes; only its presentation does. Signed contracts keep the look they were sealed with.</p>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The standard look every contract wears when it is published, shared or exported — a <b>structure</b> (how the page is laid out) and a <b>style</b> (how it is dressed), plus your logo and your colour. The wording and the clause numbers of a contract never change; only the presentation does. Signed contracts keep the look they were sealed with.</p>
         ${(()=>{ const ob=window.ORG_BRANDING; const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
           const canDesign=(currentUser()||{}).role==='admin'||(currentUser()||{}).role==='legal';
           return `
@@ -379,7 +379,8 @@ function renderTeam(){
             ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:9px;color:var(--color-neutral-500)">No logo</span>`}
           </div>
           <div style="flex:1;min-width:150px">
-            ${d?`<div style="font-size:12.5px;font-weight:700">${esc(d.name)}</div>
+            ${d?`<div style="font-size:12.5px;font-weight:700">${esc(d.name)}${(()=>{ const st=ob.structureId&&window.docStructureById?docStructureById(ob.structureId):null;
+              return st&&st.id!==DEFAULT_STRUCTURE?` <span style="font-weight:500;color:var(--color-neutral-600)">· ${esc(st.name)}</span>`:''; })()}</div>
             <div style="font-size:10.5px;color:var(--color-neutral-600)">Logo: ${esc({'top-left':'top left','top-center':'top centre','top-right':'top right',footer:'footer'}[ob.logoPosition]||ob.logoPosition||'—')}${d.usesAccent&&ob.accentColor?` · accent <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${ob.accentColor};vertical-align:-1px;border:1px solid var(--color-divider)"></span>`:''}</div>`
             :`<div style="font-size:12px;color:var(--color-neutral-600)">No design chosen yet — the first template publish will ask, or set it here.</div>`}
           </div>

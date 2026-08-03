@@ -3569,7 +3569,10 @@ function docBodyDesignCss() {
   if (_docBodyCssCache != null) return _docBodyCssCache;
   try {
     const page = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-    _docBodyCssCache = (page.match(/[^{}]+\[data-doc-body[^{}]*\{[^}]*\}/g) || []).join('\n');
+    /* Both attribute families: data-doc-body carries the design's typography,
+       data-doc-structure carries the page architecture. Scraped rather than
+       duplicated so the executed copy can never drift from the screen. */
+    _docBodyCssCache = (page.match(/[^{}]+\[data-doc-(?:body|structure)[^{}]*\{[^}]*\}/g) || []).join('\n');
   } catch (_) { _docBodyCssCache = ''; }
   return _docBodyCssCache;
 }
@@ -3989,7 +3992,9 @@ function executedAttachmentHtml(c) {
     </header>`;
   const footerHtml = designed ? docDesignFooterHtml(b, c) : '';
   const paperStyle = designed ? docDesignPaperStyle(b) : '';
-  const paperAttr = designed ? ` data-doc-body="${esc(b.designId)}"` : '';
+  const structured = !!(b && b.structureId && b.structureId !== DEFAULT_STRUCTURE && docStructureById(b.structureId));
+  const paperAttr = (designed ? ` data-doc-body="${esc(b.designId)}"` : '')
+    + (structured ? ` data-doc-structure="${esc(b.structureId)}"` : '');
 
   // The signature panel, as the screen draws it (signatureBlock in
   // js/views/contract.js): party cards with the adopted marks, the sealed-text
@@ -4062,7 +4067,7 @@ ${docBodyDesignCss()}
 </style></head><body>
 <div class="paper"${paperAttr} style="${paperStyle}">
 ${headerHtml}
-<div class="doc-surface hati-doc">${html}</div>
+<div class="doc-surface hati-doc">${structured ? docStructureBodyHtml(b, html) : html}</div>
 ${sealPanel}
 ${footerHtml}
 <p class="dist-note">This copy was distributed by HaTi CLM when the contract became fully executed. It is the same sealed text the platform holds — the master copy, the audit trail and seal verification live in HaTi. Open this file in any browser; print or save as PDF for filing.</p>
@@ -6171,6 +6176,8 @@ addColumnIfMissing('org_branding', 'design_id', 'TEXT');
 addColumnIfMissing('org_branding', 'logo_position', 'TEXT');
 addColumnIfMissing('org_branding', 'accent_color', 'TEXT');
 addColumnIfMissing('org_branding', 'accent_source', 'TEXT');
+// the page architecture, chosen alongside the design (js/branding.js DOC_STRUCTURES)
+addColumnIfMissing('org_branding', 'structure_id', 'TEXT');
 addColumnIfMissing('org_branding', 'set_by', 'TEXT');
 addColumnIfMissing('org_branding', 'set_at', 'TEXT');
 /* A template may switch designs for ITS contracts without moving the company
@@ -6179,6 +6186,7 @@ addColumnIfMissing('org_branding', 'set_at', 'TEXT');
 addColumnIfMissing('templates', 'design_id', 'TEXT');
 addColumnIfMissing('templates', 'design_logo_position', 'TEXT');
 addColumnIfMissing('templates', 'design_accent_color', 'TEXT');
+addColumnIfMissing('templates', 'design_structure_id', 'TEXT');
 
 /* What kind of document this template was converted from, and how long it was.
    Additive and nullable on purpose: every template that existed before the PDF
@@ -6207,7 +6215,8 @@ const { templateFormDocHtml, templateFormResolveDefaults } = require(path.join(_
 /* The design catalogue — the same file the browser renders from, so a
    designId this route accepts is a designId every surface can draw. */
 const { DOC_DESIGNS, DESIGN_LOGO_POSITIONS, normalizeDesignBranding,
-  docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle } = require(path.join(__dirname, '..', 'js', 'branding.js'));
+  docDesignHeaderHtml, docDesignFooterHtml, docDesignPaperStyle,
+  DOC_STRUCTURES, DEFAULT_STRUCTURE, docStructureById, docStructureBodyHtml } = require(path.join(__dirname, '..', 'js', 'branding.js'));
 /* Same registry, template_fields row shape (options may arrive as a JSON
    string straight from SQLite). Empty is a `required` question, not a type
    question — fieldLibValidate answers it first and separately. */
@@ -6479,12 +6488,15 @@ app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, pass
     if (dPos && !DESIGN_LOGO_POSITIONS.includes(dPos)) return res.status(400).json({ error: 'Unknown logo position' });
     const dAccent = design && design.accentColor ? String(design.accentColor) : null;
     if (dAccent && !/^#[0-9a-f]{6}$/i.test(dAccent)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
-    req._tplDesign = { dId, dPos: dId ? dPos : null, dAccent: dId ? dAccent : null };
+    let dStruct = design && design.structureId ? String(design.structureId) : null;
+    if (dStruct && !DOC_STRUCTURES.some(x => x.id === dStruct)) return res.status(400).json({ error: 'Unknown document structure' });
+    if (dStruct === DEFAULT_STRUCTURE) dStruct = null;
+    req._tplDesign = { dId, dPos: dId ? dPos : null, dAccent: dId ? dAccent : null, dStruct: dId ? dStruct : null };
   }
   txn(() => {
     if (req._tplDesign)
-      db.prepare('UPDATE templates SET design_id=?, design_logo_position=?, design_accent_color=?, updated_at=? WHERE id=?')
-        .run(req._tplDesign.dId, req._tplDesign.dPos, req._tplDesign.dAccent, now(), t.id);
+      db.prepare('UPDATE templates SET design_id=?, design_logo_position=?, design_accent_color=?, design_structure_id=?, updated_at=? WHERE id=?')
+        .run(req._tplDesign.dId, req._tplDesign.dPos, req._tplDesign.dAccent, req._tplDesign.dStruct, now(), t.id);
     db.prepare("UPDATE template_versions SET status='superseded', updated_at=? WHERE template_id=? AND status='published'").run(now(), t.id);
     db.prepare("UPDATE template_versions SET status='published', published_at=?, published_by=?, change_note=?, updated_at=? WHERE id=?")
       .run(now(), req.user.name, changeNote || null, now(), v.id);
@@ -6665,7 +6677,7 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
   };
   const branding = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
   // the template's own design override, if its manager picked one at publish
-  const tplDesign = db.prepare('SELECT design_id, design_logo_position, design_accent_color FROM templates WHERE id=?').get(t.id) || {};
+  const tplDesign = db.prepare('SELECT design_id, design_logo_position, design_accent_color, design_structure_id FROM templates WHERE id=?').get(t.id) || {};
   const uid = (Number(getSetting('uid')) || 100) + 1;
   const c = {
     id: 'MK-' + uid,
@@ -6687,7 +6699,8 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
       designId: tplDesign.design_id || branding.design_id || null,
       logoPosition: (tplDesign.design_id ? tplDesign.design_logo_position : null) || branding.logo_position || null,
       accentColor: (tplDesign.design_id ? tplDesign.design_accent_color : null) || branding.accent_color || null,
-      accentSource: branding.accent_source || null } : null,
+      accentSource: branding.accent_source || null,
+      structureId: (tplDesign.design_id ? tplDesign.design_structure_id : null) || branding.structure_id || null } : null,
     fields: {}, comments: [],
     audit: [{ at: now(), user: req.user.name, action: 'Created',
       detail: `Created from template “${t.name}” v${pub.version_number} (${t.id})` }],
@@ -7247,7 +7260,8 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
 const orgBrandingView = r => r ? { logoUrl: r.logo_url || null, companyName: r.company_name || '',
   registrationNumber: r.registration_number || '', address: r.address || '',
   defaultFooterText: r.default_footer_text || '',
-  designId: r.design_id || null, logoPosition: r.logo_position || null,
+  designId: r.design_id || null, structureId: r.structure_id || null,
+  logoPosition: r.logo_position || null,
   accentColor: r.accent_color || null, accentSource: r.accent_source || null,
   setBy: r.set_by || null, setAt: r.set_at || null } : null;
 app.get('/api/org/branding', auth, (req, res) => {
@@ -7271,18 +7285,27 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
   const accentColor = b.accentColor == null || b.accentColor === '' ? null : String(b.accentColor);
   if (accentColor && !/^#[0-9a-f]{6}$/i.test(accentColor)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
   const accentSource = b.accentSource === 'manual' ? 'manual' : (b.accentSource === 'logo' ? 'logo' : null);
+  /* Structure is validated the same all-or-nothing way as the design id: an
+     unknown layout is a 400, not a silent null, because the client offering it
+     is out of step with this build and should hear so. Standard Flow stores as
+     null — it IS the absence of a structure, and storing it as a value would
+     make every pre-structure row look deliberately chosen. */
+  let structureId = b.structureId == null || b.structureId === '' ? null : String(b.structureId);
+  if (structureId && !DOC_STRUCTURES.some(x => x.id === structureId)) return res.status(400).json({ error: 'Unknown document structure' });
+  if (structureId === DEFAULT_STRUCTURE) structureId = null;
   db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,
-      design_id,logo_position,accent_color,accent_source,set_by,set_at,updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+      design_id,logo_position,accent_color,accent_source,structure_id,set_by,set_at,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(org_id) DO UPDATE SET logo_url=excluded.logo_url, company_name=excluded.company_name,
       registration_number=excluded.registration_number, address=excluded.address,
       default_footer_text=excluded.default_footer_text,
       design_id=excluded.design_id, logo_position=excluded.logo_position,
       accent_color=excluded.accent_color, accent_source=excluded.accent_source,
+      structure_id=excluded.structure_id,
       set_by=excluded.set_by, set_at=excluded.set_at, updated_at=excluded.updated_at`)
     .run(WORKSPACE_ID, logo, clean(b.companyName).slice(0, 200), clean(b.registrationNumber).slice(0, 100),
       clean(b.address).slice(0, 500), clean(b.defaultFooterText).slice(0, 500),
-      designId, logoPosition, accentColor, accentSource, req.user.name, now(), now());
+      designId, logoPosition, accentColor, accentSource, structureId, req.user.name, now(), now());
   res.json({ ok: true });
 });
 app.get('/api/org/profile-values', auth, (req, res) => {

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Structure harness — document structures under a real cascade</title>
+<!-- The document CSS under test is not restated here. It is lifted out of the
+     product's own index.html at load time, exactly as server/server.js does for
+     the executed copy, so this page cannot pass while the app fails. -->
+<style>
+  body{margin:0;background:#eef1f0;font-family:Inter,system-ui,sans-serif}
+  #stage{width:720px;margin:0 auto;padding:24px}
+  .paper{background:#fbfbfc;box-shadow:0 4px 10px rgba(0,0,0,.08);border-radius:4px;padding:30px 36px}
+  .doc-surface{font-size:13.5px;line-height:1.75;color:#15181a}
+  .doc-surface h1{font-size:1.55em;line-height:1.3;margin:0 0 .6em}
+  .doc-surface h2{font-size:1.15em;margin:1.6em 0 .3em}
+  .doc-surface p{margin:.7em 0}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<!-- The print sheet, mounted the way the product mounts it. index.html hides
+     every other body child under @media print and shows only this node, so a
+     structure that failed to reach paper would show up here as a screen-only
+     effect — which for a contract is a defect, not a nuance. -->
+<div id="print-root"></div>
+
+<script src="/js/branding.js"></script>
+<script>
+/* Eight clauses, each with the opaque clause id the negotiation record files
+   changes against. If a structure ever moves or drops one of these, the
+   verification that reads them back will say so. */
+const BODY = [
+  '<h1>Distribution Agreement</h1>',
+  '<p>Made between the Distributor and the Client named below.</p>',
+  '<h2 data-clause-id="cl_0001">1. Orders and Deliveries</h2>',
+  '<p>The Client shall place orders with the Distributor, who will deliver the Products subject to availability to a location specified by the Client.</p>',
+  '<h2 data-clause-id="cl_0002">2. Incomplete Deliveries</h2>',
+  '<p>Visible damage must be reported within twelve hours of delivery, failing which the delivery is deemed correct and complete.</p>',
+  '<h2 data-clause-id="cl_0003">3. Pricing</h2>',
+  '<p>Products are sold at the pricing list in effect on the order date.</p>',
+  '<h2 data-clause-id="cl_0004">4. Terms of Payment</h2>',
+  '<p>Invoices must be paid within the period stated on the invoice. Late payment incurs interest per month of delay.</p>',
+  '<h2 data-clause-id="cl_0005">5. Indemnities</h2>',
+  '<p>The Client shall indemnify the Distributor against all claims arising from the Client’s negligence or breach of these Terms.</p>',
+  '<h2 data-clause-id="cl_0006">6. Term</h2>',
+  '<p>These Terms remain valid until either Party gives thirty days notice of termination.</p>',
+  '<h2 data-clause-id="cl_0007">7. Governing Law</h2>',
+  '<p>These Terms and any disputes arising from them are governed by Kenyan law.</p>',
+].join('');
+
+/* The product's own document stylesheet, taken from the product's own file. */
+async function loadAppCss(){
+  const html = await (await fetch('/index.html')).text();
+  const blocks = html.match(/<style>([\s\S]*?)<\/style>/g) || [];
+  const el = document.createElement('style');
+  el.textContent = blocks.map(b => b.replace(/<\/?style>/g, '')).join('\n');
+  document.head.appendChild(el);
+}
+
+/* Mount the document exactly as every render surface mounts it: the paper div
+   carrying docDesignPaperAttr, the body passed through docStructureBodyHtml. */
+window.MOUNT = function (designId, structureId) {
+  const b = normalizeDesignBranding({ designId, structureId, companyName: 'Brut Africa Ltd' });
+  const stage = document.getElementById('stage');
+  stage.innerHTML = '<div class="paper"' + docDesignPaperAttr(b) + ' style="' + docDesignPaperStyle(b) + '">'
+    + '<article class="doc-surface hati-doc">' + docStructureBodyHtml(b, BODY) + '</article></div>';
+  return { attr: document.querySelector('.paper').getAttribute('data-doc-structure') };
+};
+window.RAW_BODY = BODY;
+
+/* Same mount, into the print sheet. */
+window.MOUNT_PRINT = function (designId, structureId) {
+  const b = normalizeDesignBranding({ designId, structureId, companyName: 'Brut Africa Ltd' });
+  document.getElementById('print-root').innerHTML =
+    '<div class="paper"' + docDesignPaperAttr(b) + ' style="' + docDesignPaperStyle(b) + '">'
+    + '<article class="doc-surface hati-doc">' + docStructureBodyHtml(b, BODY) + '</article></div>';
+};
+window.MEASURE_PRINT = function () {
+  const surface = document.querySelector('#print-root .doc-surface');
+  if (!surface) return null;
+  const cs = getComputedStyle(surface);
+  const h2 = surface.querySelector('h2');
+  const p = Array.from(surface.querySelectorAll('p')).find(x => !x.closest('[data-doc-contents]'));
+  return {
+    visible: surface.getBoundingClientRect().height > 0,
+    columnCount: cs.columnCount,
+    headLeft: h2 ? Math.round(h2.getBoundingClientRect().left) : null,
+    bodyLeft: p ? Math.round(p.getBoundingClientRect().left) : null,
+    headBorderTop: h2 ? parseFloat(getComputedStyle(h2).borderTopWidth) : null,
+    hasContents: !!surface.querySelector('[data-doc-contents]'),
+  };
+};
+
+loadAppCss().then(() => { window.READY = true; });
+</script>
+</body>
+</html>

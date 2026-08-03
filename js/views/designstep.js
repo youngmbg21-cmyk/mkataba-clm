@@ -21,6 +21,10 @@ async function openDesignStep(opts) {
   const org = window.ORG_BRANDING || null;
   const seed = normalizeDesignBranding(org || {}) || normalizeDesignBranding({});
   if (!seed.designId) { seed.designId = DOC_DESIGNS[0].id; seed.logoPosition = DOC_DESIGNS[0].defaultLogoPos; }
+  /* Structure seeds to Standard Flow — the layout every document already has.
+     Opening this screen must never silently re-lay-out a contract; the
+     customer has to choose a different architecture deliberately. */
+  if (!seed.structureId) seed.structureId = DEFAULT_STRUCTURE;
   _ds = {
     mode: opts.mode || 'publish',
     tid: opts.tid, vid: opts.vid, versionNumber: opts.versionNumber,
@@ -38,11 +42,28 @@ async function openDesignStep(opts) {
    blocks and fields exactly as the builder holds them; settings mode shows a
    small honest sample so the five looks can be compared on something. */
 function dsPreviewBody() {
+  return docStructureBodyHtml(_ds.b, dsPreviewBodyRaw());
+}
+function dsPreviewBodyRaw() {
   if (_ds.form && window.templateFormDocHtml) return templateFormDocHtml(_ds.form);
+  /* Real headings, not bolded paragraphs: a structure is read off the document's
+     heading structure (Contents First builds from it, Margin Numbers and Ruled
+     Clauses hang off it), so a sample written as bold run-ins would show four of
+     the five structures doing nothing. */
   return `<h1>Master Services Agreement</h1>
-    <p><strong>1. Services.</strong> The Supplier shall provide the services described in Schedule A with reasonable skill and care, in accordance with this Agreement.</p>
-    <p><strong>2. Term.</strong> This Agreement commences on the Effective Date and continues for twelve (12) months unless terminated earlier under clause 7.</p>
-    <p><strong>3. Payment.</strong> Invoices are payable within thirty (30) days of receipt. Amounts are exclusive of VAT.</p>
+    <p>Made between the Company and the Supplier named below, on the Effective Date.</p>
+    <h2>1. Services</h2>
+    <p>The Supplier shall provide the services described in Schedule A with reasonable skill and care, in accordance with this Agreement.</p>
+    <h2>2. Term</h2>
+    <p>This Agreement commences on the Effective Date and continues for twelve (12) months unless terminated earlier under clause 7.</p>
+    <h2>3. Payment</h2>
+    <p>Invoices are payable within thirty (30) days of receipt. Amounts are exclusive of VAT.</p>
+    <h2>4. Confidentiality</h2>
+    <p>Each party shall keep confidential all information disclosed by the other and use it only for the purposes of this Agreement.</p>
+    <h2>5. Liability</h2>
+    <p>Neither party excludes liability for death or personal injury caused by its negligence, or for fraud.</p>
+    <h2>6. Governing law</h2>
+    <p>This Agreement and any dispute arising from it are governed by the laws of Kenya.</p>
     <p><strong>Signed for the Company</strong><br>Name: <span class="hati-field">full name</span><br>Title: <span class="hati-field">job title</span></p>`;
 }
 function dsPreviewContract() {
@@ -59,23 +80,82 @@ function dsPaint() {
   const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
   const b = _ds.b;
   const design = docDesignById(b.designId) || DOC_DESIGNS[0];
+  const structure = docStructureById(b.structureId) || DOC_STRUCTURES[0];
   const publish = _ds.mode === 'publish';
+  /* A definite height, not one inherited from the window: tied to the viewport
+     the panes grow until their content fits and then have nothing left to
+     scroll, which on a tall monitor means no scrollbar at all. */
+  const PANE_H = 'clamp(430px,calc(100vh - 232px),700px)';
 
-  const designCards = DOC_DESIGNS.map(d => {
-    const sel = d.id === b.designId;
-    return `
-    <button data-ds-pick="${d.id}" style="display:block;width:100%;text-align:left;cursor:pointer;font:inherit;
+  /* One card shape for both catalogues — a structure and a style are the same
+     KIND of choice and should not look like two different controls. */
+  const pickCard = (o, sel, attr, extra) => `
+    <button ${attr}="${o.id}"${o.blockedWhy ? ' disabled' : ''}
+      ${o.blockedWhy ? `title="${esc(o.blockedWhy)}"` : ''}
+      style="display:block;width:100%;text-align:left;font:inherit;
+      cursor:${o.blockedWhy ? 'not-allowed' : 'pointer'};opacity:${o.blockedWhy ? '.45' : '1'};
       background:${sel ? 'var(--color-accent-100)' : 'var(--color-surface)'};
       border:${sel ? '2px solid var(--color-accent-700)' : '1px solid var(--color-divider)'};
       border-radius:12px;padding:${sel ? '11px 13px' : '12px 14px'};margin-bottom:8px">
-      <span style="display:flex;align-items:center;gap:8px">
-        <b style="font-size:12.5px;flex:1">${esc(d.name)}</b>
+      <span style="display:flex;align-items:center;gap:9px">
+        ${extra || ''}
+        <span style="flex:1;min-width:0">
+          <b style="font-size:12.5px">${esc(o.name)}</b>
+          ${o.blockedWhy ? '<span style="font-size:9.5px;color:var(--color-neutral-500)"> · unavailable</span>' : ''}
+        </span>
         ${sel ? `<span class="badge" style="background:var(--color-accent-700);color:#fff;font-size:9px">Selected</span>` : ''}
       </span>
-      <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.45;margin-top:3px">${esc(d.blurb)}</span>
-      <span style="display:block;font-size:9.5px;color:var(--color-neutral-500);margin-top:3px">Best for: ${esc(d.bestFor)}</span>
+      <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.45;margin-top:3px">${esc(o.blurb)}</span>
+      <span style="display:block;font-size:9.5px;color:var(--color-neutral-500);margin-top:3px">Best for: ${esc(o.bestFor)}</span>
     </button>`;
+
+  /* A miniature of the page each structure builds. Drawn in CSS rather than
+     shipped as images: a layout thumbnail that cannot go stale is worth more
+     than one that looks nicer. */
+  const RULE = 'var(--color-neutral-300)';
+  const bar = (w, mt) => `<span style="display:block;height:2px;border-radius:1px;background:${RULE};width:${w};${mt ? 'margin-top:' + mt : ''}"></span>`;
+  const wire = id => {
+    const box = inner => `<span style="flex:none;width:30px;height:40px;border:1px solid var(--color-divider);
+      border-radius:3px;background:var(--color-doc-surface);padding:3px;display:flex;flex-direction:column;
+      gap:2px;overflow:hidden">${inner}</span>`;
+    if (id === 'margin-numbers') return box(
+      [0, 1, 2].map(() => `<span style="display:flex;gap:2px"><span style="flex:none;width:4px;height:4px;border-radius:1px;background:var(--color-accent-700)"></span><span style="flex:1">${bar('100%')}${bar('70%', '2px')}</span></span>`).join(''));
+    if (id === 'two-column') return box(
+      `<span style="display:flex;gap:3px;flex:1"><span style="flex:1">${bar('100%')}${bar('100%', '2px')}${bar('60%', '2px')}${bar('100%', '2px')}</span><span style="flex:1">${bar('100%')}${bar('70%', '2px')}${bar('100%', '2px')}${bar('90%', '2px')}</span></span>`);
+    if (id === 'ruled-clauses') return box(
+      [0, 1, 2].map(() => `<span style="display:block;border-top:1px solid ${RULE};padding-top:2px;margin-top:2px">${bar('55%')}${bar('100%', '2px')}</span>`).join(''));
+    if (id === 'contents-first') return box(
+      `${bar('60%')}${[0, 1, 2, 3].map(() => `<span style="display:flex;align-items:center;gap:2px;margin-top:2px">${bar('40%')}<span style="flex:1;border-bottom:1px dotted ${RULE};height:1px"></span></span>`).join('')}`);
+    return box([0, 1, 2, 3, 4].map((_, i) => bar(i % 3 === 2 ? '65%' : '100%', i ? '2px' : 0)).join(''));
+  };
+
+  const structureCards = DOC_STRUCTURES.map(x => {
+    const why = structureBlockedReason(b.designId, x.id);
+    return pickCard({ ...x, blockedWhy: why }, x.id === b.structureId, 'data-ds-structure', wire(x.id));
   }).join('');
+
+  const blockedNow = DOC_STRUCTURES.filter(x => structureBlockedReason(b.designId, x.id));
+  const blockNote = blockedNow.length ? `
+    <div style="display:flex;gap:7px;align-items:flex-start;background:var(--st-amber-bg,#fef3c7);
+      border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309);
+      border-radius:9px;padding:8px 10px;font-size:10.5px;line-height:1.5;margin:2px 0 10px">
+      ${icon('alert', 'w-3 h-3')}
+      <span><b>${esc(design.name)}</b> cannot take ${blockedNow.length === 1 ? 'one layout' : blockedNow.length + ' layouts'}.
+        ${esc(structureBlockedReason(b.designId, blockedNow[0].id))}</span>
+    </div>` : '';
+
+  const designCards = DOC_DESIGNS.map(d => pickCard(d, d.id === b.designId, 'data-ds-pick')).join('');
+
+  const catHead = (n, title, hint) => `
+    <div style="position:sticky;top:0;z-index:3;background:var(--color-surface);padding:12px 0 7px;
+      margin-bottom:6px;border-bottom:1px solid var(--color-divider)">
+      <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0;text-transform:uppercase;
+        letter-spacing:.06em;color:var(--color-neutral-600);display:flex;align-items:center;gap:7px">
+        <span style="width:16px;height:16px;border-radius:50%;background:var(--color-accent-100);
+          color:var(--color-accent-700);display:grid;place-items:center;font-size:9.5px;font-weight:800;flex:none">${n}</span>
+        ${title}</h4>
+      <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:4px 0 0">${hint}</p>
+    </div>`;
 
   const posChips = DESIGN_LOGO_POSITIONS.map(p => {
     const label = { 'top-left': 'Top left', 'top-center': 'Top centre', 'top-right': 'Top right', footer: 'Footer' }[p];
@@ -83,18 +163,53 @@ function dsPaint() {
     return `<button data-ds-pos="${p}" class="ui-btn" style="font-size:10.5px;padding:3px 10px;${sel ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${label}</button>`;
   }).join('');
 
-  const accentRow = design.usesAccent ? `
+  /* The colour control is ALWAYS drawn, on every design. It used to appear only
+     on designs that display an accent, which meant a customer sitting on a
+     monochrome design could not find the control at all — the colour is a
+     company fact, set once, not a property of whichever design is on screen.
+     A monochrome design says so instead of hiding the control. */
+  const ACCENT_PRESETS = [
+    ['#0f766e', 'Teal'], ['#004c78', 'Navy'], ['#1e3a8a', 'Royal blue'],
+    ['#1f5d3a', 'Forest'], ['#8e3550', 'Claret'], ['#9a4a1f', 'Rust'],
+    ['#5b3a6e', 'Aubergine'], ['#37474f', 'Slate'],
+  ];
+  const accentNow = b.accentColor || '#37474f';
+  const swatches = ACCENT_PRESETS.map(([hex, name]) => `
+    <button data-ds-swatch="${hex}" title="${name}" aria-label="${name}" style="width:23px;height:23px;border-radius:6px;
+      cursor:pointer;padding:0;background:${hex};border:1px solid rgba(0,0,0,.18);
+      ${hex.toLowerCase() === accentNow.toLowerCase() ? 'box-shadow:0 0 0 2px var(--color-surface),0 0 0 4px var(--accent-solid)' : ''}"></button>`).join('');
+  /* accentLegible darkens a colour too pale to read as a rule or a band. It has
+     always done so silently; a customer whose brand colour is adjusted is told
+     what happened and why. */
+  const rawPick = _ds.accentRaw || null;
+  const darkened = !!(rawPick && accentLegible(rawPick) && accentLegible(rawPick).toLowerCase() !== rawPick.toLowerCase());
+  const accentRow = `
     <div style="margin-top:14px">
       <span style="display:block;font-size:11px;font-weight:600;margin-bottom:5px">Accent colour</span>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <button data-ds-accentsrc="logo" class="ui-btn" style="font-size:10.5px;padding:3px 10px;${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">From logo</button>
         <button data-ds-accentsrc="manual" class="ui-btn" style="font-size:10.5px;padding:3px 10px;${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">Pick my own</button>
-        ${b.accentSource === 'manual' ? `<input type="color" id="ds-accent" value="${b.accentColor || '#37474f'}" style="width:34px;height:26px;border:1px solid var(--color-divider);border-radius:4px;padding:1px;background:var(--color-surface);cursor:pointer">` : ''}
-        <span style="display:inline-block;width:15px;height:15px;border-radius:4px;background:${b.accentColor || '#37474f'};border:1px solid var(--color-divider)" title="Current accent"></span>
+        <span style="display:inline-block;width:15px;height:15px;border-radius:4px;background:${accentNow};border:1px solid var(--color-divider)" title="${esc(accentNow)}"></span>
       </div>
-      ${b.accentSource !== 'manual' && !b.accentColor ? `<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:4px">${b.logoUrl ? 'No strong colour found in the logo — a dark neutral is used instead.' : 'Upload a logo and HaTi picks its colour automatically.'}</span>` : ''}
-    </div>` : `
-    <div style="margin-top:14px;font-size:10px;color:var(--color-neutral-500);line-height:1.5">${esc(design.name)} is deliberately monochrome — the accent colour shows in Modern Minimal, Bold Corporate, Modern Editorial and Facing Parties.</div>`;
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${swatches}</div>
+      <div style="display:flex;gap:7px;align-items:center;margin-top:9px">
+        <input type="color" id="ds-accent" value="${accentNow}" aria-label="Choose any colour"
+          style="width:30px;height:28px;border:1px solid var(--color-divider);border-radius:5px;padding:2px;background:var(--color-surface);cursor:pointer">
+        <input id="ds-accent-hex" value="${esc((rawPick || accentNow).toUpperCase())}" maxlength="7" spellcheck="false" aria-label="Brand colour hex"
+          style="width:92px;font-family:var(--font-code);font-size:11.5px;text-transform:uppercase;border:1px solid var(--color-divider);
+          background:var(--color-surface);color:var(--color-text);border-radius:5px;padding:5px 8px;outline:none">
+      </div>
+      ${!design.usesAccent ? `<div style="font-size:10px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:7px;
+        background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
+        Saved, but <b>${esc(design.name)}</b> is monochrome — this colour will not appear on the document. It shows in Modern Minimal, Bold Corporate, Modern Editorial and Facing Parties.</div>` : ''}
+      ${darkened ? `<div style="font-size:10px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:7px;
+        background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
+        ${esc(rawPick.toUpperCase())} is too light to read as a rule or a band on white paper, so it is darkened to <b>${esc(accentNow.toUpperCase())}</b>. The hue is unchanged.</div>`
+      : design.usesAccent ? `<div style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin-top:6px">${
+          b.accentSource !== 'manual' && !b.accentColor
+            ? (b.logoUrl ? 'No strong colour found in the logo — a dark neutral is used instead.' : 'Upload a logo and HaTi picks its colour automatically.')
+            : 'Colours the rule, the band and the clause headings.'}</div>` : ''}
+    </div>`;
 
   const paper = `
     <div${docDesignPaperAttr(b)} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;max-width:680px;margin:0 auto;${docDesignPaperStyle(b)}">
@@ -113,15 +228,38 @@ function dsPaint() {
         : 'Every contract the team publishes or shares wears this design. The wording never changes — only the look.'}</span>
     </div>
 
-    <div style="display:grid;grid-template-columns:250px minmax(0,1fr) 290px;gap:14px;align-items:start">
-      <section style="${CARD};padding:12px 12px 6px">
-        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0 0 9px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">Choose a design</h4>
-        ${designCards}
+    <div style="display:grid;grid-template-columns:262px minmax(0,1fr) 292px;gap:14px;align-items:start">
+      <!-- ONE rail, TWO categories. Structure and style are the same kind of
+           choice and scroll together; each category header sticks to the top of
+           the rail while its own cards are in view, so you always know which
+           list you are in. -->
+      <section style="${CARD};height:${PANE_H};display:flex;flex-direction:column;min-height:0;overflow:hidden">
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:0 12px 14px">
+          ${catHead(1, 'Structure', 'How the page is laid out. Nothing is reworded and no clause is renumbered.')}
+          ${structureCards}
+          ${blockNote}
+          ${catHead(2, 'Style', 'How the document is dressed — typeface, header, accent colour.')}
+          ${designCards}
+        </div>
       </section>
 
-      <section style="padding:6px 0">${paper}</section>
+      <!-- The document on its own canvas, scrolling inside a fixed pane like
+           the negotiation room's document column — the page never scrolls the
+           app around it. -->
+      <section style="${CARD};height:${PANE_H};display:flex;flex-direction:column;min-height:0;overflow:hidden">
+        <div style="flex:none;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--color-divider)">
+          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(structure.name)}</span>
+          <span style="color:var(--color-neutral-400);font-size:11px">×</span>
+          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(design.name)}</span>
+        </div>
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:18px;background:var(--color-neutral-100)">${paper}</div>
+        <div style="flex:none;padding:7px 14px;border-top:1px solid var(--color-divider);text-align:center;font-size:10.5px;color:var(--color-neutral-500)">
+          ${publish ? 'Your live draft, not a sample' : 'A sample document, so the looks can be compared'} — scroll the sheet
+        </div>
+      </section>
 
-      <section style="${CARD};padding:14px 16px">
+      <section style="${CARD};height:${PANE_H};display:flex;flex-direction:column;min-height:0;overflow:hidden">
+       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px">
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">Company branding</h4>
         <div style="display:flex;gap:10px;align-items:center">
           <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:8px;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
@@ -158,15 +296,44 @@ function dsPaint() {
       : `
         <button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%;margin-top:16px;font-size:13px;padding:8px">Save company design</button>
         <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:8px 0 0">Applies to future documents and anything not yet executed. Signed contracts keep the look they were sealed with.</p>`}
+       </div>
       </section>
     </div>
   </div>`;
 
   document.getElementById('ds-back')?.addEventListener('click', () => { const go = _ds.onBack; _ds = null; if (go) go(); });
+  document.querySelectorAll('[data-ds-structure]').forEach(el => el.addEventListener('click', () => {
+    dsHarvest();
+    _ds.b.structureId = el.getAttribute('data-ds-structure');
+    dsPaint();
+  }));
+  document.querySelectorAll('[data-ds-swatch]').forEach(el => el.addEventListener('click', () => {
+    dsHarvest();
+    _ds.accentRaw = el.getAttribute('data-ds-swatch');
+    _ds.b.accentSource = 'manual';
+    _ds.b.accentColor = accentLegible(_ds.accentRaw);
+    dsPaint();
+  }));
+  document.getElementById('ds-accent-hex')?.addEventListener('change', e => {
+    const v = String(e.target.value || '').trim();
+    if (!/^#?[0-9a-f]{6}$/i.test(v)) { dsPaint(); return; }   // rejected: the field snaps back
+    dsHarvest();
+    _ds.accentRaw = v.startsWith('#') ? v : '#' + v;
+    _ds.b.accentSource = 'manual';
+    _ds.b.accentColor = accentLegible(_ds.accentRaw);
+    dsPaint();
+  });
   document.querySelectorAll('[data-ds-pick]').forEach(el => el.addEventListener('click', () => {
     dsHarvest();
     _ds.b.designId = el.getAttribute('data-ds-pick');
     if (!_ds.posTouched) _ds.b.logoPosition = docDesignById(_ds.b.designId).defaultLogoPos;
+    /* Never leave a blocked pair selected. Switching style is the customer's
+       action; silently publishing a combination the product refuses is not. */
+    if (structureBlockedReason(_ds.b.designId, _ds.b.structureId)) {
+      const was = docStructureById(_ds.b.structureId);
+      _ds.b.structureId = DEFAULT_STRUCTURE;
+      toast(`${was.name} is not available with ${docDesignById(_ds.b.designId).name} — the layout is back to Standard Flow`, 'err');
+    }
     dsPaint();
   }));
   document.querySelectorAll('[data-ds-pos]').forEach(el => el.addEventListener('click', () => {
@@ -176,11 +343,15 @@ function dsPaint() {
     dsHarvest();
     const src = el.getAttribute('data-ds-accentsrc');
     _ds.b.accentSource = src;
-    if (src === 'logo') _ds.b.accentColor = _ds.b.logoUrl ? await extractAccentFromLogo(_ds.b.logoUrl) : null;
+    if (src === 'logo') { _ds.accentRaw = null; _ds.b.accentColor = _ds.b.logoUrl ? await extractAccentFromLogo(_ds.b.logoUrl) : null; }
     dsPaint();
   }));
   document.getElementById('ds-accent')?.addEventListener('change', e => {
-    dsHarvest(); _ds.b.accentColor = accentLegible(e.target.value); dsPaint();
+    dsHarvest();
+    _ds.accentRaw = e.target.value;
+    _ds.b.accentSource = 'manual';
+    _ds.b.accentColor = accentLegible(e.target.value);
+    dsPaint();
   });
   document.getElementById('ds-logo-btn')?.addEventListener('click', () => document.getElementById('ds-logo-file').click());
   document.getElementById('ds-logo-file')?.addEventListener('change', e => {
@@ -230,6 +401,7 @@ function dsOrgPayload() {
     logoUrl: b.logoUrl, companyName: b.companyName, registrationNumber: b.registrationNumber,
     address: b.address, defaultFooterText: b.footerText,
     designId: asDefault ? b.designId : (org.designId || null),
+    structureId: asDefault ? b.structureId : (org.structureId || null),
     logoPosition: asDefault ? b.logoPosition : (org.logoPosition || null),
     accentColor: asDefault ? b.accentColor : (org.accentColor || null),
     accentSource: asDefault ? b.accentSource : (org.accentSource || null),
@@ -243,11 +415,14 @@ async function dsPublish() {
   try {
     await saveOrgBranding(dsOrgPayload());
     const design = _ds.saveDefault ? null
-      : { designId: _ds.b.designId, logoPosition: _ds.b.logoPosition, accentColor: _ds.b.accentColor };
+      : { designId: _ds.b.designId, structureId: _ds.b.structureId,
+          logoPosition: _ds.b.logoPosition, accentColor: _ds.b.accentColor };
     const r = await api(`templates/${_ds.tid}/versions/${_ds.vid}/publish`, 'POST',
       { changeNote: _ds.changeNote.trim(), design });
     (r.warnings || []).forEach(w => toast(w, 'err'));
-    toast(`v${r.versionNumber} published in ${docDesignById(_ds.b.designId).name} — the team can create contracts from it now`);
+    const st = docStructureById(_ds.b.structureId);
+    toast(`v${r.versionNumber} published in ${docDesignById(_ds.b.designId).name}${
+      st && st.id !== DEFAULT_STRUCTURE ? ' · ' + st.name : ''} — the team can create contracts from it now`);
     const tid = _ds.tid; _ds = null;
     openTemplateLibDetail(tid);
   } catch (e) {
@@ -263,7 +438,8 @@ async function dsSaveDefault() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="animate-pulse">Saving…</span>'; }
   try {
     await saveOrgBranding(dsOrgPayload());
-    toast(`${docDesignById(_ds.b.designId).name} is now your company design`);
+    const st2 = docStructureById(_ds.b.structureId);
+    toast(`${docDesignById(_ds.b.designId).name}${st2 && st2.id !== DEFAULT_STRUCTURE ? ' · ' + st2.name : ''} is now your company design`);
     const go = _ds.onBack; _ds = null; if (go) go();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Save company design'; }
