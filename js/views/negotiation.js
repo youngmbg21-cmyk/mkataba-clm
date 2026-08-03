@@ -7498,9 +7498,11 @@ function rlSetDocType(px){
     const d = Number(b.getAttribute('data-rl-type'));
     b.disabled = (d < 0 && v <= RL_TYPE_MIN) || (d > 0 && v >= RL_TYPE_MAX);
   });
-  /* The Doc tab reads the same preference through its zoom (applyDocZoom
-     multiplies by rlDocType()/default), so stepping here re-sizes there. */
+  /* The Doc tab and the Design step read the same preference through their own
+     zoom (each multiplies by rlDocType()/default), so stepping here re-sizes
+     the contract on all three screens. */
   if (window.applyDocZoom) applyDocZoom();
+  if (window.dsApplyZoom) dsApplyZoom();
   return v;
 }
 /* The stepper's markup — one builder, so the Redline strip and the Doc tab's

@@ -119,6 +119,39 @@ describe('f129 — the design catalogue and renderers (pure)', () => {
     assert.equal(branding.accentLegible('nonsense'), null);
   });
 
+  /* ---- the fringe defect ----
+     A logo made of LETTERING is mostly edge: every stroke is a core of ink
+     wrapped in pixels part-way to the paper behind it. Averaging the hue
+     bucket whole therefore returned the ink diluted by its own anti-aliasing.
+     Measured on a real customer wordmark, ink #004c78 came back #2b6b8e — a
+     navy read as washed-out steel, on every contract that company sends. */
+  test('a logo made of lettering returns its INK, not the ink blurred into the paper', () => {
+    const ink = [0, 76, 120];                                   // the wordmark's actual navy
+    const fringe = ink.map(v => Math.round(v + (255 - v) * 0.5)); // halfway to white
+    const px = [];
+    for (let i = 0; i < 10; i++) px.push(...ink, 255);           // a little core…
+    for (let i = 0; i < 30; i++) px.push(...fringe, 255);        // …wrapped in a lot of edge
+    assert.equal(branding.pickAccentFromPixels(px), '#004c78',
+      'the fringe outnumbers the core three to one and must still not decide the colour');
+  });
+
+  test('a solid-block logo is left exactly where it was', () => {
+    const solid = [];
+    for (let i = 0; i < 40; i++) solid.push(199, 107, 46, 255);
+    assert.equal(branding.pickAccentFromPixels(solid), '#c76b2e',
+      'every pixel equally saturated — the subset is the whole, the answer does not move');
+  });
+
+  test('one anomalous pixel gets a vote, never a veto', () => {
+    const fringe = [0, 76, 120].map(v => Math.round(v + (255 - v) * 0.5));
+    const px = [];
+    for (let i = 0; i < 40; i++) px.push(...fringe, 255);
+    px.push(0, 80, 255, 255);                                    // a lone compression artefact
+    const got = branding.pickAccentFromPixels(px);
+    assert.notEqual(got, '#0050ff', 'a single stray pixel must not become the brand colour');
+    assert.ok(/^#[0-9a-f]{6}$/.test(got), 'and something honest still comes back');
+  });
+
   test('the cover page for a raw upload names the document and admits the layout below is untouched', () => {
     const b = branding.normalizeDesignBranding({ designId: 'classic-letterhead', companyName: 'Juhudi Foods Ltd' });
     const cover = branding.docDesignCoverPageHtml(b, { name: 'Warehousing Agreement', id: 'MK-140',

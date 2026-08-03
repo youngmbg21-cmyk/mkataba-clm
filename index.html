@@ -849,6 +849,88 @@
   [data-doc-body="facing-parties"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif!important;}
   [data-doc-body="facing-parties"] .doc-surface h1{font-weight:700;letter-spacing:-.01em;}
   [data-doc-body="compact-executive"] .doc-surface h2{font-size:1.02em;}
+
+  /* ============ document structures — page architecture ============
+     A paper div carrying data-doc-structure="<structureId>" (js/branding.js,
+     docDesignPaperAttr) re-lays out the document BODY. This is the second,
+     independent choice: a design says what the document WEARS, a structure
+     says how the page is BUILT. Both attributes sit on the same div, so any
+     design pairs with any structure the Design step allows.
+
+     Every rule below is presentation only. None of them reorders, rewords or
+     renumbers anything — the markup underneath is identical to Standard Flow,
+     which is what keeps data-clause-id (and every negotiation change filed
+     against it) pointing where it always did. Standard Flow emits no
+     attribute at all, so a document without a structure is untouched.
+
+     !important on nothing here: unlike the typefaces above, none of these
+     properties is enforced with !important by the print sheet, so ordinary
+     specificity carries them onto paper. */
+
+  /* -- Margin Numbers: the BODY steps in, so clause headings are left standing
+        in a ruled margin of their own and the numbers stack in a column.
+
+        THE DEFECT THIS REPLACES. The heading was pulled left twice — once by a
+        negative margin to take the block out, and again by text-indent on its
+        first line. Two pulls, one indent's worth of room: the first line landed
+        3.4em outside the sheet and the words ran off the paper. Reported from
+        the Design step preview, visible on any heading long enough to matter.
+
+        Now the surface indents and the heading steps back by exactly what the
+        surface stepped forward — no text-indent, nothing to overshoot with. The
+        rule is drawn at the indent by a pseudo-element rather than as a border
+        on the surface, so it sits BETWEEN the numbers and the body instead of
+        outside both. -- */
+  [data-doc-structure="margin-numbers"] .doc-surface{position:relative;padding-left:3.4em;}
+  [data-doc-structure="margin-numbers"] .doc-surface::before{
+    content:"";position:absolute;left:3.4em;top:0;bottom:0;width:1px;
+    background:var(--color-doc-rule,#c9ccd1);z-index:0;}
+  /* The heading steps back by exactly what the surface stepped forward, and
+     carries the paper's own colour so the rule BREAKS behind it rather than
+     being drawn through the words. A clause heading is longer than a number
+     column is wide, so it must cross the rule's line — the only question is
+     whether it crosses over or under, and a rule struck through "Orders and
+     Deliveries" is the defect that was reported. The colour is the paper's
+     token, so it stays right in dark mode and prints white on paper. */
+  [data-doc-structure="margin-numbers"] .doc-surface h1,
+  [data-doc-structure="margin-numbers"] .doc-surface h2,
+  [data-doc-structure="margin-numbers"] .doc-surface h3,
+  [data-doc-structure="margin-numbers"] .doc-surface h4{
+    margin-left:-3.4em;padding-right:.6em;position:relative;z-index:1;
+    background:var(--color-doc-surface,#fff);}
+
+  /* -- Two Columns: the body sets in two narrow columns. Headings, tables and
+        signature blocks are kept whole rather than split across the gutter. -- */
+  [data-doc-structure="two-column"] .doc-surface{column-count:2;column-gap:2.4em;
+    column-rule:1px solid var(--color-doc-rule,#c9ccd1);}
+  [data-doc-structure="two-column"] .doc-surface > h1{column-span:all;}
+  [data-doc-structure="two-column"] .doc-surface h2,
+  [data-doc-structure="two-column"] .doc-surface h3,
+  [data-doc-structure="two-column"] .doc-surface h4,
+  [data-doc-structure="two-column"] .doc-surface table,
+  [data-doc-structure="two-column"] .doc-surface blockquote,
+  [data-doc-structure="two-column"] .doc-surface pre{break-inside:avoid;}
+  /* a heading orphaned at the foot of a column reads as a heading for nothing */
+  [data-doc-structure="two-column"] .doc-surface h2,
+  [data-doc-structure="two-column"] .doc-surface h3{break-after:avoid;}
+  [data-doc-structure="two-column"] .doc-surface p{text-align:justify;hyphens:auto;}
+
+  /* -- Ruled Clauses: a rule above every clause and room around it, so the
+        document reads as a list of separable obligations rather than prose. -- */
+  [data-doc-structure="ruled-clauses"] .doc-surface h2,
+  [data-doc-structure="ruled-clauses"] .doc-surface h3{
+    border-top:1px solid var(--color-doc-rule,#c9ccd1);padding-top:.85em;margin-top:1.6em;}
+  [data-doc-structure="ruled-clauses"] .doc-surface h1 + h2,
+  [data-doc-structure="ruled-clauses"] .doc-surface > h2:first-child{border-top:0;padding-top:0;margin-top:0;}
+  [data-doc-structure="ruled-clauses"] .doc-surface h2{break-before:auto;}
+
+  /* -- Contents First: the prepended nav is markup (docStructureBodyHtml), and
+        it already carries its own page break inline. All it needs here is not
+        to be split across two pages. Deliberately NOT wrapped in @media print:
+        the server scrapes these rules out of this file by regex to style the
+        executed copy (docBodyDesignCss in server/server.js), and a rule nested
+        inside a media query would be lifted out of its wrapper. -- */
+  [data-doc-structure="contents-first"] .doc-surface [data-doc-contents]{break-inside:avoid;}
 </style>
 
 

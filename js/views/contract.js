@@ -1703,6 +1703,26 @@ function uploadScanRules(c){
 /* ============================================================
    DOC BODY + WORKSPACE
    ============================================================ */
+/* docBody() dressed in the document's STRUCTURE (js/branding.js).
+
+   Four of the five structures are pure CSS and arrive through the paper div's
+   data-doc-structure attribute, so they need nothing here. Contents First is
+   the one that emits markup, and it only prepends — so this wrapper is the
+   single place the canvas gains a contents page, and every repaint of
+   #doc-canvas has to come through it or the page would vanish on the next
+   partial render.
+
+   NOT used by freezeContractHtml, deliberately: a contents page is generated
+   navigation, rebuilt from the headings on every render. Sealing it would put
+   a generated artefact inside the hash, so a later improvement to the
+   generator would break verification of contracts sealed today. The seal
+   holds the contract; the contents page is how it is read. */
+function docBodyStructured(c){
+  const body = docBody(c);
+  return (window.docStructureBodyHtml && window.resolveDocBranding)
+    ? docStructureBodyHtml(resolveDocBranding(c), body) : body;
+}
+
 function docBody(c){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
@@ -2960,7 +2980,7 @@ function renderWorkspace(){
           ${templateProvenanceHtml(c)}
           <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
             ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
-            <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
+            <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBodyStructured(c)}</article>
             ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
           </div>
           </div>
@@ -3104,7 +3124,7 @@ function renderWorkspace(){
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
-      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc){ dc.innerHTML=docBody(c); wireDocCanvas(c); } }
+      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc){ dc.innerHTML=docBodyStructured(c); wireDocCanvas(c); } }
     }).catch(()=>{});
   }
   wireKeyTerms(c);
@@ -3710,7 +3730,7 @@ async function finalizeExecution(c, opts={}){
   // Re-render if the contract is open; guarded so a headless finalize (the
   // counterparty signs last while the contract isn't on screen) can't fail.
   try{
-    const canvas=document.getElementById('doc-canvas'); if(canvas){ canvas.innerHTML=docBody(c); wireDocCanvas(c); }
+    const canvas=document.getElementById('doc-canvas'); if(canvas){ canvas.innerHTML=docBodyStructured(c); wireDocCanvas(c); }
     if(typeof updateStatusUI==='function') updateStatusUI(c);
     /* The bar that says what to do next. Left alone, it kept the sentence it
        had a second earlier — "Erik has signed. Your signature is the only thing
@@ -3830,5 +3850,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});

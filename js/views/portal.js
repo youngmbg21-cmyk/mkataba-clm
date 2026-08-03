@@ -1920,7 +1920,7 @@ function renderShareViewer(p, opts={}){
     <div class="pv-page">
       <div class="pv-sheet" data-mark="${esc(mark)}"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
         ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
-        <article class="doc-surface">${body}</article>
+        <article class="doc-surface">${window.docStructureBodyHtml&&window.resolveDocBranding?docStructureBodyHtml(resolveDocBranding(c),body):body}</article>
         ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
         ${portalViewerRedlineHtml(c)}
       </div>
@@ -2360,7 +2360,7 @@ function renderSharePortal(p, opts={}){
         ${portalTemplateFormHtml(c,p)}
         <div id="pt-doc" class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
           ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
-          <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
+          <article class="doc-surface">${window.docStructureBodyHtml&&window.resolveDocBranding?docStructureBodyHtml(resolveDocBranding(c),readOnlyDocHtml(docBody(c))):readOnlyDocHtml(docBody(c))}</article>
           ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
         </div>
         <!-- Rewriting a contract used to happen in a twelve-row box inside the
@@ -3272,7 +3272,7 @@ function exportPDF(c, opts){
       </div>`:''}
       ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,record?{}:{bleedX:24,bleedY:32}):''}
       ${printCover}
-      <div class="doc-surface">${bodyHtml}</div>
+      <div class="doc-surface">${printDesign&&window.docStructureBodyHtml?docStructureBodyHtml(printDesign,bodyHtml):bodyHtml}</div>
       ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
       ${execBlock}
       ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid var(--color-divider);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
