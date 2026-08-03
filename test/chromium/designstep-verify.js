@@ -73,13 +73,28 @@ const READ = () => {
     nextBtn: !!document.getElementById('ds-next'),
     publishBtn: !!document.getElementById('ds-publish') || !!document.getElementById('ds-save'),
     backLabel: (document.getElementById('ds-back') || {}).textContent ? document.getElementById('ds-back').textContent.trim() : '',
-    /* the sheet, and whether the WHOLE page is visible inside its pane */
-    sheet: (() => { const p = document.querySelector('.ds-sheet'); if (!p) return null;
-      const r = p.getBoundingClientRect(); const pane = p.closest('div[style*="container-type"]')
-        ? p.closest('div[style*="container-type"]').parentElement.getBoundingClientRect() : null;
-      return { w: Math.round(r.width), h: Math.round(r.height),
-        fits: pane ? (r.height <= pane.height + 1 && r.width <= pane.width + 1) : null,
-        centred: pane ? Math.abs((r.left + r.right) / 2 - (pane.left + pane.right) / 2) < 2 : null }; })(),
+    /* The sheet is a PAGE at its own width, scaled by the zoom wrapper. The
+       distinction is the whole defect: sizing the sheet while leaving the type
+       alone shrank the page and not the words. offsetWidth is the layout width
+       (pre-zoom), the rect is what lands on screen. */
+    sheet: (() => { const el = document.querySelector('.ds-sheet'); if (!el) return null;
+      const pane = document.getElementById('ds-docpane');
+      const surf = el.querySelector('.doc-surface'), h1 = el.querySelector('.doc-surface h1');
+      const wrap = document.getElementById('ds-zoom');
+      return {
+        layoutW: el.offsetWidth,
+        onScreenW: Math.round(el.getBoundingClientRect().width),
+        paneW: pane ? Math.round(pane.clientWidth) : null,
+        zoom: wrap ? parseFloat(getComputedStyle(wrap).getPropertyValue('--ds-zoom')) : null,
+        docFont: surf ? getComputedStyle(surf).fontSize : null,
+        titleLines: h1 ? Math.round(h1.getBoundingClientRect().height / parseFloat(getComputedStyle(h1).lineHeight)) : null,
+      }; })(),
+    stepper: !!document.querySelector('.rl-type-step'),
+    stepperStyled: document.querySelector('.rl-type-step')
+      ? getComputedStyle(document.querySelector('.rl-type-step')).borderRadius : null,
+    focusBtn: !!document.getElementById('ds-focus'),
+    railsVisible: document.querySelectorAll('.ds-rail-pane').length > 0
+      && [...document.querySelectorAll('.ds-rail-pane')].every(e => e.getBoundingClientRect().width > 0),
     /* CHANGE 1 — no dead band under the columns */
     deadSpace: (() => { const cols = document.querySelector('div[style*="grid-template-columns:268px"]');
       const view = document.querySelector('.view-enter');
@@ -142,9 +157,21 @@ const READ = () => {
   check('5 · the colour control is on screen untouched',
     m.swatches === 8 && m.hexField && m.colourWheel,
     `${m.swatches} swatches, hex=${m.hexField}, wheel=${m.colourWheel}`);
-  check('5 · the whole sheet is visible and centred in its pane',
-    m.sheet && m.sheet.fits && m.sheet.centred,
-    m.sheet ? `${m.sheet.w}x${m.sheet.h}, fits=${m.sheet.fits}, centred=${m.sheet.centred}` : 'no sheet');
+  /* ---- the sheet is a page, and the type on it is the document's own ---- */
+  check('5 · the sheet is a real page at the document\'s own type size',
+    m.sheet && m.sheet.layoutW === 680 && m.sheet.docFont === '13.5px',
+    m.sheet ? `${m.sheet.layoutW}px page, ${m.sheet.docFont} text` : 'no sheet');
+  /* THE DEFECT THIS CATCHES. The sheet was shrunk while the words were left at
+     their absolute size, so a title that belongs on one line took four. A page
+     scaled whole keeps the proportion whatever size it is drawn at. */
+  check('5 · and the title sits on one line, not four',
+    m.sheet && m.sheet.titleLines === 1, `title wraps to ${m.sheet && m.sheet.titleLines} line(s)`);
+  check('5 · the page is scaled to fit the pane it is in',
+    m.sheet && m.sheet.zoom > 0 && Math.abs(m.sheet.onScreenW - m.sheet.paneW) < 40,
+    m.sheet ? `zoom ${m.sheet.zoom} → ${m.sheet.onScreenW}px in a ${m.sheet.paneW}px pane` : '');
+  check('5 · the workbench\'s own text-size stepper is here, styled',
+    m.stepper && m.stepperStyled === '12px', `stepper=${m.stepper}, radius=${m.stepperStyled}`);
+  check('5 · and the focus control is here', m.focusBtn);
   check('5 · step 1 offers Next, not Publish', m.nextBtn && !m.publishBtn);
 
   /* ---- 6 · picking a structure reaches the preview ---- */
@@ -185,6 +212,62 @@ const READ = () => {
     back.structures === 5 && back.styles === 0 && back.structureAttr === 'two-column'
       && /Step 1 of 2/.test(back.stepLabel),
     `${back.stepLabel}, sheet still ${back.structureAttr}`);
+
+  /* ---- 9 · the resize and focus controls actually work ---- */
+  const z0 = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ds-zoom')).getPropertyValue('--ds-zoom')));
+  await page.evaluate(() => document.querySelector('[data-rl-type="1"]').click());
+  await page.waitForTimeout(300);
+  const z1 = await page.evaluate(() => ({
+    zoom: parseFloat(getComputedStyle(document.getElementById('ds-zoom')).getPropertyValue('--ds-zoom')),
+    readout: document.querySelector('.rl-type-out').textContent.trim(),
+    stored: localStorage.getItem('hati.v1.rlDocType') }));
+  check('9 · A+ makes the contract bigger, and stores the preference',
+    z1.zoom > z0 && z1.readout !== '15px' && z1.stored,
+    `zoom ${z0} → ${z1.zoom}, readout ${z1.readout}, stored ${z1.stored}`);
+  await page.evaluate(() => document.querySelector('[data-rl-type="-1"]').click());
+  await page.waitForTimeout(250);
+
+  const beforeFocus = await page.evaluate(READ);
+  await page.evaluate(() => document.getElementById('ds-focus').click());
+  await page.waitForTimeout(450);
+  const inFocus = await page.evaluate(READ);
+  check('9 · focus folds the rails away and gives the document the width',
+    beforeFocus.railsVisible && !inFocus.railsVisible
+      && inFocus.sheet.onScreenW > beforeFocus.sheet.onScreenW,
+    `page ${beforeFocus.sheet.onScreenW}px → ${inFocus.sheet.onScreenW}px`);
+  await page.screenshot({ path: path.join(OUT, 'focus.png') });
+  await page.evaluate(() => document.getElementById('ds-focus').click());
+  await page.waitForTimeout(400);
+
+  /* ---- 10 · THE DEFECT THAT WAS REPORTED ----
+     Every pick repainted the screen wholesale, so the rail returned to the top
+     and the card just clicked went with it. On the fifth structure or the
+     eighth style the selection vanished at the moment it was made. */
+  await page.evaluate(() => document.getElementById('ds-next').click());
+  await page.waitForTimeout(450);
+  const scrolled = await page.evaluate(() => {
+    const rail = document.getElementById('ds-rail');
+    rail.scrollTop = rail.scrollHeight;                 // down to the last style
+    return rail.scrollTop;
+  });
+  await page.waitForTimeout(200);
+  const lastStyle = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('[data-ds-pick]:not([disabled])')];
+    const el = cards[cards.length - 1];
+    const before = el.getBoundingClientRect().top;
+    el.click();
+    return { id: el.getAttribute('data-ds-pick'), before: Math.round(before) };
+  });
+  await page.waitForTimeout(450);
+  const held = await page.evaluate(id => {
+    const rail = document.getElementById('ds-rail');
+    const el = document.querySelector(`[data-ds-pick="${id}"]`);
+    return { scrollTop: rail.scrollTop, cardTop: el ? Math.round(el.getBoundingClientRect().top) : null,
+      inView: el ? (el.getBoundingClientRect().top >= 0 && el.getBoundingClientRect().bottom <= innerHeight) : false };
+  }, lastStyle.id);
+  check('10 · picking a card does not throw the rail back to the top',
+    held.scrollTop > 10 && Math.abs(held.cardTop - lastStyle.before) < 8 && held.inView,
+    `rail at ${Math.round(scrolled)} → ${Math.round(held.scrollTop)}, card stayed at ${held.cardTop}px (was ${lastStyle.before}px)`);
 
   check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
 
