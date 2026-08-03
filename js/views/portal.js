@@ -1954,12 +1954,19 @@ function portalWorkbenchStyle(){
        being ui-btn-secondary. The tint is mixed against whatever surface is
        under it, so the pair reads the same in either theme. */
     .pw-id-read{display:inline-flex;align-items:center;gap:7px;flex:none;}
+    /* A SOLID TINT, NOT A WASH. The first attempt mixed the accent into the
+       surface at 12% and it read as white on a white card — the complaint the
+       icon and the rule were meant to answer, arriving again in a paler form.
+       This is the fill the approved render used: --color-accent-100, a real
+       colour, with the accent itself as the border and accent-800 for the
+       text. Loud enough to be found, quiet enough not to read as the primary
+       action, which nothing in this row is. */
     .pw-id-verb{flex:none;font-size:11.5px;padding:7px 12px;min-height:32px;
-      color:var(--color-accent-700);
-      background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 12%,transparent);
-      border-color:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 45%,transparent);}
-    .pw-id-verb:hover{background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 20%,transparent);
-      border-color:var(--accent-solid,var(--color-accent));}
+      color:var(--color-accent-800);
+      background:var(--color-accent-100);
+      border-color:var(--color-accent);}
+    .pw-id-verb:hover{background:var(--color-accent-200);
+      border-color:var(--color-accent-700);}
     .pw-id-verb svg{flex:none;}
     /* Verbs on the left of it, reading controls on the right. Without this the
        row is one undifferentiated run of pills. */

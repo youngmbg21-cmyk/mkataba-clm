@@ -1798,8 +1798,39 @@ function shareSummaryStepHtml(c, opts={}){
         ${s&&s.lines.length
           ? `${s.lines.length} change${s.lines.length===1?'':'s'} on the record — this is what the link shows, oldest first, with what was decided.`
           : `Nothing has been proposed on this contract yet, so there is no record to send.`}</p>
-      ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:2px 11px">${rows}</ul>`
-        :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
+      ${''/* TWO PREVIEWS, BECAUSE THE TWO LINKS SHOW DIFFERENT THINGS.
+
+             The contract branch keeps the manifest: a list of what is going out
+             for decision, with each change's fingerprint and its status. That
+             is the right preview for a link somebody is going to act on.
+
+             The history branch shows the RECORD — the Negotiation history
+             screen itself, the same component the recipient will open. It was
+             showing the manifest, which is the wrong list: the manifest says
+             what is on the table, and a history link is about what happened.
+             Rendered from the product's own negoTimelineScreenHtml so the
+             preview cannot drift from the page it is previewing. */}
+      <div id="share-manifest"${hist?' class="hidden"':''}>
+        ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:2px 11px">${rows}</ul>`
+          :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
+      </div>
+      ${''/* Inert on purpose: this is a picture of the recipient's screen, not
+             a second copy of it. Their filters and Verify integrity work; these
+             are the same controls with nothing behind them, so they are shown
+             (the reader is being told what the link carries) and made
+             unclickable rather than left as dead buttons that swallow a press. */}
+      <div id="share-hist-preview"${hist?'':' class="hidden"'} style="margin:0 0 14px">
+        <style>
+          #share-hist-preview .ht{max-height:none;padding:12px 14px;max-width:none}
+          #share-hist-preview .ht h3{font-size:14px}
+          #share-hist-preview .ht-inert{max-height:330px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px}
+          #share-hist-preview .ht-filters{margin-bottom:10px;padding-bottom:8px}
+          #share-hist-preview .ht-inert *{pointer-events:none}
+        </style>
+        <div class="ht-inert" aria-hidden="true">${window.negoTimelineScreenHtml
+          ? negoTimelineScreenHtml(c, {})
+          : '<div style="padding:14px;font-size:12px;color:var(--color-neutral-600)">The history is not available here.</div>'}</div>
+      </div>
       <label style="display:block"><span id="sh-summary-label" style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${
         hist?'Note sent with the record — edit if you want to say it differently'
            :`Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently`}</span>
@@ -2510,7 +2541,13 @@ async function openShareModal(c, opts={}){
         <button id="share-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">Send by email</span></button>
       </div>
       </div>
-    </div>`);
+    </div>`,
+    /* WIDER THAN THE 32rem DEFAULT. This dialog carries a scrolling change
+       manifest and a five-row textarea, and then asks for a decision
+       underneath both — at the default width the buttons sat below the fold
+       and the sender had to scroll a modal to reach Next, on the screen whose
+       whole job is "choose, then send". */
+    { maxWidth:'46rem' });
   /* Both steps are built once and toggled, rather than re-rendered. The send
      form wires a dozen listeners to elements it looks up by id; rebuilding it
      on Next would mean wiring them all a second time, and the first one to be
@@ -2532,6 +2569,15 @@ async function openShareModal(c, opts={}){
      the record here replaces the sign/negotiate choice rather than sitting
      beside it — and choosing the contract again restores whatever the contract's
      own state says the default should be. */
+  /* The two default covering notes, and which one the box is currently
+     holding. Compared by value rather than tracked by an "edited" flag: a
+     sender who types and then undoes back to the default has, as far as this
+     needs to care, not edited it. */
+  const _shareNoteContract = (typeof negoChangeSummary==='function' && negoChangeSummary(c))
+    ? (negoChangeSummary(c).text||'') : '';
+  const _shareNoteHist = `The full record of our negotiation on ${c.id||'this contract'}, for your file. `
+    + `It is read-only and carries its own verification result — no account is needed to open it.`;
+  let _shareNoteWas = _shareNoteContract;
   const setKind = k => {
     purposeSel = k==='history' ? 'history' : (SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c));
     payloadObj.purpose = purposeSel; payloadObj.purposeChosen = purposeSel;
@@ -2557,6 +2603,19 @@ async function openShareModal(c, opts={}){
       : `Summary sent to ${c.counterparty||'them'} — edit if you want to say it differently`;
     document.getElementById('share-manifest-line')?.classList.toggle('hidden', hist);
     document.getElementById('share-manifest-line-hist')?.classList.toggle('hidden', !hist);
+    document.getElementById('share-manifest')?.classList.toggle('hidden', hist);
+    document.getElementById('share-hist-preview')?.classList.toggle('hidden', !hist);
+    /* THE DEFAULT NOTE FOLLOWS THE CHOICE, AND STOPS THE MOMENT IT IS TYPED IN.
+       "9 changes on the table, 8 awaiting a decision" is a covering note for a
+       link somebody must act on; it is the wrong sentence to staple to a
+       record. Swapped only while the box still holds the default it was given
+       — once the sender has written their own words, switching the kind must
+       not take them away. */
+    const ta=document.getElementById('sh-summary');
+    if(ta && ta.value===_shareNoteWas){
+      ta.value = hist ? _shareNoteHist : _shareNoteContract;
+      _shareNoteWas = ta.value;
+    }
     const blurb=document.getElementById('share-send-blurb');
     if(blurb) blurb.classList.toggle('hidden', hist);
     const hblurb=document.getElementById('share-send-blurb-hist');

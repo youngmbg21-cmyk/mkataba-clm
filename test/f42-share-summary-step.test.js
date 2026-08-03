@@ -305,4 +305,48 @@ describe('Share is two steps, and the summary travels', () => {
     assert.equal(box.querySelector('script'), null);
     assert.match(box.textContent, /onerror=alert\(1\)/, 'it is shown as the text it is');
   });
+
+  /* THE HISTORY BRANCH PREVIEWS THE RECORD, NOT THE MANIFEST. It shipped
+     showing the change manifest — the list of what is going out for decision —
+     which is the right preview for a contract link and the wrong one for a
+     record. The preview is the product's own timeline component, so it cannot
+     drift from the page it claims to be previewing. */
+  test('choosing the record swaps the manifest for the history itself', async () => {
+    const { win } = buildWorld();
+    const c = await negotiated(win);
+    const m = await openShare(c);
+    const click = sel => m.root.querySelector(sel)
+      .dispatchEvent(new m.win.Event('click', { bubbles: true }));
+
+    assert.ok(!m.$('#share-manifest').className.includes('hidden'), 'the contract shows the manifest');
+    assert.ok(m.$('#share-hist-preview').className.includes('hidden'), 'and not the record');
+
+    click('[data-share-kind="history"]');
+    assert.ok(m.$('#share-manifest').className.includes('hidden'), 'the record hides the manifest');
+    assert.ok(!m.$('#share-hist-preview').className.includes('hidden'), 'and shows the timeline');
+    assert.match(m.$('#share-hist-preview').textContent, /Negotiation history/,
+      'it is the real screen, not a description of it');
+
+    click('[data-share-kind="contract"]');
+    assert.ok(!m.$('#share-manifest').className.includes('hidden'), 'and back again');
+  });
+
+  test('the covering note follows the choice, but never overwrites the sender', async () => {
+    const { win } = buildWorld();
+    const c = await negotiated(win);
+    const m = await openShare(c);
+    const click = sel => m.root.querySelector(sel)
+      .dispatchEvent(new m.win.Event('click', { bubbles: true }));
+    const ta = () => m.$('#sh-summary');
+
+    click('[data-share-kind="history"]');
+    assert.match(ta().value, /read-only and carries its own verification result/,
+      'a covering note for a record, not for a decision');
+
+    ta().value = 'For your file, Amina — nothing needed from you.';
+    click('[data-share-kind="contract"]');
+    assert.equal(ta().value, 'For your file, Amina — nothing needed from you.',
+      'once the sender has written their own words, switching must not take them away');
+  });
+
 });

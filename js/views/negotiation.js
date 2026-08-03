@@ -4854,11 +4854,14 @@ function redlineLayoutCss(){
      are tinted rather than outlined so they read as verbs without competing —
      the tint mixes against the surface, so it holds in either theme. */
   .redline-page .rl-act-send{padding:6px 13px}
-  .redline-page .rl-act-verb{color:var(--color-accent-700);
-    background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 12%,transparent);
-    border-color:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 45%,transparent)}
-  .redline-page .rl-act-verb:hover{background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 20%,transparent);
-    border-color:var(--accent-solid,var(--color-accent))}
+  /* The same solid tint the counterparty's bar carries — see .pw-id-verb in
+     js/views/portal.js. A 12% mix of the accent into the surface read as white
+     on a white card, which is the fault this was fixing. */
+  .redline-page .rl-act-verb{color:var(--color-accent-800);
+    background:var(--color-accent-100);
+    border-color:var(--color-accent)}
+  .redline-page .rl-act-verb:hover{background:var(--color-accent-200);
+    border-color:var(--color-accent-700)}
   .redline-page .rl-shell-acts svg{flex:none}
   .redline-page .rl-act-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px}
   @media (max-width:900px){ .redline-page .rl-act-rule{display:none} }
