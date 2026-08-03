@@ -2681,7 +2681,20 @@ async function openShareModal(c, opts={}){
   document.getElementById('share-back').addEventListener('click',()=>step(1));
   document.getElementById('share-back-kind').addEventListener('click',()=>step('kind'));
   setKind(purposeSel==='history'?'history':'contract');
-  step('kind');
+  /* ---- ONLY THE SHARE BUTTON ASKS "WHAT ARE YOU SHARING?" ----
+     Pressing Send on a redline opens this dialog too — the send path falls
+     back to it when the contract has no recipient on record yet — and being
+     met with "the contract, or the negotiation history?" after asking to send
+     a change is a question about something the caller already decided. Same
+     for the signing route and for handing a round over: each arrives with the
+     answer in its hand.
+
+     So the question is asked when, and only when, nobody has stated an intent:
+     the plain Share button, which calls this with no options at all. Everything
+     else opens where it always did, on what it is sending. */
+  const askKind = !(opts.handOver || SHARE_PURPOSE(opts.purpose));
+  document.getElementById('share-back-kind')?.classList.toggle('hidden', !askKind);
+  step(askKind ? 'kind' : 1);
   const setCh=k=>{ ch=k;
     document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
       b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;

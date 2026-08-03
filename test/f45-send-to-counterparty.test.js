@@ -184,3 +184,53 @@ describe('the dialog it opens is the share dialog', () => {
     }
   });
 });
+
+/* ============================================================
+   Only the Share button asks what you are sharing
+   ============================================================
+   Pressing Send on a redline opens this dialog too — the send path falls back
+   to it when the contract has no recipient on record yet. Being met with "the
+   contract, or the negotiation history?" after asking to send a change is a
+   question about something the caller already decided, and it shipped that way
+   for a few hours on 03 Aug 2026. The question belongs to the one caller that
+   has no intent yet: the plain Share button. */
+describe('the dialog opens where the caller was going', () => {
+  async function open(c, opts){
+    const p = buildPortal({ url: 'http://localhost/hati/' });
+    const win = p.win;
+    win.API_MODE = () => false;
+    const user = { id: 'u_w', name: 'Wanjiru Kamau', role: 'legal', email: 'w@co.ke' };
+    win.localStorage.setItem('hati.v1.users', JSON.stringify([user]));
+    win.localStorage.setItem('hati.v1.session', JSON.stringify({ userId: user.id }));
+    win.persist = () => {}; win.renderAuditSection = () => {};
+    win.renderSharesSection = () => {}; win.refreshShareOverview = () => {};
+    await win.openShareModal(c, opts);
+    const root = win.document.getElementById('modal-root');
+    const shown = id => { const el = root.querySelector('#' + id);
+      return !!el && !el.className.includes('hidden'); };
+    return { shown };
+  }
+
+  test('handing the round over goes straight to what is being sent', async () => {
+    const { win } = buildWorld();
+    const m = await open(await negotiated(win), { handOver: true });
+    assert.equal(m.shown('share-step-kind'), false,
+      'the caller already decided — asking again is a question about nothing');
+    assert.equal(m.shown('share-step-1'), true);
+  });
+
+  test('a stated purpose skips it too', async () => {
+    const { win } = buildWorld();
+    const m = await open(await negotiated(win), { purpose: 'sign' });
+    assert.equal(m.shown('share-step-kind'), false);
+    assert.equal(m.shown('share-step-1'), true);
+  });
+
+  test('but the plain Share button still asks', async () => {
+    const { win } = buildWorld();
+    const m = await open(await negotiated(win), undefined);
+    assert.equal(m.shown('share-step-kind'), true,
+      'this is the one caller with no intent yet');
+    assert.equal(m.shown('share-step-1'), false);
+  });
+});
