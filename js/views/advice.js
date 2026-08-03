@@ -89,7 +89,7 @@ function renderAdviceDesk(){
         ${canEdit()?`<button id="adv-new" class="ui-btn ui-btn-primary">${icon('plus','w-3.5 h-3.5')} New request</button>`:''}
       </div>
     </div>
-    <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(5,minmax(190px,1fr));gap:12px">${columnsHtml}</div>
+    <div class="board-cols board-5" style="flex:1;min-height:0;display:grid;gap:12px">${columnsHtml}</div>
   </div>`;
   wireAdviceBoard();
   setActiveNav('advice');
@@ -247,12 +247,12 @@ function openRateCardModal(){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="display:inline-flex;color:var(--color-accent)">${icon('coins')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Published rate card</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
-      <table style="width:100%;border-collapse:collapse">
+      <div class="table-scroll"><table style="width:100%;border-collapse:collapse">
         <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase">
           <th style="padding:6px 10px 6px 0;font-weight:600">Service</th><th style="padding:6px;font-weight:600">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:600">Hrs min</th><th style="padding:6px;font-weight:600">Hrs max</th><th style="padding:6px 0 6px 6px;font-weight:600">Days</th>
         </tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+      </table></div>
       <p style="font-size:10.5px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.5">Priority requests are quoted at +25% with the turnaround halved. "Days" is business days to feedback before queue load.</p>
       <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px">
         <button class="ui-btn" onclick="closeModal()">${editable?'Cancel':'Close'}</button>

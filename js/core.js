@@ -165,7 +165,7 @@ const EMAIL_SETUP_LINE = 'Email isn’t set up on this workspace yet, so nothing
 function emailSetupBannerHtml(){
   if(!emailOff()) return '';
   return `
-    <div id="email-setup-banner" style="display:flex;align-items:flex-start;gap:11px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:8px;padding:12px 16px">
+    <div id="email-setup-banner" style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:11px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:8px;padding:12px 16px">
       <span style="flex:none;margin-top:1px;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
       <span style="flex:1;min-width:0;line-height:1.5">
         <span style="display:block;font-size:13px;font-weight:600;color:var(--st-amber-fg)">Email isn’t set up yet</span>

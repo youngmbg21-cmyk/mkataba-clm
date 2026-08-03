@@ -81,7 +81,12 @@ const READ = () => {
         fits: pane ? (r.height <= pane.height + 1 && r.width <= pane.width + 1) : null,
         centred: pane ? Math.abs((r.left + r.right) / 2 - (pane.left + pane.right) / 2) < 2 : null }; })(),
     /* CHANGE 1 — no dead band under the columns */
-    deadSpace: (() => { const cols = document.querySelector('div[style*="grid-template-columns:268px"]');
+    /* The column widths moved out of the inline style into .ds-cols so they can
+       be retuned per breakpoint (index.html, RESPONSIVE VIEW GRIDS). Same
+       element, named rather than matched on a literal pixel value; the old
+       selector is kept as a fallback. */
+    deadSpace: (() => { const cols = document.querySelector('.ds-cols')
+        || document.querySelector('div[style*="grid-template-columns:268px"]');
       const view = document.querySelector('.view-enter');
       return cols && view ? Math.round(view.getBoundingClientRect().bottom - cols.getBoundingClientRect().bottom) : null; })(),
     blocked: Array.from(document.querySelectorAll('[data-ds-structure][disabled]'))

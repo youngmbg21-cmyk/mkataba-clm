@@ -26,11 +26,11 @@ negoFileChange() — js/negotiation.js ~912 (see the "ONE function files every c
 
 Three wrapper functions feed the funnel (js/negotiation.js):
 
-negoEditClause() — modify a clause (~1053)
+negoEditClause() — modify a clause (~1047)
 
-negoInsertClause() — insert a new clause (~1068)
+negoInsertClause() — insert a new clause (~1060)
 
-negoDeleteClause() — propose a deletion (~1079)
+negoDeleteClause() — propose a deletion (~1075)
 
 User-facing filing paths and where they enter:
 
@@ -38,11 +38,11 @@ Direct edit -> js/views/negotiation.js ~3718 and ~4275
 
 Clause library insert -> js/views/negotiation.js ~4033
 
-Copilot (edit / insert / delete) -> js/views/negotiation.js ~6601-6605 AND a shortcut at js/core.js ~3779 that calls negoFileChange directly, skipping the wrappers
+Copilot (edit / insert / delete) -> js/views/negotiation.js ~6633-6637 AND a shortcut at js/core.js ~3779 that calls negoFileChange directly, skipping the wrappers
 
-Playbook apply — TWO entrances: -> js/playbook.js ~260 (classic apply) -> js/views/negotiation.js ~7761 and ~7778 (rlFilePlaybookProposal, the advisor route)
+Playbook apply — TWO entrances: -> js/playbook.js ~260 (classic apply) -> js/views/negotiation.js ~7786 and ~7810 (rlFilePlaybookProposal, the advisor route)
 
-Word DOCX round-trip -> js/negotiation.js ~1133 and ~1151
+Word DOCX round-trip -> js/negotiation.js ~1133, ~1145 and ~1151
 
 REMAINING SIDE DOORS — check on every change-related fix
 
@@ -54,4 +54,4 @@ RULE OF THUMB: if a fix touches change objects, run grep -rn "changes.push|negoF
 
 Line numbers drift
 
-The line numbers above were correct on 2026-08-03. Code moves. Treat them as starting points — re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.
+The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points — re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.

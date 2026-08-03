@@ -10,6 +10,7 @@ One section per build run, newest at the bottom — the same convention
 - [Run 4 — Word (.docx) Round-Trip (2026-07-26)](#run-4--word-docx-round-trip-2026-07-26)
 - [Run 5 — UX-review remediation: the negotiation loop (2026-07-26)](#run-5--ux-review-remediation-the-negotiation-loop-2026-07-26)
 - [Run 6 — The counterparty's side (2026-07-26)](#run-6--the-counterpartys-side-2026-07-26)
+- [Run 20 — Responsive: HaTi fits the window it is given (2026-08-03)](#run-20--responsive-hati-fits-the-window-it-is-given-2026-08-03)
 
 ---
 
@@ -4689,3 +4690,193 @@ the owner presses send.** The mechanics existed; what was missing was truth:
    does not make sense"). The fallback now requires purpose 'sign'.
 
 Suite 2386 → 2389, all green.
+
+---
+
+# Run 20 — Responsive: HaTi fits the window it is given (2026-08-03)
+
+Plain English. No file paths, no line numbers. The full technical audit is in
+`AUDIT.md` and the approach in `PLAN.md`.
+
+## What was wrong
+
+HaTi was built as three strips side by side: a menu on the left that was always
+exactly the same width, your work in the middle, and an activity column on the
+right that was also always exactly the same width. Neither side strip ever gave
+up any space, so on a smaller laptop the middle was squeezed from both sides
+until things stopped fitting.
+
+And because the whole app is pinned to the window, the page could never grow a
+sideways scrollbar. So when something did not fit you did not get a scrollbar to
+reach it — **it silently disappeared off the edge**. That is exactly why zooming
+the browser out was the only workaround: zooming was the only way to give the
+middle more room.
+
+The worst single case: at 1280 pixels — a common laptop width — you opened a
+contract and the contract's own name was cut down to about two characters. You
+were looking at a contract and could not read which one it was. The line under
+it (reference number, folder, last updated) was gone entirely.
+
+Smaller still and it got much worse. On a tablet or a phone, whole tables ran
+hundreds of pixels off the side with no way to reach them, boards were cut in
+half, and buttons sat somewhere you could not tap.
+
+## What changed
+
+**The two side strips now give way.** They keep their exact current size on a
+standard desktop. On a smaller laptop they trim slightly. Below that the left
+menu shrinks to a column of icons — every destination still there, each naming
+itself on hover — and the activity column folds away on its own. On a phone the
+menu becomes a slide-out drawer behind a menu button. Your own choice about the
+activity column is remembered rather than thrown away: a narrow window hides it,
+widening the window brings it straight back.
+
+**The contract page header no longer eats its own title.** The buttons drop onto
+their own line instead of crushing the name, and the reference line wraps rather
+than being cut off. The negotiation workbench had the identical fault and got the
+identical fix — there, at phone width, the contract's name, reference and status
+were all rendering at zero width.
+
+**Card rows reflow instead of overflowing.** The report summary cards, the
+dashboard pipeline, the key-metrics ribbon, the Insights split, the Design step,
+Templates, Settings & Rules and Our standards all used fixed column counts that
+could not fit on a smaller screen. They wrap onto more lines now.
+
+**Wide tables scroll inside their own frame** — the register, the folder list,
+the team list, template detail, advice rates and the import list. **No column was
+hidden and no data removed.** The table slides; the page does not.
+
+**The advice desk and queue boards scroll sideways inside their own frame** on a
+narrow screen, keeping all five and four columns.
+
+**Two things that were unreachable are now reachable.** The jurisdiction switcher
+(Sweden / Kenya) used to vanish entirely below a certain width — and it changes
+money, the governing-law checks and the Copilot's briefing, so it is a control,
+not decoration. It now shows as flags on a narrow screen and moves into the menu
+drawer on a phone, where it still works. Separately, on a phone the negotiation
+workbench pushed its tracked-changes column off screen with no button anywhere to
+bring it back — the decisions were simply unreachable. That column now sits under
+the document instead.
+
+**The Copilot panel fits a phone.** Its header buttons (expand, delete, minimise,
+close) and its Send button were all being pushed off the right edge.
+
+**Text sizing.** The base text size is now very slightly fluid, and the large
+display type — page titles, the dashboard headline, the big KPI figures — scales
+smoothly between a small laptop and a large monitor.
+
+## Deliberately NOT changed
+
+- **Colours, typefaces, spacing style, radii, shadows — untouched.** Layout and
+  sizing only.
+- **Information density — untouched.** No screen simplified, no data removed, no
+  table column hidden.
+- **The standard-desktop look is unchanged.** Breakpoints were set so that
+  between roughly 1440 and 1800 pixels the app renders exactly as before. Only
+  the widths that were already broken move.
+- **The dense small interface text (the 10–13 pixel labels) was left at its
+  designed size.** There are about 1,600 of these written individually through
+  the app, and they are the Bloomberg-terminal density the brief insists on
+  keeping. Scaling them fluidly would be a redesign, not a repair, and rewriting
+  1,600 inline styles would be a large risky change across working features for
+  no visual gain. A conscious decision, not an oversight.
+- **The contract reading column already did what was asked.** The sheet was
+  already a fixed reading column scaling up to fill a wide pane, capped so it
+  never becomes poster-sized. Preserved, not replaced. On a small laptop the
+  document and the review panel now stack instead of splitting a space too
+  narrow for either.
+
+## Tested
+
+Driven in a real browser against the real running app, logged in as a real user
+— not read off the code. Widths: 2560, 1920, 1600, 1440, 1366, 1280, 1024, 768,
+390. Screens, at every width: Home, Contracts, Calendar, Insights, Templates,
+Settings & Rules, Advice Desk, Reports, My Queue, Import contracts, Our
+standards, Pipeline, the contract workspace, the negotiation workbench.
+
+Screens with something clipped or pushed off screen, and screens whose main area
+scrolled sideways:
+
+| Width | Before | After |
+|---|---|---|
+| 2560 | 2 screens, 4 issues | 2 screens, 4 issues |
+| 1920 | 2 screens, 4 issues | 2 screens, 4 issues |
+| 1600 | 2 screens, 4 issues | 2 screens, 4 issues |
+| 1440 | 5 screens, 7 issues | 2 screens, 4 issues |
+| 1366 | 5 screens, 10 issues | 3 screens, 5 issues |
+| 1280 | 7 screens, 16 issues, 1 sideways | 3 screens, 6 issues, **0 sideways** |
+| 1024 | **14 screens, 42 issues**, 3 sideways | 2 screens, 5 issues, **0 sideways** |
+| 768 | 8 screens, **55 issues**, 5 sideways | 3 screens, 5 issues, **0 sideways** |
+| 390 | **14 screens, 152 issues, 14 sideways** | 2 screens, 4 issues, **0 sideways** |
+
+**Nothing scrolls sideways at any width any more.** The residual "2 screens, 4
+issues" is identical at 2560 and at 390, and identical before and after — it is
+explained under "Still not fixed" below.
+
+Also 24 behaviour checks at the previously-broken widths, all passing: the
+contract name legible at 1280; the activity column folding and returning; the
+icon rail keeping every destination clickable; the advice board scrolling in its
+own frame; the team table keeping all its columns; the phone drawer opening and
+closing; the jurisdiction switcher actually switching from inside the drawer; the
+contract document rendering and stacking at 390; the counterparty portal
+rendering with every button on screen at 390; the Copilot panel fitting a phone.
+
+## Nothing broken along the way
+
+- **2,400 automated tests — all passing**, identical to before.
+- **All seven browser suites passing**: redline 80, selection 22, parity 39, live
+  31, timeline 19, structure 21, design step 15.
+- **No JavaScript errors** on any screen at any width, or in the portal.
+
+Features confirmed still working: contract editing, the negotiation room, tracked
+changes, comments, the counterparty portal, signing, the document export menu,
+and the Sweden/Kenya jurisdiction switch.
+
+One existing test needed a one-line change: it located an element by looking for
+a literal pixel value in its style, and that value moved into a stylesheet so it
+could be adjusted per screen size. It now finds the same element by name and
+checks exactly what it checked before.
+
+Two corrections made during the work, recorded because both would otherwise have
+been reported as successes:
+
+1. Making the sidebar an off-canvas drawer took it out of the page's grid, and
+   the main column then slid into the sidebar's now-zero-width track and rendered
+   about 40 pixels wide. Fixed by naming the content column's track explicitly.
+2. The first version of the measuring instrument treated the main scrolling area
+   as a legitimate sideways scroller and therefore skipped every element inside
+   it — which made a broken app measure clean. The instrument was corrected and
+   every number above is from the corrected version, with the "before" column
+   re-measured against the untouched original code.
+
+## Still not fixed, and why
+
+Four things remain, all deliberate. Together they are the "2 screens, 4 issues"
+above, and none changed as a result of this work — they measure identically
+before and after, at every width.
+
+1. **The glow behind the dashboard headline** is a decorative circle drawn
+   deliberately larger than its box and clipped by it. That is how the effect is
+   made. Not content; nothing is lost.
+2. **A hidden announcement on the negotiation page** ("Your turn — propose
+   changes or send it back") exists only for screen readers and is deliberately
+   given a one-pixel box. Invisible by design.
+3. **The chart-picker label on Reports** shortens with an "…" when its card gets
+   narrow. This is the app's existing design and the full list of choices appears
+   the moment the picker is opened. Changing it would mean changing how that
+   control looks, which is outside a layout job.
+4. **Two key-metric captions on Home** shorten with an "…" at a couple of middle
+   widths — 3 and 15 pixels short of fitting. The number and the metric's name
+   are always fully readable; only the small explanatory line underneath
+   shortens. Same reasoning as above.
+
+## One thing worth flagging
+
+The brief asked to preserve **IBM Plex, DM Sans and JetBrains Mono**. The app
+does not use any of them and never did. It runs on **Inter** for body text and
+**Plus Jakarta Sans** for headings, with a true typewriter face reserved for
+exactly two things: a security fingerprint and a keyboard-shortcut chip. There is
+a long comment in the code explaining that this was deliberate.
+
+No font was changed. Flagged only so the owner knows the app is not running the
+three families named, in case that is itself news.

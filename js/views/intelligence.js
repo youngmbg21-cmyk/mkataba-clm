@@ -731,9 +731,14 @@ function renderIntel(){
       </select>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
   const headerHtml=`
-    <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+    <!-- flex-wrap, and a floor under the caption. Without them the caption was
+         a nowrap flex item free to shrink to nothing between the tabs and the
+         filters: it needed 541px and got 358px at 1280, so the sentence
+         explaining the report was cut mid-word. Now the controls wrap onto
+         their own line before the words are taken away. -->
+    <header style="flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
-      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${intel.tab==='friction'
+      <span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:min(100%,240px)">${intel.tab==='friction'
         ? 'where deals get stuck — counted from the fingerprinted changes the negotiations already recorded'
         : `${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses`}</span>
       <span style="flex:1"></span>
@@ -961,7 +966,7 @@ function intelFrictionHtml(){
   /* ---- left: the three sentences ---- */
   const top=st.clauses[0]||null;
   const hero=(num,tone,body)=>`<div style="display:flex;gap:14px;padding:9px 0;${RULE}">
-    <div style="flex:none;min-width:62px;font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
+    <div style="flex:none;min-width:62px;font-size:clamp(20px,17px + 0.45vw,28px);font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
     <div style="min-width:0;font-size:12.5px;line-height:1.55;color:var(--color-neutral-800)">${body}</div>
   </div>`;
   const clauseHero=top?hero(pct(top.share)+'%','var(--color-text)',
@@ -1029,7 +1034,7 @@ function intelFrictionHtml(){
   return `<div style="max-width:1120px;margin:0 auto">
     <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">
       ${intelFrictionCopilotHtml(st)}
-      <div style="display:grid;grid-template-columns:1fr 1.15fr">${left}${right}</div>
+      <div class="igf-split" style="display:grid">${left}${right}</div>
     </div>
   </div>`;
 }

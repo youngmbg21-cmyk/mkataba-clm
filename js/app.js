@@ -159,7 +159,7 @@ function renderPageHeader(view){
   host.innerHTML=`
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
       <div style="min-width:0">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:21px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:clamp(18px,16px + 0.35vw,24px);font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${sub?`<p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500);line-height:1.5">${esc(sub)}</p>`:''}
       </div>
       ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}
@@ -181,7 +181,28 @@ function syncViewHeight(){
 function updateCommandBar(view){ renderPageHeader(view); }
 /* Guarded rather than assumed: this module is evaluated on a cut-down stage in
    the node tests, where there is no global addEventListener to bind to. */
-if(typeof addEventListener==='function') addEventListener('resize', syncViewHeight);
+/* Width matters as much as height now. syncViewHeight already ran on every
+   resize; applyPanelLayout joins it so dragging a window narrow folds the
+   activity column away instead of squeezing the middle until content is
+   clipped, and dragging it wide again brings the column back. Debounced with
+   rAF because a drag fires this continuously and both handlers read layout. */
+let _shellResizeQueued=false;
+function onShellResize(){
+  syncViewHeight();
+  if(typeof requestAnimationFrame!=='function'){ applyPanelLayout(); return; }
+  if(_shellResizeQueued) return;
+  _shellResizeQueued=true;
+  requestAnimationFrame(()=>{
+    _shellResizeQueued=false;
+    applyPanelLayout();
+    placeRegionSwitch();
+    // A window dragged back to full width must not leave the drawer stranded
+    // open over a sidebar that is already on screen.
+    if(!navDrawerActive()) closeNavDrawer();
+    syncViewHeight();
+  });
+}
+if(typeof addEventListener==='function') addEventListener('resize', onShellResize);
 function updateSidebarCounts(){
   const cs=state.contracts;
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
@@ -344,6 +365,7 @@ function setView(view){
   updateCommandBar(view);
   updateSidebarCounts();
   applyPanelLayout();
+  placeRegionSwitch();
   renderContextPanel();
   if(getOrg()&&!API_MODE()) persist();
   else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
@@ -595,14 +617,66 @@ function refreshActivityFeed(force){
 // Selecting a contract (register row, home list, or an activity entry) now opens
 // its workspace — the right-hand panel is the live Activity feed only.
 function selectContract(id){ openWorkspace(id); }
+/* Below this the activity column stops being affordable: the sidebar and the
+   panel together were eating 548px of a 1200px window, leaving the middle less
+   room than the register's own table needs. Matches the `tablet` breakpoint in
+   index.html — the two have to agree. */
+const PANEL_MIN_W = 1200;
+/* And below THIS the sidebar stops being a column and becomes a drawer over
+   the page. Matches the `phone` breakpoint in index.html. */
+const NAV_DRAWER_W = 900;
+function shellNarrow(){
+  return typeof innerWidth === 'number' ? innerWidth < PANEL_MIN_W : false;
+}
+function navDrawerActive(){
+  return typeof innerWidth === 'number' ? innerWidth < NAV_DRAWER_W : false;
+}
 function applyPanelLayout(){
   const grid=document.getElementById('body-grid'); const panel=document.getElementById('context-panel');
   if(!grid) return;
   // Intel owns its right side with its embedded portfolio chatbot dock, so the
   // global Activity panel is suppressed there to avoid two right panels.
-  const show = state.panelOpen && state.view!=='intel';
-  if(show){ grid.style.gridTemplateColumns='1fr 292px'; if(panel) panel.style.display='flex'; }
+  /* AND THE WINDOW GETS A VOTE. This function writes an INLINE
+     grid-template-columns, which outranks any media query aimed at #body-grid —
+     so width-awareness has to live here or it does not exist at all. On a
+     narrow window the panel is suppressed; state.panelOpen is left untouched,
+     so widening the window brings back exactly the panel the reader chose. The
+     width is read from --shell-panel-w so the breakpoints in index.html stay
+     the single place those numbers are written. */
+  const show = state.panelOpen && state.view!=='intel' && !shellNarrow();
+  if(show){ grid.style.gridTemplateColumns='1fr var(--shell-panel-w,292px)'; if(panel) panel.style.display='flex'; }
   else { grid.style.gridTemplateColumns='1fr'; if(panel) panel.style.display='none'; }
+}
+/* The nav drawer (phone only — above 900 the sidebar is a column and this is
+   never called). Restyling, not rebuilding: the same <aside> with the same
+   buttons simply slides over the page instead of taking a grid track. */
+function setNavDrawer(open){
+  const nav=document.getElementById('side-nav');
+  const scrim=document.getElementById('nav-scrim');
+  const btn=document.getElementById('nav-toggle');
+  if(nav&&nav.classList) nav.classList.toggle('open', !!open);
+  if(scrim) scrim.hidden = !open;
+  if(btn) btn.setAttribute('aria-expanded', open?'true':'false');
+}
+function closeNavDrawer(){ setNavDrawer(false); }
+/* ---- THE JURISDICTION SWITCHER HAS TO STAY REACHABLE ----
+   It was simply hidden below 1430 (index.html), which was survivable while
+   narrow windows were unusable anyway and is not now: Sweden/Kenya changes
+   money, the governing-law checks and the Copilot's briefing, so it is a
+   control, not decoration. From 900 up it stays in the header as flags only.
+   Below 900 the header has no room at any size, so the switcher MOVES into the
+   nav drawer, above the Copilot launcher. The element is relocated, not
+   rebuilt — same node, same two button ids, so the listeners bound in
+   wireShell keep working exactly as they did. */
+function placeRegionSwitch(){
+  const sw=document.getElementById('region-switch');
+  const drawerHome=document.querySelector('#side-nav .copilot-wrap');
+  const headerHome=document.getElementById('brand-block');
+  if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
+  const wantDrawer=navDrawerActive();
+  const inDrawer=sw.parentElement===drawerHome.parentElement;
+  if(wantDrawer&&!inDrawer) drawerHome.parentElement.insertBefore(sw,drawerHome);
+  else if(!wantDrawer&&inDrawer) headerHome.parentElement.insertBefore(sw,headerHome.nextSibling);
 }
 function renderContextPanel(){
   const body=document.getElementById('panel-body'); if(!body) return;
@@ -684,8 +758,25 @@ function wireShell(){
     // a section header (+/-) toggles its tabs; a tab navigates
     const head=e.target.closest('[data-section-toggle]');
     if(head){ const sec=head.closest('.nav-section'); openNavSection(sec,!sec.classList.contains('open')); return; }
-    const btn=e.target.closest('[data-view]'); if(btn) setView(btn.getAttribute('data-view'));
+    const btn=e.target.closest('[data-view]');
+    if(btn){
+      setView(btn.getAttribute('data-view'));
+      // On a phone the nav is a drawer over the page: having chosen a
+      // destination, get out of the way of it.
+      closeNavDrawer();
+    }
   });
+
+  /* The phone-only menu button, and the two ways out of the drawer it opens:
+     the scrim and Escape. Above 900 none of this is reachable — the button is
+     display:none and the sidebar is a column. */
+  document.getElementById('nav-toggle')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    const nav=document.getElementById('side-nav');
+    setNavDrawer(!(nav&&nav.classList.contains('open')));
+  });
+  document.getElementById('nav-scrim')?.addEventListener('click',closeNavDrawer);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeNavDrawer(); });
 
   // command-bar search → register filter
   const search=document.getElementById('cmd-search');
@@ -743,8 +834,10 @@ function wireShell(){
 
   // theme toggle + jurisdiction switcher (top header)
   document.getElementById('theme-toggle-btn')?.addEventListener('click',toggleTheme);
-  document.getElementById('region-se')?.addEventListener('click',()=>setRegion('SE'));
-  document.getElementById('region-ke')?.addEventListener('click',()=>setRegion('KE'));
+  // closeNavDrawer because below 900 this control lives INSIDE the drawer
+  // (placeRegionSwitch), and having answered it there is nothing left to do there.
+  document.getElementById('region-se')?.addEventListener('click',()=>{ setRegion('SE'); closeNavDrawer(); });
+  document.getElementById('region-ke')?.addEventListener('click',()=>{ setRegion('KE'); closeNavDrawer(); });
   /* The stored JURISDICTION is the truth, not this control's own key: a
      workspace that set its market on another device (it rides on the org
      record) must not have it silently reverted by whatever this browser last
@@ -789,4 +882,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,setNavDrawer,closeNavDrawer,shellNarrow,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});

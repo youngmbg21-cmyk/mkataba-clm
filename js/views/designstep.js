@@ -274,7 +274,7 @@ function dsPaint() {
       ${stepRail()}
     </div>
 
-    <div style="display:grid;grid-template-columns:268px minmax(0,1fr) 292px;gap:14px;flex:1;min-height:0">
+    <div class="ds-cols" style="display:grid;gap:14px;flex:1;min-height:0">
       <!-- ONE list, ONE choice. Which choice it is, is said three ways: the
            number, the title and the step rail above. -->
       <section style="${PANE}">

@@ -4932,18 +4932,32 @@ function redlineLayoutCss(){
      Back arrow, contract name and status, the document verbs — the workspace
      header's own arrangement, so the furniture holds still while the tabs
      change what is under it. */
-  .redline-page .rl-shell{display:flex;align-items:flex-start;gap:10px;flex:none;
+  /* flex-wrap so the verbs can drop to their own line. Without it the row was
+     nowrap: the identity block's floor (below) and the buttons' flex:none
+     could not both be honoured, so the buttons ran 203px off the right of a
+     390px screen. Wrapping costs a line where there is no room and changes
+     nothing where there is. */
+  .redline-page .rl-shell{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;flex:none;
     background:var(--color-surface);border:1px solid var(--color-divider);
     box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 16px}
   .redline-page .rl-shell-back{width:32px;height:32px;padding:0;flex:none;
     display:inline-grid;place-items:center}
-  .redline-page .rl-shell-id{min-width:0;flex:1}
+  /* A FLOOR, not min-width:0 — the same defect the Doc page's header had. With
+     nothing under it, the action buttons beside this block take every pixel
+     and the contract's own name and reference collapse to zero width: measured
+     at 390, all three of id, name and sub rendered 0px wide. The floor makes
+     the buttons wrap onto their own line instead (.rl-head already wraps), and
+     min() keeps it honest on a screen narrower than the floor itself. */
+  .redline-page .rl-shell-id{min-width:min(100%,240px);flex:1}
   .redline-page .rl-shell-name{display:flex;align-items:center;gap:8px;min-width:0}
   .redline-page .rl-shell-name h3{font-size:17px;margin:0;white-space:nowrap;
     overflow:hidden;text-overflow:ellipsis}
   .redline-page .rl-shell-name>span{flex:none}
+  /* Wraps rather than truncates, matching the Doc page's line: on one line
+     wherever it fits, on two where it does not, and never eating the reference
+     number or the date. */
   .redline-page .rl-shell-sub{font-size:11px;color:var(--color-neutral-600);margin-top:2px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    overflow-wrap:anywhere}
   .redline-page .rl-shell-acts{display:flex;gap:7px;flex-wrap:wrap;align-items:center;flex:none}
   .redline-page .rl-shell-acts .ui-btn{font-size:12px;padding:6px 11px}
   /* One filled button on this row, and it is the one that sends. The other two
@@ -5517,7 +5531,9 @@ function redlineLayoutCss(){
      active face deepens its tint and takes the full border; the idle one
      stays in its colour rather than fading to grey, because both destinations
      exist whether or not you are standing on them. */
-  .redline-page .rl-side-tabs{display:flex;gap:6px;padding:6px;margin:8px 8px 0;flex:none;
+  /* flex-wrap so the pair stacks rather than clipping their labels: both are
+     nowrap and both name a destination, so neither can be shortened. */
+  .redline-page .rl-side-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:6px;margin:8px 8px 0;flex:none;
     background:#f1f5f9;border-radius:12px}
   html.dark .redline-page .rl-side-tabs{background:rgba(148,163,184,.14)}
   .redline-page .rl-side-tab{flex:1;border:1px solid transparent;border-radius:9px;cursor:pointer;
@@ -5645,6 +5661,22 @@ function redlineLayoutCss(){
     .redline-page .rl-grid{grid-template-columns:minmax(0,1fr)!important;height:auto}
     .redline-page .rl-doc,.redline-page .rl-side{grid-column:auto;min-height:280px}
     .redline-page .rl-resizer{display:none}
+  }
+  /* ---- THIS PAGE HAS NO DRAWER BUTTON, SO IT MUST NOT HAVE A DRAWER ----
+     The engine's own narrow rule turns .nego-pane.index into an off-canvas
+     drawer below 760 and reveals #nego-drawer to open it again. That button is
+     markup belonging to the negotiation ROOM; this page never renders it. The
+     rule reached here anyway, so on a phone the tracked-changes column was
+     translated off the right of the screen with nothing anywhere to bring it
+     back — the decisions were simply unreachable. Written at three classes so
+     it outranks the engine's two on specificity rather than on sheet order,
+     which is not in this file's favour (see the note above .rl-paper). The
+     column stacks under the document instead, which is what the rule directly
+     above already arranges for it. */
+  @media (max-width:760px){
+    .redline-page .nego-pane.index{position:static;width:auto;transform:none;
+      box-shadow:none;z-index:auto}
+    .redline-page #nego-drawer{display:none!important}
   }
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
     border-radius:12px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}

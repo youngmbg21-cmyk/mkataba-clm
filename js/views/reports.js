@@ -218,10 +218,10 @@ function renderReports(){
       @keyframes rdIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
-      <section style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      <section class="rp-stats" style="display:grid;gap:14px">
         ${stats}
       </section>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="rp-charts" style="display:grid;gap:18px">
         ${chartSlot(0)}
         ${chartSlot(1)}
         ${chartSlot(2)}

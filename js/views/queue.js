@@ -74,7 +74,7 @@ function renderPipeline(){
       .q-card:hover{border-top-color:var(--color-accent)!important;border-right-color:var(--color-accent)!important;border-bottom-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>
     <div style="flex:none;margin-bottom:10px">${folderLegendHtml()}</div>
-    <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:12px">${columnsHtml}</div>
+    <div class="board-cols board-4" style="flex:1;min-height:0;display:grid;gap:12px">${columnsHtml}</div>
   </div>`;
 
   wirePipeline();

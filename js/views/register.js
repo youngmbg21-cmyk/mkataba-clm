@@ -82,7 +82,7 @@ function renderFolder(){
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm)">
         
-        <div style="overflow-x:auto">
+        <div class="table-scroll">
           <table class="fold-table">
             <thead>
               <tr>

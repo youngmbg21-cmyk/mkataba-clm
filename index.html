@@ -110,6 +110,18 @@
        renderPageHeader measures the scroll container and writes the real value
        here after every render; this is only the value before the first one. */
     --view-h:calc(100vh - 126px);
+
+    /* HOW WIDE THE TWO SIDE STRIPS ARE. These were hard numbers baked into the
+       shell markup (256px on the sidebar, 292px on the activity column), which
+       is why a smaller laptop squeezed the middle until content fell off the
+       edge with no scrollbar to reach it. They are tokens now, retuned per
+       breakpoint in the RESPONSIVE SHELL block further down. The values here
+       are exactly what shipped before, so the standard-desktop layout is
+       unchanged. --shell-panel-w is read by applyPanelLayout (js/app.js),
+       which is the ONLY writer of #body-grid's columns — it writes an inline
+       style, so a media query aimed at that element would silently lose. */
+    --shell-nav-w:256px;
+    --shell-panel-w:292px;
     --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
     --font-body:Inter,system-ui,sans-serif;
     /* THE FIGURE FACE, not a code face. This token is used ~160 times for
@@ -248,7 +260,17 @@
     font-family:var(--font-body);
     background:var(--color-bg);
     -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-    min-height:100vh; font-size:13px; line-height:1.5;
+    /* 100dvh, not 100vh: on a phone 100vh includes the retracting address bar,
+       so a full-height view is cut off by exactly that bar's height until you
+       scroll. dvh is the visible viewport. The vh line stays first as the
+       fallback for anything that does not know dvh. */
+    min-height:100vh; min-height:100dvh;
+    /* A BARELY-PERCEPTIBLE FLUID BASE, not a rescale. 13px was a hard number;
+       this firms text up a touch on a small laptop and relaxes it on a large
+       monitor, staying inside half a pixel of the designed size at 1440. The
+       dense 10-13px interface type is deliberately NOT scaled — that density
+       is the design. */
+    font-size:clamp(12.5px, 12px + 0.12vw, 14px); line-height:1.5;
   }
   h1,h2,h3,h4,h5,h6,.font-display{font-family:var(--font-heading);font-weight:600;letter-spacing:-0.01em;}
   a{color:var(--color-accent-700);}
@@ -479,8 +501,251 @@
   /* narrow shells: shed the "Jurisdiction:" caption first, then the switcher,
      then the global search and the profile text */
   @media (max-width:1620px){ #region-switch>span:first-child{display:none;} }
-  @media (max-width:1430px){ #region-switch{display:none!important;} }
-  @media (max-width:1000px){ .cmd-search{display:none!important;} #hdr-profile-meta{display:none!important;} .cmd-ai-label{display:none!important;} }
+  /* Flags only, not gone. Hiding it outright removed a control that changes
+     money, the governing-law checks and the Copilot's briefing — survivable
+     while narrow windows were unusable, not survivable now they are not. */
+  @media (max-width:1430px){ #region-switch .region-btn{font-size:0;gap:0;padding:4px 7px;} #region-switch .region-btn>span{font-size:13px;} }
+  /* Below 900 it moves into the nav drawer instead (placeRegionSwitch,
+     js/app.js), where there is room for its full labels again. */
+  @media (max-width:899px){
+    /* Stacked, not side by side: the two labels ("Sweden (EU/GDPR)",
+       "Kenya (KICA/ODPC)") need 251px between them and the drawer is 240px
+       wide, so in a row they were clipped. A column fits both at full width
+       and reads as the pair of choices it is. */
+    #side-nav #region-switch{margin:0 12px 4px;flex-direction:column;align-items:stretch!important;gap:2px;}
+    #side-nav #region-switch>span:first-child{display:none;}
+    #side-nav #region-switch .region-btn{font-size:11px;gap:6px;padding:6px 9px;justify-content:flex-start;}
+    #side-nav #region-switch .region-btn>span{font-size:13px;}
+  }
+  /* Retuned. The old single step at 1000 fired too late: at 1024 the right-hand
+     actions were still 504px wide, which left the brand block 117px of the
+     137px it needs and clipped "HaTi" itself. The profile text and the Copilot
+     label — the two widest optional things — now stand down a breakpoint
+     earlier, before anything has to be cut. */
+  @media (max-width:1199px){ #hdr-profile-meta{display:none!important;} .cmd-ai-label{display:none!important;} }
+  @media (max-width:1000px){ .cmd-search{display:none!important;} }
+
+  /* ============================================================
+     RESPONSIVE SHELL — the two side strips, and what happens to them.
+
+     THE DEFECT THIS REPLACES. The shell was three strips: a 256px sidebar, the
+     middle, and a 292px activity column, all three hard numbers with no
+     breakpoint anywhere. Neither side strip ever gave up a pixel, so the
+     middle was squeezed from both sides — 732px of working room at 1280, 476px
+     at 1024, and negative at 390. And because #app-shell is position:fixed the
+     page can never grow a horizontal scrollbar, so what did not fit was not
+     scrolled to, it was silently CLIPPED. Zooming the browser out was the only
+     way to get the room back. Measured: at 1280 the contract's own name on its
+     own page rendered in 31px of the 175px it needed.
+
+     Five sizes, named once here and honoured by every view:
+       ultrawide >=1800 | desktop 1440-1799 | laptop 1200-1439
+       tablet 900-1199  | phone <900
+     Desktop is deliberately IDENTICAL to what shipped before — the density is
+     the design, and only the widths that were already broken move.
+     ============================================================ */
+
+  /* -- ultrawide: the strips take a little more, the middle still gains -- */
+  @media (min-width:1800px){
+    :root{ --shell-nav-w:272px; --shell-panel-w:320px; }
+  }
+  /* -- laptop: trim both strips before anything has to be clipped -- */
+  @media (max-width:1439px){
+    :root{ --shell-nav-w:216px; --shell-panel-w:264px; }
+  }
+  /* -- tablet: the sidebar becomes an icon rail. RESTYLED, NOT REBUILT —
+        every nav button keeps its id, its handler and its place in the DOM, so
+        navigation is untouched; only the labels stop being drawn. The title
+        attributes were already on every button, so hovering still names each
+        destination. The activity column is hidden by applyPanelLayout (which
+        writes an inline style and would beat a rule written here). -- */
+  @media (max-width:1199px){
+    :root{ --shell-nav-w:72px; }
+    #side-nav .nav-item{ justify-content:center; padding:9px 0; gap:0; }
+    #side-nav .nav-item>span:not(.nav-rail){ display:none; }
+    #side-nav .nav-count,#side-nav .nav-badge{ display:none; }
+    #side-nav .nav-section-head{ font-size:0; padding:10px 0 6px; justify-content:center; }
+    #side-nav .nav-plus{ margin:0; }
+    #side-nav .nav-section:not(.open) .nav-section-body{ display:block; }
+    /* !important throughout this block and the one below: the shell's paddings
+       and gaps are written as INLINE styles in the markup, which outrank a
+       stylesheet rule however specific. Without it these rules were silently
+       no-ops — measured, the header kept its 20px gaps on a 390px phone. */
+    #side-nav nav{ padding:12px 8px!important; }
+    #side-nav .copilot-wrap{ padding:8px!important; }
+    #side-nav #side-copilot{ padding:10px 0!important; }
+    #side-nav .sc-label{ display:none; }
+    #side-nav .foot-wrap{ padding:8px!important; }
+    #side-nav .foot-wrap>div{ padding:8px 6px!important; align-items:center!important; }
+    #side-nav .foot-status>span:last-child,#side-nav #side-ai-usage-txt{ display:none; }
+  }
+  /* -- phone: the rail leaves the grid entirely and becomes a drawer over the
+        page, opened from the menu button in the header. -- */
+  @media (max-width:899px){
+    :root{ --shell-nav-w:0px; }
+    #nav-toggle{ display:grid!important; }
+    #side-nav{
+      position:fixed; top:64px; left:0; bottom:0; z-index:55; width:240px;
+      transform:translateX(-105%); transition:transform .25s var(--ease);
+      box-shadow:var(--shadow-lg);
+    }
+    /* open: full labels are back — there is room for them in the drawer */
+    #side-nav.open{ transform:none; }
+    #side-nav.open .nav-item{ justify-content:flex-start; padding:9px 12px; gap:11px; }
+    #side-nav.open .nav-item>span:not(.nav-rail){ display:inline; }
+    #side-nav.open .nav-count:not(:empty),#side-nav.open .nav-badge{ display:inline-block; }
+    #side-nav.open .nav-section-head{ font-size:10px; padding:12px 12px 6px; justify-content:flex-start; }
+    #side-nav.open .nav-plus{ margin-left:auto; }
+    #side-nav.open nav{ padding:12px!important; }
+    #side-nav.open .copilot-wrap,#side-nav.open .foot-wrap{ padding:12px!important; }
+    #side-nav.open #side-copilot{ padding:10px!important; }
+    #side-nav.open .sc-label{ display:inline; }
+    #side-nav.open .foot-wrap>div{ padding:10px 12px!important; align-items:stretch!important; }
+    #side-nav.open .foot-status>span:last-child,#side-nav.open #side-ai-usage-txt{ display:inline; }
+    #nav-scrim:not([hidden]){
+      display:block; position:fixed; inset:64px 0 0 0; z-index:54;
+      background:color-mix(in srgb,#020617 45%,transparent);
+    }
+  }
+
+  /* ============================================================
+     RESPONSIVE VIEW GRIDS.
+     These column counts used to be hard numbers written inline at each call
+     site — repeat(4,1fr), 2fr 1fr, 268px … 292px — so a card row that needed
+     1013px was still asked to fit 978px and the last card left the window.
+     They live here instead: one file, one set of breakpoints, and the same
+     five sizes the shell uses. The widest rule in every block is what shipped
+     before, so nothing moves at desktop width.
+     ============================================================ */
+
+  /* Home — lifecycle pipeline (was repeat(3,minmax(0,1fr))) */
+  .hm-pipe-cols{grid-template-columns:repeat(3,minmax(0,1fr));}
+  /* Home — pipeline beside decisions (was 2fr 1fr). The decisions card fills
+     its column absolutely, so when the row stacks it needs a height to fill. */
+  .hm-main-row{grid-template-columns:2fr 1fr;}
+  @media (max-width:1199px){
+    .hm-pipe-cols{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+    .hm-main-row{grid-template-columns:minmax(0,1fr);}
+    .hm-decisions{min-height:320px;}
+  }
+
+  /* Reports — the four summary cards and the chart pairs */
+  .rp-stats{grid-template-columns:repeat(4,1fr);}
+  .rp-charts{grid-template-columns:1fr 1fr;}
+  @media (max-width:1439px){ .rp-stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));} }
+  @media (max-width:1099px){ .rp-charts{grid-template-columns:minmax(0,1fr);} }
+
+  /* Insights — negotiation-friction split (was 1fr 1.15fr) */
+  .igf-split{grid-template-columns:1fr 1.15fr;}
+  @media (max-width:1099px){ .igf-split{grid-template-columns:minmax(0,1fr);} }
+  /* The Insights caption is a whole sentence. Given a second line it stays
+     whole; below 900 there is no line to give it, and a sentence cut off
+     mid-word says less than no sentence — the tab beside it already names the
+     report. */
+  @media (max-width:1199px){ .ig-hd-sub{white-space:normal!important;text-overflow:clip!important;line-height:1.35;} }
+  @media (max-width:899px){ .ig-hd-sub{display:none!important;} }
+
+  /* Design step — two rails around the preview (was 268px … 292px, 560px of
+     rail before any content). The right rail goes first, then the left. */
+  .ds-cols{grid-template-columns:268px minmax(0,1fr) 292px;}
+  @media (max-width:1279px){ .ds-cols{grid-template-columns:248px minmax(0,1fr);}
+    .ds-cols>:nth-child(3){display:none;} }
+  @media (max-width:999px){ .ds-cols{grid-template-columns:minmax(0,1fr);grid-auto-rows:minmax(0,auto);overflow-y:auto;}
+    .ds-cols>:nth-child(1){min-height:220px;} }
+
+  /* Templates — the library rail beside the cards (was 196px 1fr) */
+  .tpl-cols{grid-template-columns:196px 1fr;}
+  @media (max-width:899px){ .tpl-cols{grid-template-columns:minmax(0,1fr);} }
+
+  /* Settings & Rules — members beside the settings stack (was 1.5fr 1fr) */
+  .tm-cols{grid-template-columns:1.5fr 1fr;}
+  @media (max-width:1099px){ .tm-cols{grid-template-columns:minmax(0,1fr);} }
+
+  /* Our standards — clause library beside the playbook (was 1.4fr 1fr) */
+  .pb-cols{grid-template-columns:1.4fr 1fr;}
+  @media (max-width:1099px){ .pb-cols{grid-template-columns:minmax(0,1fr);} }
+
+  /* Home — the KPI ribbon. The count is the reader's own choice (Customize),
+     so it is left alone; only the floor is added, and only where the row can
+     no longer hold that many cards. */
+  @media (max-width:1099px){
+    #kpi-grid{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;}
+  }
+  /* 200px, not 150: below that the cards fit but their captions do not, and a
+     KPI whose sub-label reads "draft to signed, from the aud…" has lost the
+     part that says what the number means. */
+  @media (max-width:639px){
+    #kpi-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))!important;}
+  }
+
+  /* ---- A PHONE CANNOT AFFORD DESKTOP GUTTERS ----
+     Every view sets its own 16-18px side padding inline, which is right on a
+     laptop and is 36px of a 390px screen — enough, repeatedly, to be the
+     difference between a row fitting and being clipped. Padding only: no
+     view's content, order or density changes. */
+  @media (max-width:479px){
+    .view-enter{padding-left:10px!important;padding-right:10px!important;}
+  }
+
+  /* ---- THE TOP HEADER ON A PHONE ----
+     The brand block is flex:none and the action buttons are flex:none, so at
+     390px the brand was squeezed to 59px of the 216px it needs and "HaTi"
+     itself was unreadable. The mark stays — it is the identity — and the
+     wordmark's caption and the CLM pill stand down, which buys back the room
+     without removing a single control. */
+  /* The caption is the widest thing in the wordmark, and the first to go: the
+     brand block is flex:none inside a container that shrinks, so it was being
+     clipped rather than compressed. */
+  @media (max-width:1199px){ #brand-caption{display:none;} }
+  @media (max-width:899px){
+    #top-header{padding:0 10px!important;gap:8px!important;}
+    #brand-wordmark{display:none;}
+    /* Every control stays reachable — they are tightened, never dropped. */
+    #top-header #brand-mark{width:30px!important;height:30px!important;border-radius:9px!important;}
+    #top-header .hdr-icon-btn{width:30px!important;height:30px!important;}
+    #top-header #side-logout{width:30px!important;height:30px!important;}
+    #top-header #side-avatar{width:28px!important;height:28px!important;}
+    #top-header #cmd-ai{padding:7px 8px!important;}
+    #top-header>div:last-child{gap:4px!important;}
+    #top-header>div:last-child>div:last-child{padding-left:4px!important;gap:4px!important;border-left:0!important;}
+    #top-header>div:first-child{gap:8px!important;}
+  }
+
+  /* ---- BOARDS SCROLL SIDEWAYS INSIDE THEIR OWN FRAME ----
+     The advice desk is five columns and the queue is four. Inside the squeezed
+     middle they simply overflowed and were clipped — at 1024 the advice board
+     ran roughly 500px past the edge with no scrollbar offering to take you
+     there. Below tablet they keep a readable column width and the BOARD takes
+     the horizontal scroll; the page itself never scrolls sideways. */
+  .board-5{grid-template-columns:repeat(5,minmax(190px,1fr));}
+  .board-4{grid-template-columns:repeat(4,minmax(200px,1fr));}
+  @media (max-width:1199px){
+    .board-cols{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;}
+    .board-5{grid-template-columns:repeat(5,minmax(190px,1fr));}
+    .board-4{grid-template-columns:repeat(4,minmax(200px,1fr));}
+  }
+
+  /* ---- WIDE TABLES SCROLL INSIDE THEIR OWN CONTAINER ----
+     Never the page. A table given only width:100% compresses until its columns
+     collide and, where a parent clips, disappears entirely — measured at 390px
+     the templates table sat 690px past the right edge and the team table 628px.
+     The wrapper takes the scroll; the min-width keeps every column readable.
+     NO COLUMN IS EVER HIDDEN — the density is the design. */
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
+  .table-scroll>table{min-width:640px;}
+  .table-scroll::-webkit-scrollbar{height:9px;}
+  .table-scroll::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:8px;}
+  /* The register's own scroller already existed; it just never had a floor. */
+  #reg-scroll>table{min-width:820px;}
+
+  /* ---- ANCHORED POPOVERS STAY ON SCREEN ----
+     Row menus and the export menu are position:absolute with a fixed width, so
+     on a narrow window they hung off the right edge with nothing to scroll to.
+     A ceiling costs nothing on a wide screen and keeps them reachable on a
+     small one. */
+  #new-menu,#ws-export-menu,.rd-menu,[data-menu-pop]{
+    max-width:calc(100vw - 24px);
+  }
 
   @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}html{scroll-behavior:auto;}}
 
@@ -581,6 +846,22 @@
   #ai-panel{display:flex;flex-direction:column;width:100%;box-shadow:var(--shadow-lg);}
   #ai-panel > *{flex:none;}
   #ai-panel > header{display:flex;align-items:center;gap:12px;padding:16px 20px;}
+  /* The title block must be allowed to give way. Without min-width:0 it holds
+     its content's width, so on a phone the four header verbs — expand, delete,
+     minimise, close — were pushed off the right edge of a panel that was
+     itself exactly the width of the window. Same for the composer: a textarea
+     has an intrinsic minimum that stops flex:1 from shrinking it, which pushed
+     Send off screen. */
+  #ai-panel > header > .flex-1{min-width:0;overflow:hidden;}
+  #ai-panel textarea.chat-field{min-width:0;}
+  @media (max-width:479px){
+    #ai-panel > header{padding:12px;gap:8px;}
+    #ai-panel > header button{width:28px;height:28px;}
+    /* the "searching your live contract data" line — the panel's own status,
+       not the reader's answer; it is what the narrow header can afford to lose */
+    #ai-brain-sub{display:none;}
+    #ai-feed,#ai-panel > footer,#ai-suggest{padding-left:12px;padding-right:12px;}
+  }
   #ai-feed{flex:1 1 0%;min-height:0;overflow-y:auto;padding:16px 20px;}
   #ai-feed > * + *{margin-top:16px;}
   #ai-panel > footer{padding:12px 20px 20px;}
@@ -900,23 +1181,29 @@
 
 <!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
      stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:256px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:var(--shell-nav-w) minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
 
   <!-- ================= TOP HEADER (64px, spans both columns) ================= -->
   <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
 
     <!-- brand + jurisdiction switcher -->
     <div style="display:flex;align-items:center;gap:20px;min-width:0;">
-      <div style="display:flex;align-items:center;gap:11px;flex:none;">
+      <!-- Phone-only door to the nav. Below 900 the sidebar is an off-canvas
+           drawer (see the RESPONSIVE SHELL block), so it needs a handle; above
+           900 the sidebar is on screen and this is hidden. -->
+      <button id="nav-toggle" class="hdr-icon-btn" title="Menu" aria-label="Open navigation" aria-expanded="false" style="display:none;flex:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <div id="brand-block" style="display:flex;align-items:center;gap:11px;flex:none;">
         <div id="brand-mark" style="width:40px;height:40px;border-radius:12px;background:var(--brand-grad);color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px -6px rgba(13,148,136,.55);">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h5M8 17h8"/></svg>
         </div>
-        <div style="line-height:1.15;">
+        <div id="brand-wordmark" style="line-height:1.15;">
           <div style="display:flex;align-items:center;gap:7px;">
             <span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em;">HaTi</span>
             <span style="font-size:10px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 22%,transparent);color:var(--color-accent-600);font-weight:700;">CLM</span>
           </div>
-          <div style="font-size:10px;color:var(--color-neutral-500);font-weight:500;">SME Contract Platform</div>
+          <div id="brand-caption" style="font-size:10px;color:var(--color-neutral-500);font-weight:500;">SME Contract Platform</div>
         </div>
       </div>
 
@@ -974,8 +1261,8 @@
     </div>
   </header>
 
-  <!-- ================= SIDEBAR (256px) ================= -->
-  <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+  <!-- ================= SIDEBAR (--shell-nav-w) ================= -->
+  <aside id="side-nav" style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
       <!-- ONE DOOR PER THING (WO N1). Day-to-day nav is five plain-English
@@ -1068,8 +1355,17 @@
     </div>
   </aside>
 
+  <!-- Drawer scrim — only ever visible below 900, where the sidebar floats over
+       the page rather than taking a column of its own. -->
+  <div id="nav-scrim" hidden></div>
+
   <!-- ================= MAIN COLUMN ================= -->
-  <div style="display:flex;flex-direction:column;min-width:0;min-height:0;">
+  <!-- grid-column:2 is PINNED, not left to auto-placement. Below 900 the
+       sidebar becomes a fixed off-canvas drawer, which takes it out of grid
+       flow entirely — and an auto-placed main column then slides into the
+       sidebar's now-zero-width track and renders about 40px wide. Naming the
+       track means the content column is the content column at every size. -->
+  <div style="grid-column:2;display:flex;flex-direction:column;min-width:0;min-height:0;">
 
     <!-- ---- THE PAGE'S OWN HEADER, not a bar over it ----
          This was a 48px strip on its own surface with its own bottom rule,

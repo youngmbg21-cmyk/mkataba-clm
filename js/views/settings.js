@@ -199,7 +199,7 @@ function renderTeam(){
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
-    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start">
+    <div class="tm-cols" style="display:grid;gap:18px;align-items:start">
 
       <!-- ============ LEFT · MEMBERS (blueprint) ============ -->
       <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:10px;overflow:hidden">
@@ -207,7 +207,7 @@ function renderTeam(){
           <h4 style="margin:0;font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text)">Members · ${users.length}</h4>
           ${isAdmin()?`<button id="tm-invite" style="font-family:var(--font-mono);font-weight:600;font-size:12px;padding:4px 10px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;color:var(--color-accent-800)">+ Invite member</button>`:''}
         </div>
-        <div style="overflow-x:auto">
+        <div class="table-scroll">
           <table style="width:100%;border-collapse:collapse;font-size:12.5px">
             <thead>
               <tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:10px;letter-spacing:.08em;text-transform:uppercase">

@@ -1300,10 +1300,10 @@ function tplPagePaintRows(){
   const count=document.getElementById('tpl-count');
   if(count) count.textContent=`${rows.length} template${rows.length===1?'':'s'} · company paper first, most-used first`;
   host.innerHTML=rows.length?`
-    <table style="border-collapse:collapse;width:100%">
+    <div class="table-scroll"><table style="border-collapse:collapse;width:100%">
       <tr>${th('Template')}${th('Origin')}${th('Version')}${th('Used')}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
       ${shown.map(tplPageRowHtml).join('')}
-    </table>
+    </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:11.5px;color:var(--color-neutral-600)">
       ${hidden} more · ${hiddenKinds}<span style="flex:1"></span>
       <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">Show all →</button></div>`:''}`
@@ -1378,14 +1378,14 @@ function renderTemplatesPage(){
   <div class="view-enter" style="padding:16px 18px 28px">
     <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px">
       <div style="min-width:0">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:21px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">Templates</h1>
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:clamp(18px,16px + 0.35vw,24px);font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">Templates</h1>
         <p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500)">the paper you draft from — company standards, counterparty paper and HaTi's own</p>
       </div>
       <span style="flex:1"></span>
       ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:6px 13px">Convert a document</button>
       <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New template</button>`:''}
     </div>
-    <div style="display:grid;grid-template-columns:196px 1fr;gap:16px;align-items:start">
+    <div class="tpl-cols" style="display:grid;gap:16px;align-items:start">
       <div>
         <div style="${HEAD}">Library</div>
         ${railIt('all',TPL_GROUP_LABEL.all,total)}
@@ -1455,7 +1455,7 @@ function renderPlaybookPage(){
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start">
+    <div class="pb-cols" style="display:grid;gap:18px;align-items:start">
 
       <section style="${CARD};padding:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">

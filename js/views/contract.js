@@ -2531,9 +2531,30 @@ function layoutDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
   if(!grid||!rez) return;
   const avail=Math.max(1, grid.clientWidth - DOC_GAP);
+  /* TWO COLUMNS NEED THE ROOM FOR TWO COLUMNS. Below the pair's own minimums
+     the fraction was still splitting whatever was left, so on a small laptop
+     the contract and the review panel each got half of far too little and both
+     were unreadable. Under that floor they stack instead: the contract full
+     width, the review panel beneath it, the divider withdrawn because there is
+     no longer a gap to drag. This writes an inline style — as the whole
+     function does — so it cannot be expressed as a media query. */
+  if(avail < DOC_LEFT_MIN + DOC_RIGHT_MIN){
+    grid.style.gridTemplateColumns='minmax(0,1fr)';
+    /* Stacked, the two panes need room to be themselves rather than half a
+       view each, so the grid itself takes the scroll and each pane keeps a
+       readable minimum. */
+    grid.style.gridAutoRows='minmax(360px,auto)';
+    grid.style.overflowY='auto';
+    rez.style.display='none';
+    applyDocZoom();
+    return;
+  }
+  grid.style.gridAutoRows='';
+  grid.style.overflowY='';
+  rez.style.display='flex';
   let leftPx=Math.round(_docLeftFrac()*avail);
   // On a narrow window the fraction alone would starve one side; pixels win.
-  if(avail>=DOC_LEFT_MIN+DOC_RIGHT_MIN) leftPx=Math.min(Math.max(leftPx,DOC_LEFT_MIN), avail-DOC_RIGHT_MIN);
+  leftPx=Math.min(Math.max(leftPx,DOC_LEFT_MIN), avail-DOC_RIGHT_MIN);
   grid.style.gridTemplateColumns=leftPx+'px minmax(0,1fr)';
   rez.style.left=leftPx+'px';            // handle sits in the gap immediately right of the contract
   applyDocZoom();
@@ -2872,12 +2893,22 @@ function renderWorkspace(){
     <section id="ws-head" style="${CARD};flex:none;overflow:hidden">
       <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:12px 16px">
         <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:32px;height:32px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
-        <div style="min-width:0;flex:1">
+        <!-- min-width:0 let flexbox shrink THE CONTRACT'S OWN NAME to nothing
+             rather than wrapping the button row onto a line of its own. At
+             1280 the title got 31px of the 175px it needed — you were looking
+             at a contract and could not read which one. The floor below is
+             what makes the row wrap instead, and min() so it still collapses
+             gracefully on a phone, where 100% is less than 260px. -->
+        <div style="min-width:min(100%,260px);flex:1">
           <div style="display:flex;align-items:center;gap:8px">
             <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
             <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
           </div>
-          <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
+          <!-- Wraps rather than truncates. On one line at desktop width it is
+               unchanged; where it no longer fits, a second line costs nothing
+               and keeps the reference number, the folder and the date — all
+               three of which the ellipsis was eating. -->
+          <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;overflow-wrap:anywhere">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
         <div data-ws-fold="actions" data-ws-display="flex" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
           <!-- Edit is GONE from this page. The Docs page reads, checks and signs;

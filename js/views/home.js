@@ -367,7 +367,7 @@ function renderDashboard(){
         <span style="flex:none;display:inline-flex;color:${TONE_FG[t]};">${icon(k.ic,'w-4 h-4',1.8)}</span>
       </span>
       <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
-        <span class="tnum" style="font-weight:700;font-size:24px;line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
+        <span class="tnum" style="font-weight:700;font-size:clamp(20px,17px + 0.45vw,28px);line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
         <span style="font-size:11px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
       </span>
       <span style="font-size:11px;color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
@@ -395,7 +395,7 @@ function renderDashboard(){
         <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:999px;background:rgba(20,184,166,.2);border:1px solid rgba(20,184,166,.34);color:#5eead4;font-size:11px;font-weight:600;">
           <span style="display:inline-flex;color:#5eead4;">${icon('check2','w-3 h-3',2)}</span>Multi-jurisdiction engine ready
         </span>
-        <h2 style="margin:0;font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SME Contract Control Center</h2>
+        <h2 style="margin:0;font-size:clamp(21px,17px + 0.62vw,31px);line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SME Contract Control Center</h2>
         <p style="margin:0;font-size:12.5px;color:#cbd5e1;max-width:62ch;">Fast, accessible execution for ${regionNow} operations · ${Number(countAll).toLocaleString('en-KE')} contracts under management.</p>
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
@@ -453,7 +453,7 @@ function renderDashboard(){
         <h4 style="font-size:15px;margin:0;font-weight:700;">Active contract lifecycle pipeline</h4>
         <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">View full register →</button>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;">${pipeCols}</div>
+      <div class="hm-pipe-cols" style="display:grid;gap:11px;">${pipeCols}</div>
     </section>`;
 
   /* ---- DECISIONS DUE (in the design's feed slot) ----
@@ -563,7 +563,10 @@ function renderDashboard(){
           Customize
         </button>
       </div>
-      <div id="kpi-grid" style="display:grid;grid-template-columns:repeat(${kpiCols},minmax(0,1fr));gap:14px;">
+      <!-- The chosen count is what the row wants; minmax gives it a floor, so
+           on a narrow window the cards wrap onto a second line instead of
+           squeezing every label into 34px of a 92px word. -->
+      <div id="kpi-grid" style="display:grid;grid-template-columns:repeat(${kpiCols},minmax(0,1fr));gap:14px;" data-kpi-cols="${kpiCols}">
         ${kpiHtml}
       </div>
     </section>
@@ -573,9 +576,9 @@ function renderDashboard(){
     <!-- The pipeline sets the height of this row; the decisions card is filled
          absolutely into the remaining column so a long list scrolls inside it
          instead of stretching the row and leaving the pipeline half-empty. -->
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:stretch;">
+    <div class="hm-main-row" style="display:grid;gap:16px;align-items:stretch;">
       ${lifecycleSection}
-      <div style="position:relative;min-width:0;">
+      <div class="hm-decisions" style="position:relative;min-width:0;">
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;">
           ${activitySection}
         </div>

@@ -1040,7 +1040,7 @@ function renderMigration(){
           ${canEdit()?`<button id="mig-sheet-in" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('upload','w-3.5 h-3.5')} Import sheet</button>
           <input id="mig-sheet-file" type="file" accept=".csv" style="display:none">`:''}
         </div>
-        <div style="overflow-x:auto">
+        <div class="table-scroll">
           <table class="mig-table">
             <thead><tr>
               <th style="padding-left:12px">ID</th><th>Contract</th><th>Stream</th>
