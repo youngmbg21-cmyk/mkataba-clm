@@ -418,3 +418,35 @@ describe('a change can say why it was asked for', () => {
       'only the change that has a reason gets the block');
   });
 });
+
+/* The why box on the Copilot's proposal card is dressed to be noticed: on the
+   editor the question is a step that stops the filing, here it is one optional
+   field above three buttons, and an unnoticed optional field never gets
+   filled. Light ruby wrapper, asked for by name (Young, 03 Aug 2026) —
+   asserted on the theme-flipping token rather than a hex, so dark mode keeps
+   the whisper instead of inheriting a light-mode pink. */
+describe('the why box on the proposal card wears the light red', () => {
+  const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
+  const aiWorld = () => loadViews(['js/ai.js'],
+    { TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS });
+
+  test('the rendered card tints the wrapper with the ruby pair', () => {
+    const w = aiWorld();
+    const html = w.aiProposalCardHtml({ id: 'x1', status: 'open',
+      text: 'Payment within forty-five (45) days.', original: 'x' });
+    const upTo = html.indexOf('data-ai-prop-why');
+    assert.ok(upTo > -1, 'the card offers the why box at all');
+    const why = html.slice(Math.max(0, upTo - 1600), upTo);
+    assert.match(why, /st-ruby-bg/, 'the wrapper carries the light red');
+    assert.match(why, /st-ruby-line/, 'and its border');
+    assert.match(why, /color-mix/, 'mixed below error strength — a whisper, not an alarm');
+    assert.match(why, /Why this change\?/);
+  });
+
+  test('an applied card offers no box to tint', () => {
+    const w = aiWorld();
+    const html = w.aiProposalCardHtml({ id: 'x2', status: 'applied',
+      text: 'T', original: 'T' });
+    assert.ok(!html.includes('data-ai-prop-why'), 'done means done');
+  });
+});

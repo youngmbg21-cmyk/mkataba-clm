@@ -2113,7 +2113,17 @@ function aiProposalCardHtml(p){
     ${aiProposalAnchorHtml(p)}
     ${aiProposalPlacementHtml(p)}
     ${p.note ? `<div style="font-size:11px;line-height:1.5;color:var(--st-amber-fg)">${e(p.note)}</div>` : ''}
-    ${done ? '' : `<label style="display:block">
+    ${done ? '' : `<label style="display:block;border:1px solid var(--st-ruby-line);border-radius:8px;padding:8px 10px;
+        background:color-mix(in srgb,var(--st-ruby-bg) 55%,transparent)">
+        ${''/* A VERY LIGHT RED, ASKED FOR BY NAME (Young, 03 Aug 2026). On the
+              editor the why question is a STEP — filing stops until it is
+              answered or skipped, so it cannot be passed unnoticed. Here it is
+              one field sitting above three buttons, and an unnoticed optional
+              field is one that never gets filled. The tint is the page's own
+              ruby pair mixed well below its error strength — st-ruby-bg flips
+              with the theme, so this stays a whisper in dark mode too — and
+              the field itself keeps the surface colour: the WRAPPER warns,
+              the box invites. */}
         <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">Why this change? — the other side sees it beside the redline (optional)</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
           placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment."
