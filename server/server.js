@@ -7307,13 +7307,36 @@ app.put('/api/org/profile-values', auth, templateManager, passwordCurrent, (req,
 
 /* ---------- frontend ---------- */
 const INDEX = path.join(__dirname, '..', 'index.html');
-app.get('/', (req, res) => res.sendFile(INDEX));
-app.get('/index.html', (req, res) => res.sendFile(INDEX));
+/* ---------- A DEPLOY HAS TO BE VISIBLE ON RELOAD ----------
+   index.html and everything under /js went out with NO Cache-Control at all.
+   With no Cache-Control and no Expires a browser is permitted to invent its
+   own freshness window (RFC 9111 §4.2.2, the Last-Modified heuristic) and
+   reuse the file WITHOUT ASKING THE SERVER. So a deploy could go green on
+   Render while the person looking at the site kept being served the previous
+   build's JavaScript — which is precisely what happened on 03 Aug 2026: three
+   rounds of "still white" against a fix that was live, because the browser
+   held a portal.js from an earlier deploy and never revalidated it.
+
+   'no-cache' does not mean "do not store". It means "store it, then ask before
+   using it" — so an unchanged file costs a 304 and no bytes, and a changed one
+   arrives the moment it changes. That is the right trade for an application
+   whose filenames carry no version: the modules are imported by path, so there
+   is no hash in the URL to make a new deploy look like a new resource.
+
+   Fonts keep their long immutable cache below: their contents never change
+   under the same name. */
+const NO_CACHE = { 'Cache-Control': 'no-cache' };
+app.get('/', (req, res) => res.sendFile(INDEX, { headers: NO_CACHE }));
+app.get('/index.html', (req, res) => res.sendFile(INDEX, { headers: NO_CACHE }));
 // Serve exactly the static trees the frontend loads — the native ES modules
 // (js/), the design's two typefaces (fonts/) and the bundled sample PDFs
 // (importable from the template library). Never the repo root, which would
 // expose server/data (the SQLite database) to the network.
-app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+/* Revalidate every module on every load — see NO_CACHE above. ETag and
+   Last-Modified still do the work: unchanged files answer 304 with no body. */
+app.use('/js', express.static(path.join(__dirname, '..', 'js'), {
+  setHeaders: res => res.setHeader('Cache-Control', 'no-cache'),
+}));
 /* THE FONTS HAVE TO BE REACHABLE OR THE WHOLE DESIGN FALLS BACK.
    index.html links fonts/fonts.css, which carries Inter and Plus Jakarta Sans
    inline as data URIs. Without this route that link 404s, no @font-face ever

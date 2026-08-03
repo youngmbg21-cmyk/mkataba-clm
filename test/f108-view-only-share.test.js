@@ -200,3 +200,48 @@ describe('f108 — the view-only link', () => {
     });
   });
 });
+
+/* ============================================================
+   A deploy has to be visible on reload
+   ============================================================
+   index.html and /js went out with no Cache-Control at all, which lets a
+   browser invent its own freshness window and reuse the file without asking
+   (RFC 9111 §4.2.2). A deploy would go green while the person looking at the
+   site kept running the previous build's JavaScript — three rounds of "still
+   white" against a fix that was already live.
+
+   The modules are imported by path, so there is no hash in the URL to make a
+   new build look like a new resource. Revalidation is the only thing that can
+   carry a deploy across, and it has to be asserted rather than assumed. */
+describe('the app revalidates, so a deploy reaches the browser', () => {
+  let h;
+  before(async () => { h = await startHati(); });
+  after(async () => { await h.stop(); });
+
+  for (const p of ['/', '/index.html', '/js/core.js', '/js/views/portal.js'])
+    test(`${p} tells the browser to ask before reusing it`, async () => {
+      const r = await fetch(h.base + p);
+      assert.equal(r.headers.get('cache-control'), 'no-cache',
+        `${p} may be served from a browser cache without a request — a deploy would not reach it`);
+    });
+
+  test('and asking is cheap — an unchanged module answers 304 with no body', async () => {
+    const first = await fetch(h.base + '/js/views/portal.js');
+    const etag = first.headers.get('etag');
+    assert.ok(etag, 'without an ETag, no-cache would re-send the whole file every load');
+    /* Raw request: some HTTP clients drop conditional headers, which is a
+       property of the client rather than of the server being tested. */
+    const again = await new Promise((resolve, reject) => {
+      const u = new URL(h.base + '/js/views/portal.js');
+      require('node:http').get(
+        { hostname: u.hostname, port: u.port, path: u.pathname, headers: { 'If-None-Match': etag } },
+        res => { res.resume(); resolve(res.statusCode); }).on('error', reject);
+    });
+    assert.equal(again, 304, 'revalidation must cost a status line, not the file');
+  });
+
+  test('fonts keep their long cache — their contents never change under the same name', async () => {
+    const r = await fetch(h.base + '/fonts/fonts.css');
+    assert.match(r.headers.get('cache-control') || '', /immutable/);
+  });
+});
