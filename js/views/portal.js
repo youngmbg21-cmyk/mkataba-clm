@@ -203,11 +203,26 @@ function portalCompareBar(){
 function portalVerbStyle(){
   if(document.getElementById('pt-verb-style')) return;
   const el=document.createElement('style'); el.id='pt-verb-style';
+  /* .ui-btn.pt-verb, NOT .pt-verb — AND THAT IS THE WHOLE BUG.
+
+     Both are one class, so they weigh the same, and a tie is settled by which
+     stylesheet comes last. This one is injected when the page renders, and
+     index.html's .ui-btn sits in a block that ends up after it — so .ui-btn
+     won and the button went back to surface-white with --color-text on it.
+
+     It passed every check I ran because the test harness copies index.html's
+     styles in and then mounts the OWNER's screen first, which injects its own
+     stylesheet before the portal ever renders. That put this sheet last and
+     the tie fell the other way. The harness was not lying; it was answering a
+     different question from the one production asks.
+
+     Two classes beats one, whatever the order, so the sheet can be injected
+     whenever and by whichever screen gets there first. */
   el.textContent=`
-    .pt-verb{color:var(--color-accent-800);background:var(--color-accent-100);
+    .ui-btn.pt-verb{color:var(--color-accent-800);background:var(--color-accent-100);
       border-color:var(--color-accent);}
-    .pt-verb:hover{background:var(--color-accent-200);border-color:var(--color-accent-700);}
-    .pt-verb svg{flex:none;}`;
+    .ui-btn.pt-verb:hover{background:var(--color-accent-200);border-color:var(--color-accent-700);}
+    .ui-btn.pt-verb svg{flex:none;}`;
   document.head.appendChild(el);
 }
 /* THE SAME TWO BUTTONS, WITHOUT THE CARD THEY USED TO ARRIVE IN.
@@ -1982,7 +1997,10 @@ function portalWorkbenchStyle(){
     /* Size only. The COLOUR lives in portalVerbStyle (.pt-verb) because these
        same two buttons also render on the signing screen, and a treatment kept
        in one screen's stylesheet is a treatment the other screen misses. */
-    .pw-id-verb{flex:none;font-size:11.5px;padding:7px 12px;min-height:32px;}
+    /* Two classes here too, and for the same reason: .ui-btn sets its own
+       font-size and padding, so a single-class rule loses the tie wherever
+       this sheet happens to land. */
+    .ui-btn.pw-id-verb{flex:none;font-size:11.5px;padding:7px 12px;min-height:32px;}
     /* Verbs on the left of it, reading controls on the right. Without this the
        row is one undifferentiated run of pills. */
     .pw-id-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px;}
