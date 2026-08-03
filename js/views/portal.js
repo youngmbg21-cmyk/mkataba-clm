@@ -200,18 +200,37 @@ function portalCompareBar(){
 
    portalCompareBar() stays for the older signing screen, whose header is a dark
    band rather than a card with a row to join. */
+/* WHY THESE ARE NOT ui-btn-secondary ANY MORE.
+
+   That class exists for "a secondary action beside a primary" — it is
+   transparent with a border at 45% opacity, and it recedes on purpose so it
+   does not compete with the filled button next to it. There is no filled button
+   next to it here. Nothing in this row is the main thing to do; the main thing
+   is on the contract. So the pair was receding from a rival that never arrives,
+   in a row of four identically-outlined pills, having lost the clock icon that
+   used to sit beside them when they lived in a card of their own — no shape to
+   aim at, only words. They were missed, repeatedly, by the person who put them
+   there.
+
+   Three separate ways to find them now, none of them loud: an icon, an accent
+   tint, and a rule that says these two are verbs and the stepper beside them is
+   not. The tint follows the Copilot launcher's own treatment (index.html
+   #cmd-ai) — a colour-mix against the surface, so it holds in both themes
+   rather than assuming a light one. */
 function portalReadingBtnsHtml(){
   const hist=portalHasHistory();
   const cmp=portalHasCompare();
   if(!cmp && !hist) return '';
-  const S='flex:none;font-size:11.5px;padding:7px 12px;min-height:32px';
   return `
-    <span class="pw-id-read" style="display:inline-flex;align-items:center;gap:7px;flex:none">
-      ${hist?`<button id="pt-hist" class="ui-btn ui-btn-secondary" style="${S}"
-        title="Every change on this contract, oldest first, with who asked and what was decided">Negotiation history</button>`:''}
-      ${cmp?`<button id="pt-compare" class="ui-btn ui-btn-secondary" style="${S}"
-        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">Compare wording</button>`:''}
-    </span>`;
+    <span class="pw-id-read">
+      ${hist?`<button id="pt-hist" class="ui-btn pw-id-verb"
+        title="Every change on this contract, oldest first, with who asked and what was decided">${
+        icon('history','w-3.5 h-3.5',2)}Negotiation history</button>`:''}
+      ${cmp?`<button id="pt-compare" class="ui-btn pw-id-verb"
+        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">${
+        icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
+    </span>
+    <span class="pw-id-rule" aria-hidden="true"></span>`;
 }
 /* ---- THE SAME HISTORY THE OWNER READS, ON THEIR SIDE OF THE GLASS ----
    openHistoryTimeline is the owner's screen and it is mounted here unchanged:
@@ -1587,6 +1606,11 @@ function portalRenderOpts(token, d){
        the render reads whichever arrives — a reader who may do nothing must not
        depend on one of two flags surviving a refactor. */
     viewOnly:d.viewOnly===true||d.purpose==='view',
+    /* Read on the envelope for the same reason as viewOnly above: the router
+       must not depend on one of two flags surviving a refactor. A history link
+       is also marked viewOnly by the server — it is a read-only pass — so this
+       one is checked FIRST in renderSharePortal. */
+    historyOnly:d.historyOnly===true||d.purpose==='history',
     /* The share ROW's purpose — what the sender chose, as against what the
        payload guessed. See portalIssuedForSigning. */
     purpose:d.purpose||null };
@@ -1926,6 +1950,20 @@ function portalWorkbenchStyle(){
     .pw-id-sub{display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .pw-id .nego-who{margin-left:auto;flex:none;display:flex;align-items:center;gap:7px;}
+    /* The two reading verbs — see portalReadingBtnsHtml for why they stopped
+       being ui-btn-secondary. The tint is mixed against whatever surface is
+       under it, so the pair reads the same in either theme. */
+    .pw-id-read{display:inline-flex;align-items:center;gap:7px;flex:none;}
+    .pw-id-verb{flex:none;font-size:11.5px;padding:7px 12px;min-height:32px;
+      color:var(--color-accent-700);
+      background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 12%,transparent);
+      border-color:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 45%,transparent);}
+    .pw-id-verb:hover{background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 20%,transparent);
+      border-color:var(--accent-solid,var(--color-accent));}
+    .pw-id-verb svg{flex:none;}
+    /* Verbs on the left of it, reading controls on the right. Without this the
+       row is one undifferentiated run of pills. */
+    .pw-id-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px;}
     .pt-focus-btn{width:32px;height:32px;flex:none;display:inline-grid;place-items:center;
       background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;
       cursor:pointer;color:var(--color-neutral-700);transition:background .12s,border-color .12s;}
@@ -1959,6 +1997,9 @@ function portalWorkbenchStyle(){
          than squeeze the contract's name to nothing. */
       .pw-id{flex-wrap:wrap;}
       .pw-id .nego-who{margin-left:0;}
+      /* A group separator means nothing once the groups have wrapped onto
+         different lines. */
+      .pw-id-rule{display:none;}
     }`;
   document.head.appendChild(el);
 }
@@ -2078,6 +2119,89 @@ function renderShareDormant(d, opts={}){
     </div></div>`;
 }
 
+/* ---------- THE HISTORY LINK'S WHOLE SCREEN ----------
+   Not a modal over an empty page: the history IS the page here, so closing it
+   would have to close nothing. The timeline itself is the product's own
+   component (negoTimelineScreenHtml), the same one both seats already read, so
+   there is one history in this product and not a second one written for
+   outsiders — which is what would drift.
+
+   What differs from the owner's copy is the DATA, not the screen, and the
+   server decided it: historyPayload carries the changes and the round shape
+   and leaves the agreement, the uploaded file and the round baselines behind.
+   Nothing on this page can leak the document, because the document was never
+   sent to it.
+
+   Verify integrity and Export history are wired the same way the owner's modal
+   wires them, against the same functions. A reader with no account can check
+   the record has not been altered, which is the point of handing somebody a
+   history rather than a paragraph claiming what it says. */
+function renderShareHistory(p, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell')?.classList.add('hidden');
+  const c=portalNegoContract(p);
+  const org=(p&&p.org)||'the sender';
+  const expires=opts.share&&opts.share.expiresAt
+    ? ` &middot; link expires ${esc(String(opts.share.expiresAt).slice(0,10))}` : '';
+  const paint=(f={})=>{
+    root.innerHTML=`
+      <div style="min-height:100vh;background:var(--color-bg);padding:14px 16px 28px;">
+        <div style="max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:10px;">
+          <section style="display:flex;align-items:center;gap:11px;background:var(--color-surface);
+            border:1px solid var(--color-divider);border-radius:8px;padding:9px 14px;box-shadow:var(--shadow-sm);">
+            <span style="width:30px;height:30px;flex:none;border-radius:5px;background:var(--color-accent);
+              color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:13px;">HT</span>
+            <span style="min-width:0">
+              <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name||'Contract')}</span>
+              <span style="display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.id||'')}${
+                c.counterparty?` &middot; with ${esc(c.counterparty)}`:''} &middot; shared by ${esc(p.sharedBy||org)}${expires}</span>
+            </span>
+          </section>
+          ${''/* Says what this link is BEFORE the reader starts looking for the
+                 contract on it. A record with no document is a surprise worth
+                 spending two lines on. */}
+          <div class="rl-wall" role="status"><span class="rl-wall-ic">&#128220;</span><span>
+            <b>The record, not the contract.</b> Every change proposed on
+            ${esc(c.id||'this contract')}, in the order it happened, with what was decided. This link
+            is read-only and the agreement itself does not travel with it &mdash; there is nothing
+            here to answer or sign.</span></div>
+          <div style="background:var(--color-surface);border:1px solid var(--color-divider);
+            border-radius:8px;box-shadow:var(--shadow-sm);overflow:hidden;">
+            <div id="pt-hist-mount">${window.negoTimelineScreenHtml
+              ? negoTimelineScreenHtml(c, f)
+              : '<div style="padding:20px;font-size:12.5px;color:var(--color-neutral-600)">The history is not available on this page.</div>'}</div>
+          </div>
+        </div>
+      </div>`;
+    /* The filters re-render the mount rather than the page, so the header and
+       the wall do not flicker on every change of a dropdown. */
+    root.querySelectorAll('[data-ht-filter]').forEach(s=>s.addEventListener('change',()=>{
+      const g=k=>{ const el=document.getElementById('ht-f-'+k); return el&&el.value?el.value:''; };
+      paint({ clauseId:g('clauseId'), actor:g('actor'), side:g('side'),
+        round:g('round'), outcome:g('outcome') });
+    }));
+    document.getElementById('ht-clear')?.addEventListener('click',()=>paint({}));
+    document.getElementById('ht-verify')?.addEventListener('click',async()=>{
+      const box=document.getElementById('ht-verify-result'); if(!box) return;
+      if(typeof window.negoIntegrityReport!=='function'){
+        box.innerHTML='<div style="font-size:12px;color:var(--color-neutral-600);padding:8px 0">Verification is not available on this page.</div>';
+        return; }
+      const r=await negoIntegrityReport(c);
+      box.innerHTML=window.negoVerifyResultHtml?negoVerifyResultHtml(r):'';
+    });
+    document.getElementById('ht-export')?.addEventListener('click',async()=>{
+      if(typeof window.negoIntegrityReport!=='function'||!window.negoHistoryExportHtml) return;
+      const r=await negoIntegrityReport(c);
+      const html=negoHistoryExportHtml(c, r);
+      if(window.downloadFile) downloadFile(`${c.id||'contract'}-negotiation-history.html`, html, 'text/html');
+    });
+  };
+  paint({});
+}
+
 function renderSharePortal(p, opts={}){
   /* A dormant bound link routes out even ahead of the view link: the server
      sent no payload at all, so every branch below would read as an invalid
@@ -2090,6 +2214,13 @@ function renderSharePortal(p, opts={}){
      page is what makes "there is nothing on that screen to hide" true rather
      than aspirational — the negotiate page's controls are never constructed at
      all, so no future addition to them can leak onto a reader's copy. */
+  /* ---- A HISTORY LINK LEAVES FIRST, AHEAD OF THE VIEW LINK ----
+     Ahead, because the server marks a history payload viewOnly as well — it is
+     a read-only pass and every write route must treat it as one — and the view
+     branch below would otherwise swallow it and render a contract screen for a
+     payload that deliberately has no contract in it. Most specific first. */
+  if((opts&&opts.historyOnly)||(p&&(p.historyOnly||p.purpose==='history')))
+    return renderShareHistory(p, opts);
   if((opts&&opts.viewOnly)||(p&&(p.viewOnly||p.purpose==='view')))
     return renderShareViewer(p, opts);
   /* ---- AND THE NEGOTIATION SEAT GETS ITS OWN FULL-WINDOW SCREEN ----
@@ -3138,4 +3269,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,portalDerivedHtml,portalDerivedLinks});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,portalDerivedHtml,portalDerivedLinks});

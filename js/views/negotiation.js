@@ -4848,8 +4848,20 @@ function redlineLayoutCss(){
   .redline-page .rl-shell-name>span{flex:none}
   .redline-page .rl-shell-sub{font-size:11px;color:var(--color-neutral-600);margin-top:2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .redline-page .rl-shell-acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:none}
-  .redline-page .rl-shell-acts .ui-btn{font-size:12px;padding:5px 10px}
+  .redline-page .rl-shell-acts{display:flex;gap:7px;flex-wrap:wrap;align-items:center;flex:none}
+  .redline-page .rl-shell-acts .ui-btn{font-size:12px;padding:6px 11px}
+  /* One filled button on this row, and it is the one that sends. The other two
+     are tinted rather than outlined so they read as verbs without competing —
+     the tint mixes against the surface, so it holds in either theme. */
+  .redline-page .rl-act-send{padding:6px 13px}
+  .redline-page .rl-act-verb{color:var(--color-accent-700);
+    background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 12%,transparent);
+    border-color:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 45%,transparent)}
+  .redline-page .rl-act-verb:hover{background:color-mix(in srgb,var(--accent-solid,var(--color-accent)) 20%,transparent);
+    border-color:var(--accent-solid,var(--color-accent))}
+  .redline-page .rl-shell-acts svg{flex:none}
+  .redline-page .rl-act-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px}
+  @media (max-width:900px){ .redline-page .rl-act-rule{display:none} }
   /* The [Docs][Negotiate] switcher, in the Doc page's own clothes: a surface
      pill box, the active tab solid accent. Docs is a DOOR back to the
      workspace, not a pane — same contract, other tab. */
@@ -5801,11 +5813,33 @@ function renderRedline(){
           </div>
           <div class="rl-shell-sub">${esc(c.id)}${(window.FOLDERS && FOLDERS[c.folder]) ? ' &middot; ' + esc(FOLDERS[c.folder].name) : ''}${c.lastAction ? ' &middot; updated ' + esc(c.lastAction) : ''}</div>
         </div>
+        ${''/* THREE WHITE PILLS ON A WHITE CARD, AND ONE OF THEM IS THE WAY OUT.
+
+               These were plain .ui-btn — surface fill, a --color-divider border,
+               ordinary text — so the row read as one undifferentiated group and
+               got missed. It also had no hierarchy, though there is an obvious
+               one going begging: Share is how the contract leaves the building;
+               Import and Compare are things you do while it is still here.
+
+               That is the same observation that explains the counterparty's bar
+               (portalReadingBtnsHtml). .ui-btn-secondary is built to sit BESIDE
+               a filled primary and recede — and neither row had a primary. Give
+               this one the primary it was missing and the other two can stay
+               quiet and still be found: an icon each, an accent tint, and a rule
+               between the verb that sends and the verbs that do not.
+
+               Share carries no caret. The question of WHAT is being shared — the
+               contract or the negotiation history — is asked on the first step
+               inside the dialog, not on the button. */}
         <div class="rl-shell-acts">
           ${(typeof canEdit !== 'function' || canEdit()) ? `
-          <button type="button" data-rl-shell="share" class="ui-btn" title="Share with counterparty">Share</button>
-          <button type="button" data-rl-shell="import" class="ui-btn" title="Import counterparty response">Import</button>` : ''}
-          <button type="button" data-rl-shell="compare" class="ui-btn" title="Compare versions &amp; review changes">Compare</button>
+          <button type="button" data-rl-shell="share" class="ui-btn ui-btn-primary rl-act-send"
+            title="Share with counterparty">${icon('share','w-3.5 h-3.5',2)}Share</button>
+          <span class="rl-act-rule" aria-hidden="true"></span>
+          <button type="button" data-rl-shell="import" class="ui-btn rl-act-verb"
+            title="Import counterparty response">${icon('download','w-3.5 h-3.5',2)}Import</button>` : ''}
+          <button type="button" data-rl-shell="compare" class="ui-btn rl-act-verb"
+            title="Compare versions &amp; review changes">${icon('columns','w-3.5 h-3.5',2)}Compare</button>
         </div>
       </section>
       <!-- ONE STRIP under the shell: the [Docs][Negotiate] switcher the Doc

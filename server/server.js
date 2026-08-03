@@ -363,13 +363,26 @@ addColumnIfMissing('shares', 'send_error', 'TEXT');
    mode this feature has to survive is the FIFTH route — the one added next
    year by someone who never read this comment. A repeated condition protects
    the four that exist today; a shared guard protects the one that does not. */
-const SHARE_PURPOSES = ['negotiate', 'sign', 'view'];
+const SHARE_PURPOSES = ['negotiate', 'sign', 'view', 'history'];
 const sharePurposeOf = s => String((s && s.purpose) || 'negotiate');
 const shareIsViewOnly = s => sharePurposeOf(s) === 'view';
+/* A history link is the record and nothing else — no wording to act on, no
+   signature to give. It belongs on the same side of this guard as a view link:
+   both are passes to READ, and the four write routes below must refuse them
+   identically. Adding the purpose without adding it here is how a fifth
+   purpose becomes a hole. */
+const shareIsHistory = s => sharePurposeOf(s) === 'history';
+const shareIsReadOnly = s => shareIsViewOnly(s) || shareIsHistory(s);
 /* Returns a response and true when the request must not proceed. Callers read
    it as: `if (refuseIfViewOnly(s, res)) return;` */
 function refuseIfViewOnly(s, res){
-  if (!shareIsViewOnly(s)) return false;
+  if (!shareIsReadOnly(s)) return false;
+  if (shareIsHistory(s)){
+    res.status(403).json({ error: 'This is a history link. It shows the record of the negotiation, '
+      + 'and nothing else — there is no wording on it to answer and nothing to sign. '
+      + 'Ask the person who sent it if you need to respond.', purpose: 'history' });
+    return true;
+  }
   res.status(403).json({ error: 'This is a view-only link. It can show the contract, and nothing else. '
     + 'Ask the person who sent it if you need to respond.', purpose: 'view' });
   return true;
@@ -424,6 +437,82 @@ function viewerPayload(payload, s){
   out.asOf = (s && s.created_at) || null;
   out.round = (c.negotiation && c.negotiation.round) || c.round || 1;
   out.org = (payload && payload.org) || null;
+  return out;
+}
+
+/* ---------- THE HISTORY COPY, BUILT THE SAME WAY ----------
+   Same discipline as viewerPayload above, and for the same reason: start from
+   an empty object and add what the reader may see. Never take the negotiate
+   payload and delete the document out of it — a deletion list is a promise
+   that every future addition to the payload will be remembered here, and it
+   will not be.
+
+   WHAT A HISTORY LINK IS. The record of the argument: every fingerprinted
+   change, who asked, when, in which round, and what was decided. That is what
+   the counterparty's own Negotiation history screen already shows, and this
+   serves that same screen to somebody with no account.
+
+   WHAT IT IS NOT. The contract. redlineText, the uploaded file, the template
+   answers, the round baselines and the party's own field values are all
+   absent, because "share only the history" has to mean the agreement does not
+   travel — otherwise it is a contract link wearing a different name.
+
+   The per-change wording DOES travel, in ops and newText, and that is not a
+   contradiction: a redline history with the redlines taken out is a list of
+   dates. What is withheld is the document those fragments sit in.
+
+   resolvedBy is dropped, exactly as buildSharePayload drops it for the
+   counterparty: the organisation speaks, not the person who ruled. Threads go
+   too — the timeline has never rendered them, and an unrendered field is a
+   field nobody is checking. */
+function historyPayload(payload, s){
+  const p = payload || {};
+  const c = p.contract || {};
+  const n = c.negotiation || {};
+  const chg = ch => ({
+    id: ch.id || null,
+    clauseId: ch.clauseId || null,
+    clauseLabel: ch.clauseLabel || null,
+    changeType: ch.changeType || null,
+    summary: ch.summary || null,
+    status: ch.status || null,
+    author: ch.author || null,
+    authorSide: ch.authorSide || null,
+    createdAt: ch.createdAt || null,
+    resolvedAt: ch.resolvedAt || null,
+    reply: ch.reply || null,
+    /* SAME RULE AS buildSharePayload, and it is not arbitrary: a note is the
+       asker's own words explaining what they wanted, so the counterparty's
+       travels — they wrote it — and the owner's does not. "Do not concede this
+       one" is a note, and it is written on our side of the table. */
+    note: (ch.authorSide === 'counterparty' && ch.note) ? ch.note : null,
+    withdrawn: ch.withdrawn
+      ? { by: ch.withdrawn.by || null, side: ch.withdrawn.side || null, at: ch.withdrawn.at || null }
+      : null,
+    roundN: ch.roundN || null,
+    hash: ch.hash || null,
+    /* What the timeline paints the redline from — ops if the change carries
+       them, the new wording if it does not. See negoChangeHtml. */
+    ops: Array.isArray(ch.ops) ? ch.ops.map(o => ({ op: o.op, text: o.text })) : undefined,
+    newText: ch.newText || null,
+  });
+  const out = { kind: 'hati-share', purpose: 'history', historyOnly: true, viewOnly: true,
+    v: 1, org: p.org || null, sharedBy: p.sharedBy || null, at: p.at || null };
+  out.contract = {
+    id: c.id || null,
+    name: c.name || null,
+    counterparty: c.counterparty || null,
+    changes: Array.isArray(c.changes) ? c.changes.map(chg) : [],
+    negotiation: {
+      round: n.round || 1,
+      /* Round shape without the round's baseline wording — the timeline reads
+         `n` and `at` to say a round closed, and nothing else. */
+      rounds: Array.isArray(n.rounds)
+        ? n.rounds.map(r => ({ n: r.n, at: r.at || null,
+            changeIds: Array.isArray(r.changeIds) ? r.changeIds.slice() : [] }))
+        : undefined,
+    },
+  };
   return out;
 }
 /* A DURABLE share is one long-lived link per counterparty per contract: it
@@ -4822,6 +4911,17 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
       executed: contractExecution(s.contract_id),
       share: { recipientName: s.recipient_name || '', expiresAt: s.expires_at || null } });
   }
+  /* ---- AND A HISTORY LINK LEAVES HERE, WITH ITS OWN ----
+     Beside the view link rather than after the negotiate payload, for the
+     reason stated above it: the safety of a reduced copy comes from never
+     assembling the full one. No executed state either — a history link is
+     about what was argued, not about whether the paper is signed. */
+  if (shareIsHistory(s)){
+    let hp = null; try { hp = historyPayload(JSON.parse(s.payload), s); } catch (_) {}
+    if (!hp) return res.status(500).json({ error: 'This link’s copy could not be read' });
+    return res.json({ payload: hp, historyOnly: true, purpose: 'history',
+      share: { recipientName: s.recipient_name || '', expiresAt: s.expires_at || null } });
+  }
   const lastR = s.durable
     ? db.prepare('SELECT response, at FROM share_responses WHERE token=? ORDER BY id DESC LIMIT 1').get(s.token)
     : null;
@@ -5261,6 +5361,15 @@ app.get('/api/contracts/:id/engagement', auth, (req, res) => {
 app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, (req, res) => {     // public: request a code
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  /* A READ-ONLY LINK CANNOT ASK FOR A SIGNING CODE, and until now it could.
+     This route was the one the guard had not reached — a view token could make
+     the server mint a one-time code and email it to the recipient. It could
+     not then sign with it, because the routes that spend the code are guarded;
+     what it could do is generate signing traffic to somebody's inbox from a
+     link issued expressly to let them look and nothing else. Found by the
+     history-link suite (f144), which replays the mutating routes against a
+     read-only token — and it was already true of view links. */
+  if (refuseIfViewOnly(s, res)) return;
   const invited = String(s.recipient_email || '').toLowerCase();
   if (!/.+@.+\..+/.test(invited))
     /* No recorded address means there is nothing this check could verify

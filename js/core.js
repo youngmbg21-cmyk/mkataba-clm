@@ -1661,6 +1661,64 @@ const SHARE_PURPOSE_COPY={
   view:{ label:'View only', title:'They read it, and can do nothing else',
     blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
 };
+/* ---------- THE FIRST QUESTION, WHICH USED NOT TO BE ASKED ----------
+   Share opened straight into "what is this link for?" and offered Sign and
+   Negotiate. It never asked the question above that one: is the CONTRACT
+   travelling, or the record of the argument about it? Those are different
+   objects with different readers — the counterparty signs a contract; an
+   advisor, an auditor or a colleague is handed a history — and with no place
+   to ask it, there was nowhere to put "just the history".
+
+   It is a step of its own rather than a fourth card beside Sign and Negotiate,
+   because a fourth card there would be answering a different question from the
+   three next to it. Sign, Negotiate and View only are things somebody does TO A
+   CONTRACT; none of them means anything about a record. Two questions, each
+   with one kind of answer — and the dense second screen loses a section.
+
+   The history option is offered only where there is a history: a contract
+   nobody has proposed anything on has no record to send. */
+function shareKindOptionsHtml(c, sel){
+  const hasHistory = !!(window.negoAllChanges && negoAllChanges(c).some(x => x && x.status !== 'superseded'));
+  const card = (k, title, blurb, on, disabled) => `
+    <button type="button" data-share-kind="${k}" aria-pressed="${on?'true':'false'}"${disabled?' disabled':''}
+      style="display:flex;gap:11px;align-items:flex-start;text-align:left;width:100%;font:inherit;
+      cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?'.5':'1'};border-radius:6px;padding:13px 14px;
+      border:1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'};
+      background:${on?'var(--color-accent-100)':'var(--color-surface)'}">
+      <span style="flex:none;margin-top:2px;width:13px;height:13px;border-radius:50%;
+        border:1.5px solid ${on?'var(--color-accent)':'var(--color-neutral-500)'};
+        background:${on?'var(--color-accent)':'transparent'};
+        box-shadow:${on?'inset 0 0 0 2.5px var(--color-surface)':'none'}"></span>
+      <span style="min-width:0">
+        <span style="display:block;font-size:12.5px;font-weight:700;color:${on?'var(--color-accent-800)':'var(--color-text)'}">${title}</span>
+        <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin-top:3px">${blurb}</span>
+      </span>
+    </button>`;
+  return `
+    <div id="share-kind" style="display:flex;flex-direction:column;gap:9px">
+      ${card('contract','The contract',
+        'The wording, with whatever they are allowed to do to it — sign it, propose changes to it, or read it and nothing more.',
+        sel!=='history', false)}
+      ${card('history','The negotiation history',
+        hasHistory
+          ? 'The Negotiation history screen, opened by somebody with no account — every change, who asked, and what was decided. Read-only: the agreement itself does not travel and there is nothing on it to sign.'
+          : 'Nothing has been proposed on this contract yet, so there is no record to send.',
+        sel==='history', !hasHistory)}
+    </div>`;
+}
+function shareKindStepHtml(c, sel){
+  return `
+    <div id="share-step-kind">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">What are you sharing?</h2></div>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">One question, then the details.</p>
+      ${shareKindOptionsHtml(c, sel)}
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+        <button id="share-close-kind" class="ui-btn">Close</button>
+        <button id="share-kind-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
+      </div>
+    </div>`;
+}
 function sharePurposePickerHtml(c, sel){
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
     return `<button type="button" data-share-purpose="${k}" aria-pressed="${on?'true':'false'}"
@@ -1711,22 +1769,45 @@ function shareSummaryStepHtml(c, opts={}){
         color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
   const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:8px 10px;font-size:12px;font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
+  /* Which of the two things the first step chose. Both branches render, and the
+     wiring shows one — repainting in place rather than rebuilding, because the
+     summary textarea below may already carry words the sender typed. */
+  const hist = opts.purposeSel==='history';
   return `
     <div id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">What you are sending</h2></div>
-      ${sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c))}
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">
+      ${''/* THE PURPOSE QUESTION DOES NOT APPLY TO A RECORD. Sign, Negotiate
+             and View only are things somebody does to a contract; a history
+             link opens read-only on the timeline and there is nothing on it to
+             do. So the picker is not disabled here, it is absent, and the
+             screen says why rather than leaving a gap where a question was. */}
+      <div id="share-purpose-wrap"${hist?' class="hidden"':''}>${sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c))}</div>
+      <div id="share-hist-note"${hist?'':' class="hidden"'} style="margin:0 0 14px;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--color-accent-800)">
+        <b>No purpose to choose.</b> This link opens the negotiation history and nothing else — the
+        same screen ${esc(c.counterparty||'the counterparty')} already sees, read-only. The agreement
+        itself does not travel with it, and there is nothing on it to answer or sign.</div>
+      ${''/* Both sentences render and one is shown, for the same reason the
+             purpose picker is not rebuilt: switching what is being shared must
+             not throw away a summary the sender has already edited. */}
+      <p id="share-manifest-line"${hist?' class="hidden"':''} style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">
         ${s&&s.lines.length
           ? `Round ${s.total?esc(String(s.round)):''} — ${s.lines.length} change${s.lines.length===1?'':'s'} on the table${s.pending?`, ${s.pending} still awaiting a decision`:''}. ${esc(c.counterparty||'The counterparty')} sees this summary alongside the link.`
           : `No changes have been proposed on this contract yet, so ${esc(c.counterparty||'the counterparty')} will receive the document as it currently stands.`}</p>
+      <p id="share-manifest-line-hist"${hist?'':' class="hidden"'} style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">
+        ${s&&s.lines.length
+          ? `${s.lines.length} change${s.lines.length===1?'':'s'} on the record — this is what the link shows, oldest first, with what was decided.`
+          : `Nothing has been proposed on this contract yet, so there is no record to send.`}</p>
       ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:2px 11px">${rows}</ul>`
         :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
-      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently</span>
+      <label style="display:block"><span id="sh-summary-label" style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${
+        hist?'Note sent with the record — edit if you want to say it differently'
+           :`Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently`}</span>
         <textarea id="sh-summary" rows="5" style="${FLD}">${esc(s?s.text:'')}</textarea></label>
       ${opts.handOver?`<div id="share-handover" style="margin-top:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.5;color:var(--st-green-fg)">
         <b>Sending this closes your turn.</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+        <button id="share-back-kind" class="ui-btn">${icon('arrow-right','w-3.5 h-3.5')} Back</button>
         <button id="share-close-1" class="ui-btn">Close</button>
         <button id="share-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
@@ -1851,10 +1932,17 @@ function shareVersions(c, org){
    So the sender says what the link is when they create it, the reader's page
    reads that and nothing else, and a negotiation link stays the room until a
    NEW link supersedes it. */
-/* Three purposes now. 'view' is the read-only pass an outside advisor gets —
-   it is enforced by the server (refuseIfViewOnly, server/server.js), and named
-   here so the share dialog can offer it and the portal can route on it. */
-const SHARE_PURPOSE = p => (['sign','negotiate','view'].includes(p) ? p : null);
+/* Four purposes now, and they answer two different questions. Sign, negotiate
+   and view are things somebody does TO A CONTRACT — they are the second
+   question the share dialog asks. 'history' is the answer to the first one:
+   what is travelling at all, the contract or the record of the argument. It is
+   stored in the same column because a link has one job, and collapsing the two
+   questions into one value is what keeps every route that reads a purpose
+   — the server's guard, the portal's router — reading a single field.
+
+   'view' and 'history' are both read-only passes, and both are enforced by the
+   server rather than by the screen (shareIsReadOnly, server/server.js). */
+const SHARE_PURPOSE = p => (['sign','negotiate','view','history'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
@@ -2367,11 +2455,16 @@ async function openShareModal(c, opts={}){
   openModal(`
     <div style="padding:22px 24px;">
       ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
-      ${shareSummaryStepHtml(c, { ...opts, purposeSel, hiddenStart:quickOk })}
+      ${shareKindStepHtml(c, purposeSel)}
+      ${shareSummaryStepHtml(c, { ...opts, purposeSel, hiddenStart:true })}
       <div id="share-step-2" class="hidden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
+      ${''/* Two blurbs, one shown. A history link promises none of this — there
+             is nothing on it to sign, request or decline — and a screen that
+             says otherwise is a screen that has to be argued with later. */}
+      <p id="share-send-blurb" style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
+      <p id="share-send-blurb-hist" class="hidden" style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send a read-only link to the <strong>negotiation history</strong> — every change, who asked and what was decided, <strong>no account needed</strong>. There is nothing on it to sign or answer, and the agreement itself does not travel with it.</p>
       ${readinessPanelHtml(c)}
       ${emailOff()?`<div id="sh-noemail" style="margin:0 0 12px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">
         <b>This will not be emailed.</b> ${EMAIL_SETUP_LINE} Press <b>Create link</b> instead and send it to ${esc(c.counterparty||'them')} yourself — or set email up first and come back.</div>`:''}
@@ -2422,12 +2515,52 @@ async function openShareModal(c, opts={}){
      form wires a dozen listeners to elements it looks up by id; rebuilding it
      on Next would mean wiring them all a second time, and the first one to be
      forgotten would be a silent dead control. */
+  /* Three screens now: what are you sharing, what you are sending, who to.
+     'kind' rather than 0 — the retired quick-send already owns 0, and a number
+     that means "before the first one" is the kind of thing that gets read as
+     zero-indexing by the next person to touch it. */
   const step = n => {
     qsActive = n===0;
     const s0=document.getElementById('share-step-0');
     if(s0) s0.classList.toggle('hidden', n!==0);
+    document.getElementById('share-step-kind').classList.toggle('hidden', n!=='kind');
     document.getElementById('share-step-1').classList.toggle('hidden', n!==1);
     document.getElementById('share-step-2').classList.toggle('hidden', n!==2);
+  };
+  /* THE FIRST QUESTION'S ANSWER, and the only place it is written down. A
+     history link is stored as its own purpose (see SHARE_PURPOSE), so choosing
+     the record here replaces the sign/negotiate choice rather than sitting
+     beside it — and choosing the contract again restores whatever the contract's
+     own state says the default should be. */
+  const setKind = k => {
+    purposeSel = k==='history' ? 'history' : (SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c));
+    payloadObj.purpose = purposeSel; payloadObj.purposeChosen = purposeSel;
+    document.querySelectorAll('#share-kind [data-share-kind]').forEach(b=>{
+      const on = (b.getAttribute('data-share-kind')==='history') === (purposeSel==='history');
+      b.setAttribute('aria-pressed', on?'true':'false');
+      b.style.border=`1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
+      b.style.background=on?'var(--color-accent-100)':'var(--color-surface)';
+      const dot=b.querySelector('span'), name=b.querySelector('span:nth-child(2) span');
+      if(dot){ dot.style.border=`1.5px solid ${on?'var(--color-accent)':'var(--color-neutral-500)'}`;
+               dot.style.background=on?'var(--color-accent)':'transparent';
+               dot.style.boxShadow=on?'inset 0 0 0 2.5px var(--color-surface)':'none'; }
+      if(name) name.style.color=on?'var(--color-accent-800)':'var(--color-text)';
+    });
+    /* Step 2 is repainted rather than rebuilt — the sender may have edited the
+       summary already, and rebuilding would take their words with it. */
+    const hist = purposeSel==='history';
+    document.getElementById('share-purpose-wrap')?.classList.toggle('hidden', hist);
+    document.getElementById('share-hist-note')?.classList.toggle('hidden', !hist);
+    const lab=document.getElementById('sh-summary-label');
+    if(lab) lab.textContent = hist
+      ? 'Note sent with the record — edit if you want to say it differently'
+      : `Summary sent to ${c.counterparty||'them'} — edit if you want to say it differently`;
+    document.getElementById('share-manifest-line')?.classList.toggle('hidden', hist);
+    document.getElementById('share-manifest-line-hist')?.classList.toggle('hidden', !hist);
+    const blurb=document.getElementById('share-send-blurb');
+    if(blurb) blurb.classList.toggle('hidden', hist);
+    const hblurb=document.getElementById('share-send-blurb-hist');
+    if(hblurb) hblurb.classList.toggle('hidden', !hist);
   };
   /* THE PURPOSE PICKER. Repainting the two buttons in place rather than
      re-rendering step 1: the summary textarea sits in that step and the sender
@@ -2463,9 +2596,16 @@ async function openShareModal(c, opts={}){
          default happens to agree with the picker. What the picker shows at
          the moment of sending IS what the sender chose. */
       payloadObj.purpose=purposeSel; payloadObj.purposeChosen=purposeSel; paintPurpose(); }));
+  document.querySelectorAll('#share-kind [data-share-kind]').forEach(b=>
+    b.addEventListener('click',()=>setKind(b.getAttribute('data-share-kind'))));
+  document.getElementById('share-close-kind').addEventListener('click',closeModal);
+  document.getElementById('share-kind-next').addEventListener('click',()=>step(1));
   document.getElementById('share-close-1').addEventListener('click',closeModal);
   document.getElementById('share-next').addEventListener('click',()=>step(2));
   document.getElementById('share-back').addEventListener('click',()=>step(1));
+  document.getElementById('share-back-kind').addEventListener('click',()=>step('kind'));
+  setKind(purposeSel==='history'?'history':'contract');
+  step('kind');
   const setCh=k=>{ ch=k;
     document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
       b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;

@@ -150,18 +150,53 @@ describe('Share is two steps, and the summary travels', () => {
     return { win, root, $: sel => root.querySelector(sel) };
   }
 
-  test('it opens on the summary, with the send form hidden behind Next', async () => {
+  /* THE DIALOG GREW A QUESTION IN FRONT (Young, 03 Aug 2026). It used to open
+     on "What you are sending" — the purpose cards, the change manifest and the
+     summary on one dense screen — with no way to say that the RECORD, rather
+     than the contract, was what was travelling. That question is now asked
+     first and on its own, and the summary step is one Next behind it. The
+     guarantee these tests were written for is unchanged and still checked: the
+     send form is never what opens. */
+  test('it opens on what you are sharing, with the rest behind Next', async () => {
     const { win } = buildWorld();
     const c = await negotiated(win);
     const m = await openShare(c);
 
-    const s1 = m.$('#share-step-1'), s2 = m.$('#share-step-2');
+    const sk = m.$('#share-step-kind'), s1 = m.$('#share-step-1'), s2 = m.$('#share-step-2');
+    assert.ok(sk, 'the sharing question must exist');
     assert.ok(s1, 'step 1 must exist');
     assert.ok(s2, 'step 2 must exist');
-    assert.ok(!s1.className.includes('hidden'), 'step 1 is what opens');
+    assert.ok(!sk.className.includes('hidden'), 'the sharing question is what opens');
+    assert.ok(s1.className.includes('hidden'), 'the summary waits behind it');
     assert.ok(s2.className.includes('hidden'), 'the send form is not what opens');
+    assert.match(sk.textContent, /What are you sharing\?/);
     assert.match(s1.textContent, /What you are sending/);
-    assert.ok(m.$('#share-next'), 'and there is a Next');
+    assert.ok(m.$('#share-kind-next'), 'and there is a Next out of the first question');
+    assert.ok(m.$('#share-next'), 'and a Next out of the second');
+  });
+
+  test('the first question offers the contract and the record, and nothing else', async () => {
+    const { win } = buildWorld();
+    const c = await negotiated(win);
+    const m = await openShare(c);
+    const opts = Array.from(m.root.querySelectorAll('#share-kind [data-share-kind]'))
+      .map(b => b.getAttribute('data-share-kind'));
+    assert.deepEqual(opts, ['contract', 'history'], 'two answers to one question');
+    const contractBtn = m.root.querySelector('[data-share-kind="contract"]');
+    assert.equal(contractBtn.getAttribute('aria-pressed'), 'true',
+      'the contract leads — it is what almost every share is');
+  });
+
+  test('the record cannot be sent when there is no record', async () => {
+    const { win } = buildWorld();
+    /* A contract nobody has proposed anything on. negotiated() files changes;
+       this deliberately does not. */
+    const c = { id: 'MK-EMPTY', name: 'Nothing proposed yet', counterparty: 'Someone Ltd',
+      template: 'WH', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],
+      signatures: [], comments: [], changes: [] };
+    const m = await openShare(c);
+    const histBtn = m.root.querySelector('[data-share-kind="history"]');
+    assert.ok(histBtn.disabled, 'there is nothing to send, so the option does not pretend otherwise');
   });
 
   test('step 1 lists every change, with its fingerprint and its clause', async () => {

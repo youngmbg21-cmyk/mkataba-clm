@@ -542,7 +542,11 @@ function openCompareModal(c){
     const html=window.redlineStructuredHtml
       ? redlineStructuredHtml(aText,bText,{classPrefix:'cmp',insClass:'cmp-ins',delClass:'cmp-del'}) : null;
     if(!html) return _diffBox(aText,bText);
-    return `<div class="cmp-doc" style="font-size:12.5px;line-height:1.75;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-surface);padding:14px 18px;max-height:62vh;overflow:auto">${html}</div>`;
+    /* Says its own colour rather than inheriting one. Every other document
+       surface in the product is painted --color-doc-text, including _diffBox
+       immediately below this branch; leaving it unset is what let the
+       container's placeholder grey through. */
+    return `<div class="cmp-doc" style="font-size:12.5px;line-height:1.75;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-surface);color:var(--color-doc-text);padding:14px 18px;max-height:62vh;overflow:auto">${html}</div>`;
   };
   const foldUnchanged=()=>{
     const doc=document.querySelector('#cmp-out .cmp-doc'); if(!doc) return;
@@ -596,7 +600,17 @@ function openCompareModal(c){
         #cmp-out .cmp-fold{display:block;width:100%;text-align:center;border:1px dashed var(--color-divider);background:var(--color-neutral-100);color:var(--color-neutral-600);border-radius:6px;font:inherit;font-size:11px;font-weight:600;padding:4px;margin:8px 0;cursor:pointer}
         #cmp-out .cmp-fold:hover{color:var(--color-text)}
       </style>
-      <div id="cmp-out" style="font-size:12px;color:var(--color-neutral-500)">Pick two versions and press <b>Compare</b> to see the changes.</div>
+      ${''/* THE GREY BELONGED TO ONE LINE OF PLACEHOLDER, AND THE CONTRACT WORE IT.
+             --color-neutral-500 was set on this CONTAINER for the "pick two
+             versions" prompt sitting inside it. The comparison then replaced the
+             prompt and inherited the colour, so a whole agreement rendered in
+             placeholder grey — while the fallback renderer three lines away
+             (_diffBox) set --color-doc-text and came out black. Same modal, two
+             paths, two colours, and the grey one is the path that runs.
+
+             The colour now belongs to the placeholder, which is the only thing
+             that was ever meant to be quiet. */}
+      <div id="cmp-out" style="font-size:12px"><span style="color:var(--color-neutral-500)">Pick two versions and press <b>Compare</b> to see the changes.</span></div>
       <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="cmp-done" class="ui-btn ui-btn-primary">Close</button></div>
     </div>`, {maxWidth:'860px'});
   document.getElementById('cmp-x').addEventListener('click',closeModal);

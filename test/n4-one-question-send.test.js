@@ -55,13 +55,19 @@ describe('N4 (1) — the dialog opens on the one decision that matters', () => {
      with the link. The dialog now always opens on "What is this link for?".
      These tests pin the retirement; the gates the panel shared with the full
      form (blocks, static mode) are pinned unchanged below. */
-  test('even a known recipient opens on the purpose step, never the quick panel', async () => {
+  test('even a known recipient opens on a question, never the quick panel', async () => {
     const { s, html } = modalWorld([share()]);
     await s.openShareModal(contract());
     const h = html();
     assert.ok(!/id="share-step-0"/.test(h), 'the quick panel is retired — no send without choosing the purpose');
-    assert.match(h, /What is this link for\?/, 'the purpose question leads');
-    assert.match(h, /id="share-step-1"(?! class="hidden")/, 'the full flow IS the flow');
+    /* The question that leads is now "what are you sharing?" — the contract or
+       the record of the argument — with "what is this link for?" one Next
+       behind it. Both are still asked before anything can be sent, which is
+       what this test has always been protecting. */
+    assert.match(h, /id="share-step-kind"(?! class="hidden")/, 'the sharing question leads');
+    assert.match(h, /What are you sharing\?/);
+    assert.match(h, /What is this link for\?/, 'and the purpose is still asked');
+    assert.match(h, /id="share-step-1" class="hidden"/, 'one step at a time');
   });
 
   test('Sign is the first option the sender reads', async () => {
@@ -85,7 +91,7 @@ describe('N4 (1) — the dialog opens on the one decision that matters', () => {
     const { s, html } = modalWorld([]);
     await s.openShareModal(contract());
     assert.ok(!/share-step-0/.test(html()), 'nothing known means nothing to shortcut');
-    assert.match(html(), /id="share-step-1"(?! class="hidden")/);
+    assert.match(html(), /id="share-step-kind"(?! class="hidden")/, 'the full flow starts at its first question');
   });
 
   test('static mode never shortcuts — email cannot actually be sent', async () => {
