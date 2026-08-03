@@ -179,11 +179,36 @@ function portalCompareBar(){
     <div id="pt-history" style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:11px 16px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
       <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">${line}</span>
-      ${hist?`<button id="pt-hist" class="ui-btn ui-btn-secondary" style="flex:none;font-size:12.5px;padding:8px 14px"
-        title="Every change on this contract, oldest first, with who asked and what was decided">Negotiation history</button>`:''}
-      ${cmp?`<button id="pt-compare" class="ui-btn ui-btn-secondary" style="flex:none;font-size:12.5px;padding:8px 14px"
-        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">Compare wording</button>`:''}
+      ${hist?`<button id="pt-hist" class="ui-btn pt-verb" style="flex:none;font-size:12.5px;padding:8px 14px"
+        title="Every change on this contract, oldest first, with who asked and what was decided">${
+        icon('history','w-3.5 h-3.5',2)}Negotiation history</button>`:''}
+      ${cmp?`<button id="pt-compare" class="ui-btn pt-verb" style="flex:none;font-size:12.5px;padding:8px 14px"
+        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">${
+        icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
     </div>`;
+}
+/* ---------- ONE DEFINITION OF WHAT A READING VERB LOOKS LIKE ----------
+   These two buttons render from TWO functions — portalCompareBar above, for
+   the signing screen, and portalReadingBtnsHtml below, for the negotiation
+   workbench — and the treatment was fixed in one of them. The workbench pair
+   came out tinted; the signing pair stayed white with no icon, which is the
+   original complaint still shipping on the screen nobody re-checked. Measured
+   rather than guessed: rgb(204,251,241) on one seat, rgb(255,255,255) on the
+   other, same two verbs.
+
+   So the look lives here, in a stylesheet both screens inject, rather than in
+   whichever function somebody edits next. --color-accent-100 filled, the accent
+   as the border, accent-800 for the text: loud enough to find, quiet enough not
+   to read as a primary action, which neither screen has in that row. */
+function portalVerbStyle(){
+  if(document.getElementById('pt-verb-style')) return;
+  const el=document.createElement('style'); el.id='pt-verb-style';
+  el.textContent=`
+    .pt-verb{color:var(--color-accent-800);background:var(--color-accent-100);
+      border-color:var(--color-accent);}
+    .pt-verb:hover{background:var(--color-accent-200);border-color:var(--color-accent-700);}
+    .pt-verb svg{flex:none;}`;
+  document.head.appendChild(el);
 }
 /* THE SAME TWO BUTTONS, WITHOUT THE CARD THEY USED TO ARRIVE IN.
    On the counterparty's workbench the reading bar was a second card stacked
@@ -223,10 +248,10 @@ function portalReadingBtnsHtml(){
   if(!cmp && !hist) return '';
   return `
     <span class="pw-id-read">
-      ${hist?`<button id="pt-hist" class="ui-btn pw-id-verb"
+      ${hist?`<button id="pt-hist" class="ui-btn pt-verb pw-id-verb"
         title="Every change on this contract, oldest first, with who asked and what was decided">${
         icon('history','w-3.5 h-3.5',2)}Negotiation history</button>`:''}
-      ${cmp?`<button id="pt-compare" class="ui-btn pw-id-verb"
+      ${cmp?`<button id="pt-compare" class="ui-btn pt-verb pw-id-verb"
         title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">${
         icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
     </span>
@@ -1954,20 +1979,10 @@ function portalWorkbenchStyle(){
        being ui-btn-secondary. The tint is mixed against whatever surface is
        under it, so the pair reads the same in either theme. */
     .pw-id-read{display:inline-flex;align-items:center;gap:7px;flex:none;}
-    /* A SOLID TINT, NOT A WASH. The first attempt mixed the accent into the
-       surface at 12% and it read as white on a white card — the complaint the
-       icon and the rule were meant to answer, arriving again in a paler form.
-       This is the fill the approved render used: --color-accent-100, a real
-       colour, with the accent itself as the border and accent-800 for the
-       text. Loud enough to be found, quiet enough not to read as the primary
-       action, which nothing in this row is. */
-    .pw-id-verb{flex:none;font-size:11.5px;padding:7px 12px;min-height:32px;
-      color:var(--color-accent-800);
-      background:var(--color-accent-100);
-      border-color:var(--color-accent);}
-    .pw-id-verb:hover{background:var(--color-accent-200);
-      border-color:var(--color-accent-700);}
-    .pw-id-verb svg{flex:none;}
+    /* Size only. The COLOUR lives in portalVerbStyle (.pt-verb) because these
+       same two buttons also render on the signing screen, and a treatment kept
+       in one screen's stylesheet is a treatment the other screen misses. */
+    .pw-id-verb{flex:none;font-size:11.5px;padding:7px 12px;min-height:32px;}
     /* Verbs on the left of it, reading controls on the right. Without this the
        row is one undifferentiated run of pills. */
     .pw-id-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px;}
@@ -2015,6 +2030,7 @@ function renderShareWorkbench(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
   portalLoadHeld();          // before the room is built — the room is built FROM these
   portalWorkbenchStyle();
+  portalVerbStyle();   // renderShareWorkbench is also reached directly, not only via renderSharePortal
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
   FIRST_PARTY=p.org;
@@ -2210,6 +2226,10 @@ function renderShareHistory(p, opts={}){
 }
 
 function renderSharePortal(p, opts={}){
+  /* Before any branch below picks a screen: every one of them can render the
+     reading verbs, and each used to depend on whichever stylesheet its own
+     screen happened to inject. See portalVerbStyle. */
+  portalVerbStyle();
   /* A dormant bound link routes out even ahead of the view link: the server
      sent no payload at all, so every branch below would read as an invalid
      link when the truth is "not yet". */

@@ -170,3 +170,54 @@ describe('f143 — the export, and the colour fault it used to have', () => {
     assert.match(e.html, /chained record/, 'and how much of the record it recomputed');
   });
 });
+
+/* ============================================================
+   The two reading verbs look the same on both of their screens
+   ============================================================
+   They render from two functions — portalCompareBar for the signing screen,
+   portalReadingBtnsHtml for the negotiation workbench — and the treatment was
+   fixed in one of them. The workbench pair came out tinted with an icon; the
+   signing pair stayed white with none, which is the original "I keep missing
+   these buttons" still shipping on the screen nobody re-checked.
+
+   jsdom has no cascade, so this cannot assert a computed colour. What it CAN
+   assert is that neither screen is left carrying the recessive class the
+   complaint was about, and that both carry the shared one — which is the thing
+   that actually drifted. The colour itself is measured in Chromium. */
+describe('the reading verbs are the same pair of buttons on both screens', () => {
+  const verbs = d => ['pt-hist', 'pt-compare'].map(id => d.getElementById(id)).filter(Boolean);
+
+  function screenFor(purpose){
+    const p = buildPortal();
+    const payload = sharePayloadFor(p, contract());
+    payload.purpose = purpose; payload.purposeChosen = purpose;
+    p.win.renderSharePortal(payload, { token: 't', purpose,
+      share: { recipientName: 'Erik Lindqvist' } });
+    return p.win.document;
+  }
+
+  for (const purpose of ['negotiate', 'sign']){
+    test(`on the ${purpose} link they wear the shared treatment, not the recessive one`, () => {
+      const d = screenFor(purpose);
+      const btns = verbs(d);
+      assert.ok(btns.length, `the ${purpose} screen must offer them at all`);
+      for (const b of btns){
+        assert.ok(b.className.includes('pt-verb'),
+          `#${b.id} must carry the shared look, or this screen drifts the next time it is edited`);
+        assert.ok(!b.className.includes('ui-btn-secondary'),
+          `#${b.id} is still wearing the class built to recede beside a primary that is not there`);
+        /* portalworld stubs icon() as <i> on purpose, so this asserts the slot
+           is filled rather than the glyph — the button must not be text alone. */
+        assert.ok(b.querySelector('i, svg'), `#${b.id} needs a shape to aim at, not only words`);
+      }
+    });
+  }
+
+  test('and the stylesheet that colours them is injected whichever screen opens', () => {
+    for (const purpose of ['negotiate', 'sign']){
+      const d = screenFor(purpose);
+      assert.ok(d.getElementById('pt-verb-style'),
+        `the ${purpose} screen rendered the verbs without the rules that colour them`);
+    }
+  });
+});
