@@ -698,6 +698,11 @@ function negoStyleHtml(){
      on its own, and overflow-wrap:anywhere handles the case it will not break
      by itself — a pasted reference or URL with no spaces in it. */
   .nego-reason{display:block;margin-top:8px}
+  /* The deletion's in-place question. Bordered like a held draft rather than
+     shaded like an error: nothing has happened yet. */
+  .nego-del-ask{margin-top:8px;border:1px solid var(--n-line);border-left:3px solid var(--n-reject,#b91c1c);
+    border-radius:6px;padding:9px 11px;background:var(--n-paper)}
+  .nego-del-say{font-size:11.5px;line-height:1.55;color:var(--n-ink-soft)}
   .nego-reason.hidden,.nego-fmt-bar.hidden{display:none}
   /* Step two: the wording is still there and still exactly where it was, but it
      is being read rather than typed in — so it loses the caret ring and stops
@@ -4286,43 +4291,62 @@ function wireNegotiationTab(c, opts = {}){
     wire();
   }));
 
-  host.querySelectorAll('[data-nego-del]').forEach(b => b.addEventListener('click', async e => {
+  host.querySelectorAll('[data-nego-del]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const clauseId = b.getAttribute('data-nego-del');
     const cl = negoClauseById(c, clauseId);
     if (!cl) return;
-    /* ---- A DELETION IS A CHANGE, SO IT IS ASKED WHY LIKE ANY OTHER ----
-       The reason went onto the clause editor first and stopped there, which
-       left the change hardest to argue with — striking a clause out — as the
-       one nobody had to explain. The confirm step was already there, so the
-       question costs no extra press: the box IS the confirmation.
+    /* ---- A DELETION ASKS WHY IN PLACE, THE SAME SHAPE AS AN EDIT ----
+       The first version of this question was a pop-up, and it was a pop-up for
+       an accident of history: deletion already had a confirm dialog, so the
+       reason field was dropped into the box that happened to be there. That
+       left one question wearing two shapes — a panel under the clause when you
+       edit, a window over the document when you delete — and the argument
+       against dialogs (they cover the clauses either side, which is exactly
+       what a reader weighs before striking one out) applies MORE to deletion,
+       not less.
 
-       Skippable on the same terms as the editor's: Cancel abandons the
-       deletion, and confirming with an empty box files it with no reason.
-       null means cancelled, '' means "no reason given" — two different
-       answers, and the dialog can tell them apart. */
-    let why = '';
-    if (window.promptDialog){
-      const answer = await promptDialog({
-        title: 'Propose deleting this clause?',
-        message: `“${negoClauseLabel(cl)}” would be struck through for the other side to decide. `
-          + 'The wording stays in the document until they accept the deletion.',
-        label: 'Why this deletion? — the other side sees it beside the change (optional)',
-        placeholder: 'e.g. This is covered by clause 12 already, so it reads twice.',
-        multiline: true, value: '',
-        confirmLabel: 'Propose deletion' });
-      if (answer === null) return;          // cancelled — nothing is proposed
-      why = String(answer || '').trim();
-    } else if (window.confirmDialog){
-      const ok = await confirmDialog({ title: 'Propose deleting this clause?',
-        message: `“${negoClauseLabel(cl)}” would be struck through for the other side to decide. `
-          + 'The wording stays in the document until they accept the deletion.',
-        confirmLabel: 'Propose deletion' });
-      if (!ok) return;
-    }
-    fileAndRepaint(() => negoDeleteClause(c, clauseId,
+       So the panel opens under the clause, and the step itself is the
+       confirmation: Propose deletion files it with the reason, Skip files it
+       without one, Cancel abandons it. Same three answers the dialog gave,
+       same skippable terms as the editor's step two, none of the document
+       hidden while it is asked. */
+    const block = host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`)
+      || b.closest('.nego-clause');
+    /* One question at a time on a clause: an open editor or an open deletion
+       panel keeps the button inert rather than stacking a second flow. */
+    if (!block || block.querySelector('.nego-edit-bar') || block.querySelector('.nego-del-ask')) return;
+    const ask = document.createElement('div');
+    ask.className = 'nego-del-ask';
+    ask.innerHTML = `
+      <div class="nego-del-say">“${_ne(negoClauseLabel(cl))}” would be struck through for the
+        other side to decide. The wording stays until they accept the deletion.</div>
+      <label class="nego-reason">
+        <span>Why this deletion? &mdash; the other side sees it beside the change (optional)</span>
+        <textarea data-nego-del-why="${_ne(clauseId)}" rows="2" wrap="soft" spellcheck="true"
+          placeholder="e.g. This is covered by clause 12 already, so it reads twice."></textarea>
+      </label>
+      <div class="nego-edit-bar">
+        <button class="b-save" data-nego-del-go="${_ne(clauseId)}">Propose deletion</button>
+        <button class="b-cancel" data-nego-del-skip="${_ne(clauseId)}">Skip &mdash; no reason</button>
+        <button class="b-cancel" data-nego-del-cancel="${_ne(clauseId)}">Cancel</button>
+      </div>`;
+    block.appendChild(ask);
+    block.classList.add('is-editing');   // the hover verbs stand down, as in an edit
+    const file = why => fileAndRepaint(() => negoDeleteClause(c, clauseId,
       { side, author: opts.by, why: why || undefined }),
       ch => `#${ch.id} filed — deletion proposed, the wording stays until it is accepted`);
+    ask.querySelector('[data-nego-del-cancel]').addEventListener('click', ev => {
+      ev.stopPropagation(); ask.remove(); block.classList.remove('is-editing');
+    });
+    ask.querySelector('[data-nego-del-skip]').addEventListener('click', ev => {
+      ev.stopPropagation(); file('');
+    });
+    ask.querySelector('[data-nego-del-go]').addEventListener('click', ev => {
+      ev.stopPropagation();
+      file(String(ask.querySelector('textarea').value || '').trim());
+    });
+    ask.querySelector('textarea').focus();
   }));
 
   /* A BADGE IN THE MARGIN NARROWS THE INDEX TO ITS OWN CHANGE.

@@ -236,22 +236,38 @@ const READ = () => {
       if (!b) return null; b.click(); return true;
     });
     await page.waitForTimeout(600);
+    /* IN PLACE, NOT A DIALOG. The first shipped version asked in a pop-up —
+       the shape this feature exists to avoid, and it covered the neighbouring
+       clauses a reader weighs before striking one out. The question now opens
+       under the clause, like the editor's step two, and this asserts the
+       shape as well as the field: same panel, no overlay, document visible. */
     const delBox = await page.evaluate(() => {
-      const t = document.querySelector('#prompt-overlay #pd-input');
+      const panel = document.querySelector('.nego-del-ask');
+      const t = panel && panel.querySelector('[data-nego-del-why]');
       if (!t) return null;
       const cs = getComputedStyle(t);
-      return { tag: t.tagName, wrap: t.wrap, overflowWrap: cs.overflowWrap, boxSizing: cs.boxSizing };
+      const blk = panel.closest('.nego-clause');
+      return { tag: t.tagName, wrap: t.wrap, overflowWrap: cs.overflowWrap,
+        boxSizing: cs.boxSizing, popup: !!document.getElementById('prompt-overlay'),
+        inClause: !!blk,
+        blockW: blk ? Math.round(blk.getBoundingClientRect().width) : null };
     });
     check('reason: proposing a deletion asks why', !!asked && !!delBox,
       delBox ? '' : 'a deletion is a change and gets no reason field');
     if (delBox){
+      check('reason: it asks under the clause, not over the document',
+        delBox.inClause && !delBox.popup,
+        delBox.popup ? 'a pop-up opened — the shape this feature exists to avoid' : '');
+      check('reason: the deletion panel does not widen the clause',
+        delBox.blockW === before, `${delBox.blockW}px vs ${before}px`);
       check('reason: the deletion box wraps like the editor\'s',
         delBox.tag === 'TEXTAREA' && delBox.wrap === 'soft'
         && delBox.overflowWrap === 'anywhere' && delBox.boxSizing === 'border-box',
         `${delBox.tag} / ${delBox.wrap} / ${delBox.overflowWrap}`);
       await page.evaluate(w => {
-        document.querySelector('#pd-input').value = w;
-        document.getElementById('pd-ok').click();
+        const panel = document.querySelector('.nego-del-ask');
+        panel.querySelector('[data-nego-del-why]').value = w;
+        panel.querySelector('[data-nego-del-go]').click();
       }, DELWHY);
       await page.waitForTimeout(900);
       const deleted = await page.evaluate(() => [...document.querySelectorAll('[data-nego-card]')]
