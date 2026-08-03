@@ -6841,3 +6841,54 @@ verbs outside it ("I checked the record…") slips the voice test — though the
 paragraph split still contains the damage to one paragraph rather than the
 whole reply. Nothing between Apply Redline and the contract inspects the
 wording; that standing gap is unchanged from F98.
+
+---
+
+## Run: a summoned Copilot steps back when the errand is done (2026-08-03)
+
+### 1. The drawer a selection action opened never left
+
+**What was broken.** Highlighting a passage and picking a redline action opens
+the Copilot drawer on the same gesture, to show the proposal. It then stayed:
+Apply filed the change, Decline dropped it, and either way a drawer the reader
+never asked to keep sat over the document they were reading until they closed
+it by hand.
+
+**The rule, as the product owner put it.** The panel should remember WHY it
+opened. Summoned by a selection action → settling the proposal (Apply or
+Decline alike) ends the errand and the panel goes back to hiding. Opened by
+the reader — launcher, command bar, negotiation toolbar — or already standing
+when the summons arrived → it is theirs, and stays until they close it. Two
+edges agreed by name: Decline settles the errand the same as Apply; engaging
+mid-proposal (Edit, a placement flip, a refine) does not claim the panel — it
+still steps back after the final decision.
+
+**The fix.** One flag on the panel state, written where the panel opens and
+read where a proposal settles. `ai.summoned` is raised by `openAI` only when
+the call says `summoned:true` AND the panel was closed — a summons landing on
+an open panel changes nothing, because the panel was not opened for the
+errand. Any deliberate open clears it, and so do close (whatever errand opened
+it is settled) and minimize ("I'll be back" is the reader claiming the panel).
+`aiProposalApply` and `aiProposalDecline` end by calling
+`aiStepBackIfSummoned`, which closes the drawer only if the flag is up; an
+Apply the handler refused returns before it, because the card — and the
+question — are still open. Closing through `closeAI` also ends the seeded
+rephrase session, which is the behaviour that function already had and exactly
+what ending an errand should do. The four places a view opens the panel FOR
+the reader — the propose paths and the refusal paths in negotiation and
+Doc Lab — now pass `summoned:true`; the deliberate opens pass nothing.
+
+**Files touched.** js/ai.js, js/views/negotiation.js, js/views/doclab.js.
+**Verified.** f136a (summoned + Apply closes; Decline the same; Edit and a
+placement flip in between change nothing; a refused Apply leaves the panel and
+the flag standing), f136b (a hand-opened panel survives a settled proposal; a
+summons on an open panel does not convert it; close and minimize both clear
+the flag; two summonses are one errand), f136c (all four summoning sites pass
+the flag, pinned at the source; the deliberate opens do not). Full suite
+2510/2510.
+
+**Not done.** A summoned panel the reader starts an unrelated portfolio
+conversation in still closes on the proposal's final decision — engagement
+short of minimize/close does not claim the panel, per the agreed rule. If that
+reads wrong in use, the claim could widen to "typed a free question", but that
+needs a signal cleaner than keystrokes.
