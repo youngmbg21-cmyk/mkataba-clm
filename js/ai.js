@@ -598,8 +598,8 @@ function toggleAIExpand(force){
    So the drawer FLOATS. Nothing behind it is resized, re-laid-out or scrolled;
    the document keeps the width and the line breaks it had a moment ago, and the
    panel is simply a layer on top of the right-hand side of it. The CSS that
-   guarantees this lives with the element (index.html) and is restated on the
-   Doc Lab page (js/views/doclab.js), which is the layout that would notice. */
+   guarantees this lives with the element (index.html), alongside the
+   `#app-shell{right:0!important}` rule that would notice a reintroduced dock. */
 function aiSyncDock(){
   const shell=document.getElementById('app-shell');
   const panel=document.getElementById('ai-panel');

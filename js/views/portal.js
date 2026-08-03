@@ -283,12 +283,12 @@ function portalReadingBtnsHtml(){
 
    ONE THING IT DOES SHOW, and it is worth knowing rather than discovering: the
    AUTHOR string travels whole, and where a change was drafted with Copilot the
-   lab records the tool in that string (labFileChange, js/views/doclab.js). That
-   has always been true of the change CARDS on this page; the history is simply
-   another place it appears. Redacting it on the way out is not a free fix — the
-   author is inside the change's fingerprint, so an edited name makes their copy
-   unable to verify the chain and it reports the mismatch as tampering. If it is
-   to be closed, it belongs at the point the lab composes the name, not here.
+   tool can be named in that string. That has always been true of the change
+   CARDS on this page; the history is simply another place it appears. Redacting
+   it on the way out is not a free fix — the author is inside the change's
+   fingerprint, so an edited name makes their copy unable to verify the chain
+   and it reports the mismatch as tampering. If it is to be closed, it belongs
+   at the point the name is composed, not here.
 
    The export rides along for the same reason as the timeline: it is a pure
    function of this same rebuilt contract, so it can carry nothing the page

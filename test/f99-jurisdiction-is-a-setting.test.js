@@ -226,7 +226,7 @@ describe('F99d — what the Copilot is told', () => {
        agreement. That is content a Swedish workspace ignores or replaces, not
        configuration; a guard over it would fail on the one thing here that is
        supposed to name a market. */
-    for (const f of ['js/ai.js', 'js/views/negotiation.js', 'js/views/doclab.js',
+    for (const f of ['js/ai.js', 'js/views/negotiation.js',
       'js/playbook.js', 'js/core.js', 'js/views/portal.js', 'server/server.js']){
       const src = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       assert.doesNotMatch(src, /Kenyan law/, `${f} still names a market in code`);

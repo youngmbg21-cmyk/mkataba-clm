@@ -164,14 +164,14 @@ describe('F136b — a panel the reader opened is theirs', () => {
 /* ============================================================ */
 describe('F136c — the summoning sites say so', () => {
   /* The flag only means something if the selection actions actually raise it.
-     Pinned at the source, the way f135d pins the prompt sentences: all four
-     places a view opens the panel FOR the reader — the two propose paths and
-     the two refusal paths — pass summoned:true, and the deliberate opens
-     (launcher, command bar, negotiation toolbar) do not. */
+     Pinned at the source, the way f135d pins the prompt sentences: both places
+     the workbench opens the panel FOR the reader — the propose path and the
+     refusal path — pass summoned:true, and the deliberate opens (launcher,
+     command bar, negotiation toolbar) do not. */
   const src = f => fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8');
 
   test('both propose paths and both refusal paths summon', () => {
-    for (const f of ['views/negotiation.js', 'views/doclab.js']){
+    for (const f of ['views/negotiation.js']){
       const hits = (src(f).match(/openAI\(null,\s*\{[^}]*summoned:\s*true/g) || []).length;
       assert.equal(hits, 2, `${f}: the propose path and the refusal path both say summoned`);
     }
