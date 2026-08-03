@@ -351,6 +351,45 @@ describe('what the column renders', () => {
       'the count is over CHANGES, summed off the rows');
   });
 
+  test('an unnumbered clause is told apart by its fingerprint', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    /* Two clauses with the SAME heading and no number — the shape that made
+       four identical "Governing law" rows. */
+    const body = '<h1>Agreement</h1><p>Between A and B</p>'
+      + '<h2>Governing law</h2><p>The laws of Kenya apply to this Agreement.</p>'
+      + '<h2>Governing law</h2><p>Disputes are heard in Nairobi under those laws.</p>';
+    const c = contract({ redlineText: body });
+    win.negoInit(c);
+    const list = win.negoClauseList(c);
+    const a = await win.negoEditClause(c, list[0].clauseId,
+      '<p>The laws of Kenya apply, save as set out below.</p>',
+      { side:'counterparty', author:'B', summary:'s' });
+    const b = await win.negoEditClause(c, list[1].clauseId,
+      '<p>Disputes are heard in Mombasa under those laws.</p>',
+      { side:'counterparty', author:'B', summary:'s' });
+
+    const rows = win.rlQueueRows(c, { side: 'owner' });
+    assert.equal(rows.length, 2, 'two clauses, two rows');
+    assert.equal(rows[0].num, '', 'neither carries a number');
+
+    const html = win.rlQueueHtml(c, { side: 'owner' });
+    assert.match(html, new RegExp(`${a.id} · Governing law`),
+      'the fingerprint stands in for the missing number');
+    assert.match(html, new RegExp(`${b.id} · Governing law`));
+    assert.notEqual(a.id, b.id, 'and the two rows cannot read the same');
+  });
+
+  test('a numbered clause still leads with its number, not its fingerprint', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    const ch = await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
+    const html = win.rlQueueHtml(c, { side: 'owner' });
+    assert.match(html, /#4 · Payment Terms/);
+    assert.doesNotMatch(html, new RegExp(`${ch.id} · Payment Terms`),
+      'the number is what the reader says out loud — it wins where there is one');
+  });
+
   test('the empty state offers no verb on a read-only seat', () => {
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
@@ -360,6 +399,28 @@ describe('what the column renders', () => {
     assert.doesNotMatch(win.rlQueueHtml(c, { side: 'owner', readonly: true }),
       /Direct Edit|ask for different wording/,
       'a closed seat must not be invited back into a negotiation it cannot join');
+  });
+
+  /* Not the queue's own rule, but the same failure and the same column: a
+     flex:1 scroller cannot share a parent with content that is not in it. */
+  test('the discussion composers are INSIDE the thread scroller', async () => {
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    for (const n of ['2', '4', '6']){
+      await ask(win, c, n, `<p>Amended wording for clause ${n}.</p>`);
+    }
+    const html = win.redlineDiscussionHtml(c, { side: 'owner' });
+    const open = html.indexOf('id="rl-threads"');
+    const close = html.indexOf('</div>', html.lastIndexOf('rl-starter-note'));
+    assert.ok(open >= 0, 'the scroller is there');
+    assert.ok(html.indexOf('rl-starter') > open,
+      'every composer is written after the scroller opens');
+    /* The scroller must not be closed before the composers: that is the whole
+       fault — they became siblings and took the list\'s height away. */
+    const bodyClose = html.indexOf('</div>', open);
+    assert.ok(html.indexOf('rl-starter') < close && bodyClose < html.indexOf('rl-starter-note'),
+      'and they are enclosed by it rather than following it');
   });
 
   test('the panel is on the negotiation grid, ahead of the contract', async () => {

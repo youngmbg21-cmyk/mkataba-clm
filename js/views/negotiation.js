@@ -5756,6 +5756,13 @@ function redlineLayoutCss(){
   .redline-page .rl-thread.is-linked{box-shadow:0 0 0 2px var(--accent-solid);
     border-color:var(--accent-solid)}
   .redline-page .rl-disc-empty{padding:14px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500)}
+  /* The line between what has been said and what has not. A rule with its
+     count on it, not a heading — the composers below are a to-do, and a to-do
+     with no number on it is a list you have to count yourself. */
+  .redline-page .rl-starter-sep{display:flex;align-items:center;gap:8px;margin:16px 0 10px;
+    font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--color-neutral-400)}
+  .redline-page .rl-starter-sep::after{content:"";flex:1;height:1px;background:var(--color-divider)}
   `;
   document.head.appendChild(s);
 }
@@ -8619,7 +8626,20 @@ function rlQueueHtml(c, opts = {}){
   const held = rows.filter(r => r.state === 'held' || (r.now && r.held));
 
   const body = rows.length ? rows.map(row => {
-    const label = row.num ? `#${_ne(row.num)} · ${_ne(row.title)}` : _ne(row.title);
+    /* ---- EVERY ROW HAS TO BE TELLABLE FROM EVERY OTHER ROW ----
+       The number comes off the clause's own heading, and plenty of contracts
+       do not number theirs — a document with four clauses headed "Governing
+       law" produced four identical rows, which is a queue you cannot use: no
+       way to see which one you have just answered, or which one is next.
+
+       Where there is no number the FINGERPRINT stands in. It is the same
+       handle the change cards, the margin badges and the audit trail already
+       print, so a row and its card can be matched by eye, and it is unique by
+       construction — which is exactly what a number was being asked to be
+       here. The clause's own number is still preferred when it has one: it is
+       what the reader will say out loud. */
+    const mark = row.num ? `#${_ne(row.num)}` : _ne((row.lead && row.lead.id) || '');
+    const label = mark ? `${mark} · ${_ne(row.title)}` : _ne(row.title);
     const word = rlQueueWord(row);
     const many = row.changes.length > 1;
     /* The tooltip carries what the row cannot: why it is held, and how many
@@ -8910,15 +8930,32 @@ function redlineDiscussionHtml(c, opts = {}){
       </div>
     </div>`;
   const starter = (canComment && silent.length) ? `
+    ${''/* Named, so the composers read as a section of the column rather than
+           as more threads. Without the heading a reader scrolling past the
+           conversation meets a run of identical empty boxes and cannot tell
+           whether they are looking at threads that failed to load. */}
+    <div class="rl-starter-sep">Not discussed yet &middot; ${silent.length}</div>
     ${silent.map(starterFor).join('')}
     <p class="rl-starter-note">Internal is the default — a forgotten field stays home, never the other way round.</p>` : '';
 
+  /* ---- THE COMPOSERS BELONG INSIDE THE SCROLLER, NOT UNDER IT ----
+     They used to be a sibling of #rl-threads, and #rl-threads is the flex:1
+     child of this column — so every composer took its height out of the thread
+     list. One thread and seven silent changes measured 24px of list holding a
+     224px thread, with 721px of composers below it: the conversation, which is
+     the only thing on this panel anybody came to read, was a clipped sliver
+     with its own scrollbar, and the panel looked broken because it was.
+
+     Nothing here changes what is drawn. The starters are the same starters,
+     one per silent change; they scroll WITH the threads now instead of
+     evicting them, which is the arrangement the column was always described
+     as having ("the composer at the foot of the column"). */
   return `${head}
     <div class="rl-disc-body" id="rl-threads">
       ${threads.length ? threads.map(card).join('')
         : `<div class="rl-disc-empty">No one has said anything yet. Start a thread below and it stays attached to that change.</div>`}
-    </div>
-    ${starter}`;
+      ${starter}
+    </div>`;
 }
 /* A timestamp a person can read, falling back to the raw value rather than
    inventing one when the record has no parseable date. */
