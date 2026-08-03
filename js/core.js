@@ -1831,10 +1831,27 @@ function shareSummaryStepHtml(c, opts={}){
           ? negoTimelineScreenHtml(c, {})
           : '<div style="padding:14px;font-size:12px;color:var(--color-neutral-600)">The history is not available here.</div>'}</div>
       </div>
+      ${''/* THE BOX IS NO LONGER PRE-WRITTEN FOR THE SENDER.
+
+             It used to open holding the generated change list, and whatever it
+             held travelled: into the email body and onto the counterparty's
+             landing page as "What changed". So every link arrived with a
+             machine-written paragraph stapled to it, listing changes that are
+             already on the same screen a few inches below — in the Tracked
+             Changes panel, per clause, with the redline attached. A covering
+             note that repeats the page it covers is noise wearing the shape of
+             a message, and nobody reads the second copy.
+
+             Empty, with the question in the placeholder. Say something and it
+             travels; say nothing and the recipient gets the contract without a
+             paragraph pretending a person wrote it. The manifest above is
+             unchanged — the SENDER still sees exactly what is going out. */}
       <label style="display:block"><span id="sh-summary-label" style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${
-        hist?'Note sent with the record — edit if you want to say it differently'
-           :`Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently`}</span>
-        <textarea id="sh-summary" rows="5" style="${FLD}">${esc(s?s.text:'')}</textarea></label>
+        hist?'A note to send with the record — optional'
+           :`A note to ${esc(c.counterparty||'them')} — optional`}</span>
+        <textarea id="sh-summary" rows="4" style="${FLD}" placeholder="${
+          hist?'e.g. The full record of our negotiation, for your file.'
+             :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>
       ${opts.handOver?`<div id="share-handover" style="margin-top:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.5;color:var(--st-green-fg)">
         <b>Sending this closes your turn.</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
@@ -2569,15 +2586,6 @@ async function openShareModal(c, opts={}){
      the record here replaces the sign/negotiate choice rather than sitting
      beside it — and choosing the contract again restores whatever the contract's
      own state says the default should be. */
-  /* The two default covering notes, and which one the box is currently
-     holding. Compared by value rather than tracked by an "edited" flag: a
-     sender who types and then undoes back to the default has, as far as this
-     needs to care, not edited it. */
-  const _shareNoteContract = (typeof negoChangeSummary==='function' && negoChangeSummary(c))
-    ? (negoChangeSummary(c).text||'') : '';
-  const _shareNoteHist = `The full record of our negotiation on ${c.id||'this contract'}, for your file. `
-    + `It is read-only and carries its own verification result — no account is needed to open it.`;
-  let _shareNoteWas = _shareNoteContract;
   const setKind = k => {
     purposeSel = k==='history' ? 'history' : (SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c));
     payloadObj.purpose = purposeSel; payloadObj.purposeChosen = purposeSel;
@@ -2599,23 +2607,20 @@ async function openShareModal(c, opts={}){
     document.getElementById('share-hist-note')?.classList.toggle('hidden', !hist);
     const lab=document.getElementById('sh-summary-label');
     if(lab) lab.textContent = hist
-      ? 'Note sent with the record — edit if you want to say it differently'
-      : `Summary sent to ${c.counterparty||'them'} — edit if you want to say it differently`;
+      ? 'A note to send with the record — optional'
+      : `A note to ${c.counterparty||'them'} — optional`;
     document.getElementById('share-manifest-line')?.classList.toggle('hidden', hist);
     document.getElementById('share-manifest-line-hist')?.classList.toggle('hidden', !hist);
     document.getElementById('share-manifest')?.classList.toggle('hidden', hist);
     document.getElementById('share-hist-preview')?.classList.toggle('hidden', !hist);
-    /* THE DEFAULT NOTE FOLLOWS THE CHOICE, AND STOPS THE MOMENT IT IS TYPED IN.
-       "9 changes on the table, 8 awaiting a decision" is a covering note for a
-       link somebody must act on; it is the wrong sentence to staple to a
-       record. Swapped only while the box still holds the default it was given
-       — once the sender has written their own words, switching the kind must
-       not take them away. */
+    /* Only the invitation changes with the choice. Nothing is written into the
+       box by the switch, because nothing is written into it at all — whatever
+       is in there was typed by the sender, and switching what is being shared
+       is not a reason to take their words away. */
     const ta=document.getElementById('sh-summary');
-    if(ta && ta.value===_shareNoteWas){
-      ta.value = hist ? _shareNoteHist : _shareNoteContract;
-      _shareNoteWas = ta.value;
-    }
+    if(ta) ta.placeholder = hist
+      ? 'e.g. The full record of our negotiation, for your file.'
+      : 'e.g. We have moved on payment terms but not on the liability cap.';
     const blurb=document.getElementById('share-send-blurb');
     if(blurb) blurb.classList.toggle('hidden', hist);
     const hblurb=document.getElementById('share-send-blurb-hist');
@@ -2706,9 +2711,12 @@ async function openShareModal(c, opts={}){
      Returns true only when a link actually went out (or was handed over). */
   const doSend=async()=>{
     const name=fval('sh-name'), email=fval('sh-email'), phone=fval('sh-phone');
-    /* The summary the sender approved on step 1 travels with the link: into the
+    /* The note the sender WROTE on step 1 travels with the link: into the
        message body, and onto the payload so the landing page still shows it to
-       someone who opens the link a week later. */
+       someone who opens the link a week later. It is empty unless they typed
+       something — the box is no longer pre-filled with the generated change
+       list, so an empty note now means "they had nothing to add" rather than
+       "they did not bother deleting the machine's paragraph". */
     const summary=fval('sh-summary').trim();
     const note=fval('sh-msg').trim();
     const msg=[summary,note].filter(Boolean).join('\n\n');

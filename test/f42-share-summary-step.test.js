@@ -237,15 +237,32 @@ describe('Share is two steps, and the summary travels', () => {
       'a blocker belongs next to the button it blocks, not on the summary');
   });
 
-  test('the summary is editable before it is sent', async () => {
+  /* THE BOX STOPPED BEING PRE-WRITTEN (Young, 03 Aug 2026). It used to open
+     holding the generated change list, and whatever it held travelled — into
+     the email and onto the counterparty's landing page as "What changed". So
+     every link arrived with a machine-written paragraph listing changes that
+     are already on the same screen, per clause, with the redline attached. The
+     manifest above it is unchanged: the SENDER still sees exactly what is going
+     out. What changed is that the RECIPIENT no longer receives a covering note
+     nobody wrote. */
+  test('the note is empty, and asks rather than answers', async () => {
     const { win } = buildWorld();
     const c = await negotiated(win);
     const m = await openShare(c);
     const box = m.$('#sh-summary');
-    assert.ok(box, 'the summary must be an editable field, not fixed text');
+    assert.ok(box, 'there must still be somewhere to write a note');
     assert.equal(box.tagName, 'TEXTAREA');
-    assert.match(box.value, /#CHG-001 · Clause 4 · Payment Terms/,
-      'prefilled from the record — the sender edits a draft, they do not write from nothing');
+    assert.equal(box.value, '', 'nothing is written for the sender');
+    assert.ok(box.getAttribute('placeholder'), 'and the box says what it is for');
+  });
+
+  test('the sender still sees every change that is going out', async () => {
+    const { win } = buildWorld();
+    const c = await negotiated(win);
+    const m = await openShare(c);
+    const txt = m.$('#share-manifest').textContent;
+    assert.ok(txt.includes('#CHG-001') && txt.includes('#CHG-002'),
+      'the manifest is what shows the sender what they are sending — it did not go anywhere');
   });
 
   test('a contract with no changes still opens, and says there are none', async () => {
@@ -331,7 +348,7 @@ describe('Share is two steps, and the summary travels', () => {
     assert.ok(!m.$('#share-manifest').className.includes('hidden'), 'and back again');
   });
 
-  test('the covering note follows the choice, but never overwrites the sender', async () => {
+  test('switching what is shared changes the invitation, never the sender\u2019s words', async () => {
     const { win } = buildWorld();
     const c = await negotiated(win);
     const m = await openShare(c);
@@ -340,13 +357,14 @@ describe('Share is two steps, and the summary travels', () => {
     const ta = () => m.$('#sh-summary');
 
     click('[data-share-kind="history"]');
-    assert.match(ta().value, /read-only and carries its own verification result/,
-      'a covering note for a record, not for a decision');
+    assert.equal(ta().value, '', 'the record gets no pre-written note either');
+    assert.match(ta().getAttribute('placeholder'), /record/i,
+      'only the invitation changes with the choice');
 
     ta().value = 'For your file, Amina — nothing needed from you.';
     click('[data-share-kind="contract"]');
     assert.equal(ta().value, 'For your file, Amina — nothing needed from you.',
-      'once the sender has written their own words, switching must not take them away');
+      'switching the kind must never take the sender\u2019s words away');
   });
 
 });

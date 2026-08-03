@@ -174,8 +174,13 @@ describe('the dialog it opens is the share dialog', () => {
       assert.ok(m.$('#share-step-1'), 'the summary step');
       assert.ok(m.$('#share-next'), 'the Next button');
       assert.ok(m.$('#share-step-2'), 'and the send form behind it');
-      assert.ok(m.$('#sh-summary').value.includes('#CHG-001'),
-        'prefilled from the record, the same as Share Link');
+      /* The note box is empty on both routes now — it stopped being pre-filled
+         with the generated change list (see f42). What must match between the
+         two routes is that the sender is shown the same manifest of what is
+         going out, which is the thing this test is really about. */
+      assert.equal(m.$('#sh-summary').value, '', 'nobody writes the note for the sender');
+      assert.ok(m.$('#share-manifest').textContent.includes('#CHG-001'),
+        'and the manifest shows what is going out, the same as Share Link');
     }
   });
 });
