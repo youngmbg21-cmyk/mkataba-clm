@@ -35,10 +35,19 @@ async function openDesignStep(opts) {
     orgHadDesign: !!(org && org.designId),
     saveDefault: !(org && org.designId),   // the first design IS the company standard (decision 1)
     posTouched: !!(org && org.designId),   // a saved default's position is a choice; keep it across design switches
+    /* A saved default's LAYOUT is a choice too, and one made deliberately —
+       so a workspace that already has a design keeps the right to be told when
+       a style switch takes that layout away. A first-time design has no such
+       choice behind it yet. */
+    structureTouched: !!(org && org.designId),
     changeNote: '', onBack: opts.onBack || null,
-    /* CHANGE 3 — structure first, style second. One choice per screen: the
-       style list used to sit below five structure cards, so finding it meant
-       scrolling past the choice you had already made. */
+    /* ONE CHOICE PER SCREEN — the style first, then the structure. The style
+       list used to sit below five structure cards, so finding it meant
+       scrolling past the choice you had already made; splitting them fixed
+       that, and the order is now the one people actually work in. You decide
+       what the paper LOOKS like, then how the page is laid out — and because
+       style leads, a pair the product refuses is refused at the second step,
+       against a choice already made, never at the first. */
     step: 1,
     focus: false,
   };
@@ -199,12 +208,19 @@ function dsPaint(opts) {
         ${esc(structureBlockedReason(b.designId, blockedNow[0].id))}</span>
     </div>` : '';
 
-  /* On step 2 the structure is already chosen, so a style that cannot take it
-     is drawn unavailable with its reason — the refusal is shown against the
-     choice already made rather than against one still to come. */
+  /* ---- STYLE IS THE FIRST CHOICE, SO NOTHING HERE IS REFUSED ----
+     Every style used to be checked against the structure and drawn unavailable
+     if the pair was blocked. That was right while structure came first: the
+     refusal stood against a choice the reader had already made. Flipped, there
+     is no structure yet — only a default nobody has looked at — and greying out
+     a style because of it would refuse the reader's FIRST choice on the
+     strength of a decision they have not taken.
+
+     The refusal has not gone anywhere; it moved to step 2, where a structure
+     this style cannot take is drawn unavailable with its reason. Same rule,
+     pointed the way the steps now run. */
   const designCards = DOC_DESIGNS.map(d =>
-    pickCard({ ...d, blockedWhy: structureBlockedReason(d.id, b.structureId) },
-      d.id === b.designId, 'data-ds-pick')).join('');
+    pickCard(d, d.id === b.designId, 'data-ds-pick')).join('');
 
   const posChips = DESIGN_LOGO_POSITIONS.map(p => {
     const label = { 'top-left': 'Top left', 'top-center': 'Top centre', 'top-right': 'Top right', footer: 'Footer' }[p];
@@ -260,8 +276,8 @@ function dsPaint(opts) {
      title and a description that all change between steps, so the screen never
      leaves you guessing whether these cards are layouts or looks. */
   const railHead = () => step === 1
-    ? { n: 1, title: 'Choose a structure', hint: 'How the page is laid out. Nothing is reworded and no clause is renumbered.' }
-    : { n: 2, title: 'Choose a style', hint: 'How the document is dressed — typeface, header, accent colour.' };
+    ? { n: 1, title: 'Choose a style', hint: 'How the document is dressed — typeface, header, accent colour.' }
+    : { n: 2, title: 'Choose a structure', hint: 'How the page is laid out. Nothing is reworded and no clause is renumbered.' };
 
   /* The step rail. Publish is drawn as the third step because it is where the
      two choices are going, even though it is a button rather than a screen. */
@@ -278,7 +294,7 @@ function dsPaint(opts) {
     const sep = '<span style="width:14px;height:1px;background:var(--color-divider);flex:none"></span>';
     return `<div style="margin-left:auto;display:flex;align-items:center;background:var(--color-surface);
       border:1px solid var(--color-divider);border-radius:999px;padding:3px;flex:none">
-      ${pill(1, 'Structure', step === 1 ? 'on' : 'done')}${sep}${pill(2, 'Style', step === 2 ? 'on' : '')}${sep}${pill(3, publish ? 'Publish' : 'Save', '')}
+      ${pill(1, 'Style', step === 1 ? 'on' : 'done')}${sep}${pill(2, 'Structure', step === 2 ? 'on' : '')}${sep}${pill(3, publish ? 'Publish' : 'Save', '')}
     </div>`;
   };
 
@@ -304,7 +320,7 @@ function dsPaint(opts) {
   const rh = railHead();
   const stepAction = step === 1
     ? `<button id="ds-next" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">
-         Next: choose a style ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
+         Next: choose a structure ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
        <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">Step 2 of 2, then ${publish ? 'publish' : 'save'}.</p>`
     : publish
       ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">Publish v${_ds.versionNumber}</button>
@@ -316,11 +332,11 @@ function dsPaint(opts) {
   <div class="view-enter ds-page${_ds.focus ? ' ds-focus' : ''}" style="${VIEW};padding:12px 16px 14px;display:flex;flex-direction:column;gap:11px">
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button id="ds-back" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${
-        step === 2 ? 'Back to structure' : (publish ? 'Back to builder' : 'Back to settings')}</button>
+        step === 2 ? 'Back to style' : (publish ? 'Back to builder' : 'Back to settings')}</button>
       <h3 style="margin:0;font-family:var(--font-heading);font-size:15.5px;font-weight:700">Design${publish ? ` — publish ${esc(_ds.templateName)} v${_ds.versionNumber}` : ' — your company standard'}</h3>
       <span style="font-size:11px;color:var(--color-neutral-600)">${step === 1
-        ? 'The wording and the clause numbers never change — only the layout.'
-        : 'Same document, now choose how it is dressed.'}</span>
+        ? 'Same document, choose how it is dressed.'
+        : 'The wording and the clause numbers never change — only the layout.'}</span>
       ${stepRail()}
     </div>
 
@@ -339,16 +355,16 @@ function dsPaint(opts) {
           <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
         </div>
         <div id="ds-rail" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:11px 13px 14px">
-          ${step === 1 ? structureCards + blockNote : designCards}
+          ${step === 1 ? designCards : structureCards + blockNote}
         </div>
       </section>`}
 
       <!-- The document on its own canvas, whole and centred. -->
       <section style="${PANE}">
         <div style="flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--color-divider)">
-          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(structure.name)}</span>
+          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(design.name)}</span>
           <span style="color:var(--color-neutral-400);font-size:11px">×</span>
-          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">${esc(design.name)}</span>
+          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">${esc(structure.name)}</span>
           <span style="flex:1"></span>
           <!-- The workbench's own controls, not lookalikes: one stored text-size
                preference shared with the Doc tab and the Redline canvas, so a
@@ -423,6 +439,7 @@ function dsPaint(opts) {
   document.getElementById('ds-next')?.addEventListener('click', () => { dsHarvest(); _ds.step = 2; dsPaint({ resetScroll: true }); });
   document.querySelectorAll('[data-ds-structure]').forEach(el => el.addEventListener('click', () => {
     dsHarvest();
+    _ds.structureTouched = true;
     _ds.b.structureId = el.getAttribute('data-ds-structure');
     dsPaint();
   }));
@@ -447,14 +464,21 @@ function dsPaint(opts) {
     _ds.b.designId = el.getAttribute('data-ds-pick');
     if (!_ds.posTouched) _ds.b.logoPosition = docDesignById(_ds.b.designId).defaultLogoPos;
     /* Never leave a blocked pair selected. Switching style is the customer's
-       action; silently publishing a combination the product refuses is not. */
-    /* Step 2 is chosen against a structure already picked, so a refused pairing
-       is drawn unavailable rather than reached. This stays as the backstop for
-       the settings route, where a saved default can carry an old pair. */
+       action; silently publishing a combination the product refuses is not.
+       This is the backstop for the settings route too, where a saved default
+       can carry a pair from before either catalogue moved.
+
+       IT ONLY SPEAKS UP ABOUT A STRUCTURE SOMEBODY CHOSE. Style comes first
+       now, so on step 1 the structure is a default the reader has not seen —
+       announcing that it "is not available" names a decision they never took
+       and sends them looking for a mistake they did not make. The pair is
+       still corrected; the sentence waits until there is something to correct
+       THEM about. */
     if (structureBlockedReason(_ds.b.designId, _ds.b.structureId)) {
       const was = docStructureById(_ds.b.structureId);
+      const chosen = _ds.step === 2 || _ds.structureTouched;
       _ds.b.structureId = DEFAULT_STRUCTURE;
-      toast(`${was.name} is not available with ${docDesignById(_ds.b.designId).name} — the layout is back to Standard Flow`, 'err');
+      if (chosen) toast(`${was.name} is not available with ${docDesignById(_ds.b.designId).name} — the layout is back to Standard Flow`, 'err');
     }
     dsPaint();
   }));

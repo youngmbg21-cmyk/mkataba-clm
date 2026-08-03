@@ -52,7 +52,10 @@ const check = (name, pass, detail) => {
 const READ = () => {
   const scrolls = sel => { const el = document.querySelector(sel);
     return el ? { h: Math.round(el.clientHeight), scrolls: el.scrollHeight > el.clientHeight + 2 } : null; };
-  const rail = document.querySelectorAll('[data-ds-structure]')[0];
+  /* WHICHEVER LIST IS ON SCREEN. Step 1 draws style cards (data-ds-pick) and
+     step 2 draws structures (data-ds-structure); looking only for structures
+     found no rail at all on the first step once the order was flipped. */
+  const rail = document.querySelector('[data-ds-structure], [data-ds-pick]');
   const railPane = rail ? rail.parentElement : null;
   const paper = document.querySelector('[data-doc-body]');
   const onScreen = sel => { const el = document.querySelector(sel); if (!el) return false;
@@ -113,6 +116,9 @@ const READ = () => {
     hexField: onScreen('#ds-accent-hex'),
     colourWheel: onScreen('#ds-accent'),
     structureAttr: paper ? paper.getAttribute('data-doc-structure') : null,
+    designAttr: paper ? paper.getAttribute('data-doc-body') : null,
+    blockedStyles: Array.from(document.querySelectorAll('[data-ds-pick][disabled]'))
+      .map(b => ({ id: b.getAttribute('data-ds-pick'), why: b.getAttribute('title') || '' })),
     columnCount: paper ? getComputedStyle(paper.querySelector('.doc-surface')).columnCount : null,
     selectedStructure: (document.querySelector('[data-ds-structure][style*="accent-100"]') || {})
       .getAttribute ? document.querySelector('[data-ds-structure][style*="accent-100"]').getAttribute('data-ds-structure') : null,
@@ -142,12 +148,18 @@ const READ = () => {
   await page.screenshot({ path: path.join(OUT, 'design-step.png') });
 
   const m = await page.evaluate(READ);
-  check('1 · the step opens on structure alone',
-    m.structures === 5 && m.styles === 0,
+  check('1 · the step opens on style alone',
+    m.styles === 8 && m.structures === 0,
     `${m.structures} structures, ${m.styles} styles on screen`);
   check('1 · and says which step it is, in words',
-    /Step 1 of 2/.test(m.stepLabel) && /Choose a structure/i.test(m.railHeading),
+    /Step 1 of 2/.test(m.stepLabel) && /Choose a style/i.test(m.railHeading),
     `"${m.stepLabel}" · "${m.railHeading}"`);
+  /* STYLE LEADS, SO NOTHING ON IT IS REFUSED. There is no structure yet for a
+     style to be incompatible with — only a default nobody has looked at — and
+     greying out the reader's FIRST choice on the strength of a decision they
+     have not taken is the fault this asserts against. */
+  check('1 · and no style is refused on the first choice',
+    m.blockedStyles.length === 0, m.blockedStyles.map(b => b.id).join(', ') || 'none');
   check('2 · the rail scrolls rather than growing to fit',
     m.railPane && m.railPane.scrolls, m.railPane ? `${m.railPane.h}px tall` : 'no rail');
   check('4 · the page itself does not scroll in either direction',
@@ -174,44 +186,63 @@ const READ = () => {
   check('5 · and the focus control is here', m.focusBtn);
   check('5 · step 1 offers Next, not Publish', m.nextBtn && !m.publishBtn);
 
-  /* ---- 6 · picking a structure reaches the preview ---- */
-  await page.evaluate(() => document.querySelector('[data-ds-structure="two-column"]').click());
+  /* ---- 6 · picking a style reaches the preview ---- */
+  /* Ceremonial deliberately: it is the style that refuses two of the five
+     layouts, so step 2 has a real refusal to draw rather than a happy path. */
+  const firstStyle = await page.evaluate(() => {
+    const pick = document.querySelector('[data-ds-pick="ceremonial"]')
+      || document.querySelectorAll('[data-ds-pick]')[1];
+    pick.click();
+    return pick.getAttribute('data-ds-pick');
+  });
   await page.waitForTimeout(400);
   const after = await page.evaluate(READ);
-  check('6 · picking a structure reaches the preview',
-    after.structureAttr === 'two-column' && after.columnCount === '2',
-    `attr=${after.structureAttr}, column-count=${after.columnCount}`);
-  await page.screenshot({ path: path.join(OUT, 'step1-structure.png') });
+  check('6 · picking a style reaches the preview',
+    after.designAttr === firstStyle, `sheet is ${after.designAttr}, picked ${firstStyle}`);
+  await page.screenshot({ path: path.join(OUT, 'step1-style.png') });
 
-  /* ---- 5b · Next moves to style and says so ---- */
+  /* ---- 5b · Next moves to structure and says so ---- */
   await page.evaluate(() => document.getElementById('ds-next').click());
   await page.waitForTimeout(500);
   const two = await page.evaluate(READ);
-  check('5b · Next moves to style, and only style is offered',
-    two.styles === 8 && two.structures === 0, `${two.structures} structures, ${two.styles} styles`);
+  check('5b · Next moves to structure, and only structure is offered',
+    two.structures === 5 && two.styles === 0, `${two.structures} structures, ${two.styles} styles`);
   check('5b · and the screen says so — step label, heading and button all change',
-    /Step 2 of 2/.test(two.stepLabel) && /Choose a style/i.test(two.railHeading)
-      && two.publishBtn && !two.nextBtn && /Back to structure/i.test(two.backLabel),
+    /Step 2 of 2/.test(two.stepLabel) && /Choose a structure/i.test(two.railHeading)
+      && two.publishBtn && !two.nextBtn && /Back to style/i.test(two.backLabel),
     `"${two.stepLabel}" · "${two.railHeading}" · back reads "${two.backLabel}"`);
-  check('5b · the structure chosen on step 1 is still the one on the sheet',
-    two.structureAttr === 'two-column', `sheet is ${two.structureAttr}`);
-  await page.screenshot({ path: path.join(OUT, 'step2-style.png') });
+  check('5b · the style chosen on step 1 is still the one on the sheet',
+    two.designAttr === firstStyle, `sheet is ${two.designAttr}`);
+  await page.screenshot({ path: path.join(OUT, 'step2-structure.png') });
 
-  /* ---- 7 · blocked pairings, now shown against a structure already chosen ---- */
-  const blocked = await page.evaluate(() => Array.from(document.querySelectorAll('[data-ds-pick][disabled]'))
-    .map(b => ({ id: b.getAttribute('data-ds-pick'), why: b.getAttribute('title') || '' })));
-  check('7 · a style that cannot take the chosen structure is drawn unavailable, with its reason',
+  /* ---- 7 · blocked pairings, now shown against a STYLE already chosen ---- */
+  const blocked = await page.evaluate(() => Array.from(document.querySelectorAll('[data-ds-structure][disabled]'))
+    .map(b => ({ id: b.getAttribute('data-ds-structure'), why: b.getAttribute('title') || '' })));
+  check('7 · a structure the chosen style cannot take is drawn unavailable, with its reason',
     blocked.length > 0 && blocked.every(b => b.why.length > 30),
     blocked.map(b => b.id).join(', ') || 'none');
 
-  /* ---- 5c · Back returns to structure, keeping the choice ---- */
+  /* ---- 6b · and picking an allowed structure still reaches the preview ---- */
+  const pickedStructure = await page.evaluate(() => {
+    const free = Array.from(document.querySelectorAll('[data-ds-structure]')).filter(b => !b.disabled);
+    const el = free.find(b => b.getAttribute('data-ds-structure') !== 'standard-flow') || free[0];
+    el.click();
+    return el.getAttribute('data-ds-structure');
+  });
+  await page.waitForTimeout(400);
+  const withStruct = await page.evaluate(READ);
+  check('6b · picking a structure reaches the preview',
+    withStruct.structureAttr === pickedStructure,
+    `sheet is ${withStruct.structureAttr}, picked ${pickedStructure}`);
+
+  /* ---- 5c · Back returns to style, keeping the choice ---- */
   await page.evaluate(() => document.getElementById('ds-back').click());
   await page.waitForTimeout(450);
   const back = await page.evaluate(READ);
-  check('5c · Back returns to structure with the choice intact',
-    back.structures === 5 && back.styles === 0 && back.structureAttr === 'two-column'
+  check('5c · Back returns to style with the choice intact',
+    back.styles === 8 && back.structures === 0 && back.designAttr === firstStyle
       && /Step 1 of 2/.test(back.stepLabel),
-    `${back.stepLabel}, sheet still ${back.structureAttr}`);
+    `${back.stepLabel}, sheet still ${back.designAttr}`);
 
   /* ---- 9 · the resize and focus controls actually work ---- */
   const z0 = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ds-zoom')).getPropertyValue('--ds-zoom')));
@@ -242,9 +273,12 @@ const READ = () => {
   /* ---- 10 · THE DEFECT THAT WAS REPORTED ----
      Every pick repainted the screen wholesale, so the rail returned to the top
      and the card just clicked went with it. On the fifth structure or the
-     eighth style the selection vanished at the moment it was made. */
-  await page.evaluate(() => document.getElementById('ds-next').click());
-  await page.waitForTimeout(450);
+     eighth style the selection vanished at the moment it was made.
+
+     Asked on the STYLE list, which is step 1 now and the longer of the two —
+     eight cards to five, so it is the list that actually has to scroll. Check
+     5c left the screen there, so there is no step to move to first; pressing
+     Next here is what made this look for style cards on the structure step. */
   const scrolled = await page.evaluate(() => {
     const rail = document.getElementById('ds-rail');
     rail.scrollTop = rail.scrollHeight;                 // down to the last style
