@@ -133,6 +133,44 @@ async function main(){
   check('3 · Margin Numbers hangs the heading left of the body text',
     margin.headLeft !== null && margin.bodyLeft !== null && margin.headLeft < margin.bodyLeft - 8,
     `heading at ${margin.headLeft}px, body at ${margin.bodyLeft}px`);
+  /* The defect this catches: the heading used to be pulled left twice and its
+     first line landed outside the sheet, so the words ran off the paper. */
+  const inside = await page.evaluate(() => {
+    /* The TEXT, not the element box. The defect was a text-indent, and
+       text-indent moves the first line inside a box it does not move — so an
+       element-box measurement reads clean while the words sit outside the
+       page. A Range gives the position of the glyphs themselves. */
+    const paper = document.querySelector('.paper').getBoundingClientRect();
+    const heads = Array.from(document.querySelectorAll('.doc-surface h1,.doc-surface h2'));
+    const escaped = [];
+    for (const h of heads) {
+      const node = [...h.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
+      if (!node) continue;
+      const r = document.createRange(); r.selectNodeContents(node);
+      const first = r.getClientRects()[0];
+      if (first && first.left < paper.left - 0.5)
+        escaped.push(h.textContent.trim().slice(0, 26) + ' @' + Math.round(first.left - paper.left) + 'px');
+    }
+    return { paperLeft: Math.round(paper.left), escaped };
+  });
+  check('3 · and no heading escapes the sheet', inside.escaped.length === 0,
+    inside.escaped.length ? 'outside the paper: ' + inside.escaped.join(' | ') : 'every heading inside the page');
+  /* THE DEFECT THAT WAS REPORTED. A clause heading is longer than a number
+     column is wide, so it must cross the rule — the question is whether it
+     crosses over or under. Struck through "Orders and Deliveries", it reads as
+     a mistake. The heading has to paint the paper's own colour to break the
+     rule behind it, so that is what is measured. */
+  const strike = await page.evaluate(() => {
+    const h = document.querySelector('.doc-surface h2');
+    const cs = getComputedStyle(h);
+    const paper = getComputedStyle(document.querySelector('.paper')).backgroundColor;
+    const transparent = c => c === 'transparent' || /rgba\(0, 0, 0, 0\)/.test(c);
+    return { bg: cs.backgroundColor, z: cs.zIndex, opaque: !transparent(cs.backgroundColor),
+      matchesPaper: cs.backgroundColor === paper };
+  });
+  check('3 · and the rule breaks behind the heading rather than striking through it',
+    strike.opaque && strike.z !== 'auto',
+    `heading background ${strike.bg} (paper ${strike.matchesPaper ? 'matched' : 'DIFFERENT'}), z-index ${strike.z}`);
   await shot('margin-numbers');
 
   /* ---- 4 · ruled clauses really paint a rule ---- */

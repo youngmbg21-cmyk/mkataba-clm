@@ -34,6 +34,10 @@ async function openDesignStep(opts) {
     saveDefault: !(org && org.designId),   // the first design IS the company standard (decision 1)
     posTouched: !!(org && org.designId),   // a saved default's position is a choice; keep it across design switches
     changeNote: '', onBack: opts.onBack || null,
+    /* CHANGE 3 — structure first, style second. One choice per screen: the
+       style list used to sit below five structure cards, so finding it meant
+       scrolling past the choice you had already made. */
+    step: 1,
   };
   dsPaint();
 }
@@ -82,10 +86,13 @@ function dsPaint() {
   const design = docDesignById(b.designId) || DOC_DESIGNS[0];
   const structure = docStructureById(b.structureId) || DOC_STRUCTURES[0];
   const publish = _ds.mode === 'publish';
-  /* A definite height, not one inherited from the window: tied to the viewport
-     the panes grow until their content fits and then have nothing left to
-     scroll, which on a tall monitor means no scrollbar at all. */
-  const PANE_H = 'clamp(430px,calc(100vh - 232px),700px)';
+  const step = _ds.step;
+  /* CHANGE 1 — the panes fill the view instead of stopping short and leaving a
+     band of dead space beneath them. --view-h is the shell's own measured
+     scroll height (js/app.js syncViewHeight), which is how the workspace sizes
+     itself; a clamp on the viewport left the panes short on a tall monitor. */
+  const VIEW = 'height:var(--view-h,calc(100vh - 126px));box-sizing:border-box';
+  const PANE = `${CARD};display:flex;flex-direction:column;min-height:0;overflow:hidden`;
 
   /* One card shape for both catalogues — a structure and a style are the same
      KIND of choice and should not look like two different controls. */
@@ -144,18 +151,12 @@ function dsPaint() {
         ${esc(structureBlockedReason(b.designId, blockedNow[0].id))}</span>
     </div>` : '';
 
-  const designCards = DOC_DESIGNS.map(d => pickCard(d, d.id === b.designId, 'data-ds-pick')).join('');
-
-  const catHead = (n, title, hint) => `
-    <div style="position:sticky;top:0;z-index:3;background:var(--color-surface);padding:12px 0 7px;
-      margin-bottom:6px;border-bottom:1px solid var(--color-divider)">
-      <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0;text-transform:uppercase;
-        letter-spacing:.06em;color:var(--color-neutral-600);display:flex;align-items:center;gap:7px">
-        <span style="width:16px;height:16px;border-radius:50%;background:var(--color-accent-100);
-          color:var(--color-accent-700);display:grid;place-items:center;font-size:9.5px;font-weight:800;flex:none">${n}</span>
-        ${title}</h4>
-      <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:4px 0 0">${hint}</p>
-    </div>`;
+  /* On step 2 the structure is already chosen, so a style that cannot take it
+     is drawn unavailable with its reason — the refusal is shown against the
+     choice already made rather than against one still to come. */
+  const designCards = DOC_DESIGNS.map(d =>
+    pickCard({ ...d, blockedWhy: structureBlockedReason(d.id, b.structureId) },
+      d.id === b.designId, 'data-ds-pick')).join('');
 
   const posChips = DESIGN_LOGO_POSITIONS.map(p => {
     const label = { 'top-left': 'Top left', 'top-center': 'Top centre', 'top-right': 'Top right', footer: 'Footer' }[p];
@@ -166,8 +167,7 @@ function dsPaint() {
   /* The colour control is ALWAYS drawn, on every design. It used to appear only
      on designs that display an accent, which meant a customer sitting on a
      monochrome design could not find the control at all — the colour is a
-     company fact, set once, not a property of whichever design is on screen.
-     A monochrome design says so instead of hiding the control. */
+     company fact, set once, not a property of whichever design is on screen. */
   const ACCENT_PRESETS = [
     ['#0f766e', 'Teal'], ['#004c78', 'Navy'], ['#1e3a8a', 'Royal blue'],
     ['#1f5d3a', 'Forest'], ['#8e3550', 'Claret'], ['#9a4a1f', 'Rust'],
@@ -178,9 +178,6 @@ function dsPaint() {
     <button data-ds-swatch="${hex}" title="${name}" aria-label="${name}" style="width:23px;height:23px;border-radius:6px;
       cursor:pointer;padding:0;background:${hex};border:1px solid rgba(0,0,0,.18);
       ${hex.toLowerCase() === accentNow.toLowerCase() ? 'box-shadow:0 0 0 2px var(--color-surface),0 0 0 4px var(--accent-solid)' : ''}"></button>`).join('');
-  /* accentLegible darkens a colour too pale to read as a rule or a band. It has
-     always done so silently; a customer whose brand colour is adjusted is told
-     what happened and why. */
   const rawPick = _ds.accentRaw || null;
   const darkened = !!(rawPick && accentLegible(rawPick) && accentLegible(rawPick).toLowerCase() !== rawPick.toLowerCase());
   const accentRow = `
@@ -211,54 +208,104 @@ function dsPaint() {
             : 'Colours the rule, the band and the clause headings.'}</div>` : ''}
     </div>`;
 
+  /* CHANGE 4 — the rail says which of the two choices you are on. A number, a
+     title and a description that all change between steps, so the screen never
+     leaves you guessing whether these cards are layouts or looks. */
+  const railHead = () => step === 1
+    ? { n: 1, title: 'Choose a structure', hint: 'How the page is laid out. Nothing is reworded and no clause is renumbered.' }
+    : { n: 2, title: 'Choose a style', hint: 'How the document is dressed — typeface, header, accent colour.' };
+
+  /* The step rail. Publish is drawn as the third step because it is where the
+     two choices are going, even though it is a button rather than a screen. */
+  const stepRail = () => {
+    const pill = (n, label, state) => `<span style="display:flex;align-items:center;gap:7px;padding:4px 13px 4px 5px;
+      border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap;${
+        state === 'on' ? 'background:var(--color-accent-100);color:var(--color-accent-700)'
+        : state === 'done' ? 'color:var(--color-good-fg,#047857)'
+        : 'color:var(--color-neutral-500)'}">
+      <span style="width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;flex:none;${
+        state === 'on' ? 'background:var(--accent-solid);color:#fff'
+        : state === 'done' ? 'background:var(--st-green-bg);color:var(--st-green-fg);border:1px solid var(--st-green-line)'
+        : 'background:var(--color-neutral-100);color:var(--color-neutral-500)'}">${state === 'done' ? '&check;' : n}</span>${label}</span>`;
+    const sep = '<span style="width:14px;height:1px;background:var(--color-divider);flex:none"></span>';
+    return `<div style="margin-left:auto;display:flex;align-items:center;background:var(--color-surface);
+      border:1px solid var(--color-divider);border-radius:999px;padding:3px;flex:none">
+      ${pill(1, 'Structure', step === 1 ? 'on' : 'done')}${sep}${pill(2, 'Style', step === 2 ? 'on' : '')}${sep}${pill(3, publish ? 'Publish' : 'Save', '')}
+    </div>`;
+  };
+
+  /* CHANGE 5 — the sheet fits the pane in BOTH directions, so the whole page is
+     visible at once and centred rather than running off the bottom. 70.7 is
+     100/1.414: the width at which an A4 sheet is exactly as tall as the pane.
+     min() takes whichever limit bites first — height on a tall window, width on
+     a narrow one — so the sheet can never overflow either way. Roughly a fifth
+     smaller than the fixed 680px sheet it replaces. */
   const paper = `
-    <div${docDesignPaperAttr(b)} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;max-width:680px;margin:0 auto;${docDesignPaperStyle(b)}">
-      ${docDesignHeaderHtml(b, dsPreviewContract(), { bleedX: 36, bleedY: 30 })}
-      <article class="doc-surface" style="background:transparent"><div class="hati-doc">${dsPreviewBody()}</div></article>
-      ${docDesignFooterHtml(b, dsPreviewContract())}
+    <div style="width:min(100%,70.7cqh);aspect-ratio:1/1.414;container-type:inline-size;margin:0 auto">
+      <div${docDesignPaperAttr(b)} class="ds-sheet" style="width:100%;height:100%;overflow:hidden;
+        background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;
+        padding:3.2em 3.8em;font-size:1.9cqi;${docDesignPaperStyle(b)}">
+        ${docDesignHeaderHtml(b, dsPreviewContract(), { bleedX: 60, bleedY: 50 })}
+        <article class="doc-surface" style="background:transparent"><div class="hati-doc">${dsPreviewBody()}</div></article>
+        ${docDesignFooterHtml(b, dsPreviewContract())}
+      </div>
     </div>`;
 
+  const rh = railHead();
+  const stepAction = step === 1
+    ? `<button id="ds-next" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">
+         Next: choose a style ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
+       <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">Step 2 of 2, then ${publish ? 'publish' : 'save'}.</p>`
+    : publish
+      ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">Publish v${_ds.versionNumber}</button>
+         <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Publishing freezes this version forever and makes it what the whole team creates contracts from. Contracts already created from earlier versions are not touched.</p>`
+      : `<button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">Save company design</button>
+         <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Applies to future documents and anything not yet executed. Signed contracts keep the look they were sealed with.</p>`;
+
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <button id="ds-back" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${publish ? 'Back to builder' : 'Back to settings'}</button>
+  <div class="view-enter" style="${VIEW};padding:12px 16px 14px;display:flex;flex-direction:column;gap:11px">
+    <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button id="ds-back" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${
+        step === 2 ? 'Back to structure' : (publish ? 'Back to builder' : 'Back to settings')}</button>
       <h3 style="margin:0;font-family:var(--font-heading);font-size:15.5px;font-weight:700">Design${publish ? ` — publish ${esc(_ds.templateName)} v${_ds.versionNumber}` : ' — your company standard'}</h3>
-      <span style="font-size:11px;color:var(--color-neutral-600)">${publish
-        ? 'Every contract from this template will wear the design you pick here. The wording never changes — only the look.'
-        : 'Every contract the team publishes or shares wears this design. The wording never changes — only the look.'}</span>
+      <span style="font-size:11px;color:var(--color-neutral-600)">${step === 1
+        ? 'The wording and the clause numbers never change — only the layout.'
+        : 'Same document, now choose how it is dressed.'}</span>
+      ${stepRail()}
     </div>
 
-    <div style="display:grid;grid-template-columns:262px minmax(0,1fr) 292px;gap:14px;align-items:start">
-      <!-- ONE rail, TWO categories. Structure and style are the same kind of
-           choice and scroll together; each category header sticks to the top of
-           the rail while its own cards are in view, so you always know which
-           list you are in. -->
-      <section style="${CARD};height:${PANE_H};display:flex;flex-direction:column;min-height:0;overflow:hidden">
-        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:0 12px 14px">
-          ${catHead(1, 'Structure', 'How the page is laid out. Nothing is reworded and no clause is renumbered.')}
-          ${structureCards}
-          ${blockNote}
-          ${catHead(2, 'Style', 'How the document is dressed — typeface, header, accent colour.')}
-          ${designCards}
+    <div style="display:grid;grid-template-columns:268px minmax(0,1fr) 292px;gap:14px;flex:1;min-height:0">
+      <!-- ONE list, ONE choice. Which choice it is, is said three ways: the
+           number, the title and the step rail above. -->
+      <section style="${PANE}">
+        <div style="flex:none;padding:13px 14px 11px;border-bottom:1px solid var(--color-divider)">
+          <div data-ds-step="${rh.n}" style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-size:11px;
+            font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-accent-700)">
+            <span style="width:17px;height:17px;border-radius:50%;background:var(--accent-solid);color:#fff;
+              display:grid;place-items:center;font-size:9.5px;font-weight:800">${rh.n}</span> Step ${rh.n} of 2</div>
+          <h4 data-ds-step-title style="font-family:var(--font-heading);font-size:15px;margin:6px 0 3px;letter-spacing:-.015em">${rh.title}</h4>
+          <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
+        </div>
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:11px 13px 14px">
+          ${step === 1 ? structureCards + blockNote : designCards}
         </div>
       </section>
 
-      <!-- The document on its own canvas, scrolling inside a fixed pane like
-           the negotiation room's document column — the page never scrolls the
-           app around it. -->
-      <section style="${CARD};height:${PANE_H};display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <!-- The document on its own canvas, whole and centred. -->
+      <section style="${PANE}">
         <div style="flex:none;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--color-divider)">
           <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(structure.name)}</span>
           <span style="color:var(--color-neutral-400);font-size:11px">×</span>
-          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(design.name)}</span>
+          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">${esc(design.name)}</span>
         </div>
-        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:18px;background:var(--color-neutral-100)">${paper}</div>
+        <div style="flex:1;min-height:0;padding:16px;background:var(--color-neutral-100);
+          display:grid;place-items:center;container-type:size;overflow:hidden">${paper}</div>
         <div style="flex:none;padding:7px 14px;border-top:1px solid var(--color-divider);text-align:center;font-size:10.5px;color:var(--color-neutral-500)">
-          ${publish ? 'Your live draft, not a sample' : 'A sample document, so the looks can be compared'} — scroll the sheet
+          ${publish ? 'Your live draft, not a sample' : 'A sample document, so the looks can be compared'}
         </div>
       </section>
 
-      <section style="${CARD};height:${PANE_H};display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <section style="${PANE}">
        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px">
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">Company branding</h4>
         <div style="display:flex;gap:10px;align-items:center">
@@ -282,26 +329,27 @@ function dsPaint() {
           <input id="ds-b-addr" style="${INP}" placeholder="Registered address" value="${esc(b.address)}">
           <input id="ds-b-footer" style="${INP}" placeholder="Footer text (e.g. Registered in Kenya · C.123456)" value="${esc(b.footerText)}">
         </div>
-        ${publish ? `
+        ${publish && step === 2 ? `
         <label style="display:block;margin-top:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">What changed, and why?</span>
           <textarea id="ds-note" style="${INP};min-height:48px" maxlength="500" placeholder="e.g. Payment terms now offer 30/45/60 days">${esc(_ds.changeNote)}</textarea></label>
         <label style="display:flex;align-items:flex-start;gap:7px;margin-top:12px;font-size:11px;line-height:1.5;${_ds.orgHadDesign ? 'cursor:pointer' : 'opacity:.75'}">
           <input type="checkbox" id="ds-default" ${_ds.saveDefault ? 'checked' : ''} ${_ds.orgHadDesign ? '' : 'disabled'} style="margin-top:2px">
           <span>${_ds.orgHadDesign
-            ? 'Also make this the company default for future contracts'
+            ? 'Also make this structure and style the company default for future contracts'
             : '<b>This becomes your company default.</b> Your first design is saved as the standard — later contracts arrive already dressed in it.'}</span>
-        </label>
-        <button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;margin-top:12px;font-size:13px;padding:8px">Publish v${_ds.versionNumber}</button>
-        <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:8px 0 0">Publishing freezes this version forever and makes it what the whole team creates contracts from. Contracts already created from earlier versions are not touched.</p>`
-      : `
-        <button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%;margin-top:16px;font-size:13px;padding:8px">Save company design</button>
-        <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:8px 0 0">Applies to future documents and anything not yet executed. Signed contracts keep the look they were sealed with.</p>`}
+        </label>` : ''}
        </div>
+       <!-- The step's action, pinned where it can always be reached. -->
+       <div style="flex:none;padding:11px 15px;border-top:1px solid var(--color-divider)">${stepAction}</div>
       </section>
     </div>
   </div>`;
 
-  document.getElementById('ds-back')?.addEventListener('click', () => { const go = _ds.onBack; _ds = null; if (go) go(); });
+  document.getElementById('ds-back')?.addEventListener('click', () => {
+    if (_ds.step === 2) { dsHarvest(); _ds.step = 1; dsPaint(); return; }
+    const go = _ds.onBack; _ds = null; if (go) go();
+  });
+  document.getElementById('ds-next')?.addEventListener('click', () => { dsHarvest(); _ds.step = 2; dsPaint(); });
   document.querySelectorAll('[data-ds-structure]').forEach(el => el.addEventListener('click', () => {
     dsHarvest();
     _ds.b.structureId = el.getAttribute('data-ds-structure');
@@ -329,6 +377,9 @@ function dsPaint() {
     if (!_ds.posTouched) _ds.b.logoPosition = docDesignById(_ds.b.designId).defaultLogoPos;
     /* Never leave a blocked pair selected. Switching style is the customer's
        action; silently publishing a combination the product refuses is not. */
+    /* Step 2 is chosen against a structure already picked, so a refused pairing
+       is drawn unavailable rather than reached. This stays as the backstop for
+       the settings route, where a saved default can carry an old pair. */
     if (structureBlockedReason(_ds.b.designId, _ds.b.structureId)) {
       const was = docStructureById(_ds.b.structureId);
       _ds.b.structureId = DEFAULT_STRUCTURE;
@@ -386,6 +437,9 @@ function dsHarvestIdentity() {
 }
 function dsHarvest() {
   dsHarvestIdentity();
+  /* The note field only exists on step 2. Guarding on its presence rather than
+     assigning unconditionally is what keeps a note typed on step 2 alive
+     across a trip back to step 1 and forward again. */
   const note = document.getElementById('ds-note');
   if (note) _ds.changeNote = note.value;
 }

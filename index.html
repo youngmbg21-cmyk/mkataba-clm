@@ -826,18 +826,37 @@
      properties is enforced with !important by the print sheet, so ordinary
      specificity carries them onto paper. */
 
-  /* -- Margin Numbers: headings hang into a ruled left margin, so the clause
-        numbers stack in their own column. The body keeps its measure; only the
-        headings move outward, and their text is untouched. -- */
-  [data-doc-structure="margin-numbers"] .doc-surface{padding-left:3.4em;border-left:1px solid var(--color-doc-rule,#c9ccd1);}
-  [data-doc-structure="margin-numbers"] .doc-surface h1{margin-left:-3.4em;}
+  /* -- Margin Numbers: the BODY steps in, so clause headings are left standing
+        in a ruled margin of their own and the numbers stack in a column.
+
+        THE DEFECT THIS REPLACES. The heading was pulled left twice — once by a
+        negative margin to take the block out, and again by text-indent on its
+        first line. Two pulls, one indent's worth of room: the first line landed
+        3.4em outside the sheet and the words ran off the paper. Reported from
+        the Design step preview, visible on any heading long enough to matter.
+
+        Now the surface indents and the heading steps back by exactly what the
+        surface stepped forward — no text-indent, nothing to overshoot with. The
+        rule is drawn at the indent by a pseudo-element rather than as a border
+        on the surface, so it sits BETWEEN the numbers and the body instead of
+        outside both. -- */
+  [data-doc-structure="margin-numbers"] .doc-surface{position:relative;padding-left:3.4em;}
+  [data-doc-structure="margin-numbers"] .doc-surface::before{
+    content:"";position:absolute;left:3.4em;top:0;bottom:0;width:1px;
+    background:var(--color-doc-rule,#c9ccd1);z-index:0;}
+  /* The heading steps back by exactly what the surface stepped forward, and
+     carries the paper's own colour so the rule BREAKS behind it rather than
+     being drawn through the words. A clause heading is longer than a number
+     column is wide, so it must cross the rule's line — the only question is
+     whether it crosses over or under, and a rule struck through "Orders and
+     Deliveries" is the defect that was reported. The colour is the paper's
+     token, so it stays right in dark mode and prints white on paper. */
+  [data-doc-structure="margin-numbers"] .doc-surface h1,
   [data-doc-structure="margin-numbers"] .doc-surface h2,
   [data-doc-structure="margin-numbers"] .doc-surface h3,
   [data-doc-structure="margin-numbers"] .doc-surface h4{
-    margin-left:-3.4em;padding-left:3.4em;text-indent:-3.4em;}
-  /* the hanging heading must not drag its wrapped second line into the margin */
-  [data-doc-structure="margin-numbers"] .doc-surface h2 br,
-  [data-doc-structure="margin-numbers"] .doc-surface h3 br{display:none;}
+    margin-left:-3.4em;padding-right:.6em;position:relative;z-index:1;
+    background:var(--color-doc-surface,#fff);}
 
   /* -- Two Columns: the body sets in two narrow columns. Headings, tables and
         signature blocks are kept whole rather than split across the gutter. -- */
