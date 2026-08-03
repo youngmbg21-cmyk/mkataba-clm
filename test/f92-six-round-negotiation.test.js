@@ -158,8 +158,11 @@ describe('F92 — the six-round negotiation, end to end', () => {
       'incoming asks carry Accept/Reject');
     assert.ok(!t.card(ask1).querySelector('.rl-sent'),
       'the amber Sent state is the AUTHOR\'s, not the decider\'s');
-    // The Copilot rationale filed with ask1 stays home.
-    assert.ok(!t.$('#rl-changes .rl-card-note'), 'G1: an internal note never crosses the toggle');
+    /* The Copilot provenance label is not painted on a card at all now (F137),
+       so it cannot cross the toggle. Asserted on the TEXT rather than on the
+       old .rl-card-note element, which would pass by simply not existing. */
+    assert.ok(!/Copilot —/.test(t.$('#rl-changes').textContent),
+      'G1: the provenance label is not on the counterparty\'s cards');
 
     t.card(ask1).querySelector('[data-nego-accept]').click();   // accept Net-45
     await t.pause();

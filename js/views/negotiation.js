@@ -5317,7 +5317,7 @@ function redlineLayoutCss(){
      rule so an embed that still emits one is not left unstyled. */
   .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:7px}
-  .redline-page .rl-card-note,.redline-page .rl-card-verbs{margin-top:8px}
+  .redline-page .rl-card-verbs{margin-top:8px}
   /* ---- OPEN, OR A LINE ----
      A collapsed card is the head alone. The caret is the only thing saying
      there is more under it, so it is always drawn rather than revealed on
@@ -5354,8 +5354,8 @@ function redlineLayoutCss(){
   @media (prefers-reduced-motion: reduce){
     .redline-page .rl-card[data-rl-peek]{transition:none}
   }
-  .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
-    background:var(--st-amber-bg);color:var(--st-amber-fg);overflow-wrap:anywhere}
+  /* .rl-card-note is gone with the amber provenance bar it painted — see the
+     card renderer for why the label is no longer on the card. */
   /* Compact pills, right-aligned: each verb is only as wide as its word, so the
      card's information leads and the actions follow. flex:1 stretched them into
      a wall of colour that outweighed the change itself. */
@@ -8036,12 +8036,25 @@ function redlineChangeCardsHtml(c, opts = {}){
        either one answers the same question with the same words. */
     const lastBy = String(ch.author || ch.by || '').trim();
     const tip = lastBy ? `Last updated by ${lastBy}` : '';
-    /* A note is the AUTHOR's aside — the 🔒 on it is a promise, and the wall
-       applies to the toggle too: it renders only on the side that wrote it.
-       A Copilot rationale filed with an owner ask must not appear the moment
-       someone flips to Counterparty View to check what they are sending. */
-    const note = (ch.note && ch.authorSide === side)
-      ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
+    /* ---- THE PROVENANCE LABEL IS NOT PAINTED ----
+       `ch.note` on a Copilot-filed change is provenance — "Copilot — Edit",
+       "Copilot — Shorten & Simplify (added after)" — written by the machinery
+       rather than by a person. It used to render here as an amber bar with a
+       padlock on it, on the author's side only.
+
+       It is off the card because it told the reader nothing they did not
+       already know. They selected the passage, chose the action and pressed
+       Apply thirty seconds earlier; a strip of colour restating the button
+       they pressed is a second thing to read on a card whose actual content —
+       the wording, the reason, the four verbs — is what the column is for.
+       Amber also reads as a WARNING everywhere else in this product, so the
+       most eye-catching element on a routine card was the one carrying the
+       least.
+
+       The field itself is untouched and still written on every Copilot file:
+       it is provenance, and the audit trail, the change history and the
+       exports are where provenance is asked for and answered. Nothing about
+       what crosses to the counterparty changes — a note never did. */
     /* ---- AND THE REASON, WHICH IS THE OPPOSITE OF THAT NOTE ----
        The note above is an internal aside: shown only to the side that wrote
        it, padlocked, because "Copilot — Simplify" is nobody else's
@@ -8167,7 +8180,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        column — repainting on mouseenter would fight the pointer and drop the
        node the event came from. Safe only because of the exemption above: a
        card that can be in the hidden state carries nothing but inert verbs. */
-    const body = `<div class="rl-card-body">${whyBlock}${note}${
+    const body = `<div class="rl-card-body">${whyBlock}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"

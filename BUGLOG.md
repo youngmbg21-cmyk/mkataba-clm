@@ -6892,3 +6892,52 @@ conversation in still closes on the proposal's final decision — engagement
 short of minimize/close does not claim the panel, per the agreed rule. If that
 reads wrong in use, the claim could widen to "typed a free question", but that
 needs a signal cleaner than keystrokes.
+
+---
+
+## Run: the provenance label comes off the change card (2026-08-03)
+
+### 1. An amber bar restating the button the reader had just pressed
+
+**What was broken.** A Copilot-filed change carries a `note` written by the
+machinery rather than by a person — "Copilot — Edit", "Copilot — Shorten &
+Simplify (added after)". The redline card painted it as an amber bar with a
+padlock on it, on the author's side only.
+
+It told the reader nothing they did not already know. They had selected the
+passage, chosen the action from the selection menu and pressed Apply half a
+minute earlier; a strip of colour restating the button they pressed is a
+second thing to read on a card whose actual content — the wording, the reason,
+the four verbs — is what the column exists for. Amber also reads as a WARNING
+everywhere else in this product (`--st-amber-bg` is the unsent state, the
+truncation flag, the unstructured-reply badge), so the most eye-catching
+element on a routine card was the one carrying the least information.
+
+**The fix.** The render is gone: the `note` const and its slot in the card
+body, the `.rl-card-note` rule, and the `margin-top` it shared with the verb
+row. Nothing else moved.
+
+**What deliberately did NOT change.** The field is still written on every
+Copilot file. Provenance is exactly what the audit trail, the change history
+and the exports are asked for and answer with, and deleting a render is the
+change most likely to quietly take the data with it — so F137b pins the note
+surviving on the record beside F137a pinning it off the card. The visibility
+rule is also unaffected: a note never crossed to the counterparty, and the
+`ch.authorSide === side` guard that held that line is simply no longer needed
+on a card that draws no note at all. F92's assertion moved from the element
+(which would now pass by not existing) to the TEXT, so it still means what it
+was written to mean.
+
+**Files touched.** js/views/negotiation.js, test/f92-six-round-negotiation.test.js.
+**Verified.** f137a (the element and the label are both off the author's own
+card; the padlock with it), f137b (the note is still on the record; the
+REASON block — the reader's own words, written for the other side — still
+renders; a change with a note and no reason now draws no aside at all).
+Full suite 2519/2519, browser 80/80, selection 22/22.
+
+**Not done.** `negoLiveCardsHtml` and `negoHistoryCardHtml` still fall back to
+`ch.note` when a change has no `why`, so the same label can appear under a
+"Why they asked" heading on the change-index and archived-round cards. That is
+a different surface with different semantics — those renderers have carried
+imported notes as reasons since long before the Copilot wrote any — and it was
+left alone rather than swept up in a visual change.
