@@ -6776,3 +6776,68 @@ It goes through the page's own `renderRedline()` now.
 
 Full suite 2438/2438; browser 82/82; parity 39/39; selection 22/22;
 timeline 19/19.
+
+---
+
+## Run: the Copilot explaining is not a redline either (2026-08-03)
+
+### 1. A three-paragraph explanation was drawn whole in the proposal card, again
+
+**What was broken.** F98's guard stopped a model that REFUSES and a model that
+ASKS. This run's screenshots show the third voice: a model that EXPLAINS. The
+fetched record was truncated, so the Copilot replied with three calm paragraphs
+— what it received, what it cannot do, what to paste — no question mark
+anywhere, every paragraph opening with a plain statement. The whole reply was
+rendered as PROPOSED WORDING under an Apply Redline button, and one press filed
+it into Clause 3 · Term as a tracked change.
+
+**Root cause, in four parts.** (1) `AI_NOT_WORDING` and `AI_ASKS_BACK` are
+anchored — they read the opening of the candidate only, and the giveaways
+("I cannot properly rewrite…", "Please paste or share…") sat in paragraphs two
+and three. (2) `aiAsksTheReader` needs a question mark, and "Please paste…"
+asks without one. (3) The second screenshot's ask was bold — `**Please paste`
+— and two asterisks defeat an anchored pattern. (4) `aiSplitDisclaimer` could
+only move ONE opening sentence to advice; everything after it was "the
+wording" by definition, so even a correct classification of sentence one left
+paragraphs two and three inside the card. And the phrasing itself was
+home-made: F132's trust pass told the model to say plainly when a record is
+truncated, which is exactly the sentence nobody had a pattern for.
+
+**The fix.** A rule about VOICE rather than another phrase. `AI_MODEL_VOICE`:
+contract wording is third person about the parties, so a standalone capital
+"I" — contracted or not — followed by a verb of speech, sight or need is the
+model talking, whatever sentence it invents next month. The verb list is one
+safety ("I, the undersigned, hereby appoint" matches no verb there); a
+lookbehind is the other ("Article I can be amended" is a roman numeral wearing
+a capital I). `aiBareText` strips markdown decoration — never "(a)", never a
+digit — before the anchored lists read an opener, so bold cannot smuggle an
+ask past them. And `aiSplitReply` splits the reply on blank lines and judges
+each paragraph on its own: talk to the advice bubble, wording to the card, the
+first wording paragraph still getting the sentence-level front split. Both
+parser paths use it — the JSON field and the no-JSON fallback — so a remark
+posted through `proposedText` moves the same way. Sub-paragraph lists survive
+because single newlines are one paragraph; only a blank line splits.
+
+Two prompt-layer changes alongside, so the guard is the net rather than the
+plan: both format contracts (`AI_PROPOSAL_FORMAT`, `AI_EDIT_FORMAT`) now say
+proposedText is CONTRACT WORDING ONLY and an empty string is the honest answer
+when the model cannot draft; and the F132 truncation rule — in both brains,
+server system prompt and browser-local — keeps its honesty but loses the
+refusal: the passage quoted in the request is the authoritative text, so draft
+from it and note the truncation in the reasoning.
+
+**Files touched.** js/ai.js, server/server.js.
+**Verified.** f135a (both verbatim screenshot replies land whole in advice with
+nothing to apply; bold asks caught; the narrating voice caught), f135b (talk
+before AND after the wording moves to advice on both parser paths; a
+multi-paragraph clause and a single-newline list travel whole), f135c (six
+strings of real wording brushing the new rule — roman numerals, the
+undersigned, the F98b regulars — still reach the card; decoration stripping
+never eats a sub-paragraph mark), f135d (the prompt rules, pinned in both
+places each lives). Full suite 2496/2496.
+
+**Not done.** The voice rule's verb list is curated, and a model narrating in
+verbs outside it ("I checked the record…") slips the voice test — though the
+paragraph split still contains the damage to one paragraph rather than the
+whole reply. Nothing between Apply Redline and the contract inspects the
+wording; that standing gap is unchanged from F98.
