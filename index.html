@@ -701,8 +701,8 @@
   /* -- short: most laptops, including 1366x768 and 1080p at 125% -- */
   @media (max-height:820px){
     .hm-page{gap:7px!important;padding-top:10px!important;padding-bottom:12px!important;}
-    .hm-hero{padding:16px 22px!important;gap:12px!important;}
-    .hm-hero h2{font-size:clamp(19px,15px + 0.5vw,25px)!important;}
+    .hm-hero{padding:19px 24px!important;gap:14px!important;}
+    .hm-hero h2{font-size:clamp(21px,16px + 0.55vw,27px)!important;}
     .hm-hero p{margin-top:0!important;}
     #gs-card{padding:12px 16px 10px!important;}
     #email-setup-banner{padding:9px 14px!important;}
@@ -713,12 +713,13 @@
         14-inch ThinkPad and therefore the most common single configuration -- */
   @media (max-height:680px){
     .hm-page{gap:6px!important;padding-top:8px!important;}
-    .hm-hero{padding:12px 18px!important;}
-    .hm-hero h2{font-size:clamp(17px,14px + 0.42vw,22px)!important;}
-    /* The badge above the title says the engine is ready. On a screen this
-       short that line is costing a row of contracts, and the reader can see
-       the jurisdiction switcher in the header saying the same thing. */
-    .hm-hero>div:nth-child(2)>span:first-child{display:none!important;}
+    .hm-hero{padding:15px 20px!important;}
+    .hm-hero h2{font-size:clamp(19px,15px + 0.45vw,24px)!important;}
+    /* Taken from the card's own frame rather than from the hero: on a 590px
+       page the last 8px have to come from somewhere, and a card's padding is
+       worth less than the banner a reader actually looks at. */
+    .hm-pipe-card{padding:12px 14px!important;}
+    .hm-decisions>div>section{padding:12px 14px!important;}
     #gs-card{padding:10px 14px 8px!important;}
     #email-setup-banner{padding:8px 12px!important;}
     #page-head>div{padding-top:6px!important;padding-bottom:6px!important;}
@@ -733,6 +734,45 @@
      five sizes the shell uses. The widest rule in every block is what shipped
      before, so nothing moves at desktop width.
      ============================================================ */
+
+  /* ---- THE DASHBOARD FILLS ITS WINDOW ----
+     THE DEFECT THIS REPLACES. Every other full-page view sets its own height
+     from --view-h; the dashboard did not, so it was only ever as tall as its
+     content and the rest of the window was left blank. The pipeline row is the
+     bottom of that content and it never grew — a constant 245px at every size
+     — so the taller the screen, the bigger the dead band underneath it.
+     Measured: 31px of empty page on a 1280x590 laptop, 162px at 1600x770 and
+     306px at 1920x950, which is a third of the screen showing nothing.
+
+     Shrinking the hero for short laptops made that band more visible, which is
+     how it was reported, but the band was there before and on a big monitor it
+     was three times worse.
+
+     --view-h is the scroll container's own measured height (syncViewHeight,
+     js/app.js), so this is the real room the page has rather than a guess. The
+     row takes what the hero and the metrics leave, and the columns inside it
+     fill and scroll — so the space becomes contracts instead of nothing.
+
+     A DEFINITE height, not a minimum. min-height alone fills an empty page but
+     does nothing when there is plenty to show: the flex chain below it stays
+     auto-height, so the columns never need to scroll and a real portfolio ran
+     303px past the bottom of a 590px laptop instead. height + min-height:0 on
+     the chain is the same pattern the register and the queue already use.
+     overflow-y:auto on the page is the backstop for a window so short that the
+     hero and the metrics alone will not fit — it scrolls rather than clipping,
+     and the list keeps a floor so it can never collapse to nothing first. */
+  .hm-page{height:var(--view-h);box-sizing:border-box;overflow-y:auto;}
+  .hm-page>*{flex:none;}
+  /* A FLOOR, so the row cannot be crushed instead of the page scrolling.
+     With min-height:0 the row was free to shrink to nothing, so on a workspace
+     still showing its setup banners the pipeline was squeezed to a sliver
+     while the page reported itself as fitting. The floor makes the page scroll
+     — which it is set up to do — once there is genuinely more to show than
+     there is room for. */
+  .hm-main-row{flex:1 1 auto;min-height:230px;}
+  .hm-pipe-card{display:flex;flex-direction:column;min-height:0;}
+  .hm-pipe-cols{flex:1;min-height:0;}
+  .hm-pipe-list{flex:1;min-height:96px;overflow-y:auto;}
 
   /* Home — lifecycle pipeline (was repeat(3,minmax(0,1fr))) */
   .hm-pipe-cols{grid-template-columns:repeat(3,minmax(0,1fr));}

@@ -4992,3 +4992,68 @@ passing. It is in `test:all`, so the height dimension cannot go untested again.
 Everything else still passes: 2,424 node tests, all seven existing browser
 suites, the nine-width sweep, the 24 behaviour checks and the 7 sidebar-rail
 checks.
+
+## Run 20c — the dead band under the dashboard (2026-08-04)
+
+Young: "you have reduced the green card at the top too much, it is leaving space
+at the bottom of the page" — with screenshots from both the ThinkPad and a
+larger laptop.
+
+### What was actually happening
+
+Two things, and the second was the bigger one.
+
+**The hero had been trimmed too hard.** Run 20b cut it to 74px on a 590px page
+and hid its badge. That was more than the screen needed.
+
+**But the empty strip was not the hero's fault.** Every other full-page view
+sets its own height from the shell's measured room; the dashboard never did, so
+it was only ever as tall as its content. The pipeline row at the bottom of that
+content was a constant 245px at every screen size — it rendered a hard two cards
+per column and never grew. So the taller the screen, the bigger the empty band:
+
+| Screen | Empty page below the content |
+|---|---|
+| 1280x590 (ThinkPad) | 31px |
+| 1600x770 | 162px |
+| 1920x950 | **306px** |
+
+A third of a 1920x950 dashboard was showing nothing. Shrinking the hero made
+that band more visible, which is how it got reported, but it was there before
+and on a big monitor it was ten times worse than on the laptop.
+
+### What changed
+
+- **The hero got its size back** — 113px on the ThinkPad instead of 74, its
+  badge restored, and a bigger heading. The 8px that cost was taken from card
+  padding instead.
+- **The dashboard now fills its window**, using the same measured-height pattern
+  the register and the queue already use.
+- **The pipeline row grows into whatever the hero and metrics leave**, and each
+  column shows as many contracts as fit rather than a fixed two — 2 on the
+  ThinkPad, 4 at 1600, 6 at 1920. The columns scroll inside themselves and
+  "+N more" stays pinned at the foot of each one.
+
+Result: no empty band and no overflow at any size, with either a nearly empty
+workspace or a full portfolio. A bigger screen now buys more contracts instead
+of more blank space.
+
+### Two mistakes made and caught while doing it
+
+Both would have shipped as "done" without the measurements:
+
+1. The first attempt used a *minimum* height. That fills an empty page but does
+   nothing when there is plenty to show — the columns never needed to scroll, so
+   a real portfolio ran 303px off the bottom of the ThinkPad instead. Fixed by
+   giving the page a definite height.
+2. Letting the row shrink to nothing meant that on a workspace still showing its
+   setup banners the pipeline was crushed to a sliver while the page reported
+   itself as fitting. The new laptop suite caught this one. Fixed with a floor
+   under the row so the page scrolls instead.
+
+### Proved
+
+`npm run test:laptops` now also asserts the dashboard fills its window at every
+laptop size — no dead band, no overflow — in both directions. 21 checks, all
+passing. Plus 2,424 node tests, all seven other browser suites, the nine-width
+sweep, the 24 behaviour checks and the 7 sidebar-rail checks.
