@@ -55,6 +55,7 @@ import './views/migration.js';
 import './mobile.js';
 import './mobile-screens.js';
 import './mobile-contract.js';
+import './mobile-copilot.js';
 import './mobile-portal.js';
 
 /* ============================================================ NAV */
