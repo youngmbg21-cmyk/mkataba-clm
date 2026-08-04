@@ -315,3 +315,118 @@ Object.assign(window,{TPL_FIELD_TYPES,TPL_MAPS,TPL_BLANK,TPL_BULK_MAX,tplMapLabe
   templateFields,templateBody,templateFormat,fillTemplateBody,bodyPlaceholders,detectBlanks,guessFieldShape,
   convertDetectedBlanks,validateField,normaliseDateInput,isRealDate,coerceField,applyTemplateValues,
   bulkTemplateCsv,parseBulkCsv,createBulkFromTemplate});
+
+/* ============================================================
+   THE CONTRACT ESSENTIALS, ASKED THE SAME WAY EVERY TIME
+   ============================================================
+   THE DEFECT THIS REPLACES. Whether you were asked who the contract is with
+   depended entirely on WHICH template you picked:
+
+     · a HaTi standard template asked, in the guided wizard
+     · a company standard template asked NOTHING — it created the contract and
+       dropped you in the workspace, so the counterparty, the value and the
+       dates were only ever filled in later, if at all
+     · a saved or counterparty template asked only if it happened to carry
+       blanks; one with none created silently, like the company path
+
+   The facts below are not template wording. They are the contract record — the
+   register filters on the counterparty, the reports total the value, the
+   calendar runs off the dates, and sharing and signing both refuse to proceed
+   without an email. Which template the document came from is no reason to ask
+   for them or not.
+
+   So: ONE form, asked by every creation path. Nothing here is mandatory —
+   "Skip for now" creates exactly what the path would have created on its own,
+   because somebody drafting for their own file may genuinely not know the
+   counterparty yet, and refusing to create the contract over it would be worse
+   than asking again later.
+
+   The fields carry `maps`, so applyTemplateValues (above) puts them on the
+   contract — no second mapping to drift from the first. */
+const CONTRACT_ESSENTIALS = [
+  { key:'counterparty', label:'Counterparty', type:'text', maps:'counterparty',
+    ph:'Full registered name' },
+  { key:'cpemail',      label:'Their email',  type:'email', maps:null,
+    ph:'them@company.co.ke', hint:'so you can send it to them' },
+  { key:'value',        label:'Contract value', type:'num', maps:'value',
+    ph:'0', hint:'if known' },
+  { key:'effDate',      label:'Start date',   type:'date', maps:'effDate' },
+  { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry' },
+];
+/* The value label carries the workspace's own currency, so a Kenyan workspace
+   asks for KES and a Swedish one for SEK rather than both being told "value". */
+function essentialFields(){
+  const cur = (typeof jxCurrency==='function') ? jxCurrency() : '';
+  return CONTRACT_ESSENTIALS.map(f => f.key==='value'
+    ? { ...f, label: cur ? `Contract value (${cur})` : f.label } : f);
+}
+/* opts: { title, blurb, createLabel, onCreate(values, cpEmail), onSkip }
+   onCreate receives the validated values keyed as above; onSkip receives
+   nothing, because skipping means "create it with what you already had". */
+function openContractEssentials(opts){
+  const o = opts || {};
+  const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const fs = essentialFields();
+  const ST = 'width:100%;min-height:36px;border:1px solid var(--color-divider);'
+    + 'background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none;color:inherit';
+  const input = f => {
+    const it = f.type==='date' ? 'date' : (f.type==='num' ? 'number' : (f.type==='email' ? 'email' : 'text'));
+    return `<label style="display:block">
+      <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${esc(f.label)}${
+        f.hint ? `<span style="font-weight:400;color:var(--color-neutral-500)"> → ${esc(f.hint)}</span>` : ''}</span>
+      <input id="ce-${f.key}" type="${it}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
+  };
+  openModal(`<div style="padding:20px 22px">
+    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${esc(o.title||'New contract')}</h3>
+    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${
+      esc(o.blurb||'')} Everything here is filed as contract data — the register, the calendar and the reports all read it. You can skip and fill it in later.</p>
+    <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(input).join('')}</div>
+    <div id="ce-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+      <button id="ce-cancel" class="ui-btn">Cancel</button>
+      <span style="flex:1"></span>
+      <button id="ce-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">Skip for now</button>
+      <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
+    </div></div>`, { maxWidth:'620px' });
+
+  document.getElementById('ce-cancel').addEventListener('click', closeModal);
+  document.getElementById('ce-skip').addEventListener('click', ()=>{ closeModal(); if(o.onSkip) o.onSkip(); });
+  document.getElementById('ce-create').addEventListener('click', ()=>{
+    const values = {}, errs = [];
+    for(const f of fs){
+      const el = document.getElementById('ce-'+f.key);
+      const raw = el ? String(el.value||'').trim() : '';
+      if(f.key==='cpemail'){
+        if(raw && !/.+@.+\..+/.test(raw)) errs.push(`"${raw}" is not an email address — leave it blank if you do not have it yet.`);
+        else values.cpemail = raw;
+        continue;
+      }
+      const e = (typeof validateField==='function') ? validateField({ ...f, required:false }, raw) : null;
+      if(e) errs.push(e); else values[f.key] = raw;
+    }
+    /* The same term check the wizard makes: a contract whose term runs
+       backwards lands in the register already expired and schedules its
+       renewal reminder in the past. */
+    if(values.effDate && values.expiry && String(values.expiry) < String(values.effDate))
+      errs.push(`The expiry date (${values.expiry}) is before the start date (${values.effDate}) — check the term.`);
+    if((values.counterparty||'').length > 120)
+      errs.push('The counterparty name is longer than 120 characters — use the registered name.');
+    const err = document.getElementById('ce-err');
+    if(errs.length){ if(err) err.textContent = errs.length===1?errs[0]:`${errs.length} things need fixing: ${errs.join(' · ')}`; return; }
+    closeModal();
+    if(o.onCreate) o.onCreate(values, values.cpemail||'');
+  });
+}
+/* Put the essentials onto an already-created contract, using the same mapping
+   the template paths use. Returns true if anything was actually set. */
+function applyContractEssentials(c, values){
+  if(!c || !values) return false;
+  const fs = essentialFields().filter(f => f.maps);
+  const any = fs.some(f => String(values[f.key]||'').trim() !== '') || String(values.cpemail||'').trim() !== '';
+  if(!any) return false;
+  applyTemplateValues(c, fs, values);
+  const em = String(values.cpemail||'').trim();
+  if(em) c.counterpartyEmail = em;
+  return true;
+}
+Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,openContractEssentials,applyContractEssentials});

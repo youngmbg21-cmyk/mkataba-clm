@@ -177,22 +177,40 @@ function openWizard(preTid){
           <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Their email<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
           <input id="wz-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">Cancel</button>
+        <span style="flex:1"></span>
+        <button id="wz-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">Skip for now</button>
         <button id="wz-create" class="ui-btn ui-btn-primary">Create draft</button>
       </div></div>`);
     document.getElementById('wz-back').addEventListener('click',()=>{ tid=null; renderStep(); });
     document.getElementById('wz-cancel').addEventListener('click',closeModal);
     document.getElementById('wz-create').addEventListener('click',()=>createFromWizard(tid, vars));
+    /* SKIP CREATES THE SAME DRAFT, UNFILLED. The blanks it leaves are already
+       a designed state — an unfilled placeholder renders as the dotted "blank
+       on a paper form" chip and can be clicked and filled in the document
+       itself. Skipping is therefore not a half-made contract, it is the same
+       contract with its blanks still blank. */
+    document.getElementById('wz-skip').addEventListener('click',()=>createFromWizard(tid, vars, {skip:true}));
   };
   renderStep();
 }
-function createFromWizard(tid, vars){
+function createFromWizard(tid, vars, opts){
   const t=TEMPLATES[tid], u=currentUser();
-  const val=k=>{ const el=document.getElementById('wz-'+String(k).replace(/[:]/g,'_')); return el?el.value.trim():''; };
+  const skip=!!(opts&&opts.skip);
+  // Skip answers every question with a blank, so validation has nothing to
+  // object to and the draft is created with its placeholders intact.
+  const val=k=>{ if(skip) return ''; const el=document.getElementById('wz-'+String(k).replace(/[:]/g,'_')); return el?el.value.trim():''; };
   // validate before creating anything — the same rules bulk creation uses
   const values={}; const errs=[];
-  for(const f of vars){ const raw=val(f.key); const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+  /* Skipping answers every question with a blank, so there is nothing to
+     validate — required-field checks would otherwise refuse the very thing
+     Skip is for and the button would silently do nothing. */
+  for(const f of vars){
+    const raw=val(f.key);
+    if(skip){ values[f.key]=''; continue; }
+    const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw;
+  }
   // A contract whose term runs backwards is a typo, not an agreement: it lands
   // in the register already expired, distorts "expiring < 90 days" and the
   // Calendar, and schedules its renewal reminder in the past.

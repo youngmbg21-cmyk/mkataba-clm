@@ -6682,9 +6682,22 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
   const c = {
     id: 'MK-' + uid,
     name: clean(b.name).slice(0, 200) || t.name,
-    counterparty: '', counterpartyEmail: '', value: 0, valueType: 'none',
+    /* ASKED AT CREATION, NOT LEFT BLANK. These five were hardcoded empty, so a
+       contract born from a company standard template arrived with no
+       counterparty for the register to filter on, no value for the reports to
+       total, and no dates for the calendar — the operator supplied them later
+       or not at all. The client now asks the same essentials every other
+       creation path asks (openContractEssentials), and passes them here.
+       Every one is optional: "Skip for now" sends none and this reduces to
+       exactly the blanks it produced before. */
+    counterparty: clean(b.counterparty).slice(0, 120),
+    counterpartyEmail: /.+@.+\..+/.test(String(b.counterpartyEmail || '')) ? clean(b.counterpartyEmail).slice(0, 160) : '',
+    value: Number(b.value) > 0 ? Number(b.value) : 0,
+    valueType: Number(b.value) > 0 ? 'estimated' : 'none',
     status: 'Draft', template: null, folder, source: null,
-    lastAction: 'Created from template', expiry: null, hash: null, signedAt: null,
+    lastAction: 'Created from template',
+    expiry: /^\d{4}-\d{2}-\d{2}$/.test(String(b.expiry || '')) ? String(b.expiry) : null,
+    hash: null, signedAt: null,
     format: 'rich', redlineText: templateFormDocHtml(form),
     templateForm: form,
     libraryTemplateId: t.id, libraryTemplateVersionId: pub.id,
@@ -6701,7 +6714,20 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
       accentColor: (tplDesign.design_id ? tplDesign.design_accent_color : null) || branding.accent_color || null,
       accentSource: branding.accent_source || null,
       structureId: (tplDesign.design_id ? tplDesign.design_structure_id : null) || branding.structure_id || null } : null,
-    fields: {}, comments: [],
+    /* effDate lives on fields + metadata, which is where applyTemplateValues
+       puts it on every other creation path and where the workspace, the
+       calendar and effectiveExpiry all read it from. */
+    fields: /^\d{4}-\d{2}-\d{2}$/.test(String(b.effDate || '')) ? { effDate: String(b.effDate) } : {},
+    metadata: (() => {
+      const m = { confidence: {} };
+      const put = (k, v) => { m[k] = v; m.confidence[k] = 'high'; };
+      if (clean(b.counterparty)) put('counterparty', clean(b.counterparty).slice(0, 120));
+      if (Number(b.value) > 0) put('value', Number(b.value));
+      if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.effDate || ''))) put('effectiveDate', String(b.effDate));
+      if (/^\d{4}-\d{2}-\d{2}$/.test(String(b.expiry || ''))) put('expiryDate', String(b.expiry));
+      return m;
+    })(),
+    comments: [],
     audit: [{ at: now(), user: req.user.name, action: 'Created',
       detail: `Created from template “${t.name}” v${pub.version_number} (${t.id})` }],
     signatures: [], obligations: [], rounds: [],

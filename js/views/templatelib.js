@@ -322,9 +322,33 @@ function tplConfirmPaint() {
 }
 
 /* ---------- new contract from a published template ---------- */
-async function tplLibNewContract(id) {
+/* ASKED HERE TOO, AND NOT ONLY BY THE OTHER TEMPLATES.
+   This path used to create the contract the moment you pressed Use and drop
+   you straight into the workspace — no counterparty, no value, no dates, no
+   email. The template's OWN form is still filled on the contract page, where
+   it belongs; what was missing is the contract record underneath it, which is
+   what the register filters on and the calendar runs off. Same form as every
+   other creation path (openContractEssentials), and Skip creates exactly what
+   pressing Use created before. */
+function tplLibNewContract(id) {
+  if (typeof openContractEssentials !== 'function') return tplLibCreate(id, null);
+  const t = (_tplLib.list || []).find(x => x.id === id) || null;
+  openContractEssentials({
+    title: (t && t.name) || 'New contract',
+    blurb: (t && t.description) ? String(t.description) : 'From your company standard template.',
+    onCreate: values => tplLibCreate(id, values),
+    onSkip: () => tplLibCreate(id, null),
+  });
+}
+async function tplLibCreate(id, essentials) {
   try {
-    const r = await api(`templates/${id}/contracts`, 'POST', {});
+    const r = await api(`templates/${id}/contracts`, 'POST', essentials ? {
+      counterparty: essentials.counterparty || '',
+      counterpartyEmail: essentials.cpemail || '',
+      value: essentials.value || '',
+      effDate: essentials.effDate || '',
+      expiry: essentials.expiry || '',
+    } : {});
     if (r.uid) window.uid = r.uid; // keep the client's MK-counter in step with the server's
     const c = typeof migrateContract === 'function' ? migrateContract(r.contract) : r.contract;
     c._loaded = true;

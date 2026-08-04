@@ -46,6 +46,18 @@ function createFromCustomTemplate(tid){
   // so the contract arrives with structured data rather than raw text.
   const fs=templateFields(t);
   if(fs.length){ openTemplateFillModal(t); return; }
+  /* A template with NO blanks used to create silently — same gap the company
+     standard path had. The wording needs nothing filled in, but the contract
+     record underneath it still does, so the essentials are asked here too.
+     Skip creates exactly what pressing Use created before. */
+  if(typeof openContractEssentials==='function'){
+    openContractEssentials({
+      title: t.name, blurb: 'This template needs nothing filled into its wording.',
+      onCreate: v => buildFromCustomTemplate(t, {}, { counterpartyEmail: v.cpemail||'', essentials: v }),
+      onSkip: () => buildFromCustomTemplate(t, {}),
+    });
+    return;
+  }
   buildFromCustomTemplate(t, {});
 }
 /* The actual creation, shared by the guided fill and the no-blanks path. */
@@ -79,6 +91,11 @@ function buildFromCustomTemplate(t, values, opts){
     // N3-T1: template-born, so it numbers live (see js/wizard.js for the rule).
     numbering:'live' };
   if(fs.length) applyTemplateValues(c, fs, values);
+  /* The essentials, when this template had no blanks of its own to carry them.
+     Same mapping, applied after so a template field always wins over the
+     generic question if a template happened to ask both. */
+  if(opts && opts.essentials && typeof applyContractEssentials==='function')
+    applyContractEssentials(c, opts.essentials);
   // v1 is captured through captureVersion so it carries the text projection and
   // the canonical form, exactly like every later version
   if(window.captureVersion) captureVersion(c, `Template “${t.name}”`, u?.name||'System');
@@ -113,11 +130,16 @@ function openTemplateFillModal(t){
         <input id="tf-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
     </div>
     <div id="tf-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
       <button id="tf-cancel" class="ui-btn">Cancel</button>
+      <span style="flex:1"></span>
+      <button id="tf-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">Skip for now</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">Create draft</button>
     </div></div>`, {maxWidth:'620px'});
   document.getElementById('tf-cancel').addEventListener('click',closeModal);
+  /* Same contract, blanks left blank — an unfilled placeholder is a designed
+     state in the document, not a broken one. */
+  document.getElementById('tf-skip').addEventListener('click',()=>{ closeModal(); buildFromCustomTemplate(t, {}); });
   document.getElementById('tf-create').addEventListener('click',()=>{
     const values={}, errs=[];
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';

@@ -5057,3 +5057,62 @@ Both would have shipped as "done" without the measurements:
 laptop size — no dead band, no overflow — in both directions. 21 checks, all
 passing. Plus 2,424 node tests, all seven other browser suites, the nine-width
 sweep, the 24 behaviour checks and the 7 sidebar-rail checks.
+
+## Run 21 — every way of making a contract asks the same things (2026-08-04)
+
+Young: creating from a HaTi standard template pops up a form asking who the
+contract is with, what it is worth and when it runs. Creating from a company
+standard template asks nothing. It should ask every time, with a Skip option.
+
+### What was actually happening
+
+Whether you were asked depended entirely on which template you picked:
+
+- **HaTi standard templates** asked, in the guided wizard.
+- **Company standard templates** asked **nothing at all** — pressing Use created
+  the contract and dropped you straight into the workspace with the
+  counterparty, the value, the dates and the email all empty.
+- **Saved and counterparty templates** asked only if that template happened to
+  carry blanks of its own. One with none created silently, like the company path.
+
+That is three different behaviours for one act.
+
+It was not quite an oversight: a company standard template carries its own form,
+which is filled on the contract page. But that form is the template's *wording*.
+The five facts underneath — counterparty, their email, value, start, expiry —
+are the contract *record*: the register filters on the counterparty, the reports
+total the value, the calendar runs off the dates, and both sharing and signing
+need the email. Which template the document came from is no reason to ask for
+them or not.
+
+### What changed
+
+**One form, asked by every path.** The same five questions, in the same shape as
+the form you already know, wherever a contract is made from a template. It
+carries the workspace's own currency, so a Kenyan workspace asks for KES and a
+Swedish one for SEK.
+
+**"Skip for now" on every one of them** — including the two forms that already
+existed and had no way past. Nothing is mandatory. Somebody drafting for their
+own file may genuinely not know the counterparty yet, and refusing to create the
+contract over it would be worse than asking again later. Skip creates exactly
+what that path created before.
+
+**The answers land on the contract**, not just in the document. The company
+standard path previously hardcoded these five as blank on the server; it now
+accepts them and files them with the same mapping every other path uses, so
+there is one mapping rather than two to drift apart.
+
+The template's own form on the contract page is untouched — this sits in front
+of it, not instead of it.
+
+### Proved
+
+A new browser suite, `npm run test:newcontract`, creates a real published
+company standard template and asserts: the form appears, it asks all five, every
+answer lands on the created contract, Skip still creates the draft, and Skip
+leaves the fields empty rather than inventing them. It does the same for a HaTi
+standard template. 15 checks, all passing, and wired into `test:all`.
+
+Everything else still passes: 2,424 node tests and all eight other browser
+suites.

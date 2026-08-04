@@ -813,6 +813,11 @@
   .tpl-cols{grid-template-columns:196px 1fr;}
   @media (max-width:899px){ .tpl-cols{grid-template-columns:minmax(0,1fr);} }
 
+  /* The contract-essentials form asked by every creation path. Two columns
+     where there is room, one where there is not — the same rule every other
+     grid on the page follows. */
+  @media (max-width:639px){ .ce-grid{grid-template-columns:minmax(0,1fr)!important;} }
+
   /* Settings & Rules — members beside the settings stack (was 1.5fr 1fr) */
   .tm-cols{grid-template-columns:1.5fr 1fr;}
   @media (max-width:1099px){ .tm-cols{grid-template-columns:minmax(0,1fr);} }
