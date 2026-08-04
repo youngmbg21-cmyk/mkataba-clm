@@ -155,6 +155,59 @@ const PROBE = () => {
       check(`${P.name}/${theme}: every screen fits and is thumb-sized`, bad.length === 0,
         bad.length ? bad.slice(0, 6).join(' · ') : 'six screens, three tabs');
 
+      /* THE WORKBENCH, and the tap that stands in for a highlight.
+         Only walked at 390: the point is that the surface exists and that a tap
+         on a sentence produces the three-item menu, not that it does so twice. */
+      if (P.w === 390 && theme === 'light') {
+        await page.evaluate(() => window.openRedlineWorkbench
+          && window.openRedlineWorkbench(window.state.contracts[0].id));
+        await page.waitForTimeout(1200);
+        const wb = await page.evaluate(() => ({
+          bar: !!document.querySelector('.m-backbar'),
+          shell: getComputedStyle(document.getElementById('app-shell')).display,
+          pane: !!document.querySelector('.nego-pane.working .nego-doc, .nego-doc[data-nego-working]'),
+          nav: getComputedStyle(document.getElementById('side-nav')).display,
+        }));
+        check(`${P.name}: the workbench opens on the phone`, wb.bar && wb.shell === 'grid' && wb.pane,
+          `bar:${wb.bar} shell:${wb.shell} pane:${wb.pane}`);
+        check(`${P.name}: without the sidebar`, wb.nav === 'none', wb.nav);
+
+        /* A NUMBERED CLAUSE, not the recital. Front matter correctly refuses —
+           changes are filed against clauses — so tapping the preamble opens the
+           refusal, which is the right answer and the wrong test. */
+        const CLAUSES = '.nego-pane.working .nego-doc [data-clause], .nego-doc[data-nego-working] [data-clause]';
+        const box = await page.evaluate(sel => {
+          const all = document.querySelectorAll(sel);
+          const cl = all[Math.min(2, all.length - 1)];
+          if (!cl) return null;
+          const cs = document.getElementById('content-scroll');
+          if (cs) cs.scrollTop += cl.getBoundingClientRect().top - 180;
+          const w = document.createTreeWalker(cl, NodeFilter.SHOW_TEXT);
+          let tn = null;
+          while (w.nextNode()) { if (w.currentNode.nodeValue.trim().length > 60) { tn = w.currentNode; break; } }
+          if (!tn) return null;
+          const rg = document.createRange();
+          rg.selectNodeContents(tn);
+          const r = rg.getBoundingClientRect();
+          return { x: Math.round(r.left + 20), y: Math.round(r.top + Math.min(12, r.height / 2)) };
+        }, CLAUSES);
+        if (box && box.y > 50 && box.y < 820) {
+          await page.mouse.click(box.x, box.y);
+          await page.waitForTimeout(600);
+          const menu = await page.evaluate(() => {
+            const m = document.querySelector('.nego-selmenu');
+            return m ? { items: m.querySelectorAll('[data-nego-ai]').length,
+              sel: String(window.getSelection() || '').trim().length } : null;
+          });
+          check(`${P.name}: tapping a sentence selects it and opens the three-item menu`,
+            !!menu && menu.items === 3 && menu.sel > 10,
+            menu ? `${menu.items} items, ${menu.sel} chars selected` : 'no menu');
+          await page.keyboard.press('Escape');
+        } else check(`${P.name}: a clause on screen to tap`, false, 'none reachable');
+        await page.evaluate(() => window.setView && window.setView('dashboard'));
+        await page.waitForTimeout(400);
+      }
+
       /* the Copilot, full screen */
       await page.evaluate(() => window.openAI && window.openAI());
       await page.waitForTimeout(500);

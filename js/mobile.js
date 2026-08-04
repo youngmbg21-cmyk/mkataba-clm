@@ -56,7 +56,7 @@ function mPhone(){
    phone sideways onto a laptop lands on the same contract with the same
    filters still applied. */
 function mS(){
-  if(!state.m) state.m = { screen:'home', tab:'doc', sheet:null, hist:'all', share:'negotiate', shareOtp:true };
+  if(!state.m) state.m = { screen:'home', tab:'doc', sheet:null, hist:'all', share:'negotiate' };
   return state.m;
 }
 
@@ -66,12 +66,12 @@ function mS(){
    something real when the window is widened. */
 const M_SCREEN_FOR_VIEW = {
   dashboard:'home', register:'contracts', folder:'contracts', workspace:'contract',
-  redline:'contract', doc:'contract', reports:'more', intel:'more', calendar:'more',
+  redline:'redline', doc:'contract', reports:'more', intel:'more', calendar:'more',
   templates:'more', templatelib:'more', playbook:'more', team:'more', advice:'more',
   migration:'more', pipeline:'more', queue:'more',
 };
 const M_VIEW_FOR_SCREEN = {
-  home:'dashboard', contracts:'register', contract:'workspace',
+  home:'dashboard', contracts:'register', contract:'workspace', redline:'redline',
   approvals:'dashboard', portfolio:'reports', more:'dashboard', handoff:'dashboard',
 };
 
@@ -390,9 +390,91 @@ const M_CSS = `
   }
   .m-share-kind.on .m-radio{ border-color:var(--accent-solid); }
   .m-radio-dot{ width:8px; height:8px; border-radius:50%; }
-  .m-switch{ flex:none; width:46px; height:28px; border-radius:999px; position:relative; transition:background .15s; }
-  .m-knob{ position:absolute; top:3px; width:22px; height:22px; border-radius:50%;
-    background:#fff; box-shadow:0 1px 3px rgba(15,23,42,.35); transition:left .15s; }
+
+  /* ---- THE NEGOTIATION WORKBENCH, ON A PHONE ----
+     The one screen the phone does NOT redraw. The workbench is where wording is
+     argued over, and it already collapses to a single column with its index as
+     a drawer — so rebuilding it would be rebuilding the one surface whose
+     behaviour is the most expensive in the app to get subtly wrong.
+
+     Instead the phone steps aside for it: the desktop shell comes back, without
+     its sidebar, its header or its activity column, under a 44px bar that says
+     which contract this is and how to leave. That bar is the only thing #m-root
+     draws here.
+
+     This is also what makes tap-a-sentence real — the working pane on screen is
+     the working pane, with its own selection handler listening. */
+  body.m-on.m-redline #app-shell{
+    display:grid!important; top:44px!important;
+    grid-template-columns:0 minmax(0,1fr)!important;
+    grid-template-rows:0 minmax(0,1fr)!important;
+  }
+  /* COLLAPSED, NOT REMOVED. The header is a grid item spanning both columns,
+     and the work area's ROW is auto-placed — so display:none on the header
+     slides the work area up into row 1, which this rule set to 0px, and the
+     whole page renders in no height at all. Found the hard way: the pane was
+     laid out, reported a sane rectangle, and could not be hit-tested anywhere
+     on the screen. It keeps its grid slot and gives up its pixels instead. */
+  body.m-on.m-redline #top-header{
+    visibility:hidden!important; height:0!important; min-height:0!important;
+    padding:0!important; border:0!important; overflow:hidden!important;
+  }
+  body.m-on.m-redline #page-head{ display:none!important; }
+  body.m-on.m-redline #body-grid{ grid-template-columns:minmax(0,1fr)!important; }
+  body.m-on.m-redline #m-root{
+    inset:0 0 auto 0!important; height:44px; z-index:60;
+    border-bottom:1px solid var(--color-divider); background:var(--color-surface);
+  }
+  /* THE WORKBENCH IS A FIXED-HEIGHT PAGE, AND A PHONE IS NOT.
+     Its three panes are grid ROWS once the columns collapse, so at 390px the
+     page's 800 pixels went: crumbs, banners, this round's queue and the action
+     bar took 740 of them as flex:none, the grid got 207, and each pane got a
+     third of that — 59px of window onto a 1171px document. Measured, not
+     guessed.
+
+     So the same move the counterparty's page already makes below 1024: the page
+     gives up its fixed height, the panes give up their inner scrollers, and
+     ONE scroller — the shell's own — carries the lot. The document then simply
+     runs down the page, which is what a phone reads well and what makes a
+     sentence tappable where it is drawn. */
+  body.m-on.m-redline #content-scroll{ overflow-y:auto!important; }
+  body.m-on.m-redline #view-redline,
+  body.m-on.m-redline #redline-host,
+  body.m-on.m-redline #nego-root{ height:auto!important; min-height:0!important; flex:none!important; }
+  body.m-on.m-redline .nego-work{
+    display:block!important; height:auto!important; overflow:visible!important;
+  }
+  body.m-on.m-redline .nego-pane{ height:auto!important; min-height:0!important; }
+  /* The baseline pane is already out below 1120; saying so here keeps the block
+     readable rather than relying on a rule three breakpoints away. */
+  body.m-on.m-redline .nego-pane.baseline, body.m-on.m-redline .nego-rz{ display:none!important; }
+  body.m-on.m-redline .nego-scroll,
+  body.m-on.m-redline .nego-scroll-work,
+  body.m-on.m-redline .nego-index-scroll{
+    overflow:visible!important; height:auto!important; max-height:none!important;
+  }
+  /* The index is a drawer over the page below 760. Pinned to the window rather
+     than to a container that is now as tall as the whole document. */
+  body.m-on.m-redline .nego-pane.index{
+    position:fixed!important; top:44px!important; bottom:0!important;
+    right:0!important; left:auto!important; width:min(88vw,335px)!important;
+    height:auto!important; z-index:35!important;
+    transform:translateX(105%);
+  }
+  /* Restated because the closed transform is what keeps a drawer a drawer, and
+     pinning it to the window above threw away the rule that said so. */
+  body.m-on.m-redline .nego-pane.index.open{ transform:none!important; }
+  body.m-on.m-redline .nego-pane.index .nego-index-scroll{ overflow-y:auto!important; }
+  body.m-on.m-redline .nego-doc{ font-size:15px!important; line-height:1.7; }
+  body.m-on.m-redline .nego-pane.working .nego-doc{ padding-left:14px!important; }
+
+  .m-backbar{
+    flex:none; display:flex; align-items:center; gap:6px; height:44px; padding:0 4px;
+  }
+  .m-backbar-name{
+    flex:1; min-width:0; font-size:15px; font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
 
   /* ---- the toast ----
      The app's toasts are pinned to the bottom-right corner, which on a phone is
@@ -592,6 +674,36 @@ function mRender(){
   const root = document.getElementById('m-root');
   if(!root) return;
   const s = mS();
+
+  /* The workbench keeps the desktop shell and takes the screen; the phone
+     gives it back and draws only the bar above it. */
+  const onRedline = s.screen==='redline';
+  if(document.body && document.body.classList) document.body.classList.toggle('m-redline', onRedline);
+  if(onRedline){
+    const c = (state.activeId && typeof getContract==='function') ? getContract(state.activeId) : null;
+    root.innerHTML = `<div class="m-backbar">
+      <button class="m-head-btn" data-m-act="leave-redline" aria-label="Back to the contract" style="color:var(--color-accent-700)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
+      <span class="m-backbar-name">${mEsc(c ? (c.name||c.id) : 'Negotiation')}</span>
+      <button class="m-head-btn" data-m-act="copilot-open" aria-label="Open HaTi Copilot" style="color:var(--color-accent-700);position:relative">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.6 4.6 4.6 1.6-4.6 1.6L12 15l-1.6-4.7L5.8 8.7l4.6-1.6L12 2.5z"/></svg>
+        <span data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--st-amber-dot)"></span>
+      </button>
+    </div>`;
+    mWire();
+    /* --view-h is the height of the scroll container, measured once and read by
+       every view that sizes itself to the window — the workbench included. It
+       was last measured while the shell was DISPLAY:NONE, so it is 0, and a
+       workbench sized to 0 renders its whole document inside 24 pixels with
+       overflow:visible: laid out, reporting sane rectangles, and not on screen
+       anywhere. Re-measured now that the shell is back, on the next frame so
+       the grid has been through layout first. */
+    const remeasure = ()=>{ try{ if(window.syncViewHeight) syncViewHeight(); }catch(_){} };
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(remeasure); else remeasure();
+    return;
+  }
+
   let body = '';
   if(s.screen==='contract')       body = mContractHtml();
   else if(s.screen==='contracts') body = mContractsHtml();
@@ -679,6 +791,7 @@ function mWire(){
     if(k==='close-sheet'){ mCloseSheet(); return; }
     if(k==='back'){ mBack(); return; }
     if(k==='logout'){ mCloseSheet(); if(window.logout) logout(); return; }
+    if(k==='leave-redline'){ if(window.setView) setView('workspace'); else mGo('contract'); return; }
     mScreenAct(k, b, e);
   }));
   mWireScreen(root);
@@ -728,12 +841,19 @@ function mSync(){
   } else {
     root.hidden = true;
     root.innerHTML = '';
+    if(body.classList.contains('m-redline')) body.classList.remove('m-redline');
     /* Widening the window hands the reader back to the desktop shell, on the
        nearest real view — Approvals and More have no desktop twin, so they
        land on the dashboard rather than on nothing. Only when the app is still
        the thing on screen: a logout that hid the shell wants the login form,
        not a repaint of a view nobody is signed in to. */
-    if(wasOn && mAppActive() && window.setView) setView(M_VIEW_FOR_SCREEN[mS().screen] || state.view || 'dashboard');
+    if(wasOn && mAppActive() && window.setView){
+      setView(M_VIEW_FOR_SCREEN[mS().screen] || state.view || 'dashboard');
+      /* The shell has just come back at full size, and --view-h was last
+         measured against the phone. Re-measured for the same reason it is
+         re-measured on the way in. */
+      try{ if(window.syncViewHeight) syncViewHeight(); }catch(_){}
+    }
   }
 }
 

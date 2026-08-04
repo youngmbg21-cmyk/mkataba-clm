@@ -262,7 +262,11 @@ function mWireSentenceTap(){
 function mMarkTappable(){
   if(typeof mPhone!=='function' || !mPhone()) return;
   if(typeof document==='undefined' || !document.querySelectorAll) return;
-  document.querySelectorAll(M_PANE_SEL + ' [data-clause]').forEach(el=>{
+  /* Split on the comma before appending the descendant part. `a, b` + ` c`
+     reads as `a` OR `b c` — the first branch loses its descendant and matches
+     the whole pane instead of the clauses inside it. */
+  const sel = M_PANE_SEL.split(',').map(s => s.trim() + ' [data-clause]').join(', ');
+  document.querySelectorAll(sel).forEach(el=>{
     if(el.classList && !el.classList.contains('m-tappable')) el.classList.add('m-tappable');
   });
 }

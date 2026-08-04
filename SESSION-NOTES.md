@@ -57,6 +57,18 @@ action, files a change or talks to the server on its own:
 nothing, which is the point: the phone reaches the funnel through the wrappers
 that already exist and never files anything itself.
 
+### One thing in the design that was NOT built, and why
+
+The share sheet in the prototype has a **"Require email verification" toggle**,
+and there is nothing on the server for it to set. A counterparty signature is
+*always* verified by a one-time code to the invited address, and no other link
+kind mints a code at all — it is not a per-link choice, it is how signing
+works. A switch that changes nothing tells the reader they have made a security
+decision they have not made, which is exactly the client-only pretence the
+brief rules out. So the sheet states the fact instead, and says which of the
+three links it applies to. **Young should know the control is gone**; if the
+intent was to make verification optional, that is a server change first.
+
 ### The five decisions, as taken
 
 1. **Below 768 replaces, it does not restyle.** 768–899 unchanged.
@@ -100,6 +112,27 @@ light-red optional "why", and Apply / Decline / Edit.
 A launcher pill sits above the tab bar on Home, Contracts, Approvals and
 Portfolio, carrying a `[data-ai-badge]` dot driven from the same
 `ai.unread` / `ai.minimized` as every other entry point.
+
+**The workbench, on the phone.** It is the one screen the phone does *not*
+redraw: the desktop shell comes back for it, without its sidebar, header or
+activity column, under a 44px bar saying which contract this is and how to
+leave. Rebuilding the surface where wording is argued over is the most
+expensive thing in this app to get subtly wrong, and it already reduces to one
+column. Two real defects were found and fixed getting it there, both measured
+rather than guessed:
+
+- `--view-h` is set from the scroll container's height and was last measured
+  while the shell was `display:none`, so it was **0** — the workbench rendered
+  its whole document inside 24 pixels with `overflow:visible`: laid out,
+  reporting sane rectangles, and not on screen anywhere. Re-measured on the
+  frame after the shell comes back.
+- Hiding `#top-header` outright slid the work area up into the collapsed grid
+  row, so the page had no height at all. It keeps its grid slot and gives up
+  its pixels instead.
+- And the panes are grid *rows* once the columns collapse, so at 390px the
+  three of them shared 207px — 59px of window onto a 1171px document. The page
+  now gives up its fixed height and one scroller carries the lot, which is the
+  same move the counterparty's page already makes below 1024.
 
 **Selection → Copilot.** Long-press selection inside a scrolling document is
 unreliable on touch, so a tap stands in for it — and what a tap does *not* do
@@ -149,9 +182,8 @@ on `window` before they boot.
   still the desktop form.
 - **Editing the document, comparing versions and saving as a template** are
   desk work and say so, with a toast, from the overflow sheet.
-- **Answering a negotiation round from the owner's phone** opens the redline
-  workbench if it can and otherwise says to open it on a computer. The
-  workbench is a three-pane surface; giving it a phone layout is its own job.
+- **Bulk work in the workbench** — accepting or rejecting a whole round at once
+  is on screen but was not redesigned for a thumb; the per-change verbs were.
 - **Owner-side signing** scrolls to the consent box on a computer rather than
   signing from the phone. Applying a seal is the one act worth making somebody
   sit down for, and the intent box, mark and seal live together on that surface.

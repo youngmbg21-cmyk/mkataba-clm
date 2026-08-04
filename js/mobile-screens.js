@@ -361,7 +361,9 @@ function mApprovalsHtml(){
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px">
           <div><div class="m-note">Counterparty</div><div style="font-size:16px;font-weight:500;margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
           <div><div class="m-note">Value</div><div style="font-size:16px;font-weight:600;margin-top:1px">${mEsc(mMoney(c))}</div></div>
-          <div style="grid-column:1 / -1"><div class="m-note">Requested by</div><div style="font-size:16px;font-weight:500;margin-top:1px">${mEsc(requested&&requested.user?requested.user:'—')}${x.idle?` · ${x.idle} day${x.idle===1?'':'s'} ago`:''}</div></div>
+          <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:500;margin-top:1px">${
+            [requested&&requested.user ? mEsc(requested.user) : '',
+             x.idle ? `${x.idle} day${x.idle===1?'':'s'} ago` : 'since today'].filter(Boolean).join(' · ')}</div></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px">
           <button class="m-btn m-btn-primary" style="flex:1.4" data-m-approve="${mEsc(c.id)}">Approve</button>

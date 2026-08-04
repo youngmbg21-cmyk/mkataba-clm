@@ -312,6 +312,18 @@ function mShareSheetHtml(){
   const expiry = s.share==='view' ? 30 : 14;
   const cta = s.share==='negotiate' ? 'Create negotiation link'
     : s.share==='sign' ? 'Create signing link' : 'Create read-only link';
+  /* THE PROTOTYPE HAD A SWITCH HERE AND IT DOES NOT EXIST.
+     "Require email verification" was drawn as a toggle, and there is nothing
+     on the server for it to set: a counterparty signature is ALWAYS verified by
+     a one-time code to the invited address, and no other link kind mints one at
+     all. A switch that changes nothing is worse than no switch — it tells the
+     reader they have made a security decision they have not made. So the fact
+     is stated instead, and it says which of the three links it applies to. */
+  const verifyNote = s.share==='sign'
+    ? 'A one-time code goes to the invited address before a signature is recorded. It cannot be sent anywhere else, and it is not optional.'
+    : s.share==='negotiate'
+      ? 'No code is needed to read or answer on a negotiation link — every reply is recorded against the address it was sent to.'
+      : 'No code, no reply channel. A read-only link can be opened and printed and nothing else.';
   return `
     <div class="m-grab"></div>
     <div class="m-sheet-title">Share a link</div>
@@ -322,15 +334,10 @@ function mShareSheetHtml(){
         <span style="flex:1;font-size:16px">Expires</span>
         <span style="font-size:16px;font-weight:600">${expiry} days</span>
       </div>
-      <button class="m-row" data-m-act="share-otp">
-        <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:16px">Require email verification</span>
-          <span class="m-note" style="display:block;margin-top:1px">A one-time code goes to the invited address only</span>
-        </span>
-        <span class="m-switch" style="background:${s.shareOtp?'var(--accent-solid)':'var(--color-neutral-300)'}">
-          <span class="m-knob" style="left:${s.shareOtp?'21px':'3px'}"></span>
-        </span>
-      </button>
+      <div style="padding:13px 14px">
+        <div style="font-size:16px">Email verification</div>
+        <div class="m-note" style="margin-top:2px">${verifyNote}</div>
+      </div>
     </div>
     <label style="display:block;margin-top:12px">
       <span class="m-capline" style="display:block;margin-bottom:5px">Send it to</span>
@@ -427,7 +434,6 @@ function mContractAct(k, btn){
     return;
   }
 
-  if(k==='share-otp'){ s.shareOtp = !s.shareOtp; mRender(); return; }
   if(k==='share-create'){ mShareCreate(); return; }
 }
 
@@ -438,6 +444,11 @@ function mDoNextAction(kind){
   if(!c) return;
   if(kind==='evidence'){ if(window.downloadEvidence) downloadEvidence(c); return; }
   if(kind==='review-changes'){
+    /* The workbench, on the phone, with the desktop shell stepping back in
+       under a back bar — see the m-redline rules in js/mobile.js. It is the one
+       screen the phone does not redraw, because it already reduces to a single
+       column and because rebuilding where wording is argued over is the most
+       expensive thing in this app to get subtly wrong. */
     if(window.openRedlineWorkbench){ openRedlineWorkbench(c.id); return; }
     if(window.toast) toast('Open the negotiation on a computer to answer these');
     return;
