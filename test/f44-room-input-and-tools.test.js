@@ -144,7 +144,13 @@ describe('the clause tools are visible without hunting for them', () => {
          clause, on either seat. Deletion CHANGES stay first-class — a record
          carrying one still renders and gets decided — but originating one is
          not a per-clause button. */
-      assert.deepEqual(Array.from(labels), ['Change']);
+      /* THE COPILOT JOINED IT on 04 Aug 2026, on both clause toolbars at once.
+         It had been reachable only by highlighting wording — an affordance
+         nothing on the page mentions — and a reader looking at a clause with
+         one button on it concluded the Copilot could not touch their paper.
+         It is a door onto the same menu and the same filing path, not a second
+         way to propose: see f145. */
+      assert.deepEqual(Array.from(labels), ['✨ Copilot', 'Change']);
     }
   });
 

@@ -161,6 +161,42 @@ function clauseNumberGap(nums, num){
   return { present, before: fmt(before), after: fmt(after) };
 }
 
+/* ---------- WHICH HEADING IS THE DOCUMENT'S OWN TITLE ----------
+   Asked in one place because three functions have to give the same answer:
+   the segmentation (which skips it), clauseFrontMatter (which prints it) and
+   clauseStampIds (which must not put a clause id on it).
+
+   TWO SHAPES OF TITLE, and the second one is the defect this exists to close.
+
+   The first is the familiar one: a leading <h1> followed anywhere by a heading
+   of lower rank. The lower-rank headings are the clauses, so the h1 above them
+   is chrome.
+
+   The second is a document whose ONLY heading is that <h1> — which is what a
+   Word contract becomes when its clauses are written as "1. Services. Carrier
+   shall…" inside ordinary paragraphs, with nothing but the agreement's name
+   set as a heading. That is a very common way for a standard contract to be
+   typed, and it used to read as ONE clause whose body was the entire
+   agreement: every screen that draws a window per clause drew a single window
+   holding the whole document, with one Direct Edit button at the foot of it.
+
+   A lone heading cannot be marking clause boundaries — there is nothing for it
+   to mark them against — so it is the title, and the blocks under it fall to
+   the per-block reading a genuinely headingless document already gets.
+
+   Returns the index of the title block, or -1 where the document has none. */
+function _clTitleIndex(blocks, headings){
+  if (!blocks.length || !headings.length) return -1;
+  const first = blocks.findIndex(el => CLAUSE_HEADINGS.has(el.tagName));
+  if (first < 0 || _clRank(blocks[first]) !== 1) return -1;
+  if (headings.length === 1) return first;                       // nothing else is a heading
+  return headings.some(h => _clRank(h) > 1) ? first : -1;
+}
+/* Do this document's headings mark where its clauses begin? False for a wall
+   of paragraphs, and false for a wall of paragraphs under a title. */
+const _clHeadingsMarkClauses = (blocks, headings) =>
+  headings.length > (_clTitleIndex(blocks, headings) >= 0 ? 1 : 0);
+
 /* ---------- the segmentation ----------
    Walk the document's top-level blocks once. A heading opens a clause; it
    closes at the next heading of the same or higher rank, so an <h3>
@@ -168,27 +204,21 @@ function clauseNumberGap(nums, num){
    a clause of its own — which is right, because a sub-heading is a label on a
    term, not a second term.
 
-   THE DOCUMENT TITLE IS NOT A CLAUSE. A leading <h1> followed anywhere by a
-   heading of lower rank is the document's own title, and it and the blocks
-   under it (the party/meta line the prototype draws under the title) are
-   chrome. Where every heading sits at the same rank there is no title to
-   detect and they are all clauses — the honest reading, since nothing in the
-   markup distinguishes them. */
+   THE DOCUMENT TITLE IS NOT A CLAUSE — see _clTitleIndex. Where every heading
+   sits at the same rank there is no title to detect and they are all clauses:
+   the honest reading, since nothing in the markup distinguishes them. */
 function clauseSegment(html){
   const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
   const blocks = Array.from(root.children);
   const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
+  const titleAt = _clTitleIndex(blocks, headings);
 
-  /* chrome: a leading h1 that outranks something later in the document */
+  /* chrome: the title, and the run of blocks between it and the first clause */
   let start = 0;
-  if (headings.length > 1 && blocks.length){
-    const first = blocks.findIndex(el => CLAUSE_HEADINGS.has(el.tagName));
-    if (first >= 0 && _clRank(blocks[first]) === 1
-        && headings.some(h => _clRank(h) > 1)){
-      let i = first + 1;
-      while (i < blocks.length && !CLAUSE_HEADINGS.has(blocks[i].tagName)) i++;
-      start = i;
-    }
+  if (titleAt >= 0 && _clHeadingsMarkClauses(blocks, headings)){
+    let i = titleAt + 1;
+    while (i < blocks.length && !CLAUSE_HEADINGS.has(blocks[i].tagName)) i++;
+    start = i;
   }
 
   const out = [];
@@ -218,10 +248,17 @@ function clauseSegment(html){
   }
   close();
 
-  /* A genuinely headingless document — an uploaded contract that arrived as a
-     wall of paragraphs — must not degrade to zero clauses. Each top-level block
-     stands as its own clause, which is what the old line-splitting model did
-     for EVERY document and is right for this one. */
+  /* A document whose headings do not mark its clauses must not degrade to one
+     clause holding everything — nor to zero. Each top-level block under the
+     title stands as its own clause, which is what the old line-splitting model
+     did for EVERY document and is right for this one.
+
+     Reached by two kinds of document: the wall of paragraphs with no heading at
+     all, and the wall of paragraphs under a title (see _clTitleIndex). The
+     title is dropped from the fallback rather than filed as clause one — it is
+     the document's name, and nobody negotiates it. */
+  if (!_clHeadingsMarkClauses(blocks, headings) && blocks.length)
+    return _clauseFallback(blocks.slice(titleAt >= 0 ? titleAt + 1 : 0), html);
   if (!out.length && blocks.length) return _clauseFallback(blocks, html);
   return out;
 }
@@ -239,13 +276,17 @@ function clauseFrontMatter(html){
   const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
   const blocks = Array.from(root.children);
   const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
-  if (!(headings.length > 1 && blocks.length)) return none;
-  const first = blocks.findIndex(el => CLAUSE_HEADINGS.has(el.tagName));
-  if (!(first >= 0 && _clRank(blocks[first]) === 1
-      && headings.some(h => _clRank(h) > 1))) return none;
+  const first = _clTitleIndex(blocks, headings);
+  if (first < 0) return none;
+  /* THE RECITAL IS ONLY A RECITAL WHERE HEADINGS MARK THE CLAUSES. In a
+     document whose only heading is its title, the run under it is not front
+     matter — it is the contract, read one clause per block. Claiming it here
+     would print the whole agreement as an unnegotiable recital and leave the
+     clause column empty. */
   const body = [];
-  for (let i = first + 1; i < blocks.length && !CLAUSE_HEADINGS.has(blocks[i].tagName); i++)
-    body.push(blocks[i].outerHTML);
+  if (_clHeadingsMarkClauses(blocks, headings))
+    for (let i = first + 1; i < blocks.length && !CLAUSE_HEADINGS.has(blocks[i].tagName); i++)
+      body.push(blocks[i].outerHTML);
   return {
     titleText: (blocks[first].textContent || '').replace(/\s+/g, ' ').trim(),
     titleHtml: blocks[first].outerHTML,
@@ -287,13 +328,17 @@ function clauseStampIds(html){
     const id = el.getAttribute(attr);
     if (id) taken.add(id);
   }
-  /* A headingless document still has clauses — the fallback reads one per
-     block — and they still have to be addressable, so they are stamped on the
-     block that opens them. Leaving them unstamped would mean a whole class of
-     uploaded contract could be read but never negotiated. */
-  if (!headings.length){
+  /* A document whose headings do not mark its clauses still HAS clauses — the
+     fallback reads one per block — and they still have to be addressable, so
+     they are stamped on the block that opens them. Leaving them unstamped would
+     mean a whole class of uploaded contract could be read but never negotiated.
+
+     Same rule as clauseSegment, and the title is skipped for the same reason it
+     is skipped there: it is not one of the clauses being stamped. */
+  const titleAt = _clTitleIndex(blocks, headings);
+  if (!_clHeadingsMarkClauses(blocks, headings)){
     let n = 0;
-    for (const el of blocks){
+    for (const el of blocks.slice(titleAt >= 0 ? titleAt + 1 : 0)){
       if (!(el.textContent || '').trim()) continue;
       if (el.getAttribute(attr)) continue;
       el.setAttribute(attr, clauseNewId(taken)); n++;

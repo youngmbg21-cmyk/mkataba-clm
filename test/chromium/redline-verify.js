@@ -664,7 +664,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await pause(250);
   const menu = await page.evaluate(async () => {
     /* The REAL entry: highlight words in a clause and release the mouse. The
-       clause toolbar's AI Assist is gone — a selection is the one door, and
+       clause toolbar now carries a Copilot button too (see standard-paper-verify),
+       but a selection is still a door of its own and is what is measured here —
        this drives the same engine hook a person's drag does. */
     const para = document.querySelector('#rl-doc .rl-clause .nego-body p')
       || document.querySelector('#rl-doc .rl-clause p');
@@ -681,11 +682,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { open: !!m,
       noToolbarAi: ![...document.querySelectorAll('#rl-doc .rl-tool')]
         .some(b => /AI Assist/.test(b.textContent)),
+      toolbarCopilot: [...document.querySelectorAll('#rl-doc .rl-clause')]
+        .every(el => !!el.querySelector('[data-nego-ai-clause]')),
       items: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim()) : [],
       dialogs: document.querySelectorAll('.nego-aipop, .lab-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length };
   });
-  check('5 AI Assist is gone from the clause toolbar', menu.noToolbarAi);
+  check('5 the retired "AI Assist" label has not come back', menu.noToolbarAi);
+  check('5 every clause carries a Copilot button', menu.toolbarCopilot);
   check('5 the selection menu offers exactly three actions', menu.items.length === 3,
     JSON.stringify(menu.items));
   /* "Edit with Copilot", not "Rephrase with Copilot": the first verb was

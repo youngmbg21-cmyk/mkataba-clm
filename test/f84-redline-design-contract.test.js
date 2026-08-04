@@ -470,13 +470,22 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
 });
 
 describe('F84 — the clause toolbar files against the contract, not the sandbox', () => {
-  test('every clause carries its verbs, each in its own colour — and no AI Assist', async () => {
+  test('every clause carries its verbs, each in its own colour', async () => {
     const p = await page();
     const clause = p.$('#rl-doc .rl-clause');
     const tools = [...clause.querySelectorAll('.rl-tool')];
     const labels = tools.map(b => b.textContent.trim());
-    assert.ok(!labels.some(t => /AI Assist/.test(t)),
-      'the Copilot opens from a text selection only — highlighting words IS the scope');
+    /* THE COPILOT IS BACK ON THE CLAUSE, and it is a reversal of what this test
+       used to pin (Young, 04 Aug 2026). It was removed on the argument that a
+       text selection states the scope better than a whole-clause button; true,
+       and it left the Copilot reachable only by a gesture nothing on the page
+       mentions, so a reader concluded it could not touch their paper at all.
+       Its NAME still may not be "AI Assist": that label named a tool rather
+       than an act and is not coming back. See f145 for the door itself. */
+    assert.ok(!labels.some(t => /AI Assist/.test(t)), 'not under that name');
+    assert.ok(labels.some(t => /Copilot/.test(t)), 'the Copilot has a visible door on the clause');
+    assert.ok(clause.querySelector('.rl-tool.rl-tool-ai[data-nego-ai-clause]'),
+      'and it is the clause-scoped hook, not a page-level one');
     /* "Add Note/Tag" was removed (Young, 03 Aug 2026): a private remark kept
        beside the wording answered nobody in the next round, and the reason for
        a change now travels ON the change, asked for when it is filed. */
@@ -495,8 +504,9 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
     assert.match(css, /\.rl-tool\.rl-tool-note\{[^}]*background:#eef2ff/, 'Add Note/Tag is indigo');
     assert.match(css, /\.rl-tool\.rl-tool-edit\{[^}]*background:#ecfdf5/, 'Direct Edit is emerald');
+    assert.match(css, /\.rl-tool\.rl-tool-ai\{[^}]*background:#f5f3ff/, 'the Copilot is violet, as everywhere else');
     assert.ok(!/rl-tool-del\{/.test(css), 'and its rose styling went with it');
-    assert.ok(!/data-rl-ai/.test(p.html()), 'and the old whole-clause AI hook is gone from the page');
+    assert.ok(!/data-rl-ai=/.test(p.html()), 'and the old whole-clause AI hook is gone from the page');
   });
 
   test('Direct Edit is the engine\'s propose handler, by attribute', async () => {

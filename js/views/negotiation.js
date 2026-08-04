@@ -1591,6 +1591,8 @@ function negoDocHtml(c, opts){
      reference copy still has to say what was decided. */
   const tools = (cl, notes) => editable ? `<div class="nego-tools">
       ${notes || ''}
+      ${opts.noAi ? '' : `<button class="nego-tool" data-nego-ai-clause="${_ne(cl.clauseId)}"
+        title="Ask the Copilot to redraft this clause — it comes back as a proposal you approve">&#10024; Copilot</button>`}
       <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}"
         title="Propose a change to this clause — it goes to the other side to accept or reject">Change</button>
       ${''/* "Add clause" is gone. Proposing a clause the contract does not
@@ -4526,11 +4528,19 @@ function wireNegotiationTab(c, opts = {}){
           passage, clauseIds: passage.clauseIds });
         return;
       }
+      defaultMenu({ text, clauseId, rect, marked, settled, spans, passage });
+    };
+    /* The engine's own menu, lifted out of openSelMenu so the clause toolbar's
+       Copilot button can raise the identical thing. Two doors, one menu, one
+       proposal path — a second menu would be a second set of refusals to keep
+       in step. */
+    function defaultMenu(ctx){
+      const { text, clauseId, rect, marked, settled, spans, passage } = ctx;
       const menu = document.createElement('div');
       menu.className = 'nego-selmenu';
       menu.setAttribute('role', 'menu');
       menu.innerHTML = `
-        <div class="nego-selhead">Selected wording</div>
+        <div class="nego-selhead">${ctx.whole ? 'This clause' : 'Selected wording'}</div>
         <div class="nego-selquote">${_ne(text.length > 64 ? text.slice(0, 63) + '…' : text)}</div>
         ${NEGO_AI_ACTIONS.map(a =>
           `<button type="button" role="menuitem" data-nego-ai="${a.id}">${_ne(a.label)}</button>`).join('')}`;
@@ -4539,16 +4549,51 @@ function wireNegotiationTab(c, opts = {}){
       const at = _negoAnchor(rect, box.width, box.height);
       menu.style.left = at.left + 'px';
       menu.style.top = at.top + 'px';
-      menu.querySelectorAll('[data-nego-ai]').forEach(b => b.addEventListener('mousedown', ev => {
-        /* mousedown, not click: clicking first collapses the selection, and the
-           proposal needs the words that were chosen. */
+      /* mousedown on the selection path: clicking first collapses the selection,
+         and the proposal needs the words that were chosen. The button path has
+         no selection to lose, so it listens for a real click and the keyboard
+         reaches it too. */
+      const evName = ctx.event || 'mousedown';
+      menu.querySelectorAll('[data-nego-ai]').forEach(b => b.addEventListener(evName, ev => {
         ev.preventDefault(); ev.stopPropagation();
         const action = NEGO_AI_ACTIONS.find(a => a.id === b.getAttribute('data-nego-ai'));
         _negoKillSelMenu();
         if (action) negoAiPropose(c, { action, text, clauseId, rect, side, opts, again,
           marked, settled, spans, passage });
       }));
-    };
+    }
+    /* ---- THE COPILOT BUTTON ON A CLAUSE ----
+       Everything the selection path works out from a drag, worked out from the
+       clause instead: the whole clause is the passage, and whether it is under
+       a live redline is read off the same marks and the same change record the
+       drag would have read. It then hands over to exactly the same menu — the
+       host's, where the host supplies one (the workbench routes into the
+       Copilot column), otherwise the engine's. */
+    host.querySelectorAll('[data-nego-ai-clause]').forEach(btn => btn.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      const clauseId = btn.getAttribute('data-nego-ai-clause');
+      const clauseEl = btn.closest('[data-clause]') || host.querySelector(`[data-clause="${clauseId}"]`);
+      const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
+      const text = String((cl && cl.text) || (clauseEl && clauseEl.textContent) || '').trim();
+      if (!text){ if (window.toast) toast('That clause has no wording to work on', 'err'); return; }
+      let rect;
+      try { rect = btn.getBoundingClientRect(); } catch (e){ return; }
+      const changeId = clauseEl && (clauseEl.getAttribute('data-change')
+        || clauseEl.getAttribute('data-nego-card-anchor'));
+      const chOf = changeId && window.negoChangeById ? negoChangeById(c, changeId) : null;
+      const live = !!chOf && chOf.status === 'pending' && !chOf.withdrawn;
+      const hasMarks = !!(clauseEl && clauseEl.querySelector
+        && [...clauseEl.querySelectorAll('ins, del, .nego-ins, .nego-del, [data-change-id]')]
+          .some(n => String(n.textContent || '').trim()));
+      const passage = { text, readings: [], occurrence: 0, parts: [], hasMarks,
+        clauses: clauseEl ? [clauseEl] : [], clauseIds: [clauseId], multiRange: false };
+      const ctx = { c, opts, text, clauseId, rect, side, again, whole: true, event: 'click',
+        marked: hasMarks && live, settled: hasMarks && !live, spans: false,
+        passage, clauseIds: [clauseId] };
+      _negoKillSelMenu();
+      if (typeof opts.selMenu === 'function'){ opts.selMenu(ctx); return; }
+      defaultMenu(ctx);
+    }));
     /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
        made the Redline workbench's AI Assist flash and vanish. The clause
        toolbar sits inside this host, so pressing it fires this handler too;
@@ -5827,8 +5872,15 @@ function redlineLayoutCss(){
   .redline-page .rl-tool.rl-tool-note:hover{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
   .redline-page .rl-tool.rl-tool-edit{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
   .redline-page .rl-tool.rl-tool-edit:hover{background:#d1fae5;border-color:#059669}
+  /* Violet for the Copilot, which is the colour it already wears everywhere
+     else on this page — the "Review vs Playbook" button above the document and
+     the Copilot column's own chrome. A reader should not have to learn a second
+     signal for the same assistant. */
+  .redline-page .rl-tool.rl-tool-ai{background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6}
+  .redline-page .rl-tool.rl-tool-ai:hover{background:#ede9fe;border-color:#7c3aed}
   html.dark .redline-page .rl-tool.rl-tool-note{background:rgba(99,102,241,.16);border-color:rgba(99,102,241,.45);color:#c7d2fe}
   html.dark .redline-page .rl-tool.rl-tool-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
+  html.dark .redline-page .rl-tool.rl-tool-ai{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.45);color:#ddd6fe}
   .redline-page .rl-btn-ghost{background:var(--color-neutral-100);color:var(--color-neutral-600)}
   .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
@@ -7853,13 +7905,21 @@ function redlineDocHtml(c, opts = {}){
   const tools = (cl, ch) => {
     if (!editable) return '';
     const id = _ne(cl.clauseId);
-    /* AI ASSIST IS NOT HERE, and that is a decision, not an omission. The
-       Copilot's three actions open from a TEXT SELECTION — highlighting the
-       words you want worked on is itself the instruction about scope — and a
-       second whole-clause entry on every hover was a duplicate door that made
-       the toolbar four verbs wide. The three that remain are each dressed in
-       their own colour: a row of identical grey pills over a white contract is
-       a row nobody can tell apart at speed. */
+    /* ---- THE COPILOT IS BACK ON THE CLAUSE, AND THAT IS A REVERSAL ----
+       It was removed on the argument that highlighting the words you want
+       worked on is itself the statement of scope, so a whole-clause entry was a
+       duplicate door. True of scope, and wrong about discoverability: a text
+       selection is an invisible affordance. A reader looking at a clause and
+       wanting the Copilot to redraft it saw one button, marked Direct Edit,
+       and concluded the Copilot could not touch company paper at all
+       (Young, 04 Aug 2026).
+
+       It is not a second WAY of proposing — that would be the thing this page
+       refuses. The button builds the same ctx a drag across the whole clause
+       builds and hands it to the same rlSelMenu, so every ask still travels
+       rlAiPropose → negoEditClause, with the same refusals and the same
+       fingerprint. The selection route is untouched and still does finer work:
+       this one is the door you can see. */
     /* "ADD NOTE/TAG" IS GONE FROM THIS TOOLBAR, with its twin in the
              selection menu. A note about wording, kept privately beside the
              wording, is the weakest version of the thing this screen is for:
@@ -7873,6 +7933,8 @@ function redlineDocHtml(c, opts = {}){
              switch. What went is the two doors that opened it pre-set to
              internal and pointed at a fragment. */
     return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
+      ${opts.noAi ? '' : `<button type="button" class="rl-tool rl-tool-ai" data-nego-ai-clause="${id}"
+        title="Ask the Copilot to redraft this clause — it comes back as a proposal you approve">&#10024; Copilot</button>`}
       <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
         title="Edit this clause's wording directly">&#9998; Direct Edit</button>
     </div>`;
@@ -8366,7 +8428,9 @@ function redlineChangeCardsHtml(c, opts = {}){
     const settled = all.filter(x => x.status === 'accepted' || x.status === 'rejected').length;
     return `<div class="rl-cards-empty">
       <b>No changes on the table.</b>
-      <span>Press <b>Direct Edit</b> under any clause to ask for different wording. Each ask lands here with its own fingerprint, and the other side accepts or rejects them one at a time.</span>
+      <span>${opts.noAi
+        ? 'Press <b>Direct Edit</b> under any clause to ask for different wording.'
+        : 'Under any clause, press <b>Direct Edit</b> to type the wording yourself, or <b>&#10024; Copilot</b> to have it drafted for you.'} Each ask lands here with its own fingerprint, and the other side accepts or rejects them one at a time.</span>
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }

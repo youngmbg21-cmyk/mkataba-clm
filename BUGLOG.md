@@ -6941,3 +6941,92 @@ Full suite 2519/2519, browser 80/80, selection 22/22.
 a different surface with different semantics — those renderers have carried
 imported notes as reasons since long before the Copilot wrote any — and it was
 left alone rather than swept up in a visual change.
+
+---
+
+## Run: company standard paper read as one clause (2026-08-04)
+
+### 1. A contract whose only heading was its own name became a single clause
+
+**What was broken.** A freight and logistics agreement was brought into HaTi as
+company standard paper and drafted into a contract. On the Negotiation page the
+ENTIRE agreement drew as one clause box — one editing window holding clauses 1
+through 10 and the execution block, with a single "Direct Edit" button at the
+foot of the page. There was no way to work on clause 8 without opening the whole
+document, and every ask filed would have named one clause id covering all of it.
+
+**Root cause.** `clauseSegment()` (js/clausemodel.js) had two readings and this
+document fell between them. Where headings mark the clauses, a clause is a
+heading plus everything under it. Where there are NO headings, it falls back to
+one clause per top-level block. This document has exactly one heading — the
+agreement's name — because it is typed the way a great many standard contracts
+are typed: the clauses are ordinary paragraphs opening with their own number
+("8. Termination. Either party may…").
+
+With one heading the fallback never fired, so that lone `<h1>` opened a clause
+and the whole contract poured into its body. The document title was not
+recognised as a title either: the chrome rule required a LOWER-RANKED heading to
+exist somewhere later, and there was none.
+
+Nothing about the template feature was wrong. `templateFormDocHtml` emits `<h1>`
+for the first heading block and `<p>` for fixed wording, which is correct; the
+same shape arrives from a paste or an upload of the same document.
+
+**The fix.** One rule, asked in one place (`_clTitleIndex` /
+`_clHeadingsMarkClauses`): a heading that is the document's ONLY heading cannot
+be marking clause boundaries, so a leading `<h1>` alone is the title, and the
+blocks under it fall to the per-block reading a headingless document already
+gets. `clauseSegment`, `clauseFrontMatter` and `clauseStampIds` all read that
+one answer — they had three near-copies of the chrome test before, which is how
+a document could be chrome for one and a clause for another.
+
+Because every surface that draws a window per clause reads `clauseSegment` — the
+workbench on desktop and phone, the contract tab, the room, the counterparty's
+page — the fix reaches all of them without any of them changing.
+
+**What deliberately did NOT change.** The template converter still emits those
+numbered clauses as fixed wording rather than as heading blocks. Changing the
+converter's prompt would improve future uploads but does nothing for documents
+already in the library, cannot be verified here without spending a model call,
+and is not needed now that the clause model reads them. The rule is also kept to
+a leading `<h1>`: a document whose only heading is an `<h2>` still reads the old
+way, because an `<h2>` at the top is as likely to be a section heading as a
+title and guessing was not worth the blast radius.
+
+Renumbering still proposes nothing for these clauses — their numbers live in
+body text rather than in a heading element, and `clauseHeadingRenumber` has
+never rewritten those. That is pre-existing and safe (it declines rather than
+guesses), but it is now reachable on a class of document it was not reachable on
+before.
+
+### 2. The Copilot had no visible door on a clause
+
+**What was broken.** Reported in the same breath — "it does not allow me to edit
+by claude". The clause toolbar offered Direct Edit and nothing else. The
+Copilot's three actions opened only from a text selection, which is an
+affordance nothing on the page mentions, so a reader looking at a clause
+concluded the Copilot could not touch company paper at all.
+
+**Root cause.** A deliberate removal (recorded in the code as the "duplicate
+door" argument): highlighting the words states the scope better than a
+whole-clause button does. True about scope, and wrong about discoverability.
+
+**The fix.** An "✨ Copilot" button on both clause toolbars — the workbench's and
+the room's. It is a DOOR, not a second proposal path: it builds the same context
+a drag across the whole clause builds and hands it to the same menu, so every
+ask still travels `rlAiPropose` → `negoEditClause` with the same refusals (a
+clause under a live redline is still declined) and the same fingerprint. The
+engine's own menu was lifted out of the selection handler so both doors raise
+the identical thing rather than two menus drifting apart. The counterparty's
+page passes `noAi` and shows no button, because it has no Copilot panel to route
+an ask into.
+
+**Files touched.** js/clausemodel.js, js/views/negotiation.js.
+**Verified.** f145 (10 assertions: the clause model on the reported document, the
+headed and headingless documents unchanged, one window and one pair of verbs per
+clause, the menu scoped to its clause, nothing offered on an executed contract or
+a no-Copilot page), and a Chromium walk of the reported document
+(`npm run test:standardpaper`, 11/11) measuring the boxes and the buttons on the
+real page rather than in markup. Full suite green; browser 81/81, selection
+22/22, parity 39/39, phone 59/59, live 31/31, structure, designstep, laptops,
+timeline and newcontract all green.
