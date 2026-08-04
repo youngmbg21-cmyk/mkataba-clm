@@ -195,6 +195,9 @@ function onShellResize(){
   requestAnimationFrame(()=>{
     _shellResizeQueued=false;
     applyPanelLayout();
+    // applyRail owns the sidebar's inline column and reads the drawer
+    // breakpoint, so crossing 900 in either direction has to re-ask it.
+    applyRail();
     placeRegionSwitch();
     // A window dragged back to full width must not leave the drawer stranded
     // open over a sidebar that is already on screen.
@@ -617,6 +620,65 @@ function refreshActivityFeed(force){
 // Selecting a contract (register row, home list, or an activity entry) now opens
 // its workspace — the right-hand panel is the live Activity feed only.
 function selectContract(id){ openWorkspace(id); }
+/* ---------- THE SIDEBAR, COLLAPSED TO ITS ICONS ----------
+   256px of doors down to a 64px rail, giving 192px back to whatever is on the
+   page. The words move to each button's `title`; nothing is dropped and
+   nothing is reordered, so the rail is the same sidebar read at a glance
+   rather than a different one.
+
+   A CHOICE, REMEMBERED — NOT A BREAKPOINT. It is tempting to collapse this
+   automatically on a narrow window, and it would be wrong: a sidebar that
+   folds itself while you are reading has moved every door you were aiming at,
+   for a reason you did not ask for and cannot see. Whoever needs the width
+   takes it, and it stays taken until they say otherwise. Per browser, like
+   the redline split and the document type size. */
+const RAIL_KEY = 'hati.v1.railCollapsed';
+/* COLLAPSED IS THE DEFAULT. The rail is what the workspace is meant to look
+   like: seven glyphs down the edge and the width given to the contract, which
+   is the thing anybody opened this to read. The labels are one press away and
+   the press is remembered, so nobody who wants the words has to keep asking.
+   A stored value always wins — `null` means "never chosen", not "chose no". */
+function railCollapsed(){
+  try { const v = localStorage.getItem(RAIL_KEY); return v === null ? true : v === '1'; }
+  catch(e){ return true; }
+}
+function applyRail(){
+  const shell=document.getElementById('app-shell'); if(!shell) return;
+  const on=railCollapsed();
+  shell.classList.toggle('rail',on);
+  /* The columns are set inline in index.html, so they are answered inline
+     here — a stylesheet rule would lose to the attribute it is arguing with.
+     BELOW 900 THE SIDEBAR IS NOT A COLUMN AT ALL: it becomes a drawer over the
+     page (index.html, the phone block), which takes it out of grid flow, so
+     its track collapses to nothing and the page gets the whole width. That is
+     not a second opinion about the rail — the rail is still the reader's own
+     remembered choice and comes straight back when the window does — it is
+     that at 390px an expanded sidebar leaves 134px for the page. */
+  if(shell.style) shell.style.gridTemplateColumns=
+    (navDrawerActive()?'0px':(on?'64px':'256px'))+' minmax(0,1fr)';
+  const btn=document.getElementById('cmd-rail');
+  if(btn){
+    btn.setAttribute('aria-pressed',on?'true':'false');
+    btn.title=on?'Show the sidebar labels':'Collapse the sidebar to icons';
+    /* THE CHEVRON POINTS THE WAY THE PRESS GOES, not the way the sidebar
+       currently is. Pointing at the state rather than the act is how a toggle
+       comes to describe the wrong half of itself. */
+    const chev=btn.querySelector('.rail-chev');
+    if(chev) chev.setAttribute('d',on?'M9.5 6 15.5 12l-6 6':'M14.5 6 8.5 12l6 6');
+  }
+  /* THE PAGE HAS TO BE TOLD. The negotiation panel writes its own column
+     widths from a measurement (rlLayoutResizer) — it solves how much the round's
+     queue may take before the contract loses its measure — and 192px arriving
+     or leaving changes that answer. Without this the queue stays at whatever
+     width the old window justified until something else forces a repaint. */
+  if(typeof window!=='undefined' && window.rlLayoutResizer) window.rlLayoutResizer(document);
+  syncViewHeight();
+}
+function toggleRail(){
+  try { localStorage.setItem(RAIL_KEY, railCollapsed()?'0':'1'); } catch(e){}
+  applyRail();
+}
+
 /* Below this the activity column stops being affordable: the sidebar and the
    panel together were eating 548px of a 1200px window, leaving the middle less
    room than the register's own table needs. Matches the `tablet` breakpoint in
@@ -829,6 +891,12 @@ function wireShell(){
 
   // panel toggle (Activity feed only)
   document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); if(state.panelOpen){ refreshActivityFeed(true); renderContextPanel(); } });
+  // sidebar → icon rail, and back
+  document.getElementById('cmd-rail')?.addEventListener('click',toggleRail);
+  /* Applied at wiring time, not at sign-in: the shell is in the document from
+     the first paint and a reader who collapsed it last week must not watch it
+     stand at 256px and then jump. */
+  applyRail();
   // header bell = the same live Activity feed (no second notification system)
   document.getElementById('hdr-notify')?.addEventListener('click',()=>document.getElementById('cmd-panel')?.click());
 
@@ -882,4 +950,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,setNavDrawer,closeNavDrawer,shellNarrow,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,shellNarrow,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});

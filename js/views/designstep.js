@@ -12,7 +12,9 @@
 // Follows the openTemplateConfirm precedent: paints #content directly,
 // holds its state in a module-level bag, returns to the caller's screen.
 
-let _ds = null; // { mode:'publish'|'settings', tid, vid, versionNumber, templateName,
+let _ds = null;   // see below
+let _dsScroll = null;   // rail + document scroll, held across a repaint
+// { mode:'publish'|'settings', tid, vid, versionNumber, templateName,
                 //   form, b (working branding), orgHadDesign, saveDefault,
                 //   posTouched, changeNote, onBack }
 
@@ -33,13 +35,23 @@ async function openDesignStep(opts) {
     orgHadDesign: !!(org && org.designId),
     saveDefault: !(org && org.designId),   // the first design IS the company standard (decision 1)
     posTouched: !!(org && org.designId),   // a saved default's position is a choice; keep it across design switches
+    /* A saved default's LAYOUT is a choice too, and one made deliberately —
+       so a workspace that already has a design keeps the right to be told when
+       a style switch takes that layout away. A first-time design has no such
+       choice behind it yet. */
+    structureTouched: !!(org && org.designId),
     changeNote: '', onBack: opts.onBack || null,
-    /* CHANGE 3 — structure first, style second. One choice per screen: the
-       style list used to sit below five structure cards, so finding it meant
-       scrolling past the choice you had already made. */
+    /* ONE CHOICE PER SCREEN — the style first, then the structure. The style
+       list used to sit below five structure cards, so finding it meant
+       scrolling past the choice you had already made; splitting them fixed
+       that, and the order is now the one people actually work in. You decide
+       what the paper LOOKS like, then how the page is laid out — and because
+       style leads, a pair the product refuses is refused at the second step,
+       against a choice already made, never at the first. */
     step: 1,
+    focus: false,
   };
-  dsPaint();
+  dsPaint({ resetScroll: true });
 }
 
 /* The document the preview dresses. Publish mode renders the REAL draft —
@@ -79,7 +91,52 @@ function dsPreviewContract() {
   };
 }
 
-function dsPaint() {
+/* The sheet's own width, in the document's own type. The zoom below scales the
+   whole page; nothing rescales the words inside it, which is what keeps a
+   title one line long at every size. */
+const DS_PAGE_W = 680;
+const DS_ZOOM_MAX = 1.8, DS_ZOOM_MIN = 0.4;
+
+/* Fit the page to the pane, then multiply by the reader's stored text-size
+   preference — the same arithmetic applyDocZoom does on the Doc tab, reading
+   the same value, so one choice sizes the contract in all three places.
+   Unlike the Doc tab this may scale BELOW 1: the Design step's pane is a third
+   of the window, and a page that will not fit is a page you cannot judge. */
+function dsApplyZoom() {
+  const pane = document.getElementById('ds-docpane'), wrap = document.getElementById('ds-zoom');
+  if (!pane || !wrap) return;
+  const cs = getComputedStyle(pane);
+  const room = pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+  const fit = Math.min(DS_ZOOM_MAX, Math.max(DS_ZOOM_MIN, room / DS_PAGE_W));
+  const pref = (window.rlDocType ? rlDocType() : 15) / 15;
+  wrap.style.setProperty('--ds-zoom', (fit * pref).toFixed(3));
+}
+
+/* THE SCROLL SURVIVES THE REPAINT.
+
+   Every pick repaints #content wholesale, so the rail returned to the top and
+   the card you had just clicked went with it — on the fifth structure or the
+   eighth style, the selection vanished off-screen at the moment you made it.
+   Held and restored here rather than fixed by not repainting, which is the
+   better answer and a larger change to this view's internals. */
+function dsHoldScroll() {
+  const g = id => { const el = document.getElementById(id); return el ? el.scrollTop : null; };
+  return { rail: g('ds-rail'), doc: g('ds-docpane') };
+}
+function dsRestoreScroll(held) {
+  if (!held) return;
+  const put = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.scrollTop = v; };
+  put('ds-rail', held.rail);
+  put('ds-docpane', held.doc);
+}
+
+function dsPaint(opts) {
+  _dsScroll = dsHoldScroll();
+  /* The text-size stepper and its styling belong to the workbench
+     (js/views/negotiation.js). Borrowed rather than restated — the Doc tab
+     calls this first for the same reason, so all three strips render the one
+     control and step the one stored preference. */
+  if (window.redlineLayoutCss) redlineLayoutCss();
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px';
   const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
   const b = _ds.b;
@@ -151,12 +208,19 @@ function dsPaint() {
         ${esc(structureBlockedReason(b.designId, blockedNow[0].id))}</span>
     </div>` : '';
 
-  /* On step 2 the structure is already chosen, so a style that cannot take it
-     is drawn unavailable with its reason — the refusal is shown against the
-     choice already made rather than against one still to come. */
+  /* ---- STYLE IS THE FIRST CHOICE, SO NOTHING HERE IS REFUSED ----
+     Every style used to be checked against the structure and drawn unavailable
+     if the pair was blocked. That was right while structure came first: the
+     refusal stood against a choice the reader had already made. Flipped, there
+     is no structure yet — only a default nobody has looked at — and greying out
+     a style because of it would refuse the reader's FIRST choice on the
+     strength of a decision they have not taken.
+
+     The refusal has not gone anywhere; it moved to step 2, where a structure
+     this style cannot take is drawn unavailable with its reason. Same rule,
+     pointed the way the steps now run. */
   const designCards = DOC_DESIGNS.map(d =>
-    pickCard({ ...d, blockedWhy: structureBlockedReason(d.id, b.structureId) },
-      d.id === b.designId, 'data-ds-pick')).join('');
+    pickCard(d, d.id === b.designId, 'data-ds-pick')).join('');
 
   const posChips = DESIGN_LOGO_POSITIONS.map(p => {
     const label = { 'top-left': 'Top left', 'top-center': 'Top centre', 'top-right': 'Top right', footer: 'Footer' }[p];
@@ -212,8 +276,8 @@ function dsPaint() {
      title and a description that all change between steps, so the screen never
      leaves you guessing whether these cards are layouts or looks. */
   const railHead = () => step === 1
-    ? { n: 1, title: 'Choose a structure', hint: 'How the page is laid out. Nothing is reworded and no clause is renumbered.' }
-    : { n: 2, title: 'Choose a style', hint: 'How the document is dressed — typeface, header, accent colour.' };
+    ? { n: 1, title: 'Choose a style', hint: 'How the document is dressed — typeface, header, accent colour.' }
+    : { n: 2, title: 'Choose a structure', hint: 'How the page is laid out. Nothing is reworded and no clause is renumbered.' };
 
   /* The step rail. Publish is drawn as the third step because it is where the
      two choices are going, even though it is a button rather than a screen. */
@@ -230,22 +294,24 @@ function dsPaint() {
     const sep = '<span style="width:14px;height:1px;background:var(--color-divider);flex:none"></span>';
     return `<div style="margin-left:auto;display:flex;align-items:center;background:var(--color-surface);
       border:1px solid var(--color-divider);border-radius:999px;padding:3px;flex:none">
-      ${pill(1, 'Structure', step === 1 ? 'on' : 'done')}${sep}${pill(2, 'Style', step === 2 ? 'on' : '')}${sep}${pill(3, publish ? 'Publish' : 'Save', '')}
+      ${pill(1, 'Style', step === 1 ? 'on' : 'done')}${sep}${pill(2, 'Structure', step === 2 ? 'on' : '')}${sep}${pill(3, publish ? 'Publish' : 'Save', '')}
     </div>`;
   };
 
-  /* CHANGE 5 — the sheet fits the pane in BOTH directions, so the whole page is
-     visible at once and centred rather than running off the bottom. 70.7 is
-     100/1.414: the width at which an A4 sheet is exactly as tall as the pane.
-     min() takes whichever limit bites first — height on a tall window, width on
-     a narrow one — so the sheet can never overflow either way. Roughly a fifth
-     smaller than the fixed 680px sheet it replaces. */
+  /* The sheet is a page at its own size — DS_PAGE_W wide, with the document's
+     own 13.5px type inside it — and the ZOOM wrapper scales the whole thing to
+     the pane. Sizing the sheet while leaving the type alone was the defect this
+     replaces: the page shrank, the words did not, and a title that belongs on
+     one line took four. Scale the page and the proportion is the document's
+     own, whatever size it is drawn at. Same device as the contract workspace
+     (applyDocZoom), reading the same stored text-size preference, so a size set
+     in one place is the size everywhere. */
   const paper = `
-    <div style="width:min(100%,70.7cqh);aspect-ratio:1/1.414;container-type:inline-size;margin:0 auto">
-      <div${docDesignPaperAttr(b)} class="ds-sheet" style="width:100%;height:100%;overflow:hidden;
-        background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;
-        padding:3.2em 3.8em;font-size:1.9cqi;${docDesignPaperStyle(b)}">
-        ${docDesignHeaderHtml(b, dsPreviewContract(), { bleedX: 60, bleedY: 50 })}
+    <div id="ds-zoom" style="zoom:var(--ds-zoom,1)">
+      <div${docDesignPaperAttr(b)} class="ds-sheet" style="background:var(--color-doc-surface);
+        box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;width:${DS_PAGE_W}px;
+        margin:0 auto;${docDesignPaperStyle(b)}">
+        ${docDesignHeaderHtml(b, dsPreviewContract(), { bleedX: 36, bleedY: 30 })}
         <article class="doc-surface" style="background:transparent"><div class="hati-doc">${dsPreviewBody()}</div></article>
         ${docDesignFooterHtml(b, dsPreviewContract())}
       </div>
@@ -254,7 +320,7 @@ function dsPaint() {
   const rh = railHead();
   const stepAction = step === 1
     ? `<button id="ds-next" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">
-         Next: choose a style ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
+         Next: choose a structure ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
        <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">Step 2 of 2, then ${publish ? 'publish' : 'save'}.</p>`
     : publish
       ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">Publish v${_ds.versionNumber}</button>
@@ -263,21 +329,27 @@ function dsPaint() {
          <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Applies to future documents and anything not yet executed. Signed contracts keep the look they were sealed with.</p>`;
 
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="${VIEW};padding:12px 16px 14px;display:flex;flex-direction:column;gap:11px">
+  <div class="view-enter ds-page${_ds.focus ? ' ds-focus' : ''}" style="${VIEW};padding:12px 16px 14px;display:flex;flex-direction:column;gap:11px">
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button id="ds-back" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${
-        step === 2 ? 'Back to structure' : (publish ? 'Back to builder' : 'Back to settings')}</button>
+        step === 2 ? 'Back to style' : (publish ? 'Back to builder' : 'Back to settings')}</button>
       <h3 style="margin:0;font-family:var(--font-heading);font-size:15.5px;font-weight:700">Design${publish ? ` — publish ${esc(_ds.templateName)} v${_ds.versionNumber}` : ' — your company standard'}</h3>
       <span style="font-size:11px;color:var(--color-neutral-600)">${step === 1
-        ? 'The wording and the clause numbers never change — only the layout.'
-        : 'Same document, now choose how it is dressed.'}</span>
+        ? 'Same document, choose how it is dressed.'
+        : 'The wording and the clause numbers never change — only the layout.'}</span>
       ${stepRail()}
     </div>
 
-    <div class="ds-cols" style="display:grid;gap:14px;flex:1;min-height:0">
+    <!-- ds-focus marks the one-column focus mode so the narrow-window rules in
+         index.html leave it alone — in focus mode the two rails are not
+         rendered at all, so re-imposing rail columns on it would drop the
+         preview into a 248px track. -->
+    <div class="ds-cols${_ds.focus ? ' ds-focus' : ''}" style="display:grid;grid-template-columns:${
+      _ds.focus ? 'minmax(0,1fr)' : '268px minmax(0,1fr) 292px'};gap:14px;flex:1;min-height:0">
       <!-- ONE list, ONE choice. Which choice it is, is said three ways: the
            number, the title and the step rail above. -->
-      <section style="${PANE}">
+      ${_ds.focus ? '' : `
+      <section class="ds-rail-pane" style="${PANE}">
         <div style="flex:none;padding:13px 14px 11px;border-bottom:1px solid var(--color-divider)">
           <div data-ds-step="${rh.n}" style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-size:11px;
             font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-accent-700)">
@@ -286,26 +358,36 @@ function dsPaint() {
           <h4 data-ds-step-title style="font-family:var(--font-heading);font-size:15px;margin:6px 0 3px;letter-spacing:-.015em">${rh.title}</h4>
           <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
         </div>
-        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:11px 13px 14px">
-          ${step === 1 ? structureCards + blockNote : designCards}
+        <div id="ds-rail" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:11px 13px 14px">
+          ${step === 1 ? designCards : structureCards + blockNote}
         </div>
-      </section>
+      </section>`}
 
       <!-- The document on its own canvas, whole and centred. -->
       <section style="${PANE}">
-        <div style="flex:none;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--color-divider)">
-          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(structure.name)}</span>
+        <div style="flex:none;display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--color-divider)">
+          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(design.name)}</span>
           <span style="color:var(--color-neutral-400);font-size:11px">×</span>
-          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">${esc(design.name)}</span>
+          <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">${esc(structure.name)}</span>
+          <span style="flex:1"></span>
+          <!-- The workbench's own controls, not lookalikes: one stored text-size
+               preference shared with the Doc tab and the Redline canvas, so a
+               size set here is the size there. -->
+          ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
+          <button id="ds-focus" class="ui-btn" title="${_ds.focus ? 'Leave full screen' : 'Fill the screen with the document'}"
+            aria-pressed="${_ds.focus ? 'true' : 'false'}"
+            style="padding:4px 7px;${_ds.focus ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff' : ''}">
+            ${icon('expand', 'w-3.5 h-3.5')}</button>
         </div>
-        <div style="flex:1;min-height:0;padding:16px;background:var(--color-neutral-100);
-          display:grid;place-items:center;container-type:size;overflow:hidden">${paper}</div>
+        <div id="ds-docpane" class="scroll-thin" style="flex:1;min-height:0;padding:16px;
+          background:var(--color-neutral-100);overflow:auto">${paper}</div>
         <div style="flex:none;padding:7px 14px;border-top:1px solid var(--color-divider);text-align:center;font-size:10.5px;color:var(--color-neutral-500)">
           ${publish ? 'Your live draft, not a sample' : 'A sample document, so the looks can be compared'}
         </div>
       </section>
 
-      <section style="${PANE}">
+      ${_ds.focus ? '' : `
+      <section class="ds-rail-pane" style="${PANE}">
        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px">
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">Company branding</h4>
         <div style="display:flex;gap:10px;align-items:center">
@@ -341,17 +423,27 @@ function dsPaint() {
        </div>
        <!-- The step's action, pinned where it can always be reached. -->
        <div style="flex:none;padding:11px 15px;border-top:1px solid var(--color-divider)">${stepAction}</div>
-      </section>
+      </section>`}
     </div>
   </div>`;
 
+  /* The rail keeps its place unless the step changed — a new step is a new
+     list, and starting it half-way down would be its own kind of lost. */
+  if (!(opts && opts.resetScroll)) dsRestoreScroll(_dsScroll);
+  dsApplyZoom();
+  if (window.rlWireTypeStep) rlWireTypeStep(document.getElementById('content'));
+  document.getElementById('ds-focus')?.addEventListener('click', () => {
+    dsHarvest(); _ds.focus = !_ds.focus; dsPaint();
+  });
+
   document.getElementById('ds-back')?.addEventListener('click', () => {
-    if (_ds.step === 2) { dsHarvest(); _ds.step = 1; dsPaint(); return; }
+    if (_ds.step === 2) { dsHarvest(); _ds.step = 1; dsPaint({ resetScroll: true }); return; }
     const go = _ds.onBack; _ds = null; if (go) go();
   });
-  document.getElementById('ds-next')?.addEventListener('click', () => { dsHarvest(); _ds.step = 2; dsPaint(); });
+  document.getElementById('ds-next')?.addEventListener('click', () => { dsHarvest(); _ds.step = 2; dsPaint({ resetScroll: true }); });
   document.querySelectorAll('[data-ds-structure]').forEach(el => el.addEventListener('click', () => {
     dsHarvest();
+    _ds.structureTouched = true;
     _ds.b.structureId = el.getAttribute('data-ds-structure');
     dsPaint();
   }));
@@ -376,14 +468,21 @@ function dsPaint() {
     _ds.b.designId = el.getAttribute('data-ds-pick');
     if (!_ds.posTouched) _ds.b.logoPosition = docDesignById(_ds.b.designId).defaultLogoPos;
     /* Never leave a blocked pair selected. Switching style is the customer's
-       action; silently publishing a combination the product refuses is not. */
-    /* Step 2 is chosen against a structure already picked, so a refused pairing
-       is drawn unavailable rather than reached. This stays as the backstop for
-       the settings route, where a saved default can carry an old pair. */
+       action; silently publishing a combination the product refuses is not.
+       This is the backstop for the settings route too, where a saved default
+       can carry a pair from before either catalogue moved.
+
+       IT ONLY SPEAKS UP ABOUT A STRUCTURE SOMEBODY CHOSE. Style comes first
+       now, so on step 1 the structure is a default the reader has not seen —
+       announcing that it "is not available" names a decision they never took
+       and sends them looking for a mistake they did not make. The pair is
+       still corrected; the sentence waits until there is something to correct
+       THEM about. */
     if (structureBlockedReason(_ds.b.designId, _ds.b.structureId)) {
       const was = docStructureById(_ds.b.structureId);
+      const chosen = _ds.step === 2 || _ds.structureTouched;
       _ds.b.structureId = DEFAULT_STRUCTURE;
-      toast(`${was.name} is not available with ${docDesignById(_ds.b.designId).name} — the layout is back to Standard Flow`, 'err');
+      if (chosen) toast(`${was.name} is not available with ${docDesignById(_ds.b.designId).name} — the layout is back to Standard Flow`, 'err');
     }
     dsPaint();
   }));
@@ -501,4 +600,8 @@ async function dsSaveDefault() {
   }
 }
 
-Object.assign(window, { openDesignStep });
+/* Exported so the workbench's text-size stepper can re-fit this screen when it
+   steps (js/views/negotiation.js rlSetDocType), and so the shell's resize
+   handler reaches it. */
+if (typeof addEventListener === 'function') addEventListener('resize', () => { if (_ds) dsApplyZoom(); });
+Object.assign(window, { openDesignStep, dsApplyZoom });

@@ -444,14 +444,28 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('13 it is emerald-600', !!blast && blast.bg === 'rgb(5, 150, 105)', blast && blast.bg);
 
   /* ---- 9. two panes, one sidebar, one face at a time ----
-     Measured as a RATIO of the grid's own width, which is what "two thirds"
-     means; a rule that stops applying would show up here and nowhere else. */
+     Measured as a RATIO of the width THE SPLIT GOVERNS, which is what "two
+     thirds" means; a rule that stops applying would show up here and nowhere
+     else.
+
+     That width used to be the whole grid, and stopped being it when the round's
+     queue took a third column in front of the pair (f130). The rule is
+     unchanged — the handle still deals the contract two thirds and the sidebar
+     one — but the queue is not part of the deal, so measuring against the grid
+     would report a broken split on a layout whose split is exactly right.
+     Deliberately measured against doc+side rather than "grid minus 300": the
+     queue's width is negotiable (it narrows to keep the contract's 720px
+     measure), so subtracting a constant would be asserting a number this file
+     has no business knowing. */
   const panes = await page.evaluate(() => {
     const grid = document.getElementById('rl-grid');
     const vis = el => el.offsetParent !== null && el.getBoundingClientRect().width > 0;
     const w = () => ({ grid: grid.getBoundingClientRect().width,
       doc: document.getElementById('rl-doc').getBoundingClientRect().width,
       side: document.getElementById('rl-side').getBoundingClientRect().width,
+      /* the width the drag handle actually deals out */
+      split: document.getElementById('rl-doc').getBoundingClientRect().width
+        + document.getElementById('rl-side').getBoundingClientRect().width,
       chg: vis(document.getElementById('rl-changes-col')),
       disc: vis(document.getElementById('rl-disc-col')) });
     const changes = w();
@@ -462,11 +476,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   const ratio = (a, b) => a / b;
   check('9 the document takes two thirds of the row',
-    Math.abs(ratio(panes.changes.doc, panes.changes.grid) - 2 / 3) < 0.04,
-    ratio(panes.changes.doc, panes.changes.grid).toFixed(3));
+    Math.abs(ratio(panes.changes.doc, panes.changes.split) - 2 / 3) < 0.04,
+    ratio(panes.changes.doc, panes.changes.split).toFixed(3));
   check('9 the one sidebar takes the other third',
-    Math.abs(ratio(panes.changes.side, panes.changes.grid) - 1 / 3) < 0.04,
-    ratio(panes.changes.side, panes.changes.grid).toFixed(3));
+    Math.abs(ratio(panes.changes.side, panes.changes.split) - 1 / 3) < 0.04,
+    ratio(panes.changes.side, panes.changes.split).toFixed(3));
   check('9 changes mode shows the cards and not the discussion',
     panes.changes.chg && !panes.changes.disc, JSON.stringify(panes.changes));
   check('9 discussion mode shows the threads and not the cards',

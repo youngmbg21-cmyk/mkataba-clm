@@ -48,9 +48,67 @@ function portalCurrentText(){
   const p=PORTAL_OPTS.payload;
   return (p&&p.contract&&p.contract.docText)||'';
 }
+/* ---------- HAS THIS READER SEEN THIS REVISION? ----------
+   The banner is a NOTICE, not a decision: it says the sender moved the wording
+   since you last opened it. A notice you cannot put down is a notice that stops
+   being read — it sat above the contract on every visit with no way to say "yes,
+   I have looked", so the one signal that means "something moved" became part of
+   the furniture.
+
+   KEYED ON THE WORDING, NOT ON THE FACT OF A REVISION. The next revision is a
+   different text, and it must raise the banner again however recently the last
+   one was put down. Hashing the text the reader is being shown is what makes
+   "read" mean "read THIS", rather than "stop telling me about this contract".
+
+   Per browser, like every other reading preference here: this is one person
+   saying they have looked, and it is not the counterparty's answer to anything
+   — nothing about it is written to the record or sent to the sender. */
+const PT_READ_KEY='hati.v1.ptRevisionRead';
+function ptReadMap(){
+  try{ return JSON.parse(localStorage.getItem(PT_READ_KEY)||'{}')||{}; }catch(e){ return {}; }
+}
+function ptRevisionKey(ch){
+  const p=PORTAL_OPTS.payload||{};
+  const id=(p.contract&&p.contract.id)||'?';
+  const t=String((ch&&ch.after)||'');
+  let h=0; for(let i=0;i<t.length;i++){ h=(h*31+t.charCodeAt(i))|0; }
+  return id+':'+((h>>>0).toString(36));
+}
+function ptRevisionRead(ch){ return !!(ch && ptReadMap()[ptRevisionKey(ch)]); }
+function ptSetRevisionRead(ch, read){
+  if(!ch) return;
+  const m=ptReadMap(), k=ptRevisionKey(ch);
+  if(read) m[k]=1; else delete m[k];
+  try{ localStorage.setItem(PT_READ_KEY, JSON.stringify(m)); }catch(e){}
+}
+/* Put the notice down, or bring it back. Taking it down is a node removal —
+   the page behind it must not be rebuilt for a notice — but putting it back
+   needs the markup that is no longer there, so that one repaints. Marking
+   something unread is the rare half of a rare control; the repaint is cheap
+   where it is almost never spent. */
+function portalHideRevisedBanner(){
+  document.querySelectorAll('#pt-revised').forEach(n=>n.remove());
+}
+function portalShowRevisedBanner(p){
+  if(document.getElementById('pt-revised')) return;
+  if(window.renderSharePortal) renderSharePortal(PORTAL_OPTS.payload, PORTAL_OPTS);
+}
+/* Wired from both places the banner is drawn, through one function, because it
+   IS drawn in two places (the negotiate seat and the signing seat) and a
+   dismiss bound at only one of them is a dismiss that works on one screen. */
+function portalWireRevisedBanner(p){
+  document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
+  document.getElementById('pt-revised-dismiss')?.addEventListener('click',()=>{
+    ptSetRevisionRead(portalChangedText(), true);
+    portalHideRevisedBanner();
+    if(window.toast) toast('Marked as read — reopen "See what changed" to mark it unread');
+  });
+}
+
 function portalRevisedBanner(){
   const ch=portalChangedText();
-  if(!ch) return '';
+  /* Read means read: the notice does not come back for this wording. */
+  if(!ch || ptRevisionRead(ch)) return '';
   const st=(window.diffStats?diffStats(ch.before,ch.after):{add:0,del:0});
   const when=ch.openedAt||ch.at;
   const org=esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||'The sender');
@@ -68,6 +126,9 @@ function portalRevisedBanner(){
         <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
       </span>
       <button id="pt-see-changes" style="flex:none;font:inherit;font-size:12.5px;font-weight:600;border:0;border-radius:5px;padding:9px 16px;cursor:pointer;background:var(--st-amber-dot);color:#fff">See what changed</button>
+      <button id="pt-revised-dismiss" title="Mark as read — this notice will not come back for this revision"
+        aria-label="Mark as read and dismiss this notice"
+        style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--st-amber-line);background:transparent;color:var(--st-amber-fg);border-radius:6px;cursor:pointer;font:inherit;font-size:15px;line-height:1">&times;</button>
     </div>
     <style>
       @keyframes pt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -106,16 +167,41 @@ function openPortalCompare(p){
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <span style="font-size:11.5px;color:var(--color-neutral-600);min-width:150px;flex:1">Accepting records your agreement. It does not sign the contract.</span>
-          <button id="pc-decline" class="ui-btn" style="border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);color:var(--st-ruby-dot)">Decline</button>
-          <button id="pc-counter" class="ui-btn">Propose further edits</button>
-          <button id="pc-accept" class="ui-btn ui-btn-primary">Accept these changes</button>
+          ${''/* ---- THIS SCREEN IS FOR READING, AND IT SAYS SO ----
+                 It used to end in Decline / Propose further edits / Accept
+                 these changes. Those are the answers to the CONTRACT, and they
+                 are all still on the page behind this one (#pt-accept,
+                 #pt-decline, #pt-changes) — offering them again here made a
+                 window whose only job is "show me what moved" the place a
+                 negotiation could be settled by somebody who had opened it to
+                 look. Two people pressing Accept from a diff viewer is one
+                 accept too many.
+
+                 What this window owes the reader is the other thing: a way to
+                 put the notice down, and a way to pick it back up if they were
+                 not finished. Nothing here is sent to the sender and nothing is
+                 written to the record. */}
+          <span style="font-size:11.5px;color:var(--color-neutral-600);min-width:150px;flex:1">Marking as read only clears the notice on your screen. It does not accept, decline or sign anything.</span>
+          <button id="pc-unread" class="ui-btn">Mark as unread</button>
+          <button id="pc-read" class="ui-btn ui-btn-primary">Mark as read</button>
         </div>
       </div>
     </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
-  document.getElementById('pc-accept').addEventListener('click',()=>{ closeModal(); portalRespond(p,'accept'); });
-  document.getElementById('pc-decline').addEventListener('click',()=>{ closeModal(); portalRespond(p,'decline'); });
-  document.getElementById('pc-counter').addEventListener('click',()=>{ closeModal(); document.getElementById('pt-redline')?.click(); });
+  document.getElementById('pc-read').addEventListener('click',()=>{
+    ptSetRevisionRead(ch, true);
+    closeModal();
+    portalHideRevisedBanner();
+    if(window.toast) toast('Marked as read');
+  });
+  document.getElementById('pc-unread').addEventListener('click',()=>{
+    ptSetRevisionRead(ch, false);
+    closeModal();
+    /* Bringing it back is the point of the control — a reader who opened this
+       by accident, or ran out of time half way down, must be able to leave it
+       standing. */
+    portalShowRevisedBanner(p);
+    if(window.toast) toast('Marked as unread — the notice stays up');
+  });
 }
 /* The counterparty's Compare — the mirror of the owner's toolbar button, and
    the answer to "how do I see what changed" when no banner happens to be up.
@@ -2117,7 +2203,7 @@ function renderShareWorkbench(p, opts={}){
      needs them, both buttons were dead markup. */
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
-  document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
+  portalWireRevisedBanner(p);
   document.getElementById('pt-focus')?.addEventListener('click',()=>{
     const pg=document.getElementById('pw-page'); if(!pg) return;
     const on=pg.classList.toggle('pw-focus');
@@ -2453,7 +2539,7 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-sign').addEventListener('click',()=>portalRespond(p,'sign'));
   document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
   document.getElementById('pt-accept').addEventListener('click',()=>portalRespond(p,'accept'));
-  document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
+  portalWireRevisedBanner(p);
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
   // the shared Negotiation component, rendered for this side
@@ -2528,10 +2614,22 @@ function renderSharePortal(p, opts={}){
   });
   document.getElementById('pt-redline-submit')?.addEventListener('click',()=>portalRespond(p,'redline'));
   // prefill the recipient's details from the share (they can still edit them)
+  const setIf=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
   if(opts.share){
-    const setIf=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
     setIf('pt-name',opts.share.recipientName); setIf('pt-email',opts.share.recipientEmail);
   }
+  /* ---- AND THE NAME THIS BROWSER ALREADY GAVE ----
+     Under the share's own name, never over it: the sender addressed this to
+     somebody, and that is who it is for. Below that, a reader who has typed
+     their name here before does not get asked again on every refresh — which
+     is what a page you work through a round of changes on has to stop doing.
+     The other box, #nego-cp-name in the room, is seeded and kept by
+     negoNameFieldHtml; this is the same fact on the page underneath it. */
+  if(window.negoRememberedName) setIf('pt-name', negoRememberedName());
+  /* Keeping what is typed is negoWireNameMemory's job — one delegated
+     listener covering this box and the room's, so the two cannot disagree
+     about what was remembered. */
+  if(window.negoWireNameMemory) negoWireNameMemory();
 }
 async function portalRespond(p, action, extra){
   const name=portalResponderName(), title=fval('pt-title'), email=fval('pt-email');
@@ -3314,4 +3412,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,portalDerivedHtml,portalDerivedLinks});
+Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,portalDerivedHtml,portalDerivedLinks});

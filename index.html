@@ -111,16 +111,15 @@
        here after every render; this is only the value before the first one. */
     --view-h:calc(100vh - 126px);
 
-    /* HOW WIDE THE TWO SIDE STRIPS ARE. These were hard numbers baked into the
-       shell markup (256px on the sidebar, 292px on the activity column), which
-       is why a smaller laptop squeezed the middle until content fell off the
-       edge with no scrollbar to reach it. They are tokens now, retuned per
+    /* HOW WIDE THE ACTIVITY COLUMN IS. This was a hard number baked into the
+       shell markup (292px), which — together with the sidebar — is why a
+       smaller laptop squeezed the middle until content fell off the edge with
+       no scrollbar to reach it. It is a token now, retuned per
        breakpoint in the RESPONSIVE SHELL block further down. The values here
        are exactly what shipped before, so the standard-desktop layout is
        unchanged. --shell-panel-w is read by applyPanelLayout (js/app.js),
        which is the ONLY writer of #body-grid's columns — it writes an inline
        style, so a media query aimed at that element would silently lose. */
-    --shell-nav-w:256px;
     --shell-panel-w:292px;
     --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
     --font-body:Inter,system-ui,sans-serif;
@@ -485,6 +484,70 @@
   .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:12.5px;flex:1;min-width:0;color:inherit;}
 
   /* top-header square icon buttons (theme toggle, notifications) */
+  /* ============================================================
+     THE SIDEBAR, COLLAPSED TO ITS ICONS
+     ============================================================
+     One class on the shell, and the 256px column becomes a 64px rail. The
+     doors do not change, their order does not change and none of them is
+     dropped — only the words come off, and they come off to the `title` each
+     button already carries, so the labels move rather than disappear.
+
+     WHY NATIVE TOOLTIPS AND NOT A DRAWN ONE. #nav is a scroller
+     (overflow-y:auto), which clips a ::after tooltip at the rail's edge — the
+     one place it has to be able to reach. The browser's own tooltip is not
+     clipped by anything, is already wired to markup that has carried titles
+     since the sidebar was written, and is reachable from the keyboard.
+
+     WHAT IS DELIBERATELY NOT HIDDEN: the workspace status at the foot. It
+     loses its wording and keeps its dot, because "is this workspace live" is
+     the one thing on the sidebar that is not navigation and not recoverable by
+     opening the door to look. */
+  /* ---- THE HEADER BAR THE CONTROL LIVES ON ----
+     Deep green, so the one control that changes the shape of the window reads
+     as chrome rather than as another door in the list below it. It is the only
+     filled block on the sidebar, which is what makes it findable at a glance in
+     both states — the thing that was missing when this was a grey square in the
+     far corner. */
+  .rail-head{flex:none;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
+    background:linear-gradient(135deg,#0f4c46,#115e59 70%);color:#fff;}
+  .rail-head-label{font-family:var(--font-heading);font-size:10px;font-weight:800;
+    letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.72);min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rail-toggle{margin-left:auto;flex:none;width:26px;height:26px;border-radius:50%;
+    display:grid;place-items:center;border:1px solid rgba(255,255,255,.3);
+    background:rgba(255,255,255,.14);color:#fff;cursor:pointer;padding:0;
+    transition:background .12s,transform .12s;}
+  .rail-toggle:hover{background:rgba(255,255,255,.3);}
+  .rail-toggle:active{transform:scale(.94);}
+  .rail-toggle:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+  /* Collapsed the bar keeps its height and its colour and centres the control,
+     so the rail still opens on the same block rather than on a door. */
+  #app-shell.rail .rail-head{justify-content:center;padding:0;}
+  #app-shell.rail .rail-head-label{display:none;}
+  #app-shell.rail .rail-toggle{margin-left:0;}
+
+  #app-shell.rail aside #nav{padding:12px 0;align-items:center;}
+  #app-shell.rail aside .nav-item{width:44px;justify-content:center;padding:9px 0;gap:0;margin:0 auto;}
+  /* The label spans carry inline flex:1, so this has to outrank them. */
+  #app-shell.rail aside .nav-item>span:not(.nav-rail),
+  #app-shell.rail aside .nav-count{display:none!important;}
+  #app-shell.rail aside .nav-item .nav-rail{left:-8px;}
+  /* A section heading cannot be re-worded from CSS, so its text is set to
+     nothing and the stub is drawn in its place — ADMINISTRATION does not fit
+     in 64px and an ellipsis of it says less than three letters do. */
+  #app-shell.rail aside .nav-section-head{font-size:0;justify-content:center;padding:12px 0 4px;}
+  #app-shell.rail aside .nav-section-head::before{content:"ADM";font-size:9px;font-weight:700;letter-spacing:.1em;}
+  #app-shell.rail aside .nav-plus{display:none;}
+  #app-shell.rail aside .copilot-wrap{padding:8px 0;display:flex;justify-content:center;}
+  #app-shell.rail aside #side-copilot{width:44px;padding:10px 0;}
+  #app-shell.rail aside .sc-label{display:none;}
+  #app-shell.rail aside .foot-wrap{padding:10px 0;}
+  #app-shell.rail aside .foot-wrap>div{background:none;border:0;padding:0;align-items:center;}
+  #app-shell.rail aside .foot-status{justify-content:center;}
+  #app-shell.rail aside #side-status,
+  #app-shell.rail aside #side-ai-usage-txt{display:none;}
+  #app-shell.rail aside #side-ai-usage{justify-content:center;}
+
   .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:12px;color:var(--color-neutral-600);cursor:pointer;transition:background .15s,color .15s;}
   .hdr-icon-btn:hover{background:var(--color-neutral-200);color:var(--color-text);}
 
@@ -545,63 +608,61 @@
      the design, and only the widths that were already broken move.
      ============================================================ */
 
-  /* -- ultrawide: the strips take a little more, the middle still gains -- */
-  @media (min-width:1800px){
-    :root{ --shell-nav-w:272px; --shell-panel-w:320px; }
-  }
-  /* -- laptop: trim both strips before anything has to be clipped -- */
-  @media (max-width:1439px){
-    :root{ --shell-nav-w:216px; --shell-panel-w:264px; }
-  }
-  /* -- tablet: the sidebar becomes an icon rail. RESTYLED, NOT REBUILT —
-        every nav button keeps its id, its handler and its place in the DOM, so
-        navigation is untouched; only the labels stop being drawn. The title
-        attributes were already on every button, so hovering still names each
-        destination. The activity column is hidden by applyPanelLayout (which
-        writes an inline style and would beat a rule written here). -- */
-  @media (max-width:1199px){
-    :root{ --shell-nav-w:72px; }
-    #side-nav .nav-item{ justify-content:center; padding:9px 0; gap:0; }
-    #side-nav .nav-item>span:not(.nav-rail){ display:none; }
-    #side-nav .nav-count,#side-nav .nav-badge{ display:none; }
-    #side-nav .nav-section-head{ font-size:0; padding:10px 0 6px; justify-content:center; }
-    #side-nav .nav-plus{ margin:0; }
-    #side-nav .nav-section:not(.open) .nav-section-body{ display:block; }
-    /* !important throughout this block and the one below: the shell's paddings
-       and gaps are written as INLINE styles in the markup, which outrank a
-       stylesheet rule however specific. Without it these rules were silently
-       no-ops — measured, the header kept its 20px gaps on a 390px phone. */
-    #side-nav nav{ padding:12px 8px!important; }
-    #side-nav .copilot-wrap{ padding:8px!important; }
-    #side-nav #side-copilot{ padding:10px 0!important; }
-    #side-nav .sc-label{ display:none; }
-    #side-nav .foot-wrap{ padding:8px!important; }
-    #side-nav .foot-wrap>div{ padding:8px 6px!important; align-items:center!important; }
-    #side-nav .foot-status>span:last-child,#side-nav #side-ai-usage-txt{ display:none; }
-  }
-  /* -- phone: the rail leaves the grid entirely and becomes a drawer over the
-        page, opened from the menu button in the header. -- */
+  /* -- ultrawide: the activity column takes a little more -- */
+  @media (min-width:1800px){ :root{ --shell-panel-w:320px; } }
+  /* -- laptop: trim it before anything has to be clipped -- */
+  @media (max-width:1439px){ :root{ --shell-panel-w:264px; } }
+
+  /* -- THE SIDEBAR'S WIDTH IS NOT DECIDED HERE --
+        An earlier version of this block collapsed the sidebar to an icon rail
+        on a breakpoint. It no longer does, because the rail is already a
+        feature: #app-shell.rail, toggled from the header and remembered per
+        browser (applyRail in js/app.js, and the rules further up this file).
+        That design is deliberate and it argues its case where it is written —
+        a sidebar that folds itself while you are reading has moved every door
+        you were aiming at for a reason you did not ask for. Two systems both
+        claiming the sidebar's width is exactly the duplication this codebase
+        keeps paying for, so there is one, and it is that one. applyRail writes
+        the column inline, which would beat anything written here in any case.
+
+        The one exception is the phone, below. At 390px an expanded sidebar
+        leaves 134px for the page, which is not a choice between two layouts —
+        it is the app not working. -- */
+
+  /* -- phone: the sidebar leaves the grid entirely and becomes a drawer over
+        the page, opened from the menu button in the header. applyRail writes
+        the 0px column (it owns that inline style); everything here is what the
+        drawer looks like once it is out of the grid. -- */
   @media (max-width:899px){
-    :root{ --shell-nav-w:0px; }
     #nav-toggle{ display:grid!important; }
     #side-nav{
       position:fixed; top:64px; left:0; bottom:0; z-index:55; width:240px;
       transform:translateX(-105%); transition:transform .25s var(--ease);
       box-shadow:var(--shadow-lg);
     }
-    /* open: full labels are back — there is room for them in the drawer */
+    /* Open, it is the FULL sidebar — labels, counts and all. There is room for
+       them in a 240px drawer, and the rail's compaction is for a column that
+       has to share the width, which this no longer does. So the rail rules
+       further up are unwound here for the duration. */
     #side-nav.open{ transform:none; }
-    #side-nav.open .nav-item{ justify-content:flex-start; padding:9px 12px; gap:11px; }
-    #side-nav.open .nav-item>span:not(.nav-rail){ display:inline; }
-    #side-nav.open .nav-count:not(:empty),#side-nav.open .nav-badge{ display:inline-block; }
-    #side-nav.open .nav-section-head{ font-size:10px; padding:12px 12px 6px; justify-content:flex-start; }
-    #side-nav.open .nav-plus{ margin-left:auto; }
-    #side-nav.open nav{ padding:12px!important; }
-    #side-nav.open .copilot-wrap,#side-nav.open .foot-wrap{ padding:12px!important; }
-    #side-nav.open #side-copilot{ padding:10px!important; }
-    #side-nav.open .sc-label{ display:inline; }
-    #side-nav.open .foot-wrap>div{ padding:10px 12px!important; align-items:stretch!important; }
-    #side-nav.open .foot-status>span:last-child,#side-nav.open #side-ai-usage-txt{ display:inline; }
+    #app-shell.rail #side-nav.open .nav-item{ width:auto; justify-content:flex-start; padding:9px 12px; gap:11px; margin:0; }
+    #app-shell.rail #side-nav.open .nav-item>span:not(.nav-rail){ display:inline!important; }
+    #app-shell.rail #side-nav.open .nav-count:not(:empty){ display:inline-block!important; }
+    #app-shell.rail #side-nav.open .nav-item .nav-rail{ left:0; }
+    #app-shell.rail #side-nav.open .nav-section-head{ font-size:10px; justify-content:flex-start; padding:12px 12px 6px; }
+    #app-shell.rail #side-nav.open .nav-section-head::before{ content:none; }
+    #app-shell.rail #side-nav.open .nav-plus{ display:block; margin-left:auto; }
+    #app-shell.rail #side-nav.open #nav{ padding:12px; align-items:stretch; }
+    #app-shell.rail #side-nav.open .copilot-wrap{ padding:12px; display:block; }
+    #app-shell.rail #side-nav.open #side-copilot{ width:100%; padding:10px; }
+    #app-shell.rail #side-nav.open .sc-label{ display:inline; }
+    #app-shell.rail #side-nav.open .foot-wrap{ padding:12px; }
+    #app-shell.rail #side-nav.open .foot-wrap>div{ background:var(--color-neutral-100); border:1px solid var(--color-divider); padding:10px 12px; align-items:stretch; }
+    #app-shell.rail #side-nav.open .foot-status{ justify-content:flex-start; }
+    #app-shell.rail #side-nav.open #side-status,
+    #app-shell.rail #side-nav.open #side-ai-usage-txt{ display:inline; }
+    /* the rail's own header toggle has nothing to toggle inside a drawer */
+    #side-nav .rail-head{ display:none; }
     #nav-scrim:not([hidden]){
       display:block; position:fixed; inset:64px 0 0 0; z-index:54;
       background:color-mix(in srgb,#020617 45%,transparent);
@@ -1181,7 +1242,7 @@
 
 <!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
      stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:var(--shell-nav-w) minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:256px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
 
   <!-- ================= TOP HEADER (64px, spans both columns) ================= -->
   <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
@@ -1245,6 +1306,13 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
       </button>
 
+      <!-- Collapse the sidebar to its icons. It lives HERE rather than in the
+           sidebar for the reason the collapsed sidebar exists: the control has
+           to be reachable and the same size in both states, and a button
+           inside a 64px rail is neither. Beside the Activity panel toggle
+           because they are the same kind of act — this is the other side of
+           the window. -->
+
       <!-- regional profile badge — renderSideUser() (js/core.js) fills these -->
       <div style="display:flex;align-items:center;gap:10px;padding-left:12px;border-left:1px solid var(--color-divider);">
         <button id="rail-avatar" title="Team &amp; settings" style="display:flex;align-items:center;gap:9px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
@@ -1261,8 +1329,21 @@
     </div>
   </header>
 
-  <!-- ================= SIDEBAR (--shell-nav-w) ================= -->
+  <!-- ================= SIDEBAR (256px, or 64px as the rail) ================= -->
   <aside id="side-nav" style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+
+    <!-- ---- THE COLLAPSE CONTROL, ON THE THING IT COLLAPSES ----
+         It lived beside the Activity panel toggle in the top header, which put
+         a control for the LEFT edge of the window at the far right of it, drawn
+         as the fifth small grey square in a row of small grey squares. It could
+         not be found by somebody looking straight at it, twice.
+         A control belongs on the thing it acts on. -->
+    <div class="rail-head">
+      <span class="rail-head-label">Menu</span>
+      <button id="cmd-rail" class="rail-toggle" title="Show the sidebar labels" aria-pressed="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="rail-chev" d="M9.5 6 15.5 12l-6 6"/></svg>
+      </button>
+    </div>
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
       <!-- ONE DOOR PER THING (WO N1). Day-to-day nav is five plain-English
