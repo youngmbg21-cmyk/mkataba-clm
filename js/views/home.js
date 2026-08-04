@@ -432,25 +432,30 @@ function renderDashboard(){
   };
   const pipeCols=PIPE_DEF.map(st=>{
     const list=cs.filter(c=>c.status===st.k);
-    /* Two per column, not three: the card is a glance at what is moving, and
-       the count chip plus "+N more" carry the rest. Two also keeps the card
-       short enough that the Decisions card beside it — which is filled into the
-       height this one sets — stays readable without scrolling far. */
-    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,2);
-    return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-surface);border:1px solid ${st.bd};min-width:0;">
+    /* AS MANY AS THE WINDOW HAS ROOM FOR, not a fixed two.
+       Two was chosen when this row set its own height and the Decisions card
+       beside it filled into whatever that came to. The row now grows to fill
+       the page instead (see .hm-main-row), so a hard slice of two meant a
+       1920x950 screen showed six contracts and left 306px of the dashboard
+       blank — the dead band under the cards that was reported. The list below
+       scrolls inside its own column, so a short window still shows two and a
+       tall one shows what it has room for. "+N more" stays outside the scroll,
+       pinned at the foot of the column, and still carries the rest. */
+    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,6);
+    return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-surface);border:1px solid ${st.bd};min-width:0;min-height:0;">
       <button data-stage="${st.k}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:inherit;">
         <span style="font-size:11.5px;font-weight:700;color:${st.fg};">${st.n}. ${st.title}</span>
         <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${list.length} doc${list.length===1?'':'s'}</span>
       </button>
-      <div style="display:flex;flex-direction:column;gap:7px;">
+      <div class="hm-pipe-list scroll-thin" style="display:flex;flex-direction:column;gap:7px;">
         ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">Nothing at this stage.</div>`}
-        ${list.length>shown.length?`<button data-stage="${st.k}" style="border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">+ ${list.length-shown.length} more →</button>`:''}
       </div>
+      ${list.length>shown.length?`<button data-stage="${st.k}" style="flex:none;border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">+ ${list.length-shown.length} more →</button>`:''}
     </div>`;
   }).join('');
   const lifecycleSection=`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
+    <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
+      <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
         <h4 style="font-size:15px;margin:0;font-weight:700;">Active contract lifecycle pipeline</h4>
         <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">View full register →</button>
       </div>

@@ -147,6 +147,28 @@ const PROBE = () => {
       cal && cal.hidden === 0 && !cal.scrolls,
       cal ? `${cal.hidden} cells past the edge, scrolls=${cal.scrolls}` : 'no grid');
 
+    /* NO DEAD BAND UNDER THE DASHBOARD.
+       Reported from both a ThinkPad and a larger laptop: the page stopped
+       short and left an empty strip at the bottom, because the dashboard was
+       only ever as tall as its content while the pipeline row never grew.
+       Measured before the fix: 31px of empty page at 1280x590, 162px at
+       1600x770 and 306px at 1920x950. Asserted in both directions — it must
+       not fall short of the window, and it must not run past it either. */
+    await page.evaluate(x => window.setView(x), 'dashboard');
+    await page.waitForTimeout(500);
+    const fill = await page.evaluate(() => {
+      const sc = document.getElementById('content-scroll');
+      const pg = document.querySelector('.hm-page');
+      if (!sc || !pg) return null;
+      return {
+        gap: Math.round(sc.getBoundingClientRect().bottom - pg.getBoundingClientRect().bottom),
+        overflows: sc.scrollHeight > sc.clientHeight + 1,
+      };
+    });
+    check(`${L.name}: the dashboard fills its window — no dead band, no overflow`,
+      fill && Math.abs(fill.gap) <= 4 && !fill.overflows,
+      fill ? `gap ${fill.gap}px, overflows=${fill.overflows}` : 'no dashboard');
+
     /* And the change list has room for a change. */
     await page.evaluate(() => window.openWorkspace(window.state.contracts[0].id));
     await page.waitForTimeout(400);
