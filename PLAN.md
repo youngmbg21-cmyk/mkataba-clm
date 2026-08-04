@@ -50,10 +50,11 @@ Fixes **R1, R2, R3, C8**.
 
 Fixes **R1** at the two narrowest sizes.
 
-- **Tablet (< 1200):** collapse to a 72px icon rail. Pure CSS — hide the label
-  spans, the counts and the section headings; centre the glyphs; keep every
-  `title` attribute so hovering still names each destination. No JavaScript, so
-  nothing can get out of step.
+- **Tablet (< 1200):** *superseded.* This originally collapsed the sidebar to an
+  icon rail on a breakpoint. Main gained its own rail in the meantime — a
+  remembered toggle, collapsed by default — whose code argues explicitly against
+  breakpoint-driven collapsing. That design won; this step was dropped so only
+  one system decides the sidebar's width. See SUMMARY.md, Run 20a.
 - **Phone (< 900):** the sidebar becomes a fixed off-canvas drawer, translated
   off screen, with a scrim. A menu button is added at the far left of the top
   header, visible only below 900. Tapping a destination closes the drawer.

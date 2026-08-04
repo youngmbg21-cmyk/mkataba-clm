@@ -4880,3 +4880,40 @@ a long comment in the code explaining that this was deliberate.
 
 No font was changed. Flagged only so the owner knows the app is not running the
 three families named, in case that is itself news.
+
+## Run 20a — reconciled with the sidebar rail already on main (2026-08-03)
+
+While this work was in progress, main gained its own sidebar feature: the
+sidebar collapses to a 64-pixel column of icons, you toggle it from a button on
+the sidebar itself, and your choice is remembered per browser. It now starts
+collapsed by default.
+
+**That overlapped with what I had built, and it disagreed with it.** I had the
+sidebar collapsing *automatically* on a narrow window. The version on main
+argues explicitly, in its own code, against exactly that: a sidebar that folds
+itself while you are reading has moved every door you were aiming at, for a
+reason you did not ask for and cannot see.
+
+**I deferred to main.** The automatic collapse is gone. The sidebar's width is
+decided in one place — main's remembered toggle — rather than by two systems
+both claiming it, which is the sort of duplication this codebase keeps paying
+for. Everything else from this run is untouched by the disagreement and stayed:
+the contract-title fix, the reflowing card rows, table scrolling, the boards,
+the popovers, the Copilot panel, the redline changes column, the jurisdiction
+switcher and the type sizing.
+
+**One exception, kept deliberately: the phone.** Below 900 pixels the sidebar
+still leaves the layout and becomes a slide-out drawer. That is not a second
+opinion about the rail — at 390 pixels an expanded sidebar leaves 134 pixels for
+the page, which is not a choice between two layouts, it is the app not working.
+Your remembered choice is not touched by it and comes straight back when the
+window does; that is verified.
+
+Verified after merging: 2,424 tests pass (main brought 24 new ones), all seven
+browser suites pass, the 24 behaviour checks pass, and 7 further checks confirm
+main's rail still starts collapsed, expands on its button, survives a reload,
+and is not forgotten when the window narrows to a phone and back.
+
+The measured picture at all nine widths is unchanged from the table above, and
+slightly better at 1280 and 1366 — main's collapsed-by-default rail gives the
+middle more room than my breakpoints did.
