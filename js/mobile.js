@@ -1,0 +1,925 @@
+/* ============================================================================
+   HaTi — THE PHONE.
+
+   WHAT THIS FILE IS. Below 768px the desktop shell is hidden outright and this
+   module draws the app instead: a bottom tab bar, a slim header, and one screen
+   at a time. Above 768px it renders NOTHING — every entry point checks the
+   width first — so the laptop that ships today is byte-for-byte the laptop that
+   shipped yesterday.
+
+   WHY A SECOND SHELL RATHER THAN A NARROWER FIRST ONE. The desktop shell is
+   three fixed strips: a 256px sidebar, the work, and a 292px activity column,
+   over a 64px header of icon buttons. There is no arrangement of those three
+   strips that is worth having on a 320px screen — the earlier responsive pass
+   already went as far as that idea goes, and it ends at a drawer over a page
+   with no room left. So the phone gets its own arrangement over EXACTLY the
+   same data.
+
+   THE RULE THAT KEEPS BOTH HONEST. Nothing in here computes a metric, filters a
+   register, decides a next action, files a change or talks to the server on its
+   own. Every one of those is called out to the function the desktop already
+   uses — metrics through hmDashSlices(), the register through regFiltered(),
+   the next action through wsNextAction(), approvals through approvalState() and
+   approveContract(). The phone is a second set of eyes on one body of logic,
+   never a second body. When you find yourself about to write a rule in here,
+   that is the signal it belongs upstream where both shells can read it.
+
+   COLOUR. Every colour below is a token (--color-*, --st-*, --accent-*), never
+   a literal. The design file this was drawn from writes literals; they were
+   translated on the way in. That translation is what makes dark mode free: the
+   tokens already know what to be under html.dark, so there is no second design
+   to draw and no second set of values to keep in step. The four places where
+   the design's own colour is already dark — the counterparty header, the
+   passage menu, the Copilot header, the read-only watermark — are handled where
+   they are written, not here.
+
+   SIZES. Tap targets are 44px or more and body text is 14px or more, both
+   enforced by the rules in M_CSS rather than remembered card by card.
+   ============================================================================ */
+
+/* One query, named once. Anything that needs to know "are we on the phone"
+   asks here — a second literal 767 somewhere else is how two breakpoints end
+   up half a pixel apart and nobody can say which is the real one. */
+const M_QUERY = '(max-width:767px)';
+function mPhone(){
+  /* Guarded: this module is evaluated on the cut-down stage the node tests
+     use, where matchMedia does not exist. On that stage the phone is simply
+     never on, which is the right answer for a test about desktop markup. */
+  try{ return !!(window.matchMedia && window.matchMedia(M_QUERY).matches); }
+  catch(_){ return false; }
+}
+
+/* ---------------------------------------------------------------- STATE ----
+   The phone's own bookkeeping: which screen, which tab inside the contract,
+   which sheet is up. It deliberately does NOT hold a contract, a filter or a
+   query — those live in `state` where the desktop keeps them, so turning the
+   phone sideways onto a laptop lands on the same contract with the same
+   filters still applied. */
+function mS(){
+  if(!state.m) state.m = { screen:'home', tab:'doc', sheet:null, hist:'all', share:'negotiate' };
+  return state.m;
+}
+
+/* Which mobile screen a desktop view corresponds to. Used both ways: on the
+   way in, so a session resumed on the register opens Contracts; and on the way
+   out, so a phone screen with no desktop twin (Approvals, More) hands back to
+   something real when the window is widened. */
+const M_SCREEN_FOR_VIEW = {
+  dashboard:'home', register:'contracts', folder:'contracts', workspace:'contract',
+  redline:'redline', doc:'contract', reports:'more', intel:'more', calendar:'more',
+  templates:'more', templatelib:'more', playbook:'more', team:'more', advice:'more',
+  migration:'more', pipeline:'more', queue:'more',
+};
+const M_VIEW_FOR_SCREEN = {
+  home:'dashboard', contracts:'register', contract:'workspace', redline:'redline',
+  approvals:'dashboard', portfolio:'reports', more:'dashboard', handoff:'dashboard',
+};
+
+/* --------------------------------------------------------------- THE MAP ---
+   Everything the phone does not build. Each one keeps its door — it is listed
+   under More and says, in one line, that the work is desk work. A screen with
+   no door is a screen the reader assumes has been taken away; a door onto an
+   honest "not here" is a screen they know where to find. */
+const M_DESK = [
+  { view:'intel',      label:'Insights',        note:'Portfolio analysis, negotiation friction and the risk board.' },
+  { view:'reports',    label:'Reports',         note:'The full report set, the portfolio graph and CSV export.' },
+  { view:'calendar',   label:'Calendar',        note:'Renewals, notice windows and obligation dates on a month grid.' },
+  { view:'templates',  label:'Templates',       note:'The template library, its versions and the design step.' },
+  { view:'playbook',   label:'Our standards',   note:'The clause library and the playbook that checks against it.' },
+  { view:'migration',  label:'Import contracts',note:'Bring a whole back-catalogue in one go.' },
+  { view:'team',       label:'Settings & Rules',note:'Members, approval rules, branding and the workspace profile.' },
+  { view:'advice',     label:'Advice Desk',     note:'The advice queue and the counsel thread.' },
+];
+
+/* ------------------------------------------------------------------ CSS ----
+   ONE media query, injected once, and nothing in it applies above 767px. It is
+   injected rather than written into index.html for one reason: a stylesheet
+   that lives with the code it dresses can be read alongside it, and a mobile
+   rule that leaks upward is a rule that would have to be found in a 144KB
+   document instead of here.
+
+   THE `!important` PROBLEM, STATED PLAINLY. Almost every pixel in this app is
+   an inline style on the element, and an inline style beats a stylesheet.
+   Overriding one from a media query therefore takes `!important` — not as a
+   shortcut, but as the only mechanism available short of editing the render
+   functions themselves, which is the one thing that would put the desktop at
+   risk. So the phone paints over; it never rewrites. */
+const M_CSS = `
+@media (max-width:767px){
+  /* The desktop shell leaves the page entirely. Not narrowed, not scrolled —
+     gone, so nothing inside it can be reached by a stray tab stop or measured
+     by something that assumes it is on screen. */
+  body.m-on #app-shell{ display:none!important; }
+  body.m-on #m-root{ display:flex!important; }
+  body.m-on #context-panel, body.m-on #nav-scrim, body.m-on #side-nav{ display:none!important; }
+  /* The page itself never scrolls; the screen inside does. Two scrollbars on a
+     phone is how a header ends up half off the top with no way back. */
+  body.m-on{ overflow:hidden; overscroll-behavior:none; }
+
+  #m-root{
+    position:fixed; inset:0; z-index:20;
+    flex-direction:column; min-height:0;
+    background:var(--color-bg); color:var(--color-text);
+    font-family:var(--font-body,Inter,system-ui,sans-serif);
+  }
+
+  /* ---- the slim header ----
+     The design this was drawn from has no header at all. It could not: it is a
+     prototype of a phone that is already signed in, already in one workspace
+     and already in one jurisdiction. The real app is none of those things, and
+     four controls have nowhere else to live — who you are, how to leave, which
+     market's law and money are in force, and light or dark. The jurisdiction is
+     the one that is not cosmetic: it changes the currency on every figure and
+     which statute checks run, so a phone that cannot see it is a phone that
+     cannot tell you it is showing you Swedish rules. */
+  .m-head{
+    flex:none; display:flex; align-items:center; gap:8px;
+    padding:calc(env(safe-area-inset-top,0px) + 8px) 10px 8px;
+    background:var(--color-surface); border-bottom:1px solid var(--color-divider);
+  }
+  .m-head-mark{
+    width:32px; height:32px; flex:none; border-radius:8px;
+    background:var(--brand-grad); color:#fff; display:grid; place-items:center;
+    font-weight:700; font-size:13px; font-family:var(--font-heading,inherit);
+  }
+  .m-head-org{ flex:1; min-width:0; font-size:14px; font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .m-head-btn{
+    flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
+    display:grid; place-items:center; border-radius:8px; color:var(--color-neutral-600);
+  }
+  .m-head-btn:active{ background:var(--color-neutral-100); }
+
+  /* ---- the screen ---- */
+  .m-screen{ flex:1; min-height:0; display:flex; flex-direction:column; }
+  .m-scroll{ flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .m-scroll::-webkit-scrollbar{ display:none; }
+  /* Room at the bottom for the Copilot pill and the tab bar to float over.
+     Without it the last row of every list is a row you can see and cannot
+     press, which is worse than a row that is not there. */
+  .m-scroll{ scrollbar-width:none; padding-bottom:64px; }
+  .m-pagehead{
+    flex:none; background:var(--color-surface); border-bottom:1px solid var(--color-divider);
+    padding:14px 16px;
+  }
+  .m-eyebrow{ font-size:14px; font-weight:600; color:var(--color-neutral-600); }
+  .m-title{ font-size:22px; font-weight:600; letter-spacing:-.01em; margin-top:1px;
+    font-family:var(--font-heading,inherit); color:var(--color-text); }
+  .m-sub{ font-size:14px; color:var(--color-neutral-600); margin-top:2px; line-height:1.45; }
+
+  /* ---- the card, the row, the list ---- */
+  .m-card{ background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:12px; box-shadow:var(--shadow-sm); overflow:hidden; }
+  .m-list > *{ border-bottom:1px solid var(--color-divider); }
+  .m-list > *:last-child{ border-bottom:0; }
+  .m-row{
+    display:flex; width:100%; align-items:center; gap:12px; text-align:left;
+    background:none; border:0; cursor:pointer; padding:13px 14px; min-height:48px;
+    font:inherit; color:inherit;
+  }
+  .m-row:active{ background:var(--color-neutral-100); }
+  .m-row-name{ display:block; font-size:16px; font-weight:600; line-height:1.3; color:var(--color-text); }
+  .m-row-sub{ display:block; font-size:14px; color:var(--color-neutral-600); margin-top:2px; }
+  .m-chev{ flex:none; color:var(--color-neutral-400); }
+  .m-note{ font-size:14px; color:var(--color-neutral-600); line-height:1.55; }
+  .m-lbl{ font-size:14px; font-weight:600; color:var(--color-neutral-600); }
+  .m-capline{ font-size:14px; font-weight:600; color:var(--color-neutral-600);
+    letter-spacing:.04em; text-transform:uppercase; }
+
+  /* ---- buttons ---- */
+  .m-btn{
+    display:block; width:100%; min-height:48px; border-radius:8px; cursor:pointer;
+    font:inherit; font-size:16px; font-weight:600; padding:0 14px;
+    background:var(--color-surface); border:1px solid var(--color-divider); color:var(--color-text);
+  }
+  .m-btn-primary{ background:var(--accent-solid); border-color:var(--accent-solid); color:#fff; }
+  .m-btn-danger{ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .m-btn-quiet{ background:var(--color-bg); }
+  .m-btn:disabled{ opacity:.55; cursor:default; }
+
+  /* ---- chips that scroll sideways ----
+     Statuses first, then value streams. They scroll rather than wrap because a
+     wrapped chip row grows the header downward as you filter, and the list you
+     are filtering walks off the bottom of the screen while you do it. */
+  .m-chips{ display:flex; gap:8px; overflow-x:auto; padding:2px 16px 12px; }
+  .m-chips::-webkit-scrollbar{ display:none; }
+  .m-chips{ scrollbar-width:none; }
+  .m-chip{
+    flex:none; display:flex; align-items:center; gap:7px; height:44px; padding:0 15px;
+    border-radius:999px; cursor:pointer; font:inherit; font-size:14px; font-weight:600;
+    white-space:nowrap; border:1px solid var(--color-divider);
+    background:var(--color-surface); color:var(--color-text);
+  }
+  .m-chip.on{ background:var(--color-accent-900); border-color:var(--color-accent-900); color:#fff; }
+  .m-chip-dot{ width:8px; height:8px; border-radius:2px; flex:none; }
+
+  /* ---- the search field ---- */
+  .m-search{
+    display:flex; align-items:center; gap:8px; height:44px; padding:0 12px;
+    border:1px solid var(--color-divider); border-radius:8px; background:var(--color-bg);
+  }
+  .m-search input{
+    flex:1; min-width:0; height:44px; border:0; outline:none; background:transparent;
+    font:inherit; font-size:16px; color:var(--color-text);
+  }
+
+  /* ---- the bottom tab bar ----
+     Three tabs, because three is what a thumb can reach without looking and
+     because the fourth candidate — More — belongs on Home where it can carry a
+     sentence of explanation each. 28px of bottom padding is the home indicator
+     on a modern handset; env() takes over where the browser reports it. */
+  .m-tabs{
+    flex:none; display:flex; background:var(--color-surface);
+    border-top:1px solid var(--color-divider);
+    padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 10px);
+  }
+  .m-tab{
+    flex:1; min-height:48px; background:none; border:0; cursor:pointer; font:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:3px; position:relative;
+    color:var(--color-neutral-600); padding:0;
+  }
+  .m-tab.on{ color:var(--color-accent-700); }
+  .m-tab span{ font-size:14px; font-weight:500; }
+  .m-tab.on span{ font-weight:600; }
+  .m-tab-badge{
+    position:absolute; top:0; right:20%; min-width:21px; height:21px; border-radius:999px;
+    background:var(--danger); color:#fff; font-size:14px; font-weight:700; line-height:1;
+    display:grid; place-items:center; padding:0 5px;
+  }
+
+  /* ---- sheets ----
+     Everything that is a dialog on the desktop is a sheet here: it comes up
+     from the bottom, it is dismissed by the scrim, and it never covers the
+     whole screen so the reader keeps their place behind it. */
+  .m-sheet-wrap{ position:fixed; inset:0; z-index:45; display:flex; flex-direction:column; justify-content:flex-end; }
+  .m-scrim{ position:absolute; inset:0; background:color-mix(in srgb,#020617 45%,transparent); border:0; padding:0; }
+  .m-sheet{
+    position:relative; background:var(--color-surface); color:var(--color-text);
+    border-radius:16px 16px 0 0; padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 26px);
+    max-height:86%; overflow-y:auto; animation:mSheetUp .25s cubic-bezier(.22,.61,.36,1);
+    box-shadow:var(--shadow-lg);
+  }
+  .m-sheet::-webkit-scrollbar{ display:none; }
+  .m-grab{ width:36px; height:4px; border-radius:999px; background:var(--color-neutral-300); margin:0 auto 10px; }
+  .m-sheet-title{ font-size:18px; font-weight:600; font-family:var(--font-heading,inherit); }
+  .m-sheet-note{ font-size:14px; color:var(--color-neutral-600); margin:2px 0 12px; line-height:1.45; }
+  @keyframes mSheetUp{ from{ transform:translateY(48px); opacity:0 } to{ transform:none; opacity:1 } }
+  @keyframes mFadeIn{ from{ opacity:0 } to{ opacity:1 } }
+
+  /* ---- inputs ----
+     16px is not a style choice: below it, iOS Safari zooms the page on focus
+     and never zooms back, so the reader is left on a contract they now have to
+     pan sideways to read. */
+  .m-input, .m-area{
+    width:100%; box-sizing:border-box; border:1px solid var(--color-divider);
+    border-radius:8px; padding:12px; font:inherit; font-size:16px; line-height:1.5;
+    background:var(--color-surface); color:var(--color-text); outline:none;
+  }
+  .m-input{ height:48px; padding:0 12px; }
+  .m-area{ resize:none; }
+  .m-err{ font-size:14px; color:var(--danger); margin-top:5px; }
+
+  /* ---- the status pill, at phone size ---- */
+  .m-pill{
+    flex:none; font-size:14px; font-weight:600; padding:3px 10px; border-radius:999px;
+    white-space:nowrap;
+  }
+
+  /* ---- the metric tiles ----
+     Two across, always. Three would fit a figure at 390px and would not fit
+     its caption at 320px, and a metric whose caption is cut in half has lost
+     the part that says what the number counts. */
+  .m-kpi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 16px; }
+  .m-kpi{
+    text-align:left; background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:12px; padding:12px 14px; cursor:pointer; font:inherit; color:inherit;
+    box-shadow:var(--shadow-sm); min-height:44px;
+  }
+  .m-kpi-label{ display:block; font-size:14px; color:var(--color-neutral-600);
+    line-height:1.3; overflow:hidden; text-overflow:ellipsis; }
+  .m-kpi-val{ display:block; font-size:20px; font-weight:700; margin-top:2px; letter-spacing:-.02em; }
+  .m-kpi-sub{ display:block; font-size:14px; color:var(--color-neutral-600); margin-top:1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .m-kpi-gear{
+    flex:none; width:44px; height:44px; border:0; background:none; cursor:pointer;
+    display:grid; place-items:center; border-radius:8px; color:var(--color-neutral-600);
+  }
+
+  /* ---- the + button and the register row ---- */
+  .m-new{
+    flex:none; width:44px; height:44px; border-radius:8px; border:0; cursor:pointer;
+    background:var(--accent-solid); color:#fff; display:grid; place-items:center;
+  }
+  .m-reg-row{
+    display:block; width:100%; text-align:left; background:none; border:0; cursor:pointer;
+    position:relative; padding:13px 14px 13px 20px; font:inherit; color:inherit;
+  }
+  .m-reg-row:active{ background:var(--color-neutral-100); }
+  /* The stream stripe. It is the only thing on a phone row that says which part
+     of the business a contract belongs to — the desktop has a whole column for
+     it and the phone has three pixels, so they are the same three colours. */
+  .m-stripe{ position:absolute; left:0; top:10px; bottom:10px; width:3px; border-radius:0 2px 2px 0; }
+
+  /* ---- the contract screen ---- */
+  .m-ctab{
+    flex:1; height:44px; background:none; border:0; cursor:pointer; font:inherit;
+    font-size:15px; font-weight:600; color:var(--color-neutral-600);
+    border-bottom:2px solid transparent;
+  }
+  .m-ctab.on{ color:var(--color-accent-900); border-bottom-color:var(--accent-solid); }
+  .m-notice{
+    display:flex; align-items:center; gap:9px; margin-bottom:12px;
+    border:1px solid var(--color-divider); border-radius:12px; padding:11px 13px;
+  }
+  /* The paper. The document keeps a reading measure and its own surface even on
+     a phone — it is the thing the reader came for, and the app's chrome should
+     not be mistaken for part of it. Type comes down one step from the desktop's
+     measure and no further: 15px is the floor at which a contract still reads
+     as a contract rather than as a caption. */
+  .m-paper{
+    background:var(--color-doc-surface,var(--color-surface));
+    color:var(--color-doc-text,var(--color-text));
+    border:1px solid var(--color-divider); border-radius:4px; box-shadow:var(--shadow-sm);
+    padding:22px 16px; font-size:15px; line-height:1.7; overflow-wrap:anywhere;
+  }
+  /* A FLOOR ON THE DOCUMENT'S TYPE, NOT A REDESIGN OF IT.
+     The document body is drawn by the same renderer the desktop uses, and it
+     carries a desktop's type scale — 13px paragraphs, a 10px mono kicker, 12px
+     captions — written partly as utility classes and partly as inline styles.
+     None of that is readable at arm's length on a phone.
+     So inside the paper everything inherits the paper's own size unless it is a
+     heading, and the headings are named. The hierarchy survives; the floor is
+     the paper's 15px. The important flag is there because a good half of those
+     sizes are inline, and an inline style cannot be reached any other way. */
+  .m-paper *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6){ font-size:inherit!important; }
+  .m-paper h1{ font-size:20px!important; }
+  .m-paper h2{ font-size:18px!important; }
+  .m-paper h3, .m-paper h4, .m-paper h5, .m-paper h6{ font-size:16px!important; }
+  .m-paper pre, .m-paper code{ font-size:14px!important; }
+  /* The quick-fill fields inside a generated body are the one thing in the
+     paper a finger has to hit. */
+  .m-paper input, .m-paper select, .m-paper textarea, .m-paper .field{
+    min-height:44px!important; font-size:16px!important; box-sizing:border-box;
+  }
+  .m-paper table{ display:block; overflow-x:auto; max-width:100%; }
+  .m-paper pre{ overflow-x:auto; }
+  .m-paper img{ max-width:100%; height:auto; }
+  /* Desktop panels that ride inside the document body have no room here and no
+     phone equivalent — they are hidden rather than allowed to overflow. */
+  .m-paper .ws-only, .m-paper [data-desk-only]{ display:none!important; }
+
+  /* The sticky next action. It sits on the screen rather than in the scroll,
+     because the one thing a person opens a contract on a phone to do should
+     never be something they have to scroll to find. */
+  .m-actionbar{
+    flex:none; background:var(--color-surface); border-top:1px solid var(--color-divider);
+    padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+  }
+
+  /* ---- the share sheet's three purposes ---- */
+  .m-share-kind{
+    display:flex; width:100%; gap:11px; text-align:left; cursor:pointer; font:inherit;
+    border-radius:12px; padding:13px 14px; border:1.5px solid var(--color-divider);
+    background:var(--color-surface); color:inherit;
+  }
+  .m-share-kind.on{ border-color:var(--accent-solid); background:var(--color-accent-100); }
+  .m-radio{
+    width:20px; height:20px; border-radius:50%; flex:none; margin-top:2px;
+    border:1.5px solid var(--color-divider); background:var(--color-surface);
+    display:grid; place-items:center;
+  }
+  .m-share-kind.on .m-radio{ border-color:var(--accent-solid); }
+  .m-radio-dot{ width:8px; height:8px; border-radius:50%; }
+
+  /* ---- THE NEGOTIATION WORKBENCH, ON A PHONE ----
+     The one screen the phone does NOT redraw. The workbench is where wording is
+     argued over, and it already collapses to a single column with its index as
+     a drawer — so rebuilding it would be rebuilding the one surface whose
+     behaviour is the most expensive in the app to get subtly wrong.
+
+     Instead the phone steps aside for it: the desktop shell comes back, without
+     its sidebar, its header or its activity column, under a 44px bar that says
+     which contract this is and how to leave. That bar is the only thing #m-root
+     draws here.
+
+     This is also what makes tap-a-sentence real — the working pane on screen is
+     the working pane, with its own selection handler listening. */
+  body.m-on.m-redline #app-shell{
+    display:grid!important; top:44px!important;
+    grid-template-columns:0 minmax(0,1fr)!important;
+    grid-template-rows:0 minmax(0,1fr)!important;
+  }
+  /* COLLAPSED, NOT REMOVED. The header is a grid item spanning both columns,
+     and the work area's ROW is auto-placed — so display:none on the header
+     slides the work area up into row 1, which this rule set to 0px, and the
+     whole page renders in no height at all. Found the hard way: the pane was
+     laid out, reported a sane rectangle, and could not be hit-tested anywhere
+     on the screen. It keeps its grid slot and gives up its pixels instead. */
+  body.m-on.m-redline #top-header{
+    visibility:hidden!important; height:0!important; min-height:0!important;
+    padding:0!important; border:0!important; overflow:hidden!important;
+  }
+  body.m-on.m-redline #page-head{ display:none!important; }
+  body.m-on.m-redline #body-grid{ grid-template-columns:minmax(0,1fr)!important; }
+  body.m-on.m-redline #m-root{
+    inset:0 0 auto 0!important; height:44px; z-index:60;
+    border-bottom:1px solid var(--color-divider); background:var(--color-surface);
+  }
+  /* THE WORKBENCH IS A FIXED-HEIGHT PAGE, AND A PHONE IS NOT.
+     Its three panes are grid ROWS once the columns collapse, so at 390px the
+     page's 800 pixels went: crumbs, banners, this round's queue and the action
+     bar took 740 of them as flex:none, the grid got 207, and each pane got a
+     third of that — 59px of window onto a 1171px document. Measured, not
+     guessed.
+
+     So the same move the counterparty's page already makes below 1024: the page
+     gives up its fixed height, the panes give up their inner scrollers, and
+     ONE scroller — the shell's own — carries the lot. The document then simply
+     runs down the page, which is what a phone reads well and what makes a
+     sentence tappable where it is drawn. */
+  body.m-on.m-redline #content-scroll{ overflow-y:auto!important; }
+  body.m-on.m-redline #view-redline,
+  body.m-on.m-redline #redline-host,
+  body.m-on.m-redline #nego-root{ height:auto!important; min-height:0!important; flex:none!important; }
+  body.m-on.m-redline .nego-work{
+    display:block!important; height:auto!important; overflow:visible!important;
+  }
+  body.m-on.m-redline .nego-pane{ height:auto!important; min-height:0!important; }
+  /* The baseline pane is already out below 1120; saying so here keeps the block
+     readable rather than relying on a rule three breakpoints away. */
+  body.m-on.m-redline .nego-pane.baseline, body.m-on.m-redline .nego-rz{ display:none!important; }
+  body.m-on.m-redline .nego-scroll,
+  body.m-on.m-redline .nego-scroll-work,
+  body.m-on.m-redline .nego-index-scroll{
+    overflow:visible!important; height:auto!important; max-height:none!important;
+  }
+  /* The index is a drawer over the page below 760. Pinned to the window rather
+     than to a container that is now as tall as the whole document. */
+  body.m-on.m-redline .nego-pane.index{
+    position:fixed!important; top:44px!important; bottom:0!important;
+    right:0!important; left:auto!important; width:min(88vw,335px)!important;
+    height:auto!important; z-index:35!important;
+    transform:translateX(105%);
+  }
+  /* Restated because the closed transform is what keeps a drawer a drawer, and
+     pinning it to the window above threw away the rule that said so. */
+  body.m-on.m-redline .nego-pane.index.open{ transform:none!important; }
+  body.m-on.m-redline .nego-pane.index .nego-index-scroll{ overflow-y:auto!important; }
+  body.m-on.m-redline .nego-doc{ font-size:15px!important; line-height:1.7; }
+  body.m-on.m-redline .nego-pane.working .nego-doc{ padding-left:14px!important; }
+
+  .m-backbar{
+    flex:none; display:flex; align-items:center; gap:6px; height:44px; padding:0 4px;
+  }
+  .m-backbar-name{
+    flex:1; min-width:0; font-size:15px; font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  /* ---- the toast ----
+     The app's toasts are pinned to the bottom-right corner, which on a phone is
+     underneath the tab bar and the Copilot pill. They move above both, and span
+     the width, because a confirmation nobody can read is a confirmation that
+     did not happen. */
+  body.m-on #toast-root{
+    left:12px!important; right:12px!important;
+    bottom:calc(env(safe-area-inset-bottom,0px) + 158px)!important;
+    display:flex; flex-direction:column; align-items:center; pointer-events:none;
+  }
+  body.m-on #toast-root > *{ max-width:100%; font-size:14px!important; }
+
+  /* ---- the desk handoff ---- */
+  .m-handoff{ margin:16px; padding:22px 18px; text-align:center; }
+  .m-handoff-ic{
+    width:48px; height:48px; border-radius:50%; margin:0 auto 12px; display:grid; place-items:center;
+    background:var(--tile-steel-bg); color:var(--tile-steel-fg);
+  }
+}`;
+
+let _mCssDone = false;
+function mInjectCss(){
+  if(_mCssDone) return;
+  if(typeof document==='undefined' || !document.head || !document.createElement) return;
+  const el = document.createElement('style');
+  el.id = 'm-css';
+  el.textContent = M_CSS;
+  document.head.appendChild(el);
+  _mCssDone = true;
+}
+
+/* ------------------------------------------------------------- FRAGMENTS ---
+   Small pieces used by more than one screen. They take data and return markup;
+   none of them decides anything. */
+
+const mEsc = s => (typeof esc==='function' ? esc(s) : String(s==null?'':s));
+
+/* The chevron every forward-going row carries. */
+const M_CHEV = `<svg class="m-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
+
+/* The status pill, reading its colours from the same STATUS_META the desktop
+   chip reads — so a contract badged amber on a laptop is amber on a phone, and
+   a change to that table moves both. */
+function mPill(c){
+  const st = (typeof contractStage==='function' && contractStage(c)) || (c && c.status) || 'Draft';
+  const meta = (typeof STATUS_META==='object' && (STATUS_META[st]||STATUS_META[c&&c.status])) || null;
+  const label = meta ? meta.label : (typeof statusLabel==='function' ? statusLabel(c&&c.status) : st);
+  const bg = meta ? meta.bg : 'var(--st-gray-bg)';
+  const tx = meta ? meta.tx : 'var(--st-gray-fg)';
+  return `<span class="m-pill" style="background:${bg};color:${tx}">${mEsc(label)}</span>`;
+}
+
+/* Money, the way the rest of the app says it — including saying nothing when
+   the reader has no right to see values at all. */
+function mMoney(c){
+  if(typeof isMonetary==='function' && !isMonetary(c)) return 'Non-monetary';
+  if(typeof canViewValues==='function' && !canViewValues()) return '';
+  const v = Number((c&&c.value)||0);
+  if(!v) return '—';
+  return typeof fmtMoneyShort==='function' ? fmtMoneyShort(v) : String(v);
+}
+
+/* When a contract's term ends, in the compact form a 320px row can hold. */
+function mExpiry(c){
+  const e = (typeof effectiveExpiry==='function') ? effectiveExpiry(c) : (c&&c.expiry);
+  if(!e) return '—';
+  const d = (typeof daysUntil==='function') ? daysUntil(e) : null;
+  const when = new Date(e+'T00:00:00');
+  const nice = isNaN(when.getTime()) ? String(e)
+    : when.toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'});
+  if(d==null) return 'Exp '+nice;
+  if(d<0) return 'Ended '+nice;
+  return 'Exp '+nice;
+}
+
+/* -------------------------------------------------------------- THE HEAD ---*/
+function mHeadHtml(){
+  const org = (typeof getOrg==='function' && getOrg()) || null;
+  const name = (org && org.name) || (typeof FIRST_PARTY!=='undefined' && FIRST_PARTY) || 'HaTi';
+  const dark = !!(document.documentElement && document.documentElement.classList
+    && document.documentElement.classList.contains('dark'));
+  const initials = String(name).trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || 'HT';
+  return `
+    <div class="m-head">
+      <div class="m-head-mark">${mEsc(initials)}</div>
+      <div class="m-head-org">${mEsc(name)}</div>
+      <button class="m-head-btn" data-m-act="theme" aria-label="${dark?'Switch to light':'Switch to dark'}">
+        ${dark
+          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
+          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>`}
+      </button>
+      <button class="m-head-btn" data-m-act="account" aria-label="Account and jurisdiction">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+      </button>
+    </div>`;
+}
+
+/* The account sheet: who you are, which jurisdiction is in force, and the way
+   out. Three things with nowhere else to live on a phone. */
+function mAccountSheetHtml(){
+  const u = (typeof currentUser==='function' && currentUser()) || null;
+  const code = (state && state.region) || 'KE';
+  const rows = Object.keys((typeof REGIONS==='object' && REGIONS) || {}).map(k=>{
+    const on = k===code;
+    return `<button class="m-row" data-m-region="${k}">
+      <span style="flex:1;min-width:0">
+        <span class="m-row-name" style="font-weight:${on?600:500}">${mEsc(REGIONS[k].label)}</span>
+      </span>
+      ${on?`<span style="flex:none;color:var(--accent-solid)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>`:''}
+    </button>`;
+  }).join('');
+  return `
+    <div class="m-grab"></div>
+    <div class="m-sheet-title">${mEsc((u&&u.name)||'Signed in')}</div>
+    <div class="m-sheet-note">${mEsc((u&&u.role)||'')}${u&&u.email?' · '+mEsc(u.email):''}</div>
+    <div class="m-capline" style="margin-bottom:6px">Jurisdiction</div>
+    <div class="m-card m-list">${rows}</div>
+    <div class="m-note" style="margin-top:8px">The jurisdiction sets the currency on every figure, which governing-law checks run, and what the Copilot is briefed on.</div>
+    <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">Log out</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">Close</button>`;
+}
+
+/* -------------------------------------------------------------- TAB BAR ----*/
+function mTabsHtml(){
+  const s = mS();
+  const on = k => s.screen===k ? ' on' : '';
+  const n = mApprovalItems().length;
+  return `
+    <div class="m-tabs">
+      <button class="m-tab${on('home')}" data-m-tab="home">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="m-tab${on('contracts')}" data-m-tab="contracts">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span>Contracts</span>
+      </button>
+      <button class="m-tab${on('approvals')}" data-m-tab="approvals">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+        <span>Approvals</span>
+        ${n?`<span class="m-tab-badge">${n>99?'99+':n}</span>`:''}
+      </button>
+    </div>`;
+}
+
+/* --------------------------------------------------------------- SCREENS ---*/
+
+/* MORE — every door the phone does not open itself. */
+function mMoreHtml(){
+  const rows = M_DESK.map(d=>`
+    <button class="m-row" data-m-desk="${d.view}">
+      <span style="flex:1;min-width:0">
+        <span class="m-row-name" style="font-weight:500">${mEsc(d.label)}</span>
+        <span class="m-row-sub">${mEsc(d.note)}</span>
+      </span>
+      <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">Computer</span>
+    </button>`).join('');
+  return `
+    <div class="m-pagehead">
+      <div class="m-title">More</div>
+      <div class="m-sub">The rest of HaTi. These are desk screens — they open on a computer.</div>
+    </div>
+    <div class="m-scroll">
+      <div class="m-card m-list" style="margin:16px">${rows}</div>
+      <div class="m-note" style="margin:0 16px 24px">Nothing here is missing from your account — it is the same workspace, on a screen with room for it.</div>
+    </div>`;
+}
+
+/* THE HANDOFF — one desk screen, named, with the one line that says why. */
+function mHandoffHtml(){
+  const d = M_DESK.find(x=>x.view===mS().deskView) || { label:'This screen', note:'' };
+  return `
+    <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
+      <button class="m-head-btn" data-m-act="back" aria-label="Back" style="color:var(--color-accent-700)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
+      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${mEsc(d.label)}</div>
+    </div>
+    <div class="m-scroll">
+      <div class="m-card m-handoff">
+        <div class="m-handoff-ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        </div>
+        <div style="font-size:18px;font-weight:600">Open HaTi on a computer</div>
+        <div class="m-note" style="margin-top:6px">${mEsc(d.note)}</div>
+      </div>
+    </div>`;
+}
+
+/* ----------------------------------------------------------- THE PAINTER ---
+   One function draws the whole phone. It is cheap — the screens are small and
+   the data is already in memory — and a single paint means there is exactly one
+   place where what is on screen is decided. */
+function mRender(){
+  if(!mPhone()) return;
+  const root = document.getElementById('m-root');
+  if(!root) return;
+  const s = mS();
+
+  /* The workbench keeps the desktop shell and takes the screen; the phone
+     gives it back and draws only the bar above it. */
+  const onRedline = s.screen==='redline';
+  if(document.body && document.body.classList) document.body.classList.toggle('m-redline', onRedline);
+  if(onRedline){
+    const c = (state.activeId && typeof getContract==='function') ? getContract(state.activeId) : null;
+    root.innerHTML = `<div class="m-backbar">
+      <button class="m-head-btn" data-m-act="leave-redline" aria-label="Back to the contract" style="color:var(--color-accent-700)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
+      <span class="m-backbar-name">${mEsc(c ? (c.name||c.id) : 'Negotiation')}</span>
+      <button class="m-head-btn" data-m-act="copilot-open" aria-label="Open HaTi Copilot" style="color:var(--color-accent-700);position:relative">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.6 4.6 4.6 1.6-4.6 1.6L12 15l-1.6-4.7L5.8 8.7l4.6-1.6L12 2.5z"/></svg>
+        <span data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--st-amber-dot)"></span>
+      </button>
+    </div>`;
+    mWire();
+    /* --view-h is the height of the scroll container, measured once and read by
+       every view that sizes itself to the window — the workbench included. It
+       was last measured while the shell was DISPLAY:NONE, so it is 0, and a
+       workbench sized to 0 renders its whole document inside 24 pixels with
+       overflow:visible: laid out, reporting sane rectangles, and not on screen
+       anywhere. Re-measured now that the shell is back, on the next frame so
+       the grid has been through layout first. */
+    const remeasure = ()=>{ try{ if(window.syncViewHeight) syncViewHeight(); }catch(_){} };
+    if(typeof requestAnimationFrame==='function') requestAnimationFrame(remeasure); else remeasure();
+    return;
+  }
+
+  let body = '';
+  if(s.screen==='contract')       body = mContractHtml();
+  else if(s.screen==='contracts') body = mContractsHtml();
+  else if(s.screen==='approvals') body = mApprovalsHtml();
+  else if(s.screen==='portfolio') body = mPortfolioHtml();
+  else if(s.screen==='more')      body = mMoreHtml();
+  else if(s.screen==='handoff')   body = mHandoffHtml();
+  else                            body = mHomeHtml();
+
+  /* The tab bar shows on the three tabbed screens only. A contract, a sheet
+     route or a handoff is somewhere you went TO, and it keeps its own way
+     back — a tab bar under it would offer two different backs at once. */
+  const tabbed = ['home','contracts','approvals'].includes(s.screen);
+  root.innerHTML = mHeadHtml()
+    + `<div class="m-screen">${body}</div>`
+    + (tabbed ? mTabsHtml() : '')
+    + (typeof mAiLauncherHtml==='function' ? mAiLauncherHtml() : '')
+    + mSheetHtml();
+  mWire();
+}
+
+/* Is the owner's app the thing on screen at all? A share link renders the
+   counterparty's page into #share-root and never starts the shell; the login
+   screen hides it again. The phone must not draw itself over either of them —
+   the counterparty has their own mobile treatment and the Copilot is
+   deliberately withheld from it. startApp sets this display; renderAuth clears
+   it, so it is the app's own signal rather than a second flag to keep in step. */
+function mAppActive(){
+  const shell = document.getElementById('app-shell');
+  return !!(shell && shell.style && shell.style.display==='grid');
+}
+
+/* The sheet layer. Empty markup when nothing is up, so there is never a
+   transparent overlay sitting on the page eating taps. */
+function mSheetHtml(){
+  const s = mS();
+  if(!s.sheet) return '';
+  let inner = '';
+  if(s.sheet==='account')       inner = mAccountSheetHtml();
+  else if(s.sheet==='new')      inner = mNewSheetHtml();
+  else if(s.sheet==='overflow') inner = mOverflowSheetHtml();
+  else if(s.sheet==='share')    inner = mShareSheetHtml();
+  else if(s.sheet==='renumber') inner = mRenumberSheetHtml();
+  else if(s.sheet==='kpis')     inner = mKpiSheetHtml();
+  else return '';
+  return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="Close"></button><div class="m-sheet">${inner}</div></div>`;
+}
+
+function mOpenSheet(k, extra){ Object.assign(mS(), extra||{}, {sheet:k}); mRender(); }
+function mCloseSheet(){ mS().sheet=null; mRender(); }
+
+/* Move to a screen. The desktop's own view moves with it where there is a
+   twin, so the two shells never disagree about where the reader is. */
+function mGo(screen, extra){
+  const s = mS();
+  Object.assign(s, extra||{}, { screen, sheet:null });
+  const view = M_VIEW_FOR_SCREEN[screen];
+  if(view && state.view!==view) state.view = view;
+  mRender();
+}
+
+/* ------------------------------------------------------------------ WIRE ---
+   Delegated from the root: the phone repaints wholesale, so per-element
+   listeners would be re-attached on every tap and leak on every paint. */
+function mWire(){
+  const root = document.getElementById('m-root');
+  if(!root || !root.querySelectorAll) return;
+
+  root.querySelectorAll('[data-m-tab]').forEach(b=>b.addEventListener('click',()=>{
+    mGo(b.getAttribute('data-m-tab'));
+  }));
+  root.querySelectorAll('[data-m-desk]').forEach(b=>b.addEventListener('click',()=>{
+    mGo('handoff',{ deskView:b.getAttribute('data-m-desk') });
+  }));
+  root.querySelectorAll('[data-m-region]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-m-region');
+    mCloseSheet();
+    if(window.setRegion) setRegion(k);
+    mRender();
+  }));
+  root.querySelectorAll('[data-m-act]').forEach(b=>b.addEventListener('click',e=>{
+    const k = b.getAttribute('data-m-act');
+    if(k==='theme'){ if(window.toggleTheme) toggleTheme(); mRender(); return; }
+    if(k==='account'){ mOpenSheet('account'); return; }
+    if(k==='close-sheet'){ mCloseSheet(); return; }
+    if(k==='back'){ mBack(); return; }
+    if(k==='logout'){ mCloseSheet(); if(window.logout) logout(); return; }
+    if(k==='leave-redline'){ if(window.setView) setView('workspace'); else mGo('contract'); return; }
+    mScreenAct(k, b, e);
+  }));
+  mWireScreen(root);
+  /* The launcher's dot is repainted with the launcher, so the shared state has
+     to be re-read onto it. updateAIBadge walks every [data-ai-badge] there is —
+     the sidebar's, the command bar's, the document page's and now this one —
+     from one ai.unread / ai.minimized, which is what makes reading through any
+     one door clear the indicator on all of them. */
+  if(window.updateAIBadge) try{ updateAIBadge(); }catch(_){}
+  if(window.mMarkTappable) try{ mMarkTappable(); }catch(_){}
+}
+
+/* Where "back" goes from each screen. Deliberately explicit rather than a
+   history stack: a stack on a phone means the third tap back lands somewhere
+   the reader has forgotten, and every screen here has exactly one sensible
+   parent. */
+function mBack(){
+  const s = mS();
+  if(s.screen==='handoff'){ mGo('more'); return; }
+  if(s.screen==='portfolio'){ mGo('home'); return; }
+  if(s.screen==='contract'){ mGo('contracts'); return; }
+  mGo('home');
+}
+
+/* --------------------------------------------------------------- THE SYNC --
+   Called on load, on every resize across the breakpoint, and after every
+   setView. It is the only thing that turns the phone on or off. */
+function mSync(){
+  const root = document.getElementById('m-root');
+  const body = document.body;
+  if(!root || !body || !body.classList) return;
+  const on = mPhone() && mAppActive();
+  const wasOn = body.classList.contains('m-on');
+  body.classList.toggle('m-on', on);
+  if(on){
+    mInjectCss();
+    root.hidden = false;
+    /* Arriving from the desktop — or from a resume — the phone starts on the
+       screen that matches whatever view the app thinks it is on. */
+    const s = mS();
+    if(!wasOn){
+      const mapped = M_SCREEN_FOR_VIEW[state.view];
+      if(mapped && !(s.screen==='contract' && mapped==='contract')) s.screen = mapped;
+      if(mapped==='more' && M_DESK.some(d=>d.view===state.view)){ s.screen='handoff'; s.deskView=state.view; }
+    }
+    mRender();
+  } else {
+    root.hidden = true;
+    root.innerHTML = '';
+    if(body.classList.contains('m-redline')) body.classList.remove('m-redline');
+    /* Widening the window hands the reader back to the desktop shell, on the
+       nearest real view — Approvals and More have no desktop twin, so they
+       land on the dashboard rather than on nothing. Only when the app is still
+       the thing on screen: a logout that hid the shell wants the login form,
+       not a repaint of a view nobody is signed in to. */
+    if(wasOn && mAppActive() && window.setView){
+      setView(M_VIEW_FOR_SCREEN[mS().screen] || state.view || 'dashboard');
+      /* The shell has just come back at full size, and --view-h was last
+         measured against the phone. Re-measured for the same reason it is
+         re-measured on the way in. */
+      try{ if(window.syncViewHeight) syncViewHeight(); }catch(_){}
+    }
+  }
+}
+
+/* Repaint whenever the desktop repaints. setView is the app's single
+   navigation funnel, so wrapping it once catches every route in — a KPI
+   drill-through, a search result, a link from the Copilot — without any of
+   those call sites knowing the phone exists. */
+function mHookSetView(){
+  if(typeof window==='undefined' || !window.setView || window.setView._mHooked) return;
+  const inner = window.setView;
+  const wrapped = function(view){
+    const r = inner.apply(this, arguments);
+    try{
+      if(mPhone()){
+        const mapped = M_SCREEN_FOR_VIEW[view];
+        if(mapped) mS().screen = mapped;
+        if(M_DESK.some(d=>d.view===view)){ mS().screen='handoff'; mS().deskView=view; }
+        /* mSync rather than mRender: this is also the call that arrives when
+           somebody signs in, and at that moment the phone has not been turned
+           on yet. Sync turns it on and paints; a bare paint would draw into a
+           root that is still hidden. */
+        mSync();
+      }
+    }catch(e){ try{ console.error('[hati] phone repaint failed', e); }catch(_){} }
+    return r;
+  };
+  wrapped._mHooked = true;
+  window.setView = wrapped;
+}
+
+function mBoot(){
+  if(typeof window==='undefined' || typeof document==='undefined') return;
+  mInjectCss();
+  mHookSetView();
+  try{
+    const mq = window.matchMedia && window.matchMedia(M_QUERY);
+    if(mq){
+      /* addEventListener where it exists, addListener where it does not —
+         Safari only grew the modern form in 14. */
+      if(mq.addEventListener) mq.addEventListener('change', mSync);
+      else if(mq.addListener) mq.addListener(mSync);
+    }
+  }catch(_){}
+  /* Signing in shows the shell and signing out hides it, and neither goes
+     through setView. Watching the one attribute that says which is true keeps
+     the phone in step with both without a second flag anybody has to remember
+     to set. */
+  try{
+    const shell = document.getElementById('app-shell');
+    if(shell && window.MutationObserver){
+      new MutationObserver(()=>mSync()).observe(shell, { attributes:true, attributeFilter:['style','class'] });
+    }
+  }catch(_){}
+  mSync();
+}
+
+if(typeof window!=='undefined' && typeof document!=='undefined' && document.addEventListener){
+  /* After the shell has been started, not before: mSync reads getOrg() and the
+     contract list, both of which arrive with the session. */
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(mBoot,0));
+  else setTimeout(mBoot,0);
+}
+
+/* mEsc and M_CHEV go on window with the rest: these files are ES modules, so a
+   top-level const in one is invisible to the next, and the phone's own screens
+   live in three of them. */
+Object.assign(window,{ M_QUERY, mPhone, mS, mRender, mSync, mGo, mBack, mBoot, mAppActive,
+  mOpenSheet, mCloseSheet, mPill, mMoney, mExpiry, mEsc, M_CHEV, mHeadHtml, mTabsHtml,
+  M_DESK, M_SCREEN_FOR_VIEW, M_VIEW_FOR_SCREEN });
