@@ -48,6 +48,12 @@ import './views/templatelib.js';   // the versioned company standard-template li
 import './views/templatebuilder.js';  // edits one draft version of a library template
 import './views/designstep.js';       // the Design step: pick a structure and a style before publish
 import './views/migration.js';
+/* The phone. Imported last, so every function it reads — the dashboard's
+   figures, the register's filter, the contract's next action, the Copilot —
+   is already on window by the time it boots. It renders nothing at all above
+   767px; see the rules at the top of js/mobile.js. */
+import './mobile.js';
+import './mobile-screens.js';
 
 /* ============================================================ NAV */
 /* WO N1 — one door per thing. Views that live INSIDE a contract (the
@@ -950,4 +956,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,shellNarrow,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,shellNarrow,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

@@ -1562,6 +1562,16 @@
   </div>
 </div>
 
+<!-- ================= THE PHONE =================
+     Below 768px the desktop shell above is hidden outright and this root is
+     drawn instead — a bottom tab bar, a slim header and one screen at a time.
+     It is NOT a re-styling of the shell: a 256px sidebar, a 292px activity
+     column and a 64px header of icon buttons have no phone-sized arrangement
+     worth having, so the phone gets its own arrangement over exactly the same
+     data. Everything inside is built by js/mobile.js, which renders nothing at
+     all above the breakpoint. See the rules at the top of that file. -->
+<div id="m-root" hidden></div>
+
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
 <section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">

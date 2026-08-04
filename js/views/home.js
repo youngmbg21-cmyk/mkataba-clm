@@ -224,7 +224,19 @@ function gsGoTargetExists(k){
   return !!(cs.find(x=>sb[x.id])||cs.find(x=>x.status==='Under Review'));
 }
 
-function renderDashboard(){
+/* THE DASHBOARD'S FIGURES, SPLIT OUT SO TWO SHELLS CAN READ THEM.
+
+   Every slice and every metric the dashboard shows used to be computed inside
+   renderDashboard, which meant it could only ever be read by the thing that
+   drew the dashboard. The phone shows the same figures on a different shape of
+   screen, and the one thing it must not do is work them out a second time: two
+   copies of "how many contracts are expiring inside 30 days" is two answers
+   waiting to disagree in front of a customer.
+
+   So the computation moved out here and renderDashboard now reads it, exactly
+   as the phone does. Not one line of the arithmetic changed in the move —
+   deliberately, so the desktop it feeds is the desktop that shipped. */
+function hmDashSlices(){
   const cs=state.contracts;
   /* state.contracts, state.serverStats and state.shareOverview are already
      scoped and masked by the server (F1/F2) — every slice below is therefore
@@ -347,6 +359,19 @@ function renderDashboard(){
     highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`, sub:'risk score 60 or above', grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', sub:'draft to signed, from the audit trail', grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
+  return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
+    decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
+    canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
+    exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
+    clean, compliancePct, REG_PROFILE, apprMineN, KPI_CATALOG };
+}
+
+function renderDashboard(){
+  const { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
+    decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
+    canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
+    exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
+    clean, compliancePct, REG_PROFILE, apprMineN, KPI_CATALOG } = hmDashSlices();
   const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
   // Adaptive layout: the redesign's stat cards are wider and quieter than the
   // gradient blocks they replace, so they sit four to a row and wrap.
@@ -666,4 +691,5 @@ function renderDashboard(){
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard,gsSteps,gettingStartedHtml,gsIsSeed});
+Object.assign(window,{renderDashboard,hmDashSlices,gsSteps,gettingStartedHtml,gsIsSeed,
+  KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,readyToSignItems});
