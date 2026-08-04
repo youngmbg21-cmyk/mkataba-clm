@@ -5,6 +5,169 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## HaTi on a phone — a second shell over one body of logic
+
+**Done** (suite green: 2424 unit tests, 0 failures; 56/56 in a new
+`test:phone` Chromium walk; every existing Chromium check still green; branch
+`claude/hati-mobile-view-cqxdgz`; built from the "HaTi Mobile (standalone)"
+prototype, with five decisions taken by Young before any code)
+
+### What this is
+
+Below **768px** the desktop shell leaves the page and a phone shell is drawn
+instead: a bottom tab bar (Home / Contracts / Approvals), a slim header, and
+one screen at a time. Above 768px **nothing in this work renders at all** —
+same DOM, same CSS, same behaviour. That is asserted rather than believed: the
+new Chromium check opens the app at 1280 and fails if the phone root has been
+painted, if the body carries the phone class, if a single phone element exists,
+or if the Copilot is anything other than the 430px drawer it has always been.
+
+### Why a second shell rather than a narrower first one
+
+The desktop shell is three fixed strips — a 256px sidebar, the work, a 292px
+activity column — over a 64px header of icon buttons. The earlier responsive
+pass already took the "narrow it" idea as far as it goes and it ends at a
+drawer over a page with no room left. So the phone gets its own arrangement
+over exactly the same data, and the 768–899 band keeps today's drawer
+treatment untouched.
+
+### The rule the whole thing rests on
+
+Nothing in the phone computes a metric, filters a register, decides a next
+action, files a change or talks to the server on its own:
+
+- figures → `hmDashSlices()`, **split out of `renderDashboard` in this session**
+  so both shells read one set of numbers. Not one line of the arithmetic moved.
+- register rows → `regFiltered()`, driven through the same `regState()` the
+  desktop's own filters write to, so a stream picked on a phone is still picked
+  when the window is widened
+- next action → `wsNextAction()`, the same six answers as the desktop action
+  bar. The phone cannot decide it is time to sign in the middle of a
+  negotiation, because that judgement is not made here.
+- approvals → `approvalState()` / `approveContract()` / `rejectApprovalStep()`
+- history → `negoTimeline()`; verification → `negoIntegrityReport()`; export →
+  `negoHistoryExportHtml()`
+- renumbering → `negoRenumberBlocked()` / `negoRenumberPlan()` /
+  `negoRenumberApply()` — the preview shown is the plan applied
+- shares → `buildSharePayload()` + `POST /api/shares`, purpose travelling with
+  it. The phone **picks**; the server **enforces**. No client-only rule was
+  added anywhere.
+
+`grep -rn "changes.push|negoFileChange("` over the five new files returns
+nothing, which is the point: the phone reaches the funnel through the wrappers
+that already exist and never files anything itself.
+
+### The five decisions, as taken
+
+1. **Below 768 replaces, it does not restyle.** 768–899 unchanged.
+2. **A slim header stays**, carrying the four controls with nowhere else to
+   live: who you are, log out, the jurisdiction (it sets the currency on every
+   figure and which statute checks run — a phone that cannot see it cannot tell
+   you it is showing Swedish rules), and light/dark. **More** lists every desk
+   screen the phone does not build — Insights, Reports, Calendar, Templates, Our
+   standards, Import, Settings & Rules, Advice Desk — each behind an honest
+   "Open HaTi on a computer" card. A door onto a stated "not here" beats no door.
+3. **No login work** (deferred by Young).
+4. **The reader's own metrics.** The prototype hard-codes four tiles; the
+   desktop lets you pick from eleven and remembers the pick. The phone reads
+   `currentKpiSel()` and the gear opens the same catalogue as a sheet, saving
+   to the same place. Two across at 320px — three fits a figure and not its
+   caption.
+5. **Dark theme is in**, and cost almost nothing: every colour in the phone is a
+   token, never a literal. The prototype's fixed values were translated on the
+   way in, so `html.dark` does the rest. Both themes are walked in the check.
+
+### The `!important` problem, stated rather than hidden
+
+Almost every pixel in this app is an inline style, and an inline style beats a
+stylesheet. Overriding one from a media query therefore takes `!important` —
+not as a shortcut but as the only mechanism short of editing the render
+functions, which is the one thing that would put the desktop at risk. So the
+phone **paints over; it never rewrites**. The clearest case is the contract
+paper: the document body carries a desktop type scale (13px paragraphs, a 10px
+mono kicker) written half in utility classes and half inline, so inside
+`.m-paper` everything inherits the paper's 15px unless it is a heading, and the
+headings are named. Hierarchy survives; the floor is 15px.
+
+### The Copilot
+
+`#ai-panel` goes full-screen: no scrim (nothing behind it), no docked mode
+(nothing beside it), no expand control (nothing to expand into). Type and
+targets come up to phone sizes, **the whole proposal card included** — pill,
+clause label, wording or its editor, anchor line, placement chips, the
+light-red optional "why", and Apply / Decline / Edit.
+
+A launcher pill sits above the tab bar on Home, Contracts, Approvals and
+Portfolio, carrying a `[data-ai-badge]` dot driven from the same
+`ai.unread` / `ai.minimized` as every other entry point.
+
+**Selection → Copilot.** Long-press selection inside a scrolling document is
+unreliable on touch, so a tap stands in for it — and what a tap does *not* do
+is take a private route. It builds the same DOM Range a drag would have built,
+installs it as the selection, and lets the page's own `mouseup` handler run.
+Everything downstream is the path that already exists: the front-matter
+refusal still refuses, the live-redline refusal still refuses, the menu is
+`rlSelMenu`'s three `RL_SEL_ACTIONS`, and the ask goes through `rlAiPropose`
+untouched. A second way to select wording is acceptable; a second way to
+propose it is not.
+
+Nothing writes until Apply; flipping a placement never re-asks the model;
+closing drops a seeded passage and minimizing keeps it; a summoned panel steps
+back once the errand is settled. None of that is re-implemented here — it is
+inherited by not being touched. `renderAISuggest` stays the no-op it was made
+into; the suggested-question chips were **not** reintroduced.
+
+### The counterparty
+
+The negotiation link, the signing link and the read-only viewer are already one
+thing at a time below 1024, so this is the phone sizing pass over the layout
+that exists plus two structural moves: the identity strip stops trying to be
+one line, and the decision bar sticks to the bottom so the single Send is
+reachable without scrolling to the end of a contract. Per-change Accept/Reject
+still held until one send, decline still requires a reason, the signing link is
+still bound to one seat and still says which signer of how many, the viewer is
+still frozen, watermarked and print-only.
+
+**The Copilot is on none of the three, and cannot be:** the phone shell only
+draws itself when the owner's app shell is on screen (`mAppActive()`), and a
+share link never starts it.
+
+### Files
+
+`js/mobile.js` (breakpoint, shell, header, tab bar, sheets, More, handoff,
+the one stylesheet), `js/mobile-screens.js` (Home, Contracts, Approvals,
+Portfolio, metric and new-contract sheets), `js/mobile-contract.js` (the
+contract screen, history, overflow, share, renumber), `js/mobile-copilot.js`
+(panel layout, launcher, sentence tap), `js/mobile-portal.js` (counterparty
+sizing). `index.html` gains one empty `#m-root`. `js/views/home.js` gains
+`hmDashSlices()`. `js/app.js` imports the five last, so everything they read is
+on `window` before they boot.
+
+### Left undone, deliberately
+
+- **Login on a phone** — Young deferred it; the first screen anyone sees is
+  still the desktop form.
+- **Editing the document, comparing versions and saving as a template** are
+  desk work and say so, with a toast, from the overflow sheet.
+- **Answering a negotiation round from the owner's phone** opens the redline
+  workbench if it can and otherwise says to open it on a computer. The
+  workbench is a three-pane surface; giving it a phone layout is its own job.
+- **Owner-side signing** scrolls to the consent box on a computer rather than
+  signing from the phone. Applying a seal is the one act worth making somebody
+  sit down for, and the intent box, mark and seal live together on that surface.
+- Out of scope as briefed and not built: the "Partially signed" pill, the
+  signature pad's saved-signatures tab, Copilot risk-scan cards, charts in
+  Copilot answers, streaming progress, the Intel dock.
+
+### Two leftovers found in the prototype and deliberately not built
+
+The design file contains a round Copilot button and a half-height Copilot
+drawer whose flags are never set — neither is reachable when you tap through
+it. Only the pill launcher and the full-screen panel are real, and only those
+were built.
+
+---
+
 ## Contract designs — five company-standard looks + the Design step
 
 **Done** (suite green: 2219 existing + 14 new in f129; branch
