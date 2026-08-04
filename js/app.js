@@ -54,6 +54,7 @@ import './views/migration.js';
    767px; see the rules at the top of js/mobile.js. */
 import './mobile.js';
 import './mobile-screens.js';
+import './mobile-contract.js';
 
 /* ============================================================ NAV */
 /* WO N1 — one door per thing. Views that live INSIDE a contract (the
