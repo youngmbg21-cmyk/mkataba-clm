@@ -4917,3 +4917,78 @@ and is not forgotten when the window narrows to a phone and back.
 The measured picture at all nine widths is unchanged from the table above, and
 slightly better at 1280 and 1366 — main's collapsed-by-default rail gives the
 middle more room than my breakpoints did.
+
+## Run 20b — the laptop most customers actually have (2026-08-04)
+
+Young opened HaTi on a work ThinkPad and sent photographs. It looked, in his
+words, bulging and not natural — and he was right.
+
+### Why
+
+Two things, and only one of them is a fault.
+
+**His laptop is not 1920 wide as far as the browser is concerned.** It is a
+1920x1080 screen with Windows display scaling at 150%, which is what Windows
+recommends by default on a 14-inch 1080p panel. The browser therefore gets a
+**1280 by 590** page and paints every pixel half again as large. That
+magnification is the "bulging", it is not a fault, and a website can neither
+detect nor override it. It is there because unmagnified text on that screen is
+genuinely too small to read.
+
+**The fault is that the layout was built for a canvas twice as tall.** The
+responsive run tested nine widths at a single height of 900px. Almost no laptop
+has 900px of page. So the app was drawing a big-screen layout into a small
+window and then having it magnified — the wrong proportions, then enlarged.
+
+### What was broken, measured on a reproduction of his exact machine
+
+- The calendar's last week was cut off inside its card. The grid needed 392px
+  of day cells and had 287px, so the 30th and 31st were drawn and then hidden.
+- The negotiation's change list was given **83 pixels of height for a 110-pixel
+  card** — a sliver of one decision with the bulk buttons pressed against it.
+- The members table was forced into a horizontal scrollbar with a column cut
+  off, on a screen where it would otherwise have fitted. **That one was a
+  regression from Run 20**: the minimum table width added for phones was
+  applied unconditionally, so it fired on a laptop too.
+- The jurisdiction flags rendered as the bare letters "SE" and "KE" in boxes.
+  Windows ships no flag glyphs at all, so every Windows customer saw that.
+
+### What changed
+
+- **Vertical rhythm now tightens with the window**, exactly as the horizontal
+  one already did. Two steps: under 820px of page, and under 680px. Above 820
+  nothing applies, so big screens are untouched. It is padding, gaps and one
+  type step — nothing removed, nothing reordered.
+- **The calendar shows its whole month** at every laptop size: the day-cell
+  floor scales with the window instead of being fixed at 62px, the card gives up
+  padding first, and the grid can scroll as a last resort.
+- **The change list gets real room** — 170px on the ThinkPad instead of 83, and
+  more on anything larger. The shell, tab strip and heading give way first
+  because the list is what the page is for.
+- **The table minimum width now only applies where it is needed** (below 900,
+  and a little earlier for the seven-column register). On a laptop the tables
+  simply fit again.
+- **The flags are drawn as SVG** rather than typed as emoji, so they render the
+  same on Windows, macOS and Linux.
+
+### The result on his machine
+
+Before: the hero banner and the metrics filled the screen and the contract
+pipeline was just below the fold. After: the hero, all four metric cards, the
+full pipeline with its contracts, and the decisions panel are all on the first
+screen without scrolling.
+
+Text is still physically larger on that laptop than on a bigger screen. That is
+the Windows setting doing its job and it has been left alone.
+
+### Proved
+
+A new browser suite, `npm run test:laptops`, walks the sizes customers actually
+have — 1080p at 150%, 1366x768, 1080p at 125%, a MacBook, and 1080p at 100% —
+and asserts nothing is cut off, nothing is starved of height, the calendar shows
+all six weeks, and the change list has room for a decision. 16 checks, all
+passing. It is in `test:all`, so the height dimension cannot go untested again.
+
+Everything else still passes: 2,424 node tests, all seven existing browser
+suites, the nine-width sweep, the 24 behaviour checks and the 7 sidebar-rail
+checks.

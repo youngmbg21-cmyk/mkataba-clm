@@ -555,6 +555,11 @@
   .region-btn{display:flex;align-items:center;gap:6px;border:0;background:none;font:inherit;font-family:var(--font-body);font-size:11px;font-weight:600;padding:4px 10px;border-radius:9px;cursor:pointer;color:var(--color-neutral-500);transition:background .15s,color .15s;white-space:nowrap;}
   .region-btn:hover{color:var(--color-text);}
   .region-btn.active{background:var(--accent-solid);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
+  .region-flag{display:inline-flex;flex:none;line-height:0;border-radius:2px;overflow:hidden;box-shadow:0 0 0 1px rgba(15,23,42,.12);}
+  /* The letters ride with the flag only once the words are dropped — with the
+     full label showing they would read as a stutter ("SE Sweden"). */
+  .region-abbr{display:none;font-weight:700;letter-spacing:.03em;}
+  @media (max-width:1430px){ .region-abbr{display:inline;} }
 
   /* theme toggle: both glyphs live in the button; html.dark picks which shows */
   #theme-icon-sun{display:none;color:#fbbf24;}
@@ -567,7 +572,7 @@
   /* Flags only, not gone. Hiding it outright removed a control that changes
      money, the governing-law checks and the Copilot's briefing — survivable
      while narrow windows were unusable, not survivable now they are not. */
-  @media (max-width:1430px){ #region-switch .region-btn{font-size:0;gap:0;padding:4px 7px;} #region-switch .region-btn>span{font-size:13px;} }
+  @media (max-width:1430px){ #region-switch .region-btn{font-size:0;gap:5px;padding:4px 8px;} #region-switch .region-btn>span{font-size:10.5px;} }
   /* Below 900 it moves into the nav drawer instead (placeRegionSwitch,
      js/app.js), where there is room for its full labels again. */
   @media (max-width:899px){
@@ -667,6 +672,56 @@
       display:block; position:fixed; inset:64px 0 0 0; z-index:54;
       background:color-mix(in srgb,#020617 45%,transparent);
     }
+  }
+
+  /* ============================================================
+     THE SHORT LAPTOP — the dimension the first responsive pass missed.
+
+     THE DEFECT THIS REPLACES. That pass tested nine WIDTHS at a single height
+     of 900px. Almost no laptop has 900px of page. A 1920x1080 ThinkPad at the
+     Windows-recommended 150% scaling reports 1280x720 to the browser, and once
+     Chrome's tabs, address bar and bookmarks bar are taken off, the page gets
+     about 590. A 1366x768 laptop gets about 638. Those are the two most common
+     machines a customer will first open HaTi on, and the layout was built for
+     a canvas half as tall again.
+
+     Measured on the real thing before this block existed:
+       · the calendar's last week was cut off inside its card (the grid needs
+         392px of day cells and had 287px)
+       · the negotiation's change list got 83px of height for a 110px card
+       · 61% of the first screen was banners and the hero, with ZERO contracts
+         visible — you landed on HaTi and saw nothing it is for
+
+     So the vertical rhythm tightens with the window, exactly as the horizontal
+     one does. Nothing is removed and nothing is reordered: this is padding,
+     gaps and one type step. Above 820px of page nothing here applies at all,
+     so the big-screen design is untouched.
+     ============================================================ */
+
+  /* -- short: most laptops, including 1366x768 and 1080p at 125% -- */
+  @media (max-height:820px){
+    .hm-page{gap:7px!important;padding-top:10px!important;padding-bottom:12px!important;}
+    .hm-hero{padding:16px 22px!important;gap:12px!important;}
+    .hm-hero h2{font-size:clamp(19px,15px + 0.5vw,25px)!important;}
+    .hm-hero p{margin-top:0!important;}
+    #gs-card{padding:12px 16px 10px!important;}
+    #email-setup-banner{padding:9px 14px!important;}
+    /* the page header above every view */
+    #page-head>div{padding-top:8px!important;padding-bottom:8px!important;}
+  }
+  /* -- very short: a 1080p panel at 150%, which is the Windows default on a
+        14-inch ThinkPad and therefore the most common single configuration -- */
+  @media (max-height:680px){
+    .hm-page{gap:6px!important;padding-top:8px!important;}
+    .hm-hero{padding:12px 18px!important;}
+    .hm-hero h2{font-size:clamp(17px,14px + 0.42vw,22px)!important;}
+    /* The badge above the title says the engine is ready. On a screen this
+       short that line is costing a row of contracts, and the reader can see
+       the jurisdiction switcher in the header saying the same thing. */
+    .hm-hero>div:nth-child(2)>span:first-child{display:none!important;}
+    #gs-card{padding:10px 14px 8px!important;}
+    #email-setup-banner{padding:8px 12px!important;}
+    #page-head>div{padding-top:6px!important;padding-bottom:6px!important;}
   }
 
   /* ============================================================
@@ -793,11 +848,22 @@
      The wrapper takes the scroll; the min-width keeps every column readable.
      NO COLUMN IS EVER HIDDEN — the density is the design. */
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin;}
-  .table-scroll>table{min-width:640px;}
   .table-scroll::-webkit-scrollbar{height:9px;}
   .table-scroll::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:8px;}
-  /* The register's own scroller already existed; it just never had a floor. */
-  #reg-scroll>table{min-width:820px;}
+  /* THE FLOOR ONLY APPLIES WHERE THERE IS NO ROOM.
+     It was unconditional, and that was a regression on the machine most
+     customers use: on a 1280-wide laptop the members table was forced to
+     640px inside a 530px column, so it grew a horizontal scrollbar and cut a
+     column off a table that would otherwise have fitted. A floor is for
+     stopping columns collapsing on a phone; on a laptop the table should just
+     fit, and below 900 it gets its floor back. */
+  @media (max-width:899px){
+    .table-scroll>table{min-width:640px;}
+    #reg-scroll>table{min-width:820px;}
+  }
+  /* The register carries seven columns and a pager, so it needs its floor a
+     little earlier than the rest — but still only where it cannot fit. */
+  @media (max-width:1099px){ #reg-scroll>table{min-width:760px;} }
 
   /* ---- ANCHORED POPOVERS STAY ON SCREEN ----
      Row menus and the export menu are position:absolute with a fixed width, so
@@ -1272,8 +1338,14 @@
            only; wired in js/app.js (setRegion), persisted as 'hati-region' -->
       <div id="region-switch" style="display:flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);padding:3px;border-radius:12px;flex:none;">
         <span style="font-size:11px;color:var(--color-neutral-500);padding:0 8px;font-weight:500;">Jurisdiction:</span>
-        <button id="region-se" class="region-btn" title="Swedish workspace — EU/GDPR compliance profile"><span>🇸🇪</span> Sweden (EU/GDPR)</button>
-        <button id="region-ke" class="region-btn" title="Kenyan workspace — KICA/ODPC compliance profile"><span>🇰🇪</span> Kenya (KICA/ODPC)</button>
+        <!-- THE FLAGS ARE DRAWN, NOT TYPED. Windows ships no regional-indicator
+             glyphs, so the flag emoji fell back to the bare letter pairs "SE"
+             and "KE" in boxes — on every Windows customer's header, on every
+             screen. Two 3-bar SVGs cost nothing and render identically
+             everywhere. The letters stay as the compact label the narrow-window
+             rule keeps when the words are dropped. -->
+        <button id="region-se" class="region-btn" title="Swedish workspace — EU/GDPR compliance profile"><span class="region-flag" aria-hidden="true"><svg viewBox="0 0 16 11" width="16" height="11"><rect width="16" height="11" rx="1.5" fill="#005293"/><rect x="4.5" width="2.6" height="11" fill="#fecb00"/><rect y="4.2" width="16" height="2.6" fill="#fecb00"/></svg></span><span class="region-abbr">SE</span> Sweden (EU/GDPR)</button>
+        <button id="region-ke" class="region-btn" title="Kenyan workspace — KICA/ODPC compliance profile"><span class="region-flag" aria-hidden="true"><svg viewBox="0 0 16 11" width="16" height="11"><rect width="16" height="11" rx="1.5" fill="#fff"/><rect width="16" height="3.2" fill="#000"/><rect y="3.9" width="16" height="3.2" fill="#bb0000"/><rect y="7.8" width="16" height="3.2" fill="#006600"/><ellipse cx="8" cy="5.5" rx="1.5" ry="3.4" fill="#bb0000" stroke="#fff" stroke-width=".7"/></svg></span><span class="region-abbr">KE</span> Kenya (KICA/ODPC)</button>
       </div>
     </div>
 

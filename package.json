@@ -12,8 +12,9 @@
     "test:timeline": "node test/chromium/timeline-verify.js",
     "test:structure": "node test/chromium/structure-verify.js",
     "test:designstep": "node test/chromium/designstep-verify.js",
-    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep",
-    "test:live": "node test/chromium/live-verify.js"
+    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep && npm run test:laptops",
+    "test:live": "node test/chromium/live-verify.js",
+    "test:laptops": "node test/chromium/laptops-verify.js"
   },
   "engines": {
     "node": ">=22.5"

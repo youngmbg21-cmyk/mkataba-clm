@@ -1022,6 +1022,27 @@ function negoStyleHtml(){
   /* MOTION IS THE DECORATION, NOT THE MESSAGE. With animation off, both signals
      have to survive as colour — a reader who has asked for no movement is not
      asking to be told less. */
+  /* ---- THE DECISION LIST NEEDS ROOM TO SHOW A DECISION ----
+     Measured on a 1080p laptop at 150% scaling (a 590px page): the list was
+     given 83px of height for a card 110px tall, so the reader saw a sliver of
+     one change with the bulk buttons pressed against it. The list is the
+     point of the panel; everything above it is furniture, so on a short
+     window the furniture gives way first. The 90px tail on the scroller was
+     the single biggest offender — it exists to clear the floating action bar,
+     which is not that tall. */
+  @media (max-height:820px){
+    .nego-index-head{padding:9px 14px 8px}
+    .nego-bulk{margin-top:7px}
+    .nego-index-scroll{padding:9px 10px 56px}
+  }
+  @media (max-height:680px){
+    .nego-index-head{padding:7px 12px 6px}
+    .nego-track{margin-bottom:5px}
+    .nego-bulk{margin-top:5px}
+    .nego-bulk button{padding:5px 0}
+    .nego-index-scroll{padding:7px 9px 40px}
+  }
+
   @media (prefers-reduced-motion:reduce){
     .nego-scroll,.nego-index-scroll{scroll-behavior:auto}
     .nego-room *,#nego-root *{transition:none !important;animation:none !important}
@@ -5668,6 +5689,32 @@ function redlineLayoutCss(){
   .redline-page .rl-side-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:6px;margin:8px 8px 0;flex:none;
     background:#f1f5f9;border-radius:12px}
   html.dark .redline-page .rl-side-tabs{background:rgba(148,163,184,.14)}
+
+  /* ---- A SHORT WINDOW SPENDS ITS HEIGHT ON THE WORK ----
+     Placed AFTER the rules it argues with: these are the same two classes
+     deep, so at equal specificity the later block wins and an earlier one is
+     simply ignored — which is what happened the first time this was written.
+
+     Measured on a 1080p laptop at 150% scaling (a 590px page): the change list
+     was given 83px of height for a 110px card, so the reader saw a sliver of
+     one decision with the bulk buttons pressed against it. The shell, the tab
+     strip and the heading are furniture; the list and the contract are the
+     page. On a short window the furniture gives way. Nothing is hidden. */
+  @media (max-height:820px){
+    .redline-page .rl-shell{padding:9px 14px}
+    .redline-page .rl-idx-head{padding:9px 12px;gap:6px}
+    .redline-page .rl-side-tabs{margin:6px 8px 0;padding:4px}
+    .redline-page .rl-side-tab{padding:5px 8px}
+    .redline-page .rl-paper{padding:20px 30px 26px}
+  }
+  @media (max-height:680px){
+    .redline-page .rl-shell{padding:7px 12px}
+    .redline-page .rl-shell-back{width:28px;height:28px}
+    .redline-page .rl-idx-head{padding:7px 10px;gap:5px}
+    .redline-page .rl-side-tabs{margin:4px 7px 0;padding:3px}
+    .redline-page .rl-side-tab{padding:4px 7px}
+    .redline-page .rl-paper{padding:16px 26px 20px}
+  }
   .redline-page .rl-side-tab{flex:1;border:1px solid transparent;border-radius:9px;cursor:pointer;
     font:inherit;font-size:11px;font-weight:700;padding:6px 8px;
     display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;

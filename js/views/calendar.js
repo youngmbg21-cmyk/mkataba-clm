@@ -69,7 +69,9 @@ function renderCalendar(){
 
   const cell=(dnum)=>{
     const inMonth=dnum>=1&&dnum<=days;
-    if(!inMonth) return `<div style="min-height:62px;min-width:0;background:transparent;border:1px solid transparent;border-radius:7px"></div>`;
+    // the same floor as a real day, or the blank leading cells set the row
+    // height and undo the fix below
+    if(!inMonth) return `<div class="cal-day cal-blank" style="min-height:clamp(38px,7.1vh,62px);min-width:0;background:transparent;border:1px solid transparent;border-radius:7px"></div>`;
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
     const today=iso===todayIso;
     const list=byDay[iso]||[], es=list.slice(0,3), more=list.length-es.length;
@@ -81,7 +83,14 @@ function renderCalendar(){
     const bd=today?'var(--color-accent)':(ev?ev.dot:'var(--color-divider)');
     /* min-width:0 and overflow:hidden, or the cell's min-content width is the
        longest contract name inside it and the column stretches to hold it. */
-    const cellStyle=`min-height:62px;min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
+    /* A MONTH HAS TO SHOW ITS WHOLE MONTH. 62px was a hard floor, and six rows
+       of it plus the gaps need 392px — more than a 1366x768 laptop has for the
+       grid (335px) and far more than a 1080p panel at 150% scaling (287px), so
+       the last week was drawn and then clipped by the card: the 30th and 31st
+       simply were not there. The floor now scales with the window and only
+       reaches its old value once there is room for it, so a big screen is
+       unchanged and a laptop shows all six rows instead of four and a half. */
+    const cellStyle=`min-height:clamp(38px,7.1vh,62px);min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
       `background:${bg};border:1px solid ${bd}`;
     const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--st-steel-fg)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
     const chips=es.map(e=>{
@@ -153,7 +162,10 @@ function renderCalendar(){
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:14px">
     <style>
       .cal-day{transition:box-shadow .14s ease,border-color .14s ease;position:relative}
-      .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 35%,transparent),0 4px 14px rgba(43,43,45,.16);z-index:2}
+      /* :not(.cal-blank) — the padding cells before the 1st and after the last
+         share the class only so they share the row floor; they are not days
+         and must not light up under the pointer. */
+      .cal-day:not(.cal-blank):hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 35%,transparent),0 4px 14px rgba(43,43,45,.16);z-index:2}
       /* ---- THE REFERENCE'S TWO-TO-ONE SPLIT ----
          Twelve-column thinking again: lg:grid-cols-3 with the month taking
          col-span-2 and the agenda the last third. Below the design's lg
@@ -165,6 +177,18 @@ function renderCalendar(){
       .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);
         box-shadow:var(--shadow-sm);border-radius:16px;padding:20px;display:flex;
         flex-direction:column;min-height:0}
+      /* A SHORT WINDOW STILL HAS TO SHOW A WHOLE MONTH. 20px of card padding
+         and a 62px day cell are a big-screen luxury; six rows of them need
+         392px and a 1080p laptop at 150% scaling has 287px for the grid. The
+         card gives up its padding first, then the cells give up their floor. */
+      @media (max-height:820px){
+        .cal-card{padding:13px}
+        .cal-day{min-height:38px!important}
+      }
+      @media (max-height:680px){
+        .cal-card{padding:10px}
+        .cal-day{min-height:32px!important}
+      }
       .cal-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font-size:10px;
         font-weight:700;letter-spacing:.08em;text-transform:uppercase;
         color:var(--color-neutral-500);text-align:center;margin-bottom:4px;flex:none}
@@ -190,7 +214,11 @@ function renderCalendar(){
              ("Mutual Non-Disclosure Agreement — Juno Limited") pushed its column
              to 250px while the other six sat at 94px. Seven equal weeks is the
              whole point of a month grid. -->
-        <div id="cal-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,1fr);gap:4px">${cells.join('')}</div>
+        <!-- overflow-y:auto is the belt to the clamp's braces: on a window shorter
+         than even the smallest cell floor allows, the grid scrolls rather than
+         hiding a week behind the card's edge. A day you cannot reach is worse
+         than a day you have to scroll to. -->
+    <div id="cal-grid" style="flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,1fr);gap:4px">${cells.join('')}</div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:10px;color:var(--color-neutral-500);flex:none">
           ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:6px">${_dot(v.dot,8)}${v.label}</span>`).join('')}
         </div>

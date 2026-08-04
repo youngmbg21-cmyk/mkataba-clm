@@ -386,10 +386,11 @@ function renderDashboard(){
      what this workspace is for, and the one button that starts real work. The
      sub-line names the jurisdiction actually in force (the header switcher),
      rather than claiming both. */
-  const REGION_LABEL={SE:'Sweden 🇸🇪', KE:'Kenya 🇰🇪'};
+  /* No flag emoji: Windows draws them as bare letter pairs in boxes. */
+  const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
   const heroSection=`
-    <section style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px 26px;border-radius:18px;background:linear-gradient(115deg,#0f172a 0%,#134e4a 62%,#0d9488 130%);border:1px solid #134e4a;box-shadow:var(--shadow-md);color:#fff;">
+    <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px 26px;border-radius:18px;background:linear-gradient(115deg,#0f172a 0%,#134e4a 62%,#0d9488 130%);border:1px solid #134e4a;box-shadow:var(--shadow-md);color:#fff;">
       <div style="position:absolute;right:-60px;top:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.28),transparent 68%);pointer-events:none;"></div>
       <div style="position:relative;min-width:0;display:flex;flex-direction:column;gap:7px;">
         <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:999px;background:rgba(20,184,166,.2);border:1px solid rgba(20,184,166,.34);color:#5eead4;font-size:11px;font-weight:600;">
@@ -543,7 +544,7 @@ function renderDashboard(){
       </div>
     </section>` : '';
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="display:flex;flex-direction:column;gap:9px;padding:12px 18px 18px;">
+  <div class="view-enter hm-page" style="display:flex;flex-direction:column;gap:9px;padding:12px 18px 18px;">
     ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
     ${firstRunBanner}
 
