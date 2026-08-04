@@ -421,7 +421,7 @@ function renderDashboard(){
         <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:999px;background:rgba(20,184,166,.2);border:1px solid rgba(20,184,166,.34);color:#5eead4;font-size:11px;font-weight:600;">
           <span style="display:inline-flex;color:#5eead4;">${icon('check2','w-3 h-3',2)}</span>Multi-jurisdiction engine ready
         </span>
-        <h2 style="margin:0;font-size:clamp(21px,17px + 0.62vw,31px);line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SME Contract Control Center</h2>
+        <h2 style="margin:0;font-size:clamp(21px,17px + 0.62vw,31px);line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SMART Contract Control Center</h2>
         <p style="margin:0;font-size:12.5px;color:#cbd5e1;max-width:62ch;">Fast, accessible execution for ${regionNow} operations · ${Number(countAll).toLocaleString('en-KE')} contracts under management.</p>
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
