@@ -420,40 +420,19 @@ function openPointsFor(c){
   return out;
 }
 
-/* ---- version history panel in the workspace ---- */
-function renderVersionsSection(c){
-  const host=document.getElementById('versions-section'); if(!host) return;
-  const vs=listedVersions(c);
-  const canSnap=canEdit()&&c.status!=='Signed';
-  const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
-  host.innerHTML=`
-    <div style="padding:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
-        <h6 style="${H6};flex:1">Versions &amp; changes</h6>
-        <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${vs.length} version${vs.length===1?'':'s'}</span>
-      </div>
-      ${vs.length?`<div class="scroll-thin" style="display:flex;flex-direction:column;gap:5px;max-height:190px;overflow-y:auto;padding-right:6px">${vs.slice().reverse().map(v=>`
-        <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:6px 9px;font-size:11px">
-          <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)">v${v.n}</span>
-          <span style="color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${(v.label||'').replace(/</g,'&lt;')}</span>
-          <span style="margin-left:auto;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${fmtDT(v.at)}</span>
-          ${v.n>1?`<button data-ver-diff="${v.n}" style="flex:none;border:0;background:none;cursor:pointer;color:var(--color-accent);font:inherit;font-size:11px;font-weight:600;padding:0" title="Compare with previous version">diff</button>`:''}
-          ${canSnap?`<button data-ver-restore="${v.n}" style="flex:none;border:0;background:none;cursor:pointer;color:var(--color-accent);font:inherit;font-size:11px;font-weight:600;padding:0" title="Make the contract read as it did in this version — the wording you have now is saved first">restore</button>`:''}
-        </div>`).join('')}</div>`
-      :`<p style="font-size:11px;color:var(--color-neutral-600);line-height:1.5;margin:0">No versions captured yet. Snapshots are taken automatically when a counterparty redline is accepted and at signing — or capture one now to start tracking changes.</p>`}
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
-        <button id="ver-compare" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 11px">${icon('history','w-3.5 h-3.5')} Compare versions</button>
-        ${canSnap?`<button id="ver-snap" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('plus','w-3 h-3')} Snapshot now</button>`:''}
-      </div>
-    </div>`;
-  host.querySelectorAll('[data-ver-diff]').forEach(b=>b.addEventListener('click',()=>{ const n=Number(b.getAttribute('data-ver-diff'));
-    const cur=vs.find(v=>v.n===n), prev=vs.find(v=>v.n===n-1); if(cur&&prev) openDiffModal(prev.text,cur.text,`v${prev.n}`,`v${cur.n}`); }));
-  host.querySelectorAll('[data-ver-restore]').forEach(b=>b.addEventListener('click',()=>
-    restoreVersion(c, Number(b.getAttribute('data-ver-restore')))));
-  document.getElementById('ver-snap')?.addEventListener('click',()=>takeNamedSnapshot(c,()=>renderVersionsSection(c)));
-  document.getElementById('ver-compare')?.addEventListener('click',()=>openCompareModal(c));
-}
+/* THE WORKSPACE VERSION CARD IS GONE (renderVersionsSection).
+
+   It listed every version on the Docs page beside a "Compare versions" button
+   that the same page already carried in its toolbar, and the negotiation page
+   offers a version picker on each pane — one act behind three doors. The list
+   went with it.
+
+   What did NOT go: "Snapshot now" and "restore" existed on that card and
+   NOWHERE else in the product. Both now live in the Compare window
+   (openCompareModal below), which is reachable from the Docs toolbar and from
+   the negotiation page. Per-version "diff" is not reimplemented as its own
+   verb — picking two versions and pressing Compare is that verb, and is what
+   the window is for. */
 
 const _diffLegend = `<span style="display:inline-flex;align-items:center;gap:8px"><ins style="background:var(--st-green-bg);color:var(--st-green-fg);text-decoration:none;border-radius:2px;padding:0 4px">added</ins><del style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-radius:2px;padding:0 4px">removed</del></span>`;
 const _diffBox = (a,b)=>`<div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-surface);padding:14px 16px;font-size:12.5px;line-height:1.85;color:var(--color-doc-text);max-height:56vh;overflow-y:auto;white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a,b)}</div>`;
@@ -479,7 +458,12 @@ function openCompareModal(c){
   const vs=listedVersions(c);
   const live=docPlainText(c);
   const liveCanon=docCanonical(c);
-  const items=vs.map(v=>({label:`v${v.n} · ${(v.label||'').replace(/"/g,'')}`, short:`v${v.n}`, text:v.text, canon:v.canon||v.text}));
+  /* `n` rides along because Compare is now where a version is GONE BACK TO as
+     well as looked at — the workspace card that used to carry Restore is gone,
+     and a restore button with no version number behind it has nothing to
+     restore. Only captured versions get one; "Current" and "Proposed" are
+     states, not records, and cannot be restored to. */
+  const items=vs.map(v=>({label:`v${v.n} · ${(v.label||'').replace(/"/g,'')}`, short:`v${v.n}`, text:v.text, canon:v.canon||v.text, n:v.n}));
   const lastV=vs.length?vs[vs.length-1]:null;
   // the live document is a comparable whenever it differs in WORDING or in SHAPE
   if(!lastV || live!==lastV.text || liveCanon!==(lastV.canon||lastV.text))
@@ -516,8 +500,11 @@ function openCompareModal(c){
         </div>
       </div>`);
     document.getElementById('cmp-close').addEventListener('click',closeModal);
+    /* Reopened rather than closed: the snapshot just made is a second
+       comparable, so the window that said "nothing to compare yet" comes back
+       able to compare. */
     document.getElementById('cmp-snap')?.addEventListener('click',()=>
-      takeNamedSnapshot(c,()=>{ closeModal(); renderVersionsSection(c); }));
+      takeNamedSnapshot(c,()=>{ closeModal(); openCompareModal(c); }));
     return;
   }
 
@@ -611,12 +598,59 @@ function openCompareModal(c){
              The colour now belongs to the placeholder, which is the only thing
              that was ever meant to be quiet. */}
       <div id="cmp-out" style="font-size:12px"><span style="color:var(--color-neutral-500)">Pick two versions and press <b>Compare</b> to see the changes.</span></div>
-      <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="cmp-done" class="ui-btn ui-btn-primary">Close</button></div>
+      ${''/* ---- THE TWO VERBS THE WORKSPACE CARD USED TO CARRY ----
+             "Versions & changes" sat on the Docs page listing every version
+             beside a Compare button that is already in that page's toolbar.
+             The list went; these did not, because nothing else in the product
+             offers them. They belong here for the same reason Compare does —
+             this is the window that knows which versions exist and which one
+             you are looking at.
+
+             Restore follows the LEFT pick, which is the older side of a
+             comparison by default and therefore the one anybody reading
+             "v3 → Current" would mean by "put it back". It is refused, with a
+             reason, while a negotiation is live — restoreVersion says so
+             itself, so the button stays pressable rather than mysteriously
+             absent. */}
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap">
+        ${canSnap?`<button id="cmp-snap-now" class="ui-btn" style="font-size:12px;padding:5px 11px" title="Save the wording exactly as it reads now, under a name you choose">${icon('plus','w-3 h-3')} Snapshot now</button>
+        <button id="cmp-restore" class="ui-btn" style="font-size:12px;padding:5px 11px" hidden></button>`:''}
+        <span style="flex:1"></span>
+        <button id="cmp-done" class="ui-btn ui-btn-primary">Close</button>
+      </div>
     </div>`, {maxWidth:'860px'});
   document.getElementById('cmp-x').addEventListener('click',closeModal);
   document.getElementById('cmp-done').addEventListener('click',closeModal);
   document.getElementById('cmp-a').value=String(items.length-2);
   document.getElementById('cmp-b').value=String(items.length-1);
+  /* Restore names the version it would restore, and disappears when the left
+     pick is not one — a button reading "Go back to Current" would be an offer
+     to do nothing. Re-read on every change of the left select, and once now,
+     because the modal opens with a pick already made. */
+  const restoreBtn=document.getElementById('cmp-restore');
+  const syncRestore=()=>{
+    if(!restoreBtn) return;
+    const it=items[Number(document.getElementById('cmp-a').value)];
+    const n=it&&it.n;
+    restoreBtn.hidden=!n;
+    if(n){
+      restoreBtn.innerHTML=`${icon('history','w-3 h-3')} Go back to v${n}`;
+      restoreBtn.title=`Make the contract read as it did in v${n} — the wording you have now is saved as its own version first`;
+      restoreBtn.setAttribute('data-cmp-restore',String(n));
+    }
+  };
+  document.getElementById('cmp-a').addEventListener('change',syncRestore);
+  syncRestore();
+  document.getElementById('cmp-snap-now')?.addEventListener('click',()=>
+    takeNamedSnapshot(c,()=>{ closeModal(); openCompareModal(c); }));
+  restoreBtn?.addEventListener('click',()=>{
+    const n=Number(restoreBtn.getAttribute('data-cmp-restore'));
+    if(!n) return;
+    /* An `after` is passed so the modal shuts before the page repaints under
+       it; without one restoreVersion redraws the workspace with this window
+       still sitting on top of it. */
+    restoreVersion(c,n,()=>{ closeModal(); if(window.renderWorkspace) renderWorkspace(); });
+  });
   const run=()=>{
     const a=items[Number(document.getElementById('cmp-a').value)], b=items[Number(document.getElementById('cmp-b').value)];
     if(!a||!b) return;
@@ -960,4 +994,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

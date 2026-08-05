@@ -3054,7 +3054,13 @@ function renderWorkspace(){
           ${''/* the general discussion panel is removed — see js/views/portal.js */}
           <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          ${''/* "Versions & changes" is removed. Its Compare button repeated the
+                 one in this page's own toolbar, and the negotiation page carries
+                 a version picker on each pane — three doors onto one act. The
+                 two verbs that lived ONLY on that card, Snapshot now and
+                 Restore, moved into the Compare window rather than going with
+                 it; see openCompareModal in js/versioning.js. Nothing was
+                 dropped, only stopped being said three times. */}
 
           <div style="display:flex;justify-content:flex-end;padding-top:2px">
             <button id="screening-next" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 16px;display:inline-flex;align-items:center;gap:6px">Next: Signing ${icon('chevR','w-3.5 h-3.5')}</button>
@@ -3146,7 +3152,7 @@ function renderWorkspace(){
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wsTabDefaults(c);    // Docs by default; the choice persists per contract
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); loadEngagement(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); loadEngagement(c); renderAuditSection(c);
   if(window.renderTemplateFormSection) renderTemplateFormSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Audit inner tabs
   wireWsTabs(c);   // Docs | Negotiation — the workspace-level pair
