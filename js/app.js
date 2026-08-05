@@ -62,10 +62,15 @@ import './mobile-portal.js';
 /* WO N1 — one door per thing. Views that live INSIDE a contract (the
    workspace, the negotiation workbench) and flows that feed the register
    (a folder, the bulk import) light "Contracts", so the sidebar never
-   points at a door that no longer exists; the playbook page lights
-   "Templates", where it now lives as "Our standards". */
+   points at a door that no longer exists.
+
+   "Our standards" is NOT in this table any more. It used to borrow the
+   Templates door because it had none of its own; it now has one under
+   Administration, so it lights itself. A view with its own nav item must
+   never appear here — that is how a screen ends up highlighting a door it
+   does not live behind. */
 const NAV_HOME_FOR={ folder:'register', workspace:'register', redline:'register',
-  migration:'register', playbook:'templates' };
+  migration:'register' };
 function setActiveNav(view){
   const navFor = NAV_HOME_FOR[view] || view;
   document.querySelectorAll('.nav-item').forEach(b=>{

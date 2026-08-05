@@ -110,13 +110,16 @@ function libraryStage(over = {}) {
 }
 
 describe('N8 (3) — the templates library page', () => {
-  test('the rail names the kinds with honest counts, and keeps the door to Our standards', () => {
+  /* The rail used to carry a second door to Our standards. That page now has
+     its own nav item under Administration, so the door here is GONE rather
+     than duplicated — one home per thing, the rule WO N1 set. */
+  test('the rail names the kinds with honest counts, and no longer doubles as a door to Our standards', () => {
     const s = libraryStage(); s.renderTemplatesPage();
     const html = s.document.getElementById('content').innerHTML;
     assert.match(html, /All templates/); assert.match(html, /Company standard/);
     assert.match(html, /Counterparty paper/); assert.match(html, /HaTi standard/);
     assert.match(html, /Value stream/i);
-    assert.match(html, /id="tpl-standards"/);
+    assert.ok(!html.includes('id="tpl-standards"'), 'Our standards is reached from the sidebar, not from Templates');
   });
 
   /* The rows render into #tpl-rows (repainted on search without losing the

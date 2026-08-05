@@ -5,10 +5,13 @@
 // custom templates (uploaded documents or contracts saved as templates,
 // persisted in state.settings.customTemplates through saveSettings so they
 // work in both local and server mode), and the bundled HaTi sample PDFs.
-// Our standards (formerly the Playbook nav item — WO N1): the clause library
-// + per-type playbook plus a portfolio deviations list. It kept its route
-// (view-playbook) but is reached from the Templates page, where the paper a
-// company drafts from and the rules it holds other paper to live together.
+// Our standards: the clause library + per-type playbook plus a portfolio
+// deviations list. It keeps its route (view-playbook) and now has its own
+// sidebar door under Administration. It used to be reached only through the
+// Templates page — but setting the rules a company holds paper to is
+// governance, done rarely and by an admin, and it does not belong inside the
+// screen people open to draft from. The two views still share this file
+// because they share the template model, not because they share a door.
 
 /* ============================================================ CUSTOM TEMPLATES */
 function customTemplates(){ return (state.settings&&state.settings.customTemplates)||[]; }
@@ -1220,8 +1223,9 @@ function openTemplatePreview(tpl){
 /* ============================================================ TEMPLATES PAGE */
 /* ============================================================ THE LIBRARY PAGE
    (redesign to the approved comp): a quiet rail on the left — what KIND of
-   paper, which value stream, and the door to Our standards — and one dense
-   table on the right that holds every template the workspace can draft from.
+   paper and which value stream — and one dense table on the right that holds
+   every template the workspace can draft from. The rail used to end with a
+   door to Our standards; that page has its own nav item now.
    A table, not a card wall: past a dozen templates the facts a chooser needs
    (origin, version, how often it is used) read faster as columns, and the
    page stays the same height at 200 templates as at 12. Every verb the old
@@ -1417,11 +1421,10 @@ function renderTemplatesPage(){
         ${railIt('sample',TPL_GROUP_LABEL.sample,counts.sample||0)}
         <div style="${HEAD};margin-top:16px">Value stream</div>
         ${Object.values(FOLDERS).map(streamIt).join('')}
-        <div style="margin-top:18px;border-top:1px solid var(--color-divider);padding:12px 11px 0">
-          <div style="font-size:12.5px;font-weight:700;color:var(--color-text)">Our standards</div>
-          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px">The clause library incoming paper is checked against.</div>
-          <button id="tpl-standards" style="border:0;background:none;padding:0;margin-top:6px;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer">Open our standards →</button>
-        </div>
+        <!-- Our standards used to hang off this rail, because the clause
+             library and playbook had no door of their own. They have one now,
+             under Administration, and a governance screen with two homes is
+             the fault WO N1 removed — so the rail no longer carries it. -->
       </div>
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">
         <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
@@ -1440,7 +1443,6 @@ function renderTemplatesPage(){
     const v=b.getAttribute('data-tpl-stream');
     _tplPage.stream=_tplPage.stream===v?null:v; renderTemplatesPage(); }));
   document.getElementById('tpl-search')?.addEventListener('input',e=>{ _tplPage.q=e.target.value; tplPagePaintRows(); });
-  document.getElementById('tpl-standards')?.addEventListener('click',()=>setView('playbook'));
   document.getElementById('tpl-new')?.addEventListener('click',tplNewMenu);
   document.getElementById('tpl-convert')?.addEventListener('click',()=>{
     const lib2=(typeof tplLibAll==='function')?tplLibAll():{canManage:false};
