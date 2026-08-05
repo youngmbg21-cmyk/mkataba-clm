@@ -417,9 +417,18 @@
   @keyframes ping{75%,100%{transform:scale(2.1);opacity:0;}}
 
   /* scrollbars */
+  /* Thin means thin. At 9px with a full-width thumb these read as a second
+     border down the inside of every card — three of them across the pipeline
+     alone. The bar keeps its full hit area; only the thumb is drawn narrow,
+     inset from the track by a transparent border, so it is still easy to grab
+     and no longer competes with the card's own edge. */
   .scroll-thin::-webkit-scrollbar{width:9px;height:9px;}
-  .scroll-thin::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:8px;}
+  .scroll-thin::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:999px;
+    border:2px solid transparent;background-clip:content-box;}
+  .scroll-thin::-webkit-scrollbar-thumb:hover{background:var(--color-neutral-400);background-clip:content-box;}
   .scroll-thin::-webkit-scrollbar-track{background:transparent;}
+  /* Firefox has no thumb geometry of its own — this is the whole control. */
+  .scroll-thin{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
   main{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
 
   /* ============================================================
