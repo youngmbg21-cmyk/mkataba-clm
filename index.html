@@ -548,8 +548,59 @@
   #app-shell.rail aside #side-ai-usage-txt{display:none;}
   #app-shell.rail aside #side-ai-usage{justify-content:center;}
 
-  .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:12px;color:var(--color-neutral-600);cursor:pointer;transition:background .15s,color .15s;}
-  .hdr-icon-btn:hover{background:var(--color-neutral-200);color:var(--color-text);}
+  /* ============================================================
+     THE SIDEBAR IS THE BRAND'S OWN BLOCK.
+     ============================================================
+     The doors used to sit on the same white as the page, so the frame and the
+     content read as one undifferentiated field and the eye had to find the
+     boundary by the hairline alone. The rail now carries the deep teal the
+     brand already uses on its mark, its primary buttons and the Copilot
+     launcher — so the frame is obviously frame, and the white page inside it
+     is obviously the work.
+
+     ONLY COLOUR IS SET HERE. Every width, height, padding and breakpoint the
+     shell already had is untouched: the collapsed rail, the off-canvas drawer
+     below 900 and the short-laptop rules all still drive this sidebar, and
+     they are all layout rules, which is why none of them appear below. */
+  :root{ --nav-bg:#0b3d3a; --nav-line:#0a3532; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff; }
+  html.dark{ --nav-bg:#07302e; --nav-line:#062825; --nav-ink:#87cec5; }
+  #side-nav .nav-item{ color:var(--nav-ink); }
+  #side-nav .nav-item svg{ opacity:.9; }
+  #side-nav .nav-item:hover{ background:rgba(255,255,255,.08); color:var(--nav-ink-strong); border-color:transparent; }
+  #side-nav .nav-item:hover svg{ opacity:1; }
+  #side-nav .nav-item.active{ background:rgba(255,255,255,.15); color:var(--nav-ink-strong); border-color:transparent; }
+  html.dark #side-nav .nav-item.active{ color:var(--nav-ink-strong); }
+  /* Insights kept a teal glyph to mark itself out on white; on teal it needs
+     the opposite treatment or it disappears into its own background. */
+  #side-nav .nav-item[data-view="intel"] svg{ color:inherit; }
+  #side-nav .nav-count{ background:rgba(255,255,255,.14); color:var(--nav-ink); }
+  #side-nav .nav-item.active .nav-count{ background:rgba(255,255,255,.24); color:#fff; }
+  #side-nav .nav-count[data-tone="teal"]{ background:rgba(94,234,212,.22); color:#ccfbf1; }
+  #side-nav .nav-count[data-tone="amber"]{ background:rgba(245,158,11,.26); color:#fde68a; }
+  #side-nav .nav-section-head{ color:rgba(255,255,255,.62); }
+  #side-nav .nav-section-head:hover{ color:rgba(255,255,255,.78); }
+  #side-nav .nav-section-head.static:hover{ color:rgba(255,255,255,.62); }
+  #side-nav .nav-plus{ color:rgba(255,255,255,.55); }
+  #app-shell.rail #side-nav .nav-section-head::before{ color:rgba(255,255,255,.62); }
+  /* The head block sat on deep green to stand off a white rail. On a teal rail
+     it has to go the other way — a lighter panel — or the one control that
+     changes the window's shape vanishes into the wall behind it. */
+  #side-nav .rail-head{ background:rgba(255,255,255,.10); }
+  #side-nav .rail-head-label{ color:rgba(255,255,255,.7); }
+  /* the status block at the foot, on teal rather than on grey */
+  #side-nav .foot-wrap{ border-top-color:rgba(255,255,255,.12); }
+  #side-nav .foot-wrap>div{ background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.12); }
+  #side-nav .foot-status,#side-nav #side-ai-usage,
+  #side-nav #side-status,#side-nav #side-ai-usage-txt{ color:rgba(255,255,255,.68); }
+  #app-shell.rail #side-nav .foot-wrap>div{ background:none; border:0; }
+  /* the drawer below 900 floats this same block over the page */
+  #side-nav .scroll-thin::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.18); }
+
+  /* The header's icon controls lose their box. Three bordered grey tiles in a
+     row read as a toolbar of equal weights; they are secondary to the search
+     and the Copilot, and now look it. */
+  .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:10px;color:var(--color-neutral-500);cursor:pointer;transition:background .15s,color .15s;}
+  .hdr-icon-btn:hover{background:var(--color-neutral-100);color:var(--color-text);}
 
   /* jurisdiction switcher (Sweden / Kenya) */
   .region-btn{display:flex;align-items:center;gap:6px;border:0;background:none;font:inherit;font-family:var(--font-body);font-size:11px;font-weight:600;padding:4px 10px;border-radius:9px;cursor:pointer;color:var(--color-neutral-500);transition:background .15s,color .15s;white-space:nowrap;}
@@ -1474,7 +1525,7 @@
   </header>
 
   <!-- ================= SIDEBAR (256px, or 64px as the rail) ================= -->
-  <aside id="side-nav" style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+  <aside id="side-nav" style="display:flex;flex-direction:column;background:var(--nav-bg);border-right:1px solid var(--nav-line);min-height:0;">
 
     <!-- ---- THE COLLAPSE CONTROL, ON THE THING IT COLLAPSES ----
          It lived beside the Activity panel toggle in the top header, which put
