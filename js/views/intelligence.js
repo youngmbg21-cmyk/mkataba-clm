@@ -1031,7 +1031,21 @@ function intelFrictionHtml(){
     <div style="font-size:10.5px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
   </div>`;
 
-  return `<div style="max-width:1120px;margin:0 auto">
+  /* ---- HALF THE DEAD SPACE, AT EVERY WINDOW WIDTH ----
+     The brief was capped at 1120px and centred, so every pixel a wider screen
+     offered became empty gutter: 333px of nothing either side of it at 1860,
+     while the contested-clause bars — the whole point of the right-hand column
+     — were squeezed into what was left.
+
+     Not a bigger fixed cap, because a fixed cap is only ever right on the
+     screen it was chosen on. This takes HALF of whatever is empty, whatever
+     the width: if the gutter is g, the card grows by g and the gutter becomes
+     g/2. Written out, target width = (host + 1120)/2; 50% resolves against the
+     content box while the gutter is measured from the border box, so the
+     constant carries the host's own 20px side padding too — 1120/2 + 20 = 580.
+     max-width:100% keeps it honest on a window narrower than the old cap,
+     where there was no gutter to halve in the first place. */
+  return `<div style="width:calc(50% + 580px);max-width:100%;margin:0 auto">
     <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">
       ${intelFrictionCopilotHtml(st)}
       <div class="igf-split" style="display:grid">${left}${right}</div>

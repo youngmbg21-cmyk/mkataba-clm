@@ -343,15 +343,22 @@ describe('what the column renders', () => {
     win.negoResolve(c, a.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
 
     const html = win.rlQueueHtml(c, { side: 'owner' });
-    assert.match(html, /#2 · Delivery/);
-    assert.match(html, /#4 · Payment Terms/);
+    /* THE ROW IS THE CLAUSE'S NAME. It used to lead with "#2 · " and, where a
+       clause had no number, with the change fingerprint — which on a 300px
+       column ate the name it was supposed to be identifying. The handle is
+       still there; it is on the row's tooltip now. */
+    assert.match(html, /class="rl-q-k">Delivery</);
+    assert.match(html, /class="rl-q-k">Payment Terms</);
+    assert.doesNotMatch(html, /#2 · Delivery|#4 · Payment Terms/,
+      'the number no longer eats the front of the name');
+    assert.match(html, /title="Clause 2"/, 'the number is on the tooltip instead');
     assert.match(html, /rl-q-n">2</, 'the grouped row wears its count');
     assert.match(html, /accepted/);
     assert.match(html, /1 of 3<\/b> decided this round/,
       'the count is over CHANGES, summed off the rows');
   });
 
-  test('an unnumbered clause is told apart by its fingerprint', async () => {
+  test('two clauses sharing a heading are told apart on the tooltip, not in the row', async () => {
     const { win } = buildWorld({ negotiationView: true });
     /* Two clauses with the SAME heading and no number — the shape that made
        four identical "Governing law" rows. */
@@ -373,21 +380,29 @@ describe('what the column renders', () => {
     assert.equal(rows[0].num, '', 'neither carries a number');
 
     const html = win.rlQueueHtml(c, { side: 'owner' });
-    assert.match(html, new RegExp(`${a.id} · Governing law`),
-      'the fingerprint stands in for the missing number');
-    assert.match(html, new RegExp(`${b.id} · Governing law`));
-    assert.notEqual(a.id, b.id, 'and the two rows cannot read the same');
+    /* Both rows now READ the same, deliberately: the name is what the column
+       is for. What must not be lost is the ability to tell them apart at all,
+       so the fingerprint moved to the tooltip rather than being dropped. */
+    assert.doesNotMatch(html, new RegExp(`${a.id} · Governing law`),
+      'the fingerprint no longer leads the row');
+    assert.equal((html.match(/class="rl-q-k">Governing law</g) || []).length, 2,
+      'both rows read as the clause they are');
+    assert.match(html, new RegExp(`title="${a.id}"`), 'the first is still identifiable');
+    assert.match(html, new RegExp(`title="${b.id}"`), 'and so is the second');
+    assert.notEqual(a.id, b.id, 'and the two tooltips cannot read the same');
   });
 
-  test('a numbered clause still leads with its number, not its fingerprint', async () => {
+  test('a numbered clause names the number on its tooltip, never in the row', async () => {
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
     const ch = await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
     const html = win.rlQueueHtml(c, { side: 'owner' });
-    assert.match(html, /#4 · Payment Terms/);
-    assert.doesNotMatch(html, new RegExp(`${ch.id} · Payment Terms`),
-      'the number is what the reader says out loud — it wins where there is one');
+    assert.match(html, /class="rl-q-k">Payment Terms</);
+    assert.match(html, /title="Clause 4"/,
+      'the number is what the reader says out loud — it stays reachable');
+    assert.doesNotMatch(html, new RegExp(`${ch.id} · Payment Terms|#4 · Payment Terms`),
+      'but neither handle is allowed in front of the name');
   });
 
   test('the empty state offers no verb on a read-only seat', () => {

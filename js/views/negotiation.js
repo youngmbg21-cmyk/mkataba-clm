@@ -5662,15 +5662,24 @@ function redlineLayoutCss(){
      verbs, no counts competing with the change stack's own. The only loud
      thing on it is the row you are meant to answer next. */
   .redline-page .rl-queue{min-width:0}
+  /* ---- THE SIDE MARGINS ARE HALVED, AND THE LABEL IS THE STATUS WORD'S SIZE
+     The clause name is what this column is for and it was the only thing on a
+     row being squeezed: 12px of card padding plus 10px of row padding put 22px
+     between the tick and the card's edge, twice over, on a 300px column. Both
+     are halved (6 + 5 = 11px), the tick-to-name gap with them, and the name
+     drops from 12.5px to the 10.5px the status word already uses — so the two
+     read as one line rather than a heading and a footnote. All of it goes to
+     the name. */
   .redline-page .rl-q-scroll{flex:1;min-height:0;overflow-y:auto;
-    padding:14px 12px 16px;display:flex;flex-direction:column}
+    padding:14px 6px 16px;display:flex;flex-direction:column}
   .redline-page .rl-q-label{margin:0 0 8px;padding-left:4px;font-size:9.5px;font-weight:800;
     letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)}
-  .redline-page .rl-q-row{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
+  .redline-page .rl-q-row{display:flex;align-items:center;gap:4.5px;width:100%;text-align:left;
     font:inherit;font-size:12.5px;color:var(--color-text);cursor:pointer;background:none;
-    border:1px solid transparent;border-radius:9px;padding:8px 10px;margin-bottom:2px}
+    border:1px solid transparent;border-radius:9px;padding:8px 5px;margin-bottom:2px}
   .redline-page .rl-q-row:hover{background:var(--color-neutral-100)}
-  .redline-page .rl-q-k{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-q-k{flex:1;min-width:0;font-size:10.5px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .redline-page .rl-q-st{flex:none;font-size:10.5px;font-weight:600}
   /* The count chip appears only where a row stands for more than one change,
      so its absence is itself information: this row is one ask. */
@@ -8860,25 +8869,29 @@ function rlQueueHtml(c, opts = {}){
   const held = rows.filter(r => r.state === 'held' || (r.now && r.held));
 
   const body = rows.length ? rows.map(row => {
-    /* ---- EVERY ROW HAS TO BE TELLABLE FROM EVERY OTHER ROW ----
-       The number comes off the clause's own heading, and plenty of contracts
-       do not number theirs — a document with four clauses headed "Governing
-       law" produced four identical rows, which is a queue you cannot use: no
-       way to see which one you have just answered, or which one is next.
+    /* ---- THE ROW IS THE CLAUSE'S NAME, AND NOTHING ELSE ----
+       It used to lead with a handle: the clause's own number where the heading
+       carried one, and the change FINGERPRINT where it did not — so rows read
+       "CHG-005 · Confidentiality". That handle was there to keep two rows
+       tellable apart, and it bought that at a price the column could not
+       afford. This card is 300px wide. "CHG-005 · " ate the front of every
+       unnumbered row and the name behind it truncated to nothing, so a queue
+       of eight clauses showed six rows reading "CHG-00…" — the handle survived
+       and the clause, which is the thing you are deciding, did not.
 
-       Where there is no number the FINGERPRINT stands in. It is the same
-       handle the change cards, the margin badges and the audit trail already
-       print, so a row and its card can be matched by eye, and it is unique by
-       construction — which is exactly what a number was being asked to be
-       here. The clause's own number is still preferred when it has one: it is
-       what the reader will say out loud. */
-    const mark = row.num ? `#${_ne(row.num)}` : _ne((row.lead && row.lead.id) || '');
-    const label = mark ? `${mark} · ${_ne(row.title)}` : _ne(row.title);
+       The name alone now. The queue runs in document order, so position still
+       says where you are, and the handle has not been thrown away: it moves to
+       the row's tooltip, where two clauses that genuinely share a heading can
+       still be told apart on hover without costing every other row its name. */
+    const label = _ne(row.title);
     const word = rlQueueWord(row);
     const many = row.changes.length > 1;
-    /* The tooltip carries what the row cannot: why it is held, and how many
-       changes the one line stands for. */
+    /* The tooltip carries what the row cannot: which clause this is where the
+       name alone is ambiguous, why it is held, and how many changes the one
+       line stands for. */
+    const handle = row.num ? `Clause ${row.num}` : ((row.lead && row.lead.id) || '');
     const tip = [
+      handle,
       many ? `${row.changes.length} changes on this clause` : '',
       row.why.length ? `Held: ${row.why.join('; ')}` : '',
     ].filter(Boolean).join(' · ');
@@ -8913,7 +8926,10 @@ function rlQueueHtml(c, opts = {}){
      which and why; several say how many and what they have in common, because
      six reasons in a 300px column is a paragraph nobody reads. */
   const note = !held.length ? '' : held.length === 1
-    ? `<p class="rl-q-why">${held[0].num ? `#${_ne(held[0].num)}` : _ne(held[0].title)} is held
+    ? `<p class="rl-q-why">${''/* named the way its row is named — a note calling
+            it "#4" over a list that calls it "Pricing & indexation" is the note
+            and the queue disagreeing about the same clause */
+        }${_ne(held[0].title || (held[0].num ? `Clause ${held[0].num}` : 'One clause'))} is held
         back for you${held[0].why.length ? ` &mdash; ${_ne(held[0].why[0])}` : ''}.</p>`
     : `<p class="rl-q-why">${held.length} clauses are held back for you &mdash; each trips a
         playbook, scan or review signal.</p>`;
