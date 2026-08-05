@@ -1335,12 +1335,18 @@ function openHistoryTimeline(c, f = {}){
      it: an export that merely claims the record is intact, without saying when
      that was checked, is the "Verified" pill fakery in file form. */
   document.getElementById('ht-export')?.addEventListener('click', async () => {
-    if (!window.negoIntegrityReport) return;
-    const r = await negoIntegrityReport(c);
-    const html = negoHistoryExportHtml(c, r);
-    if (window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
-    if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`);
+    negoHistoryExportRun(c);
   });
+}
+/* Lifted out of the dialog's own handler so the History TAB presses the same
+   act rather than a second copy of it. Verification runs first and rides
+   inside the file either way. */
+async function negoHistoryExportRun(c){
+  if (!window.negoIntegrityReport) return;
+  const r = await negoIntegrityReport(c);
+  const html = negoHistoryExportHtml(c, r);
+  if (window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
+  if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`);
 }
 function negoVerifyResultHtml(r){
   return r.ok
@@ -2501,16 +2507,20 @@ function negoCounterpartySetupHtml(c, opts = {}){
   if (opts.contact && opts.contact.email) return '';
   if (typeof opts.onSetCounterparty !== 'function') return '';
   const who = _ne(String(c.counterparty || 'the counterparty'));
-  return `<div class="nego-turn" id="nego-cp-setup" style="flex:none;display:flex;align-items:center;gap:10px;
-      flex-wrap:wrap;border-radius:6px;padding:9px 14px;border:1px solid var(--n-line);
-      background:var(--n-badge-bg);border-left:4px solid var(--n-slate-soft)">
-    <span style="flex:1;min-width:220px;font-size:12.5px;color:var(--n-ink)">
+  /* SLIMMER THAN IT WAS. This sat below the wall line as a second full-height
+     tinted band with a 4px left rule, so the page opened on two stacked
+     banners before a word of the contract. Same field, same Save, same
+     "More options" — one quiet line's worth of it. */
+  return `<div class="nego-turn" id="nego-cp-setup" style="flex:none;display:flex;align-items:center;gap:9px;
+      flex-wrap:wrap;border-radius:6px;padding:5px 12px;border:1px solid var(--n-line);
+      background:var(--n-badge-bg)">
+    <span style="flex:1;min-width:220px;font-size:11.5px;color:var(--n-ink)">
       Negotiating with <b>${who}</b>? Add their email and changes go straight to them.</span>
     <input id="nego-cp-email" type="email" placeholder="their email"
-      style="flex:none;width:210px;border:1px solid var(--n-line);border-radius:5px;padding:6px 9px;
-        font:inherit;font-size:12px;outline:none"/>
-    <button id="nego-cp-save" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:6px 12px">Save</button>
-    <button id="nego-cp-more" class="nego-tbtn ghost" style="flex:none">More options…</button>
+      style="flex:none;width:190px;border:1px solid var(--n-line);border-radius:5px;padding:4px 8px;
+        font:inherit;font-size:11.5px;outline:none"/>
+    <button id="nego-cp-save" class="ui-btn ui-btn-primary" style="flex:none;font-size:11.5px;padding:4px 11px">Save</button>
+    <button id="nego-cp-more" class="nego-tbtn ghost" style="flex:none;font-size:11.5px;padding:4px 9px">More options…</button>
   </div>`;
 }
 function negoRoomBannerHtml(c, opts = {}, ready){
@@ -5109,16 +5119,14 @@ function redlineLayoutCss(){
   .redline-page .rl-shell-acts svg{flex:none}
   .redline-page .rl-act-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px}
   @media (max-width:900px){ .redline-page .rl-act-rule{display:none} }
-  /* The [Docs][Negotiate] switcher, in the Doc page's own clothes: a surface
-     pill box, the active tab solid accent. Docs is a DOOR back to the
-     workspace, not a pane — same contract, other tab. */
-  .redline-page .rl-ws-tabs{display:flex;gap:3px;background:var(--color-surface);
-    border:1px solid var(--color-divider);border-radius:9px;padding:3px;
-    box-shadow:var(--shadow-sm);flex:none}
-  .redline-page .rl-ws-tabs button{border:0;border-radius:7px;background:none;cursor:pointer;
-    font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);
-    padding:6px 14px;white-space:nowrap;transition:background .12s,color .12s}
-  .redline-page .rl-ws-tabs button.on{background:var(--color-accent-800);color:#fff}
+  /* The room's tab row on this page. The tabs themselves are styled once, in
+     index.html, because the contract page draws the same row — all this line
+     does is give it the same 2px side padding the strip below it has, so the
+     first tab and the first verb start on the same vertical. */
+  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:center}
+  /* The tab group is the only thing in this row that stretches; the round tag
+     rides at its centre rather than being pulled to the row's full height. */
+  .redline-page .rl-tabrow .rl-round{align-self:center}
   .redline-page .rl-round{flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;
     background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent)}
   /* ---- THE TEXT-SIZE STEPPER ----
@@ -5671,9 +5679,16 @@ function redlineLayoutCss(){
      read as one line rather than a heading and a footnote. All of it goes to
      the name. */
   .redline-page .rl-q-scroll{flex:1;min-height:0;overflow-y:auto;
-    padding:14px 6px 16px;display:flex;flex-direction:column}
-  .redline-page .rl-q-label{margin:0 0 8px;padding-left:4px;font-size:9.5px;font-weight:800;
+    padding:8px 6px 16px;display:flex;flex-direction:column}
+  /* The head does not scroll. The score used to sit at the foot of the
+     scroller, which meant that on a busy negotiation — the only kind where it
+     matters — it scrolled away behind the rows it was counting. */
+  .redline-page .rl-q-head{flex:none;padding:14px 10px 10px;border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-q-label{margin:0 0 8px;font-size:9.5px;font-weight:800;
     letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)}
+  .redline-page .rl-q-bar{height:5px;border-radius:999px;background:var(--color-neutral-200);overflow:hidden}
+  .redline-page .rl-q-bar span{display:block;height:100%;border-radius:999px;
+    background:var(--accent-solid,var(--color-accent));transition:width .3s ease}
   .redline-page .rl-q-row{display:flex;align-items:center;gap:4.5px;width:100%;text-align:left;
     font:inherit;font-size:12.5px;color:var(--color-text);cursor:pointer;background:none;
     border:1px solid transparent;border-radius:9px;padding:8px 5px;margin-bottom:2px}
@@ -5713,10 +5728,8 @@ function redlineLayoutCss(){
   .redline-page .rl-q-split{border:0;border-top:1px dashed var(--color-divider);margin:14px 4px 12px}
   .redline-page .rl-q-why{margin:0 4px;font-size:11px;line-height:1.5;color:var(--st-amber-fg)}
   .redline-page .rl-q-empty{margin:4px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-500)}
-  /* The count sits at the FOOT and is pushed there, so it stays on the floor of
-     a short queue instead of hanging under the last row. */
-  .redline-page .rl-q-foot{margin-top:auto;padding:13px 4px 0;font-size:11px;
-    color:var(--color-neutral-500);border-top:1px solid var(--color-divider)}
+  /* The count reads under the bar it belongs to, in the head. */
+  .redline-page .rl-q-foot{margin:6px 0 0;font-size:11px;color:var(--color-neutral-500)}
   .redline-page .rl-q-foot b{color:var(--color-text)}
   /* ---- THE SIDEBAR IS ONE CARD WITH TWO FACES ----
      Tracked Changes OR Discussion — data-rl-side-mode on the workbench root
@@ -6280,17 +6293,26 @@ function renderRedline(){
             title="Compare versions &amp; review changes">${icon('columns','w-3.5 h-3.5',2)}Compare</button>
         </div>
       </section>
-      <!-- ONE STRIP under the shell: the [Docs][Negotiate] switcher the Doc
-           page carries (Negotiate pressed, Docs a door back), the round tag,
-           and the workbench's own verbs on the same line. The label matches
-           the contract page's tab (WO N1) — one name for one place. -->
+      ${''/* THE ROOM'S OWN TAB ROW, NOT A SECOND ONE. This page carried a
+             hand-written [Docs][Negotiate] pair while the contract page
+             carried its own — two switchers for one room, in two files, free
+             to drift apart. Both now call roomTabsHtml in js/views/contract.js,
+             so the row is written once and the five tabs appear on both.
+
+             It sits on a LINE OF ITS OWN, above the strip that carries the
+             round and the verbs. Underline tabs cannot share a wrapping row:
+             each wrapped line has its own height, so a tab on the first line
+             would leave its rule stranded in the middle of the strip. */}
+      <div class="room-tabrow rl-tabrow">
+        ${(window.roomTabsHtml?roomTabsHtml(c,'redline'):'')}
+        <span style="flex:1"></span>
+        <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
+      </div>
+      <!-- ONE STRIP under the tabs: the workbench's own verbs — the text-size
+           stepper, focus, the contract jump, the playbook pass, whose view is
+           on show, and the send. -->
       <section class="rl-head">
         <div class="rl-head-id">
-          <div class="rl-ws-tabs" role="tablist" aria-label="Docs or Negotiate">
-            <button type="button" data-rl-back role="tab" aria-selected="false">Docs</button>
-            <button type="button" class="on" role="tab" aria-selected="true">Negotiate</button>
-          </div>
-          <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
           ${rlTypeStepHtml()}
           <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="Focus mode &mdash; hide the header and give the space to the document and the changes" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
@@ -6317,6 +6339,14 @@ function renderRedline(){
      and the Docs tab are the same door: the workspace, on this contract. */
   host.querySelectorAll('[data-rl-back]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
+  /* The tab row routes through the room's own router. Every tab but Negotiate
+     is a journey back to the contract page, which roomGoTab handles by parking
+     the wanted tab so the arrival lands on it. */
+  host.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(el =>
+    el.addEventListener('click', () => {
+      if (window.roomGoTab) roomGoTab(c, el.getAttribute('data-ws-tab'));
+      else if (window.openWorkspace) openWorkspace(c.id);
+    }));
   host.querySelectorAll('[data-rl-shell]').forEach(el =>
     el.addEventListener('click', () => {
       const act = el.getAttribute('data-rl-shell');
@@ -8490,8 +8520,13 @@ function redlineChangeCardsHtml(c, opts = {}){
        ("theirs → counterparty, mine → us") this line flipped depending on who
        was reading it, so the counterparty's page attributed their own ask to
        the owner's organisation — and the two sides' cards could never match. */
-    const who = [ch.clauseLabel || ch.clauseId, ch.by || ch.author,
-      ch.authorSide === 'counterparty' ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us')]
+    /* AND SAID ONCE. Where the person's name and their organisation are the
+       same string — which is what a counterparty who filed under their own
+       company name produces — this line printed it twice, so a card three
+       lines tall spent one of them repeating itself. */
+    const metaOrg = ch.authorSide === 'counterparty' ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us');
+    const metaBy = String(ch.by || ch.author || '').trim();
+    const who = [ch.clauseLabel || ch.clauseId, metaBy, metaBy === metaOrg ? '' : metaOrg]
       .filter(Boolean).map(_ne).join(' &middot; ');
     /* The same tooltip the marked wording in the document carries, so hovering
        either one answers the same question with the same words. */
@@ -8934,13 +8969,23 @@ function rlQueueHtml(c, opts = {}){
     : `<p class="rl-q-why">${held.length} clauses are held back for you &mdash; each trips a
         playbook, scan or review signal.</p>`;
 
+  /* ---- THE SCORE GOES AT THE TOP, WITH A BAR UNDER IT ----
+     "2 of 7 decided" lived at the FOOT of a scrolling column, so on a busy
+     negotiation the one number telling you how far through you are scrolled
+     out of sight behind the very rows it was counting. It heads the column
+     now, and the bar says the same thing without being read. */
+  const pct = p.total ? Math.round(p.done / p.total * 100) : 0;
   return `<aside class="rl-col rl-queue" id="rl-queue" aria-label="This round's queue">
-    <div class="rl-q-scroll">
+    <div class="rl-q-head">
       <p class="rl-q-label">This round's queue</p>
-      ${body}
-      ${rows.length ? '<hr class="rl-q-split">' : ''}
-      ${note}
+      <div class="rl-q-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"
+        aria-label="${p.done} of ${p.total} changes decided this round"><span style="width:${pct}%"></span></div>
       <div class="rl-q-foot"><b>${p.done} of ${p.total}</b> decided this round</div>
+    </div>
+    <div class="rl-q-scroll">
+      ${body}
+      ${rows.length && note ? '<hr class="rl-q-split">' : ''}
+      ${note}
     </div>
   </aside>`;
 }
@@ -9289,7 +9334,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   negoRenumberPreviewHtml, negoRenumberOpen,
   negoTimelineScreenHtml, negoTimelineEventHtml, openHistoryTimeline,
-  negoVerifyResultHtml, negoHistoryExportHtml,
+  negoVerifyResultHtml, negoHistoryExportHtml, negoHistoryExportRun,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

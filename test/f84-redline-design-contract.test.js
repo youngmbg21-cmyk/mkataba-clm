@@ -50,7 +50,7 @@ function contractFixture(over = {}){
    state.activeId and writes into #content, so the stage supplies both and then
    reads back the real DOM. */
 async function page(opts = {}){
-  const w = buildWorld({ negotiationView: true });
+  const w = buildWorld({ negotiationView: true, contractView: true });
   const { win } = w;
   win.promptDialog = async () => '';
   const c = opts.contract || contractFixture();
@@ -270,8 +270,14 @@ describe('F84 — the contract text size steps, within bounds, and is remembered
     const p = await page();
     const step = p.$('#view-redline .rl-head .rl-type-step');
     assert.ok(step, 'the stepper must be on the sub-header strip');
-    assert.ok(step.previousElementSibling.classList.contains('rl-round'),
-      'immediately following the Round badge');
+    /* It used to follow the Round badge on this strip. The badge moved up onto
+       the tab row when the tabs took a line of their own (see F89), so the
+       stepper now LEADS the strip — still the first control on it, still one
+       line under the round it belongs to. */
+    assert.equal(step.previousElementSibling, null,
+      'the stepper leads the verb strip');
+    assert.ok(p.$('#view-redline .rl-tabrow .rl-round'),
+      'and the Round badge is one line above it, on the tab row');
     const [down, up] = [...step.querySelectorAll('[data-rl-type]')];
     assert.equal(down.getAttribute('data-rl-type'), '-1');
     assert.equal(up.getAttribute('data-rl-type'), '1');

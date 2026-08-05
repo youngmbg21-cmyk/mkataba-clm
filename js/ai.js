@@ -241,6 +241,19 @@ async function runScanFor(c){
 
 window.scanUI = { running:false, filter:'all', expanded:new Set() };
 
+/* Running the scan, lifted out of the card's own button so the Checks row at
+   the top of the column presses the SAME act rather than a second copy of it.
+   One scan, one audit line, however it was started. */
+function runScanAct(c){
+  scanUI.running=true; renderScanSection(c);
+  setTimeout(()=>{ runScan(c); scanUI.running=false; scanUI.filter='all'; scanUI.expanded=new Set();
+    const n=openFindings(c).length;
+    logAudit(c,'Scanned',`Copilot contract scan run — ${n} open finding${n===1?'':'s'}`);
+    persist(c);
+    renderScanSection(c); renderSignButton(c); renderAuditSection(c);
+    toast(n?`Scan complete — ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete — no issues found');
+  }, 1100);
+}
 function renderScanSection(c){
   const host = document.getElementById('scan-section'); if(!host) return;
   const open = openFindings(c);
@@ -257,12 +270,13 @@ function renderScanSection(c){
       <span class="scan-pulse text-brand-500">${icon('scan','w-4 h-4')}</span>
       <span>Checking clauses against ${jxAdjective()} practice rules\u2026</span></div>`;
   } else if(!c.scan){
-    const engineNote = aiOn
-      ? ' Your Claude key adds Copilot-assisted interpretation on top.'
-      : ' These are built-in checks \u2014 they run without an Copilot key. Add an Anthropic key in Team &amp; Settings for Copilot-assisted review.';
-    body = `
-      <p class="text-xs text-brand-800/70 leading-relaxed">${isUpload(c)?`Run a review checklist over this received document \u2014 governing law, liability, payment and exit terms to confirm before you sign, tuned to ${jxAdjective()} practice.`:`Review this contract against risk checks tuned for ${jxAdjective()} practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.`}${engineNote}</p>
-      <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} ${aiOn?'Run Copilot scan':'Run scan'}</button>`;
+    /* ---- NOTHING TO SHOW UNTIL SOMETHING HAS BEEN RUN ----
+       This card used to open with a paragraph explaining the scan and a filled
+       black button, permanently, on a column a third of the screen wide. The
+       INVITATION now lives as one row in the Checks card at the top of that
+       column; this card is where the FINDINGS go. Empty means empty, and
+       `empty:hidden` on the host takes the box away with it. */
+    host.innerHTML=''; return;
   } else {
     const list = open.filter(x=>scanUI.filter==='all'||x.sev===scanUI.filter);
     const counts = s => open.filter(x=>x.sev===s).length;
@@ -316,16 +330,6 @@ function renderScanSection(c){
     </div>`;
 
   // wiring
-  host.querySelector('#scan-run')?.addEventListener('click',()=>{
-    scanUI.running=true; renderScanSection(c);
-    setTimeout(()=>{ runScan(c); scanUI.running=false; scanUI.filter='all'; scanUI.expanded=new Set();
-      const n=openFindings(c).length;
-      logAudit(c,'Scanned',`Copilot contract scan run \u2014 ${n} open finding${n===1?'':'s'}`);
-      persist(c);
-      renderScanSection(c); renderSignButton(c); renderAuditSection(c);
-      toast(n?`Scan complete \u2014 ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete \u2014 no issues found');
-    }, 1100);
-  });
   host.querySelector('#scan-rerun')?.addEventListener('click',()=>{
     scanUI.running=true; renderScanSection(c);
     setTimeout(()=>{ runScan(c); scanUI.running=false; persist(c); renderScanSection(c); renderSignButton(c); toast('Re-scan complete \u2014 findings refreshed'); }, 700);
@@ -2641,4 +2645,4 @@ Object.assign(window,{
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

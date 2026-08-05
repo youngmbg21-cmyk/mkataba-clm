@@ -215,7 +215,13 @@ function renderPlaybookSection(c){
   const ins=(c.clauseInserts||[]);
   // the card must still render when a clause has been inserted but no review has
   // been run — otherwise the record of what was added would have nowhere to live
-  if(!editable && !r && !ins.length){ host.innerHTML=''; return; }
+  /* Nothing run and nothing inserted → nothing to draw. The INVITATION to run
+     a review moved to the Checks card at the top of this column (one row,
+     beside the scan and the obligations); this card is where the VERDICTS go,
+     and it stays away until there are some. It still draws for a contract with
+     inserted clauses but no review, because that record has nowhere else to
+     live. */
+  if(!r && !ins.length){ host.innerHTML=''; return; }
   const sm=deviationSummary(c);
   /* The heading names the ENGINE THAT RAN, never the one that might have. The
      Scan card carries the same rule and the same reason: a panel headed

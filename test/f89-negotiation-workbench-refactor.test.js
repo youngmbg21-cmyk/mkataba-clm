@@ -62,7 +62,7 @@ function contractFixture(over = {}){
    stage does not load js/ai.js, and every route this refactor added ends in
    that panel — so the panel is stubbed and the calls into it are recorded. */
 async function page(opts = {}){
-  const w = buildWorld({ negotiationView: true });
+  const w = buildWorld({ negotiationView: true, contractView: true });
   const { win } = w;
   win.promptDialog = async () => '';
   const c = opts.contract || contractFixture(
@@ -160,7 +160,14 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
     const p = await page();
     const head = p.$('#view-redline .rl-head');
     assert.ok(head, 'the header section survives');
-    assert.ok(head.querySelector('.rl-round'), 'the round tag stays');
+    /* The round tag rides on the TAB ROW now, not on the verb strip: the tabs
+       became underline tabs and could not share a wrapping row without leaving
+       their rule stranded, so they took a line of their own and the round tag
+       — the one label that says which round you are looking at — went with
+       them. It is still one line above the same strip. */
+    const tabrow = p.$('#view-redline .rl-tabrow');
+    assert.ok(tabrow, 'the tab row is its own line');
+    assert.ok(tabrow.querySelector('.rl-round'), 'the round tag stays, on the tab row');
     /* The page's TITLE moved up into the Doc page's shell — same name, same
        status chip, same back arrow on both tabs — and the head now carries
        the [Docs][Negotiate] switcher in its place (the tab was labelled
@@ -169,9 +176,15 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
     const shell = p.$('#view-redline .rl-shell');
     assert.ok(shell, 'the Doc page\'s shell heads this tab too');
     assert.match(shell.textContent, /Supply and Services Agreement/);
-    assert.deepEqual([...head.querySelectorAll('.rl-ws-tabs button')].map(b => b.textContent.trim()),
-      ['Docs', 'Negotiate']);
-    assert.ok(head.querySelector('.rl-ws-tabs button.on').textContent.includes('Negotiate'),
+    /* The hand-written [Docs][Negotiate] pair this page carried is gone. Both
+       shells now call roomTabsHtml, so there is one row and it has five tabs. */
+    /* firstChild, not textContent: Negotiate carries its change count inside
+       the button, which is the point of it. */
+    assert.deepEqual([...tabrow.querySelectorAll('.room-tab')].map(b => b.firstChild.textContent.trim()),
+      ['Document', 'Negotiate', 'Key terms', 'Signing', 'History']);
+    assert.equal(tabrow.querySelector('[data-ws-tab="redline"] .rt-n').textContent, '1',
+      'and the count is the change on the table');
+    assert.ok(tabrow.querySelector('.room-tab.on').textContent.includes('Negotiate'),
       'this tab knows which tab it is');
   });
 });

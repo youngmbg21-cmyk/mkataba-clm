@@ -578,6 +578,74 @@
      for accent-coloured LABELS; --color-accent still fills shapes. */
   :root{ --accent-ink:var(--color-accent-800); }
   html.dark{ --accent-ink:var(--color-accent-400); }
+
+  /* ============ THE CONTRACT ROOM ============
+     ONE style, TWO shells. The Docs page and the negotiation workbench are
+     separate views that draw the same room, and each used to carry its own
+     switcher in its own markup — which is precisely how two tab rows for one
+     room drift apart. Both now call roomTabsHtml() and land here.
+
+     Underline tabs, not pills: the room has five tabs, and five pills read as
+     a toolbar of buttons rather than as one place with five faces. */
+  /* The rule under the tabs belongs to the ROW, not to the tab group — the row
+     runs the full width and the group is only as wide as five words. The tabs
+     stretch inside it and pull their own underline down onto that rule. */
+  .room-tabrow{ display:flex; align-items:stretch; gap:14px; flex:none;
+    border-bottom:1px solid var(--color-divider); }
+  .room-tabs{ display:flex; align-items:stretch; align-self:stretch; gap:22px; flex:none; }
+  .room-tab{ display:flex; align-items:center; gap:6px; border:0; border-radius:0;
+    border-bottom:2px solid transparent; background:none; margin-bottom:-1px;
+    padding:9px 1px; font:inherit; font-size:13px; font-weight:600; cursor:pointer;
+    white-space:nowrap; color:var(--color-neutral-500);
+    transition:color .13s, border-color .13s; }
+  .room-tab:hover{ color:var(--color-text); }
+  .room-tab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid,var(--color-accent)); }
+  /* The count beside Negotiate. Plain when it is only a total; amber and
+     filled when some of it is waiting on THIS reader — a negotiation that
+     needs an answer must never be discoverable only by clicking. */
+  .room-tab .rt-n{ font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+    color:var(--color-neutral-500); }
+  .room-tab.on .rt-n{ color:var(--accent-ink); }
+  .room-tab .rt-n.due{ background:var(--st-amber-dot); color:#fff; border-radius:999px; padding:1px 6px; }
+
+  /* The quiet line under the tabs: one sentence saying what this tab is for,
+     and at most one button. Not a card — it explains the page, it is not part
+     of it. */
+  .room-quiet{ display:flex; align-items:center; gap:9px; flex:none; flex-wrap:wrap;
+    background:var(--color-surface); border:1px solid var(--color-divider); border-radius:8px;
+    padding:7px 13px; font-size:12px; line-height:1.5; color:var(--color-neutral-700); }
+  .room-quiet .rq-go{ margin-left:auto; flex:none; }
+
+  /* ---- A COMPLETED TERM, IN THE PROSE IT BELONGS TO ----
+     readOnlyDocHtml replaces each field with the text it holds, and that text
+     used to arrive in bold monospace — which reads as a code sample. A
+     counterparty's NAME set in Courier in the middle of a recital does not
+     look like a contract; it looks like a form dump. Same weight and face as
+     the sentence around it, marked as a filled term by a quiet accent tint and
+     a soft rule underneath, exactly as the live field is marked. The em-dash a
+     BLANK term leaves is the one thing that still shouts, because an unfilled
+     commercial term is something a reader must be able to point at. */
+  .field-frozen{ font-family:inherit!important; font-weight:600;
+    color:var(--color-doc-text); background:var(--color-accent-100);
+    border-bottom:1.5px solid var(--color-accent-400); border-radius:3px 3px 0 0;
+    padding:0 4px; }
+  html.dark .field-frozen{ background:rgba(20,184,166,.15); border-bottom-color:var(--color-accent-500); }
+  .field-frozen[title]{ background:var(--st-amber-bg); border-bottom-color:var(--st-amber-dot);
+    color:var(--st-amber-fg); font-weight:700; }
+
+  /* The Checks card's rows — an icon, a name, and the verb. Replaces two
+     full-height cards that each carried a paragraph and a filled button
+     before anything had been run. */
+  .check-row{ display:flex; align-items:center; gap:10px; padding:8px 0;
+    border-top:1px solid var(--color-divider); font-size:12.5px; }
+  .check-row .ci{ flex:none; width:26px; height:26px; border-radius:7px; display:grid;
+    place-items:center; background:var(--color-accent-100); color:var(--color-accent-700); }
+  html.dark .check-row .ci{ background:rgba(20,184,166,.16); color:var(--color-accent-300); }
+  .check-row .cn{ flex:1; min-width:0; font-weight:600; }
+  .check-row .cg{ flex:none; border:0; background:none; cursor:pointer; font:inherit;
+    font-size:11.5px; font-weight:700; color:var(--accent-ink); padding:2px 0; }
+  .check-row .cg:hover{ text-decoration:underline; }
+
   html.dark{ --nav-bg:#07302e; --nav-line:#062825; --nav-ink:#87cec5; }
   #side-nav .nav-item{ color:var(--nav-ink); }
   #side-nav .nav-item svg{ opacity:.9; }

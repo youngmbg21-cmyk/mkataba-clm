@@ -1723,6 +1723,31 @@ function docBodyStructured(c){
     ? docStructureBodyHtml(resolveDocBranding(c), body) : body;
 }
 
+/* ---- THE DOCUMENT TAB READS; IT DOES NOT EDIT ----
+   A generated contract is built with its commercial terms as <input> boxes so
+   a draft can be completed in place, and for several of those terms — the
+   tonnage, the inspection window, the notice period — that is the ONLY place
+   they exist. So this tab cannot simply stop being editable: a brand-new
+   agreement would have no way to be filled in at all.
+
+   The line is the moment the contract stops being yours alone. While it is a
+   DRAFT the blanks are yours and the boxes stay. From the moment it goes for
+   review — the point at which a counterparty may be reading it — the page
+   becomes a clean read, and every wording change goes through Negotiate where
+   it is a tracked change with a fingerprint someone has to decide. Two ways to
+   change a contract is how the two drift apart.
+
+   Clean read means readOnlyDocHtml: each field is replaced by the TEXT it
+   holds, an em-dash where it is empty. That is the same projection the
+   counterparty's page and every export already use, so the reader here and the
+   reader there are looking at one document. */
+function docFillable(c){
+  if(!c) return false;
+  if(c.status==='Signed'||PORTAL_MODE||!canEdit()) return false;
+  if(isUpload(c)||c.redlineText) return false;
+  return c.status==='Draft';
+}
+
 function docBody(c){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
@@ -2152,17 +2177,16 @@ function wireActionBar(c){
     if(kind==='sign'){ signDocument(c); return; }
   });
 }
-/* "Complete key terms" — put the cursor where the terms can actually be typed:
-   the quick-fill fields of a generated body, else the Key terms panel (which
-   lives on the Signing tab, so switch to it first). */
+/* "Complete key terms" — put the cursor where the terms can actually be typed.
+   That is the Key terms TAB now, not a panel behind a sub-tab on the right:
+   the Document tab is a clean read and carries no fields of its own. */
 function focusKeyTerms(c){
-  const inDoc=document.querySelector('#doc-canvas [data-sync]');
-  if(inDoc){ inDoc.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>inDoc.focus(),300); return; }
-  const panel=document.querySelector('[data-kt="counterparty"]');
-  if(!panel){ toast('This document has no editable key terms','err'); return; }
-  _docTopTab='signing'; applyDocTabs();
-  const right=document.getElementById('doc-right'); if(right) right.scrollTo({top:0,behavior:'smooth'});
-  setTimeout(()=>{ panel.focus(); panel.select&&panel.select(); },250);
+  roomGoTab(c,'terms');
+  setTimeout(()=>{
+    const panel=document.querySelector('[data-kt="counterparty"]');
+    if(!panel){ toast('This document has no editable key terms','err'); return; }
+    panel.focus(); panel.select&&panel.select();
+  },250);
 }
 
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
@@ -2198,62 +2222,141 @@ function docTabDefaults(c){
    so that coming back lands on the document rather than on a tab pointing
    somewhere the reader has left. The choice resets when a different contract
    opens. */
-let _wsTab='docs';                           // 'docs' | 'redline'
+let _wsTab='docs';                           // see ROOM_TABS
 let _wsTabFor=null;
+/* A tab chosen from the WORKBENCH, which is a different view. Pressing "Key
+   terms" over there has to come back here first, and the arrival must land on
+   the tab that was pressed rather than on the default. Honoured once, then
+   cleared, so it cannot leak into the next contract. */
+let _wsTabWant=null;
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
     _wsTab='docs';
     _wsTabFor=c.id;
     if(window.negoResetView) negoResetView();   // don't open on another contract's fingerprint
   }
+  if(_wsTabWant){ _wsTab=_wsTabWant; _wsTabWant=null; }
 }
-function wsTabBtn(k,label,ic){
-  return `<button data-ws-tab="${k}" title="${label}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:6px 14px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
+
+/* ---- THE ROOM'S TAB ROW — ONE BUILDER, BOTH SHELLS ----
+   The Docs page and the negotiation workbench are two VIEWS drawing one room,
+   and each used to render its own [Docs][Negotiate] switcher in its own
+   markup. Two tab rows for one room is how they drift apart. There is one
+   builder now and renderRedline calls it too, so a tab added here appears on
+   both without anyone having to remember the second place.
+
+   FIVE TABS, AND NOTHING NEW BEHIND THEM. Key terms, Signing and History were
+   already in the room — key terms and signing behind a pair of sub-tabs on the
+   right-hand panel, history behind a button that opened a modal. Being three
+   clicks and a dialog deep is not the same as not existing, but it reads that
+   way. They are tabs now. */
+const ROOM_TABS=[
+  ['docs','Document'],['redline','Negotiate'],['terms','Key terms'],
+  ['sign','Signing'],['history','History'],
+];
+function roomTabsHtml(c,active){
+  return `<div id="ws-tabs" class="room-tabs" role="tablist" aria-label="Contract room">${
+    ROOM_TABS.map(([k,label])=>{
+      const on=k===active;
+      return `<button type="button" data-ws-tab="${k}" data-room-tab="${k}" role="tab" aria-selected="${on}" class="room-tab${on?' on':''}">${label}${k==='redline'?negoTabCountHtml(c):''}</button>`;
+    }).join('')}</div>`;
 }
-/* The count of undecided changes, on the tab itself. A negotiation waiting on
-   the reader is the one thing that must not be discoverable only by clicking. */
+/* The count of changes on the tab itself, and WHOSE turn it is in its colour.
+   Amber and filled while some of them wait on this reader; plain once they are
+   all with the other side. A negotiation that needs an answer must not be
+   discoverable only by clicking. */
 function negoTabCountHtml(c){
   if(!window.negoProgress) return '';
   const p=negoProgress(c);
-  if(!p.pending) return '';
-  return `<span id="nego-tab-count" title="${p.pending} change${p.pending===1?'':'s'} waiting on a decision" style="align-self:center;margin:0 8px 0 -6px;font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--st-amber-dot);color:#fff;border-radius:999px;padding:1px 7px">${p.pending}</span>`;
+  const total=p.total||0;
+  if(!total) return '';
+  const due=p.pending||0;
+  return `<span id="nego-tab-count" class="rt-n${due?' due':''}" title="${due?due+' change'+(due===1?'':'s')+' waiting on a decision':total+' change'+(total===1?'':'s')+' on the table'}">${due||total}</span>`;
 }
 function applyWsTabs(c){
-  if(_wsTab!=='docs'&&_wsTab!=='redline') _wsTab='docs';
-  document.querySelectorAll('[data-ws-pane]').forEach(p=>{
-    const on=p.getAttribute('data-ws-pane')===_wsTab;
-    p.style.display=on?(p.id==='doc-grid'?'grid':'flex'):'none';
-  });
-  document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')===_wsTab;
-    b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
+  const keys=ROOM_TABS.map(t=>t[0]);
+  if(!keys.includes(_wsTab)) _wsTab='docs';
+  const paint=k=>{
+    document.querySelectorAll('[data-ws-pane]').forEach(p=>{
+      const on=p.getAttribute('data-ws-pane')===k;
+      p.style.display=on?(p.id==='doc-grid'?'grid':'flex'):'none';
+    });
+    document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>
+      b.classList.toggle('on',b.getAttribute('data-ws-tab')===k));
+  };
+  paint(_wsTab);
   /* ---- REDLINE IS A DOOR, NOT A PANE ----
-     It was a door before too, and it opened the full-window negotiation room:
-     three panes squeezed under this header left both documents too small to
-     read. It now opens the REDLINE WORKBENCH — the page at view-redline —
-     which is the same engine laid out as the design sets it, with the document
-     whole and the changes and discussion beside it.
+     The redline needs the whole window — the document entire, with the changes
+     and the discussion beside it — and the right-hand panel here is a third of
+     the screen, so it could never have lived in it. It opens the REDLINE
+     WORKBENCH at view-redline instead: the same engine, laid out as the design
+     sets it.
 
-     Either way the tab snaps back to Docs before it goes, so that coming BACK
-     from the workbench lands on a workspace showing the document rather than
-     on a tab pointing at somewhere the reader is no longer standing. */
+     The tab snaps back to Document before it goes, so that coming BACK from
+     the workbench lands on a page showing the document rather than on a tab
+     pointing somewhere the reader is no longer standing. */
   if(_wsTab==='redline'){
     _wsTab='docs';
-    document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')==='docs';
-      b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
-    document.querySelectorAll('[data-ws-pane]').forEach(p=>{
-      p.style.display=(p.getAttribute('data-ws-pane')==='docs')?(p.id==='doc-grid'?'grid':'flex'):'none'; });
+    paint('docs');
     /* Through openRedlineWorkbench, not by setting activeId and switching view
        here: that one function is where the previous occupant of the bench is
        taken off and put back in Drafting, and a second route in would skip it
        silently. */
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     else toast('The redline workbench is unavailable on this page','err');
+    return;
   }
+  if(_wsTab==='history') roomPaintHistory(c);
+}
+/* The one router BOTH shells press. From the Docs page a tab is a pane swap;
+   from the workbench every tab but Negotiate is a journey back to this view,
+   which is why the wanted tab is parked rather than applied. */
+function roomGoTab(c,k){
+  if(!c) return;
+  if(k==='redline'){
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+    else if(window.toast) toast('The redline workbench is unavailable on this page','err');
+    return;
+  }
+  if(state.view==='redline'){
+    _wsTabWant=k;
+    if(window.openWorkspace) openWorkspace(c.id);
+    return;
+  }
+  _wsTab=k; _wsTabFor=c.id; applyWsTabs(c);
 }
 function wireWsTabs(c){
-  document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>{
-    _wsTab=b.getAttribute('data-ws-tab'); _wsTabFor=c.id; applyWsTabs(c); }));
+  document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>
+    roomGoTab(c,b.getAttribute('data-ws-tab'))));
   applyWsTabs(c);
+}
+/* ---- HISTORY, IN THE ROOM RATHER THAN IN A DIALOG ----
+   The same screen the History button always opened — negoTimelineScreenHtml
+   builds it, filters, integrity check and export included. It is painted into
+   the tab instead of into a modal, and re-painted on every filter change so
+   the filter state has exactly one home. */
+function roomPaintHistory(c,f={}){
+  const host=document.getElementById('ws-history-pane');
+  if(!host||!window.negoTimelineScreenHtml) return;
+  host.innerHTML=negoTimelineScreenHtml(c,f);
+  const read=()=>{ const g=k=>{ const el=document.getElementById('ht-f-'+k); return el&&el.value?el.value:''; };
+    return {clauseId:g('clauseId'),actor:g('actor'),side:g('side'),round:g('round'),outcome:g('outcome')}; };
+  host.querySelectorAll('[data-ht-filter]').forEach(s=>
+    s.addEventListener('change',()=>roomPaintHistory(c,read())));
+  host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{}));
+  host.querySelector('#ht-verify')?.addEventListener('click',async()=>{
+    const box=host.querySelector('#ht-verify-result');
+    if(!box||!window.negoIntegrityReport) return;
+    box.innerHTML=`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 0">Recomputing every fingerprint from the stored record…</div>`;
+    box.innerHTML=negoVerifyResultHtml(await negoIntegrityReport(c));
+  });
+  /* Export runs the verification FIRST and carries the result inside the file,
+     exactly as the dialog does — a report that claims a record is intact
+     without saying when that was checked is the thing this page exists to
+     avoid. Shared with the dialog through negoHistoryExportRun. */
+  host.querySelector('#ht-export')?.addEventListener('click',()=>{
+    if(window.negoHistoryExportRun) negoHistoryExportRun(c);
+  });
 }
 /* The owner's side of the shared component. Everything side-specific about the
    owner lives here — who they are, what pressing "Propose edits" does, where
@@ -2508,11 +2611,56 @@ function applyDocTabs(){
   root.querySelectorAll('#doc-innertabs [data-inner-tab]').forEach(b=>{ const on=b.getAttribute('data-inner-tab')===_docInnerTab;
     b.style.background=on?'var(--color-accent-100)':'none'; b.style.color=on?'var(--color-accent-800)':'var(--color-neutral-600)'; });
 }
-function wireDocTabs(){
-  document.querySelectorAll('#doc-toptabs [data-top-tab]').forEach(b=>b.addEventListener('click',()=>{ _docTopTab=b.getAttribute('data-top-tab'); applyDocTabs(); }));
-  document.querySelectorAll('#doc-innertabs [data-inner-tab]').forEach(b=>b.addEventListener('click',()=>{ _docInnerTab=b.getAttribute('data-inner-tab'); applyDocTabs(); }));
-  document.getElementById('screening-next')?.addEventListener('click',()=>{ _docTopTab='signing'; applyDocTabs(); const r=document.getElementById('doc-right'); if(r) r.scrollTo({top:0,behavior:'smooth'}); });
+/* The Screening|Signing pair and the Signing|Audit pair that used to live on
+   the right-hand panel are GONE — they became two of the room's own tabs. The
+   wiring stays for the one control that outlived them: "Next: Signing", which
+   now moves the whole room rather than a panel inside it. applyDocTabs is kept
+   and simply finds nothing to switch. */
+function wireDocTabs(c){
+  document.getElementById('screening-next')?.addEventListener('click',()=>roomGoTab(c,'sign'));
   applyDocTabs();
+}
+/* ---- THE CHECKS ROWS PRESS EXISTING ACTS, NOT NEW ONES ----
+   Each row is a shortcut to work the app already does, reached through the
+   same function the old card's own button called. Nothing here reimplements a
+   check; if one of them ever behaves differently from the card below it, this
+   is not the file to look in.
+
+   Findings and verdicts land in the cards under this one, which draw
+   themselves only once there is something to draw. */
+function wireChecksCard(c){
+  const card=document.getElementById('checks-card'); if(!card) return;
+  const editable=(typeof canEdit!=='function'||canEdit())&&c.status!=='Signed';
+  card.querySelectorAll('[data-check]').forEach(b=>{
+    const kind=b.getAttribute('data-check');
+    if(!editable&&kind!=='oblig'){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default'; b.title='Read-only for your role, or this contract is executed'; return; }
+    b.addEventListener('click',async()=>{
+      if(kind==='risk'){
+        if(!window.runScanAct) return toast('The scan is unavailable on this page','err');
+        b.textContent='Running…'; runScanAct(c); return;
+      }
+      if(kind==='playbook'){
+        if(!window.runPlaybookReview) return toast('The playbook review is unavailable on this page','err');
+        b.textContent='Reviewing…'; b.disabled=true;
+        const res=await runPlaybookReview(c);
+        if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
+        renderPlaybookSection(c); if(window.renderSignButton) renderSignButton(c);
+        b.textContent='Re-run →'; b.disabled=false;
+        return;
+      }
+      if(kind==='oblig'){
+        if(!window.extractObligations) return toast('Obligation extraction is unavailable on this page','err');
+        b.textContent='Reading…'; b.disabled=true;
+        try{
+          await extractObligations(c);
+          const n=(c.obligations||[]).length;
+          toast(n?`${n} obligation${n===1?'':'s'} found — they are on the calendar`:'No dated obligations found in this document');
+        }catch(e){ toast('Could not read obligations from this document','err'); }
+        b.textContent='Run →'; b.disabled=false;
+        if(window.renderAuditSection) renderAuditSection(c);
+      }
+    });
+  });
 }
 /* Draggable divider between the contract (left) and workspace (right). The
    contract takes about two thirds by default and drags either way — wider for
@@ -2920,7 +3068,13 @@ function renderWorkspace(){
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
-          <button id="ws-history" title="The whole negotiation as one story — every proposal, decision, signature and renumbering, with filters" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} History</button>
+          ${''/* THE HISTORY BUTTON HAS GONE FROM HERE. It opened, in a dialog,
+                 the screen that is now one of this room's five tabs — and a
+                 button beside a tab of the same name, opening the same thing
+                 in a box on top of the page, is the reader being offered two
+                 doors to one room and asked which they meant. The tab is the
+                 door. openHistoryTimeline still exists and the counterparty's
+                 page still uses it, so nothing was deleted. */}
           <!-- ---- ONE EXPORT MENU, NOT A ROW OF EXPORT BUTTONS ----
                PDF, Word-with-tracked-changes and the sealed Record are three
                shapes of the same act, and each one on its own button was the
@@ -2964,33 +3118,36 @@ function renderWorkspace(){
 
     <div id="ws-strips" style="display:contents">${readyToSignStrip(c)}${returnedChangesStrip(c)}</div>
 
-    <!-- ============ TABS + STATUS, ONE ROW: Docs · Negotiate · next action ============
-         Two ways of working on one contract. Docs is this page — the document,
-         the review panel, signing. Negotiate (the tab a lawyer would call
-         "redline" — the internal key keeps that name) hands the contract to
-         the workbench at view-redline, where the wording is negotiated as
-         tracked changes with a fingerprint on each one. The count beside it is
-         the number of changes waiting on a decision, so a negotiation that
-         needs an answer is never discoverable only by clicking.
+    <!-- ============ THE ROOM'S TABS ============
+         Five faces of one contract: read it, negotiate it, check its terms,
+         sign it, read its story. Built by roomTabsHtml, which the negotiation
+         workbench calls too — the row is drawn once and appears on both.
 
-         The status strip ("Drafting — add the counterparty and value…") used
-         to be a full-width band inside the header card, with this tab switcher
-         on a band of its own below it — two tiers of chrome before the first
-         line of the contract. It now sits INLINE on the tab row, flat, with no
-         card of its own: same chip, same guidance, same next-action button,
-         one row instead of two. -->
-    <div style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:3px;box-shadow:var(--shadow-sm)">
-        ${wsTabBtn('docs','Docs','file')}
-        ${wsTabBtn('redline','Negotiate','pencil')}${negoTabCountHtml(c)}
-      </div>
+         Negotiate hands the contract to the workbench at view-redline (the tab
+         a lawyer would call "redline"; the internal key keeps that name),
+         where the wording is negotiated as tracked changes with a fingerprint
+         on each. The count beside it says how many, and goes amber when some
+         of them are waiting on this reader.
+
+         The status strip ("Drafting — add the counterparty and value…") sits
+         on its own quiet line below, not inside this row: five tabs and a
+         status sentence on one line is a line that wraps, and a wrapped tab
+         row puts its underline in the middle of the strip. -->
+    <div class="room-tabrow" style="display:flex;align-items:center;gap:14px;flex:none;border-bottom:1px solid var(--color-divider)">
+      ${roomTabsHtml(c,_wsTab)}
+      <span style="flex:1"></span>
       ${window.rlTypeStepHtml?rlTypeStepHtml():''}
       <button id="ws-focus" class="ui-btn" aria-pressed="false" style="width:30px;height:30px;padding:0;flex:none"
         title="Focus mode — hide the header and give the room to the document">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
       </button>
-      <div id="ws-actionbar" data-ws-fold="strip" data-ws-display="flex" style="flex:1;min-width:280px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
     </div>
+
+    <!-- The quiet line under the tabs: where this contract stands, what it
+         needs next, and the one button that does it. Its own row, because five
+         tabs and a sentence on one line is a line that wraps — and a wrapped
+         tab row leaves its underline stranded in the middle of the strip. -->
+    <div id="ws-actionbar" class="room-quiet" data-ws-fold="strip" data-ws-display="flex" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
     <div id="doc-grid" data-ws-pane="docs" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
@@ -3006,34 +3163,45 @@ function renderWorkspace(){
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the Copilot review, then sign to record acceptance.</span></div>`
-            :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
-            :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
+            :docFillable(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>This draft still has blanks — fill the highlighted fields here. Once it goes for review, wording changes happen on <b>Negotiate</b>.</span></div>`
+            :`<div class="room-quiet" style="max-width:660px;margin:0 auto 14px">${icon('file','w-3.5 h-3.5')}<span>The contract as it stands — a clean read, with no marks on it. Proposed wording lives on the <b>Negotiate</b> tab.</span><button id="doc-to-nego" class="ui-btn rq-go" style="font-size:11.5px;padding:4px 10px">Go to Negotiate &rarr;</button></div>`}
           ${templateProvenanceHtml(c)}
           <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
             ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
-            <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBodyStructured(c)}</article>
+            <article id="doc-canvas" class="doc-surface" style="background:transparent">${docFillable(c)?docBodyStructured(c):readOnlyDocHtml(docBodyStructured(c))}</article>
             ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
           </div>
           </div>
         </div>
       </section>
 
-      <!-- ============ RIGHT: two tabs — Screening | Signing ============ -->
+      <!-- ============ RIGHT: what you do to the contract while you read it ============
+           The Screening|Signing pair that used to head this column is gone —
+           both of them became tabs of the room. What is left is one column
+           about the document in front of you: the checks you run on it, and
+           the conversation your own side is having about it. -->
       <section id="doc-right" class="scroll-thin" style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding-right:2px">
 
-        <!-- Top-level tabs -->
-        <div id="doc-toptabs" style="position:sticky;top:0;z-index:4;flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:4px;box-shadow:var(--shadow-sm)">
-          ${topTabBtn('screening','Draft &amp; Review','scan')}
-          ${topTabBtn('signing','Signing','finger')}
-        </div>
-
-        <!-- ===== DRAFT & REVIEW: review → fix → negotiate (everything pre-signature) ===== -->
-        <div data-top-pane="screening" style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- ---- CHECKS: THREE ROWS, NOT THREE CARDS ----
+               The playbook review and the Copilot scan each used to open a
+               full card carrying a paragraph of explanation and a filled
+               button, before either had been run — two thirds of this column
+               spent describing work nobody had asked for yet. They are rows
+               now. Each one's RESULTS still open into the full card below,
+               which is what those cards were always for. -->
+          <section id="checks-card" style="${CARD};padding:12px 14px">
+            <h6 style="${H6}">Checks</h6>
+            <p style="font-size:11.5px;color:var(--color-neutral-600);margin:5px 0 2px;line-height:1.5">Run before sending — findings pin to the clause they concern.</p>
+            <div class="check-row"><span class="ci">${icon('shield','w-3.5 h-3.5')}</span><span class="cn">Playbook review</span><button class="cg" data-check="playbook">Run &rarr;</button></div>
+            <div class="check-row"><span class="ci">${icon('scan','w-3.5 h-3.5')}</span><span class="cn">Copilot risk scan</span><button class="cg" data-check="risk">Run &rarr;</button></div>
+            <div class="check-row"><span class="ci">${icon('calendar','w-3.5 h-3.5')}</span><span class="cn">Find obligations</span><button class="cg" data-check="oblig">Run &rarr;</button></div>
+          </section>
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <!-- review & fix -->
+          <!-- review & fix — the RESULTS of the rows above -->
           <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <div id="scan-section" style="${CARD};overflow:hidden"></div>
+          <div id="scan-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
 
           <!-- collaborate & negotiate -->
           ${''/* The role chip that used to sit beside every name is gone. It was
@@ -3093,20 +3261,28 @@ function renderWorkspace(){
             <button id="screening-next" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 16px;display:inline-flex;align-items:center;gap:6px">Next: Signing ${icon('chevR','w-3.5 h-3.5')}</button>
           </div>
         </div>
+      </section>
 
-        <!-- ===== SIGNING: Key terms (top) + inner tabs (Signing / Obligations / Audit) ===== -->
-        <div data-top-pane="signing" style="display:none;flex-direction:column;gap:12px">
+      <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
+      <div id="doc-resizer" title="Drag to set how wide the contract is · double-click to reset" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
+        <span style="width:4px;height:72px;border-radius:999px;background:var(--color-neutral-300);transition:background .15s"></span>
+      </div>
+    </div>
 
-          <!-- Key terms. Editable until the contract is sealed: counterparty,
-               value and valueType are folded into the seal, and for uploaded or
-               template-based documents this panel is the ONLY place they can be
-               set (a generated body carries its own quick-fill fields). -->
-          <div style="${CARD};padding:12px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-              <h6 style="${H6};flex:1">Key terms</h6>
-              ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
-            </div>
-            ${ktEditable?`
+    <!-- ============ KEY TERMS — its own tab now ============
+         It used to be the top card of a Signing sub-tab on the right-hand
+         panel: a third of the screen wide, behind two clicks, holding the
+         commercial facts of the agreement. For an uploaded or template-based
+         document this panel is the ONLY place the counterparty, the value and
+         the dates can be set, which is a poor reason to be hard to find.
+         Editable until the seal binds them. -->
+    <div data-ws-pane="terms" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
+      <div style="${CARD};padding:16px 18px;max-width:640px;width:100%;margin:0 auto">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <h6 style="${H6};flex:1">Key terms</h6>
+          ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
+        </div>
+        ${ktEditable?`
             <label style="${KROW}"><span style="${KKEY}">Counterparty</span>
               <input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/></label>
             <label style="${KROW}"><span style="${KKEY}">Value</span>
@@ -3126,47 +3302,44 @@ function renderWorkspace(){
             <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
-            ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
-            ${kv('Expiry',c.expiry||'—')}
-            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`}
-          </div>
-
-          <!-- Bottom card: inner tabs -->
-          <div style="${CARD};overflow:hidden;display:flex;flex-direction:column">
-            <div id="doc-innertabs" style="display:flex;gap:2px;padding:6px 6px 0;border-bottom:1px solid var(--color-divider)">
-              ${innerTabBtn('signing','Signing','finger')}
-              ${innerTabBtn('audit','Audit','history')}
-            </div>
-            <div style="padding:11px">
-
-              <!-- SIGNING -->
-              <div data-inner-pane="signing" style="display:flex;flex-direction:column;gap:10px">
-                ${(!locked&&canEdit())?`
-                <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:9px;cursor:pointer">
-                  <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-                  <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
-                </label>`:''}
-                <div id="sign-wrap"></div>
-              </div>
-
-              <!-- AUDIT (the record). The Agreement-family card that used to
-                   sit above the trail was retired with the Obligations tab —
-                   amendment linking is machinery this stage doesn't need in
-                   front of every reader; the family model itself stays (the
-                   dashboard still counts agreements family-aware). -->
-              <div data-inner-pane="audit" style="display:none;flex-direction:column;gap:12px">
-                <div id="audit-section" style="${CARD};overflow:hidden"></div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
-      <div id="doc-resizer" title="Drag to set how wide the contract is · double-click to reset" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
-        <span style="width:4px;height:72px;border-radius:999px;background:var(--color-neutral-300);transition:background .15s"></span>
+        ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
+        ${kv('Expiry',c.expiry||'—')}
+        <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`}
       </div>
+    </div>
+
+    <!-- ============ SIGNING — its own tab now ============
+         It was an inner tab inside a card inside a sub-tab on the right-hand
+         panel: three levels deep for the act the whole room is for. -->
+    <div data-ws-pane="sign" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
+      <div style="${CARD};padding:16px 18px;max-width:640px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px">
+        <h6 style="${H6}">Signing</h6>
+        ${(!locked&&canEdit())?`
+        <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:10px;cursor:pointer">
+          <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
+          <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
+        </label>`:''}
+        <div id="sign-wrap"></div>
+      </div>
+    </div>
+
+    <!-- ============ HISTORY — its own tab now ============
+         The same screen the History button opened in a dialog: every proposal,
+         decision, signature and renumbering, oldest first, with its filters,
+         its integrity check and its export. Painted by roomPaintHistory when
+         the tab is selected, so a contract nobody opens History on pays
+         nothing for it. The audit trail sits below, which is where the record
+         of what the SYSTEM did belongs — beside the record of what people did.
+
+         The header's History button still opens the dialog; both read one
+         builder, so they cannot tell different stories. -->
+    <div data-ws-pane="history" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;gap:12px;padding:2px">
+      ${''/* flex:none on both. The pane is a flex COLUMN, so without it these
+             two shrink to share the height instead of taking what they need —
+             which on a 590px laptop page clipped 28px off the foot of the
+             audit trail with nothing to scroll it back. */}
+      <div id="ws-history-pane" style="${CARD};flex:none;max-width:860px;width:100%;margin:0 auto"></div>
+      <div id="audit-section" style="${CARD};flex:none;overflow:hidden;max-width:860px;width:100%;margin:0 auto"></div>
     </div>
 
     <!-- ============ NEGOTIATION: the three-pane fingerprinted redline ============
@@ -3178,11 +3351,13 @@ function renderWorkspace(){
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
-  wsTabDefaults(c);    // Docs by default; the choice persists per contract
+  wsTabDefaults(c);    // Document by default; the choice persists per contract
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderAuditSection(c);
   if(window.renderTemplateFormSection) renderTemplateFormSection(c);
-  wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Audit inner tabs
-  wireWsTabs(c);   // Docs | Negotiation — the workspace-level pair
+  wireChecksCard(c);   // the three Run → rows, each pressing an existing act
+  wireDocTabs(c);      // "Next: Signing" — the pair of sub-tabs it belonged to has gone
+  wireWsTabs(c);       // the room's five tabs
+  document.getElementById('doc-to-nego')?.addEventListener('click',()=>roomGoTab(c,'redline'));
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
   wireChangesStrip(c);   // the returned-changes strip above the document
   // rehydrate a server-stored uploaded file's bytes for preview/download
@@ -3212,7 +3387,6 @@ function renderWorkspace(){
 
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
   // WP-2.1 — read-only by nature, so no canEdit gate: a viewer reads the story too.
-  document.getElementById('ws-history')?.addEventListener('click',()=>{ if(window.openHistoryTimeline) openHistoryTimeline(c); });
   document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
@@ -3928,4 +4102,5 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});
+  wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,docFillable,wireChecksCard});

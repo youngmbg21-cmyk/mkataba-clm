@@ -225,14 +225,23 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
       'a listener left behind is how a removed feature comes back');
   });
 
-  test('the sub-navigation reads Docs · Negotiate', () => {
+  test('the room has five tabs, built once for both shells', () => {
     /* WO N1 renamed the tab's LABEL from "Redline" to plain English; the
        internal key stays 'redline', so every route and stored state built on
-       it keeps working. */
+       it keeps working.
+
+       THE PAIR BECAME FIVE. Key terms, Signing and History were already in
+       this room — behind a sub-tab pair on the right-hand panel and behind a
+       button that opened a modal — and they are tabs now. The row itself is
+       built by roomTabsHtml, which the negotiation workbench calls too: one
+       builder, so the two shells cannot draw different rows. */
     const s = code();
-    assert.match(s, /wsTabBtn\('docs','Docs'/);
-    assert.match(s, /wsTabBtn\('redline','Negotiate'/);
-    assert.ok(!/wsTabBtn\('negotiation'/.test(s), 'the old tab key must not linger');
+    assert.match(s, /const ROOM_TABS=\[/, 'the tabs are declared in one list');
+    [['docs', 'Document'], ['redline', 'Negotiate'], ['terms', 'Key terms'],
+      ['sign', 'Signing'], ['history', 'History']].forEach(([k, label]) =>
+      assert.ok(s.includes(`['${k}','${label}']`), `${label} is a tab, keyed '${k}'`));
+    assert.ok(!/'negotiation','/.test(s), 'the old tab key must not linger');
+    assert.match(s, /function roomTabsHtml\(c,active\)/, 'one builder for both shells');
   });
 
   test('the tab opens the workbench through the evicting entry point', () => {

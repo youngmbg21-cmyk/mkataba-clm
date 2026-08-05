@@ -1398,7 +1398,9 @@ function readOnlyDocHtml(html){
   tmp.innerHTML=String(html||'');
   tmp.querySelectorAll('input,textarea').forEach(inp=>{
     const s=document.createElement('span');
-    s.className='field-frozen font-mono font-semibold text-brand-900';
+    /* The monospace has gone — see .field-frozen in index.html. A commercial
+       term reads as part of the sentence it sits in, not as a code sample. */
+    s.className='field-frozen';
     const v=fieldDisplayValue(inp);
     s.textContent=v||'—';
     if(!v) s.setAttribute('title','This term was not filled in before the contract was sent');
