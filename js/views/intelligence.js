@@ -715,32 +715,47 @@ function renderIntel(){
      repaint comes back where the reader was. */
   if(intel.tab!=='map'&&intel.tab!=='friction') intel.tab='friction';
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['risk','Risk'],['source','Origin']];
-  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="border:0;border-radius:6px;padding:5px 13px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;background:${intel.tab===k?'var(--accent-solid,var(--color-accent))':'none'};color:${intel.tab===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
-  const tabsHtml=`<div style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;flex:none">${tabBtn('friction','Negotiation Friction')}${tabBtn('map','Contract Graph')}</div>`;
+  /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
+     the live one is the one with the accent rule under it. The -1px bottom
+     margin drops that rule onto the header's own hairline so the two share a
+     single line instead of stacking two. */
+  const UNDERTAB='border:0;border-radius:0;background:none;margin-bottom:-1px;padding:10px 1px;font:inherit;font-weight:600;cursor:pointer;display:flex;align-items:center';
+  /* align-self:stretch, NOT a fixed height. The strip grows when the caption
+     runs to two lines on a narrow window; a centred button would leave its
+     underline floating in the middle of a tall strip. Stretched, the rule
+     always lands on the strip's own hairline, and -1px puts the two on the
+     same line instead of stacking them. */
+  const TABROW='display:flex;align-items:stretch;align-self:stretch;flex:none';
+  const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12.5px;color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
+  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('friction','Negotiation Friction')}${tabBtn('map','Contract Graph')}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
      panel below is all answer and no chrome. */
   const ff=intel.frictionFilter||null;
-  const ffCps=[...new Set(((window.state&&state.contracts)||[]).map(c=>c&&String(c.counterparty||'').trim()).filter(Boolean))].sort();
-  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="border:0;border-radius:6px;padding:5px 12px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;background:${(ff&&ff.days)===days||(!ff||!ff.days)&&days==null?'var(--accent-solid,var(--color-accent))':'none'};color:${(ff&&ff.days)===days||(!ff||!ff.days)&&days==null?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
+  /* The counterparty SELECT has gone. Filtering by counterparty is still live —
+     it is done by clicking a name in the report itself (data-igf-cp), and Clear
+     below still lifts it — so the strip carries one lever, not two. */
+  const ffOn=days=>days==null?!(ff&&ff.days):(ff&&ff.days)===days;
+  const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:11.5px;color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
   const frictionControls=`
-      <div style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;flex:none">${ffSeg(null,'All time')}${ffSeg(90,'Last 90 days')}</div>
-      <select id="igf-cp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:5px 9px;font:inherit;font-size:11px;font-weight:600;color:var(--color-text);max-width:200px;flex:none">
-        <option value="">All counterparties</option>
-        ${ffCps.map(x=>`<option value="${igEsc(x)}"${ff&&ff.counterparty===x?' selected':''}>${igEsc(x)}</option>`).join('')}
-      </select>
+      <div style="${TABROW};gap:16px">${ffSeg(null,'All time')}${ffSeg(90,'Last 90 days')}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
   const headerHtml=`
-    <!-- flex-wrap, and a floor under the caption. Without them the caption was
-         a nowrap flex item free to shrink to nothing between the tabs and the
-         filters: it needed 541px and got 358px at 1280, so the sentence
-         explaining the report was cut mid-word. Now the controls wrap onto
-         their own line before the words are taken away. -->
-    <header style="flex:none;display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+    <!-- No vertical padding: the tab buttons carry it themselves, so their
+         underline lands on the strip's own hairline.
+
+         ONE LINE, NOT WRAPPED. The strip used to wrap so the caption would
+         never be cut mid-word — it needed 541px and got 358px at 1280, and the
+         sentence explaining the report was truncated. Underline tabs change
+         the trade: in a WRAPPED flex container each line has its own height,
+         so a stretched tab reaches only the bottom of ITS line and the rule
+         floats mid-strip. Kept to one line, the tabs span the whole strip
+         however tall the caption makes it. The caption keeps its ellipsis and
+         is still hidden outright below 899px, so nothing is cut mid-word —
+         it is trimmed with a "…" or not shown. Friction has no caption. -->
+    <header style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
-      <span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:min(100%,240px)">${intel.tab==='friction'
-        ? 'where deals get stuck — counted from the fingerprinted changes the negotiations already recorded'
-        : `${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses`}</span>
+      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
@@ -771,13 +786,6 @@ function renderIntel(){
       if(!Object.keys(intel.frictionFilter).length) intel.frictionFilter=null;
       renderIntel();
     }));
-    document.getElementById('igf-cp')?.addEventListener('change',e=>{
-      const v=e.target.value;
-      intel.frictionFilter={...(intel.frictionFilter||{})};
-      if(v) intel.frictionFilter.counterparty=v; else delete intel.frictionFilter.counterparty;
-      if(!Object.keys(intel.frictionFilter).length) intel.frictionFilter=null;
-      renderIntel();
-    });
     /* The brief's own verbs (WO friction redesign): the clause link opens Our
        standards; "See the six" unfolds the named deadlocks in place; any
        counterparty — hero link or table row — filters the page to them; a

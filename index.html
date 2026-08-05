@@ -572,6 +572,12 @@
      below 900 and the short-laptop rules all still drive this sidebar, and
      they are all layout rules, which is why none of them appear below. */
   :root{ --nav-bg:#0b3d3a; --nav-line:#0a3532; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff; }
+  /* Accent text that stays READABLE in both themes. The deep teal that reads
+     well on white is 2.4:1 on the dark surface — the app's existing answer for
+     accent words in the dark is accent-400, so this token carries it. Use it
+     for accent-coloured LABELS; --color-accent still fills shapes. */
+  :root{ --accent-ink:var(--color-accent-800); }
+  html.dark{ --accent-ink:var(--color-accent-400); }
   html.dark{ --nav-bg:#07302e; --nav-line:#062825; --nav-ink:#87cec5; }
   #side-nav .nav-item{ color:var(--nav-ink); }
   #side-nav .nav-item svg{ opacity:.9; }
@@ -858,7 +864,11 @@
      whole; below 900 there is no line to give it, and a sentence cut off
      mid-word says less than no sentence — the tab beside it already names the
      report. */
-  @media (max-width:1199px){ .ig-hd-sub{white-space:normal!important;text-overflow:clip!important;line-height:1.35;} }
+  /* THE SECOND LINE HAS GONE, the hide has not. The caption used to be allowed
+     to run to two lines below 1199px rather than be trimmed. Under the tab
+     strip that would make the strip grow and the tabs' rule sit at an odd
+     height, so between 900 and 1199 the sentence is trimmed with an ellipsis
+     instead, and below 899 it still goes entirely. */
   @media (max-width:899px){ .ig-hd-sub{display:none!important;} }
 
   /* Design step — two rails around the preview (was 268px … 292px, 560px of
