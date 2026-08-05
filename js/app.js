@@ -141,7 +141,10 @@ function commandMeta(view){
        already renders for itself is not repeated here — Templates draws its
        own "Create template", so it gets no create button from this. */
 const PAGE_ACTIONS = {
-  register: ['export', 'new'],
+  /* Contracts carries no Export: the page had two of them — this one and a
+     second in the filter row — and both are gone. regExportCsv() is untouched
+     and still reachable from the folder view. */
+  register: ['new'],
   folder:   ['export', 'new'],
   workspace:['export'],
   pipeline: ['new'],

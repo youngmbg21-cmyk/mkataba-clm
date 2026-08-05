@@ -612,7 +612,6 @@ function renderRegister(){
           <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
         </label>
         ${ftsBlock}
-        <button id="reg-export" class="ui-btn" title="Exports the set the filters are showing" style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:5px 12px;flex:none">${icon('download','w-3.5 h-3.5')} Export CSV</button>
       </div>
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
@@ -644,7 +643,7 @@ function renderRegister(){
           <!-- the legend explains the coloured row edge-stripe, so it lives
                with the table it annotates rather than as a band above it -->
           ${folderLegendHtml({style:'font-size:10.5px'})}
-          <span>${REG_PAGE} per page · CSV export respects filters</span>
+          <span>${REG_PAGE} per page</span>
         </div>
       </section>
     </div>
@@ -672,7 +671,6 @@ function renderRegister(){
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; renderRegister(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; renderRegister(); });
   document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; renderRegister(); });
-  document.getElementById('reg-export')?.addEventListener('click',regExportCsv);
   setActiveNav('register');
 }
 
