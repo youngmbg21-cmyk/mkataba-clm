@@ -14,8 +14,14 @@
      4. Dismissal is per user and permanent; completion is celebrated, not
         silently vanished.
 
-   Rendered through the same jsdom-free harness the dashboard tests use —
-   assertions run against the HTML renderDashboard() actually produced. */
+   Rendered through the same jsdom-free harness the dashboard tests use.
+
+   WHERE THE CARD LIVES CHANGED, WHAT IT COMPUTES DID NOT. The checklist no
+   longer sits on the dashboard — it occupied the top of Home permanently to
+   carry four one-off steps. gettingStartedHtml() is kept whole, so these
+   assertions now run against the card's own HTML rather than against the
+   dashboard that used to embed it. Every rule above is still checked; only
+   the question "is it on Home?" has gone, because the answer is now no. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadViews } = require('./dom');
@@ -42,7 +48,11 @@ function render(contracts, { shareByContract = {}, hidden = false } = {}) {
      asks the module for it rather than hardcoding a uid. */
   if (hidden) sb.localStorage.setItem(sb.gsKey(), '1');
   sb.renderDashboard();
-  return { sb, html: sb.document.getElementById('content').innerHTML };
+  /* The dashboard's own HTML is still returned as `page` — the empty-workspace
+     rules below are about what Home shows — while `html` is the checklist
+     itself, which is what the tick rules are about. */
+  const page = sb.document.getElementById('content').innerHTML;
+  return { sb, page, html: sb.gettingStartedHtml() };
 }
 const doneCount = html => {
   const m = html.match(/(\d) of 4 done/);
@@ -106,9 +116,9 @@ describe('N3 (2) — demo paper does not count', () => {
 
 describe('N3 (3) — when the card yields the floor', () => {
   test('an empty workspace shows the first-run welcome, not the checklist', () => {
-    const { html } = render([]);
-    assert.ok(html.includes('Welcome'), 'U-2 owns the empty state');
-    assert.ok(!html.includes('id="gs-card"'), 'one guide at a time');
+    const { page, html } = render([]);
+    assert.ok(page.includes('Welcome'), 'U-2 owns the empty state');
+    assert.ok(!html.includes('id="gs-card"'), 'the checklist waits for a contract');
   });
 
   test('a dismissed card stays dismissed', () => {
@@ -121,6 +131,6 @@ describe('N3 (3) — when the card yields the floor', () => {
     sb.gsHide();
     assert.equal(sb.localStorage.getItem(sb.gsKey()), '1');
     sb.renderDashboard();
-    assert.ok(!sb.document.getElementById('content').innerHTML.includes('id="gs-card"'));
+    assert.ok(!sb.gettingStartedHtml().includes('id="gs-card"'));
   });
 });

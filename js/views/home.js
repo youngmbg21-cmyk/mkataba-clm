@@ -366,6 +366,23 @@ function hmDashSlices(){
     clean, compliancePct, REG_PROFILE, apprMineN, KPI_CATALOG };
 }
 
+/* THE EMAIL WARNING, SAID ONCE AND QUIETLY.
+   The full banner is three lines and a block of amber at the very top of the
+   dashboard, every visit, forever. The fact still matters — without email
+   nothing can be delivered — so it stays, as one line. It carries the same id
+   the responsive rules and the wiring already look for, and the shared
+   emailSetupBannerHtml() is left untouched for anywhere else that wants it. */
+function emailSetupLineHtml(){
+  if(typeof emailOff!=='function' || !emailOff()) return '';
+  const admin=(typeof isAdmin==='function')&&isAdmin();
+  return `
+    <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:10px;font-size:11.5px;color:var(--st-amber-fg);line-height:1.45;">
+      <span style="flex:none;display:inline-flex;color:var(--st-amber-dot);">${icon('alert','w-3.5 h-3.5')}</span>
+      <span style="flex:1;min-width:0;">Email isn’t set up — review links and signing codes have to be copied out by hand.</span>
+      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">Set it up</button>`:''}
+    </div>`;
+}
+
 function renderDashboard(){
   const { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -387,12 +404,9 @@ function renderDashboard(){
   const TONE_FG={steel:'var(--tile-steel-fg)',emerald:'var(--tile-emerald-fg)',amber:'var(--tile-amber-fg)',ruby:'var(--tile-ruby-fg)'};
   const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
     <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:8px;align-items:stretch;border:1px solid var(--color-divider);border-radius:16px;background:var(--color-surface);padding:20px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .15s,opacity .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='color-mix(in srgb,var(--accent-solid) 35%,transparent)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--color-divider)'">
-      <span style="display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--color-neutral-500);">
-        <span style="font-size:11.5px;font-weight:600;line-height:1.3;">${k.label}</span>
-        <span style="flex:none;display:inline-flex;color:${TONE_FG[t]};">${icon(k.ic,'w-4 h-4',1.8)}</span>
-      </span>
+      <span style="display:block;font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;line-height:1.3;color:var(--color-neutral-500);">${k.label}</span>
       <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
-        <span class="tnum" style="font-weight:700;font-size:clamp(20px,17px + 0.45vw,28px);line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
+        <span class="tnum" style="font-family:var(--font-mono);font-weight:700;font-size:clamp(20px,17px + 0.45vw,28px);line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
         <span style="font-size:11px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
       </span>
       <span style="font-size:11px;color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
@@ -414,18 +428,27 @@ function renderDashboard(){
   /* No flag emoji: Windows draws them as bare letter pairs in boxes. */
   const REGION_LABEL={SE:'Sweden', KE:'Kenya'};
   const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
+  /* The band greets the person and states the shape of their portfolio, rather
+     than naming the product back at them. Same slot, same one button — the
+     words changed, not the furniture. */
+  const firstName=(((me&&me.name)||'').trim().split(/\s+/)[0])||'there';
+  const hourNow=new Date().getHours();
+  const greeting=hourNow<12?'Good morning':hourNow<17?'Good afternoon':'Good evening';
+  const activeVal=(money&&typeof fmtMoneyShort==='function')?fmtMoneyShort(valOf(live)):'';
+  const heroLine=[
+    `${Number(countAll).toLocaleString('en-KE')} contract${countAll===1?'':'s'} under management`,
+    activeVal?`${activeVal} active value`:'',
+    apprMineN?`${apprMineN} need${apprMineN===1?'s':''} you today`:'',
+  ].filter(Boolean).join(' · ');
   const heroSection=`
-    <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px 26px;border-radius:18px;background:linear-gradient(115deg,#0f172a 0%,#134e4a 62%,#0d9488 130%);border:1px solid #134e4a;box-shadow:var(--shadow-md);color:#fff;">
-      <div style="position:absolute;right:-60px;top:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.28),transparent 68%);pointer-events:none;"></div>
-      <div style="position:relative;min-width:0;display:flex;flex-direction:column;gap:7px;">
-        <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:999px;background:rgba(20,184,166,.2);border:1px solid rgba(20,184,166,.34);color:#5eead4;font-size:11px;font-weight:600;">
-          <span style="display:inline-flex;color:#5eead4;">${icon('check2','w-3 h-3',2)}</span>Multi-jurisdiction engine ready
-        </span>
-        <h2 style="margin:0;font-size:clamp(21px,17px + 0.62vw,31px);line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SMART Contract Control Center</h2>
-        <p style="margin:0;font-size:12.5px;color:#cbd5e1;max-width:62ch;">Fast, accessible execution for ${regionNow} operations · ${Number(countAll).toLocaleString('en-KE')} contracts under management.</p>
+    <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-radius:20px;background:linear-gradient(120deg,#0b3d3a 0%,#0d9488 62%,#0aa2b8 100%);box-shadow:var(--shadow-md);color:#fff;">
+      <div style="position:absolute;right:-60px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 68%);pointer-events:none;"></div>
+      <div style="position:relative;min-width:0;">
+        <h2 style="margin:0;font-size:clamp(21px,16px + 0.55vw,27px);line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">${greeting}, ${esc(firstName)}</h2>
+        <p style="margin:4px 0 0;font-size:12.5px;color:#bde7e1;max-width:62ch;">${esc(heroLine)}</p>
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
-        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:var(--accent-solid);color:#fff;font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -6px rgba(13,148,136,.7);transition:background .15s;" onmouseover="this.style.background='#14b8a6'" onmouseout="this.style.background='var(--accent-solid)'">
+        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:#fff;color:#0f766e;font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px rgba(3,25,25,.5);transition:filter .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter='none'">
           ${icon('plus','w-3.5 h-3.5',2)} Draft new agreement
         </button>
       </div>
@@ -574,13 +597,14 @@ function renderDashboard(){
       </div>
     </section>` : '';
   document.getElementById('content').innerHTML=`
-  <div class="view-enter hm-page" style="display:flex;flex-direction:column;gap:9px;padding:12px 18px 18px;">
-    ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
+  <div class="view-enter hm-page" style="display:flex;flex-direction:column;gap:12px;padding:14px 20px 20px;">
+    ${emailSetupLineHtml()}
     ${firstRunBanner}
 
-    <!-- Getting started (WO N3) — the visible path from "workspace exists"
-         to "first contract signed", ticked from real state on every render -->
-    ${gettingStartedHtml()}
+    <!-- The Getting started checklist has left this page. It occupied the top
+         of the dashboard permanently to carry four one-off steps; the same
+         steps are visible in the work itself. gettingStartedHtml() is kept
+         intact so it can be put back or moved elsewhere. -->
 
     <!-- Welcome banner — what this workspace is for, and the button that starts work -->
     ${heroSection}
