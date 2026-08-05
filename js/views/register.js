@@ -45,7 +45,21 @@ function renderFolder(){
   const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
   const sortOpts=visibleSorts(FOLDER_SORTS).map(s=>`<option value="${s.k}" ${(state.folderSort||'updated')===s.k?'selected':''}>${s.label}</option>`).join('');
 
-  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
+  /* A select left on `appearance:auto` is drawn by the platform, and the
+     platform draws it with a hard dark edge and a square corner whatever the
+     border says. Turning the appearance off hands the closed control back to
+     us — soft grey edge, the same 8px corner the rest of the page uses, and
+     our own chevron in place of the native arrow.
+
+     The OPEN list is still the browser's own popup and cannot be styled from
+     a page in any engine; only the closed control is ours to dress. */
+  /* BASE64, NOT A RAW SVG. These styles are written into a style="" attribute,
+     and a plain data URI carries the quotes the SVG's own attributes need —
+     the first one closes the attribute and the whole rule is dropped, which is
+     exactly what happened: the arrow vanished entirely. Base64 has no quotes
+     in it, so it survives the trip into the attribute. */
+  const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
+  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:8px;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
@@ -503,7 +517,21 @@ function regExportCsv(){
 function renderRegister(){
   const R=regState(); R.page=1;
   const cs=regFiltered();
-  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
+  /* A select left on `appearance:auto` is drawn by the platform, and the
+     platform draws it with a hard dark edge and a square corner whatever the
+     border says. Turning the appearance off hands the closed control back to
+     us — soft grey edge, the same 8px corner the rest of the page uses, and
+     our own chevron in place of the native arrow.
+
+     The OPEN list is still the browser's own popup and cannot be styled from
+     a page in any engine; only the closed control is ours to dress. */
+  /* BASE64, NOT A RAW SVG. These styles are written into a style="" attribute,
+     and a plain data URI carries the quotes the SVG's own attributes need —
+     the first one closes the attribute and the whole rule is dropped, which is
+     exactly what happened: the arrow vanished entirely. Base64 has no quotes
+     in it, so it survives the trip into the attribute. */
+  const selChevron='url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0ibTYgOSA2IDYgNi02Ii8+PC9zdmc+)';
+  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background-color:var(--color-surface);border-radius:8px;padding:5px 26px 5px 9px;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:'+selChevron+';background-repeat:no-repeat;background-position:right 8px center;background-size:12px';
   /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
      Stages, streams and saved views used to be three full-width rows of pills
      (plus a legend band and an export band) stacked above the table — the
