@@ -552,24 +552,18 @@ function wireApprovalPanel(c){
   }));
 }
 
-/* ---- engagement timeline (E5-T4): show share-link opens ---- */
-async function loadEngagement(c){
-  const host=document.getElementById('engagement-section'); if(!host) return;
-  if(!API_MODE()){ host.innerHTML=''; return; }
-  let events=[];
-  try{ const r=await api('contracts/'+c.id+'/engagement'); events=r.events||[]; }catch(e){ host.innerHTML=''; return; }
-  if(!events.length){ host.innerHTML=''; return; }
-  host.innerHTML=`<div class="px-5 py-4">
-    <div class="flex items-center gap-2 mb-3"><span class="text-brand-500">${icon('history')}</span>
-      <h3 class="text-sm font-display font-600 text-ink">Counterparty activity</h3>
-      <span class="ml-auto text-[10px] font-mono text-ink/60">${events.length} open${events.length===1?'':'s'}</span></div>
-    ${''/* The list scrolls inside its card instead of running down the page —
-          52 opens is a fact worth keeping, not a wall worth scrolling past.
-          All fetched rows render (the server caps at 100); the box shows the
-          first handful and the wheel does the rest. */}
-    <div class="space-y-1 scroll-thin" style="max-height:190px;overflow-y:auto;padding-right:6px">${events.map(e=>`<div class="flex items-center gap-2 text-[11px] text-ink/65">
-      <span class="h-1.5 w-1.5 rounded-full bg-brand-400" style="flex:none"></span><span>Opened</span>
-      <span class="ml-auto font-mono text-ink/45">${fmtDT(e.at)}${e.ip?' · '+e.ip:''}</span></div>`).join('')}</div></div>`;
-}
+/* THE ENGAGEMENT CARD (loadEngagement) IS GONE.
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});
+   It drew /api/contracts/:id/engagement as a list of "Opened" rows headed by
+   a count. That endpoint's rows are written by the share GET the counterparty's
+   page POLLS — every 10s while they read, every 45s while they do not — so the
+   count measured how long a tab was left open and was read as how often the
+   contract was studied. See the note where the card used to sit, in
+   js/views/contract.js.
+
+   Nothing server-side changed: every open is still logged with its time and IP,
+   and the endpoint still answers. The Shares panel remains the honest answer to
+   "have they seen it" — it reads shares.first_opened_at, which is stamped once
+   on the first real open and never re-counted. */
+
+Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel});

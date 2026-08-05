@@ -3057,7 +3057,29 @@ function renderWorkspace(){
           </section>
           <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* the general discussion panel is removed — see js/views/portal.js */}
-          <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          ${''/* "Counterparty activity" is removed, and NOT only for room.
+
+                 It listed the engagement log — one row per open, with a time
+                 and an IP — under a count reading "52 opens". But the
+                 counterparty's page POLLS the same endpoint that writes that
+                 log, every 10s while they are reading and every 45s when they
+                 are not (PORTAL_POLL_MS in js/views/portal.js, and the comment
+                 on portalSignature which already knew "the engagement log ticks
+                 on every open"). So "52 opens" was never 52 readings of the
+                 contract. It was one counterparty leaving the tab open over
+                 lunch. A number that looks like attention and measures dwell
+                 time is worse than no number: it was read as interest, and it
+                 would have been used to decide when to chase.
+
+                 What it was for survives, correctly, one card up: the Shares
+                 panel states per recipient whether their link is sent, opened
+                 or responded to, with the FIRST open stamped once
+                 (shares.first_opened_at) rather than re-counted on every poll.
+                 "Have they seen it" is answered there and answered honestly.
+
+                 The server still records every open with its IP — nothing was
+                 deleted and the audit value is untouched. It is simply no
+                 longer drawn on a panel people read as a summary. */}
           <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* "Versions & changes" is removed. Its Compare button repeated the
                  one in this page's own toolbar, and the negotiation page carries
@@ -3157,7 +3179,7 @@ function renderWorkspace(){
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wsTabDefaults(c);    // Docs by default; the choice persists per contract
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); loadEngagement(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderAuditSection(c);
   if(window.renderTemplateFormSection) renderTemplateFormSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Audit inner tabs
   wireWsTabs(c);   // Docs | Negotiation — the workspace-level pair
