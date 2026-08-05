@@ -3036,17 +3036,22 @@ function renderWorkspace(){
           <div id="scan-section" style="${CARD};overflow:hidden"></div>
 
           <!-- collaborate & negotiate -->
-          <section style="${CARD};padding:12px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          ${''/* The role chip that used to sit beside every name is gone. It was
+                 a bordered pill per message, on a column of messages, doing the
+                 work one line of quiet grey text does — and it made three
+                 comments read as nine competing objects. Name, then role and
+                 when, then what they said: the shape every message list has. */}
+          <section style="${CARD};padding:12px 14px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
               <h6 style="${H6};flex:1">Activity &amp; comments</h6>
-              <span class="flex items-center gap-1" style="font-size:10px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:var(--st-green-dot);display:inline-block"></span>live</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:var(--st-green-dot);display:inline-block"></span>live</span>
             </div>
-            <div id="feed" class="space-y-3 scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px"></div>
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
-              <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
-              <div style="display:flex;gap:6px">
-                <textarea id="comment-input" class="chat-field" rows="1" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"></textarea>
-                <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
+            <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:14px"></div>
+            <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
+              <div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px">Commenting as <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
+              <div style="display:flex;gap:7px">
+                <textarea id="comment-input" class="chat-field" rows="1" placeholder="Add a comment on the terms…" title="Internal to your team — counterparty replies arrive through share-link responses" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px;padding:8px 11px;font-size:12px;outline:none"></textarea>
+                <button id="comment-send" class="ui-btn ui-btn-primary" style="width:36px;height:36px;padding:0;flex:none;border-radius:8px">${icon('send','w-4 h-4')}</button>
               </div>
             </div>
           </section>
@@ -3358,18 +3363,27 @@ function renderFeed(c){
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   feed.innerHTML=c.comments.map(m=>{
     const internal=m.side==='internal';
-    const avatarBg=internal?'bg-brand-100 text-brand-700':'bg-gold-500/15 text-gold-600';
     const initials=esc(String(m.author||'').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase());
+    /* "Legal (Internal)" is two facts, and the second one is already said by
+       the footer under this list — every comment you can type here is internal.
+       So the parenthetical is dropped from the line and the side is carried by
+       the avatar's colour instead, which is where it costs nothing to read. */
+    const role=esc(String(m.role||'').replace(/\s*\(internal\)\s*$/i,'').trim());
+    /* Relative where the stamp can be read as a date, absolute where it cannot.
+       Comments filed before `at` existed carry only a formatted display string,
+       and a message list that silently drops its timestamps because a parse
+       failed is worse than one showing the long form. */
+    const when=esc((window.relTime?relTime(m.at||m.ts):'') || m.ts || '');
     return `
-    <div class="flex gap-2.5">
-      <div class="h-7 w-7 shrink-0 grid place-items-center rounded-full text-[10px] font-semibold ${avatarBg}">${initials}</div>
-      <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="text-xs font-medium text-brand-900">${esc(m.author)}</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded ${internal?'bg-brand-50 text-brand-600':'bg-gold-500/10 text-gold-600'}">${esc(m.role)}</span>
-          <span class="text-[10px] text-brand-800/60 ml-auto">${esc(m.ts)}</span>
+    <div style="display:flex;gap:10px">
+      <div style="flex:none;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-size:10px;font-weight:700;
+        background:${internal?'var(--color-accent-100)':'var(--st-amber-bg)'};color:${internal?'var(--color-accent-800)':'var(--st-amber-fg)'}">${initials}</div>
+      <div style="min-width:0;flex:1">
+        <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.4">
+          <span style="font-size:12.5px;font-weight:600;color:var(--color-text)">${esc(m.author)}</span>
+          <span style="font-size:10.5px;color:var(--color-neutral-500)">${role}${role&&when?' · ':''}${when}</span>
         </div>
-        <p class="text-xs text-brand-800/75 mt-0.5 leading-relaxed">${esc(m.text)}</p>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:3px 0 0;line-height:1.55">${esc(m.text)}</p>
       </div>
     </div>`;
   }).join('');
@@ -3381,7 +3395,11 @@ function wireComments(c){
   const post=()=>{
     const text=input.value.trim(); if(!text) return;
     const u=currentUser();
-    c.comments.push({ author:u?.name||'You', role:`${ROLE_LABEL[u?.role]||'User'} (Internal)`, side:'internal', text, ts:fmtDT(nowISO()) });
+    /* `at` is the machine-readable stamp; `ts` stays as the long form both for
+       records written before this and for the fallback in renderFeed. A list
+       that says "3h ago" needs a date it can subtract, not a sentence. */
+    const at=nowISO();
+    c.comments.push({ author:u?.name||'You', role:`${ROLE_LABEL[u?.role]||'User'} (Internal)`, side:'internal', text, at, ts:fmtDT(at) });
     logAudit(c,'Comment','Internal comment added');
     persist(c);
     input.value=''; renderFeed(c); renderAuditSection(c);

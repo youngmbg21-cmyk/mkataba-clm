@@ -157,7 +157,57 @@ function deviationSummary(c){
   return { dev, miss, esc, total:r.verdicts.length, ok:dev===0&&miss===0 };
 }
 
-/* ---- workspace playbook review panel (E4-T5) ---- */
+/* ---- workspace playbook review panel (E4-T5) ----
+
+   REDRAWN TO THE QUIET LIST (see the Contract Scan card, which reads the same
+   way). It used to lead every row with a shouted status pill — ALIGNED,
+   DEVIATION, MISSING — beside the category, then print the matched sentence,
+   then the preferred position, then a link. Five things per row, on a panel
+   that is scanned rather than read, and the one fact a reader actually wants
+   from it — is anything wrong — was the hardest to pick out of the noise.
+
+   So the status became a small coloured mark at the left, the category became
+   the line you read, and everything else folds away until the row is opened.
+   Nothing was dropped: the quoted wording, the preferred position and "apply
+   as a redline" are all inside the row, one click down, exactly as the Scan
+   card holds its own detail. */
+window.pbUI = window.pbUI || { expanded:new Set() };
+
+const PB_MARK = {
+  aligned:   { bg:'var(--st-green-bg)', fg:'var(--st-green-fg)', glyph:'&#10003;', word:'matches Our standards' },
+  deviation: { bg:'var(--st-amber-bg)', fg:'var(--st-amber-fg)', glyph:'!',        word:'off Our standard' },
+  missing:   { bg:'var(--st-ruby-bg)',  fg:'var(--st-ruby-fg)',  glyph:'!',        word:'not in this document' },
+};
+const _pbEsc = s => String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+/* The one line under the category. It says what the verdict MEANS, in the
+   reader's words rather than the engine's — "Our standard is ≤ 45 days" is a
+   sentence; "deviation" is a label you have to translate first. */
+function pbVerdictLine(v){
+  const pos=String(v.position||'').trim();
+  if(v.status==='aligned') return pos ? `Matches Our standards &middot; ${_pbEsc(pos)}` : 'Matches Our standards';
+  if(v.status==='deviation') return pos ? `Our standard is ${_pbEsc(pos)}` : 'Off Our standard';
+  return pos ? `Not in this document &middot; Our standard is ${_pbEsc(pos)}` : 'Not in this document';
+}
+/* The pill on the header. Escalation outranks a plain count, because "two of
+   these need Legal" is a different message from "two of these are open".
+
+   AN EMPTY REVIEW IS NOT AN ALIGNED ONE. deviationSummary counts deviations and
+   missing items, so a review that came back with NO verdicts at all — the
+   Copilot route answering with an empty list, or a contract type with no
+   positions behind it — scored zero of each and was reported as "aligned". A
+   green badge over an empty list is the worst thing this panel can say: it
+   tells a reader their contract was checked and passed when nothing was
+   checked at all. So no verdicts, no pill, and the card says so in words. */
+function pbHeadPill(sm){
+  if(!sm||!sm.total) return '';
+  const chip=(bg,fg,txt)=>`<span style="flex:none;font-size:10px;font-weight:700;border-radius:999px;padding:2px 9px;background:${bg};color:${fg}">${txt}</span>`;
+  if(sm.ok) return chip('var(--st-green-bg)','var(--st-green-fg)','all aligned');
+  if(sm.esc) return chip('var(--st-ruby-bg)','var(--st-ruby-fg)',`${sm.esc} to escalate`);
+  const n=sm.dev+sm.miss;
+  return chip('var(--st-amber-bg)','var(--st-amber-fg)',`${n} to fix`);
+}
+
 function renderPlaybookSection(c){
   const host=document.getElementById('playbook-section'); if(!host) return;
   const editable=canEdit()&&c.status!=='Signed';
@@ -167,41 +217,69 @@ function renderPlaybookSection(c){
   // been run — otherwise the record of what was added would have nowhere to live
   if(!editable && !r && !ins.length){ host.innerHTML=''; return; }
   const sm=deviationSummary(c);
-  const badge=st=>st==='aligned'?'bg-brand-50 text-brand-600 border-brand-200':st==='deviation'?'bg-gold-500/12 text-gold-600 border-gold-500/30':'bg-rose-50 text-rose-600 border-rose-200';
-  host.innerHTML=`
-    <div class="px-5 py-4">
-      <div class="flex items-center gap-2 mb-1">
-        <span class="text-brand-500">${icon('shield')}</span>
-        <h3 class="text-sm font-display font-600 text-ink">Playbook review</h3>
-        ${sm?`<span class="ml-auto text-[10px] font-mono ${sm.ok?'text-brand-600':'text-gold-600'}">${sm.ok?'aligned':`${sm.dev} deviation${sm.dev===1?'':'s'}, ${sm.miss} missing`}</span>`:''}
-      </div>
-      <p class="text-[11px] text-ink/60 mb-3">${r?`Checked against the <b>${r.label}</b> playbook · ${r.source==='ai'?'Copilot review':'basic checks'}.`:'Review this contract against your preferred and fallback positions for its type.'}</p>
-      ${r?`<div class="space-y-1.5 mb-3">${r.verdicts.map((v,i)=>`
-        <div class="rounded-lg border border-line bg-white px-3 py-2">
-          <div class="flex items-center gap-2 text-[12px]">
-            <span class="inline-block rounded-full border ${badge(v.status)} px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wide">${v.status}</span>
-            <span class="text-ink font-500">${v.category}</span>
-            ${v.escalate&&v.status!=='aligned'?`<span class="text-[9px] font-mono text-rose-500 uppercase">escalate</span>`:''}
-          </div>
-          ${v.quote?`<div class="mt-1 text-[10px] text-ink/55 italic border-l-2 border-line pl-2">“${(v.quote||'').slice(0,180).replace(/</g,'&lt;')}”</div>`:''}
-          ${v.status!=='aligned'&&v.position?`<div class="mt-1 text-[10px] text-ink/60"><b>Preferred:</b> ${(v.position||'').replace(/</g,'&lt;')}</div>`:''}
-          ${editable&&v.redline?`<button data-pb-apply="${i}" class="mt-1.5 text-[10px] font-600 text-brand-600 hover:text-brand-800">Apply suggested wording as a redline →</button>`:''}
-        </div>`).join('')}</div>`:''}
-      ${ins.length?`<div class="mt-3 rounded-lg border border-brand-100 bg-brand-50/50 px-3 py-2">
-        <div class="text-[10px] font-mono uppercase tracking-wide text-ink/50 mb-1.5">Clauses inserted into this document</div>
-        ${ins.map((x,i)=>`<div class="flex items-center gap-2 text-[11px] py-0.5">
-          <span class="text-brand-500 shrink-0">${icon('plus','w-3 h-3')}</span>
-          <span class="min-w-0 flex-1">
-            <span class="block font-600 text-ink truncate">${String(x.name||'Clause').replace(/</g,'&lt;')}</span>
-            <span class="block text-[10px] text-ink/55">${clauseInsertNote(x.where)} · ${x.by?String(x.by).replace(/</g,'&lt;')+' · ':''}${x.at?fmtDT(x.at):''}</span>
-          </span>
-          <button data-pb-jump="${i}" class="shrink-0 rounded-lg border border-brand-200 bg-white px-2 py-1 text-[10px] font-600 text-brand-700 hover:bg-brand-50">Show me</button>
-        </div>`).join('')}
-      </div>`:''}
-      ${editable?`<div class="flex flex-wrap gap-2 mt-3">
-        <button id="pb-run" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('scan','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
+  /* The heading names the ENGINE THAT RAN, never the one that might have. The
+     Scan card carries the same rule and the same reason: a panel headed
+     "Copilot review" over checks a regular expression made is a lie the reader
+     has no way to catch. */
+  const head = (r && r.source==='ai') ? 'Copilot review &middot; vs Our standards' : 'Playbook review &middot; vs Our standards';
+  const HEAD='font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin:0';
+  const rowsHtml = r ? r.verdicts.map((v,i)=>{
+    const m=PB_MARK[v.status]||PB_MARK.missing;
+    const id=`pbv-${i}`;
+    const open=pbUI.expanded.has(id);
+    const detail = (v.quote || (v.status!=='aligned'&&v.position) || (editable&&v.redline));
+    return `
+    <div style="border-top:1px solid var(--color-divider)">
+      <button ${detail?`data-pb-row="${id}"`:''} style="display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:9px 2px;${detail?'cursor:pointer':'cursor:default'}">
+        <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:10px;font-weight:800;line-height:1">${m.glyph}</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:12.5px;font-weight:600;color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
+          <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>
+        </span>
+        ${v.escalate&&v.status!=='aligned'?`<span title="A deviation here needs Legal approval" style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
+      </button>
+      ${open&&detail?`<div style="padding:0 2px 10px 28px;display:flex;flex-direction:column;gap:6px">
+        ${v.quote?`<div style="font-size:11px;line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
+        ${v.status!=='aligned'&&v.position?`<div style="font-size:11px;line-height:1.6;color:var(--color-neutral-700)"><b>Our standard:</b> ${_pbEsc(v.position)}</div>`:''}
+        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Apply suggested wording as a redline &rarr;</button>`:''}
       </div>`:''}
     </div>`;
+  }).join('') : '';
+
+  host.innerHTML=`
+    <div style="padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${r?'2px':'8px'}">
+        <h6 style="${HEAD};flex:1">${head}</h6>
+        ${pbHeadPill(sm)}
+      </div>
+      ${!r
+        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.55;margin:0">Check this contract against your preferred and fallback positions for its type.</p>`
+        : !r.verdicts.length
+        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.55;margin:0">This review came back with <b>nothing to report</b> — not the same as passing. The <b>${_pbEsc(r.label)}</b> playbook may have no positions behind it yet; set them under <b>Our standards</b>, then re-run.</p>`
+        : `<p style="font-size:10.5px;color:var(--color-neutral-500);margin:0 0 4px">Against the <b>${_pbEsc(r.label)}</b> playbook${r.source==='ai'?'':' &middot; basic checks'}</p>
+      <div>${rowsHtml}</div>`}
+      ${ins.length?`<div style="margin-top:10px;border-top:1px solid var(--color-divider);padding-top:9px">
+        <div style="font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">Clauses inserted into this document</div>
+        ${ins.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+          <span style="flex:none;color:var(--color-accent)">${icon('plus','w-3 h-3')}</span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_pbEsc(x.name||'Clause')}</span>
+            <span style="display:block;font-size:10px;color:var(--color-neutral-500)">${clauseInsertNote(x.where)}${x.by?' &middot; '+_pbEsc(x.by):''}${x.at?' &middot; '+fmtDT(x.at):''}</span>
+          </span>
+          <button data-pb-jump="${i}" class="ui-btn" style="flex:none;font-size:10.5px;padding:3px 9px">Show me</button>
+        </div>`).join('')}
+      </div>`:''}
+      ${editable?`<div style="margin-top:10px">
+        <button id="pb-run" class="ui-btn" style="font-size:11.5px;padding:5px 11px;display:inline-flex;align-items:center;gap:6px">${icon('scan','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
+      </div>`:''}
+    </div>`;
+  /* Expand/collapse is a repaint of this card only — the same shape the Scan
+     card uses, and the reason the open set lives outside this function. */
+  host.querySelectorAll('[data-pb-row]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.getAttribute('data-pb-row');
+    pbUI.expanded.has(id)?pbUI.expanded.delete(id):pbUI.expanded.add(id);
+    renderPlaybookSection(c);
+  }));
   host.querySelectorAll('[data-pb-jump]').forEach(b=>b.addEventListener('click',()=>{
     const x=ins[Number(b.getAttribute('data-pb-jump'))]; if(!x) return;
     if(!jumpToInsertedClause(x.name))
@@ -213,7 +291,8 @@ function renderPlaybookSection(c){
     if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
     renderPlaybookSection(c); renderSignButton&&renderSignButton(c);
   });
-  host.querySelectorAll('[data-pb-apply]').forEach(b=>b.addEventListener('click',()=>{
+  host.querySelectorAll('[data-pb-apply]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
     const v=r.verdicts[Number(b.getAttribute('data-pb-apply'))];
     applyClauseRedline(c, v.redline, v.category);   // files a tracked change; see above
   }));
@@ -395,4 +474,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictLine,pbHeadPill,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});

@@ -196,10 +196,13 @@ function updateCommandBar(view){ renderPageHeader(view); }
 /* Guarded rather than assumed: this module is evaluated on a cut-down stage in
    the node tests, where there is no global addEventListener to bind to. */
 /* Width matters as much as height now. syncViewHeight already ran on every
-   resize; applyPanelLayout joins it so dragging a window narrow folds the
-   activity column away instead of squeezing the middle until content is
-   clipped, and dragging it wide again brings the column back. Debounced with
-   rAF because a drag fires this continuously and both handlers read layout. */
+   resize; applyPanelLayout joins it, and applyRail after it, so crossing a
+   breakpoint mid-drag re-asks every part of the shell that has an opinion
+   about width. applyPanelLayout no longer has one — the Activity panel is a
+   layer over the page rather than a column beside it — but it stays on this
+   path so a reintroduced width rule would be honoured without anyone having to
+   remember to wire it. Debounced with rAF because a drag fires this
+   continuously and these handlers read layout. */
 let _shellResizeQueued=false;
 function onShellResize(){
   syncViewHeight();
@@ -693,35 +696,48 @@ function toggleRail(){
   applyRail();
 }
 
-/* Below this the activity column stops being affordable: the sidebar and the
-   panel together were eating 548px of a 1200px window, leaving the middle less
-   room than the register's own table needs. Matches the `tablet` breakpoint in
-   index.html — the two have to agree. */
-const PANEL_MIN_W = 1200;
-/* And below THIS the sidebar stops being a column and becomes a drawer over
-   the page. Matches the `phone` breakpoint in index.html. */
+/* PANEL_MIN_W / shellNarrow are GONE. They existed to fold the activity column
+   away below 1200px, where the sidebar and the panel together ate 548px of the
+   window and left the middle less room than the register's own table needs.
+   The panel takes no width at all now — it is a layer over the page — so there
+   is no width at which it has to be taken away, and a breakpoint that answers
+   a question nobody asks any more is a breakpoint that will be believed by the
+   next person to read it. */
+/* Below THIS the sidebar stops being a column and becomes a drawer over the
+   page. Matches the `phone` breakpoint in index.html. */
 const NAV_DRAWER_W = 900;
-function shellNarrow(){
-  return typeof innerWidth === 'number' ? innerWidth < PANEL_MIN_W : false;
-}
 function navDrawerActive(){
   return typeof innerWidth === 'number' ? innerWidth < NAV_DRAWER_W : false;
 }
+/* THE PANEL IS A LAYER, NOT A COLUMN.
+
+   It used to be a grid track, and this function wrote #body-grid's columns to
+   open and close it — so opening Activity took 292px off the page, re-wrapped
+   every line of the contract underneath it and moved whatever the reader was
+   looking at sideways. It is a slide-over now (index.html, beside the Copilot
+   it copies), and this function only says open or shut.
+
+   Two things follow from that. The grid is never touched again — it has one
+   track written into the markup, so nothing here can reshape the page. And the
+   narrow-window suppression is gone: it existed because 292px is a column a
+   small window cannot spare, and a layer costs no width at all. The panel
+   opens at every size now, capped at 88vw so it can always be closed. */
 function applyPanelLayout(){
-  const grid=document.getElementById('body-grid'); const panel=document.getElementById('context-panel');
-  if(!grid) return;
+  const panel=document.getElementById('context-panel');
+  const scrim=document.getElementById('panel-scrim');
+  if(!panel||!panel.classList) return;
   // Intel owns its right side with its embedded portfolio chatbot dock, so the
   // global Activity panel is suppressed there to avoid two right panels.
-  /* AND THE WINDOW GETS A VOTE. This function writes an INLINE
-     grid-template-columns, which outranks any media query aimed at #body-grid —
-     so width-awareness has to live here or it does not exist at all. On a
-     narrow window the panel is suppressed; state.panelOpen is left untouched,
-     so widening the window brings back exactly the panel the reader chose. The
-     width is read from --shell-panel-w so the breakpoints in index.html stay
-     the single place those numbers are written. */
-  const show = state.panelOpen && state.view!=='intel' && !shellNarrow();
-  if(show){ grid.style.gridTemplateColumns='1fr var(--shell-panel-w,292px)'; if(panel) panel.style.display='flex'; }
-  else { grid.style.gridTemplateColumns='1fr'; if(panel) panel.style.display='none'; }
+  const show = !!(state.panelOpen && state.view!=='intel');
+  panel.classList.toggle('open',show);
+  panel.setAttribute('aria-hidden',show?'false':'true');
+  if(scrim&&scrim.classList) scrim.classList.toggle('open',show);
+  const btn=document.getElementById('cmd-panel');
+  if(btn) btn.setAttribute('aria-expanded',show?'true':'false');
+}
+function closeContextPanel(){
+  if(!state.panelOpen) return;
+  state.panelOpen=false; applyPanelLayout();
 }
 /* The nav drawer (phone only — above 900 the sidebar is a column and this is
    never called). Restyling, not rebuilding: the same <aside> with the same
@@ -905,6 +921,21 @@ function wireShell(){
 
   // panel toggle (Activity feed only)
   document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); if(state.panelOpen){ refreshActivityFeed(true); renderContextPanel(); } });
+  /* A layer needs a way out that is not the button that opened it — the reader
+     who pressed a header icon should not have to find that icon again. Scrim,
+     its own close button, and Escape, which is what every other layer in this
+     product answers to. */
+  document.getElementById('panel-close')?.addEventListener('click',closeContextPanel);
+  document.getElementById('panel-scrim')?.addEventListener('click',closeContextPanel);
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape'||!state.panelOpen) return;
+    /* The Copilot sits ON TOP of this panel, and a modal on top of both. One
+       Escape closes one layer, and it must be the one the reader can see —
+       so this stands down while either of those is up. */
+    if(document.getElementById('ai-panel')?.classList.contains('open')) return;
+    if(document.getElementById('modal-root')?.firstChild) return;
+    closeContextPanel();
+  });
   // sidebar → icon rail, and back
   document.getElementById('cmd-rail')?.addEventListener('click',toggleRail);
   /* Applied at wiring time, not at sign-in: the shell is in the document from
@@ -964,4 +995,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,shellNarrow,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

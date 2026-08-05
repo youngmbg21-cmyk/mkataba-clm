@@ -111,7 +111,10 @@ const M_CSS = `
      by something that assumes it is on screen. */
   body.m-on #app-shell{ display:none!important; }
   body.m-on #m-root{ display:flex!important; }
-  body.m-on #context-panel, body.m-on #nav-scrim, body.m-on #side-nav{ display:none!important; }
+  /* #panel-scrim joined this list when the Activity panel became a slide-over
+     and moved out of the shell: it is a body-level element now, so "hidden
+     because the shell is hidden" no longer covers it. */
+  body.m-on #context-panel, body.m-on #panel-scrim, body.m-on #nav-scrim, body.m-on #side-nav{ display:none!important; }
   /* The page itself never scrolls; the screen inside does. Two scrollbars on a
      phone is how a header ends up half off the top with no way back. */
   body.m-on{ overflow:hidden; overscroll-behavior:none; }

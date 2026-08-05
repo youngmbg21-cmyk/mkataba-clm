@@ -3420,7 +3420,7 @@ async function applyResponse(c, r, opts={}){
       const ns=window.nextSigner?nextSigner(c):null;
       if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
     }
-    c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
+    c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', at:r.at, ts:fmtDT(r.at) });
     // r.verified===false means the server could not send a code, so nothing
     // checked that this signer holds that address. The trail says so rather
     // than reading like every other verified counterparty signature.
@@ -3466,7 +3466,7 @@ async function applyResponse(c, r, opts={}){
        rather than another round of drafting. */
     c.acceptance={ by:who, at:r.at, email:r.email||null, comment:r.comment||'' };
     c.comments.push({ author:r.name, role:'Counterparty — Wording accepted', side:'external',
-      text:r.comment||'Accepted the current wording. Not yet signed.', ts:fmtDT(r.at) });
+      text:r.comment||'Accepted the current wording. Not yet signed.', at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Wording accepted',`${who} accepted the current wording without signing`);
     toast(`${r.name} accepted the wording — ready for signature`);
   } else if(r.action==='decisions'){
@@ -3501,7 +3501,7 @@ async function applyResponse(c, r, opts={}){
       withdrew.length?`${withdrew.length} ask${withdrew.length===1?'':'s'} withdrawn (${withdrew.map(x=>'#'+x).join(', ')})`:'']
       .filter(Boolean).join('; ');
     c.comments.push({ author:r.name, role:'Counterparty — Negotiation round', side:'external',
-      text:r.comment||(said+'.'), ts:fmtDT(r.at) });
+      text:r.comment||(said+'.'), at:r.at, ts:fmtDT(r.at) });
     if(done.length) logAudit(c,'Negotiation',`${who} decided ${done.length} proposed change${done.length===1?'':'s'} — ${acc} accepted, ${done.length-acc} rejected (${done.map(x=>'#'+x.id+' '+x.status).join(', ')})`);
     negoTurnBack(c, who);
     toast(said?`${r.name}: ${said}`:`${r.name} answered`);
@@ -3569,13 +3569,13 @@ async function applyResponse(c, r, opts={}){
     if(withdrew.length) parts.push(`${withdrew.length} of their own ask${withdrew.length===1?'':'s'} withdrawn`);
     c.comments.push({ author:r.name, role:'Counterparty — Ready to sign', side:'external',
       text:r.comment||`Everything is settled from our side${parts.length?` — ${parts.join(', ')}`:''}. Ready to sign.`,
-      ts:fmtDT(r.at) });
+      at:r.at, ts:fmtDT(r.at) });
     negoTurnBack(c, who);
     logAudit(c,'Ready to sign',`${who} signalled ready to sign via the negotiation link`
       +`${parts.length?` — ${parts.join('; ')}`:''}. Nothing is signed: issue a signing link to take it forward.`);
     toast(`${r.name} is ready to sign — issue a signing link`);
   } else if(r.action==='changes'){
-    c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
+    c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];
     // E2: a change request may carry proposed edited text (a redline). Capture
     // the base text it was edited from so the owner can review a clean diff.
@@ -3617,7 +3617,7 @@ async function applyResponse(c, r, opts={}){
     toast(`${r.name} requested changes — review in Negotiation`);
   } else if(r.action==='decline'){
     c.status='Declined';
-    c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, ts:fmtDT(r.at) });
+    c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Declined',`${who} declined via share link`);
     toast(`${r.name} declined the agreement`,'err');
   } else { if(!opts.background) toast('Unknown response type','err'); return false; }

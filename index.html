@@ -473,9 +473,9 @@
   .nav-section-head:hover .nav-plus{opacity:1;}
   .nav-section:not(.open) .nav-section-body{display:none;}
 
-  .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
-  .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-600);}
-  .panel-tab:hover{color:var(--color-text);}
+  /* .panel-tab is gone with the Activity panel's tab strip — it dressed a
+     lone tab that had nothing to switch to, and the slide-over carries a
+     plain header instead. */
 
   /* top-header global search (⌘K) — a flex item that may shrink, so the
      jurisdiction switcher and the search never overlap on narrower shells */
@@ -979,6 +979,33 @@
   @keyframes anchorFlash{0%{background:var(--color-accent-100);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 30%,transparent);}100%{background:transparent;box-shadow:0 0 0 3px transparent;}}
   .scan-pulse{animation:scanPulse 1s ease infinite;}
   @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
+
+  /* Activity slide-over — the same mechanics as the Copilot below it, one
+     layer lower, so opening the Copilot on top of the Activity panel puts them
+     in the order you would expect rather than the order they were written in.
+     Off-screen by default and NOT display:none: a transform can be animated,
+     and a panel that simply appears is a panel that looks like a bug. */
+  #context-panel{
+    position:fixed;top:0;right:0;bottom:0;z-index:46;
+    width:min(var(--shell-panel-w,292px),88vw);
+    display:flex;flex-direction:column;min-height:0;overflow:hidden;
+    box-shadow:var(--shadow-lg);
+    transform:translateX(105%);
+    transition:transform .3s cubic-bezier(.22,.61,.36,1);
+  }
+  #context-panel.open{transform:none;}
+  #panel-scrim{
+    position:fixed;inset:0;z-index:45;
+    background:color-mix(in srgb,#020617 45%,transparent);
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  #panel-scrim.open{opacity:1;pointer-events:auto;}
+  /* Motion is a preference, not a decoration: with it reduced the panel still
+     arrives, it simply stops sliding. */
+  @media (prefers-reduced-motion:reduce){
+    #context-panel{transition:none;}
+    #panel-scrim{transition:none;}
+  }
 
   /* Copilot slide-over */
   #ai-panel{position:fixed;top:0;right:0;bottom:0;z-index:50;transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1),max-width .28s cubic-bezier(.22,.61,.36,1);}
@@ -1597,8 +1624,13 @@
          strip that never moved. -->
     <div id="new-menu" class="hidden" style="position:fixed;width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:12px;padding:6px;z-index:60;max-height:70vh;overflow-y:auto;"></div>
 
-    <!-- body grid: content + context panel -->
-    <div id="body-grid" style="flex:1;display:grid;grid-template-columns:1fr 292px;min-height:0;">
+    <!-- body grid: content only.
+         The Activity panel USED TO TAKE A COLUMN HERE, and opening it re-laid
+         the page out — the contract narrowed, its lines re-wrapped, and
+         whatever the reader was looking at moved sideways. It is a slide-over
+         now (see #context-panel below, beside the Copilot it borrows its
+         behaviour from), so this grid has one track and never changes. -->
+    <div id="body-grid" style="flex:1;display:grid;grid-template-columns:1fr;min-height:0;">
       <!-- scrollbar-gutter keeps the gutter reserved whether or not this page
            scrolls: without it, moving between a scrolling page (Home, Reports)
            and a fixed-height one (Register, Queue) made the scrollbar appear
@@ -1608,13 +1640,6 @@
         <div id="content"></div>
       </main>
 
-      <!-- context panel (292px) -->
-      <aside id="context-panel" style="border-left:1px solid var(--color-divider);background:var(--color-surface);display:flex;flex-direction:column;min-height:0;overflow:hidden;">
-        <div style="display:flex;flex:none;border-bottom:1px solid var(--color-divider);">
-          <span class="panel-tab active">Activity</span>
-        </div>
-        <div id="panel-body" class="scroll-thin" style="flex:1;overflow-y:auto;"></div>
-      </aside>
     </div>
   </div>
 </div>
@@ -1628,6 +1653,31 @@
      data. Everything inside is built by js/mobile.js, which renders nothing at
      all above the breakpoint. See the rules at the top of that file. -->
 <div id="m-root" hidden></div>
+
+<!-- ================= ACTIVITY PANEL (slide-over) =================
+     It lived in #body-grid as a 292px column, so opening it took 292px away
+     from the page and gave the reader a different layout of the thing they
+     were reading. It is a layer now, on the same pattern as the Copilot below
+     — fixed to the right edge, over a scrim, dismissed by the scrim, Escape or
+     the header button that opened it. Nothing behind it moves.
+
+     Being a layer also means it no longer has to be suppressed on a narrow
+     window: it took a column it could not afford there, and now it takes
+     none. -->
+<div id="panel-scrim"></div>
+<aside id="context-panel" aria-label="Activity" style="background:var(--color-surface);border-left:1px solid var(--color-divider);">
+  <!-- A HEADER, NOT A TAB STRIP. The old one was a single full-width .panel-tab
+       — an underlined tab, alone, with nothing to switch to — which read as a
+       column heading only because a column is what it sat on. Full height and
+       over the page it needs a title and a way out, in that order. -->
+  <header style="flex:none;display:flex;align-items:center;gap:10px;padding:13px 10px 13px 16px;border-bottom:1px solid var(--color-divider);">
+    <h2 style="flex:1;margin:0;font-family:var(--font-heading);font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text);">Activity</h2>
+    <button id="panel-close" class="hdr-icon-btn" title="Close the Activity panel" aria-label="Close the Activity panel">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+  </header>
+  <div id="panel-body" class="scroll-thin" style="flex:1;overflow-y:auto;"></div>
+</aside>
 
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
