@@ -141,6 +141,11 @@
        match is not the same colour. */
     --brand-hero-deep:#0b3d3a;
     --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
+    /* The band's second line. It was #bde7e1 typed into the dashboard's
+       markup — a pale TEAL, which is why it went on reading green on the navy
+       platform, and the same reason the band itself is a token: a brand colour
+       nobody can find is a brand colour that cannot be changed. */
+    --brand-hero-sub:#bde7e1;
     --brand-cyan-700:#0aa2b8;
     --brand-grad:linear-gradient(135deg,var(--color-accent-600),var(--brand-cyan));
 
@@ -559,6 +564,10 @@
      filled block on the sidebar, which is what makes it findable at a glance in
      both states — the thing that was missing when this was a grey square in the
      far corner. */
+  /* NOTE: this gradient never paints. `#side-nav .rail-head` further down wins
+     on specificity and makes the band a translucent white panel instead, which
+     is why it needed nothing when the dark theme changed grounds — 10% white
+     rides whatever is under it. Left as the light-rail fallback it was. */
   .rail-head{flex:none;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
     background:linear-gradient(135deg,var(--nav-deep),var(--color-accent-800) 70%);color:#fff;}
   .rail-head-label{font-family:var(--font-heading);font-size:10px;font-weight:800;
@@ -658,6 +667,10 @@
     --brand-hero-deep:#0f2447;
     /* The sidebar's own ground, deeper than the ramp reaches. */
     --nav-bg:#122a4d; --nav-line:#0e2140; --nav-ink:#a5bde0; --nav-deep:#17376b;
+    /* Navy wore the green band's pale teal second line, because that colour was
+       typed into the dashboard rather than named. Now that it has a name, navy
+       answers it. */
+    --brand-hero-sub:#c3d6f2;
   }
   /* Accent text that stays READABLE in both themes. The deep teal that reads
      well on white is 2.4:1 on the dark surface — the app's existing answer for
@@ -927,7 +940,34 @@
     font-size:11.5px; font-weight:700; color:var(--accent-ink); padding:2px 0; }
   .check-row .cg:hover{ text-decoration:underline; }
 
-  html.dark{ --nav-bg:#07302e; --nav-line:#062825; --nav-ink:#87cec5; }
+  /* ---- DARK IS A BLACK THEME, INCLUDING ITS TWO BIGGEST SURFACES ----
+     Both theme pickers — the desktop menu and the phone's swatch button —
+     advertise Dark as slate on near-black (#1e293b → #0f172a). The platform
+     delivered that everywhere except the two surfaces you actually look at:
+     the sidebar stayed deep green and the dashboard's welcome band stayed a
+     green-to-cyan gradient. They were the largest blocks of colour on the
+     screen, so the theme read as "green with a dark page behind it".
+
+     The ramp below is the theme's OWN ramp, not a darker green: the sidebar
+     sits one step above the page (#020617) so it still reads as its own
+     column, the band starts at near-black, and the accent survives as a
+     single warm stop at the band's far edge — mixed from --color-accent-600
+     rather than typed, so Navy would get a navy glow if it ever went dark.
+     GREEN IS NOT BANISHED, it is demoted from ground to accent: the active
+     door, the Copilot launcher and every status colour are untouched. */
+  html.dark{
+    --nav-bg:#0b1220; --nav-line:#1e293b; --nav-deep:#131f33;
+    --nav-ink:#94a3b8; --nav-ink-strong:#f1f5f9;
+    --brand-hero-deep:#060c18;
+    --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,#0d1a2b 55%,
+      color-mix(in srgb,var(--color-accent-600) 34%,#0d1a2b) 100%);
+    --brand-hero-sub:#9fb3c8;
+  }
+  /* The band's corner light. A 16% white bloom is a highlight on a saturated
+     teal and a grey smudge on near-black, so the dark theme turns it most of
+     the way down rather than off — the band keeps its top-right lift without
+     looking like a stain. */
+  html.dark .hm-hero-glow{ opacity:.35; }
   #side-nav .nav-item{ color:var(--nav-ink); }
   #side-nav .nav-item svg{ opacity:.9; }
   #side-nav .nav-item:hover{ background:rgba(255,255,255,.08); color:var(--nav-ink-strong); border-color:transparent; }
@@ -952,8 +992,10 @@
   #side-nav .rail-head{ background:rgba(255,255,255,.10); }
   #side-nav .rail-head-label{ color:rgba(255,255,255,.7); }
   /* ---- THE STATUS CARD AT THE FOOT OF THE SIDEBAR ----
-     THE SIDEBAR IS DARK IN EVERY THEME (--nav-bg is deep green or deep navy,
-     never light), so this card is styled ONCE, for a dark ground. It used to
+     THE SIDEBAR IS DARK IN EVERY THEME (--nav-bg is deep green, deep navy or
+     near-black, never light), so this card is styled ONCE, for a dark ground.
+     Every value here is white at an alpha, so it rides whichever of the three
+     grounds is underneath without a per-theme override. It used to
      be written for a white rail — a --color-neutral-100 panel with
      --color-neutral-700 text — and then repainted for the dark by the two
      rules below it. One override further down was missed, which is how the
@@ -2024,21 +2066,6 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
           </button>
-          <!-- Bulk import has its own door again. It was retired to the
-               "+ New contract" menu on the reasoning that the three ways a
-               contract gets in belong together — which is true of DRAFTING one
-               and UPLOADING one, both of which end with a contract on screen a
-               moment later. Importing a back-catalogue is not that act: it is a
-               job of work with a queue, a review pass and a Copilot budget, and
-               you come back to it across days. A menu called "+ New contract"
-               is where you go to make one, not where you go to resume one.
-               The menu entry stays — the two doors reach the same page. -->
-          <button data-view="migration" class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9.5"/><path d="m8 9 4 4 4-4"/><path d="M3 15h5l1.2 2.2h5.6L16 15h5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
-            <span style="flex:1;">Import contracts</span><span class="nav-count" data-count="migration"
-              title="Imported contracts still waiting on a human review pass"></span>
-          </button>
         </div>
       </div>
 
@@ -2067,6 +2094,25 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>
             <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
+          </button>
+          <!-- Bulk import has a door again, and it is in here rather than in
+               the everyday five. It was retired to the "+ New contract" menu on
+               the reasoning that the three ways a contract gets in belong
+               together — true of DRAFTING one and UPLOADING one, both a single
+               act that ends with a contract on screen a moment later.
+               Importing a back-catalogue is not that: it is a job of work with
+               a queue, a review pass and a Copilot budget, and you come back to
+               it across days. A menu called "+ New contract" is where you go to
+               START one, not where you go to RESUME one — which is the whole
+               case for a door. ADMINISTRATION is the right shelf for it: the
+               fold is for what is reached rarely and by choice, and a
+               back-catalogue import is a setup job, not a daily destination.
+               The menu entry stays; the two doors reach the same page. -->
+          <button data-view="migration" class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9.5"/><path d="m8 9 4 4 4-4"/><path d="M3 15h5l1.2 2.2h5.6L16 15h5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+            <span style="flex:1;">Import contracts</span><span class="nav-count" data-count="migration"
+              title="Imported contracts still waiting on a human review pass"></span>
           </button>
         </div>
       </div>
