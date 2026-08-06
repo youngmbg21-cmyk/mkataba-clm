@@ -592,12 +592,16 @@
   #app-shell.rail aside .copilot-wrap{padding:8px 0;display:flex;justify-content:center;}
   #app-shell.rail aside #side-copilot{width:44px;padding:10px 0;}
   #app-shell.rail aside .sc-label{display:none;}
+  /* The rail is 60px wide — no room for a labelled reading, so the card falls
+     back to its two dots and keeps its tooltips. */
   #app-shell.rail aside .foot-wrap{padding:10px 0;}
-  #app-shell.rail aside .foot-wrap>div{background:none;border:0;padding:0;align-items:center;}
-  #app-shell.rail aside .foot-status{justify-content:center;}
-  #app-shell.rail aside #side-status,
-  #app-shell.rail aside #side-ai-usage-txt{display:none;}
-  #app-shell.rail aside #side-ai-usage{justify-content:center;}
+  #app-shell.rail aside .foot-card{background:none;border:0;padding:0;align-items:center;gap:9px;}
+  #app-shell.rail aside .foot-card-head{justify-content:center;}
+  #app-shell.rail aside .foot-card-title,
+  #app-shell.rail aside .foot-kpi,
+  #app-shell.rail aside .foot-note{display:none;}
+  #app-shell.rail aside #side-ai-usage{justify-content:center;border-top:0;padding:0;margin:0;}
+  #app-shell.rail aside #side-ai-usage .foot-ai-dot{margin-top:0;}
 
   /* ============================================================
      THE SIDEBAR IS THE BRAND'S OWN BLOCK.
@@ -947,12 +951,42 @@
      changes the window's shape vanishes into the wall behind it. */
   #side-nav .rail-head{ background:rgba(255,255,255,.10); }
   #side-nav .rail-head-label{ color:rgba(255,255,255,.7); }
-  /* the status block at the foot, on teal rather than on grey */
+  /* ---- THE STATUS CARD AT THE FOOT OF THE SIDEBAR ----
+     THE SIDEBAR IS DARK IN EVERY THEME (--nav-bg is deep green or deep navy,
+     never light), so this card is styled ONCE, for a dark ground. It used to
+     be written for a white rail — a --color-neutral-100 panel with
+     --color-neutral-700 text — and then repainted for the dark by the two
+     rules below it. One override further down was missed, which is how the
+     open drawer ended up drawing a near-white block and then writing white
+     text on it: the card was legible in neither theme, at exactly the size
+     where it is the only status a reader can see. Nothing here reads a
+     light-theme token. */
   #side-nav .foot-wrap{ border-top-color:rgba(255,255,255,.12); }
-  #side-nav .foot-wrap>div{ background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.12); }
-  #side-nav .foot-status,#side-nav #side-ai-usage,
-  #side-nav #side-status,#side-nav #side-ai-usage-txt{ color:rgba(255,255,255,.68); }
-  #app-shell.rail #side-nav .foot-wrap>div{ background:none; border:0; }
+  #side-nav .foot-card{ background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13);
+    border-radius:12px; padding:9px 11px 10px; display:flex; flex-direction:column; gap:5px; min-width:0; }
+  #side-nav .foot-card-head{ display:flex; align-items:center; gap:7px; min-width:0; padding-bottom:1px; }
+  #side-nav .foot-card-title{ font-family:var(--font-heading); font-size:9.5px; font-weight:700;
+    letter-spacing:.09em; text-transform:uppercase; color:rgba(255,255,255,.55);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* label left, figure right — the figure is the thing being read, so it is
+     the brighter of the two and never wraps under its own label */
+  #side-nav .foot-kpi{ display:flex; align-items:baseline; justify-content:space-between;
+    gap:8px; min-width:0; font-size:10.5px; line-height:1.35; }
+  #side-nav .foot-k{ color:rgba(255,255,255,.58); white-space:nowrap; flex:none; }
+  #side-nav .foot-v{ color:rgba(255,255,255,.92); font-weight:600; min-width:0;
+    text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #side-nav .foot-v[data-tone="on"]{ color:#6ee7b7; }
+  #side-nav .foot-v[data-tone="off"]{ color:rgba(255,255,255,.55); font-weight:500; }
+  #side-nav .foot-note{ display:block; font-size:9.5px; line-height:1.35;
+    color:rgba(255,255,255,.46); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* the spend meter is a button, so it has to be told it is not one */
+  #side-nav #side-ai-usage{ align-items:flex-start; gap:7px; border:0; background:none;
+    cursor:pointer; padding:6px 0 0; margin-top:1px; text-align:left; font:inherit;
+    color:inherit; min-width:0; border-top:1px solid rgba(255,255,255,.10); }
+  #side-nav #side-ai-usage .foot-ai-dot{ margin-top:4px; }
+  #side-nav .foot-ai-body{ display:flex; flex-direction:column; gap:1px; flex:1; min-width:0; }
+  #side-nav #side-ai-usage:hover .foot-v{ text-decoration:underline; }
+  #app-shell.rail #side-nav .foot-card{ background:none; border:0; }
   /* the drawer below 900 floats this same block over the page */
   #side-nav .scroll-thin::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.18); }
 
@@ -1087,11 +1121,21 @@
     #app-shell.rail #side-nav.open .copilot-wrap{ padding:12px; display:block; }
     #app-shell.rail #side-nav.open #side-copilot{ width:100%; padding:10px; }
     #app-shell.rail #side-nav.open .sc-label{ display:inline; }
+    /* THE DRAWER IS NOT THE RAIL. It is 240px of dark sidebar floating over
+       the page, so the card comes back in full — dark ground, dark-ground
+       ink. This rule used to hand it a light-grey panel while the ink rules
+       above kept writing white on it, which is the washed-out block the
+       drawer was showing. */
     #app-shell.rail #side-nav.open .foot-wrap{ padding:12px; }
-    #app-shell.rail #side-nav.open .foot-wrap>div{ background:var(--color-neutral-100); border:1px solid var(--color-divider); padding:10px 12px; align-items:stretch; }
-    #app-shell.rail #side-nav.open .foot-status{ justify-content:flex-start; }
-    #app-shell.rail #side-nav.open #side-status,
-    #app-shell.rail #side-nav.open #side-ai-usage-txt{ display:inline; }
+    #app-shell.rail #side-nav.open .foot-card{ background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.13); padding:9px 11px 10px; align-items:stretch; gap:5px; }
+    #app-shell.rail #side-nav.open .foot-card-head{ justify-content:flex-start; }
+    #app-shell.rail #side-nav.open .foot-card-title,
+    #app-shell.rail #side-nav.open .foot-note{ display:block; }
+    #app-shell.rail #side-nav.open .foot-kpi{ display:flex; }
+    #app-shell.rail #side-nav.open #side-ai-usage{ justify-content:flex-start;
+      border-top:1px solid rgba(255,255,255,.10); padding:6px 0 0; margin-top:1px; }
+    #app-shell.rail #side-nav.open #side-ai-usage .foot-ai-dot{ margin-top:4px; }
     /* the rail's own header toggle has nothing to toggle inside a drawer */
     #side-nav .rail-head{ display:none; }
     #nav-scrim:not([hidden]){
@@ -2021,16 +2065,38 @@
       </button>
     </div>
 
-    <!-- footer: live status card (the profile badge lives in the top header) -->
-    <div class="foot-wrap" style="border-top:1px solid var(--color-divider);padding:12px;">
-      <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:7px;">
-        <div class="foot-status" style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);min-width:0;">
+    <!-- footer: live status card (the profile badge lives in the top header)
+
+         IT HAS TO SAY WHAT IT IS. This was two unlabelled sentences run
+         together — "Server mode · SQLite ✦ Claude Copilot · 2 online" over
+         "Copilot today: $1.02 / $10.00 · 15 req" — which wrapped into a knot
+         and never told a reader what any of it measured. It is now a titled
+         card of named readings: each line states what it is showing on the
+         left and the figure on the right. -->
+    <div class="foot-wrap" style="border-top:1px solid var(--nav-line);padding:12px;">
+      <div class="foot-card">
+        <div class="foot-card-head">
           <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
-          <span id="side-status" style="min-width:0;">Server mode · SQLite · 4 online</span>
+          <span class="foot-card-title">Workspace status</span>
         </div>
-        <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
-          <span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex:none;"></span>
-          <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
+        <div class="foot-kpi" title="Where this workspace keeps your contracts.">
+          <span class="foot-k">Storage</span><span class="foot-v" id="side-status-mode">—</span>
+        </div>
+        <div class="foot-kpi" title="Whether Claude is answering the Copilot, or it is falling back to keyword matching.">
+          <span class="foot-k">Copilot</span><span class="foot-v" id="side-status-ai">—</span>
+        </div>
+        <div class="foot-kpi" title="People with a login on this workspace.">
+          <span class="foot-k">Team</span><span class="foot-v" id="side-status-online">—</span>
+        </div>
+        <button id="side-ai-usage" type="button" title="What the Copilot has cost today across the whole workspace in real Anthropic API calls — resets at local midnight. Click to set the daily limit." style="display:none;">
+          <span class="foot-ai-dot" style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex:none;"></span>
+          <span class="foot-ai-body">
+            <span class="foot-kpi">
+              <span class="foot-k" id="side-ai-usage-label">Copilot spend</span>
+              <span class="foot-v" id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
+            </span>
+            <span class="foot-note" id="side-ai-usage-sub"></span>
+          </span>
         </button>
       </div>
     </div>

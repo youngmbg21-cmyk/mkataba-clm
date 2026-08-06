@@ -92,7 +92,10 @@ function renderCalendar(){
        unchanged and a laptop shows all six rows instead of four and a half. */
     const cellStyle=`min-height:clamp(38px,7.1vh,62px);min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
       `background:${bg};border:1px solid ${bd}`;
-    const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--st-steel-fg)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
+    /* The day number is the one thing every reader looks for first, so it is
+       set bold at every state — not only on today and on days that carry an
+       event. A plain day used to be 10px at weight 400 and read as a whisper. */
+    const numStyle=`font-family:var(--font-mono);font-size:12px;line-height:1.15;color:${today?'var(--st-steel-fg)':(ev?ev.fg:'var(--color-neutral-600)')};font-weight:700`;
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
       return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+

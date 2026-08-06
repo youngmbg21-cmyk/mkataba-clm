@@ -1107,9 +1107,15 @@ function renderSideUser(){
   const online=(getUsers()||[]).length||1;
   // Show the storage backend AND whether the Copilot brain is live, so an entered key
   // is visibly reflected (green ✦ = Claude answering; grey = keyword fallback).
+  // THREE NAMED READINGS, not one run-on sentence. The card in the sidebar foot
+  // states what each figure is before it states the figure, so a reader who has
+  // never seen the app can tell what it is reporting.
   const aiOn=(typeof copilotAvailable==='function') && copilotAvailable();
-  const st=document.getElementById('side-status');
-  if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'var(--st-green-fg)':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude Copilot':'Copilot off'}</span> · ${online} online`;
+  const put=(id,txt,tone)=>{ const el=document.getElementById(id); if(!el) return;
+    el.textContent=txt; if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone'); };
+  put('side-status-mode', API_MODE()?'Server · SQLite':'Local · browser');
+  put('side-status-ai',   aiOn?'✦ Claude · live':'Keywords only', aiOn?'on':'off');
+  put('side-status-online', online===1?'1 person':`${online} people`);
 }
 // Bottom-left Copilot meter: today's real Anthropic API calls across the workspace,
 // so the owner can watch actual usage and size a per-customer daily limit.
@@ -1117,6 +1123,7 @@ function renderSideUser(){
 // server tally); the count resets at local midnight (server AI_DAY_TZ).
 async function refreshAiUsage(){
   const box=document.getElementById('side-ai-usage'), txt=document.getElementById('side-ai-usage-txt');
+  const lab=document.getElementById('side-ai-usage-label'), sub=document.getElementById('side-ai-usage-sub');
   if(!box||!txt) return;
   if(!API_MODE()){ box.style.display='none'; return; }
   box.onclick=()=>setView('team');
@@ -1126,9 +1133,21 @@ async function refreshAiUsage(){
     const budget=Number(u.dailySpendLimit||0);
     const spent=Number(u.spend||0);
     const a=u.allowance;
-    txt.textContent = a&&a.open
-      ? `Onboarding allowance: $${Number(a.spent||0).toFixed(2)}${a.budget>0?' / $'+Number(a.budget).toFixed(2):''}`
-      : `Copilot today: $${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''} · ${Number(u.count||0).toLocaleString('en-KE')} req`;
+    // The request count moves off the money line and becomes the line that
+    // SAYS WHAT THE MONEY IS. "$1.02 / $10.00" on its own is a figure without
+    // a subject; under a "Copilot spend today" label with "15 Copilot requests
+    // today" beneath it, it is a reading.
+    const reqs=Number(u.count||0);
+    const reqLine=`${reqs.toLocaleString('en-KE')} Copilot request${reqs===1?'':'s'} today`;
+    if(a&&a.open){
+      if(lab) lab.textContent='Free allowance';
+      txt.textContent=`$${Number(a.spent||0).toFixed(2)}${a.budget>0?' / $'+Number(a.budget).toFixed(2):''}`;
+      if(sub) sub.textContent=reqLine;
+    }else{
+      if(lab) lab.textContent='Copilot spend';
+      txt.textContent=`$${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''}`;
+      if(sub) sub.textContent=reqLine;   // the cap is already the figure's denominator
+    }
     box.style.display='flex';
   }catch(e){ box.style.display='none'; }
 }
