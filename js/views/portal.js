@@ -2661,12 +2661,20 @@ async function portalRespond(p, action, extra){
        DRAFT rather than as a finished change: the owner's copy re-files each
        one through negoFileChange, so the fingerprint and its place in the chain
        are minted on the record rather than trusted from a no-login page. */
+    /* ---- THE REASON TRAVELS, AND IT DID NOT ----
+       This hand-picks the fields that cross, and `why` was not among them. The
+       workbench on this page asks the reader "why?" in a two-step save, files
+       it on the change, holds it here by value in PORTAL_NEGO_PROPOSED — and
+       then dropped it at the moment of sending. So a counterparty explained
+       every ask, pressed Send, and the owner's cards arrived bare: the reason
+       was collected on a public page and thrown away one line before the wire.
+       `note` stays too — it is provenance and is a different thing. */
     const proposed=Object.keys(PORTAL_NEGO_PROPOSED).map(id=>{
       const x=PORTAL_NEGO_PROPOSED[id];
       return { id, clauseId:x.clauseId, changeType:x.changeType||'modify',
         oldText:x.oldText||'', newText:x.newText||'', bodyHtml:x.bodyHtml||null,
         headingText:x.headingText||null, afterClauseId:x.afterClauseId||null,
-        clauseLabel:x.clauseLabel||null, note:x.note||null };
+        clauseLabel:x.clauseLabel||null, why:x.why||null, note:x.note||null };
     });
     if(action==='decisions' && !decisions.length && !withdrawn.length && !proposed.length){
       toast('Nothing to send — ask for a change or decide one first','err'); return; }

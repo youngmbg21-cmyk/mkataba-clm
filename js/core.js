@@ -3928,7 +3928,12 @@ async function applyNegoProposals(c, r, who){
         bodyHtml: p.bodyHtml?(window.sanitizeRich?sanitizeRich(p.bodyHtml):null):null,
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
         clauseLabel:(cl&&window.negoClauseLabel?negoClauseLabel(cl):p.clauseLabel)||null },
-        { side:'counterparty', author:who, note:p.note||null, quiet:true,
+        /* why AND note, and they are not the same thing: `why` is the reason
+           they typed for this ask and is what the card shows; `note` is
+           provenance and stays internal. This re-filed with `note` alone, so
+           even once the reason reached the server it was written into the
+           field the card does not read. */
+        { side:'counterparty', author:who, why:p.why||null, note:p.note||null, quiet:true,
           via:`their link${p.id?` as ${p.id}`:''}` });
     }catch(e){ ch=null; }
     if(!ch) continue;

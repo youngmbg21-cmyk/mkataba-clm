@@ -496,6 +496,47 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
   });
 });
 
+/* THE OTHER ROUTE A REASON TRAVELS, and the one that was still broken after
+   the first fix. A counterparty working in the workbench on their link files
+   each ask through the negotiation model, where the reason is `why`; those
+   asks cross as `negoProposed` and the owner re-files them through
+   applyNegoProposals. Two hops, and neither carried `why`: the portal's
+   payload hand-picked its fields and left it out, and the owner's re-file
+   wrote `note`. So the reason was collected on their page, held for sending,
+   and dropped one line before the wire.
+
+   The clauseNotes route below is the OTHER way in. Both are asserted, because
+   fixing one and not the other is exactly what happened. */
+describe('a reason typed in the workbench survives the counterparty\'s link', () => {
+  test('why crosses on negoProposed, and lands on why — not on the internal note', async () => {
+    const win = recordStage();
+    const c = ownerContract();
+    win.negoInit(c);
+    const cl = win.negoClauseList(c)[0];
+    assert.ok(cl, 'the fixture has a clause to argue about');
+
+    /* The payload their page builds for action:'decisions' — the same shape
+       portalRespond puts on the wire. */
+    const res = { v: 1, kind: 'hati-response', id: c.id, action: 'decisions',
+      name: 'Erik Lindqvist', title: 'Legal Counsel', comment: '',
+      negoDecisions: [],
+      negoProposed: [{ id: 'CHG-001', clauseId: cl.clauseId, changeType: 'modify',
+        oldText: cl.text, newText: cl.text + ' Payment on sixty (60) days.',
+        bodyHtml: null, headingText: null, afterClauseId: null,
+        clauseLabel: cl.headingText || null,
+        why: 'Net-60 is our standard payment term across the group.', note: null }],
+      at: '2026-07-27T10:00:00Z' };
+    await win.applyResponse(c, res, { background: true });
+
+    const theirs = win.negoChanges(c).filter(x => x.authorSide === 'counterparty');
+    assert.equal(theirs.length, 1, 'their ask is on the index');
+    assert.equal(theirs[0].why, 'Net-60 is our standard payment term across the group.',
+      'the reason they typed is on the change, in the field the card reads');
+    assert.equal(theirs[0].note, null,
+      'and not in the internal-provenance field, which never crosses the table');
+  });
+});
+
 describe('a counterparty redline arrives as fingerprints as well as a round', () => {
   test('the round is unchanged, and the changes are additional', async () => {
     const win = recordStage();
