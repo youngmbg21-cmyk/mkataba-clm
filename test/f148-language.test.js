@@ -40,6 +40,7 @@ const SAME_IN_BOTH = new Set([
   'reg_col_status',       // ditto
   'set_usd_per',          // "USD per" — the currency code carries it
   'm_copilot',            // the product name
+  'ct_risk',              // 'Risk' is the same word in Swedish
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

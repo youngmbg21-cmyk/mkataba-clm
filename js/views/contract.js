@@ -1039,17 +1039,17 @@ function openUploadModal(){
     <div class="p-6">
       <div id="up-step-1">
         <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
-          <h2 class="font-display font-700 text-brand-900">Add a received contract</h2></div>
+          <h2 class="font-display font-700 text-brand-900">${t('ct_add_received')}</h2></div>
         <p class="text-xs text-brand-800/70 mb-4">A contract another company sent you — on their own paper. Drop the file: HaTi reads the counterparty, value and dates out of the document, and you check them before anything is filed.</p>
         <div id="up-drop" role="button" tabindex="0" aria-label="Drop the contract file here, or press to choose one" style="border:2px dashed var(--color-accent);border-radius:12px;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background .15s">
-          <div style="font-size:15px;font-weight:600;color:var(--color-text)">Drop the contract here</div>
+          <div style="font-size:15px;font-weight:600;color:var(--color-text)">${t('ct_drop_here')}</div>
           <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:5px">PDF · Word .docx · photo or text — or click to choose · max ${uploadMaxLabel()} · legacy .doc must be re-saved first</div>
-          <div style="font-size:11.5px;color:var(--color-accent-700);margin-top:8px;font-weight:600">That’s all — HaTi reads the rest</div>
+          <div style="font-size:11.5px;color:var(--color-accent-700);margin-top:8px;font-weight:600">${t('ct_thats_all')}</div>
         </div>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:12px"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
-          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-neutral-600);cursor:pointer" title="The bulk importer — every file read the same way, reviewed in one pass">A whole back-catalogue? <u>Import many at once</u></button>
+          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-neutral-600);cursor:pointer" title="The bulk importer — every file read the same way, reviewed in one pass">${t('ct_whole_catalogue')} <u>${t('ct_import_many')}</u></button>
           <span style="flex:1"></span>
           <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
         </div>
@@ -1111,22 +1111,22 @@ function uploadConfirmHtml(ext, meta){
   };
   return `
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h2 class="font-display font-700 text-brand-900">Check what HaTi read</h2></div>
+        <h2 class="font-display font-700 text-brand-900">${t('ct_check_what_read')}</h2></div>
       ${intro?`<p class="text-xs text-brand-800/70 mb-3" style="line-height:1.55">${intro}</p>`:''}
       ${ext&&isOcrText(ext.textSource)?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:0 0 12px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
-        <span>${esc2(ocrProvenanceLine(ext.upload))} Machine-read values are capped at <b>medium</b> confidence until you confirm them.</span></div>`:''}
+        <span>${esc2(ocrProvenanceLine(ext.upload))} Machine-read values are capped at <b>medium</b> ${t('ct_confidence_until')}</span></div>`:''}
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${fld('up-name','Contract name',{value:suggestedName, ph:'e.g. Supply Agreement — Acme', read:nameFromDoc, sub:(ext&&!nameFromDoc)?'from the file name — rename it to what it is':''})}
         ${fld('up-cp','Received from (counterparty)',{value:has('counterparty')?m.counterparty:'', ph:'e.g. Acme Ltd', read:has('counterparty'), foundKey:'counterparty'})}
         ${fld('up-cpemail','Their email (so you can send it back)',{ph:'them@company.co.ke', type:'email', sub:ext?'the one thing a document never carries — add it and the first send is one click':''})}
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
-        <label class="block"><span class="text-xs font-medium text-brand-800/70">File under</span>
+        <label class="block"><span class="text-xs font-medium text-brand-800/70">${t('ct_file_under')}</span>
           <select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOptionsHtml(null, false)}</select></label>
-        <label class="block"><span class="text-xs font-medium text-brand-800/70">Value type</span>
+        <label class="block"><span class="text-xs font-medium text-brand-800/70">${t('ct_value_type')}</span>
           <select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">
-            <option value="estimated">Estimated value</option><option value="fixed">Fixed value</option><option value="none">Non-monetary</option></select></label>
+            <option value="estimated">${t('ct_estimated_value')}</option><option value="fixed">${t('ct_fixed_value')}</option><option value="none">' + t('ct_non_monetary') + '</option></select></label>
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${fld('up-value',`Contract value (${jxCurrency()})`,{value:has('value')?m.value:'', ph:'e.g. 2500000', type:'number', read:has('value'), foundKey:'value'})}
@@ -1136,7 +1136,7 @@ function uploadConfirmHtml(ext, meta){
         <summary style="cursor:pointer;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">More details HaTi read (${extras.length}) — renewal, notice, governing law…</summary>
         <div class="grid sm:grid-cols-2 gap-2" style="margin-top:10px">${extras.map(extraFld).join('')}</div>
       </details>`:''}
-      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:11px;color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>File contract</b>.</p>`:''}
+      ${ext&&readCount?`<p style="margin:0 0 10px;font-size:11px;color:var(--color-neutral-600)">Everything ✦ came from the document${meta&&meta._source==='ai'?', read by Copilot':', pattern-matched'}. Nothing is saved until you press <b>${t('ct_file_contract')}</b>.</p>`:''}
       <div class="flex items-center gap-2">
         <button id="up-back" class="rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">← Another file</button>
         <span style="flex:1"></span>
@@ -1276,7 +1276,7 @@ async function submitUpload(){
   const value=vtype==='none'?0:Number(fval('up-value')||0);
   const expiry=fval('up-expiry')||null;
   const btn=document.getElementById('up-go');
-  btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Filing…</span>';
+  btn.disabled=true; btn.innerHTML='<span class="animate-pulse">' + t('ct_filing') + '</span>';
   // API mode: store bytes on the server and keep only a reference in the
   // synced record. Done HERE, not in the pipeline — a person who read the
   // card and pressed Cancel must leave no orphaned bytes behind.
@@ -1346,7 +1346,7 @@ function redlineDocBody(c){
       <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
     </div>
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
-      ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
+      ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${t('ct_doc_carries')} <strong>${t('ct_edited_working')}</strong>. Use <strong>Edit</strong> ${t('ct_to_change_wording')} <strong>${t('ct_compare')}</strong> ${t('ct_review_between')}</span>
     </div>
     <div style="color:var(--color-doc-text)" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
     ${signatureBlock(c)}`;
@@ -1373,17 +1373,17 @@ function openEditDocModal(c){
       <div style="${COL};padding:0 26px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit document — ${c.id}</h3></div>
-        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">Change any wording below and save. Every save is captured as a <b>new version</b> — review it under <b>Compare</b> and share the updated text with the counterparty as usual.${firstEdit?' <b>Note:</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.':''}</p>
+        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">${t('ct_change_and_save')} <b>new version</b> ${t('ct_review_under')} <b>${t('ct_compare')}</b> and share the updated text with the counterparty as usual.${firstEdit?' <b>' + t('ct_note') + '</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.':''}</p>
         ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:4px;padding:8px 11px;margin:0 0 10px;font-size:11.5px;line-height:1.5;color:var(--color-accent-800)">
           <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
-          <span>This document carries <b>formatting</b> — headings, bold, numbered clauses, tables. This is the plain-text editor, so saving here <b>converts it to plain text and the formatting is lost</b>. The clause numbers below are written out as text so the wording survives. Cancel if you did not intend that.</span></div>`:''}
+          <span>${t('ct_doc_carries')} <b>formatting</b> ${t('ct_headings_bold')} <b>${t('ct_converts_plain')}</b>${t('ct_clause_numbers_text')}</span></div>`:''}
       </div>
       <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:22px 26px;font:inherit;font-size:15px;line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
       <div style="${COL};padding:0 26px;margin-top:12px">
         <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:9px 11px;font-size:11.5px;cursor:pointer">
           <input type="checkbox" id="ed-from-cp" style="margin-top:2px;flex:none"/>
           <span><b>These changes came from ${esc(c.counterparty||'the counterparty')} (received outside HaTi).</b>
-          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">Tick this when you are typing in wording they sent by email, Word or on the phone. It is filed as a negotiation round <b>in their name</b> and waits for your decision, instead of being recorded as your own edit.</span></span>
+          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${t('ct_tick_when_typing')} <b>${t('ct_in_their_name')}</b> ${t('ct_waits_for_decision')}</span></span>
         </label>
       </div>
       <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
@@ -1446,19 +1446,19 @@ function discussPointsSectionHtml(c){
     <div id="ws-openpoints" style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:8px;padding:14px 18px;margin:0 0 14px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
         <span style="flex:none;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">Still open between you</span>
+        <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">${t('ct_still_open')}</span>
         <span style="margin-left:auto;font-size:10.5px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
       <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">Changes ${who} asked for that were not adopted. The contract reads as it did; answering here changes nothing in it.</p>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
-            ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Contract says</span>
+            ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${t('ct_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${e(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">They asked for</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${t('ct_they_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${e(pt.after)}</div></div>`:''}
-            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>They said:</b> ${e(pt.ask)}</div>`:''}
-            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>You replied:</b> ${e(pt.reason)}</div>`:''}
+            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>${t('ct_they_said')}</b> ${e(pt.ask)}</div>`:''}
+            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>${t('ct_you_replied')}</b> ${e(pt.reason)}</div>`:''}
             ${discussPointReplyHtml('point:'+pt.id, c._messages||[], {
               idp:'ws-op-'+i, mine:'owner',
               label:'Still open — '+discussTrim(pt.after||pt.before,60),
@@ -1509,7 +1509,7 @@ function uploadDocBody(c){
   const fileUrl = docFileUrl(c);
   const previewHead = canPreview ? `
     <div class="flex items-center justify-between gap-2 mb-2">
-      <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">Document preview</div>
+      <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${t('ct_document_preview')}</div>
       <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
   const preview = previewHead + ((isPdf||isText)
@@ -1518,13 +1518,13 @@ function uploadDocBody(c){
     ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="Uploaded document"/></div>`
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
     ? `<div class="flex items-center justify-between gap-2 mb-2">
-         <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">Reading view — text read out of the Word file</div>
+         <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${t('ct_reading_view')}</div>
        </div>
        <div class="scroll-thin rounded-xl border border-brand-100 bg-white elev-1 overflow-y-auto max-h-[calc(100vh-235px)] min-h-[420px]" style="padding:26px 30px">${documentTextHtml(u.extractedText,{size:'13px',lh:'1.85'})}</div>`
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
          <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
-         <div class="text-xs text-brand-800/65 mt-1">This file type can't preview in the browser — download the original to review it.</div>
+         <div class="text-xs text-brand-800/65 mt-1">${t('ct_cant_preview')}</div>
        </div>`);
   const sizeKB = u.size?Math.round(u.size/1024):0;
   return `
@@ -1534,14 +1534,14 @@ function uploadDocBody(c){
     </div>
     <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
       ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${isExternallyExecuted(c)
-        ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
-        : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the Copilot review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
+        ? `This contract was <strong>${t('ct_executed_outside')}</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
+        : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>${t('ct_on_their_paper')} <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
     ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
-      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
-      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">${t('ct_original_file')}</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">${t('ct_uploaded')}</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
     </div>
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
@@ -1559,7 +1559,7 @@ function uploadDocBody(c){
     <div class="mb-4" data-anchor="redline">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
         <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
-        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">Working text (edited)</span>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">${t('ct_working_text')}</span>
       </div>
       <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;color:var(--color-doc-text)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
       <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
@@ -1577,7 +1577,7 @@ async function rereadUploadText(c, btn){
   if(!canEdit()){ toast('Viewers cannot change contracts','err'); return; }
   const u=c.upload||{};
   const restore=btn?btn.innerHTML:'';
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">' + t('ct_reading') + '</span>'; }
   try{
     /* There is one file on an upload now — the original. The branch that
        re-read the newest adopted Word version went when the round trip did. */
@@ -1628,7 +1628,7 @@ function openDocReader(url, name, mime){
       <div class="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-b border-hair">
         <div class="min-w-0 flex items-center gap-2.5">
           <span class="h-8 w-8 grid place-items-center rounded-lg bg-brand-50 text-brand-600 shrink-0">${icon('file','w-4 h-4')}</span>
-          <div class="min-w-0"><div class="text-sm font-700 text-brand-900 truncate">${name||'Document'}</div><div class="text-[11px] text-brand-800/60">Received document · full-screen reader</div></div>
+          <div class="min-w-0"><div class="text-sm font-700 text-brand-900 truncate">${name||'Document'}</div><div class="text-[11px] text-brand-800/60">${t('ct_received_fullscreen')}</div></div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <a href="${url}" download="${(name||'contract').replace(/"/g,'')}" class="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-600 text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download</a>
@@ -1934,10 +1934,10 @@ function templateProvenanceHtml(c){
   const esc=x=>String(x||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return `<div style="max-width:660px;margin:0 auto 10px;display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px">
     <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('copy','w-3.5 h-3.5')}</span>
-    <span>Created from <b>${esc(label)}</b>.${moved
-      ? ` That template has since been revised — it is now <b>v${liveV}</b>. <b>This contract keeps the wording it was created with</b>; editing a template never changes a contract already made from it.`
+    <span>${t('ct_created_from')} <b>${esc(label)}</b>.${moved
+      ? ` That template has since been revised — it is now <b>v${liveV}</b>. <b>${t('ct_keeps_wording')}</b>; editing a template never changes a contract already made from it.`
       : ` Editing the template later does not change this contract — its wording was copied at creation.`}${
-      !live ? ' <span style="color:var(--color-neutral-500)">The template itself has since been deleted.</span>' : ''}</span>
+      !live ? ' <span style="color:var(--color-neutral-500)">' + t('ct_template_deleted') + '</span>' : ''}</span>
   </div>`;
 }
 
@@ -1960,12 +1960,12 @@ function externalExecutionBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" style="stroke:var(--color-accent)" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="color-mix(in srgb,var(--color-accent) 11%,transparent)" stroke="#8fa8c2" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
-          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" style="fill:var(--color-accent)">MIGRATED</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">${t('ct_on_file')}</text>
+          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" style="fill:var(--color-accent)">${t('ct_migrated')}</text>
         </svg>
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">Executed outside HaTi</span>${statusChip('Signed')}</div>
-          <div class="mt-1 text-xs text-brand-800/60">Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.</div>
+          <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">${t('ct_executed_outside_hati')}</span>${statusChip('Signed')}</div>
+          <div class="mt-1 text-xs text-brand-800/60">${t('ct_signed_before_migration')} <strong>${t('ct_no_esig_here')}</strong> ${t('ct_sigs_on_original')}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
             ${cell('Filed into HaTi by', filedBy, filedAt)}
             ${cell('Executed on (as recorded)', c.signedAt||'—', 'from the migrated record, not verified by HaTi')}
@@ -2008,14 +2008,14 @@ function signatureBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" style="fill:var(--st-green-dot)">SEALED</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" style="fill:var(--st-green-dot)">${t('ct_sealed')}</text>
           <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" style="fill:var(--st-green-fg)">SHA-256</text>
         </svg>
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
+          <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">${t('ct_executed_sealed_caps')}</span>${statusChip('Signed')}</div>
           <div class="mt-1 text-xs text-brand-800/60">${(c.execution&&c.execution.esignature)||jxEsignatureShort()}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">${sigList}</div>
-          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
+          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${t('ct_sealed_fingerprint')}</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} DOCUMENT SEAL (SHA-256)</div>
             <div class="text-brand-100 break-all">${hashDisplay}</div>
@@ -2043,7 +2043,7 @@ function signatureBlock(c){
       <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div></div>`;
     return `
     <div class="mt-8 rounded-xl border border-brand-200 bg-brand-50/30 p-5" data-anchor="sig">
-      <div class="flex items-center gap-2"><span class="text-sm font-semibold text-brand-800/80">Signatures so far</span>
+      <div class="flex items-center gap-2"><span class="text-sm font-semibold text-brand-800/80">${t('ct_sigs_so_far')}</span>
         <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-gold-50 text-gold-700">partially signed</span></div>
       <div class="text-xs text-brand-800/65 mt-0.5 mb-3">The marks below are already on this contract. It is not yet fully executed — the seal is applied when every party has signed.</div>
       <div class="grid sm:grid-cols-2 gap-3 text-xs">${sofar.map(card).join('')}</div>
@@ -2052,8 +2052,8 @@ function signatureBlock(c){
   return `
     <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
       <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>
-      <div class="text-sm font-medium text-brand-800/70">Signature block — pending execution</div>
-      <div class="text-xs text-brand-800/65 mt-0.5">Confirm intent to sign from the panel on the right.</div>
+      <div class="text-sm font-medium text-brand-800/70">${t('ct_sig_block_pending')}</div>
+      <div class="text-xs text-brand-800/65 mt-0.5">${t('ct_confirm_intent_panel')}</div>
     </div>`;
 }
 function frozenDocBody(c){
@@ -2189,7 +2189,7 @@ function actionBarHtml(c){
      you had left. The button is gone and the strip repaints — see
      applyWsTabs. What is left here is the sentence that says WHY. */
   const tail='';
-  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>Executed &amp; sealed</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
+  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
   if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
   /* On the Document tab the sentence is about READING, because that is what
      this tab is now for; the status guidance is on every other tab, where a
@@ -2473,11 +2473,11 @@ function wireWsTabs(c){
    name on every tab; this was the third place it was said. */
 /* The read-out for one row, so an edit can refresh just that row. */
 function ktReadValue(c,key){
-  const dash='<span class="kt-none">Not set</span>';
+  const dash='<span class="kt-none">' + t('ct_not_set') + '</span>';
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
   if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
-  if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):'<span class="kt-none">Non-monetary</span>'}</span>`;
+  if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):'<span class="kt-none">' + t('ct_non_monetary') + '</span>'}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
   if(key==='expiry') return day(c.expiry);
   return '';
@@ -2487,7 +2487,7 @@ function ktReadValue(c,key){
    "Non-monetary" — and only the first is an invitation. The dashed prompt goes
    on the first alone, so a non-monetary contract is not nagged to price
    itself. */
-const ktIsEmptyRead = html => /class="kt-none">Not set</.test(String(html));
+const ktIsEmptyRead = html => /class="kt-none">' + t('ct_not_set') + '</.test(String(html));
 function ktRowHtml(key,label,readHtml,fieldHtml,editable){
   if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
   const empty=ktIsEmptyRead(readHtml)?' data-kt-empty="1"':'';
@@ -2499,8 +2499,8 @@ function ktRowHtml(key,label,readHtml,fieldHtml,editable){
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
   const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:5px;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
-  const dash='<span class="kt-none">Not set</span>';
-  const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):'<span class="kt-none">Non-monetary</span>';
+  const dash='<span class="kt-none">' + t('ct_not_set') + '</span>';
+  const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):'<span class="kt-none">' + t('ct_non_monetary') + '</span>';
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
@@ -2567,16 +2567,16 @@ function readTermsHtml(c){
   const rows=termsFromPlaybook(c);
   const H='font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)';
   if(!rows.length) return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
-      <div style="${H};margin-bottom:5px">Read from the document</div>
+      <div style="${H};margin-bottom:5px">${t('ct_read_from_doc')}</div>
       <p style="margin:0 0 8px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review reads them out and quotes the clause it found them in.</p>
       ${(canEdit()&&c.status!=='Signed')?`<button id="kt-readdoc" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('shield','w-3.5 h-3.5')} Run the playbook review</button>`:''}
     </div>`;
   return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
-      <div style="${H};margin-bottom:6px">Read from the document</div>
+      <div style="${H};margin-bottom:6px">${t('ct_read_from_doc')}</div>
       ${rows.map(r=>`<div class="kt-read-row" title="${esc(r.quote)}">
         <span class="kt-read-k">${esc(r.label)}</span>
         <span class="kt-read-v">&ldquo;${esc(r.quote.slice(0,120))}${r.quote.length>120?'&hellip;':''}&rdquo;</span></div>`).join('')}
-      <p style="margin:7px 0 0;font-size:10.5px;color:var(--color-neutral-500)">Quoted from the clause the playbook review found each one in.</p>
+      <p style="margin:7px 0 0;font-size:10.5px;color:var(--color-neutral-500)">${t('ct_quoted_from_clause')}</p>
     </div>`;
 }
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -2612,13 +2612,13 @@ function riskRead(c){
 function riskCardHtml(c){
   const H='margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)';
   const r=riskRead(c);
-  if(!r) return `<h6 style="${H};margin-bottom:7px">Risk</h6>
+  if(!r) return `<h6 style="${H};margin-bottom:7px">${t('ct_risk')}</h6>
     <p style="margin:0 0 9px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Nothing has been checked yet, so there is nothing to score. The reading below comes from the playbook review and the Copilot scan — run either on the <b>Document</b> tab.</p>
-    <button id="kt-gocheck" class="ui-btn" style="font-size:11.5px;padding:5px 11px">Go to the checks &rarr;</button>`;
+    <button id="kt-gocheck" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${t('ct_go_to_checks')}</button>`;
   const tone=r.score>=60?'var(--st-ruby-fg)':r.score>=35?'var(--st-amber-fg)':'var(--st-green-fg)';
   const bg=r.score>=60?'var(--st-ruby-bg)':r.score>=35?'var(--st-amber-bg)':'var(--st-green-bg)';
   return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-      <h6 style="${H};flex:1">Risk</h6>
+      <h6 style="${H};flex:1">${t('ct_risk')}</h6>
       <span class="pill-x" style="background:${bg};color:${tone};font-family:var(--font-mono)">${r.score}</span>
     </div>
     ${r.bars.map(b=>`<div class="risk-row"><span class="risk-k">${esc(b.label)}</span>
@@ -2797,9 +2797,9 @@ function roomHistoryHtml(c,f={}){
       <div style="position:relative">
         <button id="hist-more" class="ui-btn" aria-haspopup="true" style="width:28px;height:28px;padding:0;font-size:14px;line-height:1">&#8943;</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
-          <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">recompute every fingerprint</span></button>
+          <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">${t('ct_recompute_fingerprints')}</span></button>
           <button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}Export history<span class="mnote">standalone file</span></button>
-          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">same report, on paper</span></button>
+          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">${t('ct_same_report_paper')}</span></button>
         </div>
       </div>
     </div>
@@ -2812,7 +2812,7 @@ function roomHistoryFiltersHtml(c,f){
   const all=window.negoTimeline?negoTimeline(c):[];
   const uniq=pairs=>Array.from(new Map(pairs.filter(x=>x&&String(x[0])).map(x=>[String(x[0]),x])).values());
   const sel=(k,label,pairs)=>`<label class="hist-f"><span>${label}</span>
-    <select data-ht-filter="${k}">${'<option value="">All</option>'}${pairs.map(p=>
+    <select data-ht-filter="${k}">${'<option value="">' + t('ct_all') + '</option>'}${pairs.map(p=>
       `<option value="${esc(String(p[0]))}"${String(f[k]||'')===String(p[0])?' selected':''}>${esc(String(p[1]).slice(0,42))}</option>`).join('')}</select></label>`;
   return `<div class="hist-filters">
     ${sel('clauseId','Clause',uniq(all.map(e=>[e.clauseId||'',e.clauseLabel||''])))}
@@ -2825,13 +2825,13 @@ function roomHistoryFiltersHtml(c,f){
 }
 function roomVersionsHtml(c){
   const vs=(window.listedVersions?listedVersions(c):(c.versions||[])).slice().reverse();
-  return `<h6 style="margin:0 0 9px;font-size:13px;font-weight:700;font-family:var(--font-heading)">Versions</h6>
+  return `<h6 style="margin:0 0 9px;font-size:13px;font-weight:700;font-family:var(--font-heading)">${t('ct_versions')}</h6>
     ${vs.length?vs.map((v,i)=>`<div class="check-row" style="border-top:${i?'1px solid var(--color-divider)':'0'}">
       <span class="ci">${icon('file','w-3.5 h-3.5')}</span>
       <span class="cn">v${v.n} ${i===0?'· current':''}<span style="display:block;font-weight:400;font-size:10.5px;color:var(--color-neutral-500)">${esc(String(v.label||'Saved'))} · ${window.fmtDT?fmtDT(v.at):esc(String(v.at||'').slice(0,10))}</span></span>
-      <button class="ui-btn" data-hist-compare="${v.n}" style="flex:none;font-size:11px;padding:4px 10px">Compare</button>
+      <button class="ui-btn" data-hist-compare="${v.n}" style="flex:none;font-size:11px;padding:4px 10px">${t('ct_compare')}</button>
     </div>`).join('')
-    :`<p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">No saved versions yet. One is taken whenever a round closes, and you can take one at any time from Compare.</p>`}`;
+    :`<p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${t('ct_no_saved_versions')}</p>`}`;
 }
 function roomPaintHistory(c,f={}){
   const host=document.getElementById('ws-history-pane');
@@ -2870,7 +2870,7 @@ function roomPaintHistory(c,f={}){
   host.querySelector('#ht-verify')?.addEventListener('click',async()=>{
     const box=host.querySelector('#ht-verify-result');
     if(!box||!window.negoIntegrityReport) return;
-    box.innerHTML=`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 0">Recomputing every fingerprint from the stored record…</div>`;
+    box.innerHTML=`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 0">${t('ct_recomputing')}</div>`;
     box.innerHTML=negoVerifyResultHtml(await negoIntegrityReport(c));
   });
   /* Export runs the verification FIRST and carries the result inside the file,
@@ -3084,23 +3084,23 @@ function openNegoProposeModal(c){
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
         <div style="${COL}">
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Propose changes to ${esc(c.counterparty||'the counterparty')}</h3>
-          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;line-height:1.55">Edit the wording below. Each clause you change becomes its own fingerprinted change on the index, for them to accept, reject or discuss. <b>Nothing here changes the contract</b> — the document moves only when a change is accepted.</p>
+          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;line-height:1.55">Edit the wording below. Each clause you change becomes its own fingerprinted change on the index, for them to accept, reject or discuss. <b>${t('ct_nothing_changes_contract')}</b> ${t('ct_moves_when_accepted')}</p>
         </div>
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 26px;background:var(--color-bg)">
         <div style="${COL}">
           <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:14px 16px;font:inherit;font-family:var(--font-mono);font-size:12.5px;line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:12px">
-            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Why you are asking (optional) — they see it against each change</span>
+            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${t('ct_why_asking')}</span>
             <input id="nego-prop-why" type="text" placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces out-of-cycle payments." style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"/>
           </label>
         </div>
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <span style="flex:1;min-width:150px;font-size:11.5px;color:var(--color-neutral-600)">Changed clauses become pending fingerprints. Unchanged ones are left alone.</span>
+          <span style="flex:1;min-width:150px;font-size:11.5px;color:var(--color-neutral-600)">${t('ct_changed_become_pending')}</span>
           <button id="nego-prop-cancel" class="ui-btn">Cancel</button>
-          <button id="nego-prop-go" class="ui-btn ui-btn-primary">Propose these changes</button>
+          <button id="nego-prop-go" class="ui-btn ui-btn-primary">${t('ct_propose_changes')}</button>
         </div>
       </div>
     </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
@@ -3109,7 +3109,7 @@ function openNegoProposeModal(c){
     const text=document.getElementById('nego-prop-text')?.value||'';
     const why=String(document.getElementById('nego-prop-why')?.value||'').trim();
     const btn=e.currentTarget, restore=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Filing…</span>';
+    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">' + t('ct_filing') + '</span>';
     let filed=[];
     try{
       filed=await negoFileProposal(c, text, { side:'owner', author:currentUser()?.name,
@@ -3247,7 +3247,7 @@ function checksNoteHtml(c){
 function openCheckPanel(c,kind){
   const id=kind==='playbook'?'playbook-section':'scan-section';
   const title=kind==='playbook'?'Playbook review':'Risk scan';
-  if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,label:'Checks'});
+  if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,get label(){ return t('ct_checks'); }});
   else openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
   if(kind==='playbook') renderPlaybookSection(c); else renderScanSection(c);
   /* Both section renderers empty their host when there is nothing to show, and
@@ -3258,7 +3258,7 @@ function openCheckPanel(c,kind){
   if(host && !host.innerHTML.trim()){
     host.innerHTML=`<p style="margin:0;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
       Nothing has been ${kind==='playbook'?'reviewed against the playbook':'scanned'} on this contract yet.
-      Close this and press <b>${kind==='playbook'?'Playbook review':'Copilot risk scan'}</b> in the Checks card to run it.</p>`;
+      Close this and press <b>${kind==='playbook'?'Playbook review':'Copilot risk scan'}</b> ${t('ct_in_checks_card')}</p>`;
   }
 }
 function wireChecksCard(c){
@@ -3275,7 +3275,7 @@ function wireChecksCard(c){
       if(ran&&kind!=='oblig') return openCheckPanel(c,kind);
       if(ran&&kind==='oblig') return roomGoTab(c,'terms');
       if(!editable) return;
-      b.innerHTML='<span style="opacity:.6">Working…</span>'; b.disabled=true;
+      b.innerHTML='<span style="opacity:.6">' + t('ct_working') + '</span>'; b.disabled=true;
       try{
         if(kind==='risk'){
           if(!window.runScanAct) throw new Error('unavailable');
@@ -3426,7 +3426,7 @@ function returnedChangesStrip(c){
   const who=esc(latest.by||'The counterparty');
   return `
     <div id="changes-strip" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:var(--st-amber-bg);border-top:1px solid var(--st-amber-line);border-bottom:1px solid var(--st-amber-line)">
-      <span class="changes-pip" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:999px;padding:3px 10px">Changes returned</span>
+      <span class="changes-pip" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-dot);color:#fff;border-radius:999px;padding:3px 10px">${t('ct_changes_returned')}</span>
       <span style="font-size:12.5px;color:var(--st-amber-fg);min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
       <span style="flex:1"></span>
       <button id="changes-review" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--st-amber-dot);background:var(--color-surface);color:var(--st-amber-fg);border-radius:5px;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
@@ -3494,10 +3494,10 @@ function readyToSignStrip(c){
   const stale=!!sig.stale;
   return `
     <div id="ready-strip" data-stale="${stale?'1':'0'}" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:${stale?'var(--st-amber-bg)':'var(--st-green-bg)'};border-top:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'};border-bottom:1px solid ${stale?'var(--st-amber-line)':'var(--st-green-line)'}">
-      <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:999px;padding:3px 10px">Ready to sign</span>
-      <span style="font-size:12.5px;color:${stale?'var(--st-amber-fg)':'var(--st-green-fg)'};min-width:0"><b>${esc(sig.by||c.counterparty||'The counterparty')}</b> signalled they are ready to sign — ${esc(when)}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>Nothing is signed yet.</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
+      <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:${stale?'var(--st-amber-dot)':'var(--st-green-fg)'};color:#fff;border-radius:999px;padding:3px 10px">${t('ct_ready_to_sign')}</span>
+      <span style="font-size:12.5px;color:${stale?'var(--st-amber-fg)':'var(--st-green-fg)'};min-width:0"><b>${esc(sig.by||c.counterparty||'The counterparty')}</b> signalled they are ready to sign — ${esc(when)}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>${t('ct_nothing_signed')}</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
       <span style="flex:1"></span>
-      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--st-green-fg);background:var(--st-green-fg);color:#fff;border-radius:5px;padding:6px 13px;cursor:pointer">Issue a signing link</button>`:''}
+      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid var(--st-green-fg);background:var(--st-green-fg);color:#fff;border-radius:5px;padding:6px 13px;cursor:pointer">${t('ct_issue_signing_link')}</button>`:''}
     </div>`;
 }
 /* The strip's one action: open the redline if there is one, otherwise take the
@@ -3635,7 +3635,7 @@ function applyWsFocus(){
        elements, and textContent replaces every child with one text node. This
        runs on every render, so Focus mode was the one line in the menu with no
        symbol beside it and no hint after it, from the moment it was built. */
-    b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${_wsFocus?'Exit focus mode':'Focus mode'}<span class="mnote">Esc to leave</span>`;
+    b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${_wsFocus?'Exit focus mode':'Focus mode'}<span class="mnote">${t('ct_esc_to_leave')}</span>`;
     b.title=_wsFocus?'Exit focus mode — bring the header back':'Focus mode — hide the header and give the room to the document';
   }
   wsFocusChip();
@@ -3742,18 +3742,18 @@ function roomHeadHtml(c,opts={}){
                at the foot in its own colour. Every id is the id it has always
                had. */}
         <div id="ws-more-menu" class="room-menu hidden">
-          <div class="mgroup">This contract</div>
+          <div class="mgroup">${t('ct_this_contract')}</div>
           ${may?`<button type="button" id="ws-import" title="Read a Word file they sent back into tracked changes">${icon('download','w-3.5 h-3.5')}Import their response</button>`:''}
           <button type="button" id="ws-compare" title="Compare versions &amp; review changes">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
           ${may?`<button type="button" id="ws-tpl" title="Save this wording as a reusable template">${icon('copy','w-3.5 h-3.5')}Save as template</button>`:''}
           <hr>
-          <div class="mgroup">Export</div>
+          <div class="mgroup">${t('ct_export')}</div>
           <button type="button" id="ws-pdf" title="A clean copy to send — your branding, the wording and the signatures, with no HaTi marks on it">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
           <button type="button" id="ws-word" title="The redline as a Word file — every pending change travels as a real Word tracked change">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
           ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
           <hr>
-          <div class="mgroup">View</div>
-          <button type="button" id="ws-focus" aria-pressed="false" title="Hide the header and give the room to the document">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">Esc to leave</span></button>
+          <div class="mgroup">${t('ct_view')}</div>
+          <button type="button" id="ws-focus" aria-pressed="false" title="Hide the header and give the room to the document">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${t('ct_esc_to_leave')}</span></button>
           <button type="button" id="ws-collapse" aria-expanded="true" title="Collapse this bar and give the contract more room">${icon('minus','w-3.5 h-3.5')}Collapse the header</button>
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="Delete this draft permanently">${icon('trash','w-3.5 h-3.5')}Delete this draft</button>`:''}
@@ -3811,8 +3811,8 @@ function renderWorkspace(){
     <div class="view-enter grid place-items-center min-h-screen px-8">
       <div class="text-center max-w-sm">
         <div class="mx-auto h-14 w-14 grid place-items-center rounded-2xl bg-white border border-brand-100 text-brand-300 mb-4">${icon('file','w-7 h-7')}</div>
-        <h2 class="font-display font-600 text-lg text-brand-900">No contract open</h2>
-        <p class="text-sm text-brand-800/70 mt-1">Open a folder from the dashboard, or generate a contract from a template.</p>
+        <h2 class="font-display font-600 text-lg text-brand-900">${t('ct_no_contract_open')}</h2>
+        <p class="text-sm text-brand-800/70 mt-1">${t('ct_open_folder_or_template')}</p>
         <button onclick="setView('dashboard')" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('grid')} Go to dashboard</button>
       </div>
     </div>`;
@@ -3824,7 +3824,7 @@ function renderWorkspace(){
        spinner fading in, then the real page fading in over it — and the two
        back-to-back intros read as a double flash. The spinner appears plainly;
        at most one intro plays, on the page itself. */
-    content.innerHTML=`<div class="grid place-items-center min-h-screen"><div class="text-center text-brand-800/70"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">Loading contract…</div></div></div>`;
+    content.innerHTML=`<div class="grid place-items-center min-h-screen"><div class="text-center text-brand-800/70"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">${t('ct_loading_contract')}</div></div></div>`;
     setActiveNav('workspace');
     ensureFull(c).then(()=>{ if(state.activeId===c.id) renderWorkspace(); })
       .catch(e=>{ if(state.activeId===c.id) content.innerHTML=`<div class="grid place-items-center min-h-screen text-sm text-rose-600">Could not load this contract: ${e.message}</div>`; });
@@ -3910,7 +3910,7 @@ function renderWorkspace(){
                  executed document, and a received one — still say so here,
                  because those are facts about the paper itself. */}
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
-            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the Copilot review, then sign to record acceptance.</span></div>`
+            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>${t('ct_received_read_below')}</span></div>`
             :''}
           ${templateProvenanceHtml(c)}
           <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
@@ -3951,7 +3951,7 @@ function renderWorkspace(){
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <section id="checks-card" style="${CARD};padding:13px 15px">
-            <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">Checks</h6>
+            <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">${t('ct_checks')}</h6>
             <p data-checks-note style="font-size:11.5px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">${checksNoteHtml(c)}</p>
             <div data-checks-rows>${checksRowsHtml(c)}</div>
           </section>
@@ -3970,12 +3970,12 @@ function renderWorkspace(){
                  when, then what they said: the shape every message list has. */}
           <section style="${CARD};padding:12px 14px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-              <h6 style="${H6};flex:1">Activity &amp; comments</h6>
+              <h6 style="${H6};flex:1">${t('ct_activity_comments')}</h6>
               <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:var(--st-green-dot);display:inline-block"></span>live</span>
             </div>
             <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:14px"></div>
             <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
-              <div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px">Commenting as <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
+              <div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px">${t('ct_commenting_as')} <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
               <div style="display:flex;gap:7px">
                 <textarea id="comment-input" class="chat-field" rows="1" placeholder="Add a comment on the terms…" title="Internal to your team — counterparty replies arrive through share-link responses" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px;padding:8px 11px;font-size:12px;outline:none"></textarea>
                 <button id="comment-send" class="ui-btn ui-btn-primary" style="width:36px;height:36px;padding:0;flex:none;border-radius:8px">${icon('send','w-4 h-4')}</button>
@@ -4051,7 +4051,7 @@ function renderWorkspace(){
       <div style="${CARD};padding:16px 18px;align-self:start">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">Key terms</h6>
-          ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">Confirmed</span>`:''}
+          ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${t('ct_confirmed')}</span>`:''}
           ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
         </div>
         <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
@@ -4080,7 +4080,7 @@ function renderWorkspace(){
           ${(!locked&&canEdit())?`
           <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:6px;padding:10px;cursor:pointer">
             <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-            <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
+            <span style="font-size:11.5px"><span style="font-weight:600;display:block">${t('ct_intend_to_sign')}</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
           </label>`:''}
           <div id="sign-wrap"></div>
         </div>
@@ -4300,7 +4300,7 @@ async function fillKeyTermsFromDocument(c){
   const btn=document.getElementById('kt-fill');
   const text=(isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'';
   if(text.length<200){ toast('No readable document text to read from','err'); return; }
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">' + t('ct_reading') + '</span>'; }
   try{
     const meta=await extractMetadata(text, null);
     const filled=[];
@@ -4451,19 +4451,19 @@ function signBlockHtml(c){
   const boxes=signPartyBoxes(c);
   const done=boxes.filter(b=>b.signed).length;
   const chip=done===boxes.length&&done
-    ? `<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">Fully executed</span>`
+    ? `<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${t('ct_fully_executed')}</span>`
     : done ? `<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${done} of ${boxes.length} signed</span>`
-    : `<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">Awaiting signature</span>`;
+    : `<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${t('ct_awaiting_signature')}</span>`;
   const box=b=>`<div class="sig-box${b.signed?' is-signed':''}">
       <div class="sig-mark">${b.image
         ? `<img src="${b.image}" alt="signature of ${esc(b.name)}"/>`
         : b.signed ? `<span class="sig-name">${esc(b.name||'Signed')}</span>`
-        : `<span class="sig-none">Not yet signed</span>`}</div>
-      <div class="sig-who">For <b>${esc(b.org)}</b>${b.name?`<br>${esc(b.name)}${b.role?' · '+esc(b.role):''}`:''}${
+        : `<span class="sig-none">${t('ct_not_yet_signed')}</span>`}</div>
+      <div class="sig-who">${t('ct_for')} <b>${esc(b.org)}</b>${b.name?`<br>${esc(b.name)}${b.role?' · '+esc(b.role):''}`:''}${
         b.signed&&b.at?`<br><span class="sig-at">${window.fmtDT?fmtDT(b.at):esc(b.at)}</span>`:''}</div>
     </div>`;
   return `<div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
-      <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">Signature block</h6>${chip}
+      <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">${t('ct_signature_block')}</h6>${chip}
     </div>
     <div class="sig-grid">${boxes.map(box).join('')}</div>`;
 }
@@ -4484,14 +4484,14 @@ function renderSignButton(c){
     return;
   }
   if(!canEdit()){
-    wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/65 py-2">Viewer access — signing is disabled for your role.</div>`;
+    wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/65 py-2">${t('ct_viewer_no_signing')}</div>`;
     return;
   }
   // The other way a deal ends. Offered once the wording is settled, because
   // until then there is nothing to have signed on paper.
   const paperRoute = !((window.negoSigningBlockers ? negoSigningBlockers(c).length
       : (window.unresolvedRedlines && unresolvedRedlines(c))))
-    ? `<button id="sign-paper" class="mt-2 w-full text-center text-[11px] text-brand-800/70 hover:text-brand-900 underline decoration-dotted underline-offset-2 py-1.5 transition">Signed on paper instead? File the signed copy here</button>`
+    ? `<button id="sign-paper" class="mt-2 w-full text-center text-[11px] text-brand-800/70 hover:text-brand-900 underline decoration-dotted underline-offset-2 py-1.5 transition">${t('ct_signed_on_paper_q')}</button>`
     : '';
   const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>openPaperSignatureModal(c));
   const appr=approvalState(c);
@@ -4533,7 +4533,7 @@ function renderSignButton(c){
     ? `<button id="sp-setup" class="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white py-2.5 mb-2.5 text-[12.5px] font-600 text-brand-700 hover:bg-brand-50 hover:border-brand-300 transition">
         ${icon('users','w-4 h-4')} Set a multi-signer order…
       </button>
-      <p class="mb-3 text-[10.5px] text-center text-brand-800/60 leading-relaxed">More than one signatory? Set the order first — signing seals the document.</p>`
+      <p class="mb-3 text-[10.5px] text-center text-brand-800/60 leading-relaxed">${t('ct_more_than_one_signatory')}</p>`
     : '';
   /* The approval chain and the signing route render in the Signing tab's OWN
      right-hand column now (renderSignSide) rather than stacked on top of this
@@ -4577,10 +4577,10 @@ function renderSignSide(c){
   const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true}):'';
   const route=window.signerRouteHtml?signerRouteHtml(c,{bare:true}):'';
   host.innerHTML=`
-    ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">Approval gate</h6>${chain}</section>`:''}
+    ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">${t('ct_approval_gate')}</h6>${chain}</section>`:''}
     <section style="${CARD}">
       <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
-        <h6 style="${H};flex:1">Signing order</h6>
+        <h6 style="${H};flex:1">${t('ct_signing_order')}</h6>
         ${plan.length?`<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
       </div>
       ${route||`<p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">No route set. One signature each side is assumed — ${esc(window.FIRST_PARTY||'us')} first, then ${esc(c.counterparty||'the counterparty')}. Add signers to change that.</p>`}
@@ -4790,10 +4790,10 @@ function openPaperSignatureModal(c){
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('finger')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Signed on paper</h2></div>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">${t('ct_signed_on_paper')}</h2></div>
       <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
         Attach the signed copy to <b>this</b> contract, so the ${(c.rounds||[]).length} round${(c.rounds||[]).length===1?'':'s'} of negotiation stay with the document they produced.
-        HaTi records it as <b>executed outside HaTi</b> — no electronic signature is taken, and the seal is the scanned file's own fingerprint.</p>
+        HaTi records it as <b>${t('ct_executed_outside')}</b> — no electronic signature is taken, and the seal is the scanned file's own fingerprint.</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Date signed (optional)</span>
         <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Note (optional)</span>
@@ -4810,7 +4810,7 @@ function openPaperSignatureModal(c){
     const input=document.getElementById('ps-file');
     const file=input&&input.files&&input.files[0];
     if(!file){ toast('Choose the signed copy first','err'); return; }
-    const btn=e.currentTarget; btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Filing…</span>';
+    const btn=e.currentTarget; btn.disabled=true; btn.innerHTML='<span class="animate-pulse">' + t('ct_filing') + '</span>';
     const ok=await attachPaperSignature(c, file, {
       signedOn:fval('ps-date')||null, note:fval('ps-note')||null });
     if(ok) closeModal(); else { btn.disabled=false; btn.innerHTML='File as executed'; }
