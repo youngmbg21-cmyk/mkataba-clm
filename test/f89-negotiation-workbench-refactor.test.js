@@ -144,15 +144,23 @@ async function page(opts = {}){
 }
 
 describe('F89 (1) — the header is a band, not a card inside a card', () => {
-  test('the title row carries no frame of its own', async () => {
+  test('the strip is one quiet line, wearing the contract page\'s own clothes', async () => {
+    /* WHAT THIS TEST WAS FOR HAS NOT CHANGED — one frame, not two. What it
+       pinned did: the row used to be a bare, frameless strip because the TITLE
+       CARD sat above it and a second border read as a box inside a box. The
+       title card is gone; the head is a plain title block now. So this strip
+       can be what it always should have been — the same quiet bar the contract
+       page puts under its tabs, .room-quiet, one surface with one border. The
+       failure being guarded against is two frames, and there is one. */
     const p = await page();
     const r = p.rule('.redline-page .rl-head');
     assert.ok(r, '.rl-head must still carry a rule');
-    assert.match(r, /border:0/, 'the outer border is what doubled up against the page frame');
-    assert.match(r, /box-shadow:none/);
-    assert.match(r, /background:none/);
-    assert.ok(!/border-radius:1[0-9]px/.test(r),
-      'a radius here draws the rounded edge that reads as a second box');
+    assert.ok(p.$('.redline-page .rl-head').classList.contains('room-quiet'),
+      'it is the shared quiet bar, not a second design of the same thing');
+    assert.ok(!/border:1px/.test(r) && !/box-shadow:var\(--shadow/.test(r),
+      'the frame comes from .room-quiet alone — a second one here is the old bug');
+    assert.ok(!p.$('.redline-page .rl-shell'),
+      'and the title card it used to sit under is gone');
   });
 
   test('and the header is still the header', async () => {
@@ -173,8 +181,12 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
        the [Docs][Negotiate] switcher in its place (the tab was labelled
        "Redline" until WO N1 renamed the place; the artifact — a redline —
        keeps its name). */
-    const shell = p.$('#view-redline .rl-shell');
-    assert.ok(shell, 'the Doc page\'s shell heads this tab too');
+    /* The shell is not this page's own any more, and that is the point: both
+       shells call roomHeadHtml, so the head here IS the contract page's head —
+       same markup, same class, same ids — rather than a second one built to
+       look like it. */
+    const shell = p.$('#view-redline .room-head');
+    assert.ok(shell, 'the room\'s shared head sits on this tab too');
     assert.match(shell.textContent, /Supply and Services Agreement/);
     /* The hand-written [Docs][Negotiate] pair this page carried is gone. Both
        shells now call roomTabsHtml, so there is one row and it has five tabs. */
@@ -629,16 +641,21 @@ describe('F89 (10) — the Tracked Changes column holds only live redlines', () 
 });
 
 describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', () => {
-  test('Accept is green, Reject is red, Edit is grey — as soft washes, not solid fills', async () => {
-    /* Tint background + tone text, the status chips' own clothing: a row of
-       solid emerald and red fills read as alarms on every card. */
+  test('Accept is the filled one; Reject and Edit recede to outlines', async () => {
+    /* THREE EQUAL TINTS BECAME A PRIMARY AND TWO ALTERNATIVES. Green, red and
+       grey washes of the same weight asked the reader to choose between three
+       equals — but accepting is what most cards are for, and the other two are
+       the exceptions. Filled accent for the yes; an outline each for the no and
+       the counter, which keeps their colours in the text where they still say
+       which is which. The original worry — "a row of solid fills reads as
+       alarms" — is answered by there being exactly one fill per card. */
     const p = await page();
-    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:#d1fae5/);
-    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /color:#047857/);
-    assert.match(p.rule('.redline-page .rl-rej') || '', /background:#fee2e2/);
+    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:#0f766e/);
+    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /color:#fff/);
+    assert.match(p.rule('.redline-page .rl-rej') || '', /background:none/);
     assert.match(p.rule('.redline-page .rl-rej') || '', /color:#b91c1c/);
-    assert.match(p.rule('.redline-page .rl-edit') || '', /background:#e2e8f0/);
-    assert.match(p.rule('.redline-page .rl-edit') || '', /color:#1e293b/);
+    assert.match(p.rule('.redline-page .rl-edit') || '', /background:none/);
+    assert.match(p.rule('.redline-page .rl-edit') || '', /border:1px solid/);
   });
 
   test('the buttons on a live card carry those classes', async () => {

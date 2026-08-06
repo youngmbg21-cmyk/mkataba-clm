@@ -153,7 +153,9 @@ describe('F130 — the Word writer is reachable again', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
     assert.match(src, /function exportWordTracked\(/, 'the handler exists');
     assert.match(src, /id="ws-word"/, 'the Word item is in the Export menu');
-    assert.match(src, /id="ws-export-menu"/, 'the menu exists');
+    /* The export caret is gone; its three items are in the room's "⋯" menu
+       with the ids they always had. Same one menu, one level up. */
+    assert.match(src, /id="ws-more-menu"/, 'the menu exists');
     assert.match(src, /id="ws-pdf"/, 'PDF keeps its original id inside the menu');
     assert.match(src, /docxExportTracked\(html/, 'it presses the proven writer, not a new one');
     assert.match(src, /redlineDocHtml\(c/, 'the redline as the owner sees it is what exports');

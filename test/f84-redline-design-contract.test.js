@@ -107,10 +107,25 @@ describe('F84 — the design names every part, and the names are on the page', (
     assert.ok(p.$('#rl-threads'), 'the thread list must exist before the first thread');
   });
 
-  test('#rl-banner carries the wall, which is a disclosure boundary', async () => {
+  test('#rl-banner carries the wall — when there is something behind it', async () => {
+    /* The wall line used to draw on every paint, and on most of them it said
+       "Nothing is behind the wall right now" — a full-width band above the
+       negotiation to report that nothing was being withheld. It now appears
+       exactly when the boundary is doing work. The slot is still there and
+       still the wall's home; what changed is when the wall speaks. */
+    const quiet = await page();
+    assert.ok(quiet.$('#rl-banner'), 'the slot is always present');
+    assert.ok(!/The wall:/.test(quiet.$('#rl-banner').textContent),
+      'with nothing held back it says nothing');
+
+    /* An unsent draft IS something behind the wall. */
     const p = await page();
-    assert.match(p.$('#rl-banner').textContent, /The wall:/,
-      'the banner slot must hold the internal/shared wall, not be an empty div');
+    await p.win.negoFileProposal(p.c,
+      p.win.negoBaseText(p.c).replace('sixty (60) days', 'ninety (90) days'),
+      { side: 'owner', author: 'Amina Otieno' });
+    p.win.renderRedline();
+    assert.match(p.doc.getElementById('rl-banner').textContent, /The wall:/,
+      'once a draft is held back, the boundary states itself');
   });
 });
 
@@ -232,17 +247,24 @@ describe('F84 — the Tracked Changes head gives the send slot its own line', ()
 });
 
 describe('F84 — the switcher wears its colours and its counts', () => {
-  test('the tray and the two tinted buttons are styled, not grey text', async () => {
+  test('the two tabs keep their colours, and only one of them is raised', async () => {
+    /* THE COLOURS MOVED FROM THE FILL TO THE TEXT. Both tabs used to be filled
+       tints permanently — a green pill beside an indigo pill — so the pair read
+       as two lit buttons and neither looked more current than the other. The
+       families stay, because they are the ones the origin badges and the card
+       spines speak; what says "you are here" is now the tab raised onto the
+       surface. Both are still named, still counted, still in their own colour,
+       which was the whole point of colouring them. */
     const p = await page();
     const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
-    assert.match(css, /\.rl-side-tabs\{[^}]*background:#f1f5f9/, 'the slate tray');
-    assert.match(css, /\.rl-tab-changes\{[^}]*background:#ecfdf5/, 'Tracked Changes idles in emerald');
-    assert.match(css, /\.rl-tab-changes\.on\{[^}]*background:#d1fae5/, 'and deepens when active');
+    assert.match(css, /\.rl-side-tabs\{[^}]*background:var\(--color-neutral-100\)/, 'the tray');
+    assert.match(css, /\.rl-tab-changes\{[^}]*color:#047857/, 'Tracked Changes keeps emerald');
+    assert.match(css, /\.rl-tab-disc\{[^}]*color:#4338ca/, 'Discussion keeps indigo');
+    assert.match(css, /\.rl-side-tab\.on\{[^}]*background:var\(--color-surface\)/,
+      'the tab you are standing on is the one raised out of the tray');
     assert.match(css, /\.rl-tab-changes \.rl-tab-n\{[^}]*background:#059669/, 'solid emerald count pill');
-    assert.match(css, /\.rl-tab-disc\{[^}]*background:#eef2ff/, 'Discussion idles in indigo');
-    assert.match(css, /\.rl-tab-disc\.on\{[^}]*background:#e0e7ff/, 'and deepens when active');
     assert.match(css, /\.rl-tab-disc \.rl-tab-n\{[^}]*background:#4f46e5/, 'solid indigo count pill');
-    assert.match(css, /html\.dark[^{]*\.rl-tab-changes/, 'the colours survive dark mode as tints');
+    assert.match(css, /html\.dark[^{]*\.rl-tab-changes/, 'the colours survive dark mode');
   });
 
   test('each tab carries its own live count', async () => {
@@ -393,7 +415,10 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
     p.$$('[data-redline-side]').find(b => b.getAttribute('data-redline-side') === 'counterparty').click();
     return p;
   };
-  const headerLabels = p => p.$$('.rl-actions button').map(b => b.textContent.trim());
+  /* The strip AND the head together: the send is the head's primary now and
+     the workbench's own controls stayed on the strip, so "what does this page
+     offer from this chair" is the union of the two. */
+  const headerLabels = p => p.$$('.rl-head button, .room-head button').map(b => b.textContent.trim());
 
   test('THE FIX: our playbook\'s verb is not offered from their chair', async () => {
     const labels = headerLabels(await asCounterparty()).join(' | ');

@@ -2134,14 +2134,33 @@ function wsNextAction(c){
 /* The status strip under the document header. Split out so filling in the key
    terms can refresh the guidance and the primary button in place, without
    re-rendering the workspace under the cursor. */
+/* ---- THE QUIET LINE UNDER THE TABS ----
+   ONE line, and no button on it that the head already carries. The next-action
+   button moved up into roomHeadHtml — it is the contract's primary act and it
+   belongs beside the contract's name — so what is left here is the sentence
+   that says WHY, plus, on the Document tab, the one secondary the prototype
+   gives it: the way over to Negotiate.
+
+   Before this there were two bars: this one with its own copy of the primary,
+   and a second inside the document pane repeating the reading rule. Two
+   explanatory strips above a document is one more than a document needs. */
 function actionBarHtml(c){
   const locked=c.status==='Signed';
-  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span><span style="flex:1"></span><button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`;
-  if(!canEdit()) return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`;
+  const line=t=>`<span style="font-size:12px;color:var(--color-neutral-700)">${t}</span>`;
+  const tail=(_wsTab==='docs'&&!locked)
+    ? `<span style="flex:1"></span><button id="doc-to-nego" class="ui-btn rq-go" style="font-size:11.5px;padding:4px 11px">Go to Negotiate &rarr;</button>`
+    : '';
+  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>Executed &amp; sealed</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
+  if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
+  /* On the Document tab the sentence is about READING, because that is what
+     this tab is now for; the status guidance is on every other tab, where a
+     next step is what the reader came for. */
+  if(_wsTab==='docs'&&!docFillable(c))
+    return `${statusChip(c.status)}${line('The contract as it stands — a clean read, with no marks on it. Proposed wording lives on the <b>Negotiate</b> tab.')}${tail}`;
+  if(_wsTab==='docs'&&docFillable(c))
+    return `${statusChip(c.status)}${line('This draft still has blanks — fill the highlighted fields below. Once it goes for review, wording changes happen on <b>Negotiate</b>.')}${tail}`;
   const na=wsNextAction(c);
-  return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`
-    + `<span style="flex:1"></span>`
-    + (na?`<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`:'');
+  return `${statusChip(c.status)}${line(na?na.guide:'All key terms are set.')}`;
 }
 function renderActionBar(c){
   const host=document.getElementById('ws-actionbar'); if(!host) return;
@@ -2894,42 +2913,11 @@ function wireWsCollapse(c){
   });
 }
 
-/* ---- THE EXPORT MENU ----
-   Open on the button, shut on a pick or a click anywhere else. The document
-   listener is bound once and checks liveness itself, because this header is
-   rebuilt on every renderWorkspace and a listener per paint is a leak. */
-let _wsExportDocWired=false;
-function wireWsExportMenu(){
-  const btn=document.getElementById('ws-export'), menu=document.getElementById('ws-export-menu');
-  if(!btn||!menu) return;
-  const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
-  btn.addEventListener('click',e=>{ e.stopPropagation();
-    const open=menu.classList.toggle('hidden')===false;
-    btn.setAttribute('aria-expanded',open?'true':'false');
-    if(open){
-      /* FIXED, MEASURED, CLAMPED — the header card clips its own overflow
-         (that is what keeps its rounded corners), so a menu positioned inside
-         it gets scissored to the card's edge. Same anchoring the shell's
-         "Draft new agreement" menu uses: measured under the button that was
-         pressed, clamped to the viewport, immune to any container. */
-      const r=btn.getBoundingClientRect();
-      menu.style.position='fixed';
-      menu.style.top=Math.max(8, Math.min(r.bottom+4, (window.innerHeight||600)-menu.offsetHeight-8))+'px';
-      menu.style.left=Math.max(8, Math.min(r.right-menu.offsetWidth, (window.innerWidth||800)-menu.offsetWidth-8))+'px';
-      menu.style.right='auto';
-    }
-  });
-  menu.addEventListener('click',()=>shut());
-  if(!_wsExportDocWired&&typeof document!=='undefined'){
-    _wsExportDocWired=true;
-    document.addEventListener('click',e=>{
-      const m=document.getElementById('ws-export-menu'), b=document.getElementById('ws-export');
-      if(m&&b&&!m.classList.contains('hidden')&&!m.contains(e.target)&&!b.contains(e.target)){
-        m.classList.add('hidden'); b.setAttribute('aria-expanded','false');
-      }
-    });
-  }
-}
+/* THE EXPORT MENU IS THE "⋯" MENU NOW. PDF, Word and the sealed Record were
+   a caret button of their own on a header that already had eight; they are
+   three items in the room's overflow, keeping the ids they always had (ws-pdf,
+   ws-word, ws-pdf-record) so every handler and every test presses exactly the
+   control it always pressed. Opening and closing is wireRoomHead's job. */
 /* ---- WORD, WITH THE REDLINES AS REAL TRACKED CHANGES ----
    The same writer the Doc Lab proved out (docxExportTracked), reconnected to
    a reachable button: the redline as the owner sees it, as a .docx a
@@ -2988,6 +2976,106 @@ function wireWsFocus(c){
   applyWsFocus();
 }
 
+/* ---- THE ROOM'S HEAD — ONE BUILDER, BOTH SHELLS ----
+   Like the tab row: the contract page and the negotiation workbench each drew
+   their own version of this, so the furniture moved when the work did.
+
+   THE TOOLBAR IS GONE. It carried Share, Import, Save-as-template, Compare,
+   History, Export, Delete, Draft-new-agreement and a collapse — nine controls
+   over the top of every contract, competing with the contract's own name for
+   the eye. What is left is the name, said large, and the three acts a reader
+   reaches for from here: the overflow, Share, and whatever this contract needs
+   done next. Every other verb is inside the "⋯", with the id it always had, so
+   nothing was removed and nothing that pressed one of them has to change. */
+function roomHeadHtml(c,opts={}){
+  const _wr=state.wsReturn||{};
+  /* window.FOLDERS, not the bare global. The negotiation workbench calls this
+     builder too, and its test stage loads the engine without the folder model
+     — a head that throws there takes the whole page with it. */
+  const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
+  const backLabel=(_wr.view==='folder'&&_wr.folderId&&F[_wr.folderId])
+    ? 'Back to '+F[_wr.folderId].name
+    : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
+  const may=(typeof canEdit!=='function')||canEdit();
+  const locked=c.status==='Signed';
+  /* The primary is the CONTRACT'S next act, read from wsNextAction — the same
+     read the quiet line under the tabs states in words. On a contract waiting
+     to go out that is "Send to counterparty"; on one waiting on a decision it
+     is the decision. A head whose big button is always the same button is a
+     head that has stopped paying attention. */
+  /* Only worked out when this head is being asked for its OWN primary. The
+     workbench passes its own (Publish Round), and wsNextAction reaches across
+     half the app to answer — so asking it for a button that is about to be
+     thrown away is both waste and, on a stage that has not loaded that half,
+     a crash. */
+  let primary='';
+  if(opts.primary===undefined){
+    const na=(!locked&&may&&window.wsNextAction)?wsNextAction(c):null;
+    primary=locked
+      ? `<button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
+      : na ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      : '';
+  }
+  return `<section class="room-head" id="ws-head">
+    <button id="ws-back" title="${backLabel}" class="ui-btn room-back">${icon('arrowLeft','w-4 h-4')}</button>
+    <div class="room-id">
+      <div class="room-name">
+        <h1>${esc(c.name)}</h1>
+        <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c)
+          :(window.statusChip?statusChip(c.status):esc(c.status||''))}</span>
+      </div>
+      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${c.lastAction?' · updated '+esc(c.lastAction):''}</div>
+    </div>
+    <div class="room-acts">
+      <div style="position:relative;flex:none">
+        <button id="ws-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
+          title="Everything else this contract can do" style="width:34px;height:34px;padding:0;font-size:15px;line-height:1">&#8943;</button>
+        ${''/* WRITTEN OUT, not built by a loop. Every id below is the id the
+               control had on the old toolbar, and half the test suite reaches
+               for them by name in this file's SOURCE — a helper that assembled
+               `id="..."` at runtime would leave those names nowhere a reader
+               (or a grep) could find them. */}
+        <div id="ws-more-menu" class="room-menu hidden">
+          ${may?`<button type="button" id="ws-import" title="Import counterparty response">Import counterparty response</button>`:''}
+          <button type="button" id="ws-compare" title="Compare versions &amp; review changes">Compare versions</button>
+          ${may?`<button type="button" id="ws-tpl" title="Save as template">Save as template</button>`:''}
+          <hr>
+          <button type="button" id="ws-pdf" title="A clean copy to send — your branding, the wording and the signatures, with no HaTi marks on it">Export PDF<span class="mnote">clean copy</span></button>
+          <button type="button" id="ws-word" title="The redline as a Word file — every pending change travels as a real Word tracked change">Export Word<span class="mnote">tracked changes</span></button>
+          ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">Export record<span class="mnote">sealed + audit</span></button>`:''}
+          <hr>
+          <button type="button" id="ws-focus" aria-pressed="false" title="Focus mode — hide the header and give the room to the document">Focus mode<span class="mnote">hide the chrome</span></button>
+          <button type="button" id="ws-collapse" aria-expanded="true" title="Collapse this bar and give the contract more room">Collapse this header</button>
+          <hr>
+          <button type="button" id="ws-new" data-page-new title="Draft a new agreement">Draft new agreement</button>
+          ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<button type="button" id="ws-delete" class="danger" title="Delete this draft permanently">Delete this draft</button>`:''}
+        </div>
+      </div>
+      ${may?`<button id="ws-share" class="ui-btn" style="font-size:12.5px;padding:7px 14px" title="Share with counterparty">${icon('share','w-3.5 h-3.5')} Share</button>`:''}
+      ${opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary)}
+    </div>
+  </section>`;
+}
+/* Opening and closing the "⋯". The items themselves are wired where they
+   always were — ws-share, ws-import, ws-compare and the exports keep their
+   ids, so wireWorkspaceActions binds them without knowing they moved. */
+function wireRoomHead(c){
+  const btn=document.getElementById('ws-more'), menu=document.getElementById('ws-more-menu');
+  if(btn&&menu){
+    const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
+    btn.addEventListener('click',e=>{ e.stopPropagation();
+      const open=menu.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded',open?'false':'true'); });
+    menu.addEventListener('click',()=>setTimeout(shut,0));
+    document.addEventListener('click',ev=>{ if(!menu.contains(ev.target)&&ev.target!==btn) shut(); });
+  }
+  document.getElementById('ws-back')?.addEventListener('click',()=>{
+    const r=state.wsReturn||{};
+    if(r.view==='folder'&&r.folderId&&window.FOLDERS&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
+    else setView(r.view&&r.view!=='workspace'?r.view:'register');
+  });
+}
+
 function renderWorkspace(){
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
@@ -3037,84 +3125,11 @@ function renderWorkspace(){
   content.innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
-    <!-- ============ FULL-WIDTH DOCUMENT HEADER (spans the doc + the right panel) ============ -->
-    <section id="ws-head" style="${CARD};flex:none;overflow:hidden">
-      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:12px 16px">
-        <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:32px;height:32px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
-        <!-- min-width:0 let flexbox shrink THE CONTRACT'S OWN NAME to nothing
-             rather than wrapping the button row onto a line of its own. At
-             1280 the title got 31px of the 175px it needed — you were looking
-             at a contract and could not read which one. The floor below is
-             what makes the row wrap instead, and min() so it still collapses
-             gracefully on a phone, where 100% is less than 260px. -->
-        <div style="min-width:min(100%,260px);flex:1">
-          <div style="display:flex;align-items:center;gap:8px">
-            <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
-            <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
-          </div>
-          <!-- Wraps rather than truncates. On one line at desktop width it is
-               unchanged; where it no longer fits, a second line costs nothing
-               and keeps the reference number, the folder and the date — all
-               three of which the ellipsis was eating. -->
-          <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;overflow-wrap:anywhere">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
-        </div>
-        <div data-ws-fold="actions" data-ws-display="flex" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
-          <!-- Edit is GONE from this page. The Docs page reads, checks and signs;
-               wording changes happen in the negotiation, where every one of them
-               is a tracked change with a fingerprint someone has to decide. Two
-               ways to change a contract is how the two drift apart, and the
-               whole-document editor was the one that could not keep a heading. -->
-          ${canEdit()?`<button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
-          <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
-          <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
-          <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
-          ${''/* THE HISTORY BUTTON HAS GONE FROM HERE. It opened, in a dialog,
-                 the screen that is now one of this room's five tabs — and a
-                 button beside a tab of the same name, opening the same thing
-                 in a box on top of the page, is the reader being offered two
-                 doors to one room and asked which they meant. The tab is the
-                 door. openHistoryTimeline still exists and the counterparty's
-                 page still uses it, so nothing was deleted. */}
-          <!-- ---- ONE EXPORT MENU, NOT A ROW OF EXPORT BUTTONS ----
-               PDF, Word-with-tracked-changes and the sealed Record are three
-               shapes of the same act, and each one on its own button was the
-               crowding this header keeps being trimmed for. The ids inside are
-               the ORIGINAL ids (ws-pdf, ws-pdf-record) so every existing
-               handler and test presses exactly the button it always pressed. -->
-          <div style="position:relative;flex:none">
-            <button id="ws-export" class="ui-btn" aria-haspopup="true" aria-expanded="false" title="Export this contract — PDF, Word with tracked changes, or the sealed record" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} Export &#9662;</button>
-            <div id="ws-export-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:250px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;box-shadow:0 8px 24px rgba(15,23,42,.14);padding:5px">
-              <button id="ws-pdf" title="Export a clean copy for sending — your branding, the wording and the signatures, with no HaTi marks on it" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-text);border-radius:6px;padding:7px 10px">PDF <span style="font-weight:400;color:var(--color-neutral-500)">— clean copy to send</span></button>
-              <button id="ws-word" title="Export the redline as a Word file — every pending change travels as a real Word tracked change the other side can accept or reject in their own copy" style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-text);border-radius:6px;padding:7px 10px">Word <span style="font-weight:400;color:var(--color-neutral-500)">— with tracked changes</span></button>
-              ${printIsHatiExecuted(c)?`<button id="ws-pdf-record" title="Export the full record for your own file — the same document plus HaTi's seal and the audit trail. Not the copy to send a counterparty." style="display:block;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:12px;font-weight:600;color:var(--color-text);border-radius:6px;padding:7px 10px">Record <span style="font-weight:400;color:var(--color-neutral-500)">— sealed + audit trail</span></button>`:''}
-            </div>
-          </div>
-          ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
-        </div>
-        ${''/* GIVE THE DOCUMENT THE ROOM. This header carries nine actions, a
-              status strip and a tab row before one line of the contract is
-              visible — right while you are deciding what to do, in the way once
-              you are reading. Collapsing folds the actions away and keeps what
-              tells you where you are: the name, the status, the way back.
-
-              These two sit OUTSIDE the row that folds, because a control that
-              hides itself cannot be pressed again.
-
-              ASK COPILOT HAS GONE FROM HERE. It was not the only way in — the
-              Copilot has a launcher in the sidebar on every screen, and the
-              Redline page reaches it from a selection — so this was a third
-              door to one room, taking the most prominent slot on the page.
-              What that slot now carries is the act this page does not
-              otherwise offer at all: starting the next agreement. It opens the
-              same new-contract menu the command bar and the dashboard open,
-              rather than being a second way of creating paper. */}
-        <div style="display:flex;gap:6px;align-items:center;flex:none">
-          <button id="ws-new" data-page-new title="Draft a new agreement" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>
-          <button id="ws-collapse" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none"
-            title="Collapse this bar and give the contract more room" aria-expanded="true">${icon('minus','w-3.5 h-3.5')}</button>
-        </div>
-      </div>
-    </section>
+    <!-- ============ THE ROOM'S HEAD ============
+         Built by roomHeadHtml, which the negotiation workbench calls too, so
+         the furniture holds still while the tabs change what is under it. The
+         nine-button toolbar that used to live here is inside its "⋯". -->
+    ${roomHeadHtml(c)}
 
     <div id="ws-strips" style="display:contents">${readyToSignStrip(c)}${returnedChangesStrip(c)}</div>
 
@@ -3136,11 +3151,11 @@ function renderWorkspace(){
     <div class="room-tabrow" style="display:flex;align-items:center;gap:14px;flex:none;border-bottom:1px solid var(--color-divider)">
       ${roomTabsHtml(c,_wsTab)}
       <span style="flex:1"></span>
-      ${window.rlTypeStepHtml?rlTypeStepHtml():''}
-      <button id="ws-focus" class="ui-btn" aria-pressed="false" style="width:30px;height:30px;padding:0;flex:none"
-        title="Focus mode — hide the header and give the room to the document">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-      </button>
+      ${''/* Only the text-size stepper rides here. Focus mode moved into the
+             "⋯" with the rest of the give-the-document-more-room verbs, so
+             this row is the tabs and one quiet control rather than the tabs
+             and a second toolbar. */}
+      ${(_wsTab==='docs'&&window.rlTypeStepHtml)?rlTypeStepHtml():''}
     </div>
 
     <!-- The quiet line under the tabs: where this contract stands, what it
@@ -3160,11 +3175,16 @@ function renderWorkspace(){
                divider gives them (see applyDocZoom), so a wider contract is a
                bigger contract rather than a wider margin. -->
           <div id="doc-zoom" style="zoom:var(--doc-zoom,1)">
+          ${''/* THE SECOND EXPLANATORY BAR IS GONE. The quiet line under the
+                 tabs already says how this tab reads and how to leave it; a
+                 copy of the same sentence pinned over the paper was two
+                 strips of explanation before the first word of a contract.
+                 The two states that are NOT about the reading rule — an
+                 executed document, and a received one — still say so here,
+                 because those are facts about the paper itself. */}
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
-            :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the Copilot review, then sign to record acceptance.</span></div>`
-            :docFillable(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>This draft still has blanks — fill the highlighted fields here. Once it goes for review, wording changes happen on <b>Negotiate</b>.</span></div>`
-            :`<div class="room-quiet" style="max-width:660px;margin:0 auto 14px">${icon('file','w-3.5 h-3.5')}<span>The contract as it stands — a clean read, with no marks on it. Proposed wording lives on the <b>Negotiate</b> tab.</span><button id="doc-to-nego" class="ui-btn rq-go" style="font-size:11.5px;padding:4px 10px">Go to Negotiate &rarr;</button></div>`}
+            :''}
           ${templateProvenanceHtml(c)}
           <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
             ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
@@ -3369,11 +3389,7 @@ function renderWorkspace(){
   wireKeyTerms(c);
   wireActionBar(c);
   wireDocCanvas(c);   // expand / re-read buttons (inside #doc-canvas)
-  document.getElementById('ws-back').addEventListener('click',()=>{
-    const r=state.wsReturn||{};
-    if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
-    else setView(r.view&&r.view!=='workspace'?r.view:'register');
-  });
+  wireRoomHead(c);    // the "⋯" and the way back — shared with the workbench
   wireWsCollapse(c);
   /* Draft new agreement carries data-page-new and is NOT wired here. The shell
      binds every [data-page-new] trigger once, by delegation (js/app.js), and
@@ -3402,7 +3418,6 @@ function renderWorkspace(){
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.getElementById('ws-pdf-record')?.addEventListener('click',()=>exportPDF(c,{record:true}));
   document.getElementById('ws-word')?.addEventListener('click',()=>exportWordTracked(c));
-  wireWsExportMenu();
   // The text-size stepper on the tab row: the control, its styles and its
   // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the
   // two tabs render one component reading one persisted preference. The
@@ -4103,4 +4118,4 @@ function distributionPanelHtml(c){
 
 Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,docFillable,wireChecksCard});
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,docFillable,wireChecksCard,roomHeadHtml,wireRoomHead});

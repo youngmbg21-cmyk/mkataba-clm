@@ -5063,8 +5063,19 @@ function redlineLayoutCss(){
      gone (the wall bar carries the one fact that matters), and the title
      ellipsizes rather than pushing the actions off the line, so the strip
      stays a strip at any width the three-column grid itself supports. */
-  .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;
-    background:none;border:0;box-shadow:none;border-radius:0;padding:0 2px 2px;flex:none}
+  /* ONE quiet line. It wears .room-quiet's clothes (index.html) so this strip
+     and the contract page's status line are visibly the same object. */
+  .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+    margin:0 2px;flex:none}
+  .redline-page .rl-headline{font-size:12px;color:var(--color-neutral-700);flex:1;min-width:min(100%,240px)}
+  /* The middle pane's name and its count of marks. */
+  .redline-page .rl-doc-head{display:flex;align-items:center;gap:8px;flex:none;
+    padding:9px 14px;border-bottom:1px solid var(--color-divider);font-size:12.5px}
+  .redline-page .rl-doc-marked{margin-left:auto;display:inline-flex;align-items:center;gap:6px;
+    font-size:10.5px;font-weight:600;color:var(--color-neutral-600);
+    background:var(--color-neutral-100);border-radius:999px;padding:2px 9px}
+  .redline-page .rl-doc-dot{width:6px;height:6px;border-radius:50%;background:var(--st-amber-dot)}
+  .redline-page .rl-head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}
   /* WRAPS: this strip now carries tabs, round, stepper, focus, the contract
      jump, the playbook pass and the presence pill — on a laptop width they
      over-subscribe one row, and nowrap answered that by clipping the jump
@@ -5123,7 +5134,8 @@ function redlineLayoutCss(){
      index.html, because the contract page draws the same row — all this line
      does is give it the same 2px side padding the strip below it has, so the
      first tab and the first verb start on the same vertical. */
-  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:center}
+  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:center;gap:10px}
+  .redline-page .rl-tabrow #rl-contract-jump{align-self:center;max-width:260px}
   /* The tab group is the only thing in this row that stretches; the round tag
      rides at its centre rather than being pulled to the row's full height. */
   .redline-page .rl-tabrow .rl-round{align-self:center}
@@ -5415,12 +5427,28 @@ function redlineLayoutCss(){
   .redline-page .rl-cards-empty{padding:6px 2px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
+  /* ---- AN INDEX CARD, WITH A SPINE THAT SAYS WHOSE IT IS ----
+     The cards were a plain bordered box each, so a column of six read as six
+     identical rectangles and whose ask a change was could only be learned by
+     reading. The left edge carries that now — accent for ours, amber for
+     theirs, green and grey once it is settled — which is the one fact the eye
+     can take without stopping. The id is a chip rather than loose bold text,
+     for the same reason a reference number on any other screen is. */
   .redline-page .rl-card{border:1px solid var(--color-divider);border-radius:10px;padding:11px 12px;
-    margin-bottom:10px;background:var(--color-surface);cursor:pointer}
+    margin-bottom:10px;background:var(--color-surface);cursor:pointer;
+    border-left:3px solid var(--accent-solid,var(--color-accent))}
+  .redline-page .rl-card[data-rl-origin="them"]{border-left-color:var(--st-amber-dot)}
+  .redline-page .rl-card[data-contested]{border-left-color:var(--st-ruby-dot)}
   .redline-page .rl-card:focus-visible{outline:2px solid var(--color-accent)}
   .redline-page .rl-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
   .redline-page .rl-card-lead{display:inline-flex;align-items:center;gap:6px;min-width:0}
-  .redline-page .rl-card-id{font-family:var(--font-mono);font-size:11.5px;font-weight:700}
+  .redline-page .rl-card-id{font-family:var(--font-mono);font-size:10.5px;font-weight:700;
+    background:var(--color-neutral-100);color:var(--color-neutral-700);
+    border-radius:5px;padding:2px 7px;white-space:nowrap}
+  /* The round the ask belongs to, at the far right of the head — "R3" — so a
+     card carried over from an earlier round says so without being opened. */
+  .redline-page .rl-card-round{font-family:var(--font-mono);font-size:10px;font-weight:700;
+    color:var(--color-neutral-500);flex:none;margin-left:6px}
   .redline-page .rl-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
   .redline-page .rl-badge-sent{background:var(--st-steel-bg);color:var(--st-steel-fg)}
   .redline-page .rl-badge-draft{background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -5528,12 +5556,22 @@ function redlineLayoutCss(){
      than through the status tokens, because those tokens re-map in dark mode
      and a destructive verb that changes colour with the theme is a verb
      somebody presses by mistake. */
-  .redline-page .rl-acc,.redline-page .rl-send{background:#d1fae5;color:#047857}
-  .redline-page .rl-rej{background:#fee2e2;color:#b91c1c}
-  .redline-page .rl-edit{background:#e2e8f0;color:#1e293b}
-  html.dark .redline-page .rl-acc,html.dark .redline-page .rl-send{background:rgba(5,150,105,.18);color:#6ee7b7}
-  html.dark .redline-page .rl-rej{background:rgba(220,38,38,.18);color:#fda4af}
-  html.dark .redline-page .rl-edit{background:#cbd5e1;color:#0f172a}
+  /* ACCEPT IS THE ONE THAT LOOKS LIKE A BUTTON. Three tinted pills of equal
+     weight made the reader choose between three equals, when accepting is what
+     most cards are for and the other two are the exceptions. Filled accent for
+     the yes; the no and the alternative recede to an outline. Fixed hex on the
+     fill so it cannot re-map with the theme and be misread. */
+  /* #0f766e, not the #0d9488 this first used: white on the lighter teal
+     measures 3.74:1, and these labels are 11px. The darker step is 5.5:1 and
+     looks the same from a foot away. */
+  .redline-page .rl-acc,.redline-page .rl-send{background:#0f766e;color:#fff;font-weight:700}
+  .redline-page .rl-acc:hover,.redline-page .rl-send:hover{background:#115e59}
+  .redline-page .rl-rej{background:none;border:1px solid var(--color-divider);color:#b91c1c}
+  .redline-page .rl-rej:hover{border-color:#b91c1c}
+  .redline-page .rl-edit{background:none;border:1px solid var(--color-divider);color:var(--color-neutral-700)}
+  .redline-page .rl-edit:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
+  html.dark .redline-page .rl-rej{color:#fda4af}
+  html.dark .redline-page .rl-edit{color:var(--color-neutral-700)}
   /* Amber, past tense, inert — the send after it has gone. Full opacity
      despite being disabled: this is a STATE the reader is meant to read, not a
      control being withheld, and the browser's default greying-out would make
@@ -5753,9 +5791,17 @@ function redlineLayoutCss(){
      exist whether or not you are standing on them. */
   /* flex-wrap so the pair stacks rather than clipping their labels: both are
      nowrap and both name a destination, so neither can be shortened. */
-  .redline-page .rl-side-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:6px;margin:8px 8px 0;flex:none;
-    background:#f1f5f9;border-radius:12px}
-  html.dark .redline-page .rl-side-tabs{background:rgba(148,163,184,.14)}
+  /* ---- TWO DESTINATIONS, ONE OF THEM STANDING ----
+     Both tabs used to be filled tints — a green pill and an indigo pill, side
+     by side, permanently — so the pair read as two lit buttons and neither
+     looked more current than the other. The colours stay, because they are the
+     same families the origin badges and the card spines speak, but they now
+     live in the TEXT. The tab you are standing on is the one raised onto the
+     surface with a shadow under it. Both are still named, still counted, still
+     in their own colour: the rule that "both destinations exist whether or not
+     you are standing on them" is kept, and only the shouting has gone. */
+  .redline-page .rl-side-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;margin:8px 8px 0;flex:none;
+    background:var(--color-neutral-100);border-radius:11px}
 
   /* ---- A SHORT WINDOW SPENDS ITS HEIGHT ON THE WORK ----
      Placed AFTER the rules it argues with: these are the same two classes
@@ -5788,18 +5834,19 @@ function redlineLayoutCss(){
     transition:background .12s,color .12s,border-color .12s,box-shadow .12s}
   .redline-page .rl-side-tab .rl-tab-n{font-size:9.5px;font-weight:700;padding:1px 7px;
     border-radius:999px;color:#fff}
-  .redline-page .rl-tab-changes{background:#ecfdf5;color:#047857;border-color:rgba(5,150,105,.25)}
-  .redline-page .rl-tab-changes.on{background:#d1fae5;border-color:#059669;color:#065f46;
-    box-shadow:0 1px 3px rgba(5,150,105,.28)}
+  .redline-page .rl-tab-changes{background:none;color:#047857}
+  .redline-page .rl-tab-disc{background:none;color:#4338ca}
+  .redline-page .rl-side-tab.on{background:var(--color-surface);
+    box-shadow:0 1px 3px rgba(15,23,42,.14)}
+  .redline-page .rl-tab-changes.on{color:#065f46}
+  .redline-page .rl-tab-disc.on{color:#3730a3}
   .redline-page .rl-tab-changes .rl-tab-n{background:#059669}
-  .redline-page .rl-tab-disc{background:#eef2ff;color:#4338ca;border-color:rgba(99,102,241,.28)}
-  .redline-page .rl-tab-disc.on{background:#e0e7ff;border-color:#6366f1;color:#3730a3;
-    box-shadow:0 1px 3px rgba(99,102,241,.3)}
   .redline-page .rl-tab-disc .rl-tab-n{background:#4f46e5}
-  html.dark .redline-page .rl-tab-changes{background:rgba(5,150,105,.14);color:#6ee7b7;border-color:rgba(5,150,105,.35)}
-  html.dark .redline-page .rl-tab-changes.on{background:rgba(5,150,105,.28);color:#a7f3d0;border-color:#059669}
-  html.dark .redline-page .rl-tab-disc{background:rgba(99,102,241,.16);color:#c7d2fe;border-color:rgba(99,102,241,.4)}
-  html.dark .redline-page .rl-tab-disc.on{background:rgba(99,102,241,.32);color:#e0e7ff;border-color:#6366f1}
+  html.dark .redline-page .rl-tab-changes{color:#6ee7b7}
+  html.dark .redline-page .rl-tab-disc{color:#c7d2fe}
+  html.dark .redline-page .rl-side-tab.on{background:var(--color-neutral-200);box-shadow:none}
+  html.dark .redline-page .rl-tab-changes.on{color:#a7f3d0}
+  html.dark .redline-page .rl-tab-disc.on{color:#e0e7ff}
   /* ---- THE HANDLE ----
      Absolutely positioned over the gap (rlLayoutResizer keeps its left edge
      on the split), the Doc tab's own grip. Hidden where the panes stack. */
@@ -6162,6 +6209,28 @@ function rlRestoreScroll(el, top){
   el.style.scrollBehavior = prev;
 }
 
+/* ---- WHERE THE ROUND STANDS, IN ONE SENTENCE ----
+   "Round 3 · 2 waiting on you, 1 waiting on Siginon. Nothing new travels until
+   you press Publish Round." Every number is counted off the change records at
+   render time — nothing here is a stored summary that could disagree with the
+   cards underneath it. Waiting-on-you is what is pending from the other side;
+   waiting-on-them is what this side has sent and not had answered. */
+function redlineRoundLine(c, side){
+  const round = (typeof negoRound === 'function') ? negoRound(c) : 1;
+  const them = String(c.counterparty || 'the counterparty').split(/[\s,]+/)[0] || 'them';
+  const all = (typeof negoChanges === 'function' ? negoChanges(c) : [])
+    .filter(x => x && x.status !== 'superseded' && !x.withdrawn);
+  const mineSeat = side === 'counterparty' ? 'counterparty' : 'owner';
+  const pending = all.filter(x => x.status === 'pending');
+  const onMe = pending.filter(x => x.authorSide !== mineSeat).length;
+  const onThem = pending.length - onMe;
+  if (!all.length) return `Round ${round} · nothing on the table yet. Ask for different wording on any clause and it lands here.`;
+  const bits = [];
+  if (onMe) bits.push(`${onMe} waiting on you`);
+  if (onThem) bits.push(`${onThem} waiting on ${them}`);
+  if (!bits.length) bits.push('every change answered');
+  return `Round ${round} · ${bits.join(', ')}. Nothing new travels until you press Publish Round.`;
+}
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
@@ -6254,45 +6323,13 @@ function renderRedline(){
            them — so switching tabs moves the WORK, never the furniture. The
            actions press the workspace's own handlers; a page that redraws the
            same buttons over different code is two pages pretending. -->
-      <section class="rl-shell">
-        <button type="button" data-rl-back class="ui-btn rl-shell-back" title="Back to the Docs page">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M5 12h14"/></svg></button>
-        <div class="rl-shell-id">
-          <div class="rl-shell-name">
-            <h3>${esc(c.name)}</h3>
-            <span>${window.contractStatusChip ? contractStatusChip(c) : (window.statusChip ? statusChip(c.status) : '')}</span>
-          </div>
-          <div class="rl-shell-sub">${esc(c.id)}${(window.FOLDERS && FOLDERS[c.folder]) ? ' &middot; ' + esc(FOLDERS[c.folder].name) : ''}${c.lastAction ? ' &middot; updated ' + esc(c.lastAction) : ''}</div>
-        </div>
-        ${''/* THREE WHITE PILLS ON A WHITE CARD, AND ONE OF THEM IS THE WAY OUT.
-
-               These were plain .ui-btn — surface fill, a --color-divider border,
-               ordinary text — so the row read as one undifferentiated group and
-               got missed. It also had no hierarchy, though there is an obvious
-               one going begging: Share is how the contract leaves the building;
-               Import and Compare are things you do while it is still here.
-
-               That is the same observation that explains the counterparty's bar
-               (portalReadingBtnsHtml). .ui-btn-secondary is built to sit BESIDE
-               a filled primary and recede — and neither row had a primary. Give
-               this one the primary it was missing and the other two can stay
-               quiet and still be found: an icon each, an accent tint, and a rule
-               between the verb that sends and the verbs that do not.
-
-               Share carries no caret. The question of WHAT is being shared — the
-               contract or the negotiation history — is asked on the first step
-               inside the dialog, not on the button. */}
-        <div class="rl-shell-acts">
-          ${(typeof canEdit !== 'function' || canEdit()) ? `
-          <button type="button" data-rl-shell="share" class="ui-btn ui-btn-primary rl-act-send"
-            title="Share with counterparty">${icon('share','w-3.5 h-3.5',2)}Share</button>
-          <span class="rl-act-rule" aria-hidden="true"></span>
-          <button type="button" data-rl-shell="import" class="ui-btn rl-act-verb"
-            title="Import counterparty response">${icon('download','w-3.5 h-3.5',2)}Import</button>` : ''}
-          <button type="button" data-rl-shell="compare" class="ui-btn rl-act-verb"
-            title="Compare versions &amp; review changes">${icon('columns','w-3.5 h-3.5',2)}Compare</button>
-        </div>
-      </section>
+      ${''/* THE ROOM'S HEAD, not a second copy of it. This drew its own back
+             arrow, name, status and Share/Import/Compare row while the
+             contract page drew its own — the same furniture, twice, in two
+             files. Both call roomHeadHtml now. The primary is suppressed here
+             because this page has its own act at the other end of the strip:
+             Publish Round. */}
+      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false}) : '')}
       ${''/* THE ROOM'S OWN TAB ROW, NOT A SECOND ONE. This page carried a
              hand-written [Docs][Negotiate] pair while the contract page
              carried its own — two switchers for one room, in two files, free
@@ -6306,22 +6343,36 @@ function renderRedline(){
       <div class="room-tabrow rl-tabrow">
         ${(window.roomTabsHtml?roomTabsHtml(c,'redline'):'')}
         <span style="flex:1"></span>
+        ${''/* The contract switcher rides HERE, with the tabs, because that is
+               what it is: navigation to another contract, not a tool for
+               working this one. It was on the strip below, where it took a
+               quarter of the width and pushed that row onto two lines. */}
+        ${rlJumpHtml(c)}
         <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
       </div>
-      <!-- ONE STRIP under the tabs: the workbench's own verbs — the text-size
-           stepper, focus, the contract jump, the playbook pass, whose view is
-           on show, and the send. -->
-      <section class="rl-head">
+      ${''/* ---- ONE QUIET LINE, WHERE THERE WERE THREE ROWS ----
+             This page opened on a toolbar (stepper, focus, contract jump,
+             playbook pass, view toggle, Publish Round), then a wall banner,
+             then the counterparty-email prompt: three bands of chrome above a
+             negotiation. The send moved up beside the contract's name, where
+             the primary act belongs. What is left is one line saying where the
+             round stands and offering the one pass a reader starts from. */}
+      <section class="rl-head room-quiet">
+        <span class="rl-headline">${_ne(redlineRoundLine(c, side))}</span>
         <div class="rl-head-id">
           ${rlTypeStepHtml()}
+          ${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
+            title="Review every clause against your playbook and propose redlines — each files as a tracked change only when you approve it">&#10022; Review vs Playbook</button>` : ''}
           <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="Focus mode &mdash; hide the header and give the space to the document and the changes" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
-          ${rlJumpHtml(c)}
-          ${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
-            title="Review every clause against your playbook and propose redlines — each files as a tracked change only when you approve it">&#10022; Review vs Playbook</button>` : ''}
           <span id="rl-presence" class="rl-presence" hidden></span>
         </div>
+        ${''/* The send stays on THIS page rather than moving into the shared
+               head. The head is built by js/views/contract.js and a workbench
+               rendered without that file — which some test stages do — would
+               lose its Publish Round entirely. A page's own primary act must
+               not depend on another page's module being present. */}
         <div class="rl-actions">
           <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
           <button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
@@ -6347,6 +6398,22 @@ function renderRedline(){
       if (window.roomGoTab) roomGoTab(c, el.getAttribute('data-ws-tab'));
       else if (window.openWorkspace) openWorkspace(c.id);
     }));
+  /* The head's own controls, wired to the SAME dialogs the contract page
+     opens: one share modal, one import flow, one compare, however you arrived.
+     The ids come from roomHeadHtml, so this list is the workbench saying which
+     of them it can honour rather than redefining any of them. */
+  if (window.wireRoomHead) wireRoomHead(c);
+  const headAct = (id, fn) => host.querySelector('#' + id)?.addEventListener('click', fn);
+  headAct('ws-share', () => window.openShareModal && openShareModal(c));
+  headAct('ws-import', () => window.openImportModal && openImportModal(c));
+  headAct('ws-compare', () => window.openCompareModal && openCompareModal(c));
+  headAct('ws-pdf', () => window.exportPDF && exportPDF(c));
+  headAct('ws-word', () => window.exportWordTracked && exportWordTracked(c));
+  headAct('ws-pdf-record', () => window.exportPDF && exportPDF(c, { record: true }));
+  headAct('ws-tpl', () => { if (window.API_MODE && API_MODE() && window.saveContractToLibrary) saveContractToLibrary(c);
+    else if (window.saveContractAsTemplate) saveContractAsTemplate(c); });
+  headAct('ws-focus', () => rlSetFocus(!rlFocusOn()));
+  headAct('ws-collapse', () => window.toast && toast('The header is already at its shortest on this tab'));
   host.querySelectorAll('[data-rl-shell]').forEach(el =>
     el.addEventListener('click', () => {
       const act = el.getAttribute('data-rl-shell');
@@ -8691,7 +8758,8 @@ function redlineChangeCardsHtml(c, opts = {}){
       ''/* What the reader's open/shut choice was made ABOUT — see rlCardSetOpen. */
       } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
       <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
-        <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
+        <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
+        ch.round ? `<span class="rl-card-round" title="Proposed in round ${_nea(ch.round)}">R${_ne(ch.round)}</span>` : ''}</div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
       ${body}
     </article>`;
@@ -8725,12 +8793,17 @@ function redlineWallHtml(c, opts = {}){
   if (internal) bits.push(`<b>${internal} internal thread${internal === 1 ? '' : 's'}</b>`);
   if (unsent) bits.push(`<b>${unsent} unsent draft${unsent === 1 ? '' : 's'}</b>`);
   const n = internal + unsent;
-  const lead = bits.length
-    ? `${bits.join(' &middot; ')} ${n === 1 ? 'stays' : 'stay'} behind when you share.`
-    : 'Nothing is behind the wall right now.';
+  /* ---- A BANNER THAT SAYS "NOTHING TO REPORT" IS NOT WORTH A BANNER ----
+     This drew on every paint, and on most of them it read "Nothing is behind
+     the wall right now" — a full-width band, above the negotiation, to say
+     that nothing was being held back. The rule it states matters exactly when
+     something IS held back, and that is when it now appears. The rule itself
+     has not moved an inch: a thread still travels only if marked shared, a
+     change only once sent, and the strip says so whenever either applies. */
+  if (!n) return '';
   return `<div class="rl-wall" role="status">
     <span class="rl-wall-ic">&#128274;</span>
-    <span><b>The wall:</b> ${lead} A thread travels only if marked shared; a change only once sent.</span>
+    <span><b>The wall:</b> ${bits.join(' &middot; ')} ${n === 1 ? 'stays' : 'stay'} behind when you share. A thread travels only if marked shared; a change only once sent.</span>
   </div>`;
 }
 
@@ -9049,6 +9122,16 @@ function redlinePanesHtml(c, opts = {}){
            (Change, Delete, the fingerprint margin) are styled through them, and
            without them they render as unlabelled empty boxes -->
       <section id="rl-doc" class="rl-doc nego-pane working" aria-label="The contract, with this round's changes marked">
+        ${''/* The middle pane had no name, so three columns read as a queue, a
+               page and a list of cards rather than as one contract seen three
+               ways. A head naming it, and counting the marks on it, is what
+               ties the outer two to the middle. */}
+        <div class="rl-doc-head">
+          <b>The contract</b>
+          <span class="rl-doc-marked">${(() => { const n = (typeof negoChanges === 'function' ? negoChanges(c) : [])
+            .filter(x => x && x.status !== 'superseded' && !x.withdrawn && x.status !== 'rejected').length;
+            return n ? `<span class="rl-doc-dot"></span>${n} marked` : 'no marks'; })()}</span>
+        </div>
         <div class="nego-scroll" id="nego-scroll-work">${redlineDocHtml(c, opts)}</div>
       </section>
 
@@ -9323,7 +9406,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,
-  rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
+  redlineRoundLine, rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlRestoreScroll,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,

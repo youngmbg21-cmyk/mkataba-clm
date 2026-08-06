@@ -84,13 +84,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   /* ---- 1. the header is a band ---- */
   const head = await page.evaluate(() => {
     const s = getComputedStyle(document.querySelector('#view-redline .rl-head'));
+    const el = document.querySelector('#view-redline .rl-head');
     return { border: s.borderTopWidth, shadow: s.boxShadow, radius: s.borderTopLeftRadius,
-      bg: s.backgroundColor };
+      bg: s.backgroundColor, isQuiet: el.classList.contains('room-quiet'),
+      hasShell: !!document.querySelector('#view-redline .rl-shell') };
   });
-  check('1 header has no border', head.border === '0px', head.border);
+  /* ONE FRAME, WHICH IS WHAT THIS ALWAYS MEANT. The strip was frameless
+     because a TITLE CARD sat above it and a second border read as a box inside
+     a box. That card is gone — the head is a plain title block now — so the
+     strip is the shared quiet bar the contract page also uses: one hairline,
+     one surface, no shadow. The failure being guarded against is a card inside
+     a card, and there is no card above it any more. */
+  check('1 header carries one hairline, not a card', head.border === '1px', head.border);
   check('1 header has no card shadow', head.shadow === 'none', head.shadow);
-  check('1 header has no fill of its own',
-    /rgba\(0, 0, 0, 0\)|transparent/.test(head.bg), head.bg);
+  check('1 header is the shared quiet bar, and the title card is gone',
+    head.isQuiet && !head.hasShell, `${head.bg} shell=${head.hasShell}`);
 
   /* ---- 2. one sheet, not a sheet inside a panel ----
      Counted rather than asserted: the failure was two visible frames a few
@@ -281,13 +289,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
       return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
     };
+    /* WHAT IS ACTUALLY BEHIND THE TEXT, not what the element declares. An
+       outline button's own background is transparent, so measuring its label
+       against `rgba(0,0,0,0)` measures the label against black and reports a
+       failure that is not on the screen. Walk up until something paints. */
+    const painted = el => {
+      for (let n = el; n; n = n.parentElement){
+        const b = getComputedStyle(n).backgroundColor;
+        if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b;
+      }
+      return 'rgb(255, 255, 255)';
+    };
     const btn = sel => {
       const b = document.querySelector('#rl-changes ' + sel);
       if (!b) return null;
       const s = getComputedStyle(b);
-      const bg = rgb(s.backgroundColor), fg = rgb(s.color);
-      const L1 = Math.max(lum(bg), lum(fg)), L2 = Math.min(lum(bg), lum(fg));
-      return { bg: s.backgroundColor, fg: s.color, bgv: bg, fgv: fg,
+      const paint = painted(b);
+      const bg = rgb(s.backgroundColor), fg = rgb(s.color), pv = rgb(paint);
+      const L1 = Math.max(lum(pv), lum(fg)), L2 = Math.min(lum(pv), lum(fg));
+      return { bg: s.backgroundColor, fg: s.color, bgv: bg, fgv: fg, paint,
         contrast: Math.round(((L1 + 0.05) / (L2 + 0.05)) * 100) / 100 };
     };
     return { cards: document.querySelectorAll('#rl-changes [data-nego-card]').length,
@@ -309,28 +329,32 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      that may be retuned again. A wash has two failure modes a solid never had —
      it can stop being legible, and two washes can stop being tellable apart —
      and both are measured here. */
-  const wash = (name, b, hue) => {
+  /* ---- ONE FILL PER CARD, AND EVERY LABEL LEGIBLE ----
+     Three equal washes became a primary and two outlines: accepting is what
+     most cards are for, and Reject and Counter are the exceptions. What is
+     measured is what that must not cost — every label still readable against
+     what is actually behind it, and the yes and the no still tellable apart.
+     Contrast is measured against the COMPOSITED background, because an
+     outline button's own background is transparent and comparing text to
+     `rgba(0,0,0,0)` measures nothing. */
+  const legible = (name, b) => {
     if (!b) return check(`11 ${name} exists`, false);
-    const [r, g] = b.bgv;
-    check(`11 ${name} is a soft ${hue} wash, not a solid alarm`,
-      Math.min(...b.bgv) > 200 && (hue === 'green' ? g > r : r > g),
-      `${b.bg}`);
-    /* The whole point of the tone text: a near-white tint with pale text on it
-       is the way a soft wash goes wrong, and it goes wrong invisibly. */
-    check(`11 ${name} stays legible on it`, b.contrast >= 4.5,
-      `contrast ${b.contrast}:1 (${b.fg} on ${b.bg})`);
+    check(`11 ${name} stays legible`, b.contrast >= 4.5,
+      `contrast ${b.contrast}:1 (${b.fg} on ${b.paint || b.bg})`);
   };
-  wash('Accept', cards.acc, 'green');
-  wash('Reject', cards.rej, 'red');
-  wash('Send', cards.send, 'green');
-  /* And the two decisions must not read as the same button at a glance — the
-     one thing a row of tints can lose that a row of solids could not. */
-  check('11 Accept and Reject are tellable apart by hue',
-    cards.acc && cards.rej
-    && Math.abs((cards.acc.bgv[1] - cards.acc.bgv[0]) - (cards.rej.bgv[1] - cards.rej.bgv[0])) > 30,
-    cards.acc && cards.rej ? `${cards.acc.bg} vs ${cards.rej.bg}` : 'missing');
-  check('11 Edit is slate-200 on slate-800', cards.edit && cards.edit.bg === 'rgb(226, 232, 240)',
-    cards.edit && `${cards.edit.bg} / ${cards.edit.fg}`);
+  legible('Accept', cards.acc);
+  legible('Reject', cards.rej);
+  legible('Send', cards.send);
+  legible('Edit', cards.edit);
+  check('11 Accept is the one filled button on the card',
+    cards.acc && Math.min(...cards.acc.bgv) < 200
+      && cards.rej && /rgba\(0, 0, 0, 0\)|transparent/.test(cards.rej.bg)
+      && cards.edit && /rgba\(0, 0, 0, 0\)|transparent/.test(cards.edit.bg),
+    cards.acc ? `${cards.acc.bg} / ${cards.rej && cards.rej.bg} / ${cards.edit && cards.edit.bg}` : 'missing');
+  /* And the two decisions must not read as the same button at a glance. */
+  check('11 Accept and Reject are tellable apart',
+    cards.acc && cards.rej && cards.acc.fg !== cards.rej.fg,
+    cards.acc && cards.rej ? `${cards.acc.fg} vs ${cards.rej.fg}` : 'missing');
 
   /* ---- 14. the card is a handle, not a second copy of the wording ----
      It used to carry the redline clamped to two lines, beside a document pane
