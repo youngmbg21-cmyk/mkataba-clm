@@ -29,9 +29,15 @@ const FIELD_LIB = {
     validate: s => s.length <= 300 ? null : 'Keep it under 300 characters' },
   long_text: { label: 'Long text', input: 'textarea', hint: '',
     validate: s => s.length <= 10000 ? null : 'Keep it under 10,000 characters' },
-  email: { label: 'Email', input: 'email', hint: 'name@company.co.ke',
+  /* The hints are getters for the same reason `currency`'s label is: they name
+     a market, and the market is a setting. Read lazily so this file still loads
+     where jurisdiction.js has not (the server requires it directly), falling
+     back to the shape it always showed. */
+  email: { label: 'Email', input: 'email',
+    get hint(){ return (typeof jxEg==='function' && jxEg('email')) || 'name@company.co.ke'; },
     validate: s => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(s) ? null : 'Enter a valid email address' },
-  phone: { label: 'Phone', input: 'tel', hint: '+254 700 000000',
+  phone: { label: 'Phone', input: 'tel',
+    get hint(){ return (typeof jxEg==='function' && jxEg('phone')) || '+254 700 000000'; },
     validate: s => /^\+?[0-9 ()\-]{7,20}$/.test(s) ? null : 'Enter a valid phone number' },
   date: { label: 'Date', input: 'date', hint: 'YYYY-MM-DD',
     validate: s => fieldLibDateOk(s) ? null : 'Enter a real calendar date' },
@@ -39,12 +45,22 @@ const FIELD_LIB = {
     validate: s => Number.isFinite(Number(s.replace(/,/g, ''))) ? null : 'Enter a number' },
   currency: { get label(){ return `Amount (${jxCurrency()})`; }, input: 'text', hint: 'e.g. 2,500,000',
     validate: s => { const n = Number(s.replace(/[, ]/g, '')); return Number.isFinite(n) && n >= 0 ? null : 'Enter a non-negative amount'; } },
-  address: { label: 'Address', input: 'textarea', hint: 'Street, town, county',
+  address: { label: 'Address', input: 'textarea',
+    get hint(){ return (typeof jxEg==='function' && jxEg('address')) || 'Street, town, county'; },
     validate: s => s.length >= 4 ? null : 'Enter an address' },
   national_id: { label: 'National ID', input: 'text', hint: 'e.g. 12345678',
     validate: s => /^[0-9]{6,10}$/.test(s) ? null : 'Enter a 6–10 digit ID number' },
   kenya_tax_id: { label: 'KRA PIN', input: 'text', hint: 'A123456789B',
     validate: s => /^[AP][0-9]{9}[A-Z]$/i.test(s) ? null : 'A KRA PIN looks like A123456789B' },
+  /* The Swedish company number, added as its own type rather than by widening
+     kenya_tax_id: a template that asks for a KRA PIN must keep rejecting an
+     organisationsnummer and the other way round, or the check stops meaning
+     anything. Shape only, like the KRA PIN above — the Luhn check digit is a
+     stricter test than this catalogue makes anywhere else, and a registry
+     lookup is the only thing that would actually prove the number is real. */
+  sweden_tax_id: { label: 'Organisationsnummer', input: 'text', hint: '556016-0680',
+    validate: s => /^\d{6}-?\d{4}$/.test(s.replace(/\s/g, '')) ? null
+      : 'An organisationsnummer looks like 556016-0680' },
   company_reg_number: { label: 'Company reg. number', input: 'text', hint: 'e.g. PVT-ABC1234 or C.123456',
     validate: s => s.length >= 3 ? null : 'Enter the registration number' },
   select: { label: 'Choice', input: 'select', hint: '',

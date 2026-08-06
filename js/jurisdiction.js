@@ -100,8 +100,26 @@ const JURISDICTIONS = {
        just the difference between "e.g. Nyanza" reading as helpful or as foreign. */
     egTerritory: 'e.g. Nyanza',
     egRegion: 'e.g. Nairobi to Coast',
+    /* The richer form the freight scanner suggests, which names two lanes. */
+    egLanes: '“Nairobi – Mombasa primary + coastal secondary”',
     egSite: 'e.g. Industrial Area, Nairobi',
     egPremises: 'e.g. Westlands, Nairobi',
+    /* Placeholder shapes in the field catalogue. A Swedish user typing into a
+       box hinted "name@company.co.ke" is being shown someone else's country. */
+    egEmail: 'name@company.co.ke',
+    egPhone: '+254 700 000000',
+    egAddress: 'Street, town, county',
+    /* The counterparty's address, and a warehouse site: the same placeholder is
+       drawn by the wizard, the template form and the library dialog. */
+    egTheirEmail: 'them@company.co.ke',
+    egWarehouse: 'e.g. Nairobi DC',
+    /* Who the DEMO portfolio is signed and commented by. Sample data only —
+       a real workspace replaces both the moment it has its own people. */
+    egSignatory: 'A. Otieno, Director',
+    egReviewer: 'Wanjiku Kamau',
+    /* Which entry in the field catalogue asks for this market's company tax
+       number. Both types exist in FIELD_LIB; this names the one that belongs. */
+    taxIdField: 'kenya_tax_id',
   },
   sweden: {
     id: 'sweden',
@@ -141,8 +159,17 @@ const JURISDICTIONS = {
     landForum: null,
     egTerritory: 'e.g. Skåne',
     egRegion: 'e.g. Stockholm to Malmö',
+    egLanes: '“Stockholm – Malmö primary + southern secondary”',
     egSite: 'e.g. Årsta, Stockholm',
     egPremises: 'e.g. Södermalm, Stockholm',
+    egEmail: 'namn@foretag.se',
+    egPhone: '+46 70 000 00 00',
+    egAddress: 'Street, postcode, town',
+    egTheirEmail: 'dem@foretag.se',
+    egWarehouse: 'e.g. Stockholm DC',
+    egSignatory: 'A. Lindqvist, Director',
+    egReviewer: 'Anna Lindqvist',
+    taxIdField: 'sweden_tax_id',
   },
 };
 const JX_DEFAULT = 'kenya';
@@ -227,6 +254,8 @@ const jxLandForum = () => jx().landForum || null;
    an empty string so a pack that has not named one shows a plain blank rather
    than another market's town. */
 const jxEg = key => jx()['eg' + key.charAt(0).toUpperCase() + key.slice(1)] || '';
+/* Which FIELD_LIB entry asks for this market's company tax number. */
+const jxTaxIdField = () => jx().taxIdField || null;
 
 /* The short governing-law sentence a template clause ends on. Kept separate from
    jxPreferredLaw (which is the PLAYBOOK's position, and states a preference)
@@ -279,7 +308,7 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jxEsignature, jxEsignatureShort, jxStampDuty, jxDataProtection, jxStandardsBody,
   jxPlaybookLabel, jxPreferredLaw, jxFallbackLaw, jxForeignMarkers, jxNamesHome,
   jxIncorporatedIn, jxTaxAuthority, jxFoodSafetyRegulator, jxProfessionalBodies,
-  jxLandStatute, jxLandForum, jxEg, jxGovernedBy, jxGovernedByArb, jxLeaseLaw,
+  jxLandStatute, jxLandForum, jxEg, jxTaxIdField, jxGovernedBy, jxGovernedByArb, jxLeaseLaw,
   fmtMoney, fmtMoneyShort };
 /* Two hosts, one table. The browser gets globals like every other module here;
    server/server.js is a plain Node process with no window, and requires it. */

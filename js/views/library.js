@@ -130,7 +130,7 @@ function openTemplateFillModal(t){
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
         <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">Their email<span style="font-weight:400;color:var(--color-neutral-500)"> → so you can send it to them</span></span>
-        <input id="tf-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
+        <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
     </div>
     <div id="tf-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px">

@@ -112,8 +112,8 @@ function mHomeHtml(){
   const cs = (D && D.cs) || (state.contracts||[]);
   const agreements = (typeof agreementsIn==='function') ? agreementsIn(cs).length : cs.length;
   const value = (D && typeof fmtMoneyShort==='function' && D.money) ? fmtMoneyShort(D.m.totalValue) : '';
-  const subline = `${agreements.toLocaleString('en-KE')} agreement${agreements===1?'':'s'} · `
-    + `${cs.length.toLocaleString('en-KE')} document${cs.length===1?'':'s'}`
+  const subline = `${agreements.toLocaleString(jxLocale())} agreement${agreements===1?'':'s'} · `
+    + `${cs.length.toLocaleString(jxLocale())} document${cs.length===1?'':'s'}`
     + (value?` · ${value} active value`:'');
 
   const needs = mNeedsYou(D);

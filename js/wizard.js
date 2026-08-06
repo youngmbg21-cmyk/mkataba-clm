@@ -9,7 +9,7 @@ const TEMPLATE_PRIMARY = {
   PK:{field:'packType', label:'Packaging type', ph:'e.g. PET bottles & preforms', def:''},
   CM:{field:'product', label:'Product manufactured', ph:'e.g. powdered beverages', def:''},
   EQ:{field:'equipment', label:'Equipment', ph:'e.g. filling line', def:''},
-  WH:{field:'site', label:'Warehouse / site', ph:'e.g. Nairobi DC', def:''},
+  WH:{field:'site', label:'Warehouse / site', get ph(){ return (typeof jxEg==='function'&&jxEg('warehouse'))||'e.g. Nairobi DC'; }, def:''},
   FF:{field:'region', label:'Distribution region', ph:'e.g. a named region or county', def:''},
   DA:{field:'territory', label:'Distributor territory', ph:'e.g. Coast region', def:''},
   RL:{field:'channel', label:'Retail channel', ph:'e.g. modern trade', def:''},
@@ -175,7 +175,7 @@ function openWizard(preTid){
                contract the strip never appears and the send goes straight out. */}
         <label style="display:block;">
           <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Their email<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
-          <input id="wz-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
+          <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">Cancel</button>

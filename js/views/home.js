@@ -268,7 +268,7 @@ function hmDashSlices(){
   /* Paper that has sat in review, longest first — the other half of what a
      person has to decide about, alongside the renewals. */
   const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
-  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
+  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
   // yet signed — a live share in 'sent' or 'opened', so the ball is in their
@@ -344,19 +344,19 @@ function hmDashSlices(){
   const REG_PROFILE={SE:'EU / GDPR', KE:'KICA / ODPC'};
   const apprMineN=myApprovals.filter(x=>x.mine).length;
   const KPI_CATALOG={
-    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString('en-KE'),        delta:`+${newThisWeek} this week`,                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
-    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       sub:`across ${agreementsIn(cs).length.toLocaleString('en-KE')} agreements`, grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
-    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString('en-KE'),    delta:`${stalled} stalled > 14d`,                                     sub:API_MODE()?'out with counterparties':'shares need server mode', grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
-    approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString('en-KE'), delta:myApprovals.length?'Action required':'All clear',            sub:myApprovals.length?`${apprMineN} waiting on you · ${myApprovals.length-apprMineN} on others`:'no approval chain is open', grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
+    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:`+${newThisWeek} this week`,                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
+    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString(jxLocale())} executed`,       sub:`across ${agreementsIn(cs).length.toLocaleString(jxLocale())} agreements`, grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
+    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString(jxLocale()),    delta:`${stalled} stalled > 14d`,                                     sub:API_MODE()?'out with counterparties':'shares need server mode', grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
+    approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString(jxLocale()), delta:myApprovals.length?'Action required':'All clear',            sub:myApprovals.length?`${apprMineN} waiting on you · ${myApprovals.length-apprMineN} on others`:'no approval chain is open', grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
     compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:`${clean} of ${live.length} live with no high-risk finding`, grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},
-    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),  sub:expSub(exp30),                           grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
-    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),  sub:expSub(exp60),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
-    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),  sub:expSub(exp90),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
+    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString(jxLocale()),     delta:expDelta(exp30),  sub:expSub(exp30),                           grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
+    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString(jxLocale()),     delta:expDelta(exp60),  sub:expSub(exp60),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
+    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString(jxLocale()),     delta:expDelta(exp90),  sub:expSub(exp90),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
     /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
        `days >= 0`, so a contract dropped out of all three on the morning its
        term ended — the one day it most needed somebody to look at it. */
-    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtMoneyShort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
-    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`, sub:'risk score 60 or above', grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
+    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString(jxLocale()),    delta:money?`${fmtMoneyShort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
+    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:`${onExecuted} on executed paper`, sub:'risk score 60 or above', grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', sub:'draft to signed, from the audit trail', grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
@@ -436,7 +436,7 @@ function renderDashboard(){
   const greeting=hourNow<12?'Good morning':hourNow<17?'Good afternoon':'Good evening';
   const activeVal=(money&&typeof fmtMoneyShort==='function')?fmtMoneyShort(valOf(live)):'';
   const heroLine=[
-    `${Number(countAll).toLocaleString('en-KE')} contract${countAll===1?'':'s'} under management`,
+    `${Number(countAll).toLocaleString(jxLocale())} contract${countAll===1?'':'s'} under management`,
     activeVal?`${activeVal} active value`:'',
     apprMineN?`${apprMineN} need${apprMineN===1?'s':''} you today`:'',
   ].filter(Boolean).join(' · ');

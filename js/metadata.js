@@ -130,12 +130,12 @@ function buildExtractionPayload(text, opts={}){
   const parts=[]; let cursor=0, omitted=0;
   for(const s of accepted){
     if(s.start>cursor){ const gap=s.start-cursor; omitted+=gap;
-      parts.push(`\n\n[... ${gap.toLocaleString('en-KE')} characters omitted ...]\n\n`); }
+      parts.push(`\n\n[... ${gap.toLocaleString(jxLocale())} characters omitted ...]\n\n`); }
     parts.push(t.slice(s.start,s.end));
     cursor=s.end;
   }
   if(cursor<t.length){ const gap=t.length-cursor; omitted+=gap;
-    parts.push(`\n\n[... ${gap.toLocaleString('en-KE')} characters omitted ...]`); }
+    parts.push(`\n\n[... ${gap.toLocaleString(jxLocale())} characters omitted ...]`); }
   return { text:parts.join(''), sections:accepted.length, omitted, dropped, full:false, sourceChars:t.length };
 }
 
@@ -257,8 +257,8 @@ function openMetaReview(meta, onConfirm, opts={}){
   // first eight pages is a materially different claim from over all of it.
   const coverage = !p ? ''
     : p.thorough ? ` · whole document read in ${p.sections} overlapping section${p.sections===1?'':'s'} (thorough mode)`
-    : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString('en-KE')}-character document`
-    : ` · read the whole ${Number(p.chars||0).toLocaleString('en-KE')}-character document`;
+    : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString(jxLocale())}-character document`
+    : ` · read the whole ${Number(p.chars||0).toLocaleString(jxLocale())}-character document`;
   const src = (meta._source==='ai' ? 'Copilot-extracted' : 'Pattern-matched (no Copilot key)') + coverage;
   /* The phrase each value came from, shown under the field. This is what turns
      the confirm step from a leap of faith into a glance — the same

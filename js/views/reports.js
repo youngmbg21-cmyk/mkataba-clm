@@ -103,7 +103,7 @@ const REPORT_CHARTS=[
     return r.topParty.map(([k,v])=>bar(k,v,mx,fmtMoneyShort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
   {k:'renewalPipe', label:'Renewal pipeline · next 12 months', render:r=>{
     const months=Object.keys(r.pipeline).sort(); const mx=Math.max(1,...Object.values(r.pipeline));
-    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'var(--st-green-dot)')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
+    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString(jxLocale(),{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'var(--st-green-dot)')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
   {k:'roundsType', label:'Negotiation rounds by type (avg)', render:r=>{
     const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
     const mx=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));

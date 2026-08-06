@@ -86,7 +86,7 @@ window.intelUI = { scanning:false, scannedAt:null };
 
 function scanPortfolio(){
   state.contracts.forEach(c=>runScan(c));
-  intelUI.scannedAt = new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+  intelUI.scannedAt = new Date().toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'});
 }
 
 /* ============================================================
@@ -755,7 +755,7 @@ function renderIntel(){
          it is trimmed with a "…" or not shown. Friction has no caption. -->
     <header style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
-      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
+      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString(jxLocale())} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
@@ -1160,7 +1160,7 @@ async function intelFrictionAsk(){
     const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'});
     const rich=igFmtRich(res.answer||'');
     intel.frictionAI={busy:false,key,html:rich.html,
-      at:new Date().toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})};
+      at:new Date().toLocaleTimeString(jxLocale(),{hour:'2-digit',minute:'2-digit'})};
   }catch(e){
     intel.frictionAI={busy:false,key,
       err:(e&&e.needsKey)?'No Copilot key configured — add one in Team & Settings → Copilot engine.':'Copilot was unavailable — '+(e&&e.message?e.message:String(e))};

@@ -4198,7 +4198,7 @@ function syncKeyTermsUI(c, source){
   put('#doc-canvas [data-sync="value"]', c.value||'');
   /* The key-terms field carries thousand separators; writing the raw number
      into it here would strip them back out on every keystroke. */
-  put('[data-kt="value"]', c.value?Number(c.value).toLocaleString('en-KE'):'');
+  put('[data-kt="value"]', c.value?Number(c.value).toLocaleString(jxLocale()):'');
   const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
   const mv=document.getElementById('meta-value');
   if(mv){

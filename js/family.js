@@ -139,8 +139,8 @@ function familyCounts(list){
 }
 const familyCountLabel = list => { const k=familyCounts(list);
   return k.amendments
-    ? `${k.agreements.toLocaleString('en-KE')} agreement${k.agreements===1?'':'s'} · ${k.documents.toLocaleString('en-KE')} documents`
-    : `${k.documents.toLocaleString('en-KE')} contract${k.documents===1?'':'s'}`; };
+    ? `${k.agreements.toLocaleString(jxLocale())} agreement${k.agreements===1?'':'s'} · ${k.documents.toLocaleString(jxLocale())} documents`
+    : `${k.documents.toLocaleString(jxLocale())} contract${k.documents===1?'':'s'}`; };
 
 /* ---------- suggest, never auto-link ----------
    At import we PROPOSE a parent when the filename or the opening text reads

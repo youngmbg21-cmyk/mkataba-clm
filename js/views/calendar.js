@@ -62,7 +62,7 @@ const _dot=(color,px)=>`<span style="width:${px}px;height:${px}px;border-radius:
 function renderCalendar(){
   const {y,m}=calMonth();
   const first=new Date(y,m,1), start=first.getDay(), days=new Date(y,m+1,0).getDate();
-  const monthName=first.toLocaleDateString('en-KE',{month:'long',year:'numeric'});
+  const monthName=first.toLocaleDateString(jxLocale(),{month:'long',year:'numeric'});
   const evs=calendarEvents();
   const byDay={}; evs.forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
   const todayIso=new Date().toISOString().slice(0,10);

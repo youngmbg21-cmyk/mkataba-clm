@@ -533,8 +533,8 @@ function renderTeam(){
         const uEl=document.getElementById('ai-usage');
         if(uEl){
           uEl.innerHTML=budget>0
-            ? `Today: <b>${money(spent)}</b> of <b>${money(budget)}</b> · ${Number(spend.requests||0).toLocaleString('en-KE')} request${spend.requests===1?'':'s'} <span style="color:var(--color-neutral-500)">(${spend.date||''})</span>`
-            : `Today: <b>${money(spent)}</b> · ${Number(spend.requests||0).toLocaleString('en-KE')} request${spend.requests===1?'':'s'} <span style="color:var(--color-neutral-500)">(${spend.date||''}) · no daily budget set</span>`; }
+            ? `Today: <b>${money(spent)}</b> of <b>${money(budget)}</b> · ${Number(spend.requests||0).toLocaleString(jxLocale())} request${spend.requests===1?'':'s'} <span style="color:var(--color-neutral-500)">(${spend.date||''})</span>`
+            : `Today: <b>${money(spent)}</b> · ${Number(spend.requests||0).toLocaleString(jxLocale())} request${spend.requests===1?'':'s'} <span style="color:var(--color-neutral-500)">(${spend.date||''}) · no daily budget set</span>`; }
         const uBar=document.getElementById('ai-usage-bar');
         if(uBar){ const pct=budget>0?Math.min(100,Math.round(spent/budget*100)):0;
           uBar.style.width=pct+'%'; uBar.style.background=pct>=90?'var(--st-ruby-fg)':pct>=70?'var(--st-amber-dot)':'var(--color-accent)'; }
@@ -545,7 +545,7 @@ function renderTeam(){
           bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
             ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:11px">
               <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
-              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString('en-KE')} req</span>
+              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
               <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
             </div>`).join('')}</div>`
             :`<div style="font-size:10.5px;color:var(--color-neutral-500)">No Copilot spend recorded today.</div>`;

@@ -553,7 +553,7 @@ function mExpiry(c){
   const d = (typeof daysUntil==='function') ? daysUntil(e) : null;
   const when = new Date(e+'T00:00:00');
   const nice = isNaN(when.getTime()) ? String(e)
-    : when.toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'});
+    : when.toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
   if(d==null) return 'Exp '+nice;
   if(d<0) return 'Ended '+nice;
   return 'Exp '+nice;

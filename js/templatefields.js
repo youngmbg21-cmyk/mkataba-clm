@@ -347,7 +347,7 @@ const CONTRACT_ESSENTIALS = [
   { key:'counterparty', label:'Counterparty', type:'text', maps:'counterparty',
     ph:'Full registered name' },
   { key:'cpemail',      label:'Their email',  type:'email', maps:null,
-    ph:'them@company.co.ke', hint:'so you can send it to them' },
+    get ph(){ return (typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'; }, hint:'so you can send it to them' },
   { key:'value',        label:'Contract value', type:'num', maps:'value',
     ph:'0', hint:'if known' },
   { key:'effDate',      label:'Start date',   type:'date', maps:'effDate' },

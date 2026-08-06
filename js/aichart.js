@@ -76,7 +76,7 @@ const _acObState = o => (typeof window.obState === 'function' ? obState(o)
 const _acMonthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const _acMonthLabel = k => {
   const [y, m] = String(k).split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString('en-KE', { month: 'short', year: '2-digit' });
+  return new Date(y, m - 1, 1).toLocaleDateString(jxLocale(), { month: 'short', year: '2-digit' });
 };
 /* The next N months as keys, so a month with nothing in it still appears —
    a gap in a timeline is information, and a chart that silently skips empty

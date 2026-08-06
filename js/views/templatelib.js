@@ -88,7 +88,7 @@ function tplCompanySectionHtml() {
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px';
   const canManage = tplLibCanManage();
   const list = _tplLib.list;
-  const fmtDay = iso => iso ? new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  const fmtDay = iso => iso ? new Date(iso).toLocaleDateString(jxLocale(), { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
   /* Cards, in the same grid and the same shape as Counterparty Templates further down the
      page — one Templates page should not have two visual languages for the same
      idea. The card is a DIV, not a button: the row it replaces was a <button>

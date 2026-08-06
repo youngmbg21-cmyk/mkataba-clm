@@ -11,7 +11,8 @@ Object.assign(window,{FIRST_PARTY,PORTAL_MODE});
 window.uid = 100;
 const nextId = () => 'MK-' + (++uid);
 const seedComments = () => ([
-  { author:'Wanjiku Kamau', role:'Legal (Internal)', side:'internal', text:'Flagged clause 4 — please confirm the governing-law reference stays Kenyan.', ts:'2d ago' },
+  { author:(typeof jxEg==='function'&&jxEg('reviewer'))||'Wanjiku Kamau', role:'Legal (Internal)', side:'internal',
+    text:`Flagged clause 4 — please confirm the governing-law reference stays ${(typeof jxAdjective==='function'?jxAdjective():'Kenyan')}.`, ts:'2d ago' },
   { author:'Counterparty', role:'Reviewer', side:'external', text:'Agreed on scope. We will need the value confirmed before counsel signs off.', ts:'1d ago' },
 ]);
 
@@ -22,7 +23,27 @@ const state = {
   folderQuery:'',
   settings:{}, dataVersion:0,
   mapPos:{}, mapSel:null,
-  contracts:[
+  contracts:sampleContracts(),
+};
+/* ---------------- THE SAMPLE PORTFOLIO, PER MARKET ----------------
+   Thirty demo contracts modelled on a diversified FMCG company, from raw
+   materials to market. There is one set per market, because the point of demo
+   data is that a prospect recognises their own trade in it — a Stockholm pilot
+   opening "Regional Distributor — Mt. Kenya" priced in shillings learns only
+   that the product was built for somewhere else.
+
+   Both sets carry the SAME six value streams, the same twelve contract types,
+   the same statuses and the same dates, so every screen that groups, filters,
+   charts or counts behaves identically whichever market is loaded. Only the
+   names, the places and the money differ. Values are the same commercial
+   shapes converted to the local currency and rounded to how a figure in that
+   currency is actually written.
+
+   A function rather than a constant: the market is not known at module load
+   (jxId reads through getOrg and lsGet, both declared further down this file),
+   so the seed is taken at the moment a workspace is created — see doSetup. */
+function samplePortfolio(market){
+  const KE = () => [
     // — Procurement & Raw Materials —
     mk('Refined Sugar Supply — Confectionery Line','Kabras Sugar (West Kenya Ltd)',48000000,'Signed','RM','09 Jul 2026','2027-07-31'),
     mk('Raw Milk Collection — Rift Valley Co-ops','Nandi Dairy Co-operative Union',36000000,'Signed','RM','03 Jul 2026','2027-06-30'),
@@ -59,8 +80,51 @@ const state = {
     mk('External Audit Engagement — FY2026','PwC Kenya',7200000,'Under Review','PS','16 Jul 2026',null),
     mk('Legal Retainer — Commercial & Regulatory','Bowmans (Coulson Harney LLP)',6000000,'Signed','PS','07 Jul 2026','2027-06-30'),
     mk('Vendor NDA — ERP Implementation','SAP East Africa',0,'Under Review','ND','14 Jul 2026',null),
-  ],
-};
+  ];
+  const SE = () => [
+    // — Procurement & Raw Materials —
+    mk('Refined Sugar Supply — Confectionery Line','Nordic Sugar AB',3400000,'Signed','RM','09 Jul 2026','2027-07-31'),
+    mk('Raw Milk Collection — Skåne Co-ops','Skånemejerier Ekonomisk Förening',2600000,'Signed','RM','03 Jul 2026','2027-06-30'),
+    mk('Crude Rapeseed Oil Supply','AAK Sverige AB',6800000,'Under Review','RM','16 Jul 2026','2027-03-31'),
+    mk('PET Bottle & Preform Supply','Plastbolaget Norden AB',1600000,'Under Review','PK','15 Jul 2026','2027-01-31'),
+    mk('Corrugated Carton Supply','BillerudKorsnäs Sverige AB',1050000,'Draft','PK','18 Jul 2026',null),
+    // — Manufacturing & Production —
+    mk('Co-Packing — Powdered Beverages','Nordic Copacking AB',4300000,'Signed','CM','07 Jul 2026','2027-12-31'),
+    mk('Contract Manufacturing — Bar Soap','Cederroth AB',2900000,'Under Review','CM','14 Jul 2026','2027-09-30'),
+    mk('Tolling Agreement — Detergent Powder','Ecolab Sverige AB',2400000,'Under Review','CM','12 Jul 2026',null),
+    mk('Filling Line Lease & Maintenance','Tetra Pak Sverige AB',600000,'Signed','EQ','05 Jul 2026','2029-06-30'),
+    mk('Forklift Fleet Lease — Plant','Toyota Material Handling Sweden AB',260000,'Draft','EQ','17 Jul 2026',null),
+    // — Warehousing & Distribution —
+    mk('Central Warehouse & 3PL — Årsta','PostNord TPL AB',1300000,'Signed','WH','06 Jul 2026','2028-06-30'),
+    mk('Cold-Chain Storage — Dairy & Chilled','Frigoscandia AB',900000,'Under Review','WH','15 Jul 2026','2027-12-31'),
+    mk('Primary Distribution — Stockholm to Malmö','DSV Road AB',700000,'Signed','FF','08 Jul 2026','2027-07-31'),
+    mk('Cross-Border Freight — Nordic Markets','Schenker AB',1090000,'Under Review','FF','13 Jul 2026',null),
+    mk('Last-Mile Distribution — Västra Götaland','Best Transport Sverige AB',460000,'Draft','FF','18 Jul 2026',null),
+    // — Sales & Route-to-Market —
+    mk('Regional Distributor — Skåne','Sydgrossisten AB',3700000,'Signed','DA','04 Jul 2026','2027-06-30'),
+    mk('Regional Distributor — Norrland','Norrlands Partihandel AB',3150000,'Under Review','DA','14 Jul 2026',null),
+    mk('Modern Trade Listing & Supply','ICA Sverige AB',6100000,'Signed','RL','02 Jul 2026','2027-06-30'),
+    mk('Retail Supply — Modern Trade','Coop Sverige AB',5600000,'Under Review','RL','16 Jul 2026','2027-03-31'),
+    mk('E-commerce Distribution Agreement','Mathem i Sverige AB',860000,'Draft','DA','17 Jul 2026',null),
+    // — Marketing & Brand —
+    mk('Creative & Brand Agency Retainer','Forsman & Bodenfors AB',1700000,'Signed','MK','06 Jul 2026','2027-06-30'),
+    mk('Media Buying — TV & Radio','TV4 Media AB',2150000,'Under Review','MK','15 Jul 2026','2027-06-30'),
+    mk('Trade Activation & Field Marketing','Ogilvy Sverige AB',690000,'Under Review','MK','12 Jul 2026',null),
+    mk('Digital & Influencer Campaign','Kurppa Hosk AB',390000,'Draft','MK','18 Jul 2026',null),
+    mk('Sponsorship — Allsvenskan','Svensk Elitfotboll',1290000,'Declined','MK','01 Jul 2026',null),
+    // — Corporate & Compliance —
+    mk('Mutual NDA — New Product Development','Givaudan Nordic AB',0,'Signed','ND','05 Jul 2026','2027-07-31'),
+    mk('Head Office Lease — Södermalm','Vasakronan AB',3000000,'Signed','LE','03 Jul 2026','2030-06-30'),
+    mk('External Audit Engagement — FY2026','PwC Sverige AB',515000,'Under Review','PS','16 Jul 2026',null),
+    mk('Legal Retainer — Commercial & Regulatory','Mannheimer Swartling Advokatbyrå',430000,'Signed','PS','07 Jul 2026','2027-06-30'),
+    mk('Vendor NDA — ERP Implementation','SAP Svenska AB',0,'Under Review','ND','14 Jul 2026',null),
+  ];
+  return market === 'sweden' ? SE() : KE();
+}
+/* The seed for the market this workspace is set to, taken fresh each call. */
+function sampleContracts(){
+  return samplePortfolio(typeof jxId==='function' ? jxId() : 'kenya');
+}
 /* ---------------- The grow-with-you sidebar (WO N5) ----------------
    Surfaces that only mean something once a portfolio exists are EARNED into
    view rather than shown to a brand-new workspace: Insights appears at five
@@ -96,7 +160,7 @@ function mk(name,cp,value,status,tmpl,date,expiry,valueType){
   const c = { id:nextId(), name, counterparty:cp, value, status, template:tmpl, seeded:true,
     folder:TEMPLATES[tmpl].folder, valueType:valueType||TEMPLATES[tmpl].valueType,
     lastAction:date, expiry:expiry||null, hash:null, signedAt:null,
-    signatory:'A. Otieno, Director', compliance:{iprs:false,pki:false},
+    signatory:(typeof jxEg==='function'&&jxEg('signatory'))||'A. Otieno, Director', compliance:{iprs:false,pki:false},
     comments:seedComments(), fields:{}, scan:null,
     audit:[{at:new Date().toISOString(),user:'System',action:'Created',detail:'Seeded as sample data'}],
     signatures:[] };
@@ -209,7 +273,7 @@ function fmtDocAmount(v){
   const s = String(v==null?'':v).trim();
   if(!/^-?\d+(\.\d+)?$/.test(s)) return null;
   const n = Number(s);
-  return Number.isFinite(n) ? n.toLocaleString('en-KE') : null;
+  return Number.isFinite(n) ? n.toLocaleString(jxLocale()) : null;
 }
 /* The text that replaces one fill-in field. Money is marked in the document
    itself (data-money) rather than guessed at from the number, because "5000
@@ -530,8 +594,8 @@ window.REMOTE=null; // {org, me, users} when a HaTi server is present
 Object.assign(window,{LS,REMOTE,lsGet,lsSet});
 
 const nowISO = () => new Date().toISOString();
-const fmtDT = iso => new Date(iso).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
-const todayStr = () => new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+const fmtDT = iso => new Date(iso).toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'});
+const todayStr = () => new Date().toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
 const fval = id => (document.getElementById(id)?.value||'').trim();
 
 /* ---------- persistence (per-contract at scale) ----------
@@ -889,8 +953,26 @@ function renderAuth(mode){
       ${input('su-title','Your job title','text','e.g. Chief Operating Officer')}
       ${input('su-email','Work email','email','you@company.co.ke')}
       ${input('su-pass','Password','password','Min 8 characters')}
-      <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> Load sample ${jx().sampleLabel} portfolio (30 demo contracts)</label>
+      ${/* WHERE THE WORKSPACE OPERATES, ASKED BEFORE ANYTHING IS BUILT. The
+           market switch lived only in the shell, which is after this screen —
+           so the sample portfolio, the money on it and the law in its wording
+           were always the default market's, and a Swedish pilot had to switch
+           afterwards and re-read everything it had just been shown. */''}
+      <label style="display:block;margin-bottom:14px;">
+        <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">Where you operate</span>
+        <select id="su-market" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;">
+          ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${p.name}</option>`).join('')}
+        </select>
+        <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:4px;line-height:1.45">Sets your currency, the governing law your templates propose and which risk checks apply. Changeable later in Settings.</span></label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> Load sample <span id="su-sample-label">${jx().sampleLabel}</span> portfolio (30 demo contracts)</label>
       <button id="su-go" class="ui-btn ui-btn-primary" style="${PBTN}">Create workspace &amp; sign in</button>`);
+    /* Applied on CHANGE, not at submit, so the sample label under it tells the
+       truth about what is on the other side of the button. */
+    document.getElementById('su-market')?.addEventListener('change',e=>{
+      jxSet(e.target.value);
+      const lbl=document.getElementById('su-sample-label');
+      if(lbl) lbl.textContent=jx().sampleLabel;
+    });
     document.getElementById('su-go').addEventListener('click',doSetup);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
   } else if(mode==='login'){
@@ -965,6 +1047,10 @@ async function doSetup(){
   if(REMOTE){
     try{
       const sample=document.getElementById('su-sample').checked;
+      /* Re-seeded HERE rather than reusing the set built at module load: the
+         market is picked on this screen, and the portfolio built before that
+         choice is always the default one. */
+      if(sample) state.contracts=sampleContracts();
       await api('setup','POST',{ org:name, name:uname, title:utitle, email, password:pass,
         data:{ uid, contracts:sample?state.contracts.map(migrateContract):[], view:'dashboard', activeId:null, folderId:null } });
       await loadBootstrap();
@@ -979,6 +1065,7 @@ async function doSetup(){
   saveUsers([admin]);
   lsSet(LS.session,{ userId:admin.id, at:nowISO() });
   if(!document.getElementById('su-sample').checked) state.contracts=[];
+  else state.contracts=sampleContracts();   // same reason as the server branch above
   persist();
   startApp();
   toast(`Workspace "${name}" created — karibu!`);
@@ -1161,7 +1248,7 @@ async function refreshAiUsage(){
     // a subject; under a "Copilot spend today" label with "15 Copilot requests
     // today" beneath it, it is a reading.
     const reqs=Number(u.count||0);
-    const reqLine=`${reqs.toLocaleString('en-KE')} Copilot request${reqs===1?'':'s'} today`;
+    const reqLine=`${reqs.toLocaleString(jxLocale())} Copilot request${reqs===1?'':'s'} today`;
     if(a&&a.open){
       if(lab) lab.textContent='Free allowance';
       txt.textContent=`$${Number(a.spent||0).toFixed(2)}${a.budget>0?' / $'+Number(a.budget).toFixed(2):''}`;

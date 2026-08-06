@@ -82,7 +82,7 @@ function adviceEta(sid, urgency, activeCount, fromIso){
   const q=adviceQuote(sid, urgency);
   return addBusinessDays(fromIso||nowISO(), q.days + adviceLoadDays(activeCount));
 }
-const fmtDay = iso => { const t=Date.parse(iso); return isNaN(t)?'—':new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
+const fmtDay = iso => { const t=Date.parse(iso); return isNaN(t)?'—':new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
 const adviceDaysLeft = eta => { const t=Date.parse(eta); return isNaN(t)?null:Math.ceil((t-Date.now())/86400000); };
 
 /* ---------- storage (dual-mode, mirrors the contract seam) ---------- */

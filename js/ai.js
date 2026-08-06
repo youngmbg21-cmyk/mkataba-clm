@@ -128,7 +128,7 @@ function scanRules(c){
     if(!f.region) add('ff-reg','med','missing','Distribution territory unspecified','recital',
       'The territory / lane field in the recital is blank.',
       'Rates, transit times and OTIF all depend on the named lanes; leaving them open invites billing and SLA disputes.',
-      'Name the lanes or region (e.g. \u201cNairobi \u2013 Mombasa primary + coastal secondary\u201d).');
+      `Name the lanes or region (e.g. ${typeof jxEg==='function'?jxEg('lanes'):'the main corridor'}).`);
     add('ff-otif','med','ambiguity','OTIF penalty not defined','c3',
       'An OTIF target is set but carries no service credit or penalty for misses.',
       'Without a remedy the target is aspirational, and repeated late deliveries erode trade fill rates with no recourse.',
@@ -189,7 +189,14 @@ function scanRules(c){
     add('nd-inj','low','missing','No injunctive-relief clause','c2',
       'The agreement is silent on equitable remedies.',
       'Damages arrive too late for a confidentiality breach \u2014 the value is in stopping disclosure fast.',
-      'Add wording acknowledging irreparable harm and permitting interim injunctions in the High Court at Nairobi.');
+      /* The court named has to be one that could actually hear it. "The High
+         Court at Nairobi" given to a Stockholm workspace is not a vaguer
+         version of the right advice, it is the wrong advice stated confidently
+         — so the home market names its own court and every other market falls
+         back to the pack's forum. */
+      `Add wording acknowledging irreparable harm and permitting interim injunctions in ${
+        (typeof jxIs==='function'&&jxIs('kenya')) ? 'the High Court at Nairobi'
+          : (typeof jx==='function' ? jx().forum : 'the competent court')}.`);
   }
   if(c.template==='LE'){
     if(!f.deposit) add('le-dep','high','missing','Security deposit not specified','c3',
@@ -224,7 +231,7 @@ const openFindings = c => !c.scan ? [] : c.scan.findings.filter(x=>!c.scan.dismi
 const worstSevOf = list => list.reduce((w,x)=>SEV_RANK[x.sev]>SEV_RANK[w]?x.sev:w,'low');
 function runScan(c){
   const prev = c.scan ? c.scan.dismissed : [];
-  c.scan = { at:new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'}), findings:scanRules(c), dismissed:prev };
+  c.scan = { at:new Date().toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'}), findings:scanRules(c), dismissed:prev };
 }
 /* Scan from outside the workspace (the register's row menu). runScan alone only
    mutates the record — on its own it looks like nothing happened, and on a list

@@ -148,7 +148,7 @@ function folderExpiryCell(c){
   const eff=effectiveExpiry(c);
   if(!eff) return '<span style="color:var(--color-neutral-400)">—</span>';
   const from=window.expirySource?expirySource(c):null;
-  const dt=new Date(eff+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const dt=new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
   let col='var(--color-neutral-700)', hint='', weight=400;
   if(from) hint=`from ${from.id}`;
   if(c.status!=='Declined'){ const d=daysUntil(eff);
@@ -305,13 +305,13 @@ function regFooterText(cs){
   const n=regPageCount(cs), p=regCurPage(cs);
   const start=cs.length?(p-1)*REG_PAGE+1:0, end=Math.min(cs.length,p*REG_PAGE);
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
-  const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">(of ${Number(countAll).toLocaleString('en-KE')} total)</span>`:'';
+  const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">(of ${Number(countAll).toLocaleString(jxLocale())} total)</span>`:'';
   // agreements vs documents — a master plus its amendments is ONE agreement
   const fam=familyCounts(cs);
-  const famNote=fam.amendments?` · <b style="color:var(--color-text)">${fam.agreements.toLocaleString('en-KE')}</b> agreement${fam.agreements===1?'':'s'} · <b style="color:var(--color-text)">${fam.documents.toLocaleString('en-KE')}</b> documents`:'';
+  const famNote=fam.amendments?` · <b style="color:var(--color-text)">${fam.agreements.toLocaleString(jxLocale())}</b> agreement${fam.agreements===1?'':'s'} · <b style="color:var(--color-text)">${fam.documents.toLocaleString(jxLocale())}</b> documents`:'';
   const R=regState();
   const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?'group amendments under their agreement':'show a flat list'}</button>`;
-  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtMoneyShort(regAggregate(cs))}</b>`}${flatBtn}`;
+  return `Showing <b style="color:var(--color-text)">${start.toLocaleString(jxLocale())}–${end.toLocaleString(jxLocale())}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString(jxLocale())}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtMoneyShort(regAggregate(cs))}</b>`}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -446,7 +446,7 @@ function regRowsHtml(cs){
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
-    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'2-digit'}):'—';
     const renIn=din==null?'':(din<0?Math.abs(din)+'d over':'in '+din+'d');
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;

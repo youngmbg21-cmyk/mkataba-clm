@@ -99,8 +99,8 @@ function commandMeta(view){
       // agreements, not files: a master agreement plus six addenda is ONE
       const fam=(window.familyCounts?familyCounts(cs):{agreements:count,documents:count,amendments:0});
       const head=fam.amendments
-        ? `${fam.agreements.toLocaleString('en-KE')} agreements · ${fam.documents.toLocaleString('en-KE')} documents`
-        : `${count.toLocaleString('en-KE')} contracts under management`;
+        ? `${fam.agreements.toLocaleString(jxLocale())} agreements · ${fam.documents.toLocaleString(jxLocale())} documents`
+        : `${count.toLocaleString(jxLocale())} contracts under management`;
       return ['Portfolio', `${head} · ${totalV} active value`];
     }
     case 'register':  return ['Contracts', 'filter, sort and act in bulk across the working set'];
@@ -251,7 +251,7 @@ function updateSidebarCounts(){
   const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
-    el.textContent=(v==null||v==='')?'':Number(v).toLocaleString('en-KE');
+    el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
