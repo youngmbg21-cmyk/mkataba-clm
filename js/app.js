@@ -339,6 +339,11 @@ function markViewTransition(view){
     _viewAnimTimer=setTimeout(()=>host.classList.add('no-view-anim'),450);
 }
 function setView(view){
+  /* Focus mode belongs to the negotiation bench. Leaving it must give the
+     navigation back — a reader who exits in focus mode and lands on the
+     register would otherwise find the sidebar and the top strip missing. */
+  if(view!=='redline'&&typeof document!=='undefined'&&document.body&&document.body.classList)
+    document.body.classList.remove('rl-focused');
   /* ---- A REPAINT IS NOT A NAVIGATION ----
      Arriving on a DIFFERENT view starts the reader at the top; re-entering
      the SAME view (a delete, a background response landing, a save that

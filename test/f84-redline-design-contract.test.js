@@ -107,25 +107,29 @@ describe('F84 — the design names every part, and the names are on the page', (
     assert.ok(p.$('#rl-threads'), 'the thread list must exist before the first thread');
   });
 
-  test('#rl-banner carries the wall — when there is something behind it', async () => {
-    /* The wall line used to draw on every paint, and on most of them it said
-       "Nothing is behind the wall right now" — a full-width band above the
-       negotiation to report that nothing was being withheld. It now appears
-       exactly when the boundary is doing work. The slot is still there and
-       still the wall's home; what changed is when the wall speaks. */
-    const quiet = await page();
-    assert.ok(quiet.$('#rl-banner'), 'the slot is always present');
-    assert.ok(!/The wall:/.test(quiet.$('#rl-banner').textContent),
-      'with nothing held back it says nothing');
+  test('#rl-banner is a slot the page still owns, and the wall has left it', async () => {
+    /* THE WALL BAR IS GONE. It was cut back once — it used to draw even when
+       nothing was being held back — and it is now removed outright, on request:
+       a full-width band above the work, restating a rule, on every paint.
 
-    /* An unsent draft IS something behind the wall. */
+       WHAT IT SAID SURVIVES CLOSER TO THE ACT. An unsent draft already reads as
+       unsent on its own card, with its Send button on it, and the count rides
+       on Publish Round — which is the moment things actually cross the wall.
+       The slot itself stays: it is the counterparty's disclosure line, and the
+       set-once email strip, both of which still use it. */
     const p = await page();
-    await p.win.negoFileProposal(p.c,
-      p.win.negoBaseText(p.c).replace('sixty (60) days', 'ninety (90) days'),
+    assert.ok(p.$('#rl-banner'), 'the slot is still the page\'s own');
+    assert.ok(!/The wall:/.test(p.$('#rl-banner').textContent), 'with nothing standing in it');
+
+    const q = await page();
+    await q.win.negoFileProposal(q.c,
+      q.win.negoBaseText(q.c).replace('sixty (60) days', 'ninety (90) days'),
       { side: 'owner', author: 'Amina Otieno' });
-    p.win.renderRedline();
-    assert.match(p.doc.getElementById('rl-banner').textContent, /The wall:/,
-      'once a draft is held back, the boundary states itself');
+    q.win.renderRedline();
+    assert.ok(!/The wall:/.test(q.doc.getElementById('rl-banner').textContent),
+      'and none once a draft is held back either — no banner, ever');
+    assert.match(q.doc.querySelector('[data-redline-proxy]').textContent, /unsent/,
+      'the send button carries the count instead');
   });
 });
 

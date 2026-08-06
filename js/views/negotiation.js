@@ -4996,6 +4996,12 @@ function rlSetFocus(on){
   _rlFocus = !!on;
   const page = document.getElementById('view-redline');
   if (page) page.classList.toggle('rl-focus', _rlFocus);
+  /* The sidebar and the top strip live OUTSIDE this page, so the class that
+     stands them down has to go on the body. Cleared on the way out and on the
+     way off this page — a reader who leaves the bench in focus mode and lands
+     on the register must not find the navigation missing. */
+  if (typeof document !== 'undefined' && document.body && document.body.classList)
+    document.body.classList.toggle('rl-focused', _rlFocus);
   rlPaintFocusBtn();
 }
 /* The button is the way in AND the way out — the toolbar it lives on stays
@@ -5083,53 +5089,13 @@ function redlineLayoutCss(){
      shape. The pill may shrink to ellipsis but never to nothing. */
   .redline-page .rl-head-id{display:flex;align-items:center;gap:9px 8px;min-width:0;flex:1;flex-wrap:wrap}
   .redline-page .rl-presence{min-width:0;max-width:260px;overflow:hidden;text-overflow:ellipsis}
-  /* ---- THE DOC PAGE'S SHELL, ON THIS TAB ----
-     Back arrow, contract name and status, the document verbs — the workspace
-     header's own arrangement, so the furniture holds still while the tabs
-     change what is under it. */
-  /* flex-wrap so the verbs can drop to their own line. Without it the row was
-     nowrap: the identity block's floor (below) and the buttons' flex:none
-     could not both be honoured, so the buttons ran 203px off the right of a
-     390px screen. Wrapping costs a line where there is no room and changes
-     nothing where there is. */
-  .redline-page .rl-shell{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;flex:none;
-    background:var(--color-surface);border:1px solid var(--color-divider);
-    box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 16px}
-  .redline-page .rl-shell-back{width:32px;height:32px;padding:0;flex:none;
-    display:inline-grid;place-items:center}
-  /* A FLOOR, not min-width:0 — the same defect the Doc page's header had. With
-     nothing under it, the action buttons beside this block take every pixel
-     and the contract's own name and reference collapse to zero width: measured
-     at 390, all three of id, name and sub rendered 0px wide. The floor makes
-     the buttons wrap onto their own line instead (.rl-head already wraps), and
-     min() keeps it honest on a screen narrower than the floor itself. */
-  .redline-page .rl-shell-id{min-width:min(100%,240px);flex:1}
-  .redline-page .rl-shell-name{display:flex;align-items:center;gap:8px;min-width:0}
-  .redline-page .rl-shell-name h3{font-size:17px;margin:0;white-space:nowrap;
-    overflow:hidden;text-overflow:ellipsis}
-  .redline-page .rl-shell-name>span{flex:none}
-  /* Wraps rather than truncates, matching the Doc page's line: on one line
-     wherever it fits, on two where it does not, and never eating the reference
-     number or the date. */
-  .redline-page .rl-shell-sub{font-size:11px;color:var(--color-neutral-600);margin-top:2px;
-    overflow-wrap:anywhere}
-  .redline-page .rl-shell-acts{display:flex;gap:7px;flex-wrap:wrap;align-items:center;flex:none}
-  .redline-page .rl-shell-acts .ui-btn{font-size:12px;padding:6px 11px}
-  /* One filled button on this row, and it is the one that sends. The other two
-     are tinted rather than outlined so they read as verbs without competing —
-     the tint mixes against the surface, so it holds in either theme. */
-  .redline-page .rl-act-send{padding:6px 13px}
-  /* The same solid tint the counterparty's bar carries — see .pw-id-verb in
-     js/views/portal.js. A 12% mix of the accent into the surface read as white
-     on a white card, which is the fault this was fixing. */
-  .redline-page .rl-act-verb{color:var(--color-accent-800);
-    background:var(--color-accent-100);
-    border-color:var(--color-accent)}
-  .redline-page .rl-act-verb:hover{background:var(--color-accent-200);
-    border-color:var(--color-accent-700)}
-  .redline-page .rl-shell-acts svg{flex:none}
-  .redline-page .rl-act-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px}
-  @media (max-width:900px){ .redline-page .rl-act-rule{display:none} }
+  /* ---- THE SHELL'S OWN STYLES HAVE GONE WITH THE SHELL ----
+     This page used to draw its own title card — back arrow, name, status,
+     Share/Import/Compare — and roughly forty lines of CSS dressed it. Both
+     pages call roomHeadHtml now, so the markup went and the rules stayed:
+     dead selectors matching nothing, which is how a stylesheet stops being
+     readable. Removed. Nothing referenced them; the head is styled once, in
+     index.html, where the contract page styles it too. */
   /* The room's tab row on this page. The tabs themselves are styled once, in
      index.html, because the contract page draws the same row — all this line
      does is give it the same 2px side padding the strip below it has, so the
@@ -5282,8 +5248,35 @@ function redlineLayoutCss(){
   html.dark .redline-page .rl-focus-btn:hover{background:rgba(15,23,42,.75)}
   .redline-page .rl-focus-btn.on,
   html.dark .redline-page .rl-focus-btn.on{background:var(--color-accent-800);border-color:var(--color-accent-800);color:#fff}
-  .redline-page.rl-focus .rl-shell,
+  /* ---- FOCUS MODE, AND WHY IT STOPPED WORKING ----
+     This named .rl-shell — the title card this page used to draw for itself.
+     That card is gone: both this page and the contract page share one head now.
+     So the rule matched nothing, hid a single banner, and the mode did almost
+     nothing at all.
+
+     Named properly, and taken further than before, because you asked for the
+     WHOLE page: the shared head, the tab row, the round line and the app's own
+     furniture — the sidebar and the top strip — all stand down, and the three
+     panes take the window. body.rl-focused is set by rlSetFocus, because the
+     sidebar and the strip live outside this page and cannot be reached from a
+     selector rooted in it. */
+  .redline-page.rl-focus .room-head,
+  .redline-page.rl-focus .rl-tabrow,
+  .redline-page.rl-focus .rl-head,
   .redline-page.rl-focus #rl-banner{display:none}
+  .redline-page.rl-focus{padding:8px 10px 10px}
+  body.rl-focused #side-nav,
+  body.rl-focused #top-header{display:none!important}
+  body.rl-focused #app-shell{grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,1fr)!important}
+  /* The way out. The button that turned it on is inside the strip that has just
+     stood down — a control that hides itself cannot be pressed again — so the
+     chip is the exit, and Esc still works beside it. */
+  .redline-page.rl-focus .rl-focus-exit{position:fixed;right:18px;bottom:18px;z-index:70;
+    display:inline-flex;align-items:center;gap:7px;border:0;border-radius:9px;cursor:pointer;
+    font:inherit;font-size:12px;font-weight:700;padding:9px 15px;
+    background:var(--accent-solid,var(--color-accent));color:#fff;box-shadow:var(--shadow-md)}
+  .redline-page:not(.rl-focus) .rl-focus-exit{display:none}
 
   /* the wall — one line, replacing the engine's two banners */
   .redline-page .rl-wall{display:flex;align-items:flex-start;gap:9px;flex:none;
@@ -5814,15 +5807,12 @@ function redlineLayoutCss(){
      strip and the heading are furniture; the list and the contract are the
      page. On a short window the furniture gives way. Nothing is hidden. */
   @media (max-height:820px){
-    .redline-page .rl-shell{padding:9px 14px}
     .redline-page .rl-idx-head{padding:9px 12px;gap:6px}
     .redline-page .rl-side-tabs{margin:6px 8px 0;padding:4px}
     .redline-page .rl-side-tab{padding:5px 8px}
     .redline-page .rl-paper{padding:20px 30px 26px}
   }
   @media (max-height:680px){
-    .redline-page .rl-shell{padding:7px 12px}
-    .redline-page .rl-shell-back{width:28px;height:28px}
     .redline-page .rl-idx-head{padding:7px 10px;gap:5px}
     .redline-page .rl-side-tabs{margin:4px 7px 0;padding:3px}
     .redline-page .rl-side-tab{padding:4px 7px}
@@ -6294,7 +6284,13 @@ function renderRedline(){
      beside the cards they act on, so they are the ones that stay; the header
      keeps only Publish Round — the act that closes the strip's own story —
      and Close Round when it is earned. */
-  const sendLabel = side === 'owner' ? 'Publish Round' : 'Send Response';
+  /* THE COUNT RIDES ON THE BUTTON THAT ACTS ON IT. The wall bar used to
+     announce "1 unsent draft stays behind when you share" as a band above the
+     page; it is one word on the verb that sends them instead, at the moment
+     that fact matters. */
+  const _unsent = (window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).length;
+  const sendLabel = (side === 'owner' ? 'Publish Round' : 'Send Response')
+    + (_unsent ? ` · ${_unsent} unsent` : '');
   const sendTip = side === 'owner'
     ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
     : `Send the answers and counter-proposals held on this page to ${sendWho}`;
@@ -6382,6 +6378,11 @@ function renderRedline(){
         </div>
       </section>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
+      ${''/* The way out of focus mode. Always in the DOM, shown only by the
+             .rl-focus rule, because the button that turned focus ON is inside
+             the strip focus mode stands down. */}
+      <button type="button" class="rl-focus-exit" data-rl-focus-exit
+        title="Leave focus mode and bring the page back (Esc)">Exit focus &middot; Esc</button>
     </div>`;
   host.querySelectorAll('[data-redline-open-doc]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
@@ -6414,14 +6415,8 @@ function renderRedline(){
     else if (window.saveContractAsTemplate) saveContractAsTemplate(c); });
   headAct('ws-focus', () => rlSetFocus(!rlFocusOn()));
   headAct('ws-collapse', () => window.toast && toast('The header is already at its shortest on this tab'));
-  host.querySelectorAll('[data-rl-shell]').forEach(el =>
-    el.addEventListener('click', () => {
-      const act = el.getAttribute('data-rl-shell');
-      if (act === 'share' && window.openShareModal) return openShareModal(c);
-      if (act === 'import' && window.openImportModal) return openImportModal(c);
-      if (act === 'compare' && window.openCompareModal) return openCompareModal(c);
-      if (window.toast) toast('That tool is not available on this page', 'err');
-    }));
+  /* [data-rl-shell] went with the shell. Its three verbs are the head's own
+     ids now — ws-share, ws-import, ws-compare — wired just above. */
   host.querySelectorAll('[data-redline-side]').forEach(el =>
     el.addEventListener('click', () => { _redlineSide = el.getAttribute('data-redline-side'); renderRedline(); }));
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
@@ -6429,6 +6424,8 @@ function renderRedline(){
      mode the page came back in. */
   host.querySelectorAll('[data-rl-focus]').forEach(el =>
     el.addEventListener('click', () => rlSetFocus(!rlFocusOn())));
+  host.querySelectorAll('[data-rl-focus-exit]').forEach(el =>
+    el.addEventListener('click', () => rlSetFocus(false)));
   rlPaintFocusBtn();
   rlWireFocusKey();
   /* The contract jump goes through the bench's one door, same as any other
@@ -8792,19 +8789,21 @@ function redlineWallHtml(c, opts = {}){
   const bits = [];
   if (internal) bits.push(`<b>${internal} internal thread${internal === 1 ? '' : 's'}</b>`);
   if (unsent) bits.push(`<b>${unsent} unsent draft${unsent === 1 ? '' : 's'}</b>`);
-  const n = internal + unsent;
-  /* ---- A BANNER THAT SAYS "NOTHING TO REPORT" IS NOT WORTH A BANNER ----
-     This drew on every paint, and on most of them it read "Nothing is behind
-     the wall right now" — a full-width band, above the negotiation, to say
-     that nothing was being held back. The rule it states matters exactly when
-     something IS held back, and that is when it now appears. The rule itself
-     has not moved an inch: a thread still travels only if marked shared, a
-     change only once sent, and the strip says so whenever either applies. */
-  if (!n) return '';
-  return `<div class="rl-wall" role="status">
-    <span class="rl-wall-ic">&#128274;</span>
-    <span><b>The wall:</b> ${bits.join(' &middot; ')} ${n === 1 ? 'stays' : 'stay'} behind when you share. A thread travels only if marked shared; a change only once sent.</span>
-  </div>`;
+  /* ---- THE WALL BAR IS GONE FROM THE OWNER'S BENCH ----
+     It was reduced once already — it used to draw even when nothing was being
+     held back — and it is now removed outright: a full-width band above the
+     work, restating a rule, on every paint.
+
+     WHAT IT TOLD YOU SURVIVES WHERE IT IS ACTUALLY NEEDED. An unsent draft
+     already reads as unsent on its own card, with its Send button on it, and
+     the count rides on Publish Round ("Publish Round · 1 unsent") — which is
+     the moment the wall matters, because that is when things cross it.
+
+     The COUNTERPARTY's line above is untouched: "you are seeing exactly what
+     they see" is a disclosure statement on a page built to prove it, not
+     chrome. */
+  void bits; void internal; void unsent;
+  return '';
 }
 
 /* ---------- THIS ROUND'S QUEUE ----------

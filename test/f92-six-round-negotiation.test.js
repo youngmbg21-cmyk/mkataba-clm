@@ -245,7 +245,14 @@ describe('F92 — the six-round negotiation, end to end', () => {
     win.renderRedline();
     const gl = win.negoUnsentAsks(c, 'owner')[0];
     assert.ok(gl, 'a live unsent draft is on the owner\'s table');
-    assert.match(t.$('#rl-banner').textContent, /unsent draft/, 'the wall counts it for us');
+    /* THE WALL BAR HAS GONE, THE COUNT HAS NOT. A full-width band restating a
+       rule on every paint was removed on request; what it was telling you now
+       rides on the verb that acts on it, at the moment things actually cross
+       the wall. Same number, counted the same way, one place closer to the
+       act. */
+    assert.ok(!/The wall:/.test(t.$('#rl-banner').textContent), 'no standing banner');
+    assert.match(t.$('[data-redline-proxy]').textContent, /1 unsent/,
+      'the send button counts what is being held back');
     // The owner sees the internal thread; every mark says whose hand it was.
     assert.ok(t.text().includes('walk if they push past'), 'our own internal note is ours to read');
     const marks = t.$$('#rl-doc .rl-clause.is-changed ins, #rl-doc .rl-clause.is-changed del');

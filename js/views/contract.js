@@ -2326,7 +2326,11 @@ function applyWsTabs(c){
     return;
   }
   if(_wsTab==='history') roomPaintHistory(c);
-  if(_wsTab==='terms') renderKeyTermsSide(c);
+  if(_wsTab==='terms'){ renderKeyTermsSide(c); if(window.wireKtRows) wireKtRows(c); }
+  /* The Document pane has just been given a width for the first time since it
+     was hidden. Measure it NOW — see the note in layoutDocResizer about why it
+     refuses to measure a hidden pane at all. */
+  if(_wsTab==='docs'&&window.layoutDocResizer) layoutDocResizer();
 }
 /* The one router BOTH shells press. From the Docs page a tab is a pane swap;
    from the workbench every tab but Negotiate is a journey back to this view,
@@ -2360,6 +2364,90 @@ function wireWsTabs(c){
    has not been run the panel says which rows are missing and offers to go and
    get them, which is more useful than a blank row and more honest than a
    plausible one. */
+/* ---- READ FIRST, EDIT ON CLICK ----
+   This panel was eight input boxes in a column. Every value — a company, a sum
+   of money, two dates — was dressed identically, so nothing looked more
+   important than anything else and the page shouted "form" where it should have
+   read as a summary. A sum of money in a bordered box is not a fact; it is a
+   task.
+
+   Nothing looks like a field until you touch it. Values are plain text, right
+   aligned, formatted the way the rest of HaTi formats them; clicking one turns
+   THAT row — and only that row — into the field it always was. Everything is
+   still editable and the inputs still carry data-kt, so every existing handler
+   and every test presses exactly what it always pressed.
+
+   STATUS HAS GONE FROM THE LIST. It is already a chip beside the contract's
+   name on every tab; this was the third place it was said. */
+/* The read-out for one row, so an edit can refresh just that row. */
+function ktReadValue(c,key){
+  const dash='<span class="kt-none">Not set</span>';
+  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
+  if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
+  if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):'<span class="kt-none">Non-monetary</span>'}</span>`;
+  if(key==='effDate') return day(c.fields&&c.fields.effDate);
+  if(key==='expiry') return day(c.expiry);
+  return '';
+}
+function ktRowHtml(key,label,readHtml,fieldHtml,editable){
+  if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
+  return `<div class="kt-row is-editable" data-kt-row="${key}">
+    <span class="kt-k">${label}</span>
+    <button type="button" class="kt-v kt-read" data-kt-edit="${key}" title="Click to change">${readHtml}</button>
+    <span class="kt-field hidden">${fieldHtml}</span></div>`;
+}
+function ktTermsRowsHtml(c,opts={}){
+  const ed=!!opts.editable;
+  const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:5px;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
+  const dash='<span class="kt-none">Not set</span>';
+  const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):'<span class="kt-none">Non-monetary</span>';
+  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
+  const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
+    :(isUpload(c)?'Uploaded document':'');
+  return [
+    ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
+      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/>`, ed),
+    ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
+      `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+         <span style="font-size:11px;color:var(--color-neutral-500);flex:none">KES</span>
+         <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString('en-KE'):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};font-family:var(--font-mono)"/>
+         <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--color-neutral-600);flex:none;white-space:nowrap">
+           <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, ed),
+    ktRowHtml('effDate','Effective', day(c.fields&&c.fields.effDate),
+      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed),
+    ktRowHtml('expiry','Expiry', day(c.expiry),
+      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed),
+    ktRowHtml('stream','Value stream', esc((window.streamLabel?streamLabel(c):'')||'—'),'',false),
+    tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):'',
+  ].join('');
+}
+/* One row at a time. Opening a second closes the first, so the panel never
+   becomes the form it was rescued from. Blur puts it back to reading. */
+function wireKtRows(c){
+  const rows=document.querySelectorAll('[data-kt-row]');
+  const shut=r=>{ r.querySelector('.kt-read')?.classList.remove('hidden');
+    r.querySelector('.kt-field')?.classList.add('hidden'); r.classList.remove('is-open'); };
+  rows.forEach(r=>{
+    r.querySelector('[data-kt-edit]')?.addEventListener('click',()=>{
+      rows.forEach(o=>{ if(o!==r) shut(o); });
+      r.querySelector('.kt-read').classList.add('hidden');
+      const f=r.querySelector('.kt-field'); f.classList.remove('hidden'); r.classList.add('is-open');
+      const inp=f.querySelector('input:not([type=checkbox])'); if(inp){ inp.focus(); inp.select&&inp.select(); }
+    });
+    r.querySelectorAll('.kt-field input').forEach(inp=>inp.addEventListener('blur',()=>{
+      /* Late enough for a click on the checkbox beside it to land first. */
+      setTimeout(()=>{ if(!r.contains(document.activeElement)) renderKeyTerms(c); },120);
+    }));
+  });
+}
+/* Repaint the panel from the record — after an edit, so the read-out beside a
+   field agrees with what was just typed. */
+function renderKeyTerms(c){
+  const host=document.getElementById('kt-rows'); if(!host) return;
+  const ktEditable=c.status!=='Signed'&&canEdit()&&!PORTAL_MODE;
+  host.innerHTML=ktTermsRowsHtml(c,{editable:ktEditable});
+  wireKtRows(c); wireKeyTerms(c);
+}
 function termsFromPlaybook(c){
   const r=c&&c.playbook;
   if(!r||!Array.isArray(r.verdicts)) return [];
@@ -2376,7 +2464,7 @@ function readTermsHtml(c){
     </div>`;
   return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
       <div style="${H};margin-bottom:6px">Read from the document</div>
-      ${rows.map(r=>`<div class="kt-read" title="${esc(r.quote)}">
+      ${rows.map(r=>`<div class="kt-read-row" title="${esc(r.quote)}">
         <span class="kt-read-k">${esc(r.label)}</span>
         <span class="kt-read-v">&ldquo;${esc(r.quote.slice(0,120))}${r.quote.length>120?'&hellip;':''}&rdquo;</span></div>`).join('')}
       <p style="margin:7px 0 0;font-size:10.5px;color:var(--color-neutral-500)">Quoted from the clause the playbook review found each one in.</p>
@@ -2469,7 +2557,23 @@ const HIST_KIND={ proposed:{mark:'✎',tone:'var(--color-accent)'}, decided:{mar
    no way to know — the contract being created, sent, scanned, reviewed,
    renamed, signed. Nothing is deleted; the fingerprints it was reciting are
    still on the record and still what Verify integrity recomputes. */
-const HIST_AUDIT_SKIP=/^negotiation$/i;
+/* ---- NOTHING IS DROPPED. THE TWIN IS FOLDED IN. ----
+   The first version of this SKIPPED every audit entry whose action was
+   "Negotiation", on the reading that the trail was retelling proposals the
+   timeline already reported. It was — but dropping the category quietly turned
+   the page into a summary: ten events became six, and the fingerprints went
+   with them.
+
+   The record is complete again. Where a system entry genuinely describes an
+   event the negotiation already tells in better words, the two are MERGED —
+   one row, the readable text, and the machinery it duplicated (the fingerprint,
+   the actor) carried on the row rather than thrown away. Everything else the
+   trail knows and the negotiation cannot — created, sent, scanned, reviewed,
+   renumbered, signed — stands as its own event. */
+function _histKey(at,txt){
+  return String(at||'').slice(0,10)+'|'+String(txt||'').toLowerCase()
+    .replace(/[^a-z0-9]+/g,' ').trim().slice(0,48);
+}
 function roomHistoryEvents(c,f={}){
   const filtered=Object.values(f||{}).some(v=>v);
   const nego=(window.negoTimeline?negoTimeline(c,f):[]).map(e=>({...e,_k:e.kind||'proposed'}));
@@ -2477,30 +2581,53 @@ function roomHistoryEvents(c,f={}){
      They drop out the moment a filter is on rather than sitting there looking
      as though the filter had missed them. */
   if(filtered) return nego.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
-  const said=new Set(nego.map(e=>String(e.at||'').slice(0,10)+'|'+String(e.text||'').slice(0,60).toLowerCase()));
-  const sys=(c.audit||[])
-    .filter(a=>!HIST_AUDIT_SKIP.test(String(a.action||'')))
-    .filter(a=>!said.has(String(a.at||'').slice(0,10)+'|'+String(a.detail||'').slice(0,60).toLowerCase()))
-    .map(a=>({ _k:'system', at:a.at||'', actor:a.user||'System',
-      text:`${a.action||'Recorded'}${a.detail?' — '+a.detail:''}`, clauseLabel:'', round:null }));
+  /* A change id inside a system entry is the strongest signal that it is the
+     twin of a negotiation event: the trail writes "#CHG-002 proposed by …". */
+  const byChange=new Map();
+  nego.forEach(e=>{ if(e.ch&&e.ch.id) byChange.set(String(e.ch.id),e); });
+  const said=new Map(nego.map(e=>[_histKey(e.at,e.text),e]));
+  const sys=[];
+  (c.audit||[]).forEach(a=>{
+    const detail=String(a.detail||'');
+    const idm=detail.match(/#?(CHG-[A-Za-z0-9-]+)/);
+    const twin=(idm&&byChange.get(idm[1]))||said.get(_histKey(a.at,detail));
+    if(twin){ twin._also=twin._also||[]; twin._also.push(a); return; }   // folded in, not lost
+    sys.push({ _k:'system', at:a.at||'', actor:a.user||'System',
+      text:`${a.action||'Recorded'}${detail?' — '+detail:''}`, clauseLabel:'', round:null, _audit:a });
+  });
   return nego.concat(sys).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
 }
 function roomHistoryHtml(c,f={}){
   const evs=roomHistoryEvents(c,f);
-  const all=(window.negoTimeline?negoTimeline(c):[]).length+((c.audit||[]).length);
+  /* The total is the UNFILTERED list, counted the same way — merged twins are
+     one event in both, so "7 of 11" can never appear over a page that is
+     hiding nothing. */
+  const all=roomHistoryEvents(c,{}).length;
   const on=Object.values(f||{}).filter(Boolean).length;
   const row=e=>{
     const m=HIST_KIND[e._k]||HIST_KIND.system;
     const when=e.at?String(e.at).slice(0,10):'';
     const meta=[when,e.actor||'',e.round!=null&&e.round!==''?`round ${e.round}`:'',e.clauseLabel||'']
       .filter(Boolean).map(esc).join(' · ');
+    /* ---- THE WORDING THAT CHANGED, UNDER THE EVENT THAT CHANGED IT ----
+       The exported report prints each proposal's redline and the page did not,
+       which is why the export read as the fuller record. Same builder, same
+       green-added / red-removed convention, on the screen too. */
+    const body=(e._k==='proposed'&&e.ch&&window.negoChangeHtml)
+      ? `<div class="hist-redline">${negoChangeHtml(e.ch)}</div>` : '';
+    const why=e.note?`<div class="hist-note">Why they asked: ${esc(e.note)}</div>`:'';
+    const reply=(e._k==='decided'&&e.reply)?`<div class="hist-note">Reply: ${esc(e.reply)}</div>`:'';
+    /* The system twin this row absorbed — its fingerprint and its actor kept on
+       the row rather than printed as a second event. */
+    const also=(e._also||[]).map(a=>{ const fp=String(a.detail||'').match(/(0x[0-9a-f]{8,})/i);
+      return fp?`<span class="hist-fp" title="${esc(a.detail||'')}">${esc(fp[1].slice(0,18))}…</span>`:''; }).join('');
     return `<div class="hist-ev"><span class="hist-mark" style="color:${m.tone};border-color:${m.tone}" aria-hidden="true">${m.mark}</span>
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}</div>
-      <div class="hist-meta">${meta}</div></div></div>`;
+      <div class="hist-meta">${meta}${also?' · '+also:''}</div>${body}${why}${reply}</div></div>`;
   };
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
-      <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${evs.length} of ${all} events</span>
+      <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${on?`${evs.length} of ${all}`:`${all} events`}</span>
       <button id="hist-filter" class="ui-btn" style="font-size:11px;padding:4px 10px">Filter${on?` · ${on}`:''} &#9662;</button>
       <div style="position:relative">
         <button id="hist-more" class="ui-btn" aria-haspopup="true" style="width:28px;height:28px;padding:0;font-size:14px;line-height:1">&#8943;</button>
@@ -2966,6 +3093,20 @@ function _docLeftFrac(){
 function layoutDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
   if(!grid||!rez) return;
+  /* ---- A HIDDEN PANE HAS NO WIDTH, AND NO WIDTH IS NOT ZERO ----
+     Every other tab hides this one with display:none, and a hidden element
+     reports clientWidth 0. Zero is below the two-column minimum, so this
+     function did correct arithmetic on a meaningless number and wrote the
+     STACKED layout — one column, the review panel dumped under the contract,
+     the divider withdrawn. Nothing re-measured on the way back, so visiting Key
+     terms and returning left the Document tab collapsed until a window resize.
+
+     Measured: 881px + 441px before, a single 1334px column after.
+
+     So: refuse to measure what is not on screen and leave the layout exactly as
+     it was. applyWsTabs re-runs this the moment the tab is shown again, which
+     is the first point at which there is a real width to read. */
+  if(!grid.clientWidth) return;
   const avail=Math.max(1, grid.clientWidth - DOC_GAP);
   /* TWO COLUMNS NEED THE ROOM FOR TWO COLUMNS. Below the pair's own minimums
      the fraction was still splitting whatever was left, so on a small laptop
@@ -3339,20 +3480,30 @@ function roomHeadHtml(c,opts={}){
                for them by name in this file's SOURCE — a helper that assembled
                `id="..."` at runtime would leave those names nowhere a reader
                (or a grep) could find them. */}
+        ${''/* GROUPED, AND WITH SOMETHING TO AIM AT. This was nine items in one
+               weight, no icons, and a stray em-dash where a note failed to
+               render — so exporting, editing and destroying all looked the
+               same. Three named groups, an icon on each row, and Delete alone
+               at the foot in its own colour. Every id is the id it has always
+               had. */}
         <div id="ws-more-menu" class="room-menu hidden">
-          ${may?`<button type="button" id="ws-import" title="Import counterparty response">Import counterparty response</button>`:''}
-          <button type="button" id="ws-compare" title="Compare versions &amp; review changes">Compare versions</button>
-          ${may?`<button type="button" id="ws-tpl" title="Save as template">Save as template</button>`:''}
+          <div class="mgroup">This contract</div>
+          ${may?`<button type="button" id="ws-import" title="Read a Word file they sent back into tracked changes">${icon('download','w-3.5 h-3.5')}Import their response</button>`:''}
+          <button type="button" id="ws-compare" title="Compare versions &amp; review changes">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
+          ${may?`<button type="button" id="ws-tpl" title="Save this wording as a reusable template">${icon('copy','w-3.5 h-3.5')}Save as template</button>`:''}
           <hr>
-          <button type="button" id="ws-pdf" title="A clean copy to send — your branding, the wording and the signatures, with no HaTi marks on it">Export PDF<span class="mnote">clean copy</span></button>
-          <button type="button" id="ws-word" title="The redline as a Word file — every pending change travels as a real Word tracked change">Export Word<span class="mnote">tracked changes</span></button>
-          ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">Export record<span class="mnote">sealed + audit</span></button>`:''}
+          <div class="mgroup">Export</div>
+          <button type="button" id="ws-pdf" title="A clean copy to send — your branding, the wording and the signatures, with no HaTi marks on it">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
+          <button type="button" id="ws-word" title="The redline as a Word file — every pending change travels as a real Word tracked change">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
+          ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
           <hr>
-          <button type="button" id="ws-focus" aria-pressed="false" title="Focus mode — hide the header and give the room to the document">Focus mode<span class="mnote">hide the chrome</span></button>
-          <button type="button" id="ws-collapse" aria-expanded="true" title="Collapse this bar and give the contract more room">Collapse this header</button>
-          <hr>
-          <button type="button" id="ws-new" data-page-new title="Draft a new agreement">Draft new agreement</button>
-          ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<button type="button" id="ws-delete" class="danger" title="Delete this draft permanently">Delete this draft</button>`:''}
+          <div class="mgroup">View</div>
+          <button type="button" id="ws-focus" aria-pressed="false" title="Hide the header and give the room to the document">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">Esc to leave</span></button>
+          <button type="button" id="ws-collapse" aria-expanded="true" title="Collapse this bar and give the contract more room">${icon('minus','w-3.5 h-3.5')}Collapse the header</button>
+          ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
+          <button type="button" id="ws-delete" class="danger" title="Delete this draft permanently">${icon('trash','w-3.5 h-3.5')}Delete this draft</button>`:''}
+          ${''/* ws-new keeps its id and its data-page-new: it is a real button
+                 on the Document tab now, so it is not repeated here. */}
         </div>
       </div>
       ${may?`<button id="ws-share" class="ui-btn" style="font-size:12.5px;padding:7px 14px" title="Share with counterparty">${icon('share','w-3.5 h-3.5')} Share</button>`:''}
@@ -3585,6 +3736,15 @@ function renderWorkspace(){
           <div style="display:flex;justify-content:flex-end;padding-top:2px">
             <button id="screening-next" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 16px;display:inline-flex;align-items:center;gap:6px">Next: Signing ${icon('chevR','w-3.5 h-3.5')}</button>
           </div>
+          ${''/* ---- DRAFT NEW AGREEMENT, BACK ON THE PAGE ----
+                 I buried this in the "⋯" when the nine-button toolbar came
+                 down, and that was the wrong call: starting the next agreement
+                 is not something you do TO this contract, so it does not belong
+                 in a menu of this contract's verbs. It is what you do NEXT, and
+                 it sits at the foot of the column, where you land once this one
+                 is dealt with. It keeps data-page-new, so the shell's delegated
+                 handler anchors the menu under it exactly as before. */}
+          ${canEdit()?`<button id="ws-new" data-page-new class="ui-btn ui-btn-primary" style="width:100%;justify-content:center;font-size:12.5px;padding:9px 14px;margin-top:2px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>`:''}
         </div>
       </section>
 
@@ -3609,39 +3769,7 @@ function renderWorkspace(){
           ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">Confirmed</span>`:''}
           ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
         </div>
-        ${ktEditable?`
-            <label style="${KROW}"><span style="${KKEY}">Counterparty</span>
-              <input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/></label>
-            ${''/* THE VALUE READS AS MONEY. It was a bare number input, so a
-                   78-million-shilling contract said `78000000` — eight digits
-                   with no separators and no currency, on the panel whose job is
-                   to state the commercial facts. The field is still the field;
-                   what changed is that the figure beside it is the one every
-                   other screen in HaTi prints. Non-monetary rides here too,
-                   because it is a modifier on the value rather than a term of
-                   its own. */}
-            <label style="${KROW}"><span style="${KKEY}">Contract value</span>
-              <span style="display:flex;align-items:center;gap:6px;justify-content:flex-end;min-width:0;max-width:62%">
-                <span style="font-size:11px;color:var(--color-neutral-500);flex:none">KES</span>
-                <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString('en-KE'):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};max-width:none;text-align:right;font-family:var(--font-mono)${isMonetary(c)?'':';opacity:.45'}"/></span></label>
-            <label style="${KROW};cursor:pointer"><span style="${KKEY}">Non-monetary</span>
-              <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600)">no consideration passes
-                <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/></span></label>
-            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
-            ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
-            <label style="${KROW}"><span style="${KKEY}">Effective</span>
-              <input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/></label>
-            <label style="${KROW}"><span style="${KKEY}">Expiry</span>
-              <input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/></label>
-            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`
-            :`
-            <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%">${c.counterparty||'—'}</span></div>
-            <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
-            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
-            ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
-        ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
-        ${kv('Expiry',c.expiry||'—')}
-        <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`}
+        <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
         ${readTermsHtml(c)}
       </div>
       ${''/* Obligations and Risk. What this contract COMMITS you to, and where
@@ -3815,6 +3943,9 @@ function wireDocumentSync(c){
       if(key==='value') c.value=inp.value===''?0:Number(inp.value);
       else if(key==='counterparty') c.counterparty=inp.value;
       syncKeyTermsUI(c, inp);
+      /* The read-out beside the field has to agree with what was just typed. */
+      const _row=inp.closest('[data-kt-row]');
+      if(_row){ const rd=_row.querySelector('.kt-read'); if(rd) rd.innerHTML=ktReadValue(c,_row.getAttribute('data-kt-row')); }
       keyTermsProgress(c);
       c.lastAction=todayStr();
       logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
