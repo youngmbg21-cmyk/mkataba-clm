@@ -931,7 +931,7 @@ async function negoFileChange(c, draft, opts = {}){
      negoInit, because a refusal must not leave initialisation behind as its
      only trace. */
   if (negoExecuted(c)){
-    if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
+    if (window.toast) toast(i18t('ne_executed_amend'), 'err');
     return null;
   }
   negoInit(c);
@@ -1529,14 +1529,14 @@ function negoResolve(c, id, status, opts = {}){
      to that binding and cannot be substituted, while `window.canEdit` is the
      name every other module reaches this function by. */
   if (!opts.side && typeof window.canEdit === 'function' && !window.canEdit()){
-    if (window.toast) toast('Viewers cannot decide changes', 'err');
+    if (window.toast) toast(i18t('ne_viewers_no_decide'), 'err');
     return null;
   }
   /* NOBODY RULES ON THEIR OWN ASK. Enforced here, in the model, and not only in
      the UI — a side that could accept its own proposal could adopt wording the
      other party never saw. */
   if (opts.side && opts.side === ch.authorSide && status !== 'pending'){
-    if (window.toast) toast('You cannot decide your own proposal', 'err');
+    if (window.toast) toast(i18t('ne_not_own_proposal'), 'err');
     return null;
   }
   /* THE SIGNED DOOR, inlined when the Word round trip was removed. It used to
@@ -1550,7 +1550,7 @@ function negoResolve(c, id, status, opts = {}){
      expression out a second time — two copies is how one of them comes to be
      the narrowed version this comment exists to warn about. */
   if (negoExecuted(c)){
-    if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
+    if (window.toast) toast(i18t('ne_executed_amend'), 'err');
     return null;
   }
   const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
@@ -1618,12 +1618,12 @@ function negoWithdraw(c, id, opts = {}){
   const ch = negoChangeById(c, id);
   if (!ch) return null;
   if (ch.status !== 'rejected'){
-    if (window.toast) toast('Only a refused ask can be withdrawn', 'err');
+    if (window.toast) toast(i18t('ne_only_refused_withdraw'), 'err');
     return null;
   }
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   if (side !== ch.authorSide){
-    if (window.toast) toast('Only the side that asked for this can withdraw it', 'err');
+    if (window.toast) toast(i18t('ne_only_asker_withdraw'), 'err');
     return null;
   }
   if (ch.withdrawn) return ch;                    // idempotent; pressing twice is not two events
@@ -1663,7 +1663,7 @@ function negoRetractDraft(c, id, opts = {}){
   if (!ch) return null;
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   if (ch.authorSide !== side){
-    if (window.toast) toast('Only the side that drafted this can retract it', 'err');
+    if (window.toast) toast(i18t('ne_only_drafter_retract'), 'err');
     return null;
   }
   if (ch.status !== 'pending'){

@@ -466,7 +466,7 @@ function openPortalVersionCompare(p){
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px">
           <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1">${i18t('po_nothing_sends')}</span>
-          <button id="pv-close" class="ui-btn">Close</button>
+          <button id="pv-close" class="ui-btn">${i18t('act_close')}</button>
         </div>
       </div>
     </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
@@ -848,7 +848,7 @@ function wirePortalClauseEditor(c, p){
           <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
-          <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Cancel</button>
+          <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">${i18t('act_cancel')}</button>
           <button data-cl-save="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px">${i18t('po_keep_this_change')}</button>
         </div>`;
       const ta=row.querySelector(`[data-cl-input="${i}"]`); if(ta){ ta.focus(); }
@@ -2459,7 +2459,7 @@ function renderSharePortal(p, opts={}){
               <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;">${i18t('po_propose_your_edits')}</span>
               <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change the clauses you want to change. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each one on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
             </span>
-            <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Cancel</button>
+            <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">${i18t('act_cancel')}</button>
           </div>
           <div id="pt-clause-editor" class="scroll-thin" style="padding:18px 22px;max-height:min(62vh,620px);overflow-y:auto;background:var(--color-doc-surface)"></div>
           <div id="portal-plain" class="hidden">
@@ -3030,7 +3030,7 @@ async function portalSignUnverified(p, info){
       <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-amber-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
       <p style="font-size:11.5px;color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">This sender's HaTi cannot send verification codes, so we cannot confirm that <strong>${esc(info.email)}</strong> is yours. Your signature is still binding, and the contract's record will show that it was <strong>${i18t('po_not_independently_verified')}</strong>.</p>
       <button id="pt-unver-go" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Sign anyway</button>
-      <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Cancel</button>
+      <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('act_cancel')}</button>
     </div>`;
   document.getElementById('pt-unver-cancel').addEventListener('click',()=>{ box.innerHTML=''; portalSetIdle(); });
   document.getElementById('pt-unver-go').addEventListener('click',async()=>{

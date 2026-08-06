@@ -503,7 +503,7 @@ function openClausePicker(c, opts){
           <div class="mt-1 text-[11px] text-ink/65">${cl.preferred.slice(0,160)}${cl.preferred.length>160?'…':''}</div>
         </div>`).join('')}
       </div>
-      <div class="flex justify-end mt-4"><button id="cp-close" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Close</button></div>
+      <div class="flex justify-end mt-4"><button id="cp-close" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_close')}</button></div>
     </div>`);
   document.getElementById('cp-close').addEventListener('click',closeModal);
   const onPick=(opts&&typeof opts.onPick==='function')?opts.onPick:(cl=>applyClauseRedline(c, cl.preferred, cl.name));

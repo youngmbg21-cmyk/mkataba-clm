@@ -178,7 +178,7 @@ function openWizard(preTid){
           <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:20px;">
-        <button id="wz-cancel" class="ui-btn">Cancel</button>
+        <button id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <span style="flex:1"></span>
         <button id="wz-skip" class="ui-btn" title="${i18t('wz_create_and_fill')}">Skip for now</button>
         <button id="wz-create" class="ui-btn ui-btn-primary">Create draft</button>

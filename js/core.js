@@ -1488,7 +1488,7 @@ function openSidePanel(html, opts={}){
     style="position:fixed;top:0;right:0;bottom:0;width:100%;max-width:${w};z-index:70;display:flex;flex-direction:column;background:var(--color-surface);border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg);">
     <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--color-divider);">
       <span style="font-family:var(--font-heading);font-weight:700;font-size:12.5px;color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(opts.title||'')}</span>
-      <button id="side-panel-x" title="${i18t('co_close_esc')}" aria-label="Close"
+      <button id="side-panel-x" title="${i18t('co_close_esc')}" aria-label="${i18t('act_close')}"
         style="margin-left:auto;flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600);cursor:pointer;display:grid;place-items:center;padding:0;font:inherit;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
@@ -1922,7 +1922,7 @@ function defaultSharePurpose(c){
 const SHARE_PURPOSE_COPY={
   negotiate:{ label:'Negotiate', get title(){ return i18t('co_purpose_negotiate'); },
     get blurb(){ return i18t('co_purpose_negotiate_sub'); } },
-  sign:{ label:'Sign', get title(){ return i18t('co_purpose_sign'); },
+  sign:{ get label(){ return i18t('act_sign'); }, get title(){ return i18t('co_purpose_sign'); },
     get blurb(){ return i18t('co_purpose_sign_sub'); } },
   view:{ get label(){ return i18t('co_purpose_view'); }, get title(){ return i18t('co_purpose_view_sub'); },
     blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
@@ -1980,7 +1980,7 @@ function shareKindStepHtml(c, sel){
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">${i18t('co_one_question')}</p>
       ${shareKindOptionsHtml(c, sel)}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
-        <button id="share-close-kind" class="ui-btn">Close</button>
+        <button id="share-close-kind" class="ui-btn">${i18t('act_close')}</button>
         <button id="share-kind-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
@@ -2122,7 +2122,7 @@ function shareSummaryStepHtml(c, opts={}){
         <b>${i18t('co_closes_your_turn')}</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-back-kind" class="ui-btn">${icon('arrow-right','w-3.5 h-3.5')} Back</button>
-        <button id="share-close-1" class="ui-btn">Close</button>
+        <button id="share-close-1" class="ui-btn">${i18t('act_close')}</button>
         <button id="share-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
@@ -2183,7 +2183,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
     <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
       <button id="qs-details" class="ui-btn" style="font-size:12px" title="${i18t('co_full_form')}">${i18t('co_change_details')}</button>
       <span style="flex:1"></span>
-      <button id="qs-cancel" class="ui-btn">Cancel</button>
+      <button id="qs-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="qs-send" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 18px">${icon('send','w-3.5 h-3.5')} Send it</button>
     </div>
   </div>`;
@@ -2832,7 +2832,7 @@ async function openShareModal(c, opts={}){
       <div id="sh-result" style="margin-top:12px;"></div>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-back" class="ui-btn">← Back</button>
-        <button id="share-close" class="ui-btn">Close</button>
+        <button id="share-close" class="ui-btn">${i18t('act_close')}</button>
         <button id="share-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
       </div>
       </div>
@@ -3262,7 +3262,7 @@ function reshareNotSentModal(c, out, who){
       <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
         <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} Copy link</button>
-        <button id="rs-close" class="ui-btn ui-btn-primary">Close</button>
+        <button id="rs-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
       </div>
     </div>`);
   document.getElementById('rs-close').addEventListener('click',closeModal);
@@ -3506,7 +3506,7 @@ function openImportModal(c){
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">${i18t('co_paste_response_code')}</p>
       <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
-        <button id="imp-cancel" class="ui-btn">Cancel</button>
+        <button id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
       </div>
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--color-divider);">

@@ -325,7 +325,7 @@ function mNewSheetHtml(){
     <div class="m-capline" style="margin:${lib.length?'14px':'0'} 0 6px">${i18t('m_other_ways_in')}</div>
     <div class="m-card m-list" style="background:var(--color-bg)">${routes}</div>
     ${builtin.length?`<div class="m-note" style="margin-top:10px">${builtin.length} HaTi standard template${builtin.length===1?'':'s'} are open to your role.</div>`:''}
-    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">Cancel</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- APPROVALS ---

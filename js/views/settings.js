@@ -52,7 +52,7 @@ function openFolderAccessEditor(userId){
       <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${i18t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
-      <button id="fa-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+      <button id="fa-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="fa-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('set_save_access')}</button></div>
   </div>`);
   const allBox=document.getElementById('fa-all'), list=document.getElementById('fa-list');
@@ -176,7 +176,7 @@ function renderTeam(){
       <td style="padding:8px 10px"><span style="${roleTag(x.role)}">${ROLE_LABEL[x.role]}</span></td>
       <td style="padding:8px 10px;white-space:nowrap">
         <span style="font-size:11.5px;color:${restricted?'var(--st-amber-fg)':'var(--color-neutral-700)'}">${accessSummary(x)}</span>
-        ${(isAdmin()&&x.role!=='admin')?`<button data-access-for="${x.id}" title="Edit folder access" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">Edit</button>`:''}
+        ${(isAdmin()&&x.role!=='admin')?`<button data-access-for="${x.id}" title="Edit folder access" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${i18t('act_edit')}</button>`:''}
         <span style="display:block;font-size:10.5px;color:${valuesOn(x)?'var(--color-neutral-600)':'var(--st-amber-fg)'};margin-top:2px">
           ${valuesOn(x)?'Sees contract values':'Values hidden'}
           ${(isAdmin()&&x.role!=='admin'&&!isMe&&API_MODE())?`<button data-values-for="${x.id}" data-values-to="${valuesOn(x)?'0':'1'}" title="${valuesOn(x)?'Hide contract values from this member':'Let this member see contract values'}" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${valuesOn(x)?'Hide':'Show'}</button>`:''}
@@ -187,7 +187,7 @@ function renderTeam(){
         ${canManage?`<select data-role-for="${x.id}" title="Change role" style="font-size:11px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 6px;color:inherit;font-family:inherit;outline:none">
             ${['admin','legal','viewer'].map(r=>`<option value="${r}" ${x.role===r?'selected':''}>${ROLE_LABEL[r]}</option>`).join('')}
           </select>
-          <button data-remove-user="${x.id}" style="margin-left:8px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">Remove</button>`
+          <button data-remove-user="${x.id}" style="margin-left:8px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('act_remove')}</button>`
         :`<span style="color:var(--color-neutral-400)">—</span>`}
       </td>
     </tr>`;
@@ -341,7 +341,7 @@ function renderTeam(){
             <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
               <button id="ai-allow-open" style="${primaryBtnSm}">${i18t('set_open_allowance')}</button>
               <button id="ai-allow-topup" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">${i18t('set_top_up')}</button>
-              <button id="ai-allow-close" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">Close</button>
+              <button id="ai-allow-close" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">${i18t('act_close')}</button>
             </div>
           </div>
 
@@ -883,8 +883,8 @@ function openPlaybookEditor(key){
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px">
-      <button id="pb-cancel" class="ui-btn" style="font-size:12px;padding:6px 14px">Cancel</button>
-      <button id="pb-save" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 16px">Save</button>
+      <button id="pb-cancel" class="ui-btn" style="font-size:12px;padding:6px 14px">${i18t('act_cancel')}</button>
+      <button id="pb-save" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 16px">${i18t('act_save')}</button>
     </div>
   </div>`, {maxWidth:'34rem'});
 
@@ -897,7 +897,7 @@ function openPlaybookEditor(key){
         <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="Category e.g. Confidentiality" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;outline:none">
         <span style="display:inline-flex;gap:3px">${seg(i)}</span>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">⚑ Legal</label>
-        <button data-pb-rmpos="${i}" title="Remove" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
+        <button data-pb-rmpos="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
       </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">No specific positions${isBase?'':' — this type only inherits the baseline'}.</p>`;
     const rl=document.getElementById('pb-rng-list');
     rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
@@ -906,7 +906,7 @@ function openPlaybookEditor(key){
         <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 6px;font:inherit;font-size:12px;cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
         <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;outline:none">
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">⚑ Legal</label>
-        <button data-pb-rmrng="${i}" title="Remove" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
+        <button data-pb-rmrng="${i}" title="${i18t('act_remove')}" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
       </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
     // wire row inputs → live working copy
     pl.querySelectorAll('[data-pb-cat]').forEach(el=>el.addEventListener('input',()=>{ e.positions[+el.dataset.pbCat].category=el.value; }));
@@ -944,8 +944,8 @@ function openClauseEditor(idx){
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
     ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
-    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-      <button id="ce-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save</button></div>
+    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+      <button id="ce-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('act_save')}</button></div>
   </div>`);
   document.getElementById('ce-cancel').addEventListener('click',closeModal);
   document.getElementById('ce-save').addEventListener('click',()=>{
@@ -999,7 +999,7 @@ function openApprovalRuleEditor(idx){
         <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
         ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${ROLE_LABEL[m.role]})</option>`).join('')}
       </select></label>
-    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('set_save_rule')}</button></div>
   </div>`);
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');

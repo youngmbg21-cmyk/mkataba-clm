@@ -93,7 +93,7 @@ function promptNewFolder(){
         <input id="nf-name" placeholder="e.g. Legal &amp; Regulatory" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:9px 11px;font:inherit;font-size:13px;outline:none" />
         <div id="nf-err" style="font-size:11px;color:var(--st-ruby-dot);margin-top:6px;display:none">${i18t('fo_enter_name')}</div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-          <button id="nf-cancel" class="ui-btn" style="font-size:12px">Cancel</button>
+          <button id="nf-cancel" class="ui-btn" style="font-size:12px">${i18t('act_cancel')}</button>
           <button id="nf-save" class="ui-btn ui-btn-primary" style="font-size:12px">${i18t('fo_create_stream')}</button>
         </div>
       </div>`;

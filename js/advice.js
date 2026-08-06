@@ -16,11 +16,11 @@
    the DEFAULT numbers are mirrored in server/server.js (ADVICE_DEFAULT_RATES)
    so the server can quote without trusting the browser — keep both in sync. */
 const ADVICE_SERVICES = {
-  review:      { id:'review',      name:'Contract Review & Risk Report', ic:'scan',   blurb:'Clause-by-clause review of a contract you received, with a plain-language risk report and recommended redlines.' },
-  draft:       { id:'draft',       name:'Contract Drafting',             ic:'pencil', blurb:'A new contract drafted from your instructions, ready to negotiate and sign.' },
-  advice:      { id:'advice',      name:'Contract Advice Session',       ic:'msg',    blurb:'A focused written opinion on a specific contract question — obligations, termination, renewal, disputes.' },
-  negotiation: { id:'negotiation', name:'Negotiation & Redline Support', ic:'users',  blurb:'Counsel works the counterparty’s markup with you — positions, counter-redlines and settlement wording.' },
-  compliance:  { id:'compliance',  name:'Regulatory & Compliance Check', ic:'shield', get blurb(){ return `A contract or template checked against ${jxAdjective()} regulatory requirements for your sector.`; } },
+  review:      { id:'review',      get name(){ return i18t('ad_svc_review'); }, ic:'scan',   get blurb(){ return i18t('ad_svc_review_desc'); } },
+  draft:       { id:'draft',       get name(){ return i18t('ad_svc_draft'); },             ic:'pencil', get blurb(){ return i18t('ad_svc_draft_desc'); } },
+  advice:      { id:'advice',      get name(){ return i18t('ad_svc_session'); },       ic:'msg',    get blurb(){ return i18t('ad_svc_session_desc'); } },
+  negotiation: { id:'negotiation', get name(){ return i18t('ad_svc_nego'); }, ic:'users',  get blurb(){ return i18t('ad_svc_nego_desc'); } },
+  compliance:  { id:'compliance',  get name(){ return i18t('ad_svc_reg'); }, ic:'shield', get blurb(){ return `A contract or template checked against ${jxAdjective()} regulatory requirements for your sector.`; } },
 };
 const ADVICE_DEFAULT_RATES = {
   review:      { rate:8500,  hoursMin:3, hoursMax:6, days:3 },
@@ -33,11 +33,11 @@ const ADVICE_DEFAULT_RATES = {
 /* Pipeline stages — same treatment as the contract queue. Submitted →
    Delivered is the promise a customer can watch; Closed is the exit lane. */
 const ADVICE_STAGES = [
-  { k:'Submitted',   label:'Submitted',   color:'var(--st-gray-dot)', desc:'Received — awaiting triage by the legal team' },
-  { k:'Scoping',     label:'Scoping',     color:'var(--st-amber-dot)', desc:'Counsel is confirming scope and the fee estimate' },
-  { k:'In Progress', label:'In Progress', color:'var(--color-accent)', desc:'Counsel is working on the matter' },
-  { k:'Delivered',   label:'Delivered',   color:'var(--st-green-dot)', desc:'Feedback delivered to the customer' },
-  { k:'Closed',      label:'Closed',      color:'var(--st-ruby-dot)', desc:'Withdrawn or declined' },
+  { k:'Submitted',   get label(){ return i18t('ad_st_submitted'); },   color:'var(--st-gray-dot)', get desc(){ return i18t('ad_st_submitted_desc'); } },
+  { k:'Scoping',     get label(){ return i18t('ad_st_scoping'); },     color:'var(--st-amber-dot)', get desc(){ return i18t('ad_st_scoping_desc'); } },
+  { k:'In Progress', get label(){ return i18t('ad_st_progress'); }, color:'var(--color-accent)', get desc(){ return i18t('ad_st_progress_desc'); } },
+  { k:'Delivered',   get label(){ return i18t('ad_st_delivered'); },   color:'var(--st-green-dot)', get desc(){ return i18t('ad_st_delivered_desc'); } },
+  { k:'Closed',      get label(){ return i18t('ad_st_closed'); },      color:'var(--st-ruby-dot)', get desc(){ return i18t('ad_st_closed_desc'); } },
 ];
 const adviceStage = k => ADVICE_STAGES.find(s=>s.k===k) || ADVICE_STAGES[0];
 const ADVICE_ACTIVE = ['Submitted','Scoping','In Progress'];

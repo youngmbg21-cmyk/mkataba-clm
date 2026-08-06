@@ -95,7 +95,7 @@ function tbPaint() {
         <span style="display:block;font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono)">{{${esc(f.fieldKey)}}} · ${esc(lib.label)}${f.control === 'guided' ? ` · guided (${f.options.length})` : ''}${f.defaultValue ? ' · default set' : ''} · ${uses ? `in ${uses} block${uses === 1 ? '' : 's'}` : '<span style="color:var(--st-amber-fg)">unplaced</span>'}</span>
       </span>
       <button data-tb-fcopy="${i}" class="ui-btn" style="font-size:10px;padding:2px 8px" title="${i18t('tb_copy_placeholder')}">${icon('copy', 'w-3 h-3')}</button>
-      <button data-tb-fedit="${i}" class="ui-btn" style="font-size:10px;padding:2px 8px">Edit</button>
+      <button data-tb-fedit="${i}" class="ui-btn" style="font-size:10px;padding:2px 8px">${i18t('act_edit')}</button>
       <button data-tb-fdel="${i}" class="ui-btn" style="font-size:10px;padding:2px 7px;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${icon('x', 'w-3 h-3')}</button>
     </div>`;
   }).join('');
@@ -282,7 +282,7 @@ function tbFieldModal(index) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">
         <span style="font-size:10.5px;color:var(--color-neutral-500);font-family:var(--font-mono)" id="tbf-keyprev">${f.fieldKey ? `{{${esc(f.fieldKey)}}}` : ''}</span>
         <div style="display:flex;gap:8px">
-          <button class="ui-btn" onclick="closeModal()">Cancel</button>
+          <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
           <button id="tbf-save" class="ui-btn ui-btn-primary">${index != null ? 'Save field' : 'Add field'}</button>
         </div>
       </div>

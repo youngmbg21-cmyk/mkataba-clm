@@ -335,8 +335,8 @@ function openObligationForm(c, seed){
         <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
       <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
-        <button id="of-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-        <button id="of-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save</button>
+        <button id="of-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+        <button id="of-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('act_save')}</button>
       </div>
     </div>`);
   let party=(seed.party==='theirs')?'theirs':'ours';
@@ -390,7 +390,7 @@ function openObligationsReview(c, found){
           ${o.quote?`<span class="block text-[10px] text-ink/50 italic mt-0.5">“${o.quote.replace(/</g,'&lt;')}”</span>`:''}</span></label>`).join('')}
       </div>
       <div class="flex justify-end gap-2">
-        <button id="or-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+        <button id="or-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
         <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ob_add_selected')}</button>
       </div>
     </div>`);

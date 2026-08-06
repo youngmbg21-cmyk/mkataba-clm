@@ -344,7 +344,7 @@ function openSignerPlanEditor(c){
     <div id="sp-rows">${plan.map(row).join('')||`<div class="text-[12px] text-ink/50 mb-2">${i18t('ap_no_signers')}</div>`}</div>
     <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-4">+ Add signer</button>
     ${people.length?`<p class="text-[11px] text-ink/45 mb-3">${i18t('ap_tip_autofill')}</p>`:''}
-    <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+    <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ap_save_route')}</button></div>
   </div>`);
   const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join('')||''; wire(); };

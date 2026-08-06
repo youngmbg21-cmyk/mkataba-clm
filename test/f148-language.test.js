@@ -128,6 +128,58 @@ describe('f148 — every key a renderer asks for exists', () => {
   });
 });
 
+describe('f148 — nothing matches on translated text', () => {
+  /* THE FAULT THIS CATCHES, WHICH HAPPENED. A helper decided whether a key-term
+     row was empty by testing the rendered html against the literal words
+     "Not set". When that text became translatable the test was rewritten as a
+     REGEX LITERAL containing ${i18t('…')} — where ${...} is four literal
+     characters, not a call. It never matched again, the empty rows silently
+     lost their invitation to fill them in, and nothing failed: only a colour
+     census three screens away noticed.
+
+     Two rules, both cheap to check:
+       · a dictionary call may never appear inside a regex literal
+       · code may not branch on the WORDS a translator can change */
+  const jsFiles = () => {
+    const out = [];
+    const walk = dir => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) { walk(p); continue; }
+        if (e.name.endsWith('.js')) out.push(p);
+      }
+    };
+    walk(path.join(ROOT, 'js'));
+    return out;
+  };
+
+  test('no dictionary call sits inside a regex literal', () => {
+    const bad = [];
+    for (const f of jsFiles()) {
+      const src = fs.readFileSync(f, 'utf8');
+      src.split('\n').forEach((line, i) => {
+        /* A REGEX LITERAL, recognised by what follows it: /…${i18t(…)…/flags
+           immediately used as a pattern. Narrow on purpose — a template
+           literal that merely contains a slash is not a regex, and flagging
+           those would make this check noise nobody reads. */
+        if (/\/[^/\n]*\$\{i18t\([^)]*\)[^/\n]*\/[gimsuy]*\s*\.(test|exec|match)\b/.test(line)
+          || /(?:\.match|\.replace|\.split|\.search)\(\s*\/[^/\n]*\$\{i18t\(/.test(line))
+          bad.push(`${path.basename(f)}:${i + 1}`);
+      });
+    }
+    assert.deepEqual(bad, [],
+      'inside a regex literal ${...} is four characters, not a call — it will never match');
+  });
+
+  test('the empty key-term read is recognised by a marker, not by its words', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'js/views/contract.js'), 'utf8');
+    assert.match(src, /ktIsEmptyRead = html => \/data-kt-none="1"\//,
+      'match the marker; the words change with the reader');
+    assert.match(src, /class="kt-none" data-kt-none="1"/,
+      'and the empty read must actually carry it');
+  });
+});
+
 describe('f148 — the static shell only points at keys that exist', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const used = attr => [...html.matchAll(new RegExp(`${attr}="([^"]+)"`, 'g'))].map(m => m[1]);

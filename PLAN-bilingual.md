@@ -4,55 +4,83 @@ Written 2026-08-06.
 
 ---
 
-## STATUS — updated 2026-08-06, end of the first build session
+## STATUS — all seven phases complete, 2026-08-06
 
-**Done and tested**
+**Phase 1 — market.** Done. Swedish workspaces get Swedish-law templates,
+Swedish dates and money, no Nairobi in their risk advice, a Swedish company
+number field, and a Swedish demo portfolio. The market is asked for on the
+setup screen, which is what made the Swedish portfolio reachable at all.
 
-- **Phase 1 — complete.** All five parts. A Swedish workspace now gets Swedish
-  contract wording, Swedish dates and money, no Nairobi in its risk advice, a
-  Swedish company-number field, and thirty Swedish demo contracts. The market is
-  asked for on the setup screen, which is what makes the Swedish portfolio
-  reachable at all.
-- **Phase 2 — complete.** The language machinery, storage on the user record,
-  the server column and endpoint, the picker, the repaint-on-change with its
-  mid-edit guard, and the app shell translated.
-- **Phase 7.2 and 7.4 — done early** because they protect everything else: the
-  key-parity check that stops the two languages drifting, and the
-  blocked-storage boot.
+**Phase 2 — machinery.** Done. Language on the user record (so the server can
+write email in it), a picker built for N languages, repaint-on-change with a
+mid-edit guard, and the shell translated.
 
-**Partly done**
+**Phase 3 — main screens.** Done. Register, calendar, reports, queue, both
+template libraries, advice desk, settings, dashboard, insights, bulk import,
+the contract room, and the whole phone shell. The shared renderers — status
+labels, the room's five tabs, the dashboard figures — were done first because
+each is one function drawn by both shells.
 
-- **Phase 3 — the shared renderers only.** Contract status labels, the contract
-  room's five tabs, and the dashboard KPI labels. These were done first
-  deliberately: each is a single function drawn by BOTH shells, so one change
-  reaches the desktop, the phone, the register, the cards, reports, the graph
-  and the CSV export at once. **Not done:** each screen's own strings — the
-  register's columns and footer, the library, templates, reports, calendar and
-  settings.
-- **Phase 5 — the language plumbing only.** AI answers now follow the READER's
-  language rather than the market's (both the server route and the browser-direct
-  route; they were reading the workspace's locale, which gave a Swedish reader in
-  a Kenyan workspace English and vice versa). Saved scans are stamped with the
-  language they were written in. **Not done:** the renderers do not yet read that
-  stamp back, so a saved Swedish scan still draws its labels in the reader's
-  current language.
+**Phase 4 — negotiation workbench.** Done. Change cards, the proposal flow,
+tooltips, the clause tools, the discussion column and every message.
 
-**Not started**
+**Phase 5 — AI.** Done. Both prompt paths send the READER's language (they were
+sending the market's, which gave each colleague the opposite of what they
+asked for). Scans carry the language they were written in. The scan card's
+chrome follows the reader.
 
-- **Phase 4** — the negotiation workbench.
-- **Phase 6** — counterparty pages, share links and emails. The server can now
-  reach the dictionary and users carry a language, so the groundwork is in;
-  no email text has been translated.
-- **Phase 7.1, 7.3, 7.5** — layout overflow at real widths, switching from every
-  screen, and the browser-driven suite.
+**Phase 6 — counterparties and email.** Done. The portal is translated; email
+is written in the recipient's language, looked up from their user row, falling
+back to the sender's for a counterparty who has no account.
 
-**Honest summary:** the foundations and the highest-leverage shared surfaces are
-done and green. The bulk of the per-screen translation — the thousands of
-strings this plan sizes at weeks of work — is still ahead.
+**Phase 7 — fit and tests.** Done. `npm run test:swedish` walks every screen in
+Swedish at two laptop sizes and a phone in a real browser, failing on any label
+cut off or any page that scrolls sideways, and checks the switch works from
+inside a contract, survives a reload, and does not move the market.
 
-**Test state:** the full Node suite passes. Three existing tests needed updating
-rather than the code: two lifted a slice of core.js that no longer carried a
-helper, and one pinned the tab row's old source shape.
+**Numbers:** 1,713 phrases in each language, 1,600+ call sites.
+
+**Test state:** Node suite green. Every browser suite green, including the
+colour census — which is what caught the one real regression this work caused
+(a helper that matched on the words "Not set" and silently stopped working when
+those words became translatable; it matches a marker now, and f148 fails on any
+dictionary call placed inside a regex literal).
+
+---
+
+## What is deliberately NOT translated
+
+Contract wording, in every form:
+
+- The twelve built-in template **titles** and clause text — the document's own
+  words.
+- The branding wrapper's contract phrases ("entered into between", "as per the
+  signature page") — these are printed into the agreement.
+- The **playbook's negotiating positions** ("Payment within 30 days") — these
+  are the company's own standards, seeded as defaults and then edited into
+  user data.
+- The Copilot scan's ~60 **findings** — generated legal advice. The scan already
+  stamps the language it was written in, so localising them later will not
+  break records saved before it. Doing it unreviewed is the exact risk
+  SWEDISH-TERMS-TO-REVIEW.md is about.
+- Anything signed, sealed, fingerprinted or already exported.
+
+Value-stream folder names are left in English too: the built-ins sit alongside
+folders users create and name themselves, and translating half a list reads
+worse than translating none of it.
+
+---
+
+## Still outstanding
+
+**The Swedish legal vocabulary has not been reviewed by a Swedish speaker.**
+That was your answer to question 4, and it is the one gap I cannot close on my
+own. SWEDISH-TERMS-TO-REVIEW.md separates the terms I am confident about from
+the ~11 I am not. *Klausul* for "Clause" matters most — it appears more than
+any other word in the product.
+
+Swedish-law contract templates remain parked, as you asked.
+
 
 ---
 

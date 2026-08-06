@@ -1051,7 +1051,7 @@ function openUploadModal(){
         <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
           <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-neutral-600);cursor:pointer" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} <u>${i18t('ct_import_many')}</u></button>
           <span style="flex:1"></span>
-          <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
+          <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">${i18t('act_cancel')}</button>
         </div>
       </div>
       <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
@@ -1140,7 +1140,7 @@ function uploadConfirmHtml(ext, meta){
       <div class="flex items-center gap-2">
         <button id="up-back" class="rounded-lg border border-brand-200 px-3 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">← Another file</button>
         <span style="flex:1"></span>
-        <button id="up-cancel-2" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
+        <button id="up-cancel-2" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">${i18t('act_cancel')}</button>
         <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('check2','w-3.5 h-3.5')} File contract</button>
       </div>`;
 }
@@ -1346,7 +1346,7 @@ function redlineDocBody(c){
       <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
     </div>
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
-      ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${i18t('ct_doc_carries')} <strong>${i18t('ct_edited_working')}</strong>. Use <strong>Edit</strong> ${i18t('ct_to_change_wording')} <strong>${i18t('ct_compare')}</strong> ${i18t('ct_review_between')}</span>
+      ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${i18t('ct_doc_carries')} <strong>${i18t('ct_edited_working')}</strong>. Use <strong>${i18t('act_edit')}</strong> ${i18t('ct_to_change_wording')} <strong>${i18t('ct_compare')}</strong> ${i18t('ct_review_between')}</span>
     </div>
     <div style="color:var(--color-doc-text)" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
     ${signatureBlock(c)}`;
@@ -1389,7 +1389,7 @@ function openEditDocModal(c){
       <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <span id="ed-count" style="font-size:10.5px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
         <span style="display:flex;gap:8px">
-          <button id="ed-cancel" class="ui-btn">Cancel</button>
+          <button id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
         </span>
       </div>
@@ -2473,7 +2473,7 @@ function wireWsTabs(c){
    name on every tab; this was the third place it was said. */
 /* The read-out for one row, so an edit can refresh just that row. */
 function ktReadValue(c,key){
-  const dash=`<span class="kt-none">${i18t('ct_not_set')}</span>`;
+  const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
   if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
@@ -2487,7 +2487,13 @@ function ktReadValue(c,key){
    "Non-monetary" — and only the first is an invitation. The dashed prompt goes
    on the first alone, so a non-monetary contract is not nagged to price
    itself. */
-const ktIsEmptyRead = html => /class="kt-none">${i18t('ct_not_set2')}</.test(String(html));
+/* A MARKER, NOT THE WORDS. This used to match the literal text "Not set", which
+   stopped working the moment that text became translatable — and worse, it
+   stopped working SILENTLY: the row simply lost its dashed invitation and
+   nothing failed. Matching on copy a translator can change is the same fault
+   whichever language it breaks in, so the empty read now carries data-kt-none
+   and this looks for that. */
+const ktIsEmptyRead = html => /data-kt-none="1"/.test(String(html));
 function ktRowHtml(key,label,readHtml,fieldHtml,editable){
   if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
   const empty=ktIsEmptyRead(readHtml)?' data-kt-empty="1"':'';
@@ -2499,7 +2505,7 @@ function ktRowHtml(key,label,readHtml,fieldHtml,editable){
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
   const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:5px;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
-  const dash=`<span class="kt-none">${i18t('ct_not_set')}</span>`;
+  const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
   const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
@@ -3099,7 +3105,7 @@ function openNegoProposeModal(c){
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
           <span style="flex:1;min-width:150px;font-size:11.5px;color:var(--color-neutral-600)">${i18t('ct_changed_become_pending')}</span>
-          <button id="nego-prop-cancel" class="ui-btn">Cancel</button>
+          <button id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="nego-prop-go" class="ui-btn ui-btn-primary">${i18t('ct_propose_changes')}</button>
         </div>
       </div>
@@ -4801,7 +4807,7 @@ function openPaperSignatureModal(c){
       <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:12.5px"/></label>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-        <button id="ps-cancel" class="ui-btn">Cancel</button>
+        <button id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ps-go" class="ui-btn ui-btn-primary">${i18t('ct_file_as_executed')}</button>
       </div>
     </div>`);

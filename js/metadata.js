@@ -292,7 +292,7 @@ function openMetaReview(meta, onConfirm, opts={}){
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
-        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
         <button id="mr-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);

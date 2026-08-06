@@ -446,7 +446,7 @@ function openDiffModal(aText, bText, labelA, labelB){
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Compare ${labelA} → ${labelB}</h3></div>
       <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${_statLine(st)} · ${_diffLegend}</p>
       ${_diffBox(aText,bText)}
-      <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="dm-close" class="ui-btn ui-btn-primary">Close</button></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="dm-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button></div>
     </div>`, {maxWidth:'860px'});
   document.getElementById('dm-close').addEventListener('click',closeModal);
 }
@@ -496,7 +496,7 @@ function openCompareModal(c){
         <p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.6;margin:0">There's only one version of this contract so far, so there's nothing to compare yet. New versions are captured automatically when a <b>${i18t('ve_cp_redline_accepted')}</b> and at <b>signing</b>. ${canSnap?'Capture a snapshot now, make your edits, then compare to see exactly what changed.':''}</p>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
           ${canSnap?`<button id="cmp-snap" class="ui-btn ui-btn-primary">${icon('plus','w-3 h-3')} Snapshot current version</button>`:''}
-          <button id="cmp-close" class="ui-btn">Close</button>
+          <button id="cmp-close" class="ui-btn">${i18t('act_close')}</button>
         </div>
       </div>`);
     document.getElementById('cmp-close').addEventListener('click',closeModal);
@@ -562,7 +562,7 @@ function openCompareModal(c){
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0;flex:1">${i18t('ve_compare_versions')}</h3>
-        <button id="cmp-x" title="Close" class="ui-btn" style="flex:none;width:30px;height:30px;padding:0">${icon('close','w-3.5 h-3.5')}</button></div>
+        <button id="cmp-x" title="${i18t('act_close')}" class="ui-btn" style="flex:none;width:30px;height:30px;padding:0">${icon('close','w-3.5 h-3.5')}</button></div>
       ${cumulative?`<div id="cmp-mode" style="display:flex;gap:2px;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:9px;padding:3px;width:max-content;margin-bottom:10px">
         ${segBtn('pair','Two versions',true)}${segBtn('cum','vs Original — cumulative',false)}
       </div>`:''}
@@ -616,7 +616,7 @@ function openCompareModal(c){
         ${canSnap?`<button id="cmp-snap-now" class="ui-btn" style="font-size:12px;padding:5px 11px" title="${i18t('ve_save_wording_now')}">${icon('plus','w-3 h-3')} Snapshot now</button>
         <button id="cmp-restore" class="ui-btn" style="font-size:12px;padding:5px 11px" hidden></button>`:''}
         <span style="flex:1"></span>
-        <button id="cmp-done" class="ui-btn ui-btn-primary">Close</button>
+        <button id="cmp-done" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
       </div>
     </div>`, {maxWidth:'860px'});
   document.getElementById('cmp-x').addEventListener('click',closeModal);

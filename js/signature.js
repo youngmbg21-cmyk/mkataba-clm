@@ -104,7 +104,7 @@ function openSignaturePad(opts={}){
             <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> Save my signature for next time
           </label>
           <div style="margin-left:auto;display:flex;gap:8px">
-            <button id="sig-cancel" class="ui-btn" style="padding:8px 16px;font-size:13px">Cancel</button>
+            <button id="sig-cancel" class="ui-btn" style="padding:8px 16px;font-size:13px">${i18t('act_cancel')}</button>
             <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:8px 18px;font-size:13px">${icon('finger','w-4 h-4')} Adopt &amp; sign</button>
           </div>
         </div>

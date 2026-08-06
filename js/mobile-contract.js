@@ -285,7 +285,7 @@ function mOverflowSheetHtml(){
         <span style="flex:1;font-size:16px;font-weight:500;color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
         ${i.desk?`<span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
       </button>`).join('')}
-    <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">Cancel</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------ SHARE SHEET --
@@ -345,7 +345,7 @@ function mShareSheetHtml(){
     </label>
     ${s.shareErr?`<div class="m-err">${mEsc(s.shareErr)}</div>`:''}
     <button class="m-btn m-btn-primary" style="margin-top:12px" data-m-act="share-create">${cta}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">Cancel</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* -------------------------------------------------------- RENUMBER SHEET ---
@@ -364,7 +364,7 @@ function mRenumberSheetHtml(){
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('mc_renumber')}</div>
     <div class="m-sheet-note">${i18t('mc_nothing_to_renumber')}</div>
-    <button class="m-btn m-btn-quiet" data-m-act="close-sheet">Close</button>`;
+    <button class="m-btn m-btn-quiet" data-m-act="close-sheet">${i18t('act_close')}</button>`;
   return `
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('mc_renumber')}</div>
@@ -380,7 +380,7 @@ function mRenumberSheetHtml(){
     </div>
     ${refs.length?`<div class="m-note" style="margin-top:10px">${refs.length} cross-reference${refs.length===1?'':'s'} ${refs.length===1?'is':'are'} repointed in the same plan.</div>`:''}
     <button class="m-btn m-btn-primary" style="margin-top:12px" data-m-act="renumber-apply">Renumber ${moves.length} heading${moves.length===1?'':'s'}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">Cancel</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- BEHAVIOUR ---*/

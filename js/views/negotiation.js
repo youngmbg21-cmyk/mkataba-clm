@@ -1498,7 +1498,7 @@ function negoRenumberPreviewHtml(c, plan){
       : `<div class="text-[11.5px] text-ink/50">${i18t('ng_none_cite')}</div>`}
     ${leftAlone}
     <div class="flex justify-end gap-2 mt-4">
-      <button id="renum-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+      <button id="renum-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="renum-apply" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-600 hover:bg-brand-800">Renumber ${plan.headings.length} clause${plan.headings.length === 1 ? '' : 's'}</button>
     </div>
   </div>`;
@@ -3686,7 +3686,7 @@ async function negoAiPropose(c, ctx){
   pop.setAttribute('aria-label', action.label.replace(/^\S+\s/, ''));
   pop.innerHTML = `
     <header><b>${e(action.label)}</b><span style="flex:1"></span>
-      <button type="button" data-ai-x class="ui-btn" style="font-size:11px;padding:3px 9px">Close</button></header>
+      <button type="button" data-ai-x class="ui-btn" style="font-size:11px;padding:3px 9px">${i18t('act_close')}</button></header>
     <div class="nego-aiwait"><span class="nego-aispin"></span>${i18t('ng_reading_clause')}</div>`;
   document.body.appendChild(pop);
   const place = () => {
@@ -3822,7 +3822,7 @@ async function negoAiPropose(c, ctx){
   const foot = document.createElement('footer');
   foot.innerHTML = `
     ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary" style="font-size:12px">${i18t('ng_apply_redline')}</button>` : ''}
-    <button type="button" data-ai-cancel class="ui-btn" style="font-size:12px">Cancel</button>
+    <button type="button" data-ai-cancel class="ui-btn" style="font-size:12px">${i18t('act_cancel')}</button>
     <span style="flex:1"></span>
     <span style="font-family:var(--n-font-ui);font-size:10.5px;color:var(--n-ink-soft);align-self:center">${i18t('ng_nothing_changed_yet')}</span>`;
   pop.appendChild(foot);
@@ -4382,7 +4382,7 @@ function wireNegotiationTab(c, opts = {}){
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
     const step1 = `<button class="b-save" data-nego-next="${_ne(clauseId)}">${i18t('ng_save_change')}</button>`
-      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button>`;
+      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">${i18t('act_cancel')}</button>`;
     const step2 = `<button class="b-save" data-nego-save="${_ne(clauseId)}">${i18t('ng_file_change')}</button>`
       + `<button class="b-cancel" data-nego-skip="${_ne(clauseId)}">${i18t('ng_skip_no_reason')}</button>`
       + `<button class="b-cancel" data-nego-back="${_ne(clauseId)}">${i18t('ng_back_to_wording')}</button>`;
@@ -8471,7 +8471,7 @@ async function rlOpenPlaybookReview(c, again){
     <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">&#10022; Playbook review — ${items.length} proposal${items.length === 1 ? '' : 's'}</h2>
     <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')}</p>
     ${items.map(itemHtml).join('')}
-    <div style="display:flex;justify-content:flex-end"><button id="pbr-close" class="ui-btn">Close</button></div>
+    <div style="display:flex;justify-content:flex-end"><button id="pbr-close" class="ui-btn">${i18t('act_close')}</button></div>
   </div>`, { maxWidth: '780px' });
   const root = document.getElementById('modal-root') || document;
   const settle = (i, text, tone) => {
@@ -8795,7 +8795,7 @@ function redlineChangeCardsHtml(c, opts = {}){
       verbs.push(`<button class="rl-rej" data-nego-reject="${_ne(ch.id)}">${i18t('ng_reject')}</button>`);
     }
     if (editable && !heldHere) verbs.push(`<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
-        title="${i18t('ng_jump_to_clause')}">Edit</button>`);
+        title="${i18t('ng_jump_to_clause')}">${i18t('act_edit')}</button>`);
     /* A draft that has never left the building can simply be taken back —
        negoRetractDraft removes the record, so nothing is withdrawn from
        anyone. Once sent, the honest verbs are Withdraw and revise, above. */

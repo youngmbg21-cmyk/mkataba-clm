@@ -612,7 +612,7 @@ function mAccountSheetHtml(){
     <div class="m-card m-list">${rows}</div>
     <div class="m-note" style="margin-top:8px">${i18t('m_jx_sub')}</div>
     <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">${i18t('m_log_out')}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">Close</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
 }
 
 /* -------------------------------------------------------------- TAB BAR ----*/
@@ -766,7 +766,7 @@ function mSheetHtml(){
   else if(s.sheet==='renumber') inner = mRenumberSheetHtml();
   else if(s.sheet==='kpis')     inner = mKpiSheetHtml();
   else return '';
-  return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="Close"></button><div class="m-sheet">${inner}</div></div>`;
+  return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="${i18t('act_close')}"></button><div class="m-sheet">${inner}</div></div>`;
 }
 
 function mOpenSheet(k, extra){ Object.assign(mS(), extra||{}, {sheet:k}); mRender(); }

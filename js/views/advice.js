@@ -139,7 +139,7 @@ function wireAdviceBoard(){
   document.getElementById('adv-link')?.addEventListener('click',async()=>{
     const link=adviceIntakeLink();
     try{ await navigator.clipboard.writeText(link); toast(i18t('adv_intake_copied')); }
-    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:10px;font-size:11px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">Close</button></div></div>`); }
+    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:10px;font-size:11px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
   });
 }
 
@@ -205,8 +205,8 @@ function openAdviceModal(id){
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
         <button id="adv-copy-track" class="ui-btn">${icon('copy','w-3.5 h-3.5')} Customer tracking link</button>
         <span style="flex:1"></span>
-        <button class="ui-btn" onclick="closeModal()">Close</button>
-        ${canEdit()?`<button id="adv-save" class="ui-btn ui-btn-primary">Save</button>`:''}
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button>
+        ${canEdit()?`<button id="adv-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>`:''}
       </div>
     </div>`,{maxWidth:'40rem'});
   document.getElementById('adv-copy-track').addEventListener('click',async()=>{
@@ -297,7 +297,7 @@ function openAdviceIntakeModal(){
         <textarea id="ai-desc" rows="3" style="${inputStyle}"></textarea></label>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-700);margin-bottom:4px"><input id="ai-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent)"/> ${i18t('adv_priority_option')}</label>
       <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
-        <button class="ui-btn" onclick="closeModal()">Cancel</button>
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="ai-go" class="ui-btn ui-btn-primary">${i18t('adv_create_request')}</button>
       </div>
     </div>`,{maxWidth:'34rem'});

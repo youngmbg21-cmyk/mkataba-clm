@@ -247,7 +247,7 @@ function openLinkModal(c, onDone, opts={}){
       <div id="lk-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-bottom:8px"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
-        <button id="lk-cancel" class="ui-btn">Cancel</button>
+        <button id="lk-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="lk-save" class="ui-btn ui-btn-primary">${mode==='child'?'Link':'Attach'}</button>
       </div>
     </div>`, {maxWidth:'560px'});

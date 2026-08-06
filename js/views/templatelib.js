@@ -122,7 +122,7 @@ function tplCompanySectionHtml() {
       <div style="display:flex;gap:6px;margin-top:2px;flex-wrap:wrap">
         ${t.status === 'published' && typeof canEdit === 'function' && canEdit()
           ? `<button data-tpllib-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">${icon('plus', 'w-3 h-3')} New contract</button>` : ''}
-        <button data-tpllib-open="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px;${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? '' : 'flex:1'}">Open</button>
+        <button data-tpllib-open="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px;${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? '' : 'flex:1'}">${i18t('act_open')}</button>
       </div>
     </div>`).join('');
   /* The section itself now matches Counterparty Templates too: a padded card holding a
@@ -164,7 +164,7 @@ function tplLibUploadModal() {
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('tl_defaults_filename')}</span></span>
         <input id="tpllib-up-name" style="${INP}" maxlength="160"></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="ui-btn" onclick="closeModal()">Cancel</button>
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-up-go" class="ui-btn ui-btn-primary">${i18t('tl_upload_convert')}</button>
       </div>
     </div>`);
@@ -374,7 +374,7 @@ function tplLibCreateModal() {
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_description')} <span style="font-weight:400;color:var(--color-neutral-500)">(optional)</span></span>
         <textarea id="tpllib-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none;min-height:60px" maxlength="2000" placeholder="${i18t('tl_what_for')}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="ui-btn" onclick="closeModal()">Cancel</button>
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-create" class="ui-btn ui-btn-primary">Create draft</button>
       </div>
     </div>`);
@@ -407,7 +407,7 @@ function saveContractToLibrary(c) {
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
         <input id="tpllib-sv-name" style="${INP}" maxlength="160" value="${esc(c.name)} — standard template"></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="ui-btn" onclick="closeModal()">Cancel</button>
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-sv-go" class="ui-btn ui-btn-primary">${i18t('tl_create_draft_template')}</button>
       </div>
     </div>`);
@@ -531,8 +531,8 @@ function tplLibMetaModal(t) {
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('tl_description')}</span>
         <textarea id="tpllib-m-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none;min-height:60px" maxlength="2000">${esc(t.description)}</textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button class="ui-btn" onclick="closeModal()">Cancel</button>
-        <button id="tpllib-m-save" class="ui-btn ui-btn-primary">Save</button>
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+        <button id="tpllib-m-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
       </div>
     </div>`);
   document.getElementById('tpllib-m-save')?.addEventListener('click', async () => {

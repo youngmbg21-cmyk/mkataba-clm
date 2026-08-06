@@ -134,7 +134,7 @@ function openTemplateFillModal(t){
     </div>
     <div id="tf-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
-      <button id="tf-cancel" class="ui-btn">Cancel</button>
+      <button id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="tf-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">${i18t('lib_skip_for_now')}</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">${i18t('lib_create_draft')}</button>
@@ -195,7 +195,7 @@ function saveContractAsTemplate(c){
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('lib_value_stream')}</span>
         <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 8px;font:inherit;font-size:13px">${opts}</select></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button id="tpl-cancel" class="ui-btn">Cancel</button>
+        <button id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
     </div>`);
@@ -279,7 +279,7 @@ function openCreateTemplateModal(mode){
 
       <div id="ct-status" style="font-size:11px;color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button id="ct-cancel" class="ui-btn">Cancel</button>
+        <button id="ct-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ct-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
     </div>`, {maxWidth:'820px'});
@@ -588,7 +588,7 @@ function openBlanksEditor(tid){
         : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 11px;font:inherit;font-size:12px;line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:11px;color:var(--color-neutral-600);min-height:15px;margin-bottom:8px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px">
-      <button id="be-cancel" class="ui-btn">Cancel</button>
+      <button id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
     </div></div>`, {maxWidth:'760px'});
   draw();
@@ -801,7 +801,7 @@ function openTemplateEditor(tid){
     <div style="display:flex;justify-content:space-between;gap:8px">
       <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('lib_delete_template')}</button>
       <span style="display:flex;gap:8px">
-        <button id="te-cancel" class="ui-btn">Cancel</button>
+        <button id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
       </span>
     </div></div>`, {maxWidth:'880px'});
@@ -1027,7 +1027,7 @@ function openTemplateVersions(tid){
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
       ${canManage?`<button id="tv-edit" class="ui-btn">${i18t('lib_back_to_editing')}</button>`:''}
-      <button id="tv-close" class="ui-btn ui-btn-primary">Close</button>
+      <button id="tv-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
     </div></div>`, {maxWidth:'760px'});
 
   document.getElementById('tv-close').addEventListener('click',closeModal);
@@ -1131,7 +1131,7 @@ function openBulkCreateModal(t){
     </div>
     <div id="bk-out" style="font-size:11.5px;color:var(--color-neutral-700);min-height:20px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-      <button id="bk-cancel" class="ui-btn">Close</button>
+      <button id="bk-cancel" class="ui-btn">${i18t('act_close')}</button>
       <button id="bk-go" class="ui-btn ui-btn-primary" disabled style="opacity:.5">${i18t('lib_create_drafts')}</button>
     </div></div>`, {maxWidth:'700px'});
 
@@ -1212,7 +1212,7 @@ function openTemplatePreview(tpl){
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
         ${canEdit()?`<button id="tp-blanks" class="ui-btn">${templateFields(tpl).length?'Edit blanks':'Add blanks'}</button>`:''}
         ${canEdit()?`<button id="tp-use" class="ui-btn ui-btn-primary">${i18t('lib_use_template')}</button>`:''}
-        <button id="tp-close" class="ui-btn">Close</button>
+        <button id="tp-close" class="ui-btn">${i18t('act_close')}</button>
       </div>
     </div>`, {maxWidth:'820px'});
   document.getElementById('tp-close').addEventListener('click',closeModal);
@@ -1288,8 +1288,8 @@ function tplPageRowHtml(r){
   let acts='';
   if(r.kind==='company') acts=r.draft
     ?`<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('lib_continue_editing')}</button>`
-    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>Open</button>`;
-  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>Open</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="${i18t('lb_edit_blanks_bulk')}">⋯</button>`:''}`;
+    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>`;
+  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>${i18t('act_open')}</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="${i18t('lb_edit_blanks_bulk')}">⋯</button>`:''}`;
   else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>${i18t('lib_bulk')}</button>`:''}`;
   else acts=r.imported
     ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>${i18t('lib_imported')}</span>`
@@ -1361,7 +1361,7 @@ function tplRowMoreMenu(tid){
     ${templateFields(t).length?item('tm-bulk','Create in bulk','Many contracts from one CSV of answers'):''}
     ${item('tm-vers',`Version history (${templateVersions(t).length+1})`,'What changed, when, by whom')}
     ${item('tm-del','Delete template','Usage is shown before anything is removed')}
-    <div style="display:flex;justify-content:flex-end;padding:8px 12px 0"><button id="tm-close" class="ui-btn" style="font-size:12px">Close</button></div>
+    <div style="display:flex;justify-content:flex-end;padding:8px 12px 0"><button id="tm-close" class="ui-btn" style="font-size:12px">${i18t('act_close')}</button></div>
   </div>`);
   document.getElementById('tm-close')?.addEventListener('click',closeModal);
   document.getElementById('tm-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
@@ -1383,7 +1383,7 @@ function tplNewMenu(){
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 10px">${i18t('lib_what_kind')}</h3>
     ${opt('tn-company','Company standard','Published to the whole team — versioned, branded, one-click drafting.')}
     ${opt('tn-cp','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
-    <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:12px">Cancel</button></div>
+    <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:12px">${i18t('act_cancel')}</button></div>
   </div>`);
   document.getElementById('tn-close')?.addEventListener('click',closeModal);
   document.getElementById('tn-company')?.addEventListener('click',()=>{ closeModal(); tplLibCreateModal(); });

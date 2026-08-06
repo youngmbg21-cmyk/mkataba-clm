@@ -155,8 +155,8 @@ const PAGE_ACTIONS = {
   reports:  ['export'],
 };
 function pageActionHtml(kind){
-  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:12px;padding:6px 12px" title="Export the working set">`+
-    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>`;
+  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:12px;padding:6px 12px" title="${i18t('ap_export_working_set')}">`+
+    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
   if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
   return '';
 }
@@ -425,7 +425,7 @@ function keepScroll(fn){
     if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=top; }); }
 }
 function openFolder(fid){
-  if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast('You do not have access to that value stream','err'); setView('register'); return; }
+  if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast(i18t('ap_no_stream_access'),'err'); setView('register'); return; }
   state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder');
 }
 function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspace'); }
@@ -436,7 +436,7 @@ function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspac
    answers become the contract's data get asked exactly once, the same way, in
    both places. Kept because it is window-exported and produces a valid draft. */
 function createFromTemplate(tid){
-  if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
+  if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return; }
   const t=TEMPLATES[tid], u=currentUser();
   const c={ id:nextId(), name:t.name+' (Draft)', counterparty:'', value:0, status:'Draft',
     template:tid, folder:t.folder,
@@ -480,12 +480,12 @@ function renderNewMenu(){
     ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
     ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Import many at once','Bring a whole back-catalogue in one go','id="menu-migrate"')}
     ${libTpls.length?`
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Company standard templates</div>
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_company_standards')}</div>
     ${libTpls.map(t=>item('copy','var(--tile-emerald-bg)','var(--tile-emerald-fg)',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
     ${myTpls.length?`
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Counterparty templates</div>
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_cp_templates')}</div>
     ${myTpls.map(t=>item('copy','var(--tile-steel-bg)','var(--tile-steel-fg)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">HaTi standard templates</div>
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_hati_templates')}</div>
     ${creatable.map(t=>item(t.ic,'var(--color-bg)','var(--color-accent-700)',t.name,'Template '+t.id,`data-new="${t.id}"`)).join('')}`;
   // A built-in template opens the SAME guided fill the Templates page opens.
   // It used to create an empty draft on the spot from here, so the identical
@@ -520,7 +520,7 @@ window.openNewMenu=openNewMenu;
 function exportWorkingSetCsv(){
   const R=(window.regState?regState():null);
   const rows=(window.regFiltered?regFiltered():state.contracts.slice());
-  if(!rows.length){ toast('Nothing to export','err'); return; }
+  if(!rows.length){ toast(i18t('ap_nothing_to_export'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
@@ -540,7 +540,7 @@ function commandPaletteResults(q){
   const folders=Object.values(FOLDERS||{});
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
-      .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,sub:'Value stream',ic:f.ic||'folder'}));
+      .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
   }
   let cs=state.contracts.slice();
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
@@ -559,7 +559,7 @@ function openCommandPalette(){
     <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:8px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
         <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
-        <input id="cp-input" placeholder="Search contracts, counterparties, streams…" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:inherit"/>
+        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:inherit"/>
         <span style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:3px;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
       </div>
       <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
@@ -800,7 +800,7 @@ function renderContextPanel(){
               <span style="display:block;font-size:11.5px;line-height:1.4;">${a.txt}</span>
               <span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
             </span>
-          </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">No activity recorded yet.</div>`}
+          </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
   body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
 }
@@ -829,9 +829,9 @@ function renderContextPanel(){
    anybody asks. The menu offers three because three is what was asked for and
    three is what is easy to explain. */
 const THEMES = [
-  { k:'green', label:'Green',      note:'The HaTi default',        brand:null,   dark:false },
-  { k:'navy',  label:'Navy',       note:'Same platform, deeper',   brand:'navy', dark:false },
-  { k:'dark',  label:'Dark',       note:'Easier at night',         brand:null,   dark:true  },
+  { k:'green', get label(){ return i18t('ap_theme_green'); },      get note(){ return i18t('ap_theme_green_note'); },        brand:null,   dark:false },
+  { k:'navy',  get label(){ return i18t('ap_theme_navy'); },       get note(){ return i18t('ap_theme_navy_note'); },   brand:'navy', dark:false },
+  { k:'dark',  get label(){ return i18t('ap_theme_dark'); },       get note(){ return i18t('ap_theme_dark_note'); },         brand:null,   dark:true  },
 ];
 const THEME_KEY = 'hati-theme';
 /* 'light' and 'dark' are what the old two-position switch wrote, and they are
@@ -890,7 +890,7 @@ function renderThemeMenu(){
   const btn=document.getElementById('theme-btn');
   if(btn) btn.title='Theme — '+((THEMES.find(t=>t.k===cur)||{}).label||'');
   if(!menu) return;
-  menu.innerHTML=`<div class="mgroup">Theme</div>`+THEMES.map(t=>`
+  menu.innerHTML=`<div class="mgroup">${i18t('ap_theme')}</div>`+THEMES.map(t=>`
     <button type="button" data-theme-pick="${t.k}" role="menuitemradio" aria-checked="${t.k===cur}">
       <span class="tsw" style="background:${THEME_SWATCH[t.k]}"></span>
       <span>${t.label}<span class="tnote">${t.note}</span></span>
