@@ -371,14 +371,21 @@ function regGroupFamilies(cs){
 }
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 // Row ⋯ actions — label + which real handler runs. All close the menu first.
+/* ---- A SYMBOL PER ROW, AND THE SYMBOLS CARRY THE COLOUR ----
+   This was six lines of plain text at one weight, so opening a contract,
+   exporting it and deleting it all looked the same and the only way to find
+   the row you wanted was to read all six. Each verb has a mark now, coloured
+   with the accent — the label stays black, so the colour is a way in rather
+   than six shouting lines. The two destructive rows keep ruby on BOTH the mark
+   and the label: they are the one distinction a menu must never blur. */
 const REG_ROW_ACTIONS=[
-  {k:'open',   label:'Open workspace'},
-  {k:'share',  label:'Share with counterparty'},
-  {k:'scan',   label:'Run Copilot scan'},
-  {k:'pdf',    label:'Export PDF'},
-  {k:'decline',label:'Decline & close', ruby:true},
+  {k:'open',   ic:'folderOpen',label:'Open workspace'},
+  {k:'share',  ic:'share',     label:'Share with counterparty'},
+  {k:'scan',   ic:'sparkle',   label:'Run Copilot scan'},
+  {k:'pdf',    ic:'printer',   label:'Export PDF'},
+  {k:'decline',ic:'ban',       label:'Decline & close', ruby:true},
   // permanent delete — only offered while a contract is still a draft or in review
-  {k:'delete', label:'Delete permanently', ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
+  {k:'delete', ic:'trash',     label:'Delete permanently', ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
 /* THE ROW'S PRIMARY VERB.
    Not one generic "Open" down the column — each row offers the thing that
@@ -424,7 +431,7 @@ function regRowsHtml(cs){
   }
   const p=regCurPage(cs); const start=(p-1)*REG_PAGE;
   const pageRows=cs.slice(start, start+REG_PAGE);
-  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${a.label}</button>`).join('');
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;border-radius:5px;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;

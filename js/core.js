@@ -400,9 +400,27 @@ function approvalLabel(c){
   return '—';
 }
 
+/* ---- ONLY SPEAK UP WHEN SOMETHING IS WRONG ----
+   The green confirmations are gone. Every one of them reported a thing the
+   screen had ALREADY shown: "#CHG-011 accepted — merged into the clean text"
+   floated over a page where the clause had just turned green, the card had
+   just moved to accepted, and the count above it had just gone down. Three
+   statements of one fact, one of them covering the document while it said so.
+   A confirmation that repeats what you can see is noise, and noise trains
+   people to dismiss the box without reading it — which is the box you needed
+   them to read.
+
+   Red stays, and stays exactly as it was. A failure is the one case where the
+   screen CANNOT show you the outcome: nothing moved, and without a word you
+   would think it had. That is what this thing is for.
+
+   Nothing is silenced at the source — every toast('…') call in the app is
+   untouched, so no caller has to know about this rule and a future one cannot
+   forget it. The ok case simply no longer draws. */
 function toast(msg,kind='ok'){
   const root=document.getElementById('toast-root');
   const isErr = kind!=='ok';
+  if(!isErr) return;
   const el=document.createElement('div');
   el.className='toast-in';
   el.style.cssText=`display:flex;align-items:center;gap:10px;border-radius:4px;`

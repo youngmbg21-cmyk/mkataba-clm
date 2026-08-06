@@ -3089,6 +3089,18 @@ function checkVerdict(c,kind){
   const n=((c.obligations)||[]).length;
   return n ? {tone:'ok',label:`${n} tracked`} : null;
 }
+/* How many required form fields are still empty — 0 when this contract has no
+   form at all, which is the common case (a plain template or an uploaded
+   document arrives complete). The Checks card reads it to say why running a
+   check now would be reading a document that is not finished. Counted the same
+   way renderTemplateFormSection counts it, from the same record. */
+function tplFormOpenCount(c){
+  const form=c&&c.templateForm;
+  if(!form||!Array.isArray(form.fields)) return 0;
+  const values=form.values||{};
+  return form.fields.filter(f=>f&&f.required&&f.fieldType!=='signature_name_title'
+    && String(values[f.fieldKey]||'').trim()==='').length;
+}
 function checksRowsHtml(c){
   const row=(kind,ic,name)=>{
     const v=checkVerdict(c,kind);
@@ -3107,7 +3119,19 @@ function renderChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
   const rows=card.querySelector('[data-checks-rows]'); if(!rows) return;
   rows.innerHTML=checksRowsHtml(c);
+  /* The line above the rows moves with the form. Typing the last required
+     field has to take "12 still empty" off the card in the same breath —
+     otherwise the card goes on telling somebody to do the thing they just
+     finished. Repainted from the record, never from a counter of its own. */
+  const note=card.querySelector('[data-checks-note]');
+  if(note) note.innerHTML=checksNoteHtml(c);
   wireChecksCard(c);
+}
+function checksNoteHtml(c){
+  const n=tplFormOpenCount(c);
+  return n
+    ? `Fill the contract form above first — ${n} required field${n===1?'':'s'} still empty. A check reads the wording as it stands.`
+    : 'Run before sending — findings pin to the clause they concern.';
 }
 /* The findings, over the page. The panel hosts the SAME element id the column
    used to, so the existing renderer fills it without knowing it moved — which
@@ -3483,7 +3507,12 @@ function applyWsFocus(){
   const b=document.getElementById('ws-focus');
   if(b){
     b.setAttribute('aria-pressed',_wsFocus?'true':'false');
-    b.textContent=_wsFocus?'Exit focus mode':'Focus mode';
+    /* innerHTML, not textContent. Assigning textContent to relabel this row
+       DELETED the row — the icon and the "Esc to leave" hint are child
+       elements, and textContent replaces every child with one text node. This
+       runs on every render, so Focus mode was the one line in the menu with no
+       symbol beside it and no hint after it, from the moment it was built. */
+    b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${_wsFocus?'Exit focus mode':'Focus mode'}<span class="mnote">Esc to leave</span>`;
     b.title=_wsFocus?'Exit focus mode — bring the header back':'Focus mode — hide the header and give the room to the document';
   }
   wsFocusChip();
@@ -3552,16 +3581,17 @@ function roomHeadHtml(c,opts={}){
      thing you do once this contract is dealt with, so it belongs beside the
      act that deals with it — one place, on every tab, always in view.
 
-     Green, but not the SAME green: solid is reserved for the one act this
-     contract is waiting on, so a starting-something-else button that shouted
-     just as loudly would make the head say two things at once. Green rule,
-     green word, plain fill.
+     SOLID GREEN, as asked. I had it as a green outline on the reasoning that
+     one filled button per head keeps the hierarchy — the owner's call is that
+     starting the next agreement is a first-class act on this platform and
+     should look like one. Two filled greens, and the head reads as two things
+     you can do rather than one thing you must.
 
      Only where this head owns its primary. The negotiation workbench passes
      its own (Publish Round) and is a working surface, not a landing — offering
      to start a different agreement mid-round is noise. */
   const newBtn=(opts.primary===undefined&&may&&!(typeof PORTAL_MODE!=='undefined'&&PORTAL_MODE))
-    ? `<button id="ws-new" data-page-new class="ui-btn room-new" style="font-size:12.5px;padding:7px 14px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>`
+    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-primary room-new" style="font-size:12.5px;padding:7px 14px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>`
     : '';
   return `<section class="room-head" id="ws-head">
     <button id="ws-back" title="${backLabel}" class="ui-btn room-back">${icon('arrowLeft','w-4 h-4')}</button>
@@ -3768,13 +3798,24 @@ function renderWorkspace(){
                spent describing work nobody had asked for yet. They are rows
                now. Each one's RESULTS still open into the full card below,
                which is what those cards were always for. -->
-          <section id="checks-card" style="${CARD};padding:13px 15px">
-            <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">Checks</h6>
-            <p style="font-size:11.5px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">Run before sending — findings pin to the clause they concern.</p>
-            <div data-checks-rows>${checksRowsHtml(c)}</div>
-          </section>
+          <!-- ---- FILL THE CONTRACT IN, THEN CHECK IT ----
+               Checks sat above the contract form, which put the reviewing
+               before the writing: a form reading "0 of 26 required filled" had
+               three Run buttons above it offering to review a document that
+               did not exist yet. Nothing they returned could have been true.
+
+               The form comes first now, and Checks follows it — the order the
+               work is actually done in. Checks is not hidden or disabled while
+               the form is open (a contract from a plain template has no form at
+               all, and an uploaded one is complete on arrival), but it does say
+               so: see checksRowsHtml, which counts the unfilled fields. -->
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <section id="checks-card" style="${CARD};padding:13px 15px">
+            <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">Checks</h6>
+            <p data-checks-note style="font-size:11.5px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">${checksNoteHtml(c)}</p>
+            <div data-checks-rows>${checksRowsHtml(c)}</div>
+          </section>
           ${''/* THE RESULTS CARDS HAVE LEFT THIS COLUMN. They open over the
                  page from the rows above — see openCheckPanel — because a
                  finding is something you read and act on, not something that
@@ -4830,4 +4871,4 @@ Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,openCheckPanel,roomHeadHtml,wireRoomHead});
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});
