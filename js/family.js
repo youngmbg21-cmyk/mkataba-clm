@@ -18,13 +18,13 @@
 // harder to reason about in the register, the reminders and the KPIs.
 
 const CONTRACT_RELATIONS = [
-  { k:'amendment',   label:'Amendment',   blurb:'changes the terms of the parent agreement' },
-  { k:'addendum',    label:'Addendum',    blurb:'adds terms without changing the existing ones' },
-  { k:'variation',   label:'Variation',   blurb:'varies scope, price or schedule' },
-  { k:'renewal',     label:'Renewal',     blurb:'extends the parent agreement for a further term' },
-  { k:'sow',         label:'Statement of work', blurb:'work ordered under a master agreement' },
-  { k:'annex',       label:'Annex / schedule',  blurb:'a schedule or annex to the parent' },
-  { k:'side-letter', label:'Side letter', blurb:'a separate letter modifying the agreement' },
+  { k:'amendment',   get label(){ return i18t('fa_amendment'); },   get blurb(){ return i18t('fa_amendment_desc'); } },
+  { k:'addendum',    get label(){ return i18t('fa_addendum'); },    get blurb(){ return i18t('fa_addendum_desc'); } },
+  { k:'variation',   get label(){ return i18t('fa_variation'); },   get blurb(){ return i18t('fa_variation_desc'); } },
+  { k:'renewal',     get label(){ return i18t('fa_renewal'); },     get blurb(){ return i18t('fa_renewal_desc'); } },
+  { k:'sow',         get label(){ return i18t('fa_sow'); }, get blurb(){ return i18t('fa_sow_desc'); } },
+  { k:'annex',       get label(){ return i18t('fa_annex'); },  get blurb(){ return i18t('fa_annex_desc'); } },
+  { k:'side-letter', get label(){ return i18t('fa_side_letter'); }, get blurb(){ return i18t('fa_side_letter_desc'); } },
 ];
 const RELATION_LABEL = Object.fromEntries(CONTRACT_RELATIONS.map(r=>[r.k,r.label]));
 const isRelation = r => CONTRACT_RELATIONS.some(x=>x.k===r);
@@ -217,7 +217,7 @@ function logLinkDecision(c, accepted, parentId){
 const _famEsc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
 const _famAttr = s => String(s==null?'':s).replace(/"/g,'&quot;');
 function openLinkModal(c, onDone, opts={}){
-  if(!canEdit()){ toast('Viewers cannot change contract relationships','err'); return; }
+  if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   // `mode` is 'child' (pick a parent for c) or 'parent' (pick a child to attach to c)
   const mode = opts.mode || (c.parentId ? 'child' : 'child');
   const suggested = (c.linkSuggestions||[]).map(s=>({ ...s, c:getContract(s.id) })).filter(x=>x.c);
@@ -232,21 +232,21 @@ function openLinkModal(c, onDone, opts={}){
         ? `File <b>${_famEsc(c.id)}</b> as part of an existing agreement. The parent's renewal date, risk and KPI count then reflect the family — a master agreement plus its amendments is <b>one</b> agreement, not several.`
         : `Attach an existing document to <b>${_famEsc(c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
       ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:5px;padding:9px 11px;margin-bottom:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--color-accent-800);margin-bottom:5px">HaTi suggests — you decide</div>
+        <div style="font-size:11px;font-weight:600;color:var(--color-accent-800);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
         ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;padding:3px 0;cursor:pointer">
           <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
           <span><b style="font-family:var(--font-mono)">${_famEsc(x.id)}</b> ${_famEsc(x.c.name)}
           <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
       </div>`:''}
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${mode==='child'?'Parent agreement':'Document to attach'}</span>
-        <input id="lk-search" placeholder="Search the register by name, counterparty or id…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/>
+        <input id="lk-search" placeholder="${i18t('fa_search_register')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/>
         <div id="lk-results" class="scroll-thin" style="max-height:180px;overflow-y:auto;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 4px 4px"></div></label>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Relationship</span>${relSel}</label>
-      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Note (optional)</span>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('fa_relationship')}</span>${relSel}</label>
+      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('fa_note_optional')}</span>
         <input id="lk-note" placeholder="e.g. extends the term to 31 December 2028" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
       <div id="lk-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-bottom:8px"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
-        ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">It's a standalone agreement</button>`:''}
+        ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
         <button id="lk-cancel" class="ui-btn">Cancel</button>
         <button id="lk-save" class="ui-btn ui-btn-primary">${mode==='child'?'Link':'Attach'}</button>
       </div>
@@ -261,7 +261,7 @@ function openLinkModal(c, onDone, opts={}){
         <b style="font-family:var(--font-mono);flex:none">${_famEsc(x.id)}</b>
         <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
         <span style="flex:none;color:var(--color-neutral-600)">${_famEsc(x.counterparty||'')}</span></button>`).join('')
-      :`<div style="padding:8px 9px;font-size:11.5px;color:var(--color-neutral-600)">No matching contracts.</div>`;
+      :`<div style="padding:8px 9px;font-size:11.5px;color:var(--color-neutral-600)">${i18t('fa_no_matching')}</div>`;
     results.querySelectorAll('[data-lk-pick]').forEach(b=>b.addEventListener('click',()=>{ picked=b.getAttribute('data-lk-pick'); draw(document.getElementById('lk-search').value); }));
   };
   draw('');
@@ -306,26 +306,26 @@ function renderFamilySection(c){
     <div style="padding:16px 18px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
-        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Agreement family</h4>
+        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('fa_agreement_family')}</h4>
         <span style="flex:1"></span>
         ${canEdit()?(parent
-          ? `<button id="fam-unlink" style="${btn};border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">Unlink</button>`
-          : `<button id="fam-add" style="${btn}">Add an amendment</button>
-             <button id="fam-link" style="${btn}">Link to a parent agreement</button>`):''}
+          ? `<button id="fam-unlink" style="${btn};border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('fa_unlink')}</button>`
+          : `<button id="fam-add" style="${btn}">${i18t('fa_add_amendment')}</button>
+             <button id="fam-link" style="${btn}">${i18t('fa_link_parent')}</button>`):''}
       </div>
       ${parent
-        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">This document is filed as a <b>${_famEsc((RELATION_LABEL[c.relation]||'Amendment').toLowerCase())}</b> of <b>${_famEsc(parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
+        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_filed_as')} <b>${_famEsc((RELATION_LABEL[c.relation]||'Amendment').toLowerCase())}</b> of <b>${_famEsc(parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
            ${row(parent,'parent agreement')}`
         : kids.length
-        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">This is a <b>master agreement</b> with ${kids.length} linked document${kids.length===1?'':'s'}. The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
+        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_this_is_a')} <b>master agreement</b> with ${kids.length} linked document${kids.length===1?'':'s'}. The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
            ${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}`
-        : `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">A standalone agreement — no amendments or addenda are linked to it.</p>`}
+        : `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
         <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:9px 11px">
-          <div style="font-size:11px;font-weight:600;color:var(--st-amber-fg);margin-bottom:3px">This reads like an amendment</div>
-          <div style="font-size:11.5px;color:var(--st-amber-fg);line-height:1.5">HaTi proposed ${suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')} as the parent — <b>nothing has been linked</b>. Confirm the link, or mark it standalone.</div>
-          ${canEdit()?`<div style="display:flex;gap:6px;margin-top:8px"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">Review the suggestion</button>
-            <button id="fam-standalone" style="${btn}">It's standalone</button></div>`:''}
+          <div style="font-size:11px;font-weight:600;color:var(--st-amber-fg);margin-bottom:3px">${i18t('fa_reads_like_amendment')}</div>
+          <div style="font-size:11.5px;color:var(--st-amber-fg);line-height:1.5">HaTi proposed ${suggested.map(s=>`<b>${_famEsc(s.id)}</b>`).join(', ')} as the parent — <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
+          ${canEdit()?`<div style="display:flex;gap:6px;margin-top:8px"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">${i18t('fa_review_suggestion')}</button>
+            <button id="fam-standalone" style="${btn}">${i18t('fa_its_standalone')}</button></div>`:''}
         </div>`:''}
     </div>`;
   const again=()=>{ renderFamilySection(getContract(c.id)); if(typeof renderAuditSection==='function') renderAuditSection(getContract(c.id)); };
@@ -341,7 +341,7 @@ function renderFamilySection(c){
 }
 
 async function unlinkContract(c, onDone){
-  if(!canEdit()){ toast('Viewers cannot change contract relationships','err'); return; }
+  if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   if(!c.parentId) return;
   if(!await confirmDialog({ title:`Unlink ${c.id}?`,
     message:`It becomes a standalone agreement again. ${c.parentId}'s renewal date will go back to its own expiry.`,

@@ -45,7 +45,7 @@ function addCustomFolder(name){
   const used=Object.values(FOLDERS).map(f=>(f.color||'').toLowerCase());
   const color=CUSTOM_FOLDER_COLORS.find(c=>!used.includes(c.toLowerCase())) || CUSTOM_FOLDER_COLORS[Object.keys(FOLDERS).length%CUSTOM_FOLDER_COLORS.length];
   const id=slugifyFolder(name);
-  FOLDERS[id]={ id, name, ic:'folder', color, desc:'Custom value stream.', custom:true };
+  FOLDERS[id]={ id, name, ic:'folder', color, get desc(){ return i18t('fo_custom_stream'); }, custom:true };
   saveCustomFolders();
   return FOLDERS[id];
 }
@@ -61,15 +61,15 @@ function folderLegendHtml(opts={}){
   const short = f => (typeof STREAM_SHORT!=='undefined' && STREAM_SHORT[f.id]) || f.name;
   const items = Object.values(FOLDERS).map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:2px;background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;${opts.style||''}">
-    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Value streams</span>
+    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('fo_value_streams')}</span>
     ${items}
   </div>`;
 }
 // <option> list for any "file under" select — includes a create sentinel
 function folderOptionsHtml(selectedId, includeAuto){
-  return (includeAuto?`<option value="auto" ${selectedId==='auto'?'selected':''}>Auto — route by contract type</option>`:'')
+  return (includeAuto?`<option value="auto" ${selectedId==='auto'?'selected':''}>${i18t('fo_auto_route')}</option>`:'')
     + Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${selectedId===f.id?'selected':''}>${esc(f.name)}</option>`).join('')
-    + `<option value="__new__">＋ Create new stream…</option>`;
+    + `<option value="__new__">${i18t('fo_create_new')}</option>`;
 }
 function rebuildFolderSelect(sel, selectedId){
   if(!sel) return;
@@ -88,13 +88,13 @@ function promptNewFolder(){
     ov.innerHTML=`
       <div id="nf-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
       <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:26rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:22px 24px">
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 4px">New value stream</h3>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 4px">${i18t('fo_new_stream')}</h3>
         <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5">Create a custom folder to file contracts under. It becomes available everywhere streams are used — dropdowns, filters, the map and reports.</p>
         <input id="nf-name" placeholder="e.g. Legal &amp; Regulatory" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:9px 11px;font:inherit;font-size:13px;outline:none" />
-        <div id="nf-err" style="font-size:11px;color:var(--st-ruby-dot);margin-top:6px;display:none">Please enter a name.</div>
+        <div id="nf-err" style="font-size:11px;color:var(--st-ruby-dot);margin-top:6px;display:none">${i18t('fo_enter_name')}</div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
           <button id="nf-cancel" class="ui-btn" style="font-size:12px">Cancel</button>
-          <button id="nf-save" class="ui-btn ui-btn-primary" style="font-size:12px">Create stream</button>
+          <button id="nf-save" class="ui-btn ui-btn-primary" style="font-size:12px">${i18t('fo_create_stream')}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);

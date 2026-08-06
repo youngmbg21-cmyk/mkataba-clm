@@ -167,7 +167,7 @@ function dsPaint(opts) {
           <b style="font-size:12.5px">${esc(o.name)}</b>
           ${o.blockedWhy ? '<span style="font-size:9.5px;color:var(--color-neutral-500)"> · unavailable</span>' : ''}
         </span>
-        ${sel ? `<span class="badge" style="background:var(--color-accent-700);color:#fff;font-size:9px">Selected</span>` : ''}
+        ${sel ? `<span class="badge" style="background:var(--color-accent-700);color:#fff;font-size:9px">${i18t('ds_selected')}</span>` : ''}
       </span>
       <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.45;margin-top:3px">${esc(o.blurb)}</span>
       <span style="display:block;font-size:9.5px;color:var(--color-neutral-500);margin-top:3px">Best for: ${esc(o.bestFor)}</span>
@@ -246,17 +246,17 @@ function dsPaint(opts) {
   const darkened = !!(rawPick && accentLegible(rawPick) && accentLegible(rawPick).toLowerCase() !== rawPick.toLowerCase());
   const accentRow = `
     <div style="margin-top:14px">
-      <span style="display:block;font-size:11px;font-weight:600;margin-bottom:5px">Accent colour</span>
+      <span style="display:block;font-size:11px;font-weight:600;margin-bottom:5px">${i18t('ds_accent_colour')}</span>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button data-ds-accentsrc="logo" class="ui-btn" style="font-size:10.5px;padding:3px 10px;${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">From logo</button>
-        <button data-ds-accentsrc="manual" class="ui-btn" style="font-size:10.5px;padding:3px 10px;${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">Pick my own</button>
+        <button data-ds-accentsrc="logo" class="ui-btn" style="font-size:10.5px;padding:3px 10px;${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${i18t('ds_from_logo')}</button>
+        <button data-ds-accentsrc="manual" class="ui-btn" style="font-size:10.5px;padding:3px 10px;${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff;font-weight:700' : ''}">${i18t('ds_pick_my_own')}</button>
         <span style="display:inline-block;width:15px;height:15px;border-radius:4px;background:${accentNow};border:1px solid var(--color-divider)" title="${esc(accentNow)}"></span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${swatches}</div>
       <div style="display:flex;gap:7px;align-items:center;margin-top:9px">
-        <input type="color" id="ds-accent" value="${accentNow}" aria-label="Choose any colour"
+        <input type="color" id="ds-accent" value="${accentNow}" aria-label="${i18t('ds_choose_colour')}"
           style="width:30px;height:28px;border:1px solid var(--color-divider);border-radius:5px;padding:2px;background:var(--color-surface);cursor:pointer">
-        <input id="ds-accent-hex" value="${esc((rawPick || accentNow).toUpperCase())}" maxlength="7" spellcheck="false" aria-label="Brand colour hex"
+        <input id="ds-accent-hex" value="${esc((rawPick || accentNow).toUpperCase())}" maxlength="7" spellcheck="false" aria-label="${i18t('ds_brand_hex')}"
           style="width:92px;font-family:var(--font-code);font-size:11.5px;text-transform:uppercase;border:1px solid var(--color-divider);
           background:var(--color-surface);color:var(--color-text);border-radius:5px;padding:5px 8px;outline:none">
       </div>
@@ -265,7 +265,7 @@ function dsPaint(opts) {
         Saved, but <b>${esc(design.name)}</b> is monochrome — this colour will not appear on the document. It shows in Modern Minimal, Bold Corporate, Modern Editorial and Facing Parties.</div>` : ''}
       ${darkened ? `<div style="font-size:10px;line-height:1.5;margin-top:8px;padding:6px 8px;border-radius:7px;
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
-        ${esc(rawPick.toUpperCase())} is too light to read as a rule or a band on white paper, so it is darkened to <b>${esc(accentNow.toUpperCase())}</b>. The hue is unchanged.</div>`
+        ${esc(rawPick.toUpperCase())} is too light to read as a rule or a band on white paper, so it is darkened to <b>${esc(accentNow.toUpperCase())}</b>${i18t('ds_hue_unchanged')}</div>`
       : design.usesAccent ? `<div style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin-top:6px">${
           b.accentSource !== 'manual' && !b.accentColor
             ? (b.logoUrl ? 'No strong colour found in the logo — a dark neutral is used instead.' : 'Upload a logo and HaTi picks its colour automatically.')
@@ -276,8 +276,8 @@ function dsPaint(opts) {
      title and a description that all change between steps, so the screen never
      leaves you guessing whether these cards are layouts or looks. */
   const railHead = () => step === 1
-    ? { n: 1, title: 'Choose a style', hint: 'How the document is dressed — typeface, header, accent colour.' }
-    : { n: 2, title: 'Choose a structure', hint: 'How the page is laid out. Nothing is reworded and no clause is renumbered.' };
+    ? { n: 1, get title(){ return i18t('ds_choose_style'); }, get hint(){ return i18t('ds_style_sub'); } }
+    : { n: 2, get title(){ return i18t('ds_choose_structure'); }, get hint(){ return i18t('ds_structure_sub'); } };
 
   /* The step rail. Publish is drawn as the third step because it is where the
      two choices are going, even though it is a button rather than a screen. */
@@ -325,8 +325,8 @@ function dsPaint(opts) {
     : publish
       ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">Publish v${_ds.versionNumber}</button>
          <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Publishing freezes this version forever and makes it what the whole team creates contracts from. Contracts already created from earlier versions are not touched.</p>`
-      : `<button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">Save company design</button>
-         <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Applies to future documents and anything not yet executed. Signed contracts keep the look they were sealed with.</p>`;
+      : `<button id="ds-save" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">${i18t('ds_save_design')}</button>
+         <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">${i18t('ds_applies_future')}</p>`;
 
   document.getElementById('content').innerHTML = `
   <div class="view-enter ds-page${_ds.focus ? ' ds-focus' : ''}" style="${VIEW};padding:12px 16px 14px;display:flex;flex-direction:column;gap:11px">
@@ -389,36 +389,36 @@ function dsPaint(opts) {
       ${_ds.focus ? '' : `
       <section class="ds-rail-pane" style="${PANE}">
        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px 16px">
-        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">Company branding</h4>
+        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
         <div style="display:flex;gap:10px;align-items:center">
           <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:8px;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
-            ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:9.5px;color:var(--color-neutral-500)">No logo</span>`}
+            ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:9.5px;color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
           </div>
           <div>
             <input type="file" id="ds-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none">
             <button id="ds-logo-btn" class="ui-btn" style="font-size:10.5px;padding:3px 9px">${icon('upload', 'w-3 h-3')} ${b.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
-            <span style="display:block;font-size:9.5px;color:var(--color-neutral-500);margin-top:3px">PNG or JPG, under 500 KB</span>
+            <span style="display:block;font-size:9.5px;color:var(--color-neutral-500);margin-top:3px">${i18t('ds_png_jpg')}</span>
           </div>
         </div>
         <div style="margin-top:14px">
-          <span style="display:block;font-size:11px;font-weight:600;margin-bottom:5px">Logo position</span>
+          <span style="display:block;font-size:11px;font-weight:600;margin-bottom:5px">${i18t('ds_logo_position')}</span>
           <div style="display:flex;gap:6px;flex-wrap:wrap">${posChips}</div>
         </div>
         ${accentRow}
         <div style="margin-top:14px;display:grid;gap:7px">
-          <input id="ds-b-name" style="${INP}" placeholder="Company name" value="${esc(b.companyName)}">
-          <input id="ds-b-reg" style="${INP}" placeholder="Registration number" value="${esc(b.registrationNumber)}">
-          <input id="ds-b-addr" style="${INP}" placeholder="Registered address" value="${esc(b.address)}">
+          <input id="ds-b-name" style="${INP}" placeholder="${i18t('tb_company_name')}" value="${esc(b.companyName)}">
+          <input id="ds-b-reg" style="${INP}" placeholder="${i18t('tb_reg_number')}" value="${esc(b.registrationNumber)}">
+          <input id="ds-b-addr" style="${INP}" placeholder="${i18t('tb_reg_address')}" value="${esc(b.address)}">
           <input id="ds-b-footer" style="${INP}" placeholder="Footer text (e.g. Registered in Kenya · C.123456)" value="${esc(b.footerText)}">
         </div>
         ${publish && step === 2 ? `
-        <label style="display:block;margin-top:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">What changed, and why?</span>
+        <label style="display:block;margin-top:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('ds_what_changed_why')}</span>
           <textarea id="ds-note" style="${INP};min-height:48px" maxlength="500" placeholder="e.g. Payment terms now offer 30/45/60 days">${esc(_ds.changeNote)}</textarea></label>
         <label style="display:flex;align-items:flex-start;gap:7px;margin-top:12px;font-size:11px;line-height:1.5;${_ds.orgHadDesign ? 'cursor:pointer' : 'opacity:.75'}">
           <input type="checkbox" id="ds-default" ${_ds.saveDefault ? 'checked' : ''} ${_ds.orgHadDesign ? '' : 'disabled'} style="margin-top:2px">
           <span>${_ds.orgHadDesign
             ? 'Also make this structure and style the company default for future contracts'
-            : '<b>This becomes your company default.</b> Your first design is saved as the standard — later contracts arrive already dressed in it.'}</span>
+            : `<b>${i18t('ds_becomes_default')}</b> Your first design is saved as the standard — later contracts arrive already dressed in it.`}</span>
         </label>` : ''}
        </div>
        <!-- The step's action, pinned where it can always be reached. -->
@@ -507,7 +507,7 @@ function dsPaint(opts) {
   document.getElementById('ds-logo-file')?.addEventListener('change', e => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    if (file.size > 500 * 1024) { toast('Keep the logo under 500 KB', 'err'); return; }
+    if (file.size > 500 * 1024) { toast(i18t('tb_logo_500kb'), 'err'); return; }
     const r = new FileReader();
     r.onload = async () => {
       dsHarvest();
@@ -564,7 +564,7 @@ function dsOrgPayload() {
 async function dsPublish() {
   dsHarvest();
   const btn = document.getElementById('ds-publish');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="animate-pulse">Publishing…</span>'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse">${i18t('ds_publishing')}</span>`; }
   try {
     await saveOrgBranding(dsOrgPayload());
     const design = _ds.saveDefault ? null
@@ -588,7 +588,7 @@ async function dsSaveDefault() {
   dsHarvest();
   _ds.saveDefault = true;   // settings mode edits the default by definition
   const btn = document.getElementById('ds-save');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="animate-pulse">Saving…</span>'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse">${i18t('ds_saving')}</span>`; }
   try {
     await saveOrgBranding(dsOrgPayload());
     const st2 = docStructureById(_ds.b.structureId);

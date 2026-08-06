@@ -256,9 +256,9 @@ const savedResultLang = r => (r && r.lang) || 'en';
    row it would scan a light copy whose document text has been stripped. Load
    the full record first, then save the result and say what was found. */
 async function runScanFor(c){
-  if(!canEdit()){ toast('Viewers cannot run a scan','err'); return; }
-  toast('Scanning…');
-  try{ await ensureFull(c); }catch(e){ toast('Could not load that contract — '+e.message,'err'); return; }
+  if(!canEdit()){ toast(i18t('ai_viewers_no_scan'),'err'); return; }
+  toast(i18t('ai_scanning'));
+  try{ await ensureFull(c); }catch(e){ toast(i18t('ai_could_not_load')+e.message,'err'); return; }
   runScan(c);
   const n=openFindings(c).length;
   logAudit(c,'Scanned',`Copilot contract scan run — ${n} open finding${n===1?'':'s'}`);
@@ -330,13 +330,13 @@ function renderScanSection(c){
         ${exp?`
         <div class="px-3 pb-3 space-y-2 border-t border-brand-100/60 pt-2.5">
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">What it says${x.confidence?` · <span class="text-brand-800/35">${x.confidence} confidence</span>`:''}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">${i18t('ai_why_matters')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">${i18t('ai_suggested_fix')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
             ${(findingQuote(x)||(x.anchor&&x.anchor!=='doc'&&document.querySelector(`#doc-canvas [data-anchor="${x.anchor}"]`)))
               ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} Go to the wording</button>`
-              : `<span class="text-[11px] text-brand-800/45">Applies to the whole document</span>`}
-            <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">Dismiss</button>
+              : `<span class="text-[11px] text-brand-800/45">${i18t('ai_whole_document')}</span>`}
+            <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">${i18t('ai_dismiss')}</button>
           </div>
         </div>`:''}
       </div>`;
@@ -683,7 +683,7 @@ function openAI(prefill,opts){
   try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   aiSyncDock();
   if(!ai.history.length){
-    aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">I give <b>guidance, not legal advice</b> — I'll tell you what a contract says and what moved, and say when something needs your lawyer.</div>`});
+    aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">${i18t('ai_i_give')} <b>${i18t('ai_guidance_not_advice')}</b> ${i18t('ai_ill_tell_you')}</div>`});
   }
   renderAIFeed(); renderAISuggest();
   const inp=document.getElementById('ai-input');
@@ -726,7 +726,7 @@ function clearAIHistory(){
   if(typeof aiProposals!=='undefined') aiProposals.clear();
   ai.activeProposal=null;
   if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
-  aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">I give <b>guidance, not legal advice</b> — I'll tell you what a contract says and what moved, and say when something needs your lawyer.</div>`});
+  aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">${i18t('ai_i_give')} <b>${i18t('ai_guidance_not_advice')}</b> ${i18t('ai_ill_tell_you')}</div>`});
   renderAIFeed();
   toast('Conversation deleted');
 }
@@ -857,7 +857,7 @@ function aiAnswer(qRaw){
     }
     if(ids.length>=2){
       const cmp=localCompareData(ids);
-      if(cmp) return { text:`Here's a side-by-side of <strong>${ids.join(' and ')}</strong> from your live contract data.${cmp.verdict?' '+cmp.verdict:''}${copilotAvailable()?'':' <span class="text-[11px] text-amber-700">Add an Copilot key in Team &amp; Settings for a deeper clause-level comparison.</span>'}`,
+      if(cmp) return { text:`Here's a side-by-side of <strong>${ids.join(' and ')}</strong> from your live contract data.${cmp.verdict?' '+cmp.verdict:''}${copilotAvailable()?'':` <span class="text-[11px] text-amber-700">${i18t('ai_add_key_deeper')}</span>`}`,
         cards:aiCompareTable(cmp) };
     }
     return { text:`Happy to compare — tell me which ones. Try <em>"compare MK-101 and MK-104"</em>, name a counterparty (<em>"compare the Naivas contracts"</em>), or say <em>"compare my two highest-value contracts"</em>.` };
@@ -888,7 +888,7 @@ function aiAnswer(qRaw){
   // 1b) risk / findings / scan queries
   if(has('risk','finding','findings','issue','issues','problem','scan','red flag','exposure')){
     const scanned=cs.filter(c=>c.scan);
-    if(!scanned.length) return { text:`No contracts have been scanned yet. Open any contract and hit <strong>Run Copilot scan</strong> in the workspace — I’ll check its clauses against ${jxAdjective()} practice and pin every finding to the clause it concerns.` };
+    if(!scanned.length) return { text:`No contracts have been scanned yet. Open any contract and hit <strong>${i18t('ai_run_scan')}</strong> in the workspace — I’ll check its clauses against ${jxAdjective()} practice and pin every finding to the clause it concerns.` };
     const withOpen=scanned.filter(c=>openFindings(c).length).sort((a,b)=>SEV_RANK[worstSevOf(openFindings(b))]-SEV_RANK[worstSevOf(openFindings(a))]);
     if(!withOpen.length) return { text:`${scanned.length} contract${scanned.length===1?' has':'s have'} been scanned and every finding is resolved or dismissed — the reviewed book is clean.`, cards:aiCards(scanned) };
     const high=withOpen.reduce((s,c)=>s+openFindings(c).filter(x=>x.sev==='high').length,0);
@@ -994,7 +994,7 @@ function aiCompareTable(cmp){
   const cols=cmp.columns;
   const head=`<tr><th class="text-left px-2 py-1"></th>${cols.map(c=>`<th class="text-left font-600 text-brand-900 px-2 py-1 whitespace-nowrap">${_aiEsc(c.label)}</th>`).join('')}</tr>`;
   const rows=(cmp.rows||[]).map(r=>`<tr class="border-t border-brand-100/60 align-top"><td class="px-2 py-1 text-ink/50 font-medium whitespace-nowrap">${_aiEsc(r.label)}</td>${cols.map((_,i)=>`<td class="px-2 py-1 text-brand-900">${_aiEsc((r.cells||[])[i]||'—')}</td>`).join('')}</tr>`).join('');
-  const verdict=cmp.verdict?`<div class="mt-1.5 px-1 text-[11.5px] text-brand-800/80 leading-relaxed"><strong>Verdict:</strong> ${_aiEsc(cmp.verdict)}</div>`:'';
+  const verdict=cmp.verdict?`<div class="mt-1.5 px-1 text-[11.5px] text-brand-800/80 leading-relaxed"><strong>${i18t('ai_verdict')}</strong> ${_aiEsc(cmp.verdict)}</div>`:'';
   return `<div class="rounded-xl border border-brand-100 bg-white overflow-x-auto"><table class="w-full text-[11.5px] border-collapse"><thead>${head}</thead><tbody>${rows}</tbody></table></div>${verdict}`;
 }
 
@@ -2135,7 +2135,7 @@ function aiProposalPlacementHtml(p){
   const current = aiNormalizePlacement(p.placement);
   return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
     <span style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-      color:var(--color-neutral-500)">Where</span>
+      color:var(--color-neutral-500)">${i18t('ai_where')}</span>
     ${AI_PLACEMENTS.map(x => {
       const on = x === current;
       return `<button type="button" data-ai-prop-place="${e(p.id)}" data-place="${e(x)}"
@@ -2162,7 +2162,7 @@ function aiProposalCardHtml(p){
       border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;${done ? 'opacity:.72' : ''}">
     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
       <span style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-        background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:999px;padding:2px 8px">Proposed wording</span>
+        background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:999px;padding:2px 8px">${i18t('ai_proposed_wording')}</span>
       ${p.clauseLabel ? `<span style="font-size:10.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${e(p.clauseLabel)}</span>` : ''}
       ${p.strict === false ? `<span title="The Copilot did not return the structured shape, so this is its whole reply treated as wording."
         style="font-size:9.5px;color:var(--st-amber-fg)">unstructured reply</span>` : ''}
@@ -2187,7 +2187,7 @@ function aiProposalCardHtml(p){
               with the theme, so this stays a whisper in dark mode too — and
               the field itself keeps the surface colour: the WRAPPER warns,
               the box invites. */}
-        <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">Why this change? — the other side sees it beside the redline (optional)</span>
+        <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
           placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment."
           style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:6px;padding:7px 9px;font:inherit;font-size:11.5px;line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
@@ -2195,8 +2195,8 @@ function aiProposalCardHtml(p){
     ${done
       ? `<div style="font-size:11px;font-weight:600;border-radius:6px;padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
       : `<div style="display:flex;gap:7px;flex-wrap:wrap">
-          <button class="ui-btn ui-btn-primary" data-ai-prop-apply="${e(p.id)}" style="font-size:11.5px;padding:5px 11px">Apply Redline</button>
-          <button class="ui-btn" data-ai-prop-decline="${e(p.id)}" style="font-size:11.5px;padding:5px 11px">Decline</button>
+          <button class="ui-btn ui-btn-primary" data-ai-prop-apply="${e(p.id)}" style="font-size:11.5px;padding:5px 11px">${i18t('ai_apply_redline')}</button>
+          <button class="ui-btn" data-ai-prop-decline="${e(p.id)}" style="font-size:11.5px;padding:5px 11px">${i18t('ai_decline')}</button>
           <button class="ui-btn" data-ai-prop-edit-btn="${e(p.id)}" style="font-size:11.5px;padding:5px 11px">${p.editing ? 'Done editing' : 'Edit'}</button>
         </div>`}
   </div>`;
@@ -2593,7 +2593,7 @@ async function aiSubmit(){
       const made=await session.onPropose(q,session,{ history });
       ai.busy=false;
       if(!made){
-        aiPush('assistant',{text:'<div>I could not turn that into a proposal. Say it another way, or decline and select the passage again.</div>'});
+        aiPush('assistant',{text:`<div>${i18t('ai_could_not_turn')}</div>`});
         renderAIFeed();
       }
     }catch(e){
