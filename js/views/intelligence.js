@@ -559,7 +559,7 @@ function makeIntelGraph(model){
       bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
     const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
     lab.setAttribute('class','ig-lab'); lab.setAttribute('x',n.kind==='hub'?11:13); lab.setAttribute('y',n.sub?17:19);
-    lab.style.fill = n.kind==='hub'?'#f0fdfa':'var(--color-text)'; lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
+    lab.style.fill = n.kind==='hub'?'var(--color-accent-50)':'var(--color-text)'; lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
     if(n.kind==='hub') lab.setAttribute('letter-spacing','.5');
     /* Uppercase is the second distinguisher — colour alone is the one channel
        a reader might not have. */
@@ -567,7 +567,7 @@ function makeIntelGraph(model){
     lab.textContent = labText.length>24?labText.slice(0,23)+'…':labText; g.appendChild(lab);
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
-      sub.setAttribute('fill', n.kind==='hub'?'#99f6e4':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+      sub.setAttribute('fill', n.kind==='hub'?'var(--color-accent-200)':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
     if(n.badge){ // gold pill pinned to the chip's top-right corner (Copilot annotation)
       const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
       const br=document.createElementNS('http://www.w3.org/2000/svg','rect');

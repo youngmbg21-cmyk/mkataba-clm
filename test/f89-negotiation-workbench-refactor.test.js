@@ -649,8 +649,13 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
        the counter, which keeps their colours in the text where they still say
        which is which. The original worry — "a row of solid fills reads as
        alarms" — is answered by there being exactly one fill per card. */
+    /* THE COLOUR IS NAMED, NOT TYPED. This asserted the literal #0f766e, which
+       stopped being true when the brand colours were gathered into one place so
+       the platform can carry a second theme. The rule it is guarding has not
+       moved an inch — Accept is the one filled button, filled with the brand's
+       own colour — so it now names that colour the way the stylesheet does. */
     const p = await page();
-    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:#0f766e/);
+    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:var\(--color-accent-700\)/);
     assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /color:#fff/);
     assert.match(p.rule('.redline-page .rl-rej') || '', /background:none/);
     assert.match(p.rule('.redline-page .rl-rej') || '', /color:#b91c1c/);

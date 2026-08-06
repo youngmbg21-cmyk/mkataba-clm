@@ -441,14 +441,14 @@ function renderDashboard(){
     apprMineN?`${apprMineN} need${apprMineN===1?'s':''} you today`:'',
   ].filter(Boolean).join(' · ');
   const heroSection=`
-    <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-radius:20px;background:linear-gradient(120deg,#0b3d3a 0%,#0d9488 62%,#0aa2b8 100%);box-shadow:var(--shadow-md);color:#fff;">
+    <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-radius:20px;background:var(--brand-hero);box-shadow:var(--shadow-md);color:#fff;">
       <div style="position:absolute;right:-60px;top:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 68%);pointer-events:none;"></div>
       <div style="position:relative;min-width:0;">
         <h2 style="margin:0;font-size:clamp(21px,16px + 0.55vw,27px);line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">${greeting}, ${esc(firstName)}</h2>
         <p style="margin:4px 0 0;font-size:12.5px;color:#bde7e1;max-width:62ch;">${esc(heroLine)}</p>
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
-        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:#fff;color:#0f766e;font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px rgba(3,25,25,.5);transition:filter .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter='none'">
+        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:#fff;color:var(--color-accent-700);font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px rgba(3,25,25,.5);transition:filter .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter='none'">
           ${icon('plus','w-3.5 h-3.5',2)} Draft new agreement
         </button>
       </div>

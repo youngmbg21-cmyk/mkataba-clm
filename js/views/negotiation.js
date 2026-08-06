@@ -5225,7 +5225,7 @@ function redlineLayoutCss(){
   .redline-page select.rl-jump option:focus{background:var(--color-neutral-100)}
   .redline-page select.rl-jump option:checked{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
     color:var(--color-accent-600)}
-  html.dark .redline-page select.rl-jump option:checked{color:#2dd4bf}
+  html.dark .redline-page select.rl-jump option:checked{color:var(--color-accent-400)}
   /* The playbook pass wears the Copilot's violet — an AI act, visibly not one
      of the engine's own verbs, and disabled it says it is thinking. */
   .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
@@ -5576,11 +5576,11 @@ function redlineLayoutCss(){
      most cards are for and the other two are the exceptions. Filled accent for
      the yes; the no and the alternative recede to an outline. Fixed hex on the
      fill so it cannot re-map with the theme and be misread. */
-  /* #0f766e, not the #0d9488 this first used: white on the lighter teal
+  /* accent-700, not accent-600: white on the lighter shade
      measures 3.74:1, and these labels are 11px. The darker step is 5.5:1 and
      looks the same from a foot away. */
-  .redline-page .rl-acc,.redline-page .rl-send{background:#0f766e;color:#fff;font-weight:700}
-  .redline-page .rl-acc:hover,.redline-page .rl-send:hover{background:#115e59}
+  .redline-page .rl-acc,.redline-page .rl-send{background:var(--color-accent-700);color:#fff;font-weight:700}
+  .redline-page .rl-acc:hover,.redline-page .rl-send:hover{background:var(--color-accent-800)}
   .redline-page .rl-rej{background:none;border:1px solid var(--color-divider);color:#b91c1c}
   .redline-page .rl-rej:hover{border-color:#b91c1c}
   .redline-page .rl-edit{background:none;border:1px solid var(--color-divider);color:var(--color-neutral-700)}
