@@ -52,6 +52,10 @@ function stage(contract) {
   };
   sb.window = sb; sb.globalThis = sb;
   vm.createContext(sb);
+  /* js/i18n.js first, as js/app.js loads it: every visible label in the module
+     below reads through i18t(). */
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8'), sb,
+    { filename: 'js/i18n.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/obligations.js'), 'utf8'), sb,
     { filename: 'js/obligations.js' });
   const press = sel => {

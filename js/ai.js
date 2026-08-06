@@ -7,13 +7,18 @@
    ============================================================ */
 // Severity chips ride the status tokens (classes defined in index.html) so
 // they re-map in dark mode; `${sm.chip}` className call-sites keep working.
+/* Getters, so the severity a reader sees follows their language while the KEY
+   ('high'/'med'/'low') — which sorting, filtering and storage all run on —
+   never moves. */
 const SEV_META = {
-  high:{label:'High', chip:'sev-high', dot:'sev-dot-high', text:'sev-text-high'},
-  med:{label:'Medium', chip:'sev-med', dot:'sev-dot-med', text:'sev-text-med'},
-  low:{label:'Low', chip:'sev-low', dot:'sev-dot-low', text:'sev-text-low'},
+  high:{get label(){ return i18t('sev_high'); },   chip:'sev-high', dot:'sev-dot-high', text:'sev-text-high'},
+  med: {get label(){ return i18t('sev_medium'); }, chip:'sev-med',  dot:'sev-dot-med',  text:'sev-text-med'},
+  low: {get label(){ return i18t('sev_low'); },    chip:'sev-low',  dot:'sev-dot-low',  text:'sev-text-low'},
 };
 const SEV_RANK = {high:3, med:2, low:1};
-const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
+const KIND_LABEL = {get risk(){ return i18t('kind_risk'); },
+  get missing(){ return i18t('kind_missing'); },
+  get ambiguity(){ return i18t('kind_ambiguity'); }};
 
 function scanRules(c){
   if(isUpload(c)) return uploadScanRules(c);
@@ -347,8 +352,8 @@ function renderScanSection(c){
              column — the panel scrolls itself, so the list does not need to. */}
       <div class="space-y-1.5 pr-0.5">${cards}</div>
       <div class="mt-2 flex items-center justify-between text-[10px] text-brand-800/60">
-        <span>Scanned ${c.scan.at}</span>
-        <button id="scan-rerun" class="font-medium text-brand-600 hover:text-brand-800 transition">Re-scan</button>
+        <span>${i18t('scan_scanned',{when:c.scan.at})}</span>
+        <button id="scan-rerun" class="font-medium text-brand-600 hover:text-brand-800 transition">${i18t('scan_rescan')}</button>
       </div>`;
   }
 
@@ -358,7 +363,7 @@ function renderScanSection(c){
         <span class="text-gold-500">${icon('scan')}</span>
         <h3 class="text-sm font-display font-600 text-brand-900">${aiOn?'Copilot Contract Scan':'Contract Scan'}</h3>
         <span title="${aiOn?'A Claude key is configured — checks run with Copilot-assisted interpretation.':'No Copilot key — checks run on built-in rules. Add a key in Team & Settings for Copilot-assisted review.'}" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${aiOn?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-brand-50 text-brand-800/60 border-brand-200'}">${aiOn?'✦ Claude':'Rule-based'}</span>
-        ${(!scanUI.running && c.scan) ? `<span class="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${open.length?SEV_META[worst].chip:'bg-brand-50 text-brand-700 border-brand-200'}">${open.length?`${open.length} open`:'All clear'}</span>` : ''}
+        ${(!scanUI.running && c.scan) ? `<span class="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${open.length?SEV_META[worst].chip:'bg-brand-50 text-brand-700 border-brand-200'}">${open.length?i18tn('scan_open',open.length,{n:open.length}):i18t('scan_all_clear')}</span>` : ''}
       </div>
       ${body}
     </div>`;
@@ -366,7 +371,7 @@ function renderScanSection(c){
   // wiring
   host.querySelector('#scan-rerun')?.addEventListener('click',()=>{
     scanUI.running=true; renderScanSection(c);
-    setTimeout(()=>{ runScan(c); scanUI.running=false; persist(c); renderScanSection(c); renderSignButton(c); toast('Re-scan complete \u2014 findings refreshed'); }, 700);
+    setTimeout(()=>{ runScan(c); scanUI.running=false; persist(c); renderScanSection(c); renderSignButton(c); toast(i18t('scan_rescan_complete')); }, 700);
   });
   host.querySelectorAll('[data-scan-filter]').forEach(b=>b.addEventListener('click',()=>{ scanUI.filter=b.getAttribute('data-scan-filter'); renderScanSection(c); }));
   host.querySelectorAll('[data-scan-toggle]').forEach(b=>b.addEventListener('click',()=>{

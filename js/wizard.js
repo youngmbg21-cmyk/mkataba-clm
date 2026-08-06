@@ -77,9 +77,9 @@ function forYouTemplates(tmpls){
 
 /* ---- guided creation wizard ---- */
 function openWizard(preTid){
-  if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
+  if(!canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
   const tmpls=myCreatableTemplates();
-  if(!tmpls.length){ toast('No templates are open to your role','err'); return; }
+  if(!tmpls.length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   let tid=preTid&&tmpls.some(t=>t.id===preTid)?preTid:null;
   const renderStep=()=>{
     if(!tid){
@@ -97,11 +97,11 @@ function openWizard(preTid){
       const industry=workspaceIndustry();
       const admin=(typeof isAdmin==='function')&&isAdmin();
       openModal(`<div style="padding:22px 24px;">
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">New contract from a template</h3>
-        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">Pick a template, answer a few details, and HaTi drafts it for you.</p>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${i18t('wz_new_from_template')}</h3>
+        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.5;">${i18t('wz_pick_template')}</p>
         <div id="wz-pick" class="scroll-thin" style="max-height:62vh;overflow-y:auto;">
           ${lib.length?`<div style="margin-bottom:14px">
-            <span style="${EYE}">Your company standard templates</span>
+            <span style="${EYE}">${i18t('wz_your_standards')}</span>
             <div style="${GRID}">${lib.map(t=>`<button data-wz-lib="${t.id}" style="text-align:left;border:1.5px solid var(--color-accent);background:var(--color-accent-100);border-radius:6px;padding:12px;cursor:pointer;">
               <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent);color:#fff;flex:none;">${icon('copy','w-3.5 h-3.5')}</span>
               <span style="font-size:13px;font-weight:600;color:var(--color-text);">${String(t.name||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span></span>
@@ -113,10 +113,10 @@ function openWizard(preTid){
           </div>`:''}
           ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;color:var(--color-neutral-600)">Line of business — tunes this list
             <select id="wz-industry" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 8px;font:inherit;font-size:11.5px;color:inherit">
-              <option value="">— not set —</option>
+              <option value="">${i18t('wz_not_set')}</option>
               ${Object.keys(INDUSTRY_TEMPLATES).map(k=>`<option value="${k}" ${industry===k?'selected':''}>${INDUSTRY_LABEL[k]}</option>`).join('')}
             </select></label>`:''}
-          <input id="wz-search" type="search" placeholder="Search all templates — supply, lease, NDA…" autocomplete="off"
+          <input id="wz-search" type="search" placeholder="${i18t('wz_search_all')}" autocomplete="off"
             style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:8px 12px;font:inherit;font-size:12.5px;color:inherit;outline:none;margin-bottom:10px"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <details id="wz-all" ${curated?'':'open'}>
@@ -180,7 +180,7 @@ function openWizard(preTid){
       <div style="display:flex;align-items:center;gap:8px;margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">Cancel</button>
         <span style="flex:1"></span>
-        <button id="wz-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">Skip for now</button>
+        <button id="wz-skip" class="ui-btn" title="${i18t('wz_create_and_fill')}">Skip for now</button>
         <button id="wz-create" class="ui-btn ui-btn-primary">Create draft</button>
       </div></div>`);
     document.getElementById('wz-back').addEventListener('click',()=>{ tid=null; renderStep(); });
