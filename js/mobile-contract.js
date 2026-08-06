@@ -43,7 +43,7 @@ function mContractHeadHtml(c){
   return `
     <div class="m-pagehead" style="padding:8px 8px 0">
       <div style="display:flex;align-items:center;gap:2px;padding-bottom:8px">
-        <button class="m-head-btn" data-m-act="back" aria-label="Back" style="color:var(--color-accent-700)">
+        <button class="m-head-btn" data-m-act="back" aria-label="${t('m_back')}" style="color:var(--color-accent-700)">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
         </button>
         <div style="flex:1;min-width:0">
@@ -53,7 +53,7 @@ function mContractHeadHtml(c){
             <span style="flex:1;min-width:0;font-size:14px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
           </div>
         </div>
-        <button class="m-head-btn" data-m-act="overflow" aria-label="More actions">
+        <button class="m-head-btn" data-m-act="overflow" aria-label="${t('mc_more_actions')}">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>
         </button>
       </div>
@@ -77,14 +77,14 @@ function mDocNoticesHtml(c){
   if(mLocked(c)) return `
     <div class="m-notice" style="background:var(--st-gray-bg);border-color:var(--st-gray-line)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-      <span style="font-size:14px;color:var(--color-neutral-700);line-height:1.45">Executed and sealed — this contract takes no new edits, from any seat.</span>
+      <span style="font-size:14px;color:var(--color-neutral-700);line-height:1.45">${t('mc_executed_sealed')}</span>
     </div>`;
 
   const blocked = (typeof negoRenumberBlocked==='function') ? negoRenumberBlocked(c) : 'locked';
   if(blocked==='locked' && typeof negoLiveNumbered==='function' && negoLiveNumbered(c)) return `
     <div class="m-notice" style="background:var(--st-steel-bg);border-color:var(--st-steel-line)">
       <span style="width:8px;height:8px;border-radius:50%;background:var(--st-steel-dot);flex:none"></span>
-      <span style="font-size:14px;color:var(--st-steel-fg);line-height:1.45">This contract numbers live — closing the round closes any gap, and references follow.</span>
+      <span style="font-size:14px;color:var(--st-steel-fg);line-height:1.45">${t('mc_numbers_live')}</span>
     </div>`;
   if(blocked) return '';
 
@@ -95,16 +95,16 @@ function mDocNoticesHtml(c){
   const refs = (plan && Array.isArray(plan.refs) ? plan.refs.length : 0);
   return `
     <div class="m-notice" style="display:block;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
-      <div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">The numbering has a gap</div>
+      <div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${t('mc_numbering_gap')}</div>
       <div class="m-note" style="margin-top:3px">${moves.length} heading${moves.length===1?'':'s'} still read at their old number${refs?`, and ${refs} cross-reference${refs===1?'':'s'} point${refs===1?'s':''} at them`:''}.</div>
-      <button class="m-btn" style="margin-top:10px;border-color:var(--st-amber-fg);color:var(--st-amber-fg)" data-m-act="renumber">Renumber clauses</button>
+      <button class="m-btn" style="margin-top:10px;border-color:var(--st-amber-fg);color:var(--st-amber-fg)" data-m-act="renumber">${t('mc_renumber')}</button>
     </div>`;
 }
 
 function mDocHtml(c){
   let body = '';
   try{ body = (typeof docBody==='function') ? docBody(c) : ''; }
-  catch(e){ body = `<div class="m-note">This document could not be drawn. Open it on a computer to see why.</div>`; }
+  catch(e){ body = `<div class="m-note">${t('mc_could_not_draw')}</div>`; }
   return `
     <div class="m-scroll" style="padding:12px">
       ${mDocNoticesHtml(c)}
@@ -125,16 +125,16 @@ function mTermsHtml(c){
     return isNaN(t) ? String(v) : new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
   const money = (typeof canViewValues!=='function' || canViewValues());
   const rows = [
-    { label:'Counterparty', value:(typeof cParty==='function'?cParty(c):c.counterparty)||'', miss:true },
-    money ? { label:'Contract value', value:(typeof isMonetary==='function'&&!isMonetary(c))?'Non-monetary':(c.value?mMoney(c):''), miss:true } : null,
-    { label:'Start date', value:dateOf(md.effectiveDate||c.startDate) },
-    { label:'Expiry', value:dateOf((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||c.expiry) },
-    { label:'Payment terms', value:md.paymentTerms },
-    { label:'Notice period', value:md.noticePeriodDays?md.noticePeriodDays+' days':'' },
-    { label:'Renewal', value:(typeof RENEWAL_LABEL==='object'&&RENEWAL_LABEL[md.renewalType])||md.renewalType },
-    { label:'Governing law', value:md.governingLaw },
-    { label:'Filed under', value:(typeof FOLDERS==='object'&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'' },
-    { label:'Contract ID', value:c.id },
+    { get label(){ return t('m_counterparty'); }, value:(typeof cParty==='function'?cParty(c):c.counterparty)||'', miss:true },
+    money ? { get label(){ return t('mc_contract_value'); }, value:(typeof isMonetary==='function'&&!isMonetary(c))?'Non-monetary':(c.value?mMoney(c):''), miss:true } : null,
+    { get label(){ return t('mc_start_date'); }, value:dateOf(md.effectiveDate||c.startDate) },
+    { get label(){ return t('mc_expiry'); }, value:dateOf((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||c.expiry) },
+    { get label(){ return t('mc_payment_terms'); }, value:md.paymentTerms },
+    { get label(){ return t('mc_notice_period'); }, value:md.noticePeriodDays?md.noticePeriodDays+' days':'' },
+    { get label(){ return t('mc_renewal'); }, value:(typeof RENEWAL_LABEL==='object'&&RENEWAL_LABEL[md.renewalType])||md.renewalType },
+    { get label(){ return t('mc_governing_law'); }, value:md.governingLaw },
+    { get label(){ return t('mc_filed_under'); }, value:(typeof FOLDERS==='object'&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'' },
+    { get label(){ return t('mc_contract_id'); }, value:c.id },
   ].filter(Boolean);
   const missing = rows.filter(r=>r.miss && !String(r.value||'').trim()).length;
   return `
@@ -206,7 +206,7 @@ function mHistHtml(c){
   return `
     <div class="m-scroll">
       <div class="m-chips" style="padding:14px 16px 4px">${chips}</div>
-      <div class="m-note" style="padding:6px 16px 0">Clause labels read as they were when each event happened.</div>
+      <div class="m-note" style="padding:6px 16px 0">${t('mc_labels_as_then')}</div>
       ${v?`
       <div style="margin:12px 16px 0;display:flex;gap:10px;border-radius:12px;padding:13px;animation:mFadeIn .3s ease;
         background:${v.ok?'var(--st-green-bg)':'var(--st-ruby-bg)'};border:1px solid ${v.ok?'var(--st-green-line)':'var(--st-ruby-line)'}">
@@ -218,8 +218,8 @@ function mHistHtml(c){
       </div>`:''}
       <div class="m-card" style="margin:12px 16px 0;padding:4px 14px;box-shadow:none">${list}</div>
       <div style="display:flex;gap:10px;margin:12px 16px 24px">
-        <button class="m-btn" style="flex:1" data-m-act="verify">Verify integrity</button>
-        <button class="m-btn" style="flex:1" data-m-act="export-history">Export history</button>
+        <button class="m-btn" style="flex:1" data-m-act="verify">${t('mc_verify_integrity')}</button>
+        <button class="m-btn" style="flex:1" data-m-act="export-history">${t('mc_export_history')}</button>
       </div>
     </div>`;
 }
@@ -246,10 +246,10 @@ function mActionBarHtml(c){
 function mContractHtml(){
   const c = mContract();
   if(!c) return `
-    <div class="m-pagehead"><div class="m-title">No contract open</div></div>
+    <div class="m-pagehead"><div class="m-title">${t('mc_no_contract_open')}</div></div>
     <div class="m-scroll"><div class="m-card" style="margin:16px;padding:24px;text-align:center">
-      <div class="m-note">Pick one from Contracts.</div>
-      <button class="m-btn m-btn-primary" style="margin-top:14px" data-m-tab="contracts">Open Contracts</button>
+      <div class="m-note">${t('mc_pick_from_contracts')}</div>
+      <button class="m-btn m-btn-primary" style="margin-top:14px" data-m-tab="contracts">${t('mc_open_contracts')}</button>
     </div></div>`;
   const s = mS();
   const body = s.tab==='terms' ? mTermsHtml(c) : s.tab==='hist' ? mHistHtml(c) : mDocHtml(c);
@@ -266,24 +266,24 @@ function mOverflowSheetHtml(){
   if(!c) return '';
   const locked = mLocked(c);
   const items = [
-    locked ? { k:'edit-locked', label:'Edit document', muted:true }
-           : { k:'edit', label:'Edit document', desk:true },
-    { k:'share', label:'Share a link' },
-    { k:'history', label:'History' },
-    { k:'verify', label:'Verify integrity' },
-    { k:'export-history', label:'Export history' },
-    locked ? { k:'renumber-locked', label:'Renumber clauses', muted:true }
-           : { k:'renumber', label:'Renumber clauses' },
-    { k:'copilot', label:'Ask HaTi Copilot' },
-    { k:'compare', label:'Compare versions', desk:true },
-    { k:'template', label:'Save as template', desk:true },
+    locked ? { k:'edit-locked', get label(){ return t('mc_edit_document'); }, muted:true }
+           : { k:'edit', get label(){ return t('mc_edit_document'); }, desk:true },
+    { k:'share', get label(){ return t('mc_share_link'); } },
+    { k:'history', get label(){ return t('mc_history'); } },
+    { k:'verify', get label(){ return t('mc_verify_integrity'); } },
+    { k:'export-history', get label(){ return t('mc_export_history'); } },
+    locked ? { k:'renumber-locked', get label(){ return t('mc_renumber'); }, muted:true }
+           : { k:'renumber', get label(){ return t('mc_renumber'); } },
+    { k:'copilot', get label(){ return t('mc_ask_copilot'); } },
+    { k:'compare', get label(){ return t('mc_compare_versions'); }, desk:true },
+    { k:'template', get label(){ return t('mc_save_as_template'); }, desk:true },
   ];
   return `
     <div class="m-grab"></div>
     ${items.map(i=>`
       <button class="m-row" data-m-act="${i.k}" style="padding:0 12px;border-radius:8px">
         <span style="flex:1;font-size:16px;font-weight:500;color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
-        ${i.desk?`<span style="flex:none;font-size:14px;color:var(--color-neutral-600)">Computer</span>`:''}
+        ${i.desk?`<span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${t('m_computer')}</span>`:''}
       </button>`).join('')}
     <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">Cancel</button>`;
 }
@@ -326,21 +326,21 @@ function mShareSheetHtml(){
       : 'No code, no reply channel. A read-only link can be opened and printed and nothing else.';
   return `
     <div class="m-grab"></div>
-    <div class="m-sheet-title">Share a link</div>
+    <div class="m-sheet-title">${t('mc_share_link')}</div>
     <div class="m-sheet-note">One link, one purpose. A negotiation link can't sign, a signing link can't redline, a read-only link can do nothing at all.</div>
     <div style="display:flex;flex-direction:column;gap:8px">${kinds}</div>
     <div class="m-card m-list" style="margin-top:12px;background:var(--color-bg)">
       <div style="display:flex;align-items:center;gap:12px;padding:13px 14px">
-        <span style="flex:1;font-size:16px">Expires</span>
+        <span style="flex:1;font-size:16px">${t('mc_expires')}</span>
         <span style="font-size:16px;font-weight:600">${expiry} days</span>
       </div>
       <div style="padding:13px 14px">
-        <div style="font-size:16px">Email verification</div>
+        <div style="font-size:16px">${t('mc_email_verification')}</div>
         <div class="m-note" style="margin-top:2px">${verifyNote}</div>
       </div>
     </div>
     <label style="display:block;margin-top:12px">
-      <span class="m-capline" style="display:block;margin-bottom:5px">Send it to</span>
+      <span class="m-capline" style="display:block;margin-bottom:5px">${t('mc_send_it_to')}</span>
       <input class="m-input" id="m-share-email" inputmode="email" autocomplete="off" placeholder="them@theircompany.co.ke" value="${mEsc(s.shareEmail||'')}">
     </label>
     ${s.shareErr?`<div class="m-err">${mEsc(s.shareErr)}</div>`:''}
@@ -362,13 +362,13 @@ function mRenumberSheetHtml(){
   const refs = plan && Array.isArray(plan.refs) ? plan.refs : [];
   if(!moves.length) return `
     <div class="m-grab"></div>
-    <div class="m-sheet-title">Renumber clauses</div>
-    <div class="m-sheet-note">Nothing to renumber — every heading already reads at its own number.</div>
+    <div class="m-sheet-title">${t('mc_renumber')}</div>
+    <div class="m-sheet-note">${t('mc_nothing_to_renumber')}</div>
     <button class="m-btn m-btn-quiet" data-m-act="close-sheet">Close</button>`;
   return `
     <div class="m-grab"></div>
-    <div class="m-sheet-title">Renumber clauses</div>
-    <div class="m-sheet-note">Nothing moves until you confirm. Numbering formats are kept — 8.2(a) becomes 8.1(a).</div>
+    <div class="m-sheet-title">${t('mc_renumber')}</div>
+    <div class="m-sheet-note">${t('mc_nothing_moves')}</div>
     <div class="m-card m-list" style="background:var(--color-bg)">
       ${moves.map(mv=>`
         <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
@@ -396,8 +396,8 @@ function mContractAct(k, btn){
   if(k==='history'){ mCloseSheet(); s.tab='hist'; mRender(); return; }
   if(k==='copilot'){ mCloseSheet(); if(window.openAI) openAI(); return; }
   if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(M_DESK_MSG); return; }
-  if(k==='edit-locked'){ mCloseSheet(); if(window.toast) toast('Executed and sealed — no seat can edit it now'); return; }
-  if(k==='renumber-locked'){ mCloseSheet(); if(window.toast) toast('Executed contracts never renumber, by any path'); return; }
+  if(k==='edit-locked'){ mCloseSheet(); if(window.toast) toast(t('mc_sealed_no_edit')); return; }
+  if(k==='renumber-locked'){ mCloseSheet(); if(window.toast) toast(t('mc_never_renumber')); return; }
 
   if(k==='verify'){
     mCloseSheet(); s.tab='hist'; mRender();
@@ -406,7 +406,7 @@ function mContractAct(k, btn){
         if(window.toast) toast(r.ok
           ? 'Every fingerprint recomputed — the chain and the seal hold'
           : 'Integrity check FAILED — the first broken link is named on the record', r.ok?'ok':'err');
-      }).catch(()=>{ if(window.toast) toast('The record could not be verified here','err'); });
+      }).catch(()=>{ if(window.toast) toast(t('mc_verify_failed'),'err'); });
     }
     return;
   }
@@ -417,7 +417,7 @@ function mContractAct(k, btn){
       const html = (typeof negoHistoryExportHtml==='function') ? negoHistoryExportHtml(c, r) : '';
       if(html && window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
       if(window.toast) toast(`History exported — the report carries its own verification result (${r.ok?'verified':'FAILED'})`);
-    }).catch(()=>{ if(window.toast) toast('The history could not be exported here','err'); });
+    }).catch(()=>{ if(window.toast) toast(t('mc_export_failed'),'err'); });
     return;
   }
 
@@ -450,18 +450,18 @@ function mDoNextAction(kind){
        column and because rebuilding where wording is argued over is the most
        expensive thing in this app to get subtly wrong. */
     if(window.openRedlineWorkbench){ openRedlineWorkbench(c.id); return; }
-    if(window.toast) toast('Open the negotiation on a computer to answer these');
+    if(window.toast) toast(t('mc_nego_on_computer'));
     return;
   }
   if(kind==='share'){ mOpenSheet('share'); return; }
-  if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast('Fill the empty terms on a computer'); return; }
+  if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(t('mc_fill_on_computer')); return; }
   if(kind==='review'){
     if(c.status==='Draft'){
       c.status='Under Review';
       if(typeof todayStr==='function') c.lastAction=todayStr();
       if(window.logAudit) logAudit(c,'Status changed','Draft → Under Review (sent for review)');
       if(window.persist) persist(c);
-      if(window.toast) toast('Moved to review');
+      if(window.toast) toast(t('mc_moved_to_review'));
       mRender();
     }
     return;
@@ -471,7 +471,7 @@ function mDoNextAction(kind){
        nothing else on screen: it needs the intent box, the mark and the seal,
        and those live on the signing surface. */
     if(window.signDocument && kind==='sign'){ signDocument(c); return; }
-    if(window.toast) toast('Confirm intent-to-sign, then sign — the signing panel opens on a computer');
+    if(window.toast) toast(t('mc_confirm_intent'));
     return;
   }
 }
@@ -486,7 +486,7 @@ async function mShareCreate(){
   if(!email){ s.shareErr='Enter the address this link should go to.'; mRender(); return; }
   if(typeof API_MODE==='function' && !API_MODE()){
     s.shareErr=''; mCloseSheet();
-    if(window.toast) toast('Sharing needs the HaTi server — open this contract on a computer','err');
+    if(window.toast) toast(t('mc_sharing_needs_server'),'err');
     return;
   }
   s.shareErr=''; mRender();

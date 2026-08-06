@@ -156,9 +156,9 @@ function mAiLauncherHtml(){
      to open what is already covering the screen. */
   if(typeof ai==='object' && ai && ai.open) return '';
   return `
-    <button class="m-ai-fab" data-m-act="copilot-open" aria-label="Open HaTi Copilot">
+    <button class="m-ai-fab" data-m-act="copilot-open" aria-label="${t('m_open_copilot')}">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.6 4.6 4.6 1.6-4.6 1.6L12 15l-1.6-4.7L5.8 8.7l4.6-1.6L12 2.5zM18.5 14l.9 2.5 2.6.9-2.6.9-.9 2.6-.9-2.6-2.5-.9 2.5-.9.9-2.5z"/></svg>
-      <span class="m-ai-fab-label">Copilot</span>
+      <span class="m-ai-fab-label">${t('m_copilot')}</span>
       <span data-ai-badge class="ai-badge-dot hidden"></span>
     </button>`;
 }
