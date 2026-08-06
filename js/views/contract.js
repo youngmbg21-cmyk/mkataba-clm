@@ -2384,6 +2384,7 @@ function ktReadValue(c,key){
   const dash='<span class="kt-none">Not set</span>';
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
+  if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):'<span class="kt-none">Non-monetary</span>'}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
   if(key==='expiry') return day(c.expiry);
@@ -2407,6 +2408,15 @@ function ktTermsRowsHtml(c,opts={}){
   return [
     ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
       `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/>`, ed),
+    /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
+       This was a banner across the top of the negotiation asking for it. The
+       address is a fact about the counterparty, exactly like the name directly
+       above it, so it is asked here — once, quietly, in the panel that holds
+       the commercial facts. Filling it in is what makes a send just a send;
+       leaving it empty costs nothing, because the share dialog still collects
+       an address at the moment of sending. */
+    ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
+      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="changes go straight to them" style="${KIN}"/>`, ed),
     ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
          <span style="font-size:11px;color:var(--color-neutral-500);flex:none">KES</span>
@@ -2570,6 +2580,18 @@ const HIST_KIND={ proposed:{mark:'✎',tone:'var(--color-accent)'}, decided:{mar
    the actor) carried on the row rather than thrown away. Everything else the
    trail knows and the negotiation cannot — created, sent, scanned, reviewed,
    renumbered, signed — stands as its own event. */
+/* ---- THE RECORD LANDS SHORT AND OPENS LONG ----
+   Both readings are the same list; the difference is whether each proposal
+   prints the wording it changed underneath it. The short one answers "what
+   happened to this contract" in a screenful. The long one is the record an
+   auditor reads — every proposal with its redline, exactly as the exported
+   report prints it — and it runs to several screens on a three-round deal.
+
+   Landing on the long one made a first glance into a scroll, so the page opens
+   short and the wording is one press away. The choice is remembered for the
+   session but not stored on the contract: it is how somebody is reading, not
+   something true about the agreement. */
+let _histDetail=false;
 function _histKey(at,txt){
   return String(at||'').slice(0,10)+'|'+String(txt||'').toLowerCase()
     .replace(/[^a-z0-9]+/g,' ').trim().slice(0,48);
@@ -2582,15 +2604,37 @@ function roomHistoryEvents(c,f={}){
      as though the filter had missed them. */
   if(filtered) return nego.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
   /* A change id inside a system entry is the strongest signal that it is the
-     twin of a negotiation event: the trail writes "#CHG-002 proposed by …". */
+     twin of a negotiation event: the trail writes "#CHG-002 proposed by …".
+
+     THE ID ALONE IS NOT ENOUGH, though, and keying on it alone put every trail
+     entry about a change onto the SAME row. One change produces two entries —
+     proposed, then accepted — and the map, written in a loop, kept whichever
+     came last: the decision. So both fingerprints landed on "Accepted by …",
+     which printed the identical hash twice, and the proposal above it, which
+     is where a fingerprint means something, showed none at all.
+
+     The trail names the verb it is recording, so the verb decides the row. */
+  const _verb=d=>/\bwithdrew\b/i.test(d)?'withdrawn'
+    :/\b(accepted|rejected)\b/i.test(d)?'decided'
+    :/\bproposed\b/i.test(d)?'proposed':'';
   const byChange=new Map();
-  nego.forEach(e=>{ if(e.ch&&e.ch.id) byChange.set(String(e.ch.id),e); });
+  nego.forEach(e=>{ if(e.ch&&e.ch.id){
+    const id=String(e.ch.id);
+    if(!byChange.has(id)) byChange.set(id,{});
+    /* First wins per kind: two events of one kind on one change is not a shape
+       the timeline produces, and if it ever were, the earlier is the original. */
+    if(!byChange.get(id)[e._k]) byChange.get(id)[e._k]=e;
+  }});
   const said=new Map(nego.map(e=>[_histKey(e.at,e.text),e]));
   const sys=[];
   (c.audit||[]).forEach(a=>{
     const detail=String(a.detail||'');
     const idm=detail.match(/#?(CHG-[A-Za-z0-9-]+)/);
-    const twin=(idm&&byChange.get(idm[1]))||said.get(_histKey(a.at,detail));
+    const kinds=(idm&&byChange.get(idm[1]))||null;
+    /* The named verb first; failing that, any row for this change rather than
+       a second copy of an event the page already tells. */
+    const twin=(kinds&&(kinds[_verb(detail)]||kinds.proposed||kinds.decided||kinds.withdrawn))
+      ||said.get(_histKey(a.at,detail));
     if(twin){ twin._also=twin._also||[]; twin._also.push(a); return; }   // folded in, not lost
     sys.push({ _k:'system', at:a.at||'', actor:a.user||'System',
       text:`${a.action||'Recorded'}${detail?' — '+detail:''}`, clauseLabel:'', round:null, _audit:a });
@@ -2613,27 +2657,50 @@ function roomHistoryHtml(c,f={}){
        The exported report prints each proposal's redline and the page did not,
        which is why the export read as the fuller record. Same builder, same
        green-added / red-removed convention, on the screen too. */
-    const body=(e._k==='proposed'&&e.ch&&window.negoChangeHtml)
+    const body=(_histDetail&&e._k==='proposed'&&e.ch&&window.negoChangeHtml)
       ? `<div class="hist-redline">${negoChangeHtml(e.ch)}</div>` : '';
     const why=e.note?`<div class="hist-note">Why they asked: ${esc(e.note)}</div>`:'';
     const reply=(e._k==='decided'&&e.reply)?`<div class="hist-note">Reply: ${esc(e.reply)}</div>`:'';
     /* The system twin this row absorbed — its fingerprint and its actor kept on
        the row rather than printed as a second event. */
+    /* One fingerprint per row, however many trail entries folded into it. A
+       change's proposal and its acceptance carry the SAME hash — that is the
+       point of the hash — so printing one per entry printed it twice. */
+    const seenFp=new Set();
     const also=(e._also||[]).map(a=>{ const fp=String(a.detail||'').match(/(0x[0-9a-f]{8,})/i);
-      return fp?`<span class="hist-fp" title="${esc(a.detail||'')}">${esc(fp[1].slice(0,18))}…</span>`:''; }).join('');
+      if(!fp||seenFp.has(fp[1])) return '';
+      seenFp.add(fp[1]);
+      return `<span class="hist-fp" title="${esc(a.detail||'')}">${esc(fp[1].slice(0,18))}…</span>`; }).join('');
     return `<div class="hist-ev"><span class="hist-mark" style="color:${m.tone};border-color:${m.tone}" aria-hidden="true">${m.mark}</span>
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}</div>
       <div class="hist-meta">${meta}${also?' · '+also:''}</div>${body}${why}${reply}</div></div>`;
   };
+  /* WHOSE ASKS AM I LOOKING AT — the one filter people actually reach for, so
+     it is three chips on the head rather than the fourth dropdown inside a
+     panel behind a button. It writes the SAME f.side the dropdown does, so the
+     two can never disagree and the panel shows the chip's choice selected. */
+  const side=String(f.side||'');
+  const chip=(v,label)=>`<button type="button" data-ht-side="${v}" class="hist-seg${side===v?' is-on':''}"
+    aria-pressed="${side===v?'true':'false'}">${label}</button>`;
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
       <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${on?`${evs.length} of ${all}`:`${all} events`}</span>
+      <div class="hist-segs" role="group" aria-label="Whose changes">
+        ${chip('','Everyone')}${chip('owner','Ours')}${chip('counterparty','Theirs')}
+      </div>
+      ${''/* The long reading. Named for what pressing it does, not for the mode
+             it is in — "Detailed" tells you nothing about which way you are
+             about to go. */}
+      <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
+        title="${_histDetail?'Go back to the short list':'Print the wording that changed under each proposal'}"
+        style="font-size:11px;padding:4px 10px">${_histDetail?'Hide the wording':'Show the wording'}</button>
       <button id="hist-filter" class="ui-btn" style="font-size:11px;padding:4px 10px">Filter${on?` · ${on}`:''} &#9662;</button>
       <div style="position:relative">
         <button id="hist-more" class="ui-btn" aria-haspopup="true" style="width:28px;height:28px;padding:0;font-size:14px;line-height:1">&#8943;</button>
-        <div id="hist-more-menu" class="room-menu hidden" style="min-width:230px">
-          <button type="button" id="ht-verify">Verify integrity<span class="mnote">recompute every fingerprint</span></button>
-          <button type="button" id="ht-export">Export history<span class="mnote">standalone report</span></button>
+        <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
+          <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">recompute every fingerprint</span></button>
+          <button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}Export history<span class="mnote">standalone file</span></button>
+          <button type="button" id="ht-print">${icon('printer','w-3.5 h-3.5')}Print history<span class="mnote">same report, on paper</span></button>
         </div>
       </div>
     </div>
@@ -2687,6 +2754,14 @@ function roomPaintHistory(c,f={}){
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
     s.addEventListener('change',()=>roomPaintHistory(c,read())));
   host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{}));
+  /* The chips write f.side and repaint — the same field the Side dropdown
+     writes, so opening the panel afterwards shows the chip's choice already
+     selected rather than a second opinion. */
+  host.querySelectorAll('[data-ht-side]').forEach(b=>b.addEventListener('click',()=>
+    roomPaintHistory(c,{...read(),side:b.getAttribute('data-ht-side')||''})));
+  host.querySelector('#hist-detail')?.addEventListener('click',()=>{
+    _histDetail=!_histDetail; roomPaintHistory(c,read());
+  });
   const mb=host.querySelector('#hist-more'), mm=host.querySelector('#hist-more-menu');
   if(mb&&mm){
     mb.addEventListener('click',e=>{ e.stopPropagation(); mm.classList.toggle('hidden'); });
@@ -2705,6 +2780,16 @@ function roomPaintHistory(c,f={}){
      avoid. Shared with the dialog through negoHistoryExportRun. */
   host.querySelector('#ht-export')?.addEventListener('click',()=>{
     if(window.negoHistoryExportRun) negoHistoryExportRun(c);
+  });
+  /* Print is the SAME report, not a print stylesheet over this page. Printing
+     the tab would put the app's chrome, the filter chips and a half-open menu
+     on the paper, and it would print whichever reading happened to be on
+     screen — a short list is not a record. The report already carries its own
+     colours, its own legend and its verification result, and it already prints
+     well because people file it. So: build it, hand it to the browser. */
+  host.querySelector('#ht-print')?.addEventListener('click',()=>{
+    if(window.negoHistoryPrintRun) negoHistoryPrintRun(c);
+    else toast('Printing is unavailable on this page','err');
   });
 }
 /* The owner's side of the shared component. Everything side-specific about the
@@ -3461,6 +3546,23 @@ function roomHeadHtml(c,opts={}){
       : na ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
+  /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
+     It was at the foot of the Document tab's right-hand column, which meant it
+     only existed on one of the five tabs and only after a scroll. It is the
+     thing you do once this contract is dealt with, so it belongs beside the
+     act that deals with it — one place, on every tab, always in view.
+
+     Green, but not the SAME green: solid is reserved for the one act this
+     contract is waiting on, so a starting-something-else button that shouted
+     just as loudly would make the head say two things at once. Green rule,
+     green word, plain fill.
+
+     Only where this head owns its primary. The negotiation workbench passes
+     its own (Publish Round) and is a working surface, not a landing — offering
+     to start a different agreement mid-round is noise. */
+  const newBtn=(opts.primary===undefined&&may&&!(typeof PORTAL_MODE!=='undefined'&&PORTAL_MODE))
+    ? `<button id="ws-new" data-page-new class="ui-btn room-new" style="font-size:12.5px;padding:7px 14px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>`
+    : '';
   return `<section class="room-head" id="ws-head">
     <button id="ws-back" title="${backLabel}" class="ui-btn room-back">${icon('arrowLeft','w-4 h-4')}</button>
     <div class="room-id">
@@ -3508,6 +3610,7 @@ function roomHeadHtml(c,opts={}){
       </div>
       ${may?`<button id="ws-share" class="ui-btn" style="font-size:12.5px;padding:7px 14px" title="Share with counterparty">${icon('share','w-3.5 h-3.5')} Share</button>`:''}
       ${opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary)}
+      ${newBtn}
     </div>
   </section>`;
 }
@@ -3736,15 +3839,12 @@ function renderWorkspace(){
           <div style="display:flex;justify-content:flex-end;padding-top:2px">
             <button id="screening-next" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 16px;display:inline-flex;align-items:center;gap:6px">Next: Signing ${icon('chevR','w-3.5 h-3.5')}</button>
           </div>
-          ${''/* ---- DRAFT NEW AGREEMENT, BACK ON THE PAGE ----
-                 I buried this in the "⋯" when the nine-button toolbar came
-                 down, and that was the wrong call: starting the next agreement
-                 is not something you do TO this contract, so it does not belong
-                 in a menu of this contract's verbs. It is what you do NEXT, and
-                 it sits at the foot of the column, where you land once this one
-                 is dealt with. It keeps data-page-new, so the shell's delegated
-                 handler anchors the menu under it exactly as before. */}
-          ${canEdit()?`<button id="ws-new" data-page-new class="ui-btn ui-btn-primary" style="width:100%;justify-content:center;font-size:12.5px;padding:9px 14px;margin-top:2px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>`:''}
+          ${''/* ---- DRAFT NEW AGREEMENT IS NOT HERE ANY MORE ----
+                 It was at the foot of this column: one tab out of five, below a
+                 scroll. It moved up into the room head, immediately after the
+                 contract's own next act, so it is in view wherever you are.
+                 Same id, same data-page-new — the shell's delegated handler
+                 anchors the menu under it exactly as before. */}
         </div>
       </section>
 
@@ -3963,12 +4063,17 @@ function wireDocumentSync(c){
 /* -------- Key terms panel -------- */
 function wireKeyTerms(c){
   const LABEL={counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
-               effDate:'effective date', expiry:'expiry date'};
+               effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email'};
   document.querySelectorAll('[data-kt]').forEach(inp=>{
     const key=inp.getAttribute('data-kt');
     const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
     inp.addEventListener(evt,()=>{
       if(key==='counterparty') c.counterparty=inp.value.trim();
+      /* Their address. Stored as typed and never refused mid-keystroke — half
+         an email is what every email looks like on the way in. It is only ever
+         USED by a send, and the send already checks it and asks if it cannot
+         reach anyone, so a typo costs a dialog rather than a lost change. */
+      else if(key==='cpEmail') c.counterpartyEmail=inp.value.trim();
       /* THE FIGURE READS AS A FIGURE. This field was type=number, so a
          78-million-shilling contract showed `78000000` — eight digits with no
          separators, on the panel whose whole job is to state the commercial
@@ -4705,6 +4810,24 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
+     Key terms became read-first, edit-on-click, and the binder for that never
+     reached the window. This file's globals are not automatic; the assign
+     below IS the export list, and applyWsTabs guards its call with
+     `if(window.wireKtRows)` — so in the app the guard was simply false and
+     every row sat there looking editable and doing nothing. It passed the unit
+     tests because the test stage evaluates these modules into one shared
+     scope, where a bare `wireKtRows` resolves whether it was exported or not.
+     Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
+     with it: the same guard-and-miss is waiting for both. */
+  wireKtRows,ktTermsRowsHtml,ktReadValue,renderKeyTerms,
+  /* And layoutDocResizer, for the same reason and with worse consequences: the
+     line that re-measures the Document pane the moment its tab is shown is
+     guarded on `window.layoutDocResizer`. Unexported, that guard was false, so
+     the recovery from a zero-width measurement — the whole point of that fix —
+     never ran on a plain tab swap. It only appeared to work because the routes
+     I walked it on re-rendered the workspace, which measures on the way in. */
+  layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,openCheckPanel,roomHeadHtml,wireRoomHead});

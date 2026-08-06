@@ -608,6 +608,15 @@
     overflow-wrap:anywhere; }
   .room-head .room-acts{ display:flex; align-items:center; gap:8px; flex:none; }
   .room-back{ width:34px; height:34px; padding:0; flex:none; margin-top:2px; }
+  /* Draft new agreement. Green, and deliberately not the solid green beside it:
+     the filled button is the one act this contract is waiting on, and a second
+     filled button would make the head argue with itself. Green rule, green
+     word, plain fill — reads as green, still reads as second. */
+  .room-new{ flex:none; color:var(--color-accent); border-color:var(--color-accent);
+    background:var(--color-surface); font-weight:600; }
+  .room-new svg{ color:var(--color-accent); }
+  .room-new:hover{ background:color-mix(in srgb, var(--color-accent) 9%, var(--color-surface));
+    border-color:var(--color-accent); }
   /* The overflow menu. Its items keep the ids they had on the old toolbar, so
      every handler and every test presses exactly the control it always did. */
   .room-menu{ position:absolute; right:0; top:calc(100% + 6px); z-index:60; min-width:252px;
@@ -737,6 +746,17 @@
   .hist-redline del{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
   .hist-note{ font-size:11px; color:var(--color-neutral-700); margin-top:5px;
     border-left:2px solid var(--color-divider); padding-left:9px; }
+  /* Everyone / Ours / Theirs. One control with three states rather than three
+     buttons that happen to be next to each other — the joined pill says only
+     one of them can be true, before anything is pressed. */
+  .hist-segs{ display:inline-flex; border:1px solid var(--color-divider); border-radius:7px;
+    overflow:hidden; background:var(--color-surface); flex:none; }
+  .hist-seg{ border:0; background:none; cursor:pointer; font:inherit; font-size:11px;
+    font-weight:600; color:var(--color-neutral-600); padding:4px 10px; white-space:nowrap; }
+  .hist-seg + .hist-seg{ border-left:1px solid var(--color-divider); }
+  .hist-seg:hover{ background:var(--color-neutral-100); color:var(--color-text); }
+  .hist-seg.is-on{ background:var(--color-accent); color:#fff; }
+  .hist-seg.is-on:hover{ background:var(--color-accent); color:#fff; }
   .hist-filters{ display:flex; gap:8px; flex-wrap:wrap; padding-bottom:11px;
     border-bottom:1px solid var(--color-divider); }
   .hist-f{ display:flex; flex-direction:column; gap:2px; font-size:9.5px; font-weight:700;

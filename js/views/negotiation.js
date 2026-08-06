@@ -1348,6 +1348,37 @@ async function negoHistoryExportRun(c){
   if (window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
   if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`);
 }
+/* THE SAME REPORT, HANDED TO THE PRINTER INSTEAD OF TO THE DISK.
+
+   Deliberately not a print stylesheet over the History tab: that would print
+   the app's chrome and the filter controls, and it would print whichever
+   reading was on screen — the short list is a glance, not a record. The export
+   is already the full account, already carries its own colours and legend, and
+   already states when its integrity was last verified.
+
+   The window is opened BEFORE the await. A popup blocker judges a window by
+   whether the click that asked for it is still on the stack, and the
+   verification is asynchronous — opening after it returns is how this becomes a
+   button that silently does nothing. The blank window is closed if the report
+   cannot be built, so a blocked or failed run leaves nothing behind. */
+async function negoHistoryPrintRun(c){
+  if (!window.negoIntegrityReport) return;
+  const w = window.open('', '_blank');
+  if (!w){ if (window.toast) toast('Allow pop-ups for this site to print the history', 'err'); return; }
+  try {
+    const r = await negoIntegrityReport(c);
+    w.document.open();
+    w.document.write(negoHistoryExportHtml(c, r));
+    w.document.close();
+    /* Give the document its own turn to lay out before the dialog freezes it —
+       print() on a document written this instant can measure nothing. */
+    w.onload = () => { try { w.focus(); w.print(); } catch (e) {} };
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 350);
+  } catch (e){
+    try { w.close(); } catch (e2) {}
+    if (window.toast) toast('Could not build the history report to print', 'err');
+  }
+}
 function negoVerifyResultHtml(r){
   return r.ok
     ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--st-green-fg)">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
@@ -2485,55 +2516,33 @@ function negoReadyHtml(c, opts){
    The compare bar is left to render on its own because it is a MODE with its
    own way out, not a notice — but while it is up the rest are suppressed, since
    they describe a round you are not currently looking at. */
-/* WHO ARE WE NEGOTIATING WITH, asked once and then never again.
+/* WHO ARE WE NEGOTIATING WITH — ASKED WHERE THEY ARE ALREADY NAMED.
 
-   The two sides did the same act by completely different means. The
-   counterparty files an answer and a postbox appears under it: press, gone. The
-   owner filed a change and got a button that opened a DIALOG — recipient,
-   channel, expiry, a covering message — because the address had always been
-   collected at SEND time. Collect it once, at the start, and the owner's send
-   becomes what theirs already is.
+   This used to be a strip across the top of the negotiation: "Negotiating with
+   X? Add their email and changes go straight to them", a field and a Save. It
+   was the last banner standing between the top of the page and the first word
+   of the contract, and it was asking a KEY TERM in the middle of a working
+   surface — the counterparty's name is a row on Key terms, and their address
+   was the one fact about them that lived somewhere else.
 
-   A STRIP, NOT A DIALOG. A modal that fires on opening the negotiation stands in
-   the way of somebody who only wanted to read, and a "skip" button is one more
-   thing to dismiss that nobody asked for. Ignore this and it waits; fill it in
-   and it goes. Nothing is blocked either way — a change proposed without an
-   address still has a send, it just asks at that moment (see the send handler).
+   It is a Key terms row now (see ktTermsRowsHtml, "Their email"), which is
+   also where it is read back from. Nothing else changed: the wizard and the
+   upload form still ask at creation, so most contracts never lack it; a
+   contract that does still sends, the dialog just collects the address at that
+   moment. The negotiation page carries no banner about it at all.
 
-   The name is already known: it is the contract's counterparty. Only the
-   address is missing, which is why this is one field and not a form. */
-function negoCounterpartySetupHtml(c, opts = {}){
-  if ((opts.side || 'owner') !== 'owner' || opts.readonly) return '';
-  if (opts.contact && opts.contact.email) return '';
-  if (typeof opts.onSetCounterparty !== 'function') return '';
-  const who = _ne(String(c.counterparty || 'the counterparty'));
-  /* SLIMMER THAN IT WAS. This sat below the wall line as a second full-height
-     tinted band with a 4px left rule, so the page opened on two stacked
-     banners before a word of the contract. Same field, same Save, same
-     "More options" — one quiet line's worth of it. */
-  return `<div class="nego-turn" id="nego-cp-setup" style="flex:none;display:flex;align-items:center;gap:9px;
-      flex-wrap:wrap;border-radius:6px;padding:5px 12px;border:1px solid var(--n-line);
-      background:var(--n-badge-bg)">
-    <span style="flex:1;min-width:220px;font-size:11.5px;color:var(--n-ink)">
-      Negotiating with <b>${who}</b>? Add their email and changes go straight to them.</span>
-    <input id="nego-cp-email" type="email" placeholder="their email"
-      style="flex:none;width:190px;border:1px solid var(--n-line);border-radius:5px;padding:4px 8px;
-        font:inherit;font-size:11.5px;outline:none"/>
-    <button id="nego-cp-save" class="ui-btn ui-btn-primary" style="flex:none;font-size:11.5px;padding:4px 11px">Save</button>
-    <button id="nego-cp-more" class="nego-tbtn ghost" style="flex:none;font-size:11.5px;padding:4px 9px">More options…</button>
-  </div>`;
-}
+   negoCounterpartySetupHtml is deliberately gone rather than left returning
+   nothing — a builder nobody calls is a place for a future reader to reinstate
+   the banner by accident. */
 function negoRoomBannerHtml(c, opts = {}, ready){
   const comparing = !negoIsLivePair(negoComparePair().left, negoComparePair().right);
   if (comparing) return '';
   const status = String(c.status || '');
   if (status === 'Signed' || status === 'Declined') return negoClosedBannerHtml(c, opts);
-  const setup = negoCounterpartySetupHtml(c, opts);
-  const wrap = inner => `<div style="padding:0 14px;display:flex;flex-direction:column;gap:8px">${setup}${inner}</div>`;
   const signal = negoReadySignalHtml(c, opts);
-  if (signal) return setup ? wrap(signal) : signal;
-  if (ready) return setup ? wrap(negoReadyHtml(c, opts)) : negoReadyHtml(c, opts);
-  return wrap(negoTurnBannerHtml(c, opts));
+  if (signal) return signal;
+  if (ready) return negoReadyHtml(c, opts);
+  return `<div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>`;
 }
 /* An executed or declined contract is not a negotiation. Saying so once, in the
    slot the turn banner used, is the whole of it — the alternative was a signed
@@ -4138,27 +4147,10 @@ function wireNegotiationTab(c, opts = {}){
     openAI();
   });
 
-  /* The setup strip. Saving records the address on the contract, so the next
-     send has somewhere to go without asking; "More options…" is the whole
-     dialog, because purpose, expiry and channel still matter and a signing link
-     is not a negotiation link. */
-  const cpSave = byId('nego-cp-save');
-  if (cpSave) cpSave.addEventListener('click', () => {
-    const el = byId('nego-cp-email');
-    const email = String((el && el.value) || '').trim();
-    if (!/.+@.+\..+/.test(email)){
-      if (window.toast) toast('Enter an email address they can be reached at', 'err');
-      if (el && el.focus) el.focus();
-      return;
-    }
-    if (typeof opts.onSetCounterparty === 'function')
-      opts.onSetCounterparty({ name: c.counterparty || '', email });
-    again();
-  });
-  byId('nego-cp-more')?.addEventListener('click', () => {
-    if (typeof opts.onShareLink === 'function') opts.onShareLink(c, { purpose: 'negotiate' });
-    else if (typeof window.openShareModal === 'function') openShareModal(c, { purpose: 'negotiate' });
-  });
+  /* The setup strip's Save and "More options…" were wired here. The strip is
+     gone from this page — the address is a Key terms row — so there is nothing
+     to bind. opts.onSetCounterparty is still accepted and still honoured by the
+     owner adapter; it simply has no control on THIS surface any more. */
 
   /* THE HAND-OFF, wired wherever the readiness banner renders. This lived only
      in the retired room's chrome (openNegotiationRoom), so on the workbench
@@ -9091,14 +9083,13 @@ function redlinePanesHtml(c, opts = {}){
      text on a white page. */
   return `<div id="nego-root" class="rl-root">
     <div id="rl-banner">${opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
-      ''/* THE SET-ONCE EMAIL STRIP. It lived in the retired room's banner, so
-           the workbench page — the only owner surface left — never offered it:
-           the owner had no way to record where changes go, and the first send
-           died with "not been shared with anyone yet". Rendered here, it
-           appears exactly once per negotiation: negoCounterpartySetupHtml
-           returns nothing once a contact email is on record. */
-    }${negoCounterpartySetupHtml(c, opts)}${
-      window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : ''}</div>
+      ''/* THE SET-ONCE EMAIL STRIP USED TO SIT HERE, and it was the last full
+           width band between the top of this page and the first word of the
+           contract. The address is a fact about the counterparty, so it is a
+           Key terms row now — asked where their name is asked, not across a
+           working surface. Nothing about sending changed: the dialog still
+           collects an address at send time for a contract that has none. */
+    }${window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : ''}</div>
     <div class="rl-turnwrap">${negoTurnBannerHtml(c, opts)}</div>
     <!-- nego-work is kept on the grid because the engine scopes its clause
          tooling under it (.nego-work .nego-pane …). Without it Change and
@@ -9416,7 +9407,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   negoRenumberPreviewHtml, negoRenumberOpen,
   negoTimelineScreenHtml, negoTimelineEventHtml, openHistoryTimeline,
-  negoVerifyResultHtml, negoHistoryExportHtml, negoHistoryExportRun,
+  negoVerifyResultHtml, negoHistoryExportHtml, negoHistoryExportRun, negoHistoryPrintRun,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

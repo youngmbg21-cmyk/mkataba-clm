@@ -12,19 +12,23 @@
 
    Three things this must get right.
 
-   IT ASKS WITHOUT BLOCKING. A modal that fires on opening the negotiation is in
-   the way of somebody who only wanted to look, and "skip" is a button you have
-   to press to dismiss something you never asked for. It is a strip at the top
-   of the room: ignore it and it waits, fill it in and it goes.
+   IT IS ASKED WHERE THEY ARE ALREADY NAMED. This started life as a strip across
+   the top of the negotiation — "Negotiating with X? Add their email" — which
+   put a question about the counterparty on a working surface, above the first
+   word of the contract, and left it as the last banner standing between the two
+   after everything else came down. The counterparty's NAME is a Key terms row.
+   Their address is the same kind of fact, so it is the row underneath it.
 
-   SKIPPING MUST NOT REBUILD THE DEAD END. Ignore the strip, propose a change,
+   THE NEGOTIATION PAGE ASKS NOTHING. No strip, for any contract, in any state.
+
+   SKIPPING MUST NOT REBUILD THE DEAD END. Never fill it in, propose a change,
    and the send still appears — it just asks for the address at that moment
    instead of sending. The one thing that must never happen again is work with
    nowhere to go.
 
    AND THE FULL DIALOG DOES NOT DISAPPEAR. Purpose, expiry, channel and a
    covering message still matter — a signing link is not a negotiation link —
-   so the strip carries a way through to all of it.
+   and Share in the room head is the door to all of it.
 */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -67,45 +71,85 @@ async function room(opts = {}, over = {}){
   return { win, c, calls, propose, paint, press };
 }
 
-describe('F77 — asking who, once', () => {
-  test('the strip appears when we have no address for them', async () => {
-    const r = await room();
-    const p = r.paint();
-    assert.ok(p.strip, 'the owner is about to negotiate with somebody we cannot reach');
-    assert.match(p.strip.textContent, /Nordfrakt Logistik AB/,
-      'and it already knows who — only the address is missing');
+/* The Key terms panel, mounted and wired the way the tab mounts it, so a test
+   presses the row a person presses rather than calling the setter behind it.
+
+   The stage boots the negotiation modules, not the money-and-dates half of the
+   shell, so the four readers this panel calls are supplied here. Stubs for the
+   SHELL only — the panel's own behaviour is the thing under test. */
+function ktShell(win){
+  win.isMonetary = c => (c.valueType || 'estimated') !== 'none';
+  win.fmtMoney = v => 'KES ' + Number(v || 0).toLocaleString('en-KE');
+  win.fmtDocDate = v => String(v || '');
+  win.streamLabel = () => 'Cost';
+  win.keyTermsProgress = () => {};
+  win.syncKeyTermsUI = () => {};
+  win.renderAuditSection = () => {};
+  win.todayStr = () => '06 Aug 2026';
+}
+
+function keyTerms(over = {}){
+  const { win } = buildWorld({ contractView: true });
+  ktShell(win);
+  const c = contract(over);
+  const host = win.document.createElement('div');
+  host.id = 'kt-rows';
+  win.document.body.appendChild(host);
+  host.innerHTML = win.ktTermsRowsHtml(c, { editable: true });
+  win.wireKtRows(c); win.wireKeyTerms(c);
+  return { win, c, host,
+    row: k => host.querySelector(`[data-kt-row="${k}"]`),
+    field: k => host.querySelector(`[data-kt="${k}"]`),
+    press: el => el.dispatchEvent(new win.Event('click', { bubbles: true })),
+    type: (el, v) => { el.value = v; el.dispatchEvent(new win.Event('input', { bubbles: true })); } };
+}
+
+describe('F77 — asking who, once, where their name is asked', () => {
+  test('their email is a Key terms row, directly under their name', () => {
+    const k = keyTerms();
+    assert.ok(k.row('counterparty'), 'the name is there, as it always was');
+    assert.ok(k.row('cpEmail'), 'and the address is the fact underneath it');
+    assert.match(k.row('cpEmail').textContent, /Their email/);
+    assert.match(k.row('cpEmail').textContent, /Not set/,
+      'read as a value, not as an empty box — nothing looks like a field until you touch it');
   });
 
-  test('ignoring it is enough — nothing has to be dismissed', async () => {
-    const r = await room();
-    const p = r.paint();
-    assert.ok(!p.host.querySelector('[data-nego-modal]'),
-      'a strip waits; a dialog would be standing in the way of somebody who only wanted to read');
+  test('filling it in records the address on the contract', () => {
+    const k = keyTerms();
+    k.press(k.row('cpEmail').querySelector('[data-kt-edit]'));
+    k.type(k.field('cpEmail'), 'erik@nordfrakt.se');
+    assert.equal(k.c.counterpartyEmail, 'erik@nordfrakt.se');
   });
 
-  test('filling it in records the contact and the strip goes', async () => {
-    const r = await room();
-    let p = r.paint();
-    p.host.querySelector('[id="nego-cp-email"]').value = 'erik@nordfrakt.se';
-    r.press(p.host.querySelector('[id="nego-cp-save"]'));
-    assert.equal(r.calls.setContact.length, 1);
-    assert.equal(r.calls.setContact[0].email, 'erik@nordfrakt.se');
+  test('and the row reads it back as a value, not as a filled-in box', () => {
+    const k = keyTerms({ counterpartyEmail: 'erik@nordfrakt.se' });
+    assert.match(k.row('cpEmail').querySelector('.kt-read').textContent, /erik@nordfrakt\.se/);
+    assert.doesNotMatch(k.row('cpEmail').querySelector('.kt-read').textContent, /Not set/);
   });
 
-  test('once we know it, the strip is gone', async () => {
+  test('a signed contract states it and does not offer to change it', () => {
+    const { win } = buildWorld({ contractView: true });
+    ktShell(win);
+    const c = contract({ status: 'Signed', counterpartyEmail: 'erik@nordfrakt.se' });
+    const html = win.ktTermsRowsHtml(c, { editable: false });
+    assert.match(html, /erik@nordfrakt\.se/, 'the record still says who it went to');
+    assert.doesNotMatch(html, /data-kt="cpEmail"/, 'but there is nothing to type into');
+  });
+});
+
+describe('F77 — and the negotiation page asks nothing at all', () => {
+  test('no strip, on a contract we have no address for', async () => {
+    const r = await room();
+    assert.ok(!r.paint().strip,
+      'this was the last banner between the top of the page and the contract');
+  });
+
+  test('nor when we do have one', async () => {
     const r = await room({ contact: { name: 'Erik Lindqvist', email: 'erik@nordfrakt.se' } });
-    assert.ok(!r.paint().strip, 'asked once, not on every visit');
+    assert.ok(!r.paint().strip);
   });
 
-  test('a bad address is refused rather than saved', async () => {
-    const r = await room();
-    const p = r.paint();
-    p.host.querySelector('[id="nego-cp-email"]').value = 'not-an-address';
-    r.press(p.host.querySelector('[id="nego-cp-save"]'));
-    assert.equal(r.calls.setContact.length, 0);
-  });
-
-  test('the counterparty never sees it — it is not their question', async () => {
+  test('nor for the counterparty, who was never asked', async () => {
     const { win } = buildWorld({ negotiationView: true, contractView: true });
     const c = contract();
     win.negoInit(c);
@@ -115,17 +159,16 @@ describe('F77 — asking who, once', () => {
     assert.ok(!host.querySelector('[id="nego-cp-setup"]'));
   });
 
-  test('nor does a viewer, who cannot act on it', async () => {
+  test('nor for a viewer', async () => {
     const r = await room({ readonly: true });
     assert.ok(!r.paint().strip);
   });
 
-  test('and the full dialog is still one press away', async () => {
+  test('and nothing stands in the way of somebody who only wanted to read', async () => {
     const r = await room();
     const p = r.paint();
-    assert.ok(p.more, 'purpose, expiry, channel and a covering message all still matter');
-    r.press(p.more);
-    assert.equal(r.calls.dialog, 1);
+    assert.ok(!p.host.querySelector('[data-nego-modal]'),
+      'no dialog fires on opening — that was true of the strip and stays true without it');
   });
 });
 

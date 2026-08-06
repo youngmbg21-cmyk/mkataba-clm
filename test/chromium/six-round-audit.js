@@ -168,15 +168,20 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   /* ================= ROUND 1 — the owner proposes and sends ================= */
   {
     await ownerOpenBench();
-    // The email is set ONCE, on the bench, and never asked for again.
-    const hasSetup = await owner.$('#nego-cp-email');
-    check(1, 'the bench asks for the counterparty email (first time only)', !!hasSetup);
-    if (hasSetup){
-      await owner.fill('#nego-cp-email', ERIK);
-      await owner.click('#nego-cp-save');
-      await pause(400);
-      await owner.waitForSelector('#view-redline [id="rl-doc"]', { timeout: 10000 });
-    }
+    /* The address is a KEY TERM, set once on that tab and never asked for
+       again. It used to be a strip across the top of this bench; the bench
+       carries nothing about it now, which is the first thing checked. */
+    check(1, 'the bench carries no email strip — that question moved to Key terms',
+      !(await owner.$('#nego-cp-setup')));
+    await owner.evaluate(id => { openWorkspace(id); }, CID);
+    await owner.evaluate(() => roomGoTab(getContract(state.activeId), 'terms'));
+    await owner.waitForSelector('[data-kt-row="cpEmail"]', { timeout: 10000 });
+    await owner.click('[data-kt-row="cpEmail"] [data-kt-edit]');
+    await owner.fill('[data-kt="cpEmail"]', ERIK);
+    await pause(300);
+    check(1, 'the counterparty email is recorded on Key terms',
+      await owner.evaluate(() => (getContract(state.activeId) || {}).counterpartyEmail || '') === ERIK);
+    await ownerOpenBench();
 
     const r1 = await directEdit(owner, '#view-redline', 'PAYMENT',
       'thirty \\(30\\) days', 'forty-five (45) days');
