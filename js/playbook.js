@@ -265,7 +265,17 @@ function renderPlaybookSection(c){
         : `<p style="font-size:10.5px;color:var(--color-neutral-500);margin:0 0 4px">Against the <b>${_pbEsc(r.label)}</b> playbook${r.source==='ai'?'':' &middot; basic checks'}</p>
       <div>${rowsHtml}</div>`}
       ${ins.length?`<div style="margin-top:10px;border-top:1px solid var(--color-divider);padding-top:9px">
-        <div style="font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">Clauses inserted into this document</div>
+        ${''/* ---- THEY ARE PROPOSED, NOT INSERTED ----
+               This said "Clauses inserted into this document", and they are
+               not in the document: applyClauseRedline files each one as a
+               TRACKED CHANGE awaiting Accept or Reject, deliberately, so
+               preferred wording gets a fingerprint and a decision like any
+               other ask. The heading promised the opposite, and "Show me" then
+               searched the Document tab — a clean read of the AGREED text,
+               which by design does not contain a pending proposal. It could
+               never find it, and reported that the clause "may have been
+               edited or removed", which was untrue twice over. */}
+        <div style="font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">Clauses proposed for this document</div>
         ${ins.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
           <span style="flex:none;color:var(--color-accent)">${icon('plus','w-3 h-3')}</span>
           <span style="flex:1;min-width:0">
@@ -288,8 +298,21 @@ function renderPlaybookSection(c){
   }));
   host.querySelectorAll('[data-pb-jump]').forEach(b=>b.addEventListener('click',()=>{
     const x=ins[Number(b.getAttribute('data-pb-jump'))]; if(!x) return;
-    if(!jumpToInsertedClause(x.name))
-      toast('Could not find that clause in the document — it may have been edited or removed','err');
+    /* SHOW IT WHERE IT ACTUALLY IS. A proposal lives in the negotiation until
+       it is accepted, so that is where this goes — the workbench, scrolled to
+       the change. Only once it HAS been accepted is it in the document, and
+       then the old document-side jump is the right one; try that first so an
+       accepted clause still shows in place. */
+    if(jumpToInsertedClause(x.name)) return;
+    if(x.changeId && window.openRedlineWorkbench){
+      if(window.closeModal) closeModal();
+      openRedlineWorkbench(c.id);
+      const cid=x.clauseId||x.changeId;
+      setTimeout(()=>{ if(window.rlJumpToClause) rlJumpToClause(cid,{edit:false}); },420);
+      toast(`“${x.name}” is a proposed change — opening the negotiation`);
+      return;
+    }
+    toast(`“${x.name}” was proposed but its change can no longer be found — it may have been withdrawn`,'err');
   }));
   document.getElementById('pb-run')?.addEventListener('click',async()=>{
     const btn=document.getElementById('pb-run'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reviewing…</span>';
@@ -319,7 +342,10 @@ function renderPlaybookSection(c){
      · scrolls the document to it and flashes it, so the very first thing you
        see after inserting is the clause in its new home. */
 function clauseInsertNote(where){
-  return where==='end' ? 'appended to the end of the document' : String(where||'');
+  /* Says what actually happened. "appended to the end of the document" read as
+     a completed edit; it is a proposal sitting in the negotiation, and where it
+     would land is the end of the document. */
+  return where==='end' ? 'proposed for the end of the document · awaiting a decision' : String(where||'');
 }
 async function applyClauseRedline(c, clauseText, label){
   if(!clauseText) return null;
@@ -347,8 +373,10 @@ async function applyClauseRedline(c, clauseText, label){
       { side:'owner', author:(u&&u.name)||'This workspace',
         summary:`Preferred wording inserted from the playbook — ${name}` });
     if(ch){
+      /* clauseId as well as changeId: the workbench scrolls to a CLAUSE, and
+         without it "Show me" reaches the negotiation and then stops. */
       c.clauseInserts=(c.clauseInserts||[]).concat([{ name, where:'end', at:nowISO(),
-        by:(u&&u.name)||'System', changeId:ch.id }]);
+        by:(u&&u.name)||'System', changeId:ch.id, clauseId:ch.clauseId||null }]);
       logAudit(c,'Playbook',`Preferred wording (${name}) proposed as ${'#'+ch.id} — it is a tracked change awaiting a decision, not an edit to the document`);
       persist(c); renderWorkspace();
       toast(`“${name}” proposed as ${'#'+ch.id} — review it in the negotiation`);
@@ -465,7 +493,9 @@ function openClausePicker(c, opts){
     <div class="p-6">
       <h3 class="font-serif font-600 text-lg text-ink mb-1">Insert clause from library</h3>
       <p class="text-xs text-ink/60 mb-3">Adds the preferred wording to the document as a redline you can review and seal.</p>
-      <div class="space-y-2 max-h-[50vh] overflow-y-auto scroll-thin">
+      ${''/* No 50vh cap: the side panel this now opens in scrolls itself, and
+             a scroll box inside a scroll box is two bars for one list. */}
+      <div class="space-y-2">
         ${lib.map(cl=>`<div class="rounded-lg border border-line bg-white p-3">
           <div class="flex items-center gap-2"><span class="text-[10px] font-mono uppercase tracking-wide text-ink/45">${cl.category}</span>
             <span class="text-[12.5px] font-600 text-ink">${cl.name}</span>

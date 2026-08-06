@@ -41,10 +41,15 @@ function scanRules(c){
     'The commencement date field in the recital is empty.',
     'Obligations, term length and notice periods all count from this date; leaving it open invites disputes about when duties began.',
     'Pick the effective date in the recital\u2019s date field.');
-  if(c.status!=='Signed' && !c.compliance.consent) add('g-comp','low','missing','Intent-to-sign not yet confirmed','sig',
-    'The signer has not yet confirmed intent to sign electronically.',
-    `A recorded intent-to-sign strengthens attribution of the electronic signature. ${jxEsignature()}`,
-    'Tick the intent-to-sign consent box in the verification panel before signing.');
+  /* ---- INTENT-TO-SIGN IS NOT A FINDING ABOUT THE CONTRACT ----
+     It was reported here, among findings about the WORDING, on the Document
+     tab — where there is no consent box to tick. It is not a defect in the
+     paper at all: it is a step you take on the Signing tab, at the moment you
+     sign, and it is already asked for there and enforced by signDocument,
+     which refuses without it. Reporting it as an open risk finding put a
+     permanent "1 open" on a contract that had nothing wrong with it and sent
+     the reader to a tab with no answer on it. The step is unchanged and still
+     compulsory; it has simply stopped pretending to be a scan result. */
 
   // --- template-specific (tuned to FMCG contract types & local practice) ---
   F.push(...live);
@@ -316,7 +321,11 @@ function renderScanSection(c){
       <div class="flex items-center gap-1.5 mb-2 flex-wrap">
         ${chip('all',`All ${open.length}`)}${chip('high',`High ${counts('high')}`)}${chip('med',`Med ${counts('med')}`)}${chip('low',`Low ${counts('low')}`)}
       </div>
-      <div class="space-y-1.5 max-h-64 overflow-y-auto scroll-thin pr-0.5">${cards}</div>
+      ${''/* NO HEIGHT CAP. max-h-64 was 256px, right for a card in a narrow
+             column beside the document. In the full-height side panel it left
+             the reader scrolling a 256px window inside an otherwise empty
+             column — the panel scrolls itself, so the list does not need to. */}
+      <div class="space-y-1.5 pr-0.5">${cards}</div>
       <div class="mt-2 flex items-center justify-between text-[10px] text-brand-800/60">
         <span>Scanned ${c.scan.at}</span>
         <button id="scan-rerun" class="font-medium text-brand-600 hover:text-brand-800 transition">Re-scan</button>

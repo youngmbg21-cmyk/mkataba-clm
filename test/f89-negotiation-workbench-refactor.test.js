@@ -191,9 +191,17 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
     /* The hand-written [Docs][Negotiate] pair this page carried is gone. Both
        shells now call roomTabsHtml, so there is one row and it has five tabs. */
     /* firstChild, not textContent: Negotiate carries its change count inside
-       the button, which is the point of it. */
+       the button, which is the point of it.
+
+       THE ORDER IS THE WORK ORDER, and this assertion is here to hold it that
+       way. It read Document · Negotiate · Key terms · Signing, which is not
+       the order anything happens in: Key terms sat third and has to be done
+       FIRST — a contract with no counterparty and no value cannot be read for
+       sense, sent, or signed. A reader following the row left to right was
+       walked past the one thing blocking them. Agree the facts, read the
+       paper, argue the wording, sign it. */
     assert.deepEqual([...tabrow.querySelectorAll('.room-tab')].map(b => b.firstChild.textContent.trim()),
-      ['Document', 'Negotiate', 'Key terms', 'Signing', 'History']);
+      ['Key terms', 'Document', 'Negotiate', 'Signing', 'History']);
     assert.equal(tabrow.querySelector('[data-ws-tab="redline"] .rt-n').textContent, '1',
       'and the count is the change on the table');
     assert.ok(tabrow.querySelector('.room-tab.on').textContent.includes('Negotiate'),

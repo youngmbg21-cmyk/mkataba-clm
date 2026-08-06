@@ -2095,7 +2095,17 @@ function wsNextAction(c){
   }
   if(c.status==='Draft'){
     if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
-    return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
+    /* ---- READ IT BEFORE YOU SEND IT ----
+       The rung between "the facts are in" and "send it out" was missing, so a
+       draft went straight from Key terms to the counterparty with nothing
+       having looked at the wording. The checks are the one thing on this
+       platform that reads the paper, and they are one press away; the ladder
+       now stops here until they have run. Once they have, it moves on — this
+       is a rung, not a gate, and Share is still in the head throughout. */
+    if(window.checkVerdict && !checkVerdict(c,'risk') && !checkVerdict(c,'playbook'))
+      return { label:'Read it through & run the checks', ic:'scan', kind:'checks',
+        guide:'The facts are in. Read the wording and run the checks before it goes out.' };
+    return { label:'Send for review', ic:'check2', guide:'Key terms are set and the checks have run — move it into review.', kind:'review' };
   }
   /* A LIVE NEGOTIATION IS NOT "READY TO SIGN".
 
@@ -2147,9 +2157,17 @@ function wsNextAction(c){
 function actionBarHtml(c){
   const locked=c.status==='Signed';
   const line=t=>`<span style="font-size:12px;color:var(--color-neutral-700)">${t}</span>`;
-  const tail=(_wsTab==='docs'&&!locked)
-    ? `<span style="flex:1"></span><button id="doc-to-nego" class="ui-btn rq-go" style="font-size:11.5px;padding:4px 11px">Go to Negotiate &rarr;</button>`
-    : '';
+  /* ---- NO SECOND NEXT-STEP BUTTON ON THIS STRIP ----
+     "Go to Negotiate →" lived here. It was a THIRD control claiming to say
+     what happens next, next to the head's own primary and the right column's
+     "Next: Signing" — three answers, one screen, and only the head's read the
+     contract's state at all. Worse, this strip is painted once per render and
+     did not repaint on a tab change, so the Document tab's sentence AND its
+     button followed the reader onto Key terms, Signing and History: you could
+     stand on Key terms being told to go to Negotiate by a bar describing a tab
+     you had left. The button is gone and the strip repaints — see
+     applyWsTabs. What is left here is the sentence that says WHY. */
+  const tail='';
   if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>Executed &amp; sealed</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
   if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
   /* On the Document tab the sentence is about READING, because that is what
@@ -2183,17 +2201,46 @@ function wireActionBar(c){
     }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
+    /* The reading rung: put the document in front of them and open the Checks
+       card's own panel, rather than leaving "run the checks" as an instruction
+       to go and find something. */
+    if(kind==='checks'){
+      roomGoTab(c,'docs');
+      setTimeout(()=>{
+        const card=document.getElementById('checks-card');
+        if(card){ card.scrollIntoView({behavior:'smooth',block:'center'});
+          card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); }
+      },160);
+      return;
+    }
     if(kind==='review'){
       if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
       return;
     }
     if(kind==='sign-scroll'){
-      const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
-      const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
+      /* The consent box is on the SIGNING tab. Scrolling to it without going
+         there first scrolled a pane nobody was looking at, and the toast then
+         asked for a tick on a box that was not on screen. */
+      roomGoTab(c,'sign');
+      setTimeout(()=>{
+        const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
+        const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
+      },160);
       toast('Tick intent-to-sign, then Sign');
       return;
     }
-    if(kind==='sign'){ signDocument(c); return; }
+    /* SIGN WHERE THE SIGNING IS. This signed from wherever the reader happened
+       to be standing — Key terms, History — so the one irreversible act in the
+       product happened on a tab that shows none of it: no signature panel, no
+       block filling in, no seal. Land on Signing first, then sign, so the
+       result is in front of the person who caused it. Already there? Sign at
+       once; a tab switch to the tab you are on is a flicker for nothing. */
+    if(kind==='sign'){
+      if(_wsTab==='sign'){ signDocument(c); return; }
+      roomGoTab(c,'sign');
+      setTimeout(()=>signDocument(c),180);
+      return;
+    }
   });
 }
 /* "Complete key terms" — put the cursor where the terms can actually be typed.
@@ -2269,8 +2316,24 @@ function wsTabDefaults(c){
    right-hand panel, history behind a button that opened a modal. Being three
    clicks and a dialog deep is not the same as not existing, but it reads that
    way. They are tabs now. */
+/* THE TABS READ IN THE ORDER THE WORK HAPPENS.
+
+   They used to read Document · Negotiate · Key terms · Signing · History,
+   which is not the order anything is done in: Key terms sat third and has to
+   be filled in FIRST — a contract with no counterparty and no value cannot be
+   read for sense, cannot be sent, and cannot be signed. A reader following the
+   row left to right was being walked past the one thing blocking them.
+
+   Now: agree the facts, read the paper, argue the wording, sign it. History is
+   a record rather than a step, so it stays at the end.
+
+   The KEYS are untouched — 'docs', 'redline', 'terms', 'sign', 'history' —
+   because stored state, saved links and every route are built on them. Only
+   the order of the row moved. Opening a contract still LANDS on Document: you
+   opened it to look at it, and the next-step button says where to go from
+   there. */
 const ROOM_TABS=[
-  ['docs','Document'],['redline','Negotiate'],['terms','Key terms'],
+  ['terms','Key terms'],['docs','Document'],['redline','Negotiate'],
   ['sign','Signing'],['history','History'],
 ];
 function roomTabsHtml(c,active){
@@ -2304,6 +2367,11 @@ function applyWsTabs(c){
       b.classList.toggle('on',b.getAttribute('data-ws-tab')===k));
   };
   paint(_wsTab);
+  /* THE STRIP DESCRIBES THE TAB YOU ARE ON, so it is repainted when the tab
+     changes. It was drawn once per workspace render, which meant whichever tab
+     happened to be current at render time kept describing the room for as long
+     as you stayed on the page. */
+  if(typeof renderActionBar==='function') renderActionBar(c);
   /* ---- REDLINE IS A DOOR, NOT A PANE ----
      The redline needs the whole window — the document entire, with the changes
      and the discussion beside it — and the right-hand panel here is a third of
@@ -3058,7 +3126,8 @@ function applyDocTabs(){
    now moves the whole room rather than a panel inside it. applyDocTabs is kept
    and simply finds nothing to switch. */
 function wireDocTabs(c){
-  document.getElementById('screening-next')?.addEventListener('click',()=>roomGoTab(c,'sign'));
+  /* screening-next is gone with its button. A listener left behind is how a
+     removed control comes back the next time somebody re-adds the markup. */
   applyDocTabs();
 }
 /* ============ CHECKS ============
@@ -3920,9 +3989,14 @@ function renderWorkspace(){
                  it; see openCompareModal in js/versioning.js. Nothing was
                  dropped, only stopped being said three times. */}
 
-          <div style="display:flex;justify-content:flex-end;padding-top:2px">
-            <button id="screening-next" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 16px;display:inline-flex;align-items:center;gap:6px">Next: Signing ${icon('chevR','w-3.5 h-3.5')}</button>
-          </div>
+          ${''/* ---- "NEXT: SIGNING" IS GONE ----
+                 It was hardcoded: it said Signing and went to Signing from
+                 every tab, at every stage, whether or not the contract had a
+                 counterparty, a value, agreed wording or a settled
+                 negotiation. It offered the last step of the deal to a blank
+                 draft. The room has ONE next-step button now — the head's,
+                 which reads the contract's state and names the rung actually
+                 in front of you. See wsNextAction. */}
           ${''/* ---- DRAFT NEW AGREEMENT IS NOT HERE ANY MORE ----
                  It was at the foot of this column: one tab out of five, below a
                  scroll. It moved up into the room head, immediately after the
