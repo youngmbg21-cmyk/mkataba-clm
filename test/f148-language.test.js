@@ -43,6 +43,7 @@ const SAME_IN_BOTH = new Set([
   'ct_risk',              // 'Risk' is the same word in Swedish
   'kind_risk',            // ditto
   'tf_text',              // 'Text' is the same word in Swedish
+  'ct_system',            // 'System' is the same word in Swedish
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

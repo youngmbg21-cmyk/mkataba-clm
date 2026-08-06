@@ -89,7 +89,7 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
 describe('F97 — what the marks mean, and what they must not do', () => {
   test('not shared is a dash with a reason, not an empty cell', () => {
     assert.match(core, /shareLinkCell = cid => shareDot\(cid\)\s*\|\|/);
-    assert.match(core, /title="Not sent to anyone yet"/);
+    assert.match(core, /title="\$\{i18t\('co_not_sent_anyone'\)\}"/);
     assert.match(core, /&mdash;/);
   });
 
@@ -113,8 +113,10 @@ describe('F97 — what the marks mean, and what they must not do', () => {
   });
 
   test('every other state keeps its meaning colour', () => {
+    /* The label is a getter now — the reader sees the state in their own
+       language. The COLOUR is what this test is about and has not moved. */
     for (const [st, tone] of [['changes','amber'], ['signed','green'], ['declined','ruby'], ['sent','gray']])
-      assert.match(core, new RegExp(`${st}:\\s*\\{label:'[^']+',\\s*dot:'var\\(--st-${tone}-dot\\)`),
+      assert.match(core, new RegExp(`${st}:\\s*\\{\\s*get label\\(\\)\\{[^}]+\\},\\s*dot:'var\\(--st-${tone}-dot\\)`),
         `${st} should stay ${tone}`);
   });
 

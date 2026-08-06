@@ -1513,9 +1513,9 @@ function uploadDocBody(c){
       <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
   const preview = previewHead + ((isPdf||isText)
-    ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
+    ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="${i18t('ct_uploaded_document')}"></iframe>`
     : isImg
-    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="Uploaded document"/></div>`
+    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="${i18t('ct_uploaded_document')}"/></div>`
     : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
     ? `<div class="flex items-center justify-between gap-2 mb-2">
          <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${i18t('ct_reading_view')}</div>
@@ -1548,7 +1548,7 @@ function uploadDocBody(c){
       <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?(isOcrText(u.textSource)?'border-gold-500/25 bg-gold-500/10 text-gold-700':'border-brand-100 bg-brand-50/50 text-brand-700'):'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200
         ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'} — Copilot review analyses the actual text`
         : 'Text not machine-readable — Copilot review falls back to a manual checklist'}</span>
-      ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="Read the original file again — use this if the extracted text looks garbled">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
+      ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
@@ -1762,7 +1762,7 @@ function docBody(c){
   // separators; a blank holding tonnes, days or years must not be (see
   // fieldDisplayValue in js/core.js — guessing turns "2026" into "2,026")
   const fMoney=(id,val,ph='')=>`<input ${dis} type="number" value="${val??''}" placeholder="${ph}" data-field="${id}" data-money="1" class="field field-num"/>`;
-  const CP=`<input ${dis} type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Counterparty name" data-sync="counterparty" class="field"/>`;
+  const CP=`<input ${dis} type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_counterparty_name')}" data-sync="counterparty" class="field"/>`;
   const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" data-money="1" class="field field-num"/>`;
   // Presentational clause flags — reuse the app's EXISTING scan findings
   // (openFindings), map each to its clause anchor, keep the worst severity.
@@ -2075,7 +2075,7 @@ function frozenDocBody(c){
    of the open contract so the single most useful verb is never buried in the
    rich workspace. Returns {label, ic, guide, kind} or null. */
 function wsNextAction(c){
-  if(c.status==='Signed') return { label:'Evidence pack', ic:'download', guide:'Executed &amp; sealed.', kind:'evidence' };
+  if(c.status==='Signed') return { get label(){ return i18t('ct_evidence_pack'); }, ic:'download', guide:'Executed &amp; sealed.', kind:'evidence' };
   if(c.status==='Declined') return null;
   if(!canEdit()) return null;
   const hasTerms=c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
@@ -2094,7 +2094,7 @@ function wsNextAction(c){
     .filter(x=>x&&x.status==='pending'&&x.authorSide==='counterparty').length;
   if(openRds||pendingCh){
     const n=openRds||pendingCh;
-    return { label:'Review the changes', ic:'history', kind:'review-changes',
+    return { get label(){ return i18t('ct_review_changes'); }, ic:'history', kind:'review-changes',
       guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
   }
   /* THEY HAVE SIGNED AND WE HAVE NOT, and nothing on this page said so.
@@ -2111,11 +2111,11 @@ function wsNextAction(c){
     .some(s=>s && s.party!=='counterparty');
   if(cpSigned && !weSigned && !(c.execution&&c.execution.at)){
     const who=(c.signatures.find(s=>s.party==='counterparty')||{}).name||c.counterparty||'The counterparty';
-    return { label:'Sign', ic:'finger', kind:c.compliance&&c.compliance.consent?'sign':'sign-scroll',
+    return { get label(){ return i18t('ct_sign'); }, ic:'finger', kind:c.compliance&&c.compliance.consent?'sign':'sign-scroll',
       guide:`${who} has signed. Your signature is the only thing left.` };
   }
   if(c.status==='Draft'){
-    if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
+    if(!hasTerms) return { get label(){ return i18t('ct_complete_key_terms'); }, ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
     /* ---- READ IT BEFORE YOU SEND IT ----
        The rung between "the facts are in" and "send it out" was missing, so a
        draft went straight from Key terms to the counterparty with nothing
@@ -2124,9 +2124,9 @@ function wsNextAction(c){
        now stops here until they have run. Once they have, it moves on — this
        is a rung, not a gate, and Share is still in the head throughout. */
     if(window.checkVerdict && !checkVerdict(c,'risk') && !checkVerdict(c,'playbook'))
-      return { label:'Read it through & run the checks', ic:'scan', kind:'checks',
+      return { get label(){ return i18t('ct_read_through_checks'); }, ic:'scan', kind:'checks',
         guide:'The facts are in. Read the wording and run the checks before it goes out.' };
-    return { label:'Send for review', ic:'check2', guide:'Key terms are set and the checks have run — move it into review.', kind:'review' };
+    return { get label(){ return i18t('ct_send_for_review'); }, ic:'check2', guide:'Key terms are set and the checks have run — move it into review.', kind:'review' };
   }
   /* A LIVE NEGOTIATION IS NOT "READY TO SIGN".
 
@@ -2146,20 +2146,20 @@ function wsNextAction(c){
     const who=c.counterparty||'the counterparty';
     const mine=liveChanges.filter(x=>x.status==='pending').length;
     return theirTurn
-      ? { label:'Open the negotiation', ic:'history', kind:'review-changes',
+      ? { get label(){ return i18t('ct_open_negotiation'); }, ic:'history', kind:'review-changes',
           guide:`It is with ${who}. Nothing needs you until they answer.` }
-      : { label:'Open the negotiation', ic:'history', kind:'review-changes',
+      : { get label(){ return i18t('ct_open_negotiation'); }, ic:'history', kind:'review-changes',
           guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
   }
   // Under Review
-  if(!appr.ok) return { label:'Send to counterparty', ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
+  if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
   // U-8: when intent-to-sign is not yet ticked, this button only scrolls to the
   // consent box — it does not sign. Labelling it "Sign" made the prominent verb
   // a false promise (tick the box, then hunt for a second Sign control). It now
   // says what it actually does; the label becomes "Sign" only when a click will
   // truly execute.
-  if(!c.compliance.consent) return { label:'Review & sign below', ic:'finger', guide:'Approved — confirm intent-to-sign below, then sign.', kind:'sign-scroll' };
-  return { label:'Sign', ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
+  if(!c.compliance.consent) return { get label(){ return i18t('ct_review_sign_below'); }, ic:'finger', guide:'Approved — confirm intent-to-sign below, then sign.', kind:'sign-scroll' };
+  return { get label(){ return i18t('ct_sign'); }, ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
 }
 
 /* The status strip under the document header. Split out so filling in the key
@@ -2487,7 +2487,7 @@ function ktReadValue(c,key){
    "Non-monetary" — and only the first is an invitation. The dashed prompt goes
    on the first alone, so a non-monetary contract is not nagged to price
    itself. */
-const ktIsEmptyRead = html => /class="kt-none">Not set</.test(String(html));
+const ktIsEmptyRead = html => /class="kt-none">${i18t('ct_not_set2')}</.test(String(html));
 function ktRowHtml(key,label,readHtml,fieldHtml,editable){
   if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
   const empty=ktIsEmptyRead(readHtml)?' data-kt-empty="1"':'';
@@ -2506,7 +2506,7 @@ function ktTermsRowsHtml(c,opts={}){
     :(isUpload(c)?'Uploaded document':'');
   return [
     ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
-      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/>`, ed),
+      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed),
     /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
        This was a banner across the top of the negotiation asking for it. The
        address is a fact about the counterparty, exactly like the name directly
@@ -2515,7 +2515,7 @@ function ktTermsRowsHtml(c,opts={}){
        leaving it empty costs nothing, because the share dialog still collects
        an address at the moment of sending. */
     ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
-      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="changes go straight to them" style="${KIN}"/>`, ed),
+      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed),
     ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
          <span style="font-size:11px;color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
@@ -2602,7 +2602,7 @@ function riskRead(c){
   if(c.scan){
     const w={high:20,med:9,low:3};
     scan=Math.min(100,open.reduce((a,x)=>a+(w[x.sev]||3),0));
-    bars.push({ label:'Open scan findings', n:scan });
+    bars.push({ get label(){ return i18t('ct_open_scan_findings'); }, n:scan });
   }
   let book=0;
   if(pb) book=Math.min(100,pb.reduce((a,v)=>a+(v.status==='aligned'?0:v.status==='deviation'?12:18)+(v.escalate&&v.status!=='aligned'?10:0),0));
@@ -2784,7 +2784,7 @@ function roomHistoryHtml(c,f={}){
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
       <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${on?`${evs.length} of ${all}`:`${all} events`}</span>
-      <div class="hist-segs" role="group" aria-label="Whose changes">
+      <div class="hist-segs" role="group" aria-label="${i18t('ct_whose_changes')}">
         ${chip('','Everyone')}${chip('owner','Ours')}${chip('counterparty','Theirs')}
       </div>
       ${''/* The long reading. Named for what pressing it does, not for the mode
@@ -2820,7 +2820,7 @@ function roomHistoryFiltersHtml(c,f){
     ${sel('side','Side',[['owner','Owner side'],['counterparty','Counterparty']])}
     ${sel('round','Round',uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,'Round '+e.round])))}
     ${sel('outcome','Outcome',[['accepted','Accepted'],['rejected','Rejected'],['pending','Pending'],['withdrawn','Withdrawn']])}
-    <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">Clear</button>
+    <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">${i18t('ct_clear2')}</button>
   </div>`;
 }
 function roomVersionsHtml(c){
@@ -3180,12 +3180,12 @@ function checkVerdict(c,kind){
     if(!r) return null;
     const s=(typeof deviationSummary==='function')?deviationSummary(c):{dev:0,miss:0};
     const bad=(s.dev||0)+(s.miss||0);
-    return bad ? {tone:'bad',label:`${bad} to look at`} : {tone:'ok',label:'All aligned'};
+    return bad ? {tone:'bad',label:`${bad} to look at`} : {tone:'ok',get label(){ return i18t('ct_all_aligned'); }};
   }
   if(kind==='risk'){
     if(!c.scan) return null;
     const open=(typeof openFindings==='function')?openFindings(c):[];
-    if(!open.length) return {tone:'ok',label:'All clear'};
+    if(!open.length) return {tone:'ok',get label(){ return i18t('ct_all_clear'); }};
     const high=open.filter(x=>x.sev==='high').length;
     return {tone:high?'bad':'warn',label:high?`${high} high · ${open.length} open`:`${open.length} open`};
   }
@@ -3729,7 +3729,7 @@ function roomHeadHtml(c,opts={}){
     <div class="room-acts">
       <div style="position:relative;flex:none">
         <button id="ws-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
-          title="Everything else this contract can do" style="width:34px;height:34px;padding:0;font-size:15px;line-height:1">&#8943;</button>
+          title="${i18t('ct_everything_else')}" style="width:34px;height:34px;padding:0;font-size:15px;line-height:1">&#8943;</button>
         ${''/* WRITTEN OUT, not built by a loop. Every id below is the id the
                control had on the old toolbar, and half the test suite reaches
                for them by name in this file's SOURCE — a helper that assembled
@@ -3743,20 +3743,20 @@ function roomHeadHtml(c,opts={}){
                had. */}
         <div id="ws-more-menu" class="room-menu hidden">
           <div class="mgroup">${i18t('ct_this_contract')}</div>
-          ${may?`<button type="button" id="ws-import" title="Read a Word file they sent back into tracked changes">${icon('download','w-3.5 h-3.5')}Import their response</button>`:''}
-          <button type="button" id="ws-compare" title="Compare versions &amp; review changes">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
-          ${may?`<button type="button" id="ws-tpl" title="Save this wording as a reusable template">${icon('copy','w-3.5 h-3.5')}Save as template</button>`:''}
+          ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}Import their response</button>`:''}
+          <button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
+          ${may?`<button type="button" id="ws-tpl" title="${i18t('ct_save_as_reusable')}">${icon('copy','w-3.5 h-3.5')}Save as template</button>`:''}
           <hr>
           <div class="mgroup">${i18t('ct_export')}</div>
-          <button type="button" id="ws-pdf" title="A clean copy to send — your branding, the wording and the signatures, with no HaTi marks on it">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
-          <button type="button" id="ws-word" title="The redline as a Word file — every pending change travels as a real Word tracked change">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
+          <button type="button" id="ws-pdf" title="${i18t('ct_clean_copy')}">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">clean copy</span></button>
+          <button type="button" id="ws-word" title="${i18t('ct_redline_word')}">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">tracked changes</span></button>
           ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
           <hr>
           <div class="mgroup">${i18t('ct_view')}</div>
-          <button type="button" id="ws-focus" aria-pressed="false" title="Hide the header and give the room to the document">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
-          <button type="button" id="ws-collapse" aria-expanded="true" title="Collapse this bar and give the contract more room">${icon('minus','w-3.5 h-3.5')}Collapse the header</button>
+          <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
+          <button type="button" id="ws-collapse" aria-expanded="true" title="${i18t('ct_collapse_bar')}">${icon('minus','w-3.5 h-3.5')}Collapse the header</button>
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
-          <button type="button" id="ws-delete" class="danger" title="Delete this draft permanently">${icon('trash','w-3.5 h-3.5')}Delete this draft</button>`:''}
+          <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}Delete this draft</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
                  on the Document tab now, so it is not repeated here. */}
         </div>
@@ -3977,7 +3977,7 @@ function renderWorkspace(){
             <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
               <div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px">${i18t('ct_commenting_as')} <span style="font-weight:600;color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
               <div style="display:flex;gap:7px">
-                <textarea id="comment-input" class="chat-field" rows="1" placeholder="Add a comment on the terms…" title="Internal to your team — counterparty replies arrive through share-link responses" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px;padding:8px 11px;font-size:12px;outline:none"></textarea>
+                <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px;padding:8px 11px;font-size:12px;outline:none"></textarea>
                 <button id="comment-send" class="ui-btn ui-btn-primary" style="width:36px;height:36px;padding:0;flex:none;border-radius:8px">${icon('send','w-4 h-4')}</button>
               </div>
             </div>
@@ -4034,7 +4034,7 @@ function renderWorkspace(){
       </section>
 
       <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
-      <div id="doc-resizer" title="Drag to set how wide the contract is · double-click to reset" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
+      <div id="doc-resizer" title="${i18t('ct_drag_width')}" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
         <span style="width:4px;height:72px;border-radius:999px;background:var(--color-neutral-300);transition:background .15s"></span>
       </div>
     </div>
@@ -4052,7 +4052,7 @@ function renderWorkspace(){
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">Key terms</h6>
           ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('ct_confirmed')}</span>`:''}
-          ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
+          ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="${i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
         </div>
         <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
         ${readTermsHtml(c)}
@@ -5008,7 +5008,7 @@ function distributionPanelHtml(c){
   }
   const rows=(d.recipients||[]).map(r=>`<div class="py-1 text-[11px]">
     <div class="flex items-center gap-2">
-    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}${r.attached?` <span class="text-[8.5px] font-mono px-1 py-px rounded bg-brand-50 text-brand-600" title="The executed contract document was attached to this email">${i18t('ct_doc_attached')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
+    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}${r.attached?` <span class="text-[8.5px] font-mono px-1 py-px rounded bg-brand-50 text-brand-600" title="${i18t('ct_executed_attached')}">${i18t('ct_doc_attached')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
     <span class="text-[9.5px] font-mono flex items-center gap-1 shrink-0" style="color:${dot(r.status)}"><span style="width:6px;height:6px;border-radius:999px;background:${dot(r.status)}"></span>${stTxt(r.status)}</span>
     </div>
     ${r.detail?`<div class="text-[9.5px] mt-0.5" style="color:${dot(r.status)}">${String(r.detail).replace(/</g,'&lt;')}</div>`:''}

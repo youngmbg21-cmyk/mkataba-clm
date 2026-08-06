@@ -72,7 +72,7 @@ function loadAi(){
   vm.createContext(sandbox);
   /* js/jurisdiction.js first, the order js/app.js loads it in: ai.js asks it
      what law this workspace is under and what money looks like. */
-  for (const f of ['jurisdiction.js', 'ai.js'])
+  for (const f of ['i18n.js', 'jurisdiction.js', 'ai.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'),
       sandbox, { filename: f });
   return sandbox;

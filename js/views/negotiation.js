@@ -1226,15 +1226,15 @@ function negoBrokenRefsOnlyHtml(c, broken, opts = {}){
    re-asks the model rather than hiding DOM — what is on the page is what the
    filter produced, and a test can hold the model without a browser. */
 const _HT_KIND_META = {
-  proposed:   { mark: '✎', word: 'Proposed' },
-  decided:    { mark: '⚖', word: 'Decided' },
-  withdrawn:  { mark: '↩', word: 'Withdrawn' },
-  'round-closed': { mark: '▣', word: 'Round' },
-  renumbered: { mark: '§', word: 'Renumbered' },
-  link:       { mark: '✉', word: 'Link' },
-  signature:  { mark: '✍', word: 'Signature' },
-  sealed:     { mark: '🔏', word: 'Sealed' },
-  copies:     { mark: '📤', word: 'Copies' },
+  proposed:   { mark: '✎', get word(){ return i18t('ng_proposed'); } },
+  decided:    { mark: '⚖', get word(){ return i18t('ng_decided'); } },
+  withdrawn:  { mark: '↩', get word(){ return i18t('ng_withdrawn'); } },
+  'round-closed': { mark: '▣', get word(){ return i18t('ng_round'); } },
+  renumbered: { mark: '§', get word(){ return i18t('ng_renumbered'); } },
+  link:       { mark: '✉', get word(){ return i18t('ng_link'); } },
+  signature:  { mark: '✍', get word(){ return i18t('ng_signature'); } },
+  sealed:     { mark: '🔏', get word(){ return i18t('ng_sealed'); } },
+  copies:     { mark: '📤', get word(){ return i18t('ng_copies'); } },
 };
 function negoTimelineEventHtml(c, e){
   const m = _HT_KIND_META[e.kind] || { mark: '·', word: e.kind };
@@ -4718,7 +4718,7 @@ function wireNegotiationTab(c, opts = {}){
        renderNegotiationSection already makes for a whole round. */
     let why = '';
     if (window.promptDialog){
-      why = await promptDialog({ title: 'Why are you turning this change down?',
+      why = await promptDialog({ get title(){ return i18t('ng_why_turning_down'); },
         message: 'This travels back with your decision, so they know what to do next. Leave it blank to reject without a reason.',
         label: 'Reply to ' + (side === 'owner' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'the other side')),
         placeholder: 'e.g. Net-30 stands, or we can look at a 2% price increase.',
@@ -6428,8 +6428,8 @@ function renderRedline(){
         <div class="rl-head-id">
           ${rlTypeStepHtml()}
           ${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
-            title="Review every clause against your playbook and propose redlines — each files as a tracked change only when you approve it">${i18t('ng_review_vs_playbook')}</button>` : ''}
-          <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="Focus mode &mdash; hide the header and give the space to the document and the changes" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
+            title="${i18t('ng_review_every_clause')}">${i18t('ng_review_vs_playbook')}</button>` : ''}
+          <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="${i18t('ng_focus_mode')}" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
           <span id="rl-presence" class="rl-presence" hidden></span>
@@ -6452,7 +6452,7 @@ function renderRedline(){
              .rl-focus rule, because the button that turned focus ON is inside
              the strip focus mode stands down. */}
       <button type="button" class="rl-focus-exit" data-rl-focus-exit
-        title="Leave focus mode and bring the page back (Esc)">${i18t('ng_exit_focus')}</button>
+        title="${i18t('ng_leave_focus')}">${i18t('ng_exit_focus')}</button>
     </div>`;
   host.querySelectorAll('[data-redline-open-doc]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
@@ -7967,10 +7967,10 @@ function rlSetDocType(px){
    toolbar render the identical control. */
 function rlTypeStepHtml(){
   const v = rlDocType();
-  return `<div class="rl-type-step" role="group" aria-label="Contract text size">
-    <button type="button" data-rl-type="-1" title="Smaller contract text"${v <= RL_TYPE_MIN ? ' disabled' : ''}>A&#8315;</button>
+  return `<div class="rl-type-step" role="group" aria-label="${i18t('ng_contract_text_size')}">
+    <button type="button" data-rl-type="-1" title="${i18t('ng_smaller_text')}"${v <= RL_TYPE_MIN ? ' disabled' : ''}>A&#8315;</button>
     <span class="rl-type-out">${v}px</span>
-    <button type="button" data-rl-type="1" title="Larger contract text"${v >= RL_TYPE_MAX ? ' disabled' : ''}>A&#8314;</button>
+    <button type="button" data-rl-type="1" title="${i18t('ng_larger_text')}"${v >= RL_TYPE_MAX ? ' disabled' : ''}>A&#8314;</button>
   </div>`;
 }
 function rlWireTypeStep(host){
@@ -8117,7 +8117,7 @@ function redlineDocHtml(c, opts = {}){
              panel still composes notes and still has the shared/internal
              switch. What went is the two doors that opened it pre-set to
              internal and pointed at a fragment. */
-    return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
+    return `<div class="rl-tools" role="group" aria-label="${i18t('ng_tools_for_clause')}">
       ${opts.noAi ? '' : `<button type="button" class="rl-tool rl-tool-ai" data-nego-ai-clause="${id}"
         title="${i18t('ng_ai_redraft_title')}">&#10024; Copilot</button>`}
       <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
@@ -8322,8 +8322,8 @@ function rlJumpHtml(c){
   /* The counterparty rides last on each line — the number is still the handle,
      the name is the reminder of who is on the other side. The control is 9ch
      wider than it was to make room; whatever does not fit is clipped. */
-  return `<select id="rl-contract-jump" class="rl-jump" aria-label="Contracts awaiting redline action"
-      title="Every contract with redline actions awaiting, and how many — pick one to bring it to this bench">${
+  return `<select id="rl-contract-jump" class="rl-jump" aria-label="${i18t('ng_awaiting_action')}"
+      title="${i18t('ng_every_awaiting')}">${
     rows.map(e => `<option value="${_nea(e.id)}"${e.id === c.id ? ' selected' : ''}>${_ne(e.id)} &middot; ${e.n} awaiting${e.cp ? ` &middot; ${_ne(e.cp)}` : ''}</option>`).join('')}</select>`;
 }
 
@@ -8463,7 +8463,7 @@ async function rlOpenPlaybookReview(c, again){
       : `<div style="margin-top:8px;font-size:12px;line-height:1.6;border:1px solid var(--color-divider);border-radius:7px;padding:8px 10px;max-height:150px;overflow:auto">${_ne(it.preferred)}</div>`}
     <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">${i18t('ng_skip')}</button>
-      ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px" title="File the pre-approved concession instead — the wording you can live with if they push back">${i18t('ng_file_fallback')}</button>` : ''}
+      ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
       <button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px" title="File your opening position — the playbook's preferred wording — as a tracked change">${i18t('ng_file_preferred')}</button>
     </div>
   </div>`;
@@ -8759,7 +8759,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        itself (negoFileChange sets enteredBy), so it travels into the audit
        trail and the exports; this is it on the face of the card. */
     const behalfBlock = ch.enteredBy
-      ? `<div class="rl-card-behalf" title="Typed on this workspace on their behalf — it did not arrive through their link">`
+      ? `<div class="rl-card-behalf" title="${i18t('ng_typed_on_behalf')}">`
         + `<span aria-hidden="true">&#9998;</span> Entered by ${_ne(ch.enteredBy)} on behalf of ${_ne(ch.author)}</div>`
       : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
@@ -8782,20 +8782,20 @@ function redlineChangeCardsHtml(c, opts = {}){
          refused ask — without it one rejection deadlocks Ready-to-sign for
          both sides forever. data-nego-withdraw is the engine's own handler. */
       verbs.push(`<button class="rl-edit" data-nego-withdraw="${_ne(ch.id)}"
-        title="Let this ask go — the refusal is acknowledged and the point is settled">${i18t('ng_withdraw')}</button>`);
+        title="${i18t('ng_let_ask_go')}">${i18t('ng_withdraw')}</button>`);
     }
     if (canAct && heldHere){
       /* The answer has not left this page; the person who gave it can take it
          back. data-nego-undo is the engine's own re-open. */
       verbs.push(`<button class="rl-edit" data-nego-undo="${_ne(ch.id)}"
-        title="Take this answer back — nothing has been sent yet">${i18t('ng_undo')}</button>`);
+        title="${i18t('ng_take_answer_back')}">${i18t('ng_undo')}</button>`);
     }
     if (canAct && theirs && ch.status === 'pending' && !heldHere){
       verbs.push(`<button class="rl-acc" data-nego-accept="${_ne(ch.id)}">${i18t('ng_accept')}</button>`);
       verbs.push(`<button class="rl-rej" data-nego-reject="${_ne(ch.id)}">${i18t('ng_reject')}</button>`);
     }
     if (editable && !heldHere) verbs.push(`<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
-        title="Jump to this clause in the contract and edit it there">Edit</button>`);
+        title="${i18t('ng_jump_to_clause')}">Edit</button>`);
     /* A draft that has never left the building can simply be taken back —
        negoRetractDraft removes the record, so nothing is withdrawn from
        anyone. Once sent, the honest verbs are Withdraw and revise, above. */
@@ -9329,12 +9329,12 @@ function redlinePanesHtml(c, opts = {}){
       <div id="rl-resizer" class="rl-resizer" role="separator" aria-orientation="vertical"
         title="Drag to set how wide the contract is · double-click to reset"><span></span></div>
 
-      <aside class="rl-col rl-side" id="rl-side" aria-label="Tracked changes and discussion">
+      <aside class="rl-col rl-side" id="rl-side" aria-label="${i18t('ng_tracked_and_discussion')}">
         <!-- The two faces wear their own colours — emerald for the redlines,
              indigo for the conversation, the same pair the origin badges use —
              and each carries its live count as a solid pill. A switch that is
              two grey words is a switch nobody notices they are standing on. -->
-        <div class="rl-side-tabs" role="tablist" aria-label="What the sidebar shows">
+        <div class="rl-side-tabs" role="tablist" aria-label="${i18t('ng_what_sidebar_shows')}">
           <button type="button" class="rl-side-tab rl-tab-changes${mode === 'changes' ? ' on' : ''}" data-rl-mode="changes"
             role="tab" aria-selected="${mode === 'changes' ? 'true' : 'false'}" aria-controls="rl-changes-col">&#128221; Tracked Changes
             <span class="rl-tab-n" id="rl-chg-count">${changeTotal}</span></button>
@@ -9343,10 +9343,10 @@ function redlinePanesHtml(c, opts = {}){
             <span class="rl-tab-n" id="rl-rail-count">${threadTotal}</span></button>
         </div>
 
-        <div class="nego-pane index" id="rl-changes-col" role="tabpanel" aria-label="Tracked changes">
+        <div class="nego-pane index" id="rl-changes-col" role="tabpanel" aria-label="${i18t('ng_tracked_changes')}">
           <div class="nego-index-head rl-idx-head">
           <select id="rl-card-filter" class="rl-card-filter${rlCardFilter() === 'all' ? '' : ' on'}"
-            aria-label="Filter the tracked changes" title="Show every change, one side's asks, or one side of the wall">${
+            aria-label="${i18t('ng_filter_tracked')}" title="Show every change, one side's asks, or one side of the wall">${
             RL_CARD_FILTERS.map(([k, label]) =>
               `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}>${label}</option>`).join('')}</select>
           ${''/* kept for the engine's wiring and the header proxies; the design
@@ -9461,8 +9461,8 @@ function redlineDiscussionHtml(c, opts = {}){
           <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; Send to them</button>
         </div>
         <div class="rl-reply-row">
-          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Reply…" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
-          <button data-nego-send="${_ne(ch.id)}" title="Send this reply">&uarr;</button>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${i18t('ng_reply_ellipsis')}" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
+          <button data-nego-send="${_ne(ch.id)}" title="${i18t('ng_send_this_reply')}">&uarr;</button>
         </div>
       </div>` : ''}
     </article>`;
@@ -9489,13 +9489,13 @@ function redlineDiscussionHtml(c, opts = {}){
   const starterFor = ch => `
     <div class="rl-starter" data-starter-for="${_ne(ch.id)}">
       <div class="rl-starter-head">${_ne(ch.id)} · ${_ne(ch.clauseLabel || ch.clauseId || '')}</div>
-      <div class="nego-visswitch" role="group" aria-label="Who can read this">
+      <div class="nego-visswitch" role="group" aria-label="${i18t('ng_who_can_read_this')}">
         <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="true">&#128274; Internal</button>
         <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="false">&#127760; Shared</button>
       </div>
       <div class="rl-reply-row">
         <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Start a thread on ${_ne(ch.id)}…" aria-label="Start a thread on change ${_ne(ch.id)}"></textarea>
-        <button data-nego-send="${_ne(ch.id)}" title="Start the thread">&uarr;</button>
+        <button data-nego-send="${_ne(ch.id)}" title="${i18t('ng_start_thread')}">&uarr;</button>
       </div>
     </div>`;
   const starter = (canComment && silent.length) ? `

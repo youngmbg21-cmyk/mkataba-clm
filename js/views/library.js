@@ -178,7 +178,7 @@ function updateTemplateRecord(id, patch){
 function saveContractAsTemplate(c){
   if(!tplCanManage()){ toast(i18t('lib_viewers_no_save'),'err'); return; }
   const text=docPlainText(c);
-  if(!text||text.length<40){ toast('This document has no reusable text yet','err'); return; }
+  if(!text||text.length<40){ toast(i18t('lb_no_reusable_text'),'err'); return; }
   // a formatted contract is saved as a formatted template — reusing your own
   // paper should not strip the headings and clause numbering off it
   const rich=!!(window.isRich && isRich(c.format) && c.redlineText);
@@ -203,7 +203,7 @@ function saveContractAsTemplate(c){
   bindFolderSelect(document.getElementById('tpl-folder'));
   document.getElementById('tpl-save').addEventListener('click',()=>{
     const name=document.getElementById('tpl-name').value.trim();
-    if(!name){ toast('Give the template a name','err'); return; }
+    if(!name){ toast(i18t('lb_give_template_name'),'err'); return; }
     saveTemplateRecord(name, document.getElementById('tpl-folder').value, saveBody, 'contract:'+c.id,
       rich?{ format:RICH_FORMAT, chars:text.length }:null);
     logAudit(c,'Template','Saved as reusable template “'+name+'”'); persist(c);
@@ -222,7 +222,7 @@ function saveContractAsTemplate(c){
    The paste box is a contenteditable, not a textarea — a textarea can only
    ever hold plain text, which is the exact loss this is meant to prevent. */
 function openCreateTemplateModal(mode){
-  if(!tplCanManage()){ toast('Viewers cannot add templates','err'); return; }
+  if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
   const opts=folderOptionsHtml(null, false);
   let tab=(mode==='upload')?'upload':'paste';
   let pasted=null;          // { html, format, via, plain }
@@ -264,7 +264,7 @@ function openCreateTemplateModal(mode){
           <button id="ct-clear" class="ui-btn" style="font-size:11px;padding:3px 9px">Clear</button>
         </div>
         <div id="ct-editor" class="scroll-thin doc-surface" style="height:270px;font-size:12.5px"
-             data-placeholder="Open your contract in Word or Google Docs, select all (Ctrl+A), copy (Ctrl+C), then paste here (Ctrl+V)."></div>
+             data-placeholder="${i18t('lb_open_in_word')}"></div>
         <div id="ct-previewpane" class="scroll-thin doc-surface" style="display:none;height:270px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:5px;padding:14px 18px"></div>
         <p style="font-size:10.5px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
         <div id="ct-report" style="font-size:11px;margin-top:7px;min-height:16px;line-height:1.5"></div>
@@ -362,7 +362,7 @@ function openCreateTemplateModal(mode){
   document.getElementById('ct-save').addEventListener('click',async()=>{
     const name=document.getElementById('ct-name').value.trim();
     const folder=document.getElementById('ct-folder').value;
-    if(!name){ toast('Give the template a name','err'); return; }
+    if(!name){ toast(i18t('lb_give_template_name'),'err'); return; }
 
     if(tab==='paste'){
       const html=editor.get();
@@ -452,7 +452,7 @@ const openUploadTemplateModal = () => openCreateTemplateModal('upload');
 
 /* Import one of the bundled HaTi sample PDFs as a custom template. */
 async function importHatiSample(i, btn){
-  if(!tplCanManage()){ toast('Viewers cannot add templates','err'); return; }
+  if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
   const s=HATI_SAMPLES[i]; if(!s) return;
   if(btn){ btn.disabled=true; btn.textContent='Importing…'; }
   try{
@@ -465,7 +465,7 @@ async function importHatiSample(i, btn){
     saveTemplateRecord(s.name, s.folder, text, 'sample:'+s.file);
     toast(`Sample “${s.name}” imported to Counterparty Templates`);
     renderTemplatesPage();
-  }catch(e){ toast('Import failed: '+e.message,'err'); if(btn){ btn.disabled=false; btn.textContent='Import as template'; } }
+  }catch(e){ toast(i18t('lb_import_failed')+e.message,'err'); if(btn){ btn.disabled=false; btn.textContent='Import as template'; } }
 }
 
 /* ============================================================ BLANKS EDITOR
@@ -509,7 +509,7 @@ function _richReplaceRange(host, picked, text){
 }
 
 function openBlanksEditor(tid){
-  if(!tplCanManage()){ toast('Viewers cannot edit templates','err'); return; }
+  if(!tplCanManage()){ toast(i18t('lb_viewers_no_edit'),'err'); return; }
   const rec=customTemplates().find(x=>x.id===tid);
   if(!rec){ toast(i18t('lib_template_not_found'),'err'); return; }
   // work on a copy — nothing is written until Save
@@ -533,12 +533,12 @@ function openBlanksEditor(tid){
     const st='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 7px;font:inherit;font-size:11.5px;outline:none';
     const rows=fields.map((f,i)=>`
       <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="Label" style="${st}"/>
+        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${st}"/>
         <select data-f="type" style="${st}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${st}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="Remove this blank" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
-        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="Choices, comma separated" style="${st};grid-column:1 / -1"/>`:''}
+        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
+        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${st};grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_blank_unused')}</span>`:''}</div>
       </div>`).join('');
     const host=document.getElementById('be-fields');
@@ -738,7 +738,7 @@ function saveTemplateVersion(tid, patch, note){
 
 /* ---------- the one screen ---------- */
 function openTemplateEditor(tid){
-  if(!tplCanManage()){ toast('Viewers cannot edit templates','err'); return; }
+  if(!tplCanManage()){ toast(i18t('lb_viewers_no_edit'),'err'); return; }
   const rec=customTemplates().find(x=>x.id===tid);
   if(!rec){ toast(i18t('lib_template_not_found'),'err'); return; }
 
@@ -783,7 +783,7 @@ function openTemplateEditor(tid){
       <button id="te-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">${i18t('lib_preview')}</button>
     </div>
     <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:12.5px"
-         data-placeholder="Paste the contract here, or type it."></div>
+         data-placeholder="${i18t('lb_paste_or_type')}"></div>
     <div id="te-previewpane" class="scroll-thin doc-surface" style="display:none;height:230px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:5px;padding:14px 18px"></div>
     <p style="font-size:10.5px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
 
@@ -841,12 +841,12 @@ function openTemplateEditor(tid){
     const host2=document.getElementById('te-fields'); if(!host2) return;
     host2.innerHTML=fields.length?fields.map((f,i)=>`
       <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent)">
-        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="Label" style="${stl}"/>
+        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="${i18t('lb_label')}" style="${stl}"/>
         <select data-f="type" style="${stl}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <select data-f="maps" style="${stl}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
-        <button data-del="${i}" title="Remove this blank" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
-        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="Choices, comma separated" style="${stl};grid-column:1 / -1"/>`:''}
+        <button data-del="${i}" title="${i18t('lb_remove_blank')}" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
+        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="${i18t('lb_choices_comma')}" style="${stl};grid-column:1 / -1"/>`:''}
         <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?` <span style="color:var(--st-ruby-fg)">${i18t('lib_not_used_above')}</span>`:''}</div>
       </div>`).join('')
       :`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0">${i18t('lib_no_blanks_press')} <b>${i18t('lib_make_selection_blank')}</b>.</div>`;
@@ -1053,7 +1053,7 @@ function openTemplateVersions(tid){
 
 /* ---------- deletion, with the count in front of the decision ---------- */
 async function deleteTemplateGuarded(tid){
-  if(!tplCanManage()){ toast('Viewers cannot delete templates','err'); return; }
+  if(!tplCanManage()){ toast(i18t('lb_viewers_no_delete'),'err'); return; }
   const t=customTemplates().find(x=>x.id===tid); if(!t) return;
   const u=templateUsage(tid);
   const vn=templateVersionNo(t);
@@ -1075,7 +1075,7 @@ async function deleteTemplateGuarded(tid){
    {{blanks}}, and hands over an ordinary editable template that carries the
    built-in's own field schema. The built-in itself is untouched. */
 function duplicateBuiltinTemplate(bid){
-  if(!tplCanManage()){ toast('Viewers cannot add templates','err'); return; }
+  if(!tplCanManage()){ toast(i18t('lb_viewers_no_add'),'err'); return; }
   const t=TEMPLATES[bid]; if(!t){ toast(i18t('lib_template_not_found'),'err'); return; }
   const u=currentUser();
   const fields=templateFields(t).map(f=>({...f}));
@@ -1097,7 +1097,7 @@ function duplicateBuiltinTemplate(bid){
   });
   const body=sanitizeRich(holder.innerHTML);
   const text=richToText(body);
-  if(!text || text.length<40){ toast('That template could not be converted into an editable copy','err'); return; }
+  if(!text || text.length<40){ toast(i18t('lb_could_not_convert'),'err'); return; }
   // keep only the blanks the rendered document actually uses
   const used=bodyPlaceholders(body);
   const keep=fields.filter(f=>used.includes(f.key));
@@ -1119,7 +1119,7 @@ function duplicateBuiltinTemplate(bid){
 function openBulkCreateModal(t){
   if(!canEdit()){ toast(i18t('lib_viewers_no_create'),'err'); return; }
   const fs=templateFields(t);
-  if(!fs.length){ toast('This template has no blanks yet — add some first','err'); return; }
+  if(!fs.length){ toast(i18t('lb_no_blanks_add_first'),'err'); return; }
   openModal(`<div style="padding:20px 22px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
@@ -1141,7 +1141,7 @@ function openBulkCreateModal(t){
   document.getElementById('bk-cancel').addEventListener('click',closeModal);
   document.getElementById('bk-csv').addEventListener('click',()=>{
     downloadFile(`hati-bulk-${String(t.name||t.kind||'template').toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40)}.csv`, bulkTemplateCsv(t), 'text/csv');
-    toast('Sheet downloaded — one column per blank, with an example row you can delete or overwrite');
+    toast(i18t('lb_sheet_downloaded'));
   });
   document.getElementById('bk-file').addEventListener('change',async e=>{
     const f=e.target.files&&e.target.files[0]; if(!f) return;
@@ -1289,7 +1289,7 @@ function tplPageRowHtml(r){
   if(r.kind==='company') acts=r.draft
     ?`<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${i18t('lib_continue_editing')}</button>`
     :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>Open</button>`;
-  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>Open</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Edit, blanks, bulk, versions, delete">⋯</button>`:''}`;
+  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>Open</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="${i18t('lb_edit_blanks_bulk')}">⋯</button>`:''}`;
   else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${i18t('lib_use')}</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>${i18t('lib_bulk')}</button>`:''}`;
   else acts=r.imported
     ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>${i18t('lib_imported')}</span>`
@@ -1343,7 +1343,7 @@ function tplPagePaintRows(){
   host.querySelectorAll('[data-tpl-builtin]').forEach(b=>b.addEventListener('click',()=>openWizard(b.getAttribute('data-tpl-builtin'))));
   host.querySelectorAll('[data-tpl-bulk-b]').forEach(b=>b.addEventListener('click',()=>{ const t=TEMPLATES[b.getAttribute('data-tpl-bulk-b')];
     if(!t) return;
-    if(!templateAllowedForRole(t.id, currentUser()?.role||'viewer')){ toast('That template is not open to your role','err'); return; }
+    if(!templateAllowedForRole(t.id, currentUser()?.role||'viewer')){ toast(i18t('lb_not_open_to_role'),'err'); return; }
     openBulkCreateModal(t); }));
   host.querySelectorAll('[data-sample-imp]').forEach(b=>b.addEventListener('click',()=>importHatiSample(Number(b.getAttribute('data-sample-imp')), b)));
   document.getElementById('tpl-showall')?.addEventListener('click',()=>{ _tplPage.showAll=true; tplPagePaintRows(); });
@@ -1428,7 +1428,7 @@ function renderTemplatesPage(){
       </div>
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;box-shadow:var(--shadow-sm);overflow:hidden">
         <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
-          <input id="tpl-search" type="search" placeholder="Search templates…" autocomplete="off" value="${_tplEsc(_tplPage.q)}"
+          <input id="tpl-search" type="search" placeholder="${i18t('lb_search_templates')}" autocomplete="off" value="${_tplEsc(_tplPage.q)}"
             style="flex:none;width:min(320px,50%);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:9px;padding:7px 12px;font:inherit;font-size:12px;color:inherit;outline:none"/>
           <span id="tpl-count" style="font-size:11px;color:var(--color-neutral-500)"></span>
         </div>
