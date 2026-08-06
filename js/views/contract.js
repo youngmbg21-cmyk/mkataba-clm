@@ -3421,7 +3421,11 @@ function applyWsCollapse(){
   if(btn){
     btn.setAttribute('aria-expanded', on?'false':'true');
     btn.title=on?'Show the toolbar again':'Collapse this bar and give the contract more room';
-    btn.innerHTML=icon(on?'plus':'minus','w-3.5 h-3.5');
+    /* THE LABEL COMES BACK WITH THE ICON. This wrote the icon ALONE into the
+       row, so the menu carried a line holding nothing but a dash — no words at
+       all — which is what the owner photographed. Same fault as Focus mode
+       beside it: a row that relabels itself has to rewrite the whole row. */
+    btn.innerHTML=`${icon(on?'plus':'minus','w-3.5 h-3.5')}${on?'Show the header':'Collapse the header'}`;
   }
 }
 function wireWsCollapse(c){

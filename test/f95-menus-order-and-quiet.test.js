@@ -83,20 +83,44 @@ describe('F95 — Draft new agreement is the filled green button', () => {
   });
 });
 
-describe('F95 — every menu row has a symbol, and the symbols are green', () => {
+describe('F95 — every menu row has a symbol, and the symbols are solid dark green', () => {
   const css = src('index.html');
+  /* Every declaration block whose selector list contains this exact selector.
+     Read this way rather than by matching one long literal: the two menus share
+     a rule, and a test that pinned the grouping would break the next time the
+     selectors were tidied without the colours changing at all. */
+  const bare = css.replace(/\/\*[\s\S]*?\*\//g, ' ');   // comments hold no rules
+  const rulesFor = sel => [...bare.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(m => m[1].split(',').some(s => s.trim().replace(/\s+/g, ' ') === sel))
+    .map(m => m[2]);
+  const decl = (sel, prop) => rulesFor(sel).map(b =>
+    (b.match(new RegExp(prop + ':\\s*([^;]+)')) || [])[1]).filter(Boolean).pop();
 
-  test('the room menu paints its icons with the accent', () => {
-    assert.match(css, /\.room-menu button svg\{[^}]*color:var\(--color-accent\)/);
-    assert.match(css, /\.room-menu \.danger svg\{[^}]*color:var\(--st-ruby-fg\)/,
-      'except the destructive one, which stays red');
-    assert.match(css, /\.room-menu \.danger:hover svg\{[^}]*color:var\(--st-ruby-fg\)/,
-      'and stays red on hover — hover must not turn Delete into a safe row');
+  test('the room menu paints its icons dark green', () => {
+    assert.equal(decl('.room-menu button svg', 'color'), 'var(--color-accent-800)');
+    assert.equal(decl('.room-menu button:hover svg', 'color'), 'var(--color-accent-800)',
+      'and hovering does not wash it out');
   });
 
-  test('the register row menu does the same', () => {
-    assert.match(css, /\.reg-act svg\{[^}]*color:var\(--color-accent\)/);
-    assert.match(css, /\.reg-act\.danger svg\{[^}]*color:var\(--st-ruby-fg\)/);
+  test('and fills them in, rather than leaving hairline outlines', () => {
+    assert.equal(decl('.room-menu button svg', 'fill'), 'currentColor');
+    assert.equal(decl('.reg-act svg', 'fill'), 'currentColor');
+  });
+
+  test('the register row menu is the same rule', () => {
+    assert.equal(decl('.reg-act svg', 'color'), 'var(--color-accent-800)');
+  });
+
+  test('the destructive rows are red, hover included', () => {
+    for (const sel of ['.room-menu .danger svg', '.room-menu .danger:hover svg', '.reg-act.danger svg'])
+      assert.equal(decl(sel, 'color'), 'var(--st-ruby-fg)',
+        `${sel} — hover must never turn Delete into a row that looks safe`);
+  });
+
+  test('the dark theme lifts them off the ground instead of sinking them', () => {
+    assert.equal(decl('html.dark .room-menu button svg', 'color'), 'var(--color-accent-300)',
+      'accent-800 is a near-black green on dark paper');
+    assert.equal(decl('html.dark .reg-act svg', 'color'), 'var(--color-accent-300)');
   });
 
   test('every verb in the register menu names an icon', () => {
@@ -183,6 +207,136 @@ describe('F95 — the contract is filled in before it is checked', () => {
     const page = src('js/views/contract.js');
     const render = page.slice(page.indexOf('function renderChecksCard'));
     assert.match(render.slice(0, render.indexOf('\n}')), /data-checks-note/);
+  });
+});
+
+describe('F95 — the round’s queue folds to a rail', () => {
+  /* The three-column workbench, mounted the way the portal mounts it — the
+     queue is a column of redlinePanesHtml, which both seats render. */
+  function bench(side = 'owner'){
+    const { win } = buildWorld({ negotiationView: true, contractView: true });
+    /* lsGet/lsSet live in js/core.js, which this stage does not load — the
+       preference store is the shell, so it is supplied here as one. */
+    const store = new Map();
+    win.lsGet = k => (store.has(k) ? store.get(k) : null);
+    win.lsSet = (k, v) => store.set(k, v);
+    const c = contract();
+    win.negoInit(c);
+    win.negoResetView();
+    const host = win.document.createElement('div');
+    host.id = 'bench';
+    win.document.body.appendChild(host);
+    win.redlineEmbed(host, c, { side, by: 'Amina Otieno', persist: false,
+      selMenu(){}, noAi: true, rerender(){} });
+    return { win, c, host,
+      grid: () => host.querySelector('#rl-grid'),
+      queue: () => host.querySelector('#rl-queue'),
+      btn: () => host.querySelector('#rl-q-min'),
+      press: el => el.dispatchEvent(new win.Event('click', { bubbles: true })) };
+  }
+
+  test('it opens open, and offers the fold', () => {
+    const b = bench();
+    assert.ok(b.queue(), 'the queue is there');
+    assert.ok(b.btn(), 'and it can be folded');
+    assert.equal(b.btn().getAttribute('aria-expanded'), 'true');
+    assert.ok(!b.queue().classList.contains('is-min'),
+      'a first-time reader sees it before they can decide they would rather not');
+  });
+
+  test('pressing it folds the column and the grid with it', () => {
+    const b = bench();
+    b.press(b.btn());
+    assert.ok(b.queue().classList.contains('is-min'), 'the column folds');
+    assert.ok(b.grid().classList.contains('q-min'), 'and the grid gives the width back');
+    assert.equal(b.btn().getAttribute('aria-expanded'), 'false');
+  });
+
+  test('the rail still says how far through the round you are', () => {
+    const b = bench();
+    const mini = b.host.querySelector('.rl-q-mini');
+    assert.ok(mini, 'a rail that went blank would make reopening it a guess');
+    assert.match(mini.textContent.replace(/\s+/g, ''), /^\d+\/\d+$/);
+    b.press(b.btn());
+    assert.equal(mini.getAttribute('aria-hidden'), 'false', 'and it is read out once folded');
+  });
+
+  test('pressing it again brings it back', () => {
+    const b = bench();
+    b.press(b.btn()); b.press(b.btn());
+    assert.ok(!b.queue().classList.contains('is-min'));
+    assert.ok(!b.grid().classList.contains('q-min'));
+    assert.equal(b.btn().getAttribute('aria-expanded'), 'true');
+  });
+
+  test('the choice is remembered, and it is remembered per person', () => {
+    const b = bench();
+    b.press(b.btn());
+    assert.equal(b.win.rlQueueMin(), true);
+    /* Repainting the bench must not quietly reopen it. */
+    b.win.redlineEmbed(b.host, b.c, { side: 'owner', by: 'Amina Otieno', persist: false,
+      selMenu(){}, noAi: true, rerender(){} });
+    assert.ok(b.host.querySelector('#rl-queue').classList.contains('is-min'));
+    assert.ok(b.host.querySelector('#rl-grid').classList.contains('q-min'));
+    b.win.rlSetQueueMin(false);
+  });
+
+  test('the folded column has a width to fold to', () => {
+    const nego = src('js/views/negotiation.js');
+    assert.match(nego, /\.rl-grid\.has-queue\.q-min\{--rl-queue-w:\d+px\}/,
+      'the resizer reads --rl-queue-w, so the fold has to move that number');
+  });
+});
+
+describe('F95 — focus mode leaves no dead band at the foot', () => {
+  test('entering focus re-measures the view height', () => {
+    /* The band was never a padding value to halve: --view-h is the scroll
+       container measured once, while the top strip was still on screen. */
+    const nego = src('js/views/negotiation.js');
+    const fn = nego.slice(nego.indexOf('function rlSetFocus('));
+    const body = fn.slice(0, fn.indexOf('\n}'));
+    assert.match(body, /syncViewHeight/, 'the stale measurement is retaken');
+    assert.match(body, /requestAnimationFrame/,
+      'after a frame — clientHeight means nothing until the new shell has laid out');
+  });
+
+  test('it is retaken on the way out too', () => {
+    const { win } = buildWorld({ negotiationView: true });
+    let calls = 0;
+    win.syncViewHeight = () => { calls++; };
+    win.requestAnimationFrame = fn => fn();
+    win.rlSetFocus(true);
+    win.rlSetFocus(false);
+    assert.equal(calls, 2, 'leaving focus brings the strip back — same stale number, other way');
+    win.rlResetFocus();
+  });
+});
+
+describe('F95 — the negotiate cards are square', () => {
+  const nego = src('js/views/negotiation.js');
+
+  test('the panes, the paper and the change cards all drop their radius', () => {
+    for (const sel of ['.redline-page .rl-col', '.redline-page .rl-doc',
+                       '.redline-page .rl-paper', '.redline-page .rl-card']){
+      const rule = nego.slice(nego.indexOf(sel + '{'));
+      const block = rule.slice(0, rule.indexOf('}'));
+      const r = (block.match(/border-radius:\s*([^;}]+)/) || [])[1];
+      assert.ok(r && /^(0|1px|2px|3px)$/.test(r.trim()), `${sel} is still rounded: ${r}`);
+    }
+  });
+
+  test('and the counterparty’s room, which is the same markup, comes with them', () => {
+    assert.match(nego, /--n-r-md:2px;\s*--n-r-lg:2px/,
+      'both pages read these tokens — one number, both seats');
+    const cl = nego.slice(nego.indexOf('.nego-clause{'));
+    assert.match(cl.slice(0, cl.indexOf('}')), /border-radius:var\(--n-r-md\)/,
+      'a clause block is a card too');
+  });
+
+  test('but the buttons and pills keep their own shape', () => {
+    assert.match(nego, /--n-r-sm:6px/, 'squaring a round Accept button turns it into a box');
+    const verbs = nego.slice(nego.indexOf('.redline-page .rl-card-verbs button{'));
+    assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:999px/);
   });
 });
 

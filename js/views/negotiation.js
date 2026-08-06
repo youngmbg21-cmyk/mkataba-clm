@@ -187,7 +187,20 @@ function negoStyleHtml(){
     --n-font-ui:var(--font-body);
     --n-font-doc:var(--font-doc);
     --n-font-mono:var(--font-mono);
-    --n-r-sm:6px; --n-r-md:10px; --n-r-lg:14px;
+    /* ---- THE CARDS ARE SQUARE ----
+       Asked for, and it holds up: this page stacks a lot of boxes — three
+       panes, a paper, a clause block per clause, a card per change — and a
+       10px radius on every one of them made a screen of soft-cornered tiles
+       where the eye reads the CORNERS before the content. 2px, not 0: a 1px
+       border meeting at a true right angle renders a visible dark pip at the
+       join on most displays, and one hair of radius takes it off without
+       reading as rounded.
+
+       The pills, chips and buttons keep their own radii — a fully round
+       Accept button is a button, and squaring it would make it a box. Only
+       the CARDS change. --n-r-sm is what the small round things use, so it is
+       left alone. */
+    --n-r-sm:6px; --n-r-md:2px; --n-r-lg:2px;
     --n-shadow-card:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07);
     --n-shadow-pop:0 8px 30px rgba(38,55,74,.18);
   }
@@ -365,7 +378,7 @@ function negoStyleHtml(){
     font-family:var(--n-font-doc);font-weight:700}
   .nego-doc .nego-meta{text-align:center;font-family:var(--n-font-ui);font-size:11px;
     color:var(--n-ink-soft);margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--n-line)}
-  .nego-clause{position:relative;margin-bottom:22px;padding:10px 12px;border-radius:8px;
+  .nego-clause{position:relative;margin-bottom:22px;padding:10px 12px;border-radius:var(--n-r-md);
     transition:background .25s ease,box-shadow .25s ease}
   .nego-clause h2{font-size:14.5px;margin:0 0 5px;font-family:var(--n-font-doc);font-weight:700}
   /* THE LINE BREAKS ARE THE DOCUMENT, and the browser was eating them.
@@ -4994,6 +5007,23 @@ function rlSetFocus(on){
      on the register must not find the navigation missing. */
   if (typeof document !== 'undefined' && document.body && document.body.classList)
     document.body.classList.toggle('rl-focused', _rlFocus);
+  /* ---- THE DEAD BAND AT THE FOOT ----
+     The page is `height:var(--view-h)`, and --view-h is the scroll container
+     measured ONCE, while the top strip was still on screen. Focus mode then
+     hides the strip and the sidebar, so the container grows and the page does
+     not — leaving a strip's worth of empty white below the panes, with the
+     exit chip floating in it. That is the band, and it is not a padding value
+     to halve: it is a stale measurement.
+
+     So it is re-measured. The class changes are applied above, and the browser
+     needs a frame to lay the new shell out before clientHeight means anything,
+     which is what the rAF is for; the timeout is for the stages that have no
+     rAF. Leaving focus re-measures for the same reason, in reverse. */
+  if (typeof window !== 'undefined' && window.syncViewHeight){
+    const remeasure = () => { try{ syncViewHeight(); }catch(_){} };
+    if (window.requestAnimationFrame) requestAnimationFrame(remeasure);
+    else setTimeout(remeasure, 0);
+  }
   rlPaintFocusBtn();
 }
 /* The button is the way in AND the way out — the toolbar it lives on stays
@@ -5289,7 +5319,7 @@ function redlineLayoutCss(){
      and the column behind it drops to the page background (see .rl-doc) so
      the gutters read as page, not as card. */
   .redline-page .rl-paper{padding:30px 36px 36px;max-width:720px;
-    background:var(--color-surface);border:0;border-radius:4px;box-shadow:var(--shadow-md);margin:0 auto}
+    background:var(--color-surface);border:0;border-radius:2px;box-shadow:var(--shadow-md);margin:0 auto}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
      The engine reserves it — padding-left:100px on .nego-pane.working
      .nego-doc — because in the room the fingerprint badges hang there, outside
@@ -5419,7 +5449,7 @@ function redlineLayoutCss(){
      theirs, green and grey once it is settled — which is the one fact the eye
      can take without stopping. The id is a chip rather than loose bold text,
      for the same reason a reference number on any other screen is. */
-  .redline-page .rl-card{border:1px solid var(--color-divider);border-radius:10px;padding:11px 12px;
+  .redline-page .rl-card{border:1px solid var(--color-divider);border-radius:2px;padding:11px 12px;
     margin-bottom:10px;background:var(--color-surface);cursor:pointer;
     border-left:3px solid var(--accent-solid,var(--color-accent))}
   .redline-page .rl-card[data-rl-origin="them"]{border-left-color:var(--st-amber-dot)}
@@ -5706,9 +5736,36 @@ function redlineLayoutCss(){
   /* The head does not scroll. The score used to sit at the foot of the
      scroller, which meant that on a busy negotiation — the only kind where it
      matters — it scrolled away behind the rows it was counting. */
-  .redline-page .rl-q-head{flex:none;padding:14px 10px 10px;border-bottom:1px solid var(--color-divider)}
-  .redline-page .rl-q-label{margin:0 0 8px;font-size:9.5px;font-weight:800;
+  .redline-page .rl-q-head{position:relative;flex:none;padding:14px 10px 10px;
+    border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-q-label{margin:0 26px 8px 0;font-size:9.5px;font-weight:800;
     letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)}
+  /* ---- THE FOLD ----
+     The chevron sits in the head's own corner rather than on a toolbar of its
+     own: one control, and it is where the thing it folds begins. It stays put
+     when the column folds — at 34px the head IS the rail, so the button has to
+     be reachable from both states without moving. */
+  .redline-page .rl-q-min{position:absolute;top:9px;right:6px;width:22px;height:22px;
+    display:grid;place-items:center;padding:0;border:0;border-radius:5px;background:none;
+    color:var(--color-neutral-500);cursor:pointer;transition:background .12s,color .12s}
+  .redline-page .rl-q-min:hover{background:var(--color-neutral-100);color:var(--color-text)}
+  /* The rail's read-out: the same two numbers, stacked, because 34px has no
+     room for a line of text. Hidden while the column is open — the open column
+     already says it in words. */
+  .redline-page .rl-q-mini{display:none}
+  .redline-page .rl-queue.is-min .rl-q-scroll,
+  .redline-page .rl-queue.is-min .rl-q-label,
+  .redline-page .rl-queue.is-min .rl-q-foot,
+  .redline-page .rl-queue.is-min .rl-q-bar{display:none}
+  .redline-page .rl-queue.is-min .rl-q-head{padding:8px 4px 10px;border-bottom:0}
+  .redline-page .rl-queue.is-min .rl-q-min{position:static;margin:0 auto 8px}
+  .redline-page .rl-queue.is-min .rl-q-mini{display:flex;flex-direction:column;align-items:center;
+    gap:1px;font-family:var(--font-mono);font-size:10px;line-height:1.15;color:var(--color-neutral-600)}
+  .redline-page .rl-queue.is-min .rl-q-mini b{font-size:12px;color:var(--color-text)}
+  .redline-page .rl-queue.is-min .rl-q-mini i{font-style:normal;opacity:.5}
+  /* The column itself. 34px is the chevron plus its breathing room — anything
+     narrower and the control it has to keep is bigger than the rail. */
+  .redline-page .rl-grid.has-queue.q-min{--rl-queue-w:34px}
   .redline-page .rl-q-bar{height:5px;border-radius:999px;background:var(--color-neutral-200);overflow:hidden}
   .redline-page .rl-q-bar span{display:block;height:100%;border-radius:999px;
     background:var(--accent-solid,var(--color-accent));transition:width .3s ease}
@@ -5965,12 +6022,13 @@ function redlineLayoutCss(){
       box-shadow:none;z-index:auto}
     .redline-page #nego-drawer{display:none!important}
   }
+  /* 2px, per the note on --n-r-md: a hair off the join, not a rounded card. */
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
-    border-radius:12px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
+    border-radius:2px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
   /* The document column is the canvas the sheet floats on — page background,
      so the gutters either side of .rl-paper read the way the Doc page's do.
      The sheet itself (.rl-paper above) carries the paper shadow. */
-  .redline-page .rl-doc{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:12px;
+  .redline-page .rl-doc{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:2px;
     box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;
     display:flex;flex-direction:column}
   html.dark .redline-page .rl-paper{box-shadow:0 10px 30px rgba(0,0,0,.45)}
@@ -7528,6 +7586,9 @@ function rlWireClauseTools(c, host, opts){
   /* ---- THE TEXT-SIZE STEPPER ---- */
   rlWireTypeStep(host);
 
+  /* ---- FOLDING THE QUEUE ---- */
+  rlWireQueueMin(host);
+
   /* ---- CARD → CONTRACT ----
      Pressing anywhere on a card that is not one of its verbs. The verbs all
      stop propagation, so Accept does not also drag the document somewhere on
@@ -9039,12 +9100,31 @@ function rlQueueHtml(c, opts = {}){
      out of sight behind the very rows it was counting. It heads the column
      now, and the bar says the same thing without being read. */
   const pct = p.total ? Math.round(p.done / p.total * 100) : 0;
-  return `<aside class="rl-col rl-queue" id="rl-queue" aria-label="This round's queue">
+  /* ---- IT FOLDS TO A RAIL, AND THE RAIL STILL COUNTS ----
+     300px is a quarter of a laptop's window spent on a reading order, and on a
+     round you have already worked through it is 300px of ticks. It folds.
+
+     What it folds TO matters more than that it folds: a rail that went blank
+     would make reopening it a guess. The count survives — "9/9" turned on its
+     side, and the progress bar becomes the rail's own edge — so the one thing
+     the column exists to tell you is still legible at 34px wide.
+
+     Remembered per person, not per contract: this is how somebody works, not a
+     fact about an agreement. */
+  const min = rlQueueMin();
+  return `<aside class="rl-col rl-queue${min ? ' is-min' : ''}" id="rl-queue" aria-label="This round's queue">
     <div class="rl-q-head">
+      <button type="button" id="rl-q-min" class="rl-q-min" aria-expanded="${min ? 'false' : 'true'}"
+        title="${min ? "Show this round's queue" : "Minimise this round's queue"}">${
+        _rlChev(min)}</button>
       <p class="rl-q-label">This round's queue</p>
       <div class="rl-q-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"
         aria-label="${p.done} of ${p.total} changes decided this round"><span style="width:${pct}%"></span></div>
       <div class="rl-q-foot"><b>${p.done} of ${p.total}</b> decided this round</div>
+      ${''/* The folded rail's own read-out. Same two numbers, off the same
+             progress object, so the rail and the open column can never
+             disagree about how far through the round you are. */}
+      <div class="rl-q-mini" aria-hidden="${min ? 'false' : 'true'}"><b>${p.done}</b><i>/</i><span>${p.total}</span></div>
     </div>
     <div class="rl-q-scroll">
       ${body}
@@ -9052,6 +9132,40 @@ function rlQueueHtml(c, opts = {}){
       ${note}
     </div>
   </aside>`;
+}
+/* Folded or not. localStorage, per signed-in person, defaulting to open — a
+   first-time reader must see the queue before they can decide they would
+   rather not. */
+const RL_QMIN_KEY = () => { const u = (typeof currentUser === 'function') ? currentUser() : null;
+  return 'hati.v1.rlQueueMin.' + ((u && u.id) || 'anon'); };
+function rlQueueMin(){ try{ return !!lsGet(RL_QMIN_KEY()); }catch(_){ return false; } }
+function rlSetQueueMin(on){ try{ lsSet(RL_QMIN_KEY(), !!on); }catch(_){} }
+const _rlChev = min => `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${
+  min ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'}"/></svg>`;
+/* The fold, applied without a repaint. Rebuilding the workbench to hide one
+   column would throw away the reader's scroll position in the contract, which
+   is the one thing they were holding on to. Class on the aside, class on the
+   grid, and the resizer re-run because the split it placed was measured
+   against a column that just changed width. */
+function rlWireQueueMin(host){
+  const scope = (host && host.querySelector) ? host : document;
+  const btn = scope.querySelector('#rl-q-min');
+  if (!btn || btn._wired) return;
+  btn._wired = true;
+  btn.addEventListener('click', () => {
+    const on = !rlQueueMin();
+    rlSetQueueMin(on);
+    const q = scope.querySelector('#rl-queue'), grid = scope.querySelector('#rl-grid');
+    if (q) q.classList.toggle('is-min', on);
+    if (grid) grid.classList.toggle('q-min', on);
+    btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+    btn.title = on ? "Show this round's queue" : "Minimise this round's queue";
+    btn.innerHTML = _rlChev(on);
+    const mini = scope.querySelector('.rl-q-mini');
+    if (mini) mini.setAttribute('aria-hidden', on ? 'false' : 'true');
+    if (window.rlLayoutResizer) rlLayoutResizer(host);
+  });
 }
 
 /* The design's grid. Everything inside it is the engine's, arranged the way the
@@ -9102,7 +9216,7 @@ function redlinePanesHtml(c, opts = {}){
          divider, same defaults: two thirds to the contract). nego-work is kept
          on the grid because the engine scopes its clause tooling under it
          (.nego-work .nego-pane …). -->
-    <div class="rl-grid nego-work has-queue" id="rl-grid" style="--nego-f:1;--nego-c:320px">
+    <div class="rl-grid nego-work has-queue${rlQueueMin() ? ' q-min' : ''}" id="rl-grid" style="--nego-f:1;--nego-c:320px">
       <!-- THE QUEUE COMES FIRST because it is read first: what to answer next,
            then the wording, then the change record. It is a grid column rather
            than an overlay so it scrolls and stacks with the panes instead of

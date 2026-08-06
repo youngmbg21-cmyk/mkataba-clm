@@ -627,19 +627,54 @@
   /* ---- THE SYMBOLS CARRY THE COLOUR, THE WORDS STAY BLACK ----
      These were grey, which made a menu of nine verbs read as one grey block —
      the eye had nothing to aim at and had to read every line to find the one
-     it wanted. Green icons give each row a mark you can pick out at a glance
-     without shouting: the colour is on the symbol only, the label stays plain
-     text, and the destructive row keeps its red so it can never be mistaken
-     for one of the safe ones. */
-  .room-menu button svg{ flex:none; color:var(--color-accent); }
-  .room-menu button:hover svg{ color:var(--color-accent); }
-  .room-menu .danger svg{ color:var(--st-ruby-fg); }
-  .room-menu .danger:hover svg{ color:var(--st-ruby-fg); }
-  /* The register's row menu, same rule. It is the menu in the reference shot —
-     a ⋯ per row on a table — and it was six lines of unmarked text. */
-  .reg-act svg{ flex:none; color:var(--color-accent); }
+     it wanted. Coloured marks give each row something to aim at without
+     shouting: the colour is on the symbol only, the label stays plain text,
+     and the destructive row keeps its red so it can never be mistaken for one
+     of the safe ones.
+
+     SOLID, NOT HOLLOW. The app's icons are hairline outlines — 1.6px of stroke
+     around empty space — which at 14px is a faint wire drawing that dissolves
+     into the row. The insides are filled now and the colour darkened to
+     accent-800, so each reads as a small solid glyph: heavier on the page, and
+     dark enough to hold its weight beside black text rather than floating off
+     it.
+
+     THE STROKE IS KNOCKED OUT IN THE ROW'S OWN COLOUR, and that is the whole
+     trick. Filling these paths in one flat colour and leaving the stroke the
+     same colour destroys them: Compare versions becomes a plain square, Word
+     becomes a rectangle with no fold, the bin loses its lid. Every line that
+     made the glyph readable was an INTERIOR line, and a solid fill swallows
+     it. Painting the stroke in the surface colour cuts those same lines back
+     out as white — so the mark is a solid dark-green shape with its detail
+     showing through, which is what a filled icon set actually looks like.
+
+     stroke-width is nudged up for that reason too: a knocked-out line has to
+     survive being drawn over a dark ground at 14px. */
+  .room-menu button svg,
+  .reg-act svg{ flex:none; color:var(--color-accent-800); fill:currentColor;
+    stroke:var(--color-surface); stroke-width:1.9; paint-order:stroke fill; }
+  .room-menu button:hover svg{ color:var(--color-accent-800); }
+  /* ---- THE ONE GLYPH WITH NOTHING TO KNOCK OUT OF ----
+     Collapse the header is a single horizontal line. A line encloses no area,
+     so the fill above paints nothing and the knock-out stroke paints it in the
+     row's own white — an invisible icon, and the row went blank. Anything drawn
+     as strokes alone keeps its stroke; there is exactly one, and it is named
+     rather than guessed at. */
+  #ws-collapse svg{ stroke:currentColor; stroke-width:2; }
+  /* Ruby beats the accent on both menus, and on hover — hover must never turn
+     Delete into a row that looks safe. */
+  .room-menu .danger svg,
+  .room-menu .danger:hover svg,
   .reg-act.danger svg{ color:var(--st-ruby-fg); }
+  /* The register's row menu is the menu in the reference shot — a ⋯ per row on
+     a table — and it was six lines of unmarked text. */
   .reg-act:hover{ background:var(--color-neutral-100); }
+  /* On the dark paper accent-800 is a near-black green. The ramp inverts for
+     the reason every other token does: the mark has to sit ON the ground, not
+     sink into it. */
+  html.dark .room-menu button svg,
+  html.dark .room-menu button:hover svg,
+  html.dark .reg-act svg{ color:var(--color-accent-300); }
   .room-menu .mgroup{ font-size:9px; font-weight:700; letter-spacing:.13em; text-transform:uppercase;
     color:var(--color-neutral-500); padding:7px 10px 4px; }
   .room-menu hr{ border:0; border-top:1px solid var(--color-divider); margin:5px 4px; }
