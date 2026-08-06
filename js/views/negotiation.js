@@ -8527,8 +8527,35 @@ async function rlOpenPlaybookReview(c, again){
        if it belongs to the side that is looking. Symmetric on purpose: an
        owner's internal note never shows in Counterparty View, and a note
        filed while acting as the counterparty never shows in Internal View. */
+/* ---- THE WALL HID THE OTHER SIDE'S ASKS FROM THE PERSON THEY WERE SENT TO ----
+
+   The wall's job is one thing: keep MY unsent drafts out of the preview of
+   THEIR seat. It was written as "hide the other side's unsent asks", which
+   sounds the same and is not, because unsent-ness is only meaningful about
+   your own drafts. negoUnsentAsks reads "pending and created after the last
+   hand-over" — and a counterparty ask arriving on the owner's record is
+   re-filed through negoFileChange, which stamps createdAt = NOW. So it is
+   always created after the hand-over.
+
+   It survived because negoTurnBack normally advances the turn stamp on
+   receipt — but ONLY when the turn is currently theirs. On the second answer
+   in a row the turn is already ours, the stamp does not move, and their new
+   ask is read as their unsent draft and walled off the very person it was
+   sent to. Reproduced: the change is on the record with its reason, the
+   Negotiate tab counts it, and no card is drawn for it anywhere.
+
+   negoUnsentAsks already carries this reasoning in its own comment, for the
+   case where there is no turn stamp at all: "a change of theirs is on our
+   record only because it was sent to us, whatever the turn stamp says." That
+   is true whatever the turn stamp says — including when there is one. Applied
+   here rather than in the model, because the model's answer is also read by
+   the batch send and the wall counts, which do mean their own side's drafts. */
 function rlHiddenFrom(c, side){
   const other = side === 'counterparty' ? 'owner' : 'counterparty';
+  const home = (typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) ? 'counterparty' : 'owner';
+  /* Only the side whose record this IS can have unsent drafts on it. The other
+     side's changes are here because they were sent. */
+  if (other !== home) return new Set();
   return new Set((window.negoUnsentAsks ? negoUnsentAsks(c, other) : []).map(x => x.id));
 }
 const rlMsgVisible = (m, side) =>
@@ -8570,6 +8597,19 @@ function rlDeltaOps(ops){
   }
   return out;
 }
+/* WHICH CHANGES GET A CARD, as one answer. The stack and the tab pill both
+   read it, because a pill that counts something narrower than the list it
+   labels is a pill that says "nothing arrived" over four cards. */
+function redlineCardIds(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
+  const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
+  const heldIds = new Set(opts.holdsDecisions ? (opts.heldDecisionIds || []) : []);
+  const sentIds = new Set(opts.sentDecisionIds || []);
+  const contestedAny = x => x && x.status === 'rejected' && !x.withdrawn;
+  return all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
+    || sentIds.has(x.id)) && !hidden.has(x.id)).map(x => x.id);
+}
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const canAct = !opts.readonly;
@@ -8603,6 +8643,8 @@ function redlineChangeCardsHtml(c, opts = {}){
   const redeciding = id => _negoRedeciding[id];
   const changes = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
     || sentIds.has(x.id)) && !hidden.has(x.id));
+  /* Named on the module so the tab pill above reads the same answer — see
+     redlineCardIds directly below. */
   /* Which of OUR asks have never left the building. The engine already answers
      this — the same count the wall and the batch send are drawn from — so the
      card's Send button and the toolbar's cannot disagree about what is unsent. */
@@ -9228,8 +9270,14 @@ function redlinePanesHtml(c, opts = {}){
      so the pill and the stack can never disagree. */
   const tabSide = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const tabHidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, tabSide);
-  const changeTotal = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => _rlIsLive(x) && !tabHidden.has(x.id)).length : 0;
+  /* COUNT WHAT THE STACK DRAWS. This counted live asks only, while the stack
+     below also renders contested asks (refused and not withdrawn), held
+     decisions and sent ones — so a column showing four cards sat under a pill
+     reading 0, and the pill is what a reader checks to see whether anything
+     arrived. redlineCardIds is the stack's own predicate, so the two cannot
+     drift again. */
+  const changeTotal = (typeof redlineCardIds === 'function')
+    ? redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden] }).length : 0;
   /* #nego-root is not decoration: the engine declares its entire colour ramp
      on `.nego-room, #nego-root`, so without this wrapper --n-slate and friends
      are undefined and the clause tools render as transparent boxes with white
@@ -9546,7 +9594,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
-  rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
+  redlineCardIds, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,
   redlineRoundLine, rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,

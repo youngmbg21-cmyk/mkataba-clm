@@ -507,6 +507,72 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
 
    The clauseNotes route below is the OTHER way in. Both are asserted, because
    fixing one and not the other is exactly what happened. */
+/* THE SECOND ANSWER IN A ROW USED TO VANISH.
+
+   negoTurnBack advances the turn stamp when an answer arrives — but only when
+   the turn is currently theirs. On the second answer the turn is already ours,
+   the stamp does not move, and their new ask (re-filed here, so stamped
+   createdAt = NOW) is therefore "created after the last hand-over" — which
+   negoUnsentAsks reads as THEIR UNSENT DRAFT and the wall then hides from the
+   very person it was sent to. The change was on the record, carried its
+   reason, was counted by the Negotiate tab, and had no card anywhere.
+
+   Unsent-ness is only meaningful about your OWN drafts: a change of theirs is
+   on our record because they sent it. */
+describe('a counterparty ask is never hidden from the owner it was sent to', () => {
+  test('their second answer in a row still gets a card', async () => {
+    const win = recordStage();
+    const c = ownerContract();
+    win.negoInit(c);
+    const cls = win.negoClauseList(c);
+
+    // our ask, then hand the table over — this is what sets the turn stamp
+    await win.negoEditClause(c, cls[0].clauseId, '<p>' + cls[0].text + ' Ours.</p>',
+      { side: 'owner', author: 'Wanjiru', why: 'our ask' });
+    win.negoHandOver(c, { to: 'counterparty', by: 'Wanjiru' });
+
+    const answer = (id, clause) => ({ v: 1, kind: 'hati-response', id: c.id, action: 'decisions',
+      name: 'Erik Lindqvist', comment: '', negoDecisions: [],
+      negoProposed: [{ id, clauseId: clause.clauseId, changeType: 'modify',
+        oldText: clause.text, newText: clause.text + ' ' + id + '.',
+        why: 'Because we need it.', note: null }],
+      at: '2026-07-27T10:00:00Z' });
+
+    await win.applyResponse(c, answer('A1', cls[1] || cls[0]), { background: true });
+    // the turn is ours now, so this second one does NOT move the stamp
+    await win.applyResponse(c, answer('A2', cls[2] || cls[0]), { background: true });
+
+    const theirs = win.negoChanges(c).filter(x => x.authorSide === 'counterparty');
+    assert.equal(theirs.length, 2, 'both of their asks are on the record');
+
+    const hidden = win.rlHiddenFrom(c, 'owner');
+    assert.equal(hidden.size, 0,
+      'nothing of theirs is hidden from us — it is on our record because they sent it');
+    const carded = win.redlineCardIds(c, { side: 'owner' });
+    theirs.forEach(x => assert.ok(carded.includes(x.id),
+      `${x.id} must have a card — it arrived and is awaiting a decision`));
+  });
+
+  test('the tab pill counts exactly the cards the column draws', () => {
+    const win = recordStage();
+    const c = ownerContract();
+    win.negoInit(c);
+    const cls = win.negoClauseList(c);
+    /* A contested ask — refused and not withdrawn — renders a card and used to
+       be left out of the pill, so a column of four cards sat under a 0. */
+    const ch = { id: 'CHG-900', clauseId: cls[0].clauseId, changeType: 'modify',
+      oldText: cls[0].text, newText: cls[0].text + ' x', ops: [], status: 'rejected',
+      author: 'Wanjiru', authorSide: 'owner', withdrawn: false, roundN: 1,
+      createdAt: '2026-07-27T10:00:00Z', revisions: [], thread: [] };
+    c.changes.push(ch);
+    const carded = win.redlineCardIds(c, { side: 'owner' });
+    assert.ok(carded.includes('CHG-900'),
+      'a refused ask of ours stays on the table — it is the one state that blocks the deal');
+    assert.equal(carded.length, win.redlineCardIds(c, { side: 'owner' }).length,
+      'and the pill reads the same answer the stack does');
+  });
+});
+
 describe('a reason typed in the workbench survives the counterparty\'s link', () => {
   test('why crosses on negoProposed, and lands on why — not on the internal note', async () => {
     const win = recordStage();
