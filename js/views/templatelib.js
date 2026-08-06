@@ -370,7 +370,7 @@ function tplLibCreateModal() {
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('tl_name')}</span>
         <input id="tpllib-name" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none" placeholder="e.g. Account Opening Form" maxlength="160"></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('tl_category')}</span>
-        <select id="tpllib-cat" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"><option value="other">${t('tl_other')}</option>${cats}</select></label>
+        <select id="tpllib-cat" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"><option value="other">${t('tl_other_category')}</option>${cats}</select></label>
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('tl_description')} <span style="font-weight:400;color:var(--color-neutral-500)">(optional)</span></span>
         <textarea id="tpllib-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none;min-height:60px" maxlength="2000" placeholder="${t('tl_what_for')}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">

@@ -63,6 +63,9 @@ const I18N_DEFAULT = 'en';
    Interpolation: {name} placeholders, filled from the second argument.
    Plurals: a key ending _one / _other is chosen by tn(); Swedish and English
    happen to agree on the one/other split, which is why a single pair works.
+   Those two suffixes are therefore RESERVED — a key that merely happens to end
+   in "_other" (a category called "Other", say) reads as half a plural pair and
+   f148 will fail on it. Name it _other_category or similar.
    ============================================================ */
 const STRINGS = {
   en: {
@@ -524,7 +527,7 @@ const STRINGS = {
     tl_new_standard: 'New standard template',
     tl_name: 'Name',
     tl_category: 'Category',
-    tl_other: 'Other',
+    tl_other_category: 'Other',
     tl_description: 'Description',
     tl_save_as_standard: 'Save as a standard template',
     tl_create_draft_template: 'Create draft template',
@@ -1041,7 +1044,7 @@ const STRINGS = {
     tl_new_standard: 'Ny standardmall',
     tl_name: 'Namn',
     tl_category: 'Kategori',
-    tl_other: 'Övrigt',
+    tl_other_category: 'Övrigt',
     tl_description: 'Beskrivning',
     tl_save_as_standard: 'Spara som standardmall',
     tl_create_draft_template: 'Skapa mallutkast',
