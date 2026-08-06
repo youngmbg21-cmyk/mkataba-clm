@@ -5,9 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>HaTi — Contract Lifecycle Management</title>
 <script>
-  // Apply the saved theme before first paint (class strategy — see toggleTheme
-  // in js/app.js). Default is light; 'hati-theme' persists the choice.
-  try{ if(localStorage.getItem('hati-theme')==='dark') document.documentElement.classList.add('dark'); }catch(e){}
+  // Apply the saved theme BEFORE first paint. This runs ahead of the
+  // stylesheet on purpose: set it any later and every visitor on Navy or Dark
+  // gets one frame of green first, which reads as a flicker on every load.
+  //
+  // Deliberately duplicated from THEMES in js/app.js rather than shared —
+  // nothing is loaded yet, so there is nothing to share with. Three keys and
+  // two lines; if a fourth theme is ever added, it is added here too.
+  // 'light' is what the old two-position switch wrote and is still in
+  // people's browsers; it means green.
+  try{
+    var t = localStorage.getItem('hati-theme') || 'green';
+    if (t === 'light') t = 'green';
+    if (t === 'dark') document.documentElement.classList.add('dark');
+    else if (t === 'navy') document.documentElement.setAttribute('data-brand', 'navy');
+  }catch(e){}
 </script>
 <script>
   // HaTi — CLM redesign (teal brand on slate, light/dark via the `dark` class).
@@ -607,6 +619,42 @@
      one place instead of four files finding their own dark green. */
   :root{ --nav-bg:#0b3d3a; --nav-line:#0a3532; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
          --nav-deep:#0f4c46; }
+
+  /* ============================================================
+     NAVY — the second brand, and the ONLY thing it changes is colour
+     ============================================================
+     Every value below has a twin in the green ramp above and nothing else
+     here: no spacing, no radius, no rule about what is bold. A theme that
+     could change more than colour would eventually be used to, and then two
+     themes would be two layouts to maintain.
+
+     It sets the same names, so nothing downstream knows which brand it is
+     wearing. That is the whole return on gathering the colours into one place:
+     493 utility classes, every chip, every gradient and every icon follow from
+     this one block.
+
+     WHAT IS NOT HERE is as deliberate: no --st-green, no --st-ruby, no
+     --n-ins/--n-del. Accepted stays green and rejected stays red on a navy
+     platform, because those two are not brand — they are the redline's
+     grammar, and a lawyer reads them before they read anything else. */
+  :root[data-brand="navy"]{
+    --color-accent-50:#eef3fb;   --color-accent-100:#dce5f7;
+    --color-accent-200:#b8caf0;  --color-accent-300:#8aa8e2;
+    --color-accent-400:#5b82cf;  --color-accent-500:#3560b4;
+    --color-accent-600:#24488f;  --color-accent-700:#1c3872;
+    --color-accent-800:#16295a;  --color-accent-900:#111f45;
+    --color-accent-50-rgb:238 243 251;   --color-accent-100-rgb:220 229 247;
+    --color-accent-200-rgb:184 202 240;  --color-accent-300-rgb:138 168 226;
+    --color-accent-400-rgb:91 130 207;   --color-accent-500-rgb:53 96 180;
+    --color-accent-600-rgb:36 72 143;    --color-accent-700-rgb:28 56 114;
+    --color-accent-800-rgb:22 41 90;     --color-accent-900-rgb:17 31 69;
+    /* The companion hue and the hero's deep stop, stepped to match: on green
+       these lean cyan, on navy they lean a lighter, cleaner blue. */
+    --brand-cyan:#3f7ac4; --brand-cyan-600:#2f63a8; --brand-cyan-700:#2b5c9e;
+    --brand-hero-deep:#0f2447;
+    /* The sidebar's own ground, deeper than the ramp reaches. */
+    --nav-bg:#122a4d; --nav-line:#0e2140; --nav-ink:#a5bde0; --nav-deep:#17376b;
+  }
   /* Accent text that stays READABLE in both themes. The deep teal that reads
      well on white is 2.4:1 on the dark surface — the app's existing answer for
      accent words in the dark is accent-400, so this token carries it. Use it
@@ -925,9 +973,24 @@
   @media (max-width:1430px){ .region-abbr{display:inline;} }
 
   /* theme toggle: both glyphs live in the button; html.dark picks which shows */
-  #theme-icon-sun{display:none;color:#fbbf24;}
-  html.dark #theme-icon-moon{display:none;}
-  html.dark #theme-icon-sun{display:block;}
+  /* The theme control. Its face is a swatch of the theme you are wearing —
+     the shortest possible answer to "which one am I on", readable without
+     opening anything. The rows below carry their own swatch for the same
+     reason: naming a colour is slower than showing it. */
+  #theme-swatch{ width:15px; height:15px; border-radius:5px; display:block;
+    background:var(--brand-grad); border:1px solid rgb(0 0 0/.14); }
+  html.dark #theme-swatch{ background:var(--color-neutral-800); border-color:rgb(255 255 255/.22); }
+  #theme-menu button{ display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+    border:0; background:none; cursor:pointer; font:inherit; font-size:12.5px; font-weight:500;
+    color:var(--color-text); border-radius:7px; padding:8px 10px; }
+  #theme-menu button:hover{ background:var(--color-neutral-100); }
+  #theme-menu .tsw{ width:16px; height:16px; border-radius:5px; flex:none;
+    border:1px solid rgb(0 0 0/.16); }
+  html.dark #theme-menu .tsw{ border-color:rgb(255 255 255/.2); }
+  #theme-menu .tnote{ display:block; font-size:10.5px; font-weight:400;
+    color:var(--color-neutral-500); }
+  #theme-menu .ttick{ margin-left:auto; flex:none; color:var(--color-accent-700); font-weight:700; }
+  html.dark #theme-menu .ttick{ color:var(--color-accent-300); }
   #side-copilot:hover{filter:brightness(1.07);}
   /* narrow shells: shed the "Jurisdiction:" caption first, then the switcher,
      then the global search and the profile text */
@@ -1803,10 +1866,24 @@
         <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
       </button>
 
-      <button id="theme-toggle-btn" class="hdr-icon-btn" title="Toggle light / dark theme">
-        <svg id="theme-icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-        <svg id="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-      </button>
+      <!-- ---- THREE THEMES NEEDS A MENU, NOT A MOON ----
+           A moon is a switch with two positions and it promised night. With
+           Green, Navy and Dark to choose between, pressing a moon and getting a
+           colour change is the control lying about itself. Three named rows, a
+           swatch each, a tick on the one you are wearing.
+
+           AND THIS IS AN HTML COMMENT, not ${''/* … */}. That form is a
+           JavaScript template-literal trick and it works in the view files
+           because those build their markup as template strings. This file is
+           plain HTML: the same characters are TEXT, and they printed a
+           paragraph about moons across the top of the platform. Caught by
+           photographing the header. -->
+      <div style="position:relative;flex:none">
+        <button id="theme-btn" class="hdr-icon-btn" aria-haspopup="true" aria-expanded="false" title="Theme">
+          <span id="theme-swatch" aria-hidden="true"></span>
+        </button>
+        <div id="theme-menu" class="room-menu hidden" style="min-width:212px"></div>
+      </div>
 
       <button id="hdr-notify" class="hdr-icon-btn" title="Notifications — the Activity panel carries the live feed">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>

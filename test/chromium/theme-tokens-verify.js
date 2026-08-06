@@ -81,7 +81,16 @@ const CENSUS = () => {
     if (!v || v === 'none' || v === 'rgba(0, 0, 0, 0)') return;
     tally.set(v, (tally.get(v) || 0) + 1);
   };
+  /* THE THEME CONTROL IS NOT PART OF THE PLATFORM'S PALETTE. Its swatches are
+     samples of all three themes, so it carries navy and near-black while you
+     are wearing green — on purpose, that is how a picker shows you what you
+     are choosing between. Counting them would make every screen look like it
+     had gained two colours, and would make the green sample look like a teal
+     the sweep missed while you were on navy. Excluded in every pass, so both
+     sides of the comparison are the platform itself. */
+  const CONTROL = el => el.closest && el.closest('#theme-menu, #theme-btn');
   for (const el of document.querySelectorAll('*')){
+    if (CONTROL(el)) continue;
     const s = getComputedStyle(el);
     for (const p of PROPS) add(s[p]);
     /* Shadows and gradients carry brand colour too, and a refactor can break
@@ -91,8 +100,12 @@ const CENSUS = () => {
       if (v && v !== 'none') for (const m of String(v).match(COLOUR_RE) || []) add(m);
     }
   }
-  return [...tally.entries()].sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([k, n]) => `${k} ×${n}`).join('\n');
+  /* WHICH SHADES, NOT HOW MANY OF EACH. The first version tallied counts, and
+     the first time markup legitimately changed — a theme menu, three rows on
+     every page — all twenty screens failed with every colour identical and
+     every count seventeen higher. It was measuring element count, which is not
+     what a colour refactor can break. The set of shades in use is. */
+  return [...tally.keys()].sort().join('\n');
 };
 
 (async () => {
@@ -162,28 +175,35 @@ const CENSUS = () => {
   }
 
   /* ---- THE POINT OF THE EXERCISE ----
-     Change the accent variables; the platform must change with them. If the
-     tidy-up missed a hardcoded colour it stays teal while the token says navy,
-     and a census of the default theme would never notice. */
-  {
+     Switching to Navy must take the green OFF the screen, not merely add a
+     blue beside it. Anything still green after the switch is a colour the
+     tidy-up missed, and no census of the default theme would ever notice it.
+
+     Driven through setTheme, which is the control a person presses — poking the
+     variables directly would prove the stylesheet works and leave the feature
+     untested. */
+  const GREENS = ['rgb(13, 148, 136)', 'rgb(15, 118, 110)', 'rgb(17, 94, 89)',
+                  'rgb(20, 184, 166)', 'rgb(19, 78, 74)', 'rgb(204, 251, 241)',
+                  'rgb(11, 61, 58)'];
+  /* Skipped while recording: a baseline is taken from the code BEFORE a change,
+     which is a build that may not have setTheme yet — and a save run that
+     crashes half way leaves no baseline at all, which is how the last one was
+     lost. Recording is only ever a census. */
+  for (const [name, go] of (SAVE ? [] : SCREENS)){
     const { ctx, page } = await open();
-    await page.evaluate(() => setView('dashboard'));
-    await pause(700);
+    await go(page);
+    await page.addStyleTag({ content:
+      '*,*::before,*::after{animation:none!important;transition:none!important}' });
     const before = await page.evaluate(CENSUS);
-    await page.evaluate(() => {
-      const R = document.documentElement.style;
-      R.setProperty('--color-accent-600', '#24488f');
-      R.setProperty('--color-accent-600-rgb', '36 72 143');
-      R.setProperty('--accent-solid', '#24488f');
-    });
-    await pause(400);
+    await page.evaluate(() => setTheme('navy'));
+    await pause(500);
+    await go(page);
+    await page.addStyleTag({ content:
+      '*,*::before,*::after{animation:none!important;transition:none!important}' });
     const after = await page.evaluate(CENSUS);
-    check('changing the accent variables repaints the platform', before !== after,
-      'a token nothing reads is not a token');
-    /* And the teal it replaced must be GONE, not merely joined by a navy. */
-    check('and the colour it replaced leaves the screen',
-      before.includes('rgb(13, 148, 136)') && !after.includes('rgb(13, 148, 136)'),
-      'anything still teal is a colour the tidy-up missed');
+    check(`${name} — Navy repaints it`, before !== after);
+    const left = GREENS.filter(g => after.includes(g));
+    check(`${name} — no green survives the switch`, left.length === 0, left.join(' | ') || null);
     await ctx.close();
   }
 

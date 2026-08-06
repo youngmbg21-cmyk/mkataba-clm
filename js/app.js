@@ -805,17 +805,108 @@ function renderContextPanel(){
    saved choice before first paint, so this only handles the live toggle. */
 /* Guarded rather than assumed: this module is evaluated on a cut-down stage in
    the node tests, where document.documentElement does not exist. */
-function applyTheme(mode){ const root=document.documentElement; if(root&&root.classList) root.classList.toggle('dark', mode==='dark'); }
-function toggleTheme(){
-  const root=document.documentElement; if(!root||!root.classList) return;
-  const dark=!root.classList.contains('dark');
-  applyTheme(dark?'dark':'light');
-  try{ localStorage.setItem('hati-theme', dark?'dark':'light'); }catch(e){}
+/* ---------- THREE THEMES, NOT A TWO-POSITION SWITCH ----------
+   Green and Navy are the same platform in two colours; Dark is the same
+   platform with the lights off. All three are one personal choice.
+
+   THEY ARE NOT THE COMPANY'S BRAND COLOUR. That already exists and is a
+   different thing: the design step sets an accent that dresses the DOCUMENT —
+   the letterhead, the PDF, what the counterparty receives — and it accepts any
+   colour, navy among its presets. This picks the colour of the tool you work
+   in. Wiring the two together would mean a company whose brand is claret gets a
+   claret platform built from a ramp nobody designed, and a personal preference
+   would silently restyle every contract that left the building.
+
+   TWO AXES UNDERNEATH, THREE OPTIONS ON TOP. The brand rides a data attribute
+   and the lights ride the `dark` class, which are independent — so navy-at-
+   night already works in the stylesheet and is one row away in the menu if
+   anybody asks. The menu offers three because three is what was asked for and
+   three is what is easy to explain. */
+const THEMES = [
+  { k:'green', label:'Green',      note:'The HaTi default',        brand:null,   dark:false },
+  { k:'navy',  label:'Navy',       note:'Same platform, deeper',   brand:'navy', dark:false },
+  { k:'dark',  label:'Dark',       note:'Easier at night',         brand:null,   dark:true  },
+];
+const THEME_KEY = 'hati-theme';
+/* 'light' and 'dark' are what the old two-position switch wrote, and they are
+   still in people's browsers. Read them rather than resetting somebody who has
+   been on dark for a month. */
+function themeNow(){
+  let v=''; try{ v=localStorage.getItem(THEME_KEY)||''; }catch(e){}
+  if(v==='light') v='green';
+  return THEMES.some(t=>t.k===v) ? v : 'green';
+}
+function applyTheme(mode){
+  const root=document.documentElement;
+  if(!root||!root.classList) return;
+  const t=THEMES.find(x=>x.k===mode)
+    || (mode==='dark' ? THEMES[2] : THEMES[0]);   // back-compat: applyTheme('dark')
+  root.classList.toggle('dark', t.dark);
+  if(t.brand) root.setAttribute('data-brand', t.brand);
+  else root.removeAttribute('data-brand');
+}
+function setTheme(mode){
+  const t=THEMES.find(x=>x.k===mode); if(!t) return;
+  applyTheme(t.k);
+  try{ localStorage.setItem(THEME_KEY, t.k); }catch(e){}
   /* Everything on screen was rendered against the old theme — inline-styled
-     chips and render-time SVG colours don't respond to the class flip, so the
+     chips and render-time SVG colours don't respond to a class flip, so the
      view is repainted, same as the jurisdiction switch below. */
   if(window.setView && state && state.view) setView(state.view);
-  if(window.toast) toast(dark?'Dark theme enabled':'Light theme enabled');
+  renderThemeMenu();
+  /* THE PHONE IS A SECOND SHELL AND setView DOES NOT DRAW IT. Its header
+     carries a swatch of the current theme, which is rendered markup — the
+     colours cascade to it on their own, the swatch does not. Without this the
+     phone goes navy while its own control still shows green, which is the
+     control disagreeing with the screen it sits on. Guarded: the phone shell
+     is not loaded on every page. */
+  if(window.mAppActive && window.mRender && mAppActive()) mRender();
+}
+/* Kept because the phone shell and older callers press it. It steps through
+   the same three rather than flipping a switch that no longer exists. */
+function toggleTheme(){
+  const i=THEMES.findIndex(t=>t.k===themeNow());
+  setTheme(THEMES[(i+1)%THEMES.length].k);
+}
+/* The swatch on each row is drawn from the theme's OWN values rather than from
+   a list of colours kept here — a second list is a second thing to update, and
+   the day it disagrees with the stylesheet the menu starts lying. */
+const THEME_SWATCH = {
+  green:'linear-gradient(135deg,#0d9488,#06b6d4)',
+  navy:'linear-gradient(135deg,#24488f,#3f7ac4)',
+  dark:'linear-gradient(135deg,#1e293b,#0f172a)',
+};
+function renderThemeMenu(){
+  const menu=document.getElementById('theme-menu');
+  const face=document.getElementById('theme-swatch');
+  const cur=themeNow();
+  if(face) face.style.background=THEME_SWATCH[cur]||'';
+  const btn=document.getElementById('theme-btn');
+  if(btn) btn.title='Theme — '+((THEMES.find(t=>t.k===cur)||{}).label||'');
+  if(!menu) return;
+  menu.innerHTML=`<div class="mgroup">Theme</div>`+THEMES.map(t=>`
+    <button type="button" data-theme-pick="${t.k}" role="menuitemradio" aria-checked="${t.k===cur}">
+      <span class="tsw" style="background:${THEME_SWATCH[t.k]}"></span>
+      <span>${t.label}<span class="tnote">${t.note}</span></span>
+      ${t.k===cur?'<span class="ttick" aria-hidden="true">&#10003;</span>':''}
+    </button>`).join('');
+}
+function wireThemeMenu(){
+  const btn=document.getElementById('theme-btn'), menu=document.getElementById('theme-menu');
+  renderThemeMenu();
+  if(!btn||!menu) return;
+  const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
+  btn.addEventListener('click',e=>{ e.stopPropagation();
+    const open=menu.classList.toggle('hidden');
+    btn.setAttribute('aria-expanded',open?'false':'true'); });
+  /* Delegated, because renderThemeMenu rewrites these rows on every change —
+     a listener bound to a row would go with the row it was bound to. */
+  menu.addEventListener('click',e=>{
+    const b=e.target.closest?.('[data-theme-pick]');
+    if(b) setTheme(b.getAttribute('data-theme-pick'));
+    shut();
+  });
+  document.addEventListener('click',ev=>{ if(!menu.contains(ev.target)&&!btn.contains(ev.target)) shut(); });
 }
 /* ---------- Jurisdiction switcher (top header) ----------
    This control existed and did nothing: it set a data attribute and told the
@@ -954,7 +1045,7 @@ function wireShell(){
   document.getElementById('hdr-notify')?.addEventListener('click',()=>document.getElementById('cmd-panel')?.click());
 
   // theme toggle + jurisdiction switcher (top header)
-  document.getElementById('theme-toggle-btn')?.addEventListener('click',toggleTheme);
+  wireThemeMenu();
   // closeNavDrawer because below 900 this control lives INSIDE the drawer
   // (placeRegionSwitch), and having answered it there is nothing left to do there.
   document.getElementById('region-se')?.addEventListener('click',()=>{ setRegion('SE'); closeNavDrawer(); });
@@ -1003,4 +1094,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

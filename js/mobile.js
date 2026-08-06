@@ -152,6 +152,11 @@ const M_CSS = `
     display:grid; place-items:center; border-radius:8px; color:var(--color-neutral-600);
   }
   .m-head-btn:active{ background:var(--color-neutral-100); }
+  /* The theme swatch. Bigger than the desktop's, because a thumb has to hit it
+     and because it is the only thing on this row carrying colour. */
+  .m-theme-sw{ width:19px; height:19px; border-radius:6px; display:block;
+    border:1px solid rgb(0 0 0/.16); }
+  html.dark .m-theme-sw{ border-color:rgb(255 255 255/.22); }
 
   /* ---- the screen ---- */
   .m-screen{ flex:1; min-height:0; display:flex; flex-direction:column; }
@@ -558,17 +563,26 @@ function mExpiry(c){
 function mHeadHtml(){
   const org = (typeof getOrg==='function' && getOrg()) || null;
   const name = (org && org.name) || (typeof FIRST_PARTY!=='undefined' && FIRST_PARTY) || 'HaTi';
-  const dark = !!(document.documentElement && document.documentElement.classList
-    && document.documentElement.classList.contains('dark'));
+  /* ---- THE PHONE SHOWS THE THEME, IT DOES NOT PROMISE NIGHT ----
+     There are three themes now, so a moon that means "make it dark" is the
+     control lying about itself on the one screen with no room to explain. The
+     button is a swatch of the theme you are wearing and pressing it steps to
+     the next — the same three, in the same order, as the menu on the desktop.
+     Same function underneath (toggleTheme), so the two shells cannot drift. */
+  const themeNow = (typeof window.themeNow === 'function') ? window.themeNow() : 'green';
+  const M_THEME_SWATCH = {
+    green:'linear-gradient(135deg,#0d9488,#06b6d4)',
+    navy:'linear-gradient(135deg,#24488f,#3f7ac4)',
+    dark:'linear-gradient(135deg,#1e293b,#0f172a)',
+  };
+  const themeLabel = { green:'Green', navy:'Navy', dark:'Dark' }[themeNow] || 'Green';
   const initials = String(name).trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || 'HT';
   return `
     <div class="m-head">
       <div class="m-head-mark">${mEsc(initials)}</div>
       <div class="m-head-org">${mEsc(name)}</div>
-      <button class="m-head-btn" data-m-act="theme" aria-label="${dark?'Switch to light':'Switch to dark'}">
-        ${dark
-          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
-          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>`}
+      <button class="m-head-btn" data-m-act="theme" aria-label="Theme — ${themeLabel}. Tap for the next one">
+        <span class="m-theme-sw" style="background:${M_THEME_SWATCH[themeNow]}"></span>
       </button>
       <button class="m-head-btn" data-m-act="account" aria-label="Account and jurisdiction">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
