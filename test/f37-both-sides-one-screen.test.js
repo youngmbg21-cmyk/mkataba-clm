@@ -526,8 +526,19 @@ describe('a counterparty redline arrives as fingerprints as well as a round', ()
     assert.match(changes[0].author, /Erik Lindqvist, Legal Counsel/);
     assert.match(changes[0].newText, /sixty \(60\) days/);
     assert.match(changes[0].hash, /^0x[0-9a-f]{64}$/);
-    assert.equal(changes[0].note, 'Our AP cycle runs monthly.',
-      'the reason he gave for THAT clause is on THAT fingerprint');
+    /* ON `why`, NOT `note` — and this assertion is why the bug lasted.
+       Its name was always right: the reason he gave for that clause belongs on
+       that fingerprint. It checked the wrong field. `note` is provenance
+       ("Copilot — Simplify"), internal, walled off from the counterparty by
+       buildSharePayload; `why` is the asker's own case, written to be read by
+       the other side. The card in the change column headed "Why they asked"
+       reads `why` alone, so a reason filed to `note` was collected, carried,
+       matched to the right clause — and then rendered nowhere. Both are
+       asserted now, so the two can never be swapped again unnoticed. */
+    assert.equal(changes[0].why, 'Our AP cycle runs monthly.',
+      'the reason he gave for THAT clause is on THAT fingerprint, in the field that is shown');
+    assert.equal(changes[0].note, null,
+      'and not in the internal-provenance field, which never crosses the table');
 
     // nothing entered the document
     assert.match(win.docPlainText(c), /thirty \(30\) days from the date of issue/);

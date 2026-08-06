@@ -1134,7 +1134,21 @@ async function negoFileProposal(c, proposedText, opts = {}){
       oldText: was.text, newText: now.text,
       bodyHtml: fromText ? negoBodyFromText(was.bodyHtml, now.text) : now.bodyHtml,
       clauseLabel: negoClauseLabel(was) },
-      { ...opts, note: negoNoteFor(opts.notes, now.text, was.clauseId) || opts.note || null, quiet: true });
+      /* ---- A REASON IS `why`, NOT `note` ----
+         This filed the asker's reason into `note`, and `note` is the field
+         this very funnel documents as provenance — "Copilot — Simplify" —
+         internal, shown only to the side that wrote it, never crossing the
+         table. So a counterparty who typed "Net-60 is our standard payment
+         term" had it collected by the portal, carried in the response, matched
+         to the right clause by negoNoteFor, and then filed into the one field
+         built to be hidden. The card that asks "Why they asked" reads `why`
+         alone, so it rendered nothing: the reason survived the entire journey
+         and was thrown away at the last step.
+
+         opts.note still passes through as provenance for whatever set it. */
+      { ...opts, quiet: true,
+        why: negoNoteFor(opts.notes, now.text, was.clauseId) || opts.why || null,
+        note: opts.note || null });
     if (ch) filed.push(ch);
   }
   for (let i = 0; i < loose.length; i++){

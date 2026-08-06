@@ -3090,8 +3090,11 @@ function openNegoProposeModal(c){
     try{
       filed=await negoFileProposal(c, text, { side:'owner', author:currentUser()?.name,
         via:'the Negotiation tab' });
-      // one reason, given once, against every change it explains
-      if(why) for(const ch of filed) ch.note=why;
+      /* One reason, given once, against every change it explains — into `why`.
+         This wrote it to `note`, reading a box literally named "why" and
+         filing it as internal provenance, which is the same mix-up the
+         counterparty's inbound redline had. */
+      if(why) for(const ch of filed) ch.why=why;
     }catch(err){
       btn.disabled=false; btn.innerHTML=restore;
       toast('Could not file those changes — '+err.message,'err'); return;
