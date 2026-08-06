@@ -232,10 +232,10 @@ function emailSetupBannerHtml(){
     <div id="email-setup-banner" style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:11px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-left:4px solid var(--st-amber-dot);border-radius:8px;padding:12px 16px">
       <span style="flex:none;margin-top:1px;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13px;font-weight:600;color:var(--st-amber-fg)">Email isn’t set up yet</span>
+        <span style="display:block;font-size:13px;font-weight:600;color:var(--st-amber-fg)">${i18t('co_email_not_setup')}</span>
         <span style="display:block;font-size:11.5px;color:var(--st-amber-fg);margin-top:2px">${EMAIL_SETUP_LINE}</span>
       </span>
-      ${isAdmin()?`<button id="email-setup-go" class="ui-btn" style="flex:none;font-size:11.5px;padding:6px 12px;border-color:var(--st-amber-line)">Set it up</button>`:''}
+      ${isAdmin()?`<button id="email-setup-go" class="ui-btn" style="flex:none;font-size:11.5px;padding:6px 12px;border-color:var(--st-amber-line)">${i18t('co_set_it_up')}</button>`:''}
     </div>`;
 }
 function wireEmailSetupBanner(){
@@ -381,7 +381,7 @@ const contractStage = c => contractPartiallySigned(c) ? 'Partially signed'
 const EXPIRED_META = _stMeta('status_expired', 'Expired', 'var(--st-gray-dot)', 'var(--st-gray-bg)', 'var(--st-gray-fg)', 'var(--st-gray-line)');
 const PARTIAL_META = _stMeta('status_partially_signed', 'Partially signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
 const contractStatusChip = c => contractPartiallySigned(c)
-  ? `<span class="badge" title="${typeof t==='function'?t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
+  ? `<span class="badge" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
   : contractExpired(c)
   ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
   : statusChip(c&&c.status);
@@ -458,7 +458,7 @@ function shareLegendHtml(opts={}){
   const item = st => { const m=SHARE_META[st];
     return `<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:9px;height:9px;border-radius:50%;${shareDotStyle(st)};display:inline-block;flex:none"></span>${m.label}</span>`; };
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;color:var(--color-neutral-700);${opts.style||''}">
-    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Link</span>
+    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('co_link')}</span>
     ${SHARE_LEGEND.map(item).join('')}
     <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="color:var(--color-neutral-400)">&mdash;</span>not sent</span>
   </div>`;
@@ -632,9 +632,9 @@ function persist(c){
    (signed) and closed records are never destroyed. Returns true if deleted. */
 async function deleteContract(id){
   const c=getContract(id); if(!c) return false;
-  if(!canEdit()){ toast('Viewers cannot delete contracts','err'); return false; }
+  if(!canEdit()){ toast(i18t('co_viewers_no_delete'),'err'); return false; }
   if(c.status!=='Draft' && c.status!=='Under Review'){
-    toast('Only draft or in-review contracts can be deleted','err'); return false;
+    toast(i18t('co_only_draft_delete'),'err'); return false;
   }
   const label=(c.name||c.id).split(' —')[0];
   if(!await confirmDialog({ title:`Delete “${c.name}”?`,
@@ -692,7 +692,7 @@ async function saveContract(c){
           confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
         if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
         if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; if(typeof renderWorkspace==='function') renderWorkspace(); }
-        toast('Loaded the server’s version — your unsaved change was discarded','err');
+        toast(i18t('co_loaded_server_version'),'err');
       } else {
         toast(c.id+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
@@ -822,12 +822,12 @@ function approvalState(c){
     by:c.approval?.by, approverLabel, canApprove };
 }
 function approveContract(c){
-  if(!approvalState(c).canApprove){ toast('You do not have approver rights','err'); return; }
+  if(!approvalState(c).canApprove){ toast(i18t('co_no_approver_rights'),'err'); return; }
   const u=currentUser();
   c.approval={ by:u.name, byId:u.id, role:ROLE_LABEL[u.role], at:nowISO() };
   logAudit(c,'Approved',`Approved for signing by ${u.name} (${ROLE_LABEL[u.role]})`);
   persist(c); renderSignButton(c); renderAuditSection(c);
-  toast('Contract approved — signing unlocked');
+  toast(i18t('co_contract_approved'));
 }
 
 /* ---------- workspace / auth ---------- */
@@ -944,7 +944,7 @@ function renderAuth(mode){
         <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:17px;letter-spacing:.02em;border-radius:4px;">HT</div>
         <div style="line-height:1.15;">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
-          <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
+          <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">${i18t('co_clm')}</div>
         </div>
       </div>
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:26px;">${inner}</div>
@@ -979,7 +979,7 @@ function renderAuth(mode){
           ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${p.name}</option>`).join('')}
         </select>
         <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:4px;line-height:1.45">Sets your currency, the governing law your templates propose and which risk checks apply. Changeable later in Settings.</span></label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> Load sample <span id="su-sample-label">${jx().sampleLabel}</span> portfolio (30 demo contracts)</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> ${i18t('co_load_sample')} <span id="su-sample-label">${jx().sampleLabel}</span> ${i18t('co_portfolio_30')}</label>
       <button id="su-go" class="ui-btn ui-btn-primary" style="${PBTN}">Create workspace &amp; sign in</button>`);
     /* Applied on CHANGE, not at submit, so the sample label under it tells the
        truth about what is on the other side of the button. */
@@ -998,8 +998,8 @@ function renderAuth(mode){
       ${input('li-pass','Password','password')}
       <button id="li-go" class="ui-btn ui-btn-primary" style="${PBTN}">Sign in</button>
       <p id="li-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>
-      ${REMOTE?`<button id="li-forgot" style="${LINKBTN}">Forgot password?</button>`:''}
-      ${REMOTE?'':`<button id="li-reset" style="${LINKBTN}">Reset workspace (erases all local data)</button>`}`);
+      ${REMOTE?`<button id="li-forgot" style="${LINKBTN}">${i18t('co_forgot_password')}</button>`:''}
+      ${REMOTE?'':`<button id="li-reset" style="${LINKBTN}">${i18t('co_reset_workspace')}</button>`}`);
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
     document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
@@ -1010,15 +1010,15 @@ function renderAuth(mode){
     });
   } else if(mode==='forgot'){
     root.innerHTML = shell(`
-      <h1 style="${H1}">Reset your password</h1>
-      <p style="${SUB}">Enter your email and we’ll send a reset link.</p>
+      <h1 style="${H1}">${i18t('co_reset_your_password')}</h1>
+      <p style="${SUB}">${i18t('co_enter_email_reset')}</p>
       ${input('fp-email','Email','email')}
-      <button id="fp-go" class="ui-btn ui-btn-primary" style="${PBTN}">Send reset link</button>
+      <button id="fp-go" class="ui-btn ui-btn-primary" style="${PBTN}">${i18t('co_send_reset_link')}</button>
       <div id="fp-result" style="margin-top:12px;"></div>
-      <button id="fp-back" style="${LINKBTN}">Back to sign in</button>`);
+      <button id="fp-back" style="${LINKBTN}">${i18t('co_back_to_signin')}</button>`);
     document.getElementById('fp-back').addEventListener('click',()=>renderAuth('login'));
     document.getElementById('fp-go').addEventListener('click',async()=>{
-      const email=fval('fp-email'); if(!email){ toast('Enter your email','err'); return; }
+      const email=fval('fp-email'); if(!email){ toast(i18t('co_enter_your_email'),'err'); return; }
       try{
         const r=await api('password/reset-request','POST',{ email });
         /* C-2: the server never returns the reset token any more. When email is
@@ -1032,17 +1032,17 @@ function renderAuth(mode){
   } else if(mode && mode.startsWith('reset:')){
     const token=mode.slice(6);
     root.innerHTML = shell(`
-      <h1 style="${H1}">Set a new password</h1>
-      <p style="${SUB}">Choose a new password for your account.</p>
+      <h1 style="${H1}">${i18t('co_set_new_password')}</h1>
+      <p style="${SUB}">${i18t('co_choose_new_password')}</p>
       ${input('rs-pass','New password','password','Min 8 characters')}
-      <button id="rs-go" class="ui-btn ui-btn-primary" style="${PBTN}">Save new password</button>
+      <button id="rs-go" class="ui-btn ui-btn-primary" style="${PBTN}">${i18t('co_save_new_password')}</button>
       <p id="rs-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>`);
     document.getElementById('rs-go').addEventListener('click',async()=>{
       const pass=document.getElementById('rs-pass').value;
-      if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
+      if(pass.length<8){ toast(i18t('co_password_min8'),'err'); return; }
       try{
         await api('password/reset','POST',{ token, password:pass });
-        toast('Password updated — please sign in');
+        toast(i18t('co_password_updated'));
         location.hash=''; renderAuth('login');
       }catch(e){ const el=document.getElementById('rs-err'); el.textContent=e.message; el.classList.remove('hidden'); }
     });
@@ -1055,10 +1055,10 @@ async function doSetup(){
   const name=fval('su-org').trim(), uname=fval('su-name').trim(), email=fval('su-email').trim().toLowerCase();
   const utitle=fval('su-title').trim();
   const pass=document.getElementById('su-pass').value;
-  if(!name){ toast('Enter your organization name','err'); return; }
+  if(!name){ toast(i18t('co_enter_org_name'),'err'); return; }
   if(!uname){ toast('Enter your full name','err'); return; }
   if(!validEmail(email)){ toast('Enter a valid work email — it is your sign-in and your password-reset route','err'); return; }
-  if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
+  if(pass.length<8){ toast(i18t('co_password_min8'),'err'); return; }
   if(REMOTE){
     try{
       const sample=document.getElementById('su-sample').checked;
@@ -1120,12 +1120,12 @@ function renderMustChangePassword(){
   authRoot.innerHTML=`
     <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:30px;max-width:25rem;width:100%;">
-        <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0 0 6px;">Choose your own password</h1>
+        <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0 0 6px;">${i18t('co_choose_own_password')}</h1>
         <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55;">Your account was created with a temporary password someone else chose. Set your own before you continue — anything you sign has to be attributable to you alone.</p>
         <input id="cp-current" type="password" placeholder="Temporary password" style="${F}"/>
         <input id="cp-new" type="password" placeholder="New password (min 8 characters)" style="${F}"/>
         <input id="cp-again" type="password" placeholder="Repeat the new password" style="${F}"/>
-        <button id="cp-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:14px;">Set my password</button>
+        <button id="cp-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:14px;">${i18t('co_set_my_password')}</button>
         <p id="cp-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>
       </div></div>`;
   document.getElementById('cp-go').addEventListener('click',async()=>{
@@ -1337,7 +1337,7 @@ function renderAuditSection(c){
     <div class="px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
         <span class="text-brand-500">${icon('history')}</span>
-        <h3 class="text-sm font-display font-600 text-brand-900">Audit trail</h3>
+        <h3 class="text-sm font-display font-600 text-brand-900">${i18t('co_audit_trail')}</h3>
         <span class="ml-auto text-[10px] font-mono text-brand-800/60">${items.length} events</span>
       </div>
       <div class="space-y-2 max-h-44 overflow-y-auto scroll-thin pr-1">
@@ -1347,7 +1347,7 @@ function renderAuditSection(c){
             <span class="min-w-0"><span class="font-medium text-brand-900">${esc(e.action)}</span>
               <span class="text-brand-800/70"> — ${esc(e.detail)}</span>
               <span class="block text-[10px] text-brand-800/60 font-mono">${esc(e.user)} · ${esc(fmtDT(e.at))}</span></span>
-          </div>`).join(''):`<div class="text-[11px] text-brand-800/65">No events recorded yet.</div>`}
+          </div>`).join(''):`<div class="text-[11px] text-brand-800/65">${i18t('co_no_events')}</div>`}
       </div>
     </div>`;
 }
@@ -1367,7 +1367,7 @@ function renderNegotiationSection(c){
     <div class="px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
         <span class="text-gold-500">${icon('history')}</span>
-        <h3 class="text-sm font-display font-600 text-brand-900">Negotiation</h3>
+        <h3 class="text-sm font-display font-600 text-brand-900">${i18t('co_negotiation')}</h3>
         ${open?`<span class="ml-auto inline-flex items-center gap-1 rounded-full border border-gold-500/25 bg-gold-500/10 text-gold-600 px-2 py-0.5 text-[10px] font-medium">${open} open</span>`:`<span class="ml-auto text-[10px] font-mono text-brand-800/60">${rounds.length} round${rounds.length===1?'':'s'}</span>`}
       </div>
       <div class="space-y-2">
@@ -1380,28 +1380,28 @@ function renderNegotiationSection(c){
             <div class="text-[11px] text-brand-800/65 mb-1">by ${r.by}</div>
             <p class="text-xs text-brand-800/80 leading-relaxed">${(r.comment||'').replace(/</g,'&lt;')}</p>
             ${r.proposedText?`<div class="mt-1.5 text-[11px] inline-flex items-center gap-1 rounded-full bg-gold-500/12 text-gold-600 px-2 py-0.5 font-600">${icon('history','w-3 h-3')} proposed edits (redline)</div>`:''}
-            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/70">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtMoney(r.proposedValue)}</span></div>`:''}
+            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/70">${i18t('co_proposed_value')}</span> <span class="font-mono font-semibold text-brand-900">${fmtMoney(r.proposedValue)}</span></div>`:''}
             ${r.status==='open'?(canEdit()?`
               <div class="mt-2 flex items-center gap-2">
                 ${r.proposedText?`<button data-nego-redline="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('history','w-3 h-3')} Review redline</button>
-                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>`
+                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">${i18t('co_reject')}</button>`
                 :`<button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
-                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>`}
-              </div>`:`<div class="mt-2 text-[11px] text-brand-800/65">Awaiting an approver to resolve.</div>`)
+                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">${i18t('co_reject')}</button>`}
+              </div>`:`<div class="mt-2 text-[11px] text-brand-800/65">${i18t('co_awaiting_approver')}</div>`)
             :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>
               ${r.resolution&&r.resolution.comment?`<div class="mt-1 text-[11px] text-brand-800/80 leading-relaxed border-l-2 border-brand-200 pl-2">Your reply: ${String(r.resolution.comment).replace(/</g,'&lt;')}</div>`:''}`}
           </div>`).join('')}
       </div>
       ${resolvedRounds(c).length&&canEdit()&&c.status!=='Signed'?`
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px;border-top:1px solid var(--color-divider);padding-top:10px">
-          <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-700)">Ready for the next round? Send the counterparty the wording as it now reads.</span>
+          <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-700)">${i18t('co_ready_next_round')}</span>
           <button id="nego-reshare" class="ui-btn ui-btn-primary" style="flex:none;font-size:11.5px;padding:6px 12px">${icon('send','w-3.5 h-3.5')} Send updated version</button>
         </div>`
-      :`<p class="mt-2 text-[10px] text-brand-800/60">After resolving, re-share the updated document to send the next round.</p>`}
+      :`<p class="mt-2 text-[10px] text-brand-800/60">${i18t('co_after_resolving')}</p>`}
     </div>`;
   document.getElementById('nego-reshare')?.addEventListener('click',async e=>{
     const btn=e.currentTarget, restore=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Sending…</span>';
+    btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;
     try{
       const out=await reshareToLastRecipient(c);
       const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
@@ -1976,8 +1976,8 @@ function shareKindStepHtml(c, sel){
   return `
     <div id="share-step-kind">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">What are you sharing?</h2></div>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">One question, then the details.</p>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_what_sharing')}</h2></div>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">${i18t('co_one_question')}</p>
       ${shareKindOptionsHtml(c, sel)}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-close-kind" class="ui-btn">Close</button>
@@ -2000,7 +2000,7 @@ function sharePurposePickerHtml(c, sel){
       <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${m.blurb}</span>
     </button>`; };
   return `<div id="share-purpose" style="margin:0 0 14px">
-    <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">What is this link for?</span>
+    <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('co_what_link_for')}</span>
     ${''/* Sign leads: most sends are "here it is, sign it" (Young, 02 Aug
          2026). The default SELECTION still follows the contract's reality —
          defaultSharePurpose keeps Negotiate preselected while changes are
@@ -2042,7 +2042,7 @@ function shareSummaryStepHtml(c, opts={}){
   return `
     <div id="share-step-1"${opts.hiddenStart?' class="hidden"':''}>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">What you are sending</h2></div>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_what_you_sending')}</h2></div>
       ${''/* THE PURPOSE QUESTION DOES NOT APPLY TO A RECORD. Sign, Negotiate
              and View only are things somebody does to a contract; a history
              link opens read-only on the timeline and there is nothing on it to
@@ -2050,7 +2050,7 @@ function shareSummaryStepHtml(c, opts={}){
              screen says why rather than leaving a gap where a question was. */}
       <div id="share-purpose-wrap"${hist?' class="hidden"':''}>${sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c))}</div>
       <div id="share-hist-note"${hist?'':' class="hidden"'} style="margin:0 0 14px;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--color-accent-800)">
-        <b>No purpose to choose.</b> This link opens the negotiation history and nothing else — the
+        <b>${i18t('co_no_purpose')}</b> This link opens the negotiation history and nothing else — the
         same screen ${esc(c.counterparty||'the counterparty')} already sees, read-only. The agreement
         itself does not travel with it, and there is nothing on it to answer or sign.</div>
       ${''/* Both sentences render and one is shown, for the same reason the
@@ -2078,7 +2078,7 @@ function shareSummaryStepHtml(c, opts={}){
              preview cannot drift from the page it is previewing. */}
       <div id="share-manifest"${hist?' class="hidden"':''}>
         ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:2px 11px">${rows}</ul>`
-          :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
+          :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">${i18t('co_nothing_proposed')}</div>`}
       </div>
       ${''/* Inert on purpose: this is a picture of the recipient's screen, not
              a second copy of it. Their filters and Verify integrity work; these
@@ -2095,7 +2095,7 @@ function shareSummaryStepHtml(c, opts={}){
         </style>
         <div class="ht-inert" aria-hidden="true">${window.negoTimelineScreenHtml
           ? negoTimelineScreenHtml(c, {})
-          : '<div style="padding:14px;font-size:12px;color:var(--color-neutral-600)">The history is not available here.</div>'}</div>
+          : `<div style="padding:14px;font-size:12px;color:var(--color-neutral-600)">${i18t('co_history_not_here')}</div>`}</div>
       </div>
       ${''/* THE BOX IS NO LONGER PRE-WRITTEN FOR THE SENDER.
 
@@ -2119,7 +2119,7 @@ function shareSummaryStepHtml(c, opts={}){
           hist?'e.g. The full record of our negotiation, for your file.'
              :'e.g. We have moved on payment terms but not on the liability cap.'}"></textarea></label>
       ${opts.handOver?`<div id="share-handover" style="margin-top:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.5;color:var(--st-green-fg)">
-        <b>Sending this closes your turn.</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
+        <b>${i18t('co_closes_your_turn')}</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-back-kind" class="ui-btn">${icon('arrow-right','w-3.5 h-3.5')} Back</button>
         <button id="share-close-1" class="ui-btn">Close</button>
@@ -2145,7 +2145,7 @@ function readinessPanelHtml(c){
     </ul>
     ${blocks.length?`<label style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:11.5px;color:${tone.fg};cursor:pointer;">
       <input id="sh-ack" type="checkbox" style="margin-top:2px;accent-color:${tone.fg}"/>
-      <span>Send it anyway. I understand the counterparty will see the contract exactly as it is above.</span></label>`:''}
+      <span>${i18t('co_send_anyway')}</span></label>`:''}
   </div>`;
 }
 /* ---------- step 0 of Share: the one-question send (WO N4) ----------
@@ -2176,12 +2176,12 @@ function quickSendStepHtml(c, pre, purpose, warns){
       <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Send “${esc(c.name)}”</h2></div>
     <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px;padding:14px 16px;margin-bottom:10px">
       <p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--color-text)">To <b style="color:var(--color-accent-800)">${who}</b> — ${quickSendPhrase(purpose)}.</p>
-      <p style="margin:6px 0 0;font-size:11.5px;line-height:1.5;color:var(--color-neutral-600)">They open a secure link — no account needed. Sent by email · link valid 14 days.</p>
+      <p style="margin:6px 0 0;font-size:11.5px;line-height:1.5;color:var(--color-neutral-600)">${i18t('co_secure_link')}</p>
     </div>
     ${w.length?`<div style="display:flex;gap:7px;align-items:flex-start;margin:0 0 10px;font-size:11px;line-height:1.55;color:var(--st-amber-fg)"><span style="flex:none;display:inline-flex;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span><span>Worth checking: ${esc(w.slice(0,2).join(' '))}${w.length>2?' …':''}</span></div>`:''}
     <div id="qs-result" style="margin:0 0 4px"></div>
     <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
-      <button id="qs-details" class="ui-btn" style="font-size:12px" title="Recipient, purpose, WhatsApp instead, link life, a personal message — the full form">Change details ▾</button>
+      <button id="qs-details" class="ui-btn" style="font-size:12px" title="Recipient, purpose, WhatsApp instead, link life, a personal message — the full form">${i18t('co_change_details')}</button>
       <span style="flex:1"></span>
       <button id="qs-cancel" class="ui-btn">Cancel</button>
       <button id="qs-send" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 18px">${icon('send','w-3.5 h-3.5')} Send it</button>
@@ -2785,31 +2785,31 @@ async function openShareModal(c, opts={}){
       ${shareSummaryStepHtml(c, { ...opts, purposeSel, hiddenStart:true })}
       <div id="share-step-2" class="hidden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_share_with_cp')}</h2></div>
       ${''/* Two blurbs, one shown. A history link promises none of this — there
              is nothing on it to sign, request or decline — and a screen that
              says otherwise is a screen that has to be argued with later. */}
-      <p id="share-send-blurb" style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
-      <p id="share-send-blurb-hist" class="hidden" style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send a read-only link to the <strong>negotiation history</strong> — every change, who asked and what was decided, <strong>no account needed</strong>. There is nothing on it to sign or answer, and the agreement itself does not travel with it.</p>
+      <p id="share-send-blurb" style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>${i18t('co_no_account_needed')}</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
+      <p id="share-send-blurb-hist" class="hidden" style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">${i18t('co_send_readonly_to')} <strong>negotiation history</strong> ${i18t('co_every_change_who')} <strong>${i18t('co_no_account_needed')}</strong>${i18t('co_nothing_to_sign')}</p>
       ${readinessPanelHtml(c)}
       ${emailOff()?`<div id="sh-noemail" style="margin:0 0 12px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">
-        <b>This will not be emailed.</b> ${EMAIL_SETUP_LINE} Press <b>Create link</b> instead and send it to ${esc(c.counterparty||'them')} yourself — or set email up first and come back.</div>`:''}
+        <b>${i18t('co_not_emailed')}</b> ${EMAIL_SETUP_LINE} Press <b>${i18t('co_create_link')}</b> instead and send it to ${esc(c.counterparty||'them')} yourself — or set email up first and come back.</div>`:''}
       ${server?'':`<div style="margin:0 0 12px;border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:10px 12px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Demo sharing — for demonstrations only</div>
-        <p style="margin:0;font-size:11.5px;line-height:1.6;color:var(--st-ruby-fg);">Without a HaTi server the whole document travels <strong>inside the link itself</strong>. That link <strong>never expires and cannot be revoked</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
+        <p style="margin:0;font-size:11.5px;line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
       </div>`}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
       <div id="share-fields">
         ${pre.email||pre.phone||pre.name?`<div style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:7px 10px">
           <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
-          <span style="flex:1;min-width:0">Filled in from the last time you shared this contract. Change it if this round goes to someone else.</span>
+          <span style="flex:1;min-width:0">${i18t('co_filled_from_last')}</span>
         </div>`:''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <label><span style="${LBL}">Recipient name</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
-          <label id="sh-email-wrap"><span style="${LBL}">Recipient email *</span><input id="sh-email" type="email" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
-          <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">WhatsApp number *</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
+          <label><span style="${LBL}">${i18t('co_recipient_name')}</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
+          <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_recipient_email')}</span><input id="sh-email" type="email" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
-        <label style="display:block;margin-top:10px;"><span style="${LBL}">Personal message (optional)</span>
+        <label style="display:block;margin-top:10px;"><span style="${LBL}">${i18t('co_personal_message')}</span>
           <textarea id="sh-msg" rows="2" placeholder="e.g. As discussed — please review clause 4 in particular." style="${FLD}min-height:0;"></textarea></label>
         ${server?`<div style="margin-top:11px;border:1px solid var(--color-divider);border-radius:5px;padding:9px 11px">
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--color-neutral-800);cursor:pointer">
@@ -2820,8 +2820,8 @@ async function openShareModal(c, opts={}){
                    is wrong for it — and a default that contradicts the sentence
                    beside it is worse than no default. Still theirs to change. */}
             <input type="checkbox" id="sh-durable"${purposeSel==='sign'?'':' checked'} style="margin-top:2px;flex:none"/>
-            <span><b>Keep this link open for the whole negotiation.</b>
-            <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">They keep one link and always see the current wording, round after round. Untick for a <b>single-answer link</b> — the right choice for a final signature, where one copy gets exactly one response.</span></span>
+            <span><b>${i18t('co_keep_link_open')}</b>
+            <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('co_one_link_current')} <b>single-answer link</b> ${i18t('co_right_for_final')}</span></span>
           </label>
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--color-neutral-700)">Link expires in
@@ -2833,7 +2833,7 @@ async function openShareModal(c, opts={}){
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-back" class="ui-btn">← Back</button>
         <button id="share-close" class="ui-btn">Close</button>
-        <button id="share-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">Send by email</span></button>
+        <button id="share-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
       </div>
       </div>
     </div>`,
@@ -3104,16 +3104,16 @@ async function openShareModal(c, opts={}){
         // which of the three actually happened, and quote the reason.
         const link=r.link?`<div style="margin-top:8px"><span style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all">${esc(r.link)}</span></div>`:'';
         if(r.emailSent){
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Email sent</strong> to ${esc(email)}. Their answers land on the contract here as they make them — watch it in Negotiation rather than your inbox. Fill in another recipient to share again.</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>${i18t('co_email_sent')}</strong> to ${esc(email)}. Their answers land on the contract here as they make them — watch it in Negotiation rather than your inbox. Fill in another recipient to share again.</span></div>`);
         } else if(r.alreadySentAt){
           /* Nothing was refused: their live link already went, and no
              duplicate was emailed on purpose. Saying "Not delivered" here was
              the false alarm of 02 Aug 2026. */
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Already sent.</strong> ${esc(email)} received their link ${fmtDT(r.alreadySentAt)}, and it is still live — no duplicate was sent. This link now shows the current version.${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>${i18t('co_already_sent')}</strong> ${esc(email)} received their link ${fmtDT(r.alreadySentAt)}, and it is still live — no duplicate was sent. This link now shows the current version.${link}</span></div>`);
         } else if(r.emailConfigured){
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Not delivered — the mail provider refused it.</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:' No reason was given.'}${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_not_delivered')}</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:' No reason was given.'}${link}</span></div>`);
         } else {
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Queued, not sent.</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
         }
       } else if(ch==='whatsapp'){
         const wa=waShareLink(phone, shareMessageText(c,r.link,msg,r.expiresAt));
@@ -3255,9 +3255,9 @@ function reshareNotSentModal(c, out, who){
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--st-amber-dot);display:inline-flex">${icon('alert')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Link updated — but not sent</h2></div>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">${i18t('co_link_updated_not_sent')}</h2></div>
       <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
-        ${esc(who)} is now looking at the current wording <b>if they open their link</b> — but they have not been told.
+        ${esc(who)} is now looking at the current wording <b>${i18t('co_if_they_open')}</b> — but they have not been told.
         ${reason} Send them this link yourself:</p>
       <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
@@ -3311,7 +3311,7 @@ function counterpartySeenHtml(c, shares){
     <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid ${stale?'var(--st-amber-line)':'var(--color-divider)'};background:${stale?'var(--st-amber-bg)':'var(--color-surface)'};border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:${stale?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
       <span style="flex:none;color:${stale?'var(--st-amber-dot)':'var(--color-neutral-500)'};display:inline-flex">${icon(stale?'alert':'clock','w-3.5 h-3.5')}</span>
       <span style="flex:1;min-width:160px"><b>${esc(st.who)} has not opened the current version.</b> Sent ${days===0?'today':`${days} day${days===1?'':'s'} ago`}${stale?' — worth chasing, or check the link reached them.':'.'}</span>
-      ${canEdit()?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:11px;padding:5px 11px">Send it again</button>`:''}
+      ${canEdit()?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:11px;padding:5px 11px">${i18t('co_send_again')}</button>`:''}
     </div>`;
 }
 
@@ -3374,7 +3374,7 @@ function shareJourneyHtml(c, shares){
     <div style="display:flex;gap:10px;flex-wrap:wrap">${j.stages.map(cell).join('')}</div>
     <div style="display:flex;align-items:center;gap:9px;margin-top:9px;padding-top:8px;border-top:1px dashed var(--color-divider)">
       <span style="flex:1;font-size:11.5px;line-height:1.5;font-weight:${(j.responded&&!j.signed)?'600':'500'};color:${j.signed?'var(--st-green-fg)':(j.responded||j.stale)?'var(--st-amber-fg)':'var(--color-neutral-700)'}">${esc(j.sentence)}</span>
-      ${(j.stale&&typeof canEdit==='function'&&canEdit())?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:11px;padding:5px 11px">Send it again</button>`:''}
+      ${(j.stale&&typeof canEdit==='function'&&canEdit())?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:11px;padding:5px 11px">${i18t('co_send_again')}</button>`:''}
     </div>
   </div>`;
 }
@@ -3409,7 +3409,7 @@ async function renderSharesSection(c){
          wiring below holds. */}
     ${shareJourneyHtml(c, shares)}
     <div class="flex items-center gap-2 mb-3"><span class="text-brand-500">${icon('send')}</span>
-      <h3 class="text-sm font-display font-600 text-brand-900">Shares</h3>
+      <h3 class="text-sm font-display font-600 text-brand-900">${i18t('co_shares')}</h3>
       <span class="ml-auto text-[10px] font-mono text-brand-800/60">${shares.length} sent</span></div>
     <div class="space-y-2">
       ${shares.map(s=>{
@@ -3427,15 +3427,15 @@ async function renderSharesSection(c){
           ${s.responseBy?`<div style="font-size:10.5px;color:var(--color-neutral-700);margin-top:3px">by ${esc(s.responseBy)}</div>`:''}
           <div style="font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono);margin-top:3px">${meta}</div>
           ${(live(s)&&canEdit())?`<div style="display:flex;gap:10px;margin-top:5px">
-            <button data-sh-copy="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Copy link</button>
-            ${s.channel==='email'?`<button data-sh-resend="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Resend</button>`:''}
-            <button data-sh-revoke="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--st-ruby-dot);cursor:pointer">Revoke</button>
+            <button data-sh-copy="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('co_copy_link')}</button>
+            ${s.channel==='email'?`<button data-sh-resend="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('co_resend')}</button>`:''}
+            <button data-sh-revoke="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--st-ruby-dot);cursor:pointer">${i18t('co_revoke')}</button>
           </div>`:''}
         </div>`; }).join('')}
     </div></div>`;
   document.getElementById('seen-resend')?.addEventListener('click',async e=>{
     const btn=e.currentTarget, restore=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Sending…</span>';
+    btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;
     try{
       const out=await reshareToLastRecipient(c);
       const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
@@ -3502,15 +3502,15 @@ function openImportModal(c){
   openModal(`
     <div style="padding:22px 24px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('upload')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Import counterparty response</h2></div>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Paste the response code the counterparty sent back after opening your share link.</p>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_import_cp_response')}</h2></div>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">${i18t('co_paste_response_code')}</p>
       <textarea id="imp-code" rows="5" placeholder="Paste response code…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="imp-cancel" class="ui-btn">Cancel</button>
-        <button id="imp-go" class="ui-btn ui-btn-primary">Import</button>
+        <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
       </div>
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--color-divider);">
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55;"><b>Or upload the marked-up Word file</b> they sent back. Their tracked changes are filed as ordinary counterparty changes for you to decide, and their margin comments land in the discussion, pinned to the clause each one was written on.</p>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> they sent back. Their tracked changes are filed as ordinary counterparty changes for you to decide, and their margin comments land in the discussion, pinned to the clause each one was written on.</p>
         <input id="imp-docx" type="file" accept=".docx" style="width:100%;font-size:11.5px;color:var(--color-text);"/>
         <div id="imp-docx-note" style="margin-top:7px;font-size:11px;color:var(--color-neutral-600);"></div>
       </div>

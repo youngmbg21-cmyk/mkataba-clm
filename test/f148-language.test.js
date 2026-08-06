@@ -104,9 +104,11 @@ describe('f148 — every key a renderer asks for exists', () => {
         if (e.isDirectory()) { walk(p); continue; }
         if (!e.name.endsWith('.js') || e.name === 'i18n.js') continue;
         const src = fs.readFileSync(p, 'utf8');
-        for (const m of src.matchAll(/\bt\('([a-z][a-z0-9_]{3,})'\)/g))
+        /* the closing quote must be followed by ) or , — otherwise a dynamic
+           key like i18t('kpi_' + k) is read as a literal key called "kpi_". */
+        for (const m of src.matchAll(/\bi18t\('([a-z][a-z0-9_]{3,})'\s*[),]/g))
           if (!out.has(m[1])) out.set(m[1], e.name);
-        for (const m of src.matchAll(/\btn\('([a-z][a-z0-9_]{3,})'/g))
+        for (const m of src.matchAll(/\bi18tn\('([a-z][a-z0-9_]{3,})'\s*,/g))
           if (!out.has(m[1] + '_other')) out.set(m[1] + '_other', e.name);
       }
     };

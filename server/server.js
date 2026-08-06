@@ -17,6 +17,20 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS } = require('../js/jurisdiction.js');
 const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
 /* Look a string up in a specific language rather than "the current" one: there
    is no current language on a server writing to five recipients at once. */
+/* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
+   their own choice on their user row. Somebody outside it — a counterparty
+   opening a share link — has no account and therefore no stored language, so
+   the sender's own language is used: they know who they are writing to, which
+   is the same answer Oneflow gives by letting the sender pick the message.
+   Falls back to English, never to whichever language the server last saw. */
+const langForEmail = (email, fallback) => {
+  try {
+    const row = db.prepare('SELECT lang FROM users WHERE LOWER(email)=?')
+      .get(String(email || '').trim().toLowerCase());
+    if (row && row.lang && I18N_STRINGS[row.lang]) return row.lang;
+  } catch (e) {}
+  return (fallback && I18N_STRINGS[fallback]) ? fallback : I18N_DEFAULT;
+};
 const tFor = (lang, key, vars) => {
   const table = I18N_STRINGS[lang] || I18N_STRINGS[I18N_DEFAULT];
   let s = table[key];
@@ -4212,9 +4226,12 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
   const appUrl = `${req.protocol}://${req.get('host')}/`;
-  await sendEmail(String(email), `Your signature is requested — "${cName}"`,
-    `Hello${name ? ' ' + name : ''},\n\nIt's your turn to sign "${cName}"${order ? ` (signer ${order})` : ''}. ` +
-    `Sign in to HaTi to review and add your signature:\n${appUrl}\n\nThis is an automated notice from HaTi CLM.`,
+  const L = langForEmail(email, req.user && req.user.lang);
+  await sendEmail(String(email), tFor(L, 'mail_sig_requested_subject', { name: cName }),
+    `${tFor(L, 'mail_hello')}${name ? ' ' + name : ''},\n\n`
+    + tFor(L, 'mail_your_turn_body', { name: cName,
+        order: order ? tFor(L, 'mail_signer_n', { n: order }) : '' })
+    + `\n${appUrl}\n\n${tFor(L, 'mail_automated_notice')}`,
     `sign turn: ${req.params.id}`);
   res.json({ ok: true });
 });
@@ -4501,21 +4518,24 @@ function signerTurn(contractId, signerId) {
    account is needed — following the purpose-aware wording precedent of the
    share email itself, where the invitation must match the screen the link
    actually opens. */
-function signerTurnEmail({ signer, plan, payload, link, expiresAt }) {
+function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang }) {
   const cName = (payload && payload.contract && payload.contract.name) || 'a contract';
   const org = (payload && payload.org) || 'the sender';
   const total = (plan || []).length;
-  const pos = signer.order && total ? ` (signer ${signer.order} of ${total} on the agreed order)` : '';
+  /* The counterparty has no account, so no stored language of their own: this
+     falls back to the sender's, which is the honest answer — they know who
+     they are writing to. */
+  const L = langForEmail(signer.email, senderLang);
+  const posText = signer.order && total
+    ? tFor(L, 'mail_turn_pos', { n: signer.order, total }) : '';
   return {
-    subject: `Your turn to sign — "${cName}"`,
-    body: `Hello${signer.name ? ' ' + signer.name : ''},\n\n` +
-      `It's your turn to sign "${cName}" with ${org}${pos}. ` +
-      `Every signer before you has signed; the agreement now waits on you.\n\n` +
-      `Open your personal signing link — no account is needed:\n${link}\n\n` +
-      `A one-time code will be emailed to this address to confirm it's you before your signature is recorded. ` +
-      `This link was issued to you personally and should not be forwarded — a forwarded copy cannot be used to sign.` +
-      (expiresAt ? `\n\nThis link expires on ${String(expiresAt).slice(0, 10)}.` : '') +
-      `\n\nThis is an automated notice from HaTi CLM.`,
+    subject: tFor(L, 'mail_turn_subject', { name: cName }),
+    body: `${tFor(L, 'mail_hello')}${signer.name ? ' ' + signer.name : ''},\n\n`
+      + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
+      + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
+      + tFor(L, 'mail_code_note')
+      + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`,
   };
 }
 

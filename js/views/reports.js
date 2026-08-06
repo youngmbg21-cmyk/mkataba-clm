@@ -74,15 +74,15 @@ function bar(label, value, max, valStr, color){
    to them — value isn't forced. `get(r)` returns {val, sub} from the computed
    report object; grad/ic set the card's look. */
 const REPORT_METRICS=[
-  {k:'avgCycle',   get label(){ return t('rep_avg_cycle'); }, grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:r.cycleN+' signed sampled'})},
-  {k:'ageReview',  get label(){ return t('rep_avg_age_review'); },       grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', get sub(){ return t('rep_time_on_cp'); }})},
-  {k:'ageDraft',   get label(){ return t('rep_avg_age_draft'); },        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:'time internal'})},
-  {k:'renewal',    get label(){ return t('rep_renewal_pipeline_12'); },   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtMoneyShort(r.pipeTotal), sub:r.pipeMonthsN+' months with expiries'})},
-  {k:'totalValue', get label(){ return t('rep_total_value'); },     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtMoneyShort(r.totalValue), sub:r.active+' active contracts'})},
-  {k:'count',      get label(){ return t('rep_contracts_total'); },         grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
-  {k:'expiring',   get label(){ return t('rep_expiring_90'); },        grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
-  {k:'avgRisk',    get label(){ return t('rep_avg_risk'); },            grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
-  {k:'openOb',     get label(){ return t('rep_open_obligations'); },          grad:'var(--grad-amber)',   ic:'list',  get:r=>({val:String(r.openOb), sub:r.overdueOb+' overdue'})},
+  {k:'avgCycle',   get label(){ return i18t('rep_avg_cycle'); }, grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:r.cycleN+' signed sampled'})},
+  {k:'ageReview',  get label(){ return i18t('rep_avg_age_review'); },       grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', get sub(){ return i18t('rep_time_on_cp'); }})},
+  {k:'ageDraft',   get label(){ return i18t('rep_avg_age_draft'); },        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:'time internal'})},
+  {k:'renewal',    get label(){ return i18t('rep_renewal_pipeline_12'); },   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtMoneyShort(r.pipeTotal), sub:r.pipeMonthsN+' months with expiries'})},
+  {k:'totalValue', get label(){ return i18t('rep_total_value'); },     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtMoneyShort(r.totalValue), sub:r.active+' active contracts'})},
+  {k:'count',      get label(){ return i18t('rep_contracts_total'); },         grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
+  {k:'expiring',   get label(){ return i18t('rep_expiring_90'); },        grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
+  {k:'avgRisk',    get label(){ return i18t('rep_avg_risk'); },            grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
+  {k:'openOb',     get label(){ return i18t('rep_open_obligations'); },          grad:'var(--grad-amber)',   ic:'list',  get:r=>({val:String(r.openOb), sub:r.overdueOb+' overdue'})},
 ];
 const DEFAULT_REPORT_METRICS=['avgCycle','ageReview','ageDraft','renewal'];
 function reportMetricSel(){
@@ -95,31 +95,31 @@ const emptyMsg = t => `<p style="font-size:12px;color:var(--color-neutral-600)">
    follows a KPI the user picks — value isn't forced. `render(r)` returns the bar
    HTML from the computed report object. */
 const REPORT_CHARTS=[
-  {k:'streamValue', get label(){ return t('rep_value_by_stream'); }, render:r=>{
+  {k:'streamValue', get label(){ return i18t('rep_value_by_stream'); }, render:r=>{
     const e=Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]); const mx=Math.max(1,...e.map(x=>x[1]));
     return e.map(([k,v])=>bar(k,v,mx,fmtMoneyShort(v),'var(--color-accent)')).join('')||emptyMsg('No data.'); }},
-  {k:'partyValue', get label(){ return t('rep_top_cp'); }, render:r=>{
+  {k:'partyValue', get label(){ return i18t('rep_top_cp'); }, render:r=>{
     const mx=Math.max(1,...r.topParty.map(x=>x[1]));
     return r.topParty.map(([k,v])=>bar(k,v,mx,fmtMoneyShort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
-  {k:'renewalPipe', get label(){ return t('rep_renewal_next_12'); }, render:r=>{
+  {k:'renewalPipe', get label(){ return i18t('rep_renewal_next_12'); }, render:r=>{
     const months=Object.keys(r.pipeline).sort(); const mx=Math.max(1,...Object.values(r.pipeline));
     return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString(jxLocale(),{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'var(--st-green-dot)')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
-  {k:'roundsType', get label(){ return t('rep_rounds_by_type'); }, render:r=>{
+  {k:'roundsType', get label(){ return i18t('rep_rounds_by_type'); }, render:r=>{
     const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
     const mx=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
     return e.length?e.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, mx, (v.rounds/v.n).toFixed(1),'var(--st-amber-dot)')).join(''):emptyMsg('No negotiation data.'); }},
-  {k:'stageCount', get label(){ return t('rep_by_stage'); }, render:r=>{
+  {k:'stageCount', get label(){ return i18t('rep_by_stage'); }, render:r=>{
     const order=['Draft','Under Review','Signed','Declined']; const e=order.filter(k=>r.byStatus[k]).map(k=>[k,r.byStatus[k]]);
     const mx=Math.max(1,...e.map(x=>x[1]));
     return e.length?e.map(([k,v])=>bar(statusLabel(k),v,mx,String(v),(STATUS_META[k]||{}).dot||'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
-  {k:'streamCount', get label(){ return t('rep_count_by_stream'); }, render:r=>{
+  {k:'streamCount', get label(){ return i18t('rep_count_by_stream'); }, render:r=>{
     const e=Object.entries(r.countByFolder).sort((a,b)=>b[1]-a[1]); const mx=Math.max(1,...e.map(x=>x[1]));
     return e.length?e.map(([k,v])=>bar(k,v,mx,String(v),'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
-  {k:'riskBand', get label(){ return t('rep_by_risk'); }, render:r=>{
+  {k:'riskBand', get label(){ return i18t('rep_by_risk'); }, render:r=>{
     const e=Object.entries(r.riskBands); const mx=Math.max(1,...e.map(x=>x[1]));
     const col={Low:'var(--st-green-dot)',Medium:'var(--st-amber-dot)',High:'var(--st-ruby-dot)'};
     return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
-  {k:'obState', get label(){ return t('rep_obligations_by_status'); }, render:r=>{
+  {k:'obState', get label(){ return i18t('rep_obligations_by_status'); }, render:r=>{
     const e=Object.entries(r.obByState); const mx=Math.max(1,...e.map(x=>x[1]));
     const col={Overdue:'var(--st-ruby-dot)',Open:'var(--st-amber-dot)',Completed:'var(--st-green-dot)'};
     return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No obligations tracked yet.'); }},
@@ -250,7 +250,7 @@ function exportReportsCsv(r){
   lines.push(['Renewal pipeline month',jxCurrency()].map(esc).join(','));
   Object.keys(r.pipeline).sort().forEach(m=>lines.push([m,Math.round(r.pipeline[m])].map(esc).join(',')));
   downloadFile(`hati-reports-${new Date().toISOString().slice(0,10)}.csv`, lines.join('\n'), 'text/csv');
-  toast(t('rep_exported_csv'));
+  toast(i18t('rep_exported_csv'));
 }
 
 Object.assign(window,{lifecycleEvents,firstAuditAt,computeReports,renderReports,exportReportsCsv});

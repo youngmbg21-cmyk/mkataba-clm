@@ -63,9 +63,12 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
   });
 
   test('both tables head the column, and explain what it is', () => {
-    const heads = reg.match(/<th[^>]*>Link<\/th>/g) || [];
+    /* Heading and tooltip are dictionary keys now — the column is read in the
+       reader's language. What this test is about is that BOTH tables carry
+       them, which has not changed. */
+    const heads = reg.match(/<th[^>]*>\$\{i18t\('reg_col_link'\)\}<\/th>/g) || [];
     assert.equal(heads.length, 2);
-    const titled = reg.match(/title="What has happened to the link you sent the counterparty"/g) || [];
+    const titled = reg.match(/title="\$\{i18t\('reg_link_title'\)\}"/g) || [];
     assert.equal(titled.length, 2, 'a column heading of one word earns a sentence');
   });
 

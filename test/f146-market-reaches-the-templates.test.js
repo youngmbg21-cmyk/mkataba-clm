@@ -66,7 +66,7 @@ function harness(market) {
     isMonetary: () => true,
   });
   const ctx = dom.getInternalVMContext();
-  for (const rel of ['js/jurisdiction.js', 'js/views/contract.js']) {
+  for (const rel of ['js/i18n.js', 'js/jurisdiction.js', 'js/views/contract.js']) {
     try { vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), ctx, { filename: rel }); }
     catch (e) { /* contract.js touches app globals as it loads; docBody is what matters */ }
   }

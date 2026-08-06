@@ -26,7 +26,8 @@ const ROOT = path.join(__dirname, '..');
    because buildSharePayload — the thing that decides what Erik is allowed to
    see — must be the real one, not a copy kept in a test. */
 const MODULES = [
-  'js/jurisdiction.js', // first, as js/app.js loads it: money and law read from it
+  'js/i18n.js',         // first, as js/app.js loads it: every label reads through i18t()
+  'js/jurisdiction.js', // then this: money and law read from it
   'js/richdoc.js',
   'js/clausemodel.js',
   'js/redline.js',

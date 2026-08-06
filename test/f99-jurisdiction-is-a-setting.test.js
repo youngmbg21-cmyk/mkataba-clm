@@ -288,7 +288,10 @@ describe('F99g — a claim a market cannot support is not made', () => {
     /* Read from source: this is one line of markup deep inside the workspace
        screen, and what matters is that it interpolates rather than asserts. */
     const src = read('js/views/contract.js');
-    assert.match(src, /I intend to sign electronically[\s\S]{0,200}\$\{jxEsignature\(\)\}/,
+    /* The LABEL is a dictionary key now (the signer reads it in their own
+       language); the statute beside it still has to be interpolated from the
+       market pack rather than asserted. */
+    assert.match(src, /ct_intend_to_sign[\s\S]{0,220}\$\{jxEsignature\(\)\}/,
       'the consent a signer gives must name the law they are giving it under');
   });
 });
