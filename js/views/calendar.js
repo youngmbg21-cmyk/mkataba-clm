@@ -7,9 +7,9 @@ function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getF
    of the same hues, so a day with an expiry reads as a coloured box on the
    light theme and the dark one alike; the fg tokens re-map per theme. */
 const CAL_EVENT = {
-  expiry:     { dot:'var(--st-ruby-dot)',  fg:'var(--st-ruby-fg)',  label:'Expiry',           tint:'rgba(244,63,94,.13)' },
-  renewal:    { dot:'var(--st-amber-dot)', fg:'var(--st-amber-fg)', label:'Renewal decision', tint:'rgba(245,158,11,.14)' },
-  obligation: { dot:'var(--st-green-dot)', fg:'var(--st-green-fg)', label:'Obligation',       tint:'rgba(16,185,129,.13)' },
+  expiry:     { dot:'var(--st-ruby-dot)',  fg:'var(--st-ruby-fg)',  get label(){ return t('cal_expiry'); },           tint:'rgba(244,63,94,.13)' },
+  renewal:    { dot:'var(--st-amber-dot)', fg:'var(--st-amber-fg)', get label(){ return t('cal_renewal_decision'); }, tint:'rgba(245,158,11,.14)' },
+  obligation: { dot:'var(--st-green-dot)', fg:'var(--st-green-fg)', get label(){ return t('cal_obligation'); },       tint:'rgba(16,185,129,.13)' },
 };
 // priority when a day carries more than one kind of event (drives its tint)
 const CAL_PRIORITY = ['expiry','renewal','obligation'];
@@ -132,12 +132,12 @@ function renderCalendar(){
        task; there is nothing to complete. */
     const doneBtn = (e.type==='obligation' && e.obId && window.toggleObligationById
         && (!window.canEdit || canEdit()))
-      ? `<button data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="Mark this obligation complete"
+      ? `<button data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="${t('cal_mark_complete')}"
            style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;
-             padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Done</button>`
+             padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${t('cal_done')}</button>`
       : '';
     const theirsChip = (e.type==='obligation' && e.theirs)
-      ? `<span title="The counterparty owes this — chase it" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
+      ? `<span title="${t('cal_cp_owes')}" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 4px;background:var(--st-amber-bg);color:var(--st-amber-fg)">theirs</span>`
       : '';
     return `<div style="display:flex;align-items:center;gap:8px;width:100%;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent)" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">`+
       `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">`+
@@ -152,9 +152,9 @@ function renderCalendar(){
     `</div>`;
   }).join(''):`<div style="text-align:center;padding:22px 8px">
       <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">Nothing due in the next 60 days</div>
-      <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">Expiry and renewal dates on your contracts show up here automatically.</div>
-      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;cursor:pointer">Open the register</button>
+      <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">${t('cal_nothing_due')}</div>
+      <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">${t('cal_nothing_due_sub')}</div>
+      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;cursor:pointer">${t('cal_open_register')}</button>
     </div>`;
 
   /* THE REFERENCE'S NAVIGATION, which sits in the page header beside the title
@@ -204,9 +204,9 @@ function renderCalendar(){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;flex-wrap:wrap">
       <h4 id="cal-month" style="margin:0;font-family:var(--font-heading);font-size:17px;font-weight:700;color:var(--color-text)">${monthName}</h4>
       <div style="display:flex;gap:8px;flex:none">
-        <button id="cal-prev" style="${btnBase}" title="Previous month">‹</button>
-        <button id="cal-next" style="${btnBase}" title="Next month">›</button>
-        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:8px;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">Today</button>
+        <button id="cal-prev" style="${btnBase}" title="${t('cal_prev_month')}">‹</button>
+        <button id="cal-next" style="${btnBase}" title="${t('cal_next_month')}">›</button>
+        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:8px;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">${t('cal_today')}</button>
       </div>
     </div>
     <div class="cal-split">
@@ -227,7 +227,7 @@ function renderCalendar(){
         </div>
       </section>
       <section class="cal-card">
-        <h4 style="font-family:var(--font-heading);font-size:15px;font-weight:700;margin:0 0 10px;color:var(--color-text);flex:none">Next 60 Days</h4>
+        <h4 style="font-family:var(--font-heading);font-size:15px;font-weight:700;margin:0 0 10px;color:var(--color-text);flex:none">${t('cal_next_60')}</h4>
         <div id="cal-agenda" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto">${agendaRows}</div>
       </section>
     </div>

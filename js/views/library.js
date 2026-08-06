@@ -42,9 +42,9 @@ const HATI_SAMPLES=[
    through versioning / compare / share / sealing via the existing
    redlineText (working-text) mechanism — no new document pipeline. */
 function createFromCustomTemplate(tid){
-  if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
+  if(!canEdit()){ toast(t('lib_viewers_no_create'),'err'); return; }
   const t=customTemplates().find(x=>x.id===tid);
-  if(!t){ toast('Template not found','err'); return; }
+  if(!t){ toast(t('lib_template_not_found'),'err'); return; }
   // A template with blanks goes through the same guided fill as the built-ins,
   // so the contract arrives with structured data rather than raw text.
   const fs=templateFields(t);
@@ -129,15 +129,15 @@ function openTemplateFillModal(t){
              contract made from "Counterparty Templates" back where it started: asked in
              the negotiation room, and again by the share dialog. */}
       <label style="display:block">
-        <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">Their email<span style="font-weight:400;color:var(--color-neutral-500)"> → so you can send it to them</span></span>
+        <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${t('lib_their_email')}<span style="font-weight:400;color:var(--color-neutral-500)"> ${t('lib_so_you_can_send')}</span></span>
         <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
     </div>
     <div id="tf-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
       <button id="tf-cancel" class="ui-btn">Cancel</button>
       <span style="flex:1"></span>
-      <button id="tf-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">Skip for now</button>
-      <button id="tf-create" class="ui-btn ui-btn-primary">Create draft</button>
+      <button id="tf-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">${t('lib_skip_for_now')}</button>
+      <button id="tf-create" class="ui-btn ui-btn-primary">${t('lib_create_draft')}</button>
     </div></div>`, {maxWidth:'620px'});
   document.getElementById('tf-cancel').addEventListener('click',closeModal);
   /* Same contract, blanks left blank — an unfilled placeholder is a designed
@@ -176,7 +176,7 @@ function updateTemplateRecord(id, patch){
 
 /* "Save as template" from a contract's workspace — reuse paper you like. */
 function saveContractAsTemplate(c){
-  if(!tplCanManage()){ toast('Viewers cannot save templates','err'); return; }
+  if(!tplCanManage()){ toast(t('lib_viewers_no_save'),'err'); return; }
   const text=docPlainText(c);
   if(!text||text.length<40){ toast('This document has no reusable text yet','err'); return; }
   // a formatted contract is saved as a formatted template — reusing your own
@@ -188,15 +188,15 @@ function saveContractAsTemplate(c){
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Save as template</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>Counterparty Templates</b> and in the New-contract menu.</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${t('lib_save_as_template')}</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>${t('lib_cp_templates')}</b> ${t('lib_and_in_new_menu')}</p>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_template_name')}</span>
         <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
-      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
+      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_value_stream')}</span>
         <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 8px;font:inherit;font-size:13px">${opts}</select></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button id="tpl-cancel" class="ui-btn">Cancel</button>
-        <button id="tpl-save" class="ui-btn ui-btn-primary">Save template</button>
+        <button id="tpl-save" class="ui-btn ui-btn-primary">${t('lib_save_template')}</button>
       </div>
     </div>`);
   document.getElementById('tpl-cancel').addEventListener('click',closeModal);
@@ -237,8 +237,8 @@ function openCreateTemplateModal(mode){
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Create template</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Bring your company's standard paper into HaTi so new drafts start from your own wording.</p>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${t('lib_create_template')}</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">${t('lib_bring_standard_paper')}</p>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px" id="ct-tabs">
         ${tabBtn('paste','Paste the document','From Word or Google Docs — keeps the formatting')}
@@ -246,9 +246,9 @@ function openCreateTemplateModal(mode){
       </div>
 
       <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:12px">
-        <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
+        <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_template_name')}</span>
           <input id="ct-name" placeholder="e.g. Standard Distribution Agreement" style="${FLD}"/></label>
-        <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
+        <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_value_stream')}</span>
           <select id="ct-folder" style="${FLD};background:var(--color-surface)">${opts}</select></label>
       </div>
 
@@ -258,9 +258,9 @@ function openCreateTemplateModal(mode){
       <div id="ct-panes" style="display:grid">
       <div id="ct-pane-paste" style="grid-area:1/1">
         <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
-          <span style="font-size:11px;font-weight:600">Paste the contract here</span>
+          <span style="font-size:11px;font-weight:600">${t('lib_paste_contract_here')}</span>
           <span style="flex:1"></span>
-          <button id="ct-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">Preview</button>
+          <button id="ct-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">${t('lib_preview')}</button>
           <button id="ct-clear" class="ui-btn" style="font-size:11px;padding:3px 9px">Clear</button>
         </div>
         <div id="ct-editor" class="scroll-thin doc-surface" style="height:270px;font-size:12.5px"
@@ -271,8 +271,8 @@ function openCreateTemplateModal(mode){
       </div>
 
       <div id="ct-pane-upload" style="grid-area:1/1;visibility:hidden;pointer-events:none">
-        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">PDF or text (Word files must be saved as PDF first). HaTi reads the file and <b>rebuilds its structure</b> — headings, bold, italics, numbered clauses and indentation — from the type sizes and positions the PDF states. That recovers most of a document but not all of it: <b>pasting is still more faithful</b>, because the clipboard carries the structure outright instead of leaving it to be inferred.</p>
-        <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Document file</span>
+        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">${t('lib_pdf_or_text')} <b>${t('lib_rebuilds_structure')}</b> — headings, bold, italics, numbered clauses and indentation — from the type sizes and positions the PDF states. That recovers most of a document but not all of it: <b>${t('lib_pasting_more_faithful')}</b>${t('lib_because_clipboard')}</p>
+        <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_document_file')}</span>
           <input id="ct-file" type="file" accept=".pdf,.docx,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:12px"/></label>
       </div>
       </div>
@@ -280,7 +280,7 @@ function openCreateTemplateModal(mode){
       <div id="ct-status" style="font-size:11px;color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button id="ct-cancel" class="ui-btn">Cancel</button>
-        <button id="ct-save" class="ui-btn ui-btn-primary">Save template</button>
+        <button id="ct-save" class="ui-btn ui-btn-primary">${t('lib_save_template')}</button>
       </div>
     </div>`, {maxWidth:'820px'});
 
@@ -325,16 +325,16 @@ function openCreateTemplateModal(mode){
                    lists?`${lists} list${lists===1?'':'s'}`:'',
                    tables?`${tables} table${tables===1?'':'s'}`:'' ].filter(Boolean).join(' · ');
       if(report.ok){
-        rep(`<span style="color:var(--color-neutral-700)">Converted <b>${t.length.toLocaleString()}</b> characters${kept?` — ${kept} kept`:''}${res.via==='text'?' · pasted as plain text (the source offered no formatting)':''}. <b>Preview</b> it before saving.</span>`);
+        rep(`<span style="color:var(--color-neutral-700)">${t('lib_converted')} <b>${t.length.toLocaleString()}</b> characters${kept?` — ${kept} kept`:''}${res.via==='text'?' · pasted as plain text (the source offered no formatting)':''}. <b>${t('lib_preview')}</b> ${t('lib_it_before_saving')}</span>`);
       } else {
         rep(`<span style="display:block;border:1px solid var(--st-ruby-line);background:rgba(176,69,60,.06);border-radius:4px;padding:8px 10px;color:var(--st-ruby-fg)">
-          <b>That did not come across properly.</b> ${_tplEsc(report.reason)}
-          Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--st-ruby-fg);text-decoration:underline;cursor:pointer">use the plain-text version instead</button> — you will lose the formatting but keep every word.</span>`);
+          <b>${t('lib_did_not_come_across')}</b> ${_tplEsc(report.reason)}
+          Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--st-ruby-fg);text-decoration:underline;cursor:pointer">${t('lib_use_plain_text')}</button> ${t('lib_lose_formatting')}</span>`);
         document.getElementById('ct-fallback')?.addEventListener('click',()=>{
           editor.set(textToRich(res.plain||''));
           pasted={ ...res, via:'text' };
           report={ ok:true, reason:'' };
-          rep('<span style="color:var(--color-neutral-700)">Using the plain-text version — every word is there, the formatting is not.</span>');
+          rep('<span style="color:var(--color-neutral-700)">' + t('lib_using_plain_text') + '</span>');
         });
       }
       markEmpty();
@@ -353,7 +353,7 @@ function openCreateTemplateModal(mode){
   pvBtn.addEventListener('click',()=>{
     if(previewing){ previewing=false; pv.style.display='none'; host.style.display=''; pvBtn.textContent='Preview'; editor.focus(); return; }
     const html=editor.get();
-    if(!richToText(html).trim()){ st('<span style="color:var(--st-ruby-fg)">Nothing to preview yet.</span>'); return; }
+    if(!richToText(html).trim()){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_nothing_to_preview') + '</span>'); return; }
     pv.innerHTML=renderDocHtml(html, RICH_FORMAT);
     previewing=true; pv.style.display=''; host.style.display='none'; pvBtn.textContent='Back to editing'; st('');
   });
@@ -367,8 +367,8 @@ function openCreateTemplateModal(mode){
     if(tab==='paste'){
       const html=editor.get();
       const text=richToText(html);
-      if(!text.trim()){ st('<span style="color:var(--st-ruby-fg)">Paste the contract into the box first.</span>'); return; }
-      if(text.length<40){ st('<span style="color:var(--st-ruby-fg)">That is too short to be a template — paste the whole document.</span>'); return; }
+      if(!text.trim()){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_paste_first') + '</span>'); return; }
+      if(text.length<40){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_too_short') + '</span>'); return; }
       if(report && !report.ok && !await confirmDialog({
         title:'The conversion looks incomplete',
         message:`${report.reason} Saving now stores it as it appears in the box above.`,
@@ -394,7 +394,7 @@ function openCreateTemplateModal(mode){
 
     /* ---- the secondary route: a file ---- */
     const file=document.getElementById('ct-file').files[0];
-    if(!file){ st('<span style="color:var(--st-ruby-fg)">Choose a file.</span>'); return; }
+    if(!file){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_choose_file') + '</span>'); return; }
     if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
     st('Reading file…');
     try{
@@ -402,7 +402,7 @@ function openCreateTemplateModal(mode){
       // Legacy .doc is refused on the bytes, not the extension — nothing is saved.
       const wordKind=detectWordFile(dataUrl, file.type||'', file.name);
       if(wordKind==='doc'){
-        st(`<span style="color:var(--st-ruby-fg)">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> using the other tab — that keeps the formatting too.</span>`); return; }
+        st(`<span style="color:var(--st-ruby-fg)">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> ${t('lib_use_other_tab')}</span>`); return; }
       st('Reading the document and rebuilding its structure…');
       // Recover the document's SHAPE, not just its words — headings, bold,
       // italics, clause numbering and indentation are all stated by the PDF and
@@ -511,7 +511,7 @@ function _richReplaceRange(host, picked, text){
 function openBlanksEditor(tid){
   if(!tplCanManage()){ toast('Viewers cannot edit templates','err'); return; }
   const rec=customTemplates().find(x=>x.id===tid);
-  if(!rec){ toast('Template not found','err'); return; }
+  if(!rec){ toast(t('lib_template_not_found'),'err'); return; }
   // work on a copy — nothing is written until Save
   let body=templateBody(rec);
   let fields=(rec.fields||[]).map(f=>({ ...f }));
@@ -539,11 +539,11 @@ function openBlanksEditor(tid){
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
         <button data-del="${i}" title="Remove this blank" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="Choices, comma separated" style="${st};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:var(--st-ruby-fg)">— this blank is not used anywhere in the body</span>':''}</div>
+        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:var(--st-ruby-fg)">' + t('lib_blank_unused') + '</span>':''}</div>
       </div>`).join('');
     const host=document.getElementById('be-fields');
     if(host){
-      host.innerHTML=rows||`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0">No blanks yet. Select some text in the document below and click <b>Make this a blank</b>.</div>`;
+      host.innerHTML=rows||`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0">${t('lib_no_blanks_yet')} <b>${t('lib_make_this_blank')}</b>.</div>`;
       host.querySelectorAll('[data-fld]').forEach(row=>{
         const i=Number(row.getAttribute('data-fld'));
         row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -576,20 +576,20 @@ function openBlanksEditor(tid){
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Blanks in “${_tplEsc(rec.name)}”</h3></div>
     <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">The blanks in a template are the database. Anything you mark here becomes a guided field when someone creates a contract, and its value is filed as contract data — so the register, filters, folder routing and reports get structured information with no separate data entry.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-      <button id="be-make" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 11px">Make selection a blank</button>
-      <button id="be-detect" class="ui-btn" style="font-size:11.5px;padding:5px 11px">Detect [BRACKETS] &amp; ____</button>
+      <button id="be-make" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 11px">${t('lib_make_selection_blank')}</button>
+      <button id="be-detect" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${t('lib_detect_brackets')}</button>
       ${(API_MODE()&&state.aiConfigured)?`<button id="be-suggest" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('sparkle','w-3.5 h-3.5')} Suggest blanks</button>`:''}
     </div>
     <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:6px 9px;margin-bottom:8px"></div>
     <div id="be-warn" style="font-size:10.5px;margin-bottom:8px;min-height:14px"></div>
-    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:400;color:var(--color-neutral-500)">· formatted template: shown as the document it is, so marking a blank keeps the formatting intact</span>`:''}</span>
+    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:400;color:var(--color-neutral-500)">${t('lib_formatted_template')}</span>`:''}</span>
       ${rich
         ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 13px"></div>`
         : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 11px;font:inherit;font-size:12px;line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:11px;color:var(--color-neutral-600);min-height:15px;margin-bottom:8px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px">
       <button id="be-cancel" class="ui-btn">Cancel</button>
-      <button id="be-save" class="ui-btn ui-btn-primary">Save blanks</button>
+      <button id="be-save" class="ui-btn ui-btn-primary">${t('lib_save_blanks')}</button>
     </div></div>`, {maxWidth:'760px'});
   draw();
 
@@ -601,8 +601,8 @@ function openBlanksEditor(tid){
   document.getElementById('be-make').addEventListener('click',async()=>{
     const picked=rich?_richSelection(bodyEl):null;
     const sel=(rich ? (picked?picked.text:'') : bodyEl.value.slice(bodyEl.selectionStart,bodyEl.selectionEnd)).trim();
-    if(!sel){ status('<span style="color:var(--st-ruby-fg)">Select the text in the document that should become a blank first.</span>'); return; }
-    if(sel.length>200){ status('<span style="color:var(--st-ruby-fg)">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
+    if(!sel){ status('<span style="color:var(--st-ruby-fg)">' + t('lib_select_text_first') + '</span>'); return; }
+    if(sel.length>200){ status('<span style="color:var(--st-ruby-fg)">' + t('lib_selection_too_long') + '</span>'); return; }
     const label=await promptDialog({
       title:'Name this blank',
       message:`“${sel.length<=60?sel:sel.slice(0,60)+'…'}” becomes a fill-in field. The name is what the person using this template sees when they are asked for it.`,
@@ -617,7 +617,7 @@ function openBlanksEditor(tid){
       // document, then re-serialise through the sanitiser. The surrounding
       // formatting is untouched because only the range's contents move.
       const next=_richReplaceRange(bodyEl, picked, '{{'+key+'}}');
-      if(next==null){ status('<span style="color:var(--st-ruby-fg)">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
+      if(next==null){ status('<span style="color:var(--st-ruby-fg)">' + t('lib_selection_spans') + '</span>'); return; }
       body=next;
     } else {
       body=bodyEl.value.slice(0,bodyEl.selectionStart)+'{{'+key+'}}'+bodyEl.value.slice(bodyEl.selectionEnd);
@@ -661,7 +661,7 @@ function openBlanksEditor(tid){
         added++;
       }
       dirty=true; draw();
-      status(`<b>${added}</b> suggestion${added===1?'':'s'} added${missed?`, ${missed} skipped (the text no longer matched)`:''}. <b>Review and edit them</b> — nothing is saved until you press Save blanks.${r.note?`<br><span style="color:var(--color-neutral-500)">${_tplEsc(r.note)}</span>`:''}`);
+      status(`<b>${added}</b> suggestion${added===1?'':'s'} added${missed?`, ${missed} skipped (the text no longer matched)`:''}. <b>${t('lib_review_and_edit')}</b> — nothing is saved until you press Save blanks.${r.note?`<br><span style="color:var(--color-neutral-500)">${_tplEsc(r.note)}</span>`:''}`);
     }catch(err){ status(`<span style="color:var(--st-ruby-fg)">${_tplEsc(err.message)}</span>`); }
     btn.disabled=false; btn.innerHTML=was;
   });
@@ -677,7 +677,7 @@ function openBlanksEditor(tid){
     const orphan=used.filter(k=>!fields.some(f=>f.key===k));
     if(orphan.length){ status(`<span style="color:var(--st-ruby-fg)">The body uses ${orphan.map(k=>'{{'+k+'}}').join(', ')} with no matching field. Add the field or remove the placeholder.</span>`); return; }
     const bad=fields.find(f=>!String(f.label||'').trim());
-    if(bad){ status('<span style="color:var(--st-ruby-fg)">Every blank needs a label.</span>'); return; }
+    if(bad){ status('<span style="color:var(--st-ruby-fg)">' + t('lib_every_blank_label') + '</span>'); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
     if(badSel){ status(`<span style="color:var(--st-ruby-fg)">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
     updateTemplateRecord(tid, { fields, body, chars:bodyText().length });
@@ -740,7 +740,7 @@ function saveTemplateVersion(tid, patch, note){
 function openTemplateEditor(tid){
   if(!tplCanManage()){ toast('Viewers cannot edit templates','err'); return; }
   const rec=customTemplates().find(x=>x.id===tid);
-  if(!rec){ toast('Template not found','err'); return; }
+  if(!rec){ toast(t('lib_template_not_found'),'err'); return; }
 
   // work on a copy — nothing is written until Save
   let name=rec.name, folder=rec.folder;
@@ -756,7 +756,7 @@ function openTemplateEditor(tid){
   openModal(`<div style="padding:20px 22px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
       <span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit template</h3>
+      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${t('lib_edit_template')}</h3>
       <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:3px;padding:1px 6px">v${templateVersionNo(rec)}</span>
       <span style="flex:1"></span>
       <button id="te-versions" class="ui-btn" style="font-size:11px;padding:3px 9px;white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
@@ -765,13 +765,13 @@ function openTemplateEditor(tid){
       ${_tplEsc(templateUsageLabel(usage))} · saving creates <b>v${templateVersionNo(rec)+1}</b>.</p>
     <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;margin:0 0 12px;font-size:11px;line-height:1.5;color:var(--color-neutral-700)">
       <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('shield','w-3.5 h-3.5')}</span>
-      <span><b>Contracts already created from this template are not affected.</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</span>
+      <span><b>${t('lib_existing_unaffected')}</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</span>
     </div>
 
     <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:12px">
-      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
+      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_template_name')}</span>
         <input id="te-name" value="${String(name).replace(/"/g,'&quot;')}" style="${FLD}"/></label>
-      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
+      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_value_stream')}</span>
         <select id="te-folder" style="${FLD};background:var(--color-surface)">${folderOptionsHtml(folder,false)}</select></label>
     </div>
 
@@ -779,8 +779,8 @@ function openTemplateEditor(tid){
       <span style="font-size:11px;font-weight:600">Document</span>
       <span style="font-size:10.5px;color:var(--color-neutral-600)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</span>
       <span style="flex:1"></span>
-      <button id="te-blank" class="ui-btn" style="font-size:11px;padding:3px 9px">Make selection a blank</button>
-      <button id="te-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">Preview</button>
+      <button id="te-blank" class="ui-btn" style="font-size:11px;padding:3px 9px">${t('lib_make_selection_blank')}</button>
+      <button id="te-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">${t('lib_preview')}</button>
     </div>
     <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:12.5px"
          data-placeholder="Paste the contract here, or type it."></div>
@@ -788,18 +788,18 @@ function openTemplateEditor(tid){
     <p style="font-size:10.5px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
 
     <div style="display:flex;align-items:baseline;gap:8px;margin:12px 0 4px">
-      <span style="font-size:11px;font-weight:600">Blanks</span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600)">these become the guided fields, and the contract data, when someone uses this template</span>
+      <span style="font-size:11px;font-weight:600">${t('lib_blanks')}</span>
+      <span style="font-size:10.5px;color:var(--color-neutral-600)">${t('lib_blanks_become_fields')}</span>
     </div>
     <div id="te-fields" class="scroll-thin" style="max-height:150px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:6px 9px"></div>
     <div id="te-warn" style="font-size:10.5px;margin:7px 0;min-height:15px;line-height:1.5"></div>
 
-    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">What changed? <span style="font-weight:400;color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
+    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${t('lib_what_changed')} <span style="font-weight:400;color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
       <input id="te-note" placeholder="e.g. New payment terms per the 2026 policy" style="${FLD}"/></label>
 
     <div id="te-status" style="font-size:11px;min-height:16px;margin-bottom:8px"></div>
     <div style="display:flex;justify-content:space-between;gap:8px">
-      <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">Delete template</button>
+      <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${t('lib_delete_template')}</button>
       <span style="display:flex;gap:8px">
         <button id="te-cancel" class="ui-btn">Cancel</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
@@ -820,8 +820,8 @@ function openTemplateEditor(tid){
       format=RICH_FORMAT; dirty=true; body=editor.get();
       const r=pasteConversionReport(body, res.plain||'');
       st(r.ok
-        ? `<span style="color:var(--color-neutral-700)">Pasted ${richToText(body).length.toLocaleString()} characters.${res.via==='text'?' The source offered no formatting, so this came in as plain text.':''} <b>Preview</b> before saving.</span>`
-        : `<span style="color:var(--st-ruby-fg)"><b>That did not come across properly.</b> ${_tplEsc(r.reason)} Undo (Ctrl+Z) and paste again, or use the plain-text version.</span>`);
+        ? `<span style="color:var(--color-neutral-700)">Pasted ${richToText(body).length.toLocaleString()} characters.${res.via==='text'?' The source offered no formatting, so this came in as plain text.':''} <b>${t('lib_preview')}</b> before saving.</span>`
+        : `<span style="color:var(--st-ruby-fg)"><b>${t('lib_did_not_come_across')}</b> ${_tplEsc(r.reason)} Undo (Ctrl+Z) and paste again, or use the plain-text version.</span>`);
       markEmpty(); drawFields();
     },
   });
@@ -847,9 +847,9 @@ function openTemplateEditor(tid){
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
         <button data-del="${i}" title="Remove this blank" style="border:1px solid var(--st-ruby-line);background:none;color:var(--st-ruby-fg);border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
         ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="Choices, comma separated" style="${stl};grid-column:1 / -1"/>`:''}
-        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:var(--st-ruby-fg)">— not used anywhere in the document above</span>':''}</div>
+        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:var(--st-ruby-fg)">' + t('lib_not_used_above') + '</span>':''}</div>
       </div>`).join('')
-      :`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0">No blanks. Select a value in the document above and press <b>Make selection a blank</b>.</div>`;
+      :`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0">${t('lib_no_blanks_press')} <b>${t('lib_make_selection_blank')}</b>.</div>`;
     host2.querySelectorAll('[data-fld]').forEach(row=>{
       const i=Number(row.getAttribute('data-fld'));
       row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
@@ -915,8 +915,8 @@ function openTemplateEditor(tid){
   document.getElementById('te-blank').addEventListener('click',async()=>{
     const picked=_richSelection(host);
     const sel=(picked?picked.text:'').trim();
-    if(!sel){ st('<span style="color:var(--st-ruby-fg)">Select the value in the document that should become a blank first.</span>'); return; }
-    if(sel.length>200){ st('<span style="color:var(--st-ruby-fg)">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
+    if(!sel){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_select_value_first') + '</span>'); return; }
+    if(sel.length>200){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_selection_too_long') + '</span>'); return; }
     const label=await promptDialog({
       title:'Name this blank',
       message:`“${sel.length<=60?sel:sel.slice(0,60)+'…'}” becomes a fill-in field. The name is what the person using this template sees when they are asked for it.`,
@@ -926,7 +926,7 @@ function openTemplateEditor(tid){
     const lbl=String(label).trim()||sel.slice(0,40);
     const key=tplKeyFrom(lbl, fields);
     const next=_richReplaceRange(host, picked, '{{'+key+'}}');
-    if(next==null){ st('<span style="color:var(--st-ruby-fg)">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
+    if(next==null){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_selection_spans') + '</span>'); return; }
     body=next; format=RICH_FORMAT;
     const shape=guessFieldShape(lbl);
     fields.push({ key, label:lbl, type:shape.type, maps:shape.maps, required:!!shape.maps, def:'', opts:[] });
@@ -959,11 +959,11 @@ function openTemplateEditor(tid){
 
   document.getElementById('te-save').addEventListener('click',async()=>{
     const nm=document.getElementById('te-name').value.trim();
-    if(!nm){ st('<span style="color:var(--st-ruby-fg)">The template needs a name.</span>'); return; }
+    if(!nm){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_needs_name') + '</span>'); return; }
     if(previewing) pvBtn.click();
     if(isRich(format)) body=unmarkPlaceholders(editor.get());
     const text=bodyText();
-    if(!text.trim()){ st('<span style="color:var(--st-ruby-fg)">The document cannot be empty.</span>'); return; }
+    if(!text.trim()){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_doc_not_empty') + '</span>'); return; }
 
     // the blank/body sync warnings are BLOCKING in one direction and advisory in
     // the other: a placeholder with no field would render as literal braces in
@@ -979,7 +979,7 @@ function openTemplateEditor(tid){
         `${orphanFields.length===1?'It':'They'} will still be asked for when someone uses this template, and the answer will not appear in the contract.`,
       confirmLabel:'Save anyway', cancelLabel:'Go back and fix it' })) return;
     const bad=fields.find(f=>!String(f.label||'').trim());
-    if(bad){ st('<span style="color:var(--st-ruby-fg)">Every blank needs a label.</span>'); return; }
+    if(bad){ st('<span style="color:var(--st-ruby-fg)">' + t('lib_every_blank_label') + '</span>'); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
     if(badSel){ st(`<span style="color:var(--st-ruby-fg)">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
 
@@ -998,7 +998,7 @@ function openTemplateEditor(tid){
 /* ---------- version history, with revert ---------- */
 function openTemplateVersions(tid){
   const rec=customTemplates().find(x=>x.id===tid);
-  if(!rec){ toast('Template not found','err'); return; }
+  if(!rec){ toast(t('lib_template_not_found'),'err'); return; }
   const prior=templateVersions(rec);
   const current={ n:templateVersionNo(rec), at:rec.versionAt||rec.at, by:rec.versionBy||rec.by,
     note:rec.versionNote||'Original', name:rec.name, folder:rec.folder,
@@ -1011,7 +1011,7 @@ function openTemplateVersions(tid){
       <span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Versions of “${_tplEsc(rec.name)}”</h3>
     </div>
-    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Every save is kept. Reverting does not erase anything — it copies an earlier version forward as a <b>new</b> version, so the history stays intact. <b>No contract changes either way</b>: a contract copies its wording at creation.</p>
+    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">${t('lib_every_save_kept')} <b>new</b> ${t('lib_history_intact')} <b>${t('lib_no_contract_changes')}</b>${t('lib_copies_wording')}</p>
     <div class="scroll-thin" style="max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
       ${all.map(v=>`
         <div style="display:flex;align-items:center;gap:9px;border:1px solid ${v.n===current.n?'var(--color-accent-300)':'var(--color-divider)'};background:${v.n===current.n?'var(--color-accent-100)':'var(--color-surface)'};border-radius:5px;padding:8px 11px">
@@ -1021,12 +1021,12 @@ function openTemplateVersions(tid){
             <span style="display:block;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${v.by?_tplEsc(v.by)+' · ':''}${v.at?fmtDT(v.at):''} · ${(v.fields||[]).length} blank${(v.fields||[]).length===1?'':'s'} · ${(v.format==='rich'?'formatted':'plain text')}</span>
           </span>
           ${v.n===current.n?`<span class="badge" style="flex:none;background:var(--color-accent-200);color:var(--color-accent-800)">current</span>`
-            :`<button data-tv-view="${v.n}" class="ui-btn" style="flex:none;font-size:11px;padding:3px 9px">View</button>
-              ${canManage?`<button data-tv-revert="${v.n}" class="ui-btn" style="flex:none;font-size:11px;padding:3px 9px">Revert to this</button>`:''}`}
+            :`<button data-tv-view="${v.n}" class="ui-btn" style="flex:none;font-size:11px;padding:3px 9px">${t('lib_view')}</button>
+              ${canManage?`<button data-tv-revert="${v.n}" class="ui-btn" style="flex:none;font-size:11px;padding:3px 9px">${t('lib_revert_to_this')}</button>`:''}`}
         </div>`).join('')}
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-      ${canManage?`<button id="tv-edit" class="ui-btn">Back to editing</button>`:''}
+      ${canManage?`<button id="tv-edit" class="ui-btn">${t('lib_back_to_editing')}</button>`:''}
       <button id="tv-close" class="ui-btn ui-btn-primary">Close</button>
     </div></div>`, {maxWidth:'760px'});
 
@@ -1076,7 +1076,7 @@ async function deleteTemplateGuarded(tid){
    built-in's own field schema. The built-in itself is untouched. */
 function duplicateBuiltinTemplate(bid){
   if(!tplCanManage()){ toast('Viewers cannot add templates','err'); return; }
-  const t=TEMPLATES[bid]; if(!t){ toast('Template not found','err'); return; }
+  const t=TEMPLATES[bid]; if(!t){ toast(t('lib_template_not_found'),'err'); return; }
   const u=currentUser();
   const fields=templateFields(t).map(f=>({...f}));
   // a throwaway contract, rendered exactly as the generator would render it
@@ -1117,13 +1117,13 @@ function duplicateBuiltinTemplate(bid){
    validated BEFORE anything is created — half a batch of employment letters is
    worse than none, because the half-done state is invisible in the register. */
 function openBulkCreateModal(t){
-  if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
+  if(!canEdit()){ toast(t('lib_viewers_no_create'),'err'); return; }
   const fs=templateFields(t);
   if(!fs.length){ toast('This template has no blanks yet — add some first','err'); return; }
   openModal(`<div style="padding:20px 22px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
-    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">For high-volume, low-variation paper — distributor agreements, employment letters. Download the sheet, fill one row per contract, upload it back. <b>Every row is checked before anything is created</b>, so a bad cell stops the whole run rather than leaving half a batch in the register. Up to ${TPL_BULK_MAX} rows.</p>
+    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">For high-volume, low-variation paper — distributor agreements, employment letters. Download the sheet, fill one row per contract, upload it back. <b>${t('lib_every_row_checked')}</b>, so a bad cell stops the whole run rather than leaving half a batch in the register. Up to ${TPL_BULK_MAX} rows.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <button id="bk-csv" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('download','w-3.5 h-3.5')} Download the CSV (${fs.length} column${fs.length===1?'':'s'})</button>
       <label class="ui-btn" style="font-size:11.5px;padding:5px 11px;cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
@@ -1132,7 +1132,7 @@ function openBulkCreateModal(t){
     <div id="bk-out" style="font-size:11.5px;color:var(--color-neutral-700);min-height:20px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
       <button id="bk-cancel" class="ui-btn">Close</button>
-      <button id="bk-go" class="ui-btn ui-btn-primary" disabled style="opacity:.5">Create drafts</button>
+      <button id="bk-go" class="ui-btn ui-btn-primary" disabled style="opacity:.5">${t('lib_create_drafts')}</button>
     </div></div>`, {maxWidth:'700px'});
 
   let ready=null;
@@ -1153,17 +1153,17 @@ function openBulkCreateModal(t){
         const byRow={};
         r.errors.forEach(er=>{ (byRow[er.row]=byRow[er.row]||[]).push(er); });
         out.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:9px 11px">
-          <div style="font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>nothing has been created</b>.</div>
+          <div style="font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px">${r.errors.length} problem${r.errors.length===1?'':'s'} found — <b>${t('lib_nothing_created')}</b>.</div>
           <div class="scroll-thin" style="max-height:200px;overflow-y:auto">
           ${Object.keys(byRow).sort((a,b)=>a-b).map(rn=>`<div style="padding:2px 0;color:var(--st-ruby-fg)">
-            ${rn==='0'?'<b>Sheet</b>':`<b>Row ${rn}</b>`} — ${byRow[rn].map(er=>`${er.cell?`<i>${_tplEsc(er.cell)}</i>: `:''}${_tplEsc(er.msg)}`).join('; ')}</div>`).join('')}
+            ${rn==='0'?'<b>' + t('lib_sheet') + '</b>':`<b>Row ${rn}</b>`} — ${byRow[rn].map(er=>`${er.cell?`<i>${_tplEsc(er.cell)}</i>: `:''}${_tplEsc(er.msg)}`).join('; ')}</div>`).join('')}
           </div>
-          <div style="margin-top:6px;color:var(--color-neutral-700)">Fix them in the spreadsheet and upload it again.</div></div>`;
+          <div style="margin-top:6px;color:var(--color-neutral-700)">${t('lib_fix_and_reupload')}</div></div>`;
         return;
       }
       ready=r.rows;
       out.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:5px;padding:9px 11px;color:var(--color-accent-800)">
-        <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> Press <b>Create drafts</b> to file them all in one pass.
+        <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> ${t('lib_press')} <b>${t('lib_create_drafts')}</b> to file them all in one pass.
         <div style="margin-top:5px;color:var(--color-neutral-700);font-size:11px">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';
     }catch(err){ out.innerHTML=`<span style="color:var(--st-ruby-fg)">Could not read that CSV: ${_tplEsc(err.message)}</span>`; }
@@ -1211,7 +1211,7 @@ function openTemplatePreview(tpl){
       <div class="scroll-thin doc-surface" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
         ${canEdit()?`<button id="tp-blanks" class="ui-btn">${templateFields(tpl).length?'Edit blanks':'Add blanks'}</button>`:''}
-        ${canEdit()?`<button id="tp-use" class="ui-btn ui-btn-primary">Use template</button>`:''}
+        ${canEdit()?`<button id="tp-use" class="ui-btn ui-btn-primary">${t('lib_use_template')}</button>`:''}
         <button id="tp-close" class="ui-btn">Close</button>
       </div>
     </div>`, {maxWidth:'820px'});
@@ -1287,13 +1287,13 @@ function tplPageRowHtml(r){
   const P='class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 12px"';
   let acts='';
   if(r.kind==='company') acts=r.draft
-    ?`<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>Continue editing</button>`
-    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>Use</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>Open</button>`;
-  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>Use</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>Open</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Edit, blanks, bulk, versions, delete">⋯</button>`:''}`;
-  else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>Use</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>Bulk</button>`:''}`;
+    ?`<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>${t('lib_continue_editing')}</button>`
+    :`${canManage?`<button data-tpllib-use="${_tplEsc(r.id)}" ${P}>${t('lib_use')}</button>`:''}<button data-tpllib-open="${_tplEsc(r.id)}" ${B}>Open</button>`;
+  else if(r.kind==='cp') acts=`${canManage?`<button data-tpl-use="${_tplEsc(r.id)}" ${P}>${t('lib_use')}</button>`:''}<button data-tpl-prev="${_tplEsc(r.id)}" ${B}>Open</button>${canManage?`<button data-tpl-more="${_tplEsc(r.id)}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Edit, blanks, bulk, versions, delete">⋯</button>`:''}`;
+  else if(r.kind==='builtin') acts=`${canManage?`<button data-tpl-builtin="${_tplEsc(r.id)}" ${P}>${t('lib_use')}</button><button data-tpl-bulk-b="${_tplEsc(r.id)}" ${B}>${t('lib_bulk')}</button>`:''}`;
   else acts=r.imported
-    ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>Imported</span>`
-    :(canManage?`<button data-sample-imp="${r.i}" ${B}>Import as template</button>`:'');
+    ?`<span class="badge" style="background:var(--st-green-bg);color:var(--st-green-fg)"><span class="dot" style="background:var(--st-green-dot)"></span>${t('lib_imported')}</span>`
+    :(canManage?`<button data-sample-imp="${r.i}" ${B}>${t('lib_import_as_template')}</button>`:'');
   return `<tr>
     <td style="padding:10px 8px 10px 14px;${RULE}">
       <div style="display:flex;gap:11px;align-items:flex-start">
@@ -1332,8 +1332,8 @@ function tplPagePaintRows(){
     </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:11.5px;color:var(--color-neutral-600)">
       ${hidden} more · ${hiddenKinds}<span style="flex:1"></span>
-      <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">Show all →</button></div>`:''}`
-    :`<div style="padding:28px 14px;text-align:center;font-size:12px;color:var(--color-neutral-600)">Nothing matches — clear the search or pick another group.</div>`;
+      <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">${t('lib_show_all')}</button></div>`:''}`
+    :`<div style="padding:28px 14px;text-align:center;font-size:12px;color:var(--color-neutral-600)">${t('lib_nothing_matches')}</div>`;
   // row verbs (rebound on every paint — the rows are rebuilt wholesale)
   host.querySelectorAll('[data-tpllib-use]').forEach(b=>b.addEventListener('click',()=>tplLibNewContract(b.getAttribute('data-tpllib-use'))));
   host.querySelectorAll('[data-tpllib-open]').forEach(b=>b.addEventListener('click',()=>openTemplateLibDetail(b.getAttribute('data-tpllib-open'))));
@@ -1380,7 +1380,7 @@ function tplNewMenu(){
   const opt=(id,label,sub)=>`<button id="${id}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:10px;padding:13px 15px;cursor:pointer;font:inherit;margin-bottom:8px">
     <span style="display:block;font-size:13px;font-weight:700">${label}</span><span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:2px;line-height:1.45">${sub}</span></button>`;
   openModal(`<div style="padding:20px 22px;max-width:380px">
-    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 10px">What kind of template?</h3>
+    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 10px">${t('lib_what_kind')}</h3>
     ${opt('tn-company','Company standard','Published to the whole team — versioned, branded, one-click drafting.')}
     ${opt('tn-cp','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
     <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:12px">Cancel</button></div>
@@ -1405,21 +1405,21 @@ function renderTemplatesPage(){
     <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px">
       <div style="min-width:0">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:clamp(18px,16px + 0.35vw,24px);font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">Templates</h1>
-        <p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500)">the paper you draft from — company standards, counterparty paper and HaTi's own</p>
+        <p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500)">${t('lib_templates_sub')}</p>
       </div>
       <span style="flex:1"></span>
-      ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:6px 13px">Convert a document</button>
+      ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:6px 13px">${t('lib_convert_document')}</button>
       <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New template</button>`:''}
     </div>
     <div class="tpl-cols" style="display:grid;gap:16px;align-items:start">
       <div>
-        <div style="${HEAD}">Library</div>
+        <div style="${HEAD}">${t('lib_library')}</div>
         ${railIt('all',TPL_GROUP_LABEL.all,total)}
         ${railIt('company',TPL_GROUP_LABEL.company,counts.company||0)}
         ${railIt('cp',TPL_GROUP_LABEL.cp,counts.cp||0)}
         ${railIt('builtin',TPL_GROUP_LABEL.builtin,counts.builtin||0)}
         ${railIt('sample',TPL_GROUP_LABEL.sample,counts.sample||0)}
-        <div style="${HEAD};margin-top:16px">Value stream</div>
+        <div style="${HEAD};margin-top:16px">${t('lib_value_stream')}</div>
         ${Object.values(FOLDERS).map(streamIt).join('')}
         <!-- Our standards used to hang off this rail, because the clause
              library and playbook had no door of their own. They have one now,
@@ -1475,7 +1475,7 @@ function renderPlaybookPage(){
       </span>
       <span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
     </button>`).join('')
-    :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0;line-height:1.6">No playbook deviations recorded yet. Run the <b>Copilot review</b> from a contract's workspace — deviations from these positions will be listed here.</p>`;
+    :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0;line-height:1.6">${t('lib_no_deviations')} <b>${t('lib_copilot_review')}</b> ${t('lib_from_workspace')}</p>`;
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
@@ -1488,18 +1488,18 @@ function renderPlaybookPage(){
           <span style="flex:1"></span>
           ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Add clause</button>`:''}
         </div>
-        <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Your standard clauses — the wording HaTi drafts with and the Copilot review checks incoming paper against.</p>
+        <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${t('lib_clause_library_sub')}</p>
         <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
       </section>
 
       <div style="display:flex;flex-direction:column;gap:18px">
         <section style="${CARD};padding:16px">
-          <h4 style="${H4};margin-bottom:8px">Negotiation playbook</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Positions per contract type. Red = required / forbidden, steel = preferred, amber = numeric range.</p>
+          <h4 style="${H4};margin-bottom:8px">${t('lib_negotiation_playbook')}</h4>
+          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${t('lib_playbook_sub')}</p>
           <div id="playbook-view"></div>
         </section>
         <section style="${CARD};padding:16px">
-          <h4 style="${H4};margin-bottom:8px">Portfolio deviations</h4>
+          <h4 style="${H4};margin-bottom:8px">${t('lib_portfolio_deviations')}</h4>
           ${devHtml}
         </section>
       </div>

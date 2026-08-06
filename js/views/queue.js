@@ -44,7 +44,7 @@ function pipeCard(c){
 function pipeColumnInner(col, list){
   const shown=list.slice(0,PIPE_CAP);
   const more=list.length>PIPE_CAP?`<button data-pipe-more="${col.k}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 9px;font:inherit;font-size:11px;font-weight:500;color:var(--color-accent-700);cursor:pointer">+${list.length-PIPE_CAP} more in Register →</button>`:'';
-  const empty=list.length?'':`<div style="border:1px dashed var(--color-divider);border-radius:4px;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">Nothing here</div>`;
+  const empty=list.length?'':`<div style="border:1px dashed var(--color-divider);border-radius:4px;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">${t('queue_nothing_here')}</div>`;
   return shown.map(pipeCard).join('')+empty+more;
 }
 function renderPipeline(){

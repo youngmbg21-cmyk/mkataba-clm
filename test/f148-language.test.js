@@ -37,7 +37,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 const SAME_IN_BOTH = new Set([
   'term_force_majeure',   // borrowed from French into both
   'nav_administration',   // identical spelling in Swedish
-  'col_status',           // ditto
+  'reg_col_status',       // ditto
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {
@@ -83,6 +83,40 @@ describe('f148 — the two dictionaries stay level', () => {
       if (sv == null) continue;
       assert.equal(vars(sv), vars(v), `${k}: the two languages fill different placeholders`);
     }
+  });
+});
+
+describe('f148 — every key a renderer asks for exists', () => {
+  /* The shell's data-i18n tags are checked below; this is the other half, and
+     the bigger one — every t('…') call in every module. A renderer asking for a
+     key the dictionary does not have paints that key onto the screen, and
+     nothing else in the suite would notice. It is easy to lose the dictionary
+     half of a change (a bad revert, a merge) while keeping the renderer half,
+     and this is what catches that. */
+  const keysUsed = () => {
+    const out = new Map();
+    const walk = dir => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) { walk(p); continue; }
+        if (!e.name.endsWith('.js') || e.name === 'i18n.js') continue;
+        const src = fs.readFileSync(p, 'utf8');
+        for (const m of src.matchAll(/\bt\('([a-z][a-z0-9_]{3,})'\)/g))
+          if (!out.has(m[1])) out.set(m[1], e.name);
+        for (const m of src.matchAll(/\btn\('([a-z][a-z0-9_]{3,})'/g))
+          if (!out.has(m[1] + '_other')) out.set(m[1] + '_other', e.name);
+      }
+    };
+    walk(path.join(ROOT, 'js'));
+    return out;
+  };
+
+  test('no renderer asks for a key the dictionary does not have', () => {
+    const used = keysUsed();
+    assert.ok(used.size > 50, 'the renderers are actually going through t()');
+    const missing = [...used].filter(([k]) => STRINGS[I18N_DEFAULT][k] == null)
+      .map(([k, file]) => `${k} (${file})`);
+    assert.deepEqual(missing, [], 'these would render as raw keys on screen');
   });
 });
 
@@ -179,8 +213,11 @@ describe('f148 — t() and tn() never show a user nothing', () => {
 
   test('interpolation fills every placeholder it is given', () => {
     win.langSet('en', { repaint: false });
-    assert.equal(win.t('reg_showing_other', { start: 1, end: 40, total: 55 }),
-      'Showing 1–40 of 55 contracts');
+    assert.equal(win.t('reg_showing', { start: 1, end: 40, n: 55 }),
+      'Showing 1–40 of 55');
+    win.langSet('sv', { repaint: false });
+    assert.equal(win.t('reg_showing', { start: 1, end: 40, n: 55 }),
+      'Visar 1–40 av 55');
   });
 });
 
