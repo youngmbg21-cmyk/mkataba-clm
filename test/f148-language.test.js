@@ -38,6 +38,7 @@ const SAME_IN_BOTH = new Set([
   'term_force_majeure',   // borrowed from French into both
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
+  'set_usd_per',          // "USD per" — the currency code carries it
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

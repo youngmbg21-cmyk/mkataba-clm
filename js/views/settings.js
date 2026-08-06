@@ -47,13 +47,13 @@ function openFolderAccessEditor(userId){
       <span style="flex:1;min-width:0">${esc(f.name)}</span></label>`;
   openModal(`<div class="p-6" style="max-width:460px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">Folder access — ${(u.name||u.email).replace(/</g,'&lt;')}</h3>
-    <p class="text-xs text-ink/60 mb-3">Grant every value stream, or restrict this member to a specific subset. Admins always keep full access.</p>
+    <p class="text-xs text-ink/60 mb-3">${t('set_grant_streams')}</p>
     <label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:10px">
-      <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> All streams &amp; folders</label>
+      <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
       <button id="fa-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-      <button id="fa-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save access</button></div>
+      <button id="fa-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${t('set_save_access')}</button></div>
   </div>`);
   const allBox=document.getElementById('fa-all'), list=document.getElementById('fa-list');
   allBox.addEventListener('change',()=>{ list.style.display=allBox.checked?'none':'grid'; });
@@ -87,7 +87,7 @@ function renderAllowancePanel(a){
   const host=document.getElementById('ai-allowance-state'); if(!host) return;
   const money=n=>'$'+Number(n||0).toFixed(2);
   if(!a || !a.open){
-    host.innerHTML=`<span style="color:var(--color-neutral-600)">No allowance open — migration and OCR draw on the daily budget.</span>`;
+    host.innerHTML=`<span style="color:var(--color-neutral-600)">${t('set_no_allowance')}</span>`;
     return;
   }
   const moneyPct=a.budget>0?Math.min(100,Math.round(a.spent/a.budget*100)):0;
@@ -211,11 +211,11 @@ function renderTeam(){
           <table style="width:100%;border-collapse:collapse;font-size:12.5px">
             <thead>
               <tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:10px;letter-spacing:.08em;text-transform:uppercase">
-                <th style="padding:8px 10px 8px 14px;font-weight:600">Member</th>
-                <th style="padding:8px 10px;font-weight:600">Role</th>
-                <th style="padding:8px 10px;font-weight:600">Folder access</th>
+                <th style="padding:8px 10px 8px 14px;font-weight:600">${t('set_member')}</th>
+                <th style="padding:8px 10px;font-weight:600">${t('set_role')}</th>
+                <th style="padding:8px 10px;font-weight:600">${t('set_folder_access')}</th>
                 <th style="padding:8px 10px;font-weight:600">Status</th>
-                <th style="padding:8px 14px 8px 10px;font-weight:600;text-align:right">Manage</th>
+                <th style="padding:8px 14px 8px 10px;font-weight:600;text-align:right">${t('set_manage')}</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -223,26 +223,26 @@ function renderTeam(){
         </div>
         ${isAdmin()?`
         <div style="padding:12px 14px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
-          <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Add team member</div>
+          <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${t('set_add_team_member')}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <input id="tm-name" type="text" placeholder="Full name" style="${inputStyle}"/>
             <input id="tm-email" type="email" placeholder="Work email" style="${inputStyle}"/>
             <input id="tm-title" type="text" placeholder="Title (e.g. CFO) — optional" style="${inputStyle}"/>
             <select id="tm-role" style="${inputStyle}">
-              <option value="legal">Legal — edit &amp; sign</option>
-              <option value="viewer">Viewer — read only</option>
-              <option value="admin">Admin — full control</option>
+              <option value="legal">${t('set_role_legal')}</option>
+              <option value="viewer">${t('set_role_viewer')}</option>
+              <option value="admin">${t('set_role_admin')}</option>
             </select>
             <input id="tm-pass" type="password" placeholder="Temporary password (min 8) — they must change it" style="${inputStyle}"/>
           </div>
-          <button id="tm-add" style="margin-top:10px;${primaryBtn}">Add member</button>
+          <button id="tm-add" style="margin-top:10px;${primaryBtn}">${t('set_add_member')}</button>
         </div>
         <div style="padding:12px 14px;border-top:1px solid var(--color-divider)">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
             <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em">Directory · ${(((state.settings||{}).directory)||[]).length} contact${(((state.settings||{}).directory)||[]).length===1?'':'s'}</div>
             <label style="${secondaryBtn}">${icon('upload','w-3.5 h-3.5')} Import CSV<input id="dir-import" type="file" accept=".csv,text/csv" style="display:none"/></label>
           </div>
-          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">Bulk-add signer contacts so titles &amp; emails auto-fill when adding signers on a contract. CSV columns: <b>Name, Email, Title</b>.${(((state.settings||{}).directory)||[]).length?` · <button id="dir-clear" style="color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;font-weight:600;font-size:10.5px">Clear directory</button>`:''}</div>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">${t('set_bulk_signers')} <b>Name, Email, Title</b>.${(((state.settings||{}).directory)||[]).length?` · <button id="dir-clear" style="color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;font-weight:600;font-size:10.5px">${t('set_clear_directory')}</button>`:''}</div>
         </div>`:''}
       </section>
 
@@ -250,65 +250,65 @@ function renderTeam(){
       <div style="display:flex;flex-direction:column;gap:18px">
 
         <section style="${cardStyle}">
-          <h4 style="${h4Style}">Approval rules</h4>
+          <h4 style="${h4Style}">${t('set_approval_rules')}</h4>
           <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">IF a contract matches a condition THEN it needs the named approver before signing. Rules run in order — a lower order number approves first.</p>
           <div id="approval-rules"></div>
           ${isAdmin()?`<button id="ar-add" style="margin-top:8px;${secondaryBtn}">${icon('plus','w-3.5 h-3.5')} Add rule</button>`
-            :`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">Only an admin can change approval rules.</p>`}
+            :`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${t('set_only_admin_approval')}</p>`}
         </section>
 
         <section style="${cardStyle}">
-          <h4 style="${h4Style}">Renewal reminders</h4>
-          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Email the contract owner ahead of every executed contract’s expiry.</p>
+          <h4 style="${h4Style}">${t('set_renewal_reminders')}</h4>
+          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${t('set_renewal_sub')}</p>
           <div style="display:flex;gap:6px">
             ${[90,60,30].map(d=>`<span style="${tagAccent}">${d} days</span>`).join('')}
           </div>
-          <p style="font-size:10.5px;color:var(--color-neutral-600);margin:8px 0 0">Delivered by email via Resend.</p>
+          <p style="font-size:10.5px;color:var(--color-neutral-600);margin:8px 0 0">${t('set_delivered_resend')}</p>
         </section>
 
         <section style="${cardStyle}">
-          <h4 style="${h4Style}">Copilot engine</h4>
+          <h4 style="${h4Style}">${t('set_copilot_engine')}</h4>
           <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Insights graph. Without a key, Copilot features fall back to the built-in interpreter.</p>
-          <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">Checking…</div>
+          <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${t('set_checking')}</div>
           ${isAdmin()?`
           <div style="display:flex;gap:8px;align-items:flex-end">
-            <label style="flex:1;min-width:0"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:4px">Anthropic API key</span>
+            <label style="flex:1;min-width:0"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:4px">${t('set_api_key')}</span>
               <input id="ai-key" type="password" placeholder="sk-ant-…" style="${inputStyle}"/></label>
-            <button id="ai-key-save" style="${primaryBtn}">Save key</button>
+            <button id="ai-key-save" style="${primaryBtn}">${t('set_save_key')}</button>
           </div>
-          <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">Remove key</button>
+          <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer;padding:0">${t('set_remove_key')}</button>
           ${API_MODE()?`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text)">Model routing</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px">Leave an override blank to use the recommended default.</p>
+            <div style="font-size:12px;font-weight:600;color:var(--color-text)">${t('set_model_routing')}</div>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px">${t('set_override_blank')}</p>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
               <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
-                <div style="font-size:11px;font-weight:600;color:var(--color-text)">Fast tier</div>
-                <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">Search · graph · extraction</div>
-                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">Current: <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
+                <div style="font-size:11px;font-weight:600;color:var(--color-text)">${t('set_fast_tier')}</div>
+                <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">${t('set_fast_sub')}</div>
+                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">${t('set_current')} <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
                 <input id="ai-model-fast" type="text" placeholder="default (recommended)" style="${inputMono}"/>
               </div>
               <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
-                <div style="font-size:11px;font-weight:600;color:var(--color-text)">Deep tier</div>
-                <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">Playbook review · obligations</div>
-                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">Current: <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
+                <div style="font-size:11px;font-weight:600;color:var(--color-text)">${t('set_deep_tier')}</div>
+                <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">${t('set_deep_sub')}</div>
+                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">${t('set_current')} <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
                 <input id="ai-model-deep" type="text" placeholder="default (recommended)" style="${inputMono}"/>
               </div>
             </div>
             <details style="font-size:11px;margin-top:8px">
-              <summary style="cursor:pointer;color:var(--color-neutral-600)">Advanced: override every tier</summary>
+              <summary style="cursor:pointer;color:var(--color-neutral-600)">${t('set_advanced_override')}</summary>
               <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
                 <input id="ai-model-global" type="text" placeholder="(none)" style="${inputMono};width:220px"/>
                 <span style="font-size:10px;color:var(--color-neutral-500)">Forces this one model for both tiers (<span style="font-family:var(--font-mono)">ANTHROPIC_MODEL</span>).</span>
               </div>
             </details>
-            <button id="ai-model-save" style="margin-top:8px;${primaryBtnSm}">Save model settings</button>
+            <button id="ai-model-save" style="margin-top:8px;${primaryBtnSm}">${t('set_save_model')}</button>
           </div>
 
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text)">Spend &amp; cost controls</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 6px;line-height:1.5">Copilot spend is governed by <b>money</b>, not request count: every Anthropic call's token usage is priced against the rate table below and accumulated in a persisted ledger. The request ceiling is kept only as a blunt backstop against a runaway loop.</p>
-            <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:4px">Today: —</div>
+            <div style="font-size:12px;font-weight:600;color:var(--color-text)">${t('set_spend_controls')}</div>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 6px;line-height:1.5">${t('set_spend_governed')} <b>money</b>, not request count: every Anthropic call's token usage is priced against the rate table below and accumulated in a persisted ledger. The request ceiling is kept only as a blunt backstop against a runaway loop.</p>
+            <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:4px">${t('set_today_dash')}</div>
             <div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
             <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
@@ -324,14 +324,14 @@ function renderTeam(){
             </div>
             <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:11px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
               <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
-              <span><b>Thorough extraction</b> — read the whole contract in overlapping chunks instead of one pass.
-              <span style="color:var(--st-amber-fg)">This runs one deep-tier Copilot call per ~30,000 characters, so a long agreement can cost several times a normal extraction.</span> Pre-flight estimates reflect it.</span></label>
-            <button id="ai-limits-save" style="margin-top:9px;${primaryBtnSm}">Save limits</button>
+              <span><b>${t('set_thorough_extraction')}</b> — read the whole contract in overlapping chunks instead of one pass.
+              <span style="color:var(--st-amber-fg)">This runs one deep-tier Copilot call per ~30,000 characters, so a long agreement can cost several times a normal extraction.</span> ${t('set_preflight')}</span></label>
+            <button id="ai-limits-save" style="margin-top:9px;${primaryBtnSm}">${t('set_save_limits')}</button>
           </div>
 
           <!-- ---- onboarding allowance ---- -->
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text)">Onboarding allowance</div>
+            <div style="font-size:12px;font-weight:600;color:var(--color-text)">${t('set_onboarding_allowance')}</div>
             <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">A one-off budget for bringing in a customer's back catalogue. Bulk import and OCR draw on this instead of the day-to-day budget, so a 500-contract import isn't blocked by the daily ceiling. When it runs out, the import falls back to the pattern matcher and says so — it never hard-fails mid-batch.</p>
             <div id="ai-allowance-state" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:6px">—</div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
@@ -339,8 +339,8 @@ function renderTeam(){
               ${limitField('ai-allow-docs','Allowance documents','0 = no document cap',0)}
             </div>
             <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-              <button id="ai-allow-open" style="${primaryBtnSm}">Open allowance</button>
-              <button id="ai-allow-topup" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">Top up</button>
+              <button id="ai-allow-open" style="${primaryBtnSm}">${t('set_open_allowance')}</button>
+              <button id="ai-allow-topup" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">${t('set_top_up')}</button>
               <button id="ai-allow-close" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">Close</button>
             </div>
           </div>
@@ -348,49 +348,49 @@ function renderTeam(){
           <!-- ---- model rate table ---- -->
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
             <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-              <div style="font-size:12px;font-weight:600;color:var(--color-text)">Model rate table</div>
+              <div style="font-size:12px;font-weight:600;color:var(--color-text)">${t('set_rate_table')}</div>
               <span id="ai-rates-meta" style="font-size:10px;color:var(--color-neutral-500)"></span>
             </div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">USD per <b>million tokens</b>. Spend is metered against these, so a stale table silently under-reports the bill — check them against Anthropic's published pricing when you upgrade a model.</p>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">${t('set_usd_per')} <b>million tokens</b>. Spend is metered against these, so a stale table silently under-reports the bill — check them against Anthropic's published pricing when you upgrade a model.</p>
             <div id="ai-rates-table" style="max-height:220px;overflow-y:auto" class="scroll-thin"></div>
             <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-              <button id="ai-rates-save" style="${primaryBtnSm}">Save rates</button>
-              <button id="ai-rates-reset" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">Reset to built-in defaults</button>
+              <button id="ai-rates-save" style="${primaryBtnSm}">${t('set_save_rates')}</button>
+              <button id="ai-rates-reset" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">${t('set_reset_defaults')}</button>
             </div>
           </div>
 
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:2px">File existing contracts</div>
+            <div style="font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:2px">${t('set_file_existing')}</div>
             <p style="font-size:10.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">Extract structured details (counterparty, dates, value, renewal terms, governing law) from uploaded contracts that don't have them yet. Each is presented for your review before saving — nothing is written automatically.</p>
-            <button id="meta-backfill" style="${secondaryBtn}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">Extract metadata for existing contracts</span></button>
+            <button id="meta-backfill" style="${secondaryBtn}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">${t('set_extract_metadata')}</span></button>
           </div>`:`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">Local mode: the key is stored only in this browser, and HaTi Copilot calls Anthropic directly from this browser with it. Saving clears the input box for safety — the key is kept (see the status above). Run the HaTi server for team-shared keys, model routing and usage limits.</div>`}`
-          :`<p style="font-size:11px;color:var(--color-neutral-600)">Only an admin can configure the Copilot key.</p>`}
+          :`<p style="font-size:11px;color:var(--color-neutral-600)">${t('set_only_admin_key')}</p>`}
         </section>
 
       <section style="${cardStyle}">
-        <h4 style="${h4Style}">Company design</h4>
+        <h4 style="${h4Style}">${t('set_company_design')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The standard look every contract wears when it is published, shared or exported — a <b>structure</b> (how the page is laid out) and a <b>style</b> (how it is dressed), plus your logo and your colour. The wording and the clause numbers of a contract never change; only the presentation does. Signed contracts keep the look they were sealed with.</p>
         ${(()=>{ const ob=window.ORG_BRANDING; const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
           const canDesign=(currentUser()||{}).role==='admin'||(currentUser()||{}).role==='legal';
           return `
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:8px;display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
-            ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:9px;color:var(--color-neutral-500)">No logo</span>`}
+            ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:9px;color:var(--color-neutral-500)">${t('set_no_logo')}</span>`}
           </div>
           <div style="flex:1;min-width:150px">
             ${d?`<div style="font-size:12.5px;font-weight:700">${esc(d.name)}${(()=>{ const st=ob.structureId&&window.docStructureById?docStructureById(ob.structureId):null;
               return st&&st.id!==DEFAULT_STRUCTURE?` <span style="font-weight:500;color:var(--color-neutral-600)">· ${esc(st.name)}</span>`:''; })()}</div>
             <div style="font-size:10.5px;color:var(--color-neutral-600)">Logo: ${esc({'top-left':'top left','top-center':'top centre','top-right':'top right',footer:'footer'}[ob.logoPosition]||ob.logoPosition||'—')}${d.usesAccent&&ob.accentColor?` · accent <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${ob.accentColor};vertical-align:-1px;border:1px solid var(--color-divider)"></span>`:''}</div>`
-            :`<div style="font-size:12px;color:var(--color-neutral-600)">No design chosen yet — the first template publish will ask, or set it here.</div>`}
+            :`<div style="font-size:12px;color:var(--color-neutral-600)">${t('set_no_design')}</div>`}
           </div>
           ${canDesign?`<button id="brand-edit" style="${secondaryBtn}">${d?'Edit company design':'Choose a design'}</button>`
-            :`<span style="font-size:10.5px;color:var(--color-neutral-600)">Admin or Legal can change it.</span>`}
+            :`<span style="font-size:10.5px;color:var(--color-neutral-600)">${t('set_admin_legal_change')}</span>`}
         </div>`;})()}
       </section>
 
       <section style="${cardStyle}">
-        <h4 style="${h4Style}">Data &amp; backup</h4>
+        <h4 style="${h4Style}">${t('set_data_backup')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
           <button id="bk-export" style="${secondaryBtn}">${icon('download','w-3.5 h-3.5')} Export backup</button>
@@ -403,9 +403,9 @@ function renderTeam(){
 
       ${(API_MODE())?`
       <section style="${cardStyle}">
-        <h4 style="${h4Style}">Active sessions</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Devices signed in to your account. Revoke any you don't recognise — sessions also expire automatically after 30 days.</p>
-        <div id="sessions-list" style="font-size:12px;color:var(--color-neutral-700)">Loading…</div>
+        <h4 style="${h4Style}">${t('set_active_sessions')}</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${t('set_sessions_sub')}</p>
+        <div id="sessions-list" style="font-size:12px;color:var(--color-neutral-700)">${t('set_loading')}</div>
       </section>`:''}
 
       ${(API_MODE())?`
@@ -415,7 +415,7 @@ function renderTeam(){
                offering a switch wired to nothing. What replaces it is the
                answer to the question somebody comes to this page with — "will
                HaTi email me about this contract?" — stated once, plainly. */}
-        <h4 style="${h4Style}">My notifications</h4>
+        <h4 style="${h4Style}">${t('set_my_notifications')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">A negotiation is watched here, not in your inbox. When a counterparty opens a contract, answers one of your changes or proposes one of their own, it lands on the contract in HaTi while you are looking at it — no email is sent, and none is needed.</p>
         <div style="border:1px solid var(--color-divider);border-radius:5px;padding:10px;font-size:12px;line-height:1.5;color:var(--color-neutral-700)">
           <span style="font-weight:600;display:block;color:var(--color-text)">You are still emailed at the end</span>
@@ -424,31 +424,31 @@ function renderTeam(){
       </section>`:''}
 
       <section style="${cardStyle}">
-        <h4 style="${h4Style}">My sidebar</h4>
+        <h4 style="${h4Style}">${t('set_my_sidebar')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">HaTi keeps the sidebar short while the portfolio is small — Insights appears on its own at five contracts. This shows every surface now instead:</p>
         <label style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:5px;padding:10px;cursor:pointer;font-size:12px">
           <input id="pref-nav-all" type="checkbox" ${(typeof navShowEverything==='function'&&navShowEverything())?'checked':''} style="margin-top:1px;width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
-          <span><span style="font-weight:600;display:block">Show everything</span>
-          <span style="color:var(--color-neutral-600);display:block;line-height:1.4">The full cockpit, thresholds ignored — just for you, on this device.</span></span>
+          <span><span style="font-weight:600;display:block">${t('set_show_everything')}</span>
+          <span style="color:var(--color-neutral-600);display:block;line-height:1.4">${t('set_full_cockpit')}</span></span>
         </label>
       </section>
 
       ${(API_MODE()&&isAdmin())?`
       <section style="${cardStyle}">
-        <h4 style="${h4Style}">Pilot activation</h4>
+        <h4 style="${h4Style}">${t('set_pilot_activation')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The four moments that predict whether a workspace sticks — first contract in, first Copilot scan, first send, first signature back — observed by the server as they happen (demo samples don't count). The north star: <b>first send within 7 days</b>.</p>
-        <div id="activation-funnel" style="font-size:12px;color:var(--color-neutral-700)">Loading…</div>
+        <div id="activation-funnel" style="font-size:12px;color:var(--color-neutral-700)">${t('set_loading')}</div>
       </section>`:''}
 
       ${(API_MODE()&&isAdmin())?`
       <section style="${cardStyle}">
-        <h4 style="${h4Style}">Email &amp; notifications</h4>
+        <h4 style="${h4Style}">${t('set_email_notifications')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Contract share links, counterparty response alerts, share nudges (3 days unopened), renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span style="font-family:var(--font-mono)">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
           <button id="rem-run" style="${secondaryBtn}">${icon('clock','w-3.5 h-3.5')} Check renewals &amp; queue reminders</button>
           <button id="ob-refresh" style="${secondaryBtn}">${icon('history','w-3.5 h-3.5')} Refresh outbox</button>
         </div>
-        <div id="outbox-list" style="font-size:12px;color:var(--color-neutral-700)">Loading outbox…</div>
+        <div id="outbox-list" style="font-size:12px;color:var(--color-neutral-700)">${t('set_loading_outbox')}</div>
       </section>`:''}
       </div>
     </div>
@@ -475,7 +475,7 @@ function renderTeam(){
             ${r.northStar.firstSendDays==null
               ? 'North star not reached yet — no contract has been sent to a counterparty.'
               : r.northStar.withinSevenDays
-                ? `<b>North star reached:</b> first send ${r.northStar.firstSendDays===0?'on day one':`after ${r.northStar.firstSendDays} day${r.northStar.firstSendDays===1?'':'s'}`}.`
+                ? `<b>${t('set_north_star')}</b> first send ${r.northStar.firstSendDays===0?'on day one':`after ${r.northStar.firstSendDays} day${r.northStar.firstSendDays===1?'':'s'}`}.`
                 : `First send took ${r.northStar.firstSendDays} days — outside the 7-day target.`}
           </div>`;
       }catch(e){ host.innerHTML=`<span style="color:var(--color-neutral-600)">Could not load activation data: ${esc(e.message)}</span>`; }
@@ -490,7 +490,7 @@ function renderTeam(){
               <div class="text-[10px] font-mono text-brand-800/65 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
               ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">Why it failed: ${esc(it.detail)}</div>`:''}
               ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
-            </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/65">No messages yet.</div>`);
+            </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/65">${t('set_no_messages')}</div>`);
       }catch(e){}
     };
     setTimeout(loadOutbox,50);
@@ -548,7 +548,7 @@ function renderTeam(){
               <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString(jxLocale())} req</span>
               <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
             </div>`).join('')}</div>`
-            :`<div style="font-size:10.5px;color:var(--color-neutral-500)">No Copilot spend recorded today.</div>`;
+            :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${t('set_no_spend')}</div>`;
         }
         const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
         fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);
@@ -797,8 +797,8 @@ function renderClauseLibrary(){
           <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button>
           <button data-cl-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">remove</button></span>`:''}
       </div>
-      <div style="margin-top:4px;font-size:11px;color:var(--color-neutral-600)"><b>Preferred:</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
-    </div>`).join('')||`<p style="font-size:11px;color:var(--color-neutral-500)">No clauses in the library.</p>`;
+      <div style="margin-top:4px;font-size:11px;color:var(--color-neutral-600)"><b>${t('set_preferred')}</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
+    </div>`).join('')||`<p style="font-size:11px;color:var(--color-neutral-500)">${t('set_no_clauses')}</p>`;
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
   host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); renderClauseLibrary(); toast('Clause removed'); }));
   document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
@@ -822,20 +822,20 @@ function renderPlaybookView(){
     <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:8px;background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:${baseline?'2px':'6px'}">
         <span style="font-size:11.5px;font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:8.5px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:999px;padding:2px 8px">Applies to all</span>`:''}
+        ${baseline?`<span style="font-size:8.5px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:999px;padding:2px 8px">${t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">remove</button>`:''}
         </span>`:''}
       </div>
-      ${baseline?`<div style="font-size:10px;color:var(--color-accent-800);margin-bottom:7px">The default positions every contract inherits — change these to shift the whole portfolio.</div>`:''}
-      <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':'<span style="font-size:11px;color:var(--color-neutral-500)">No positions yet</span>')}</div>
+      ${baseline?`<div style="font-size:10px;color:var(--color-accent-800);margin-bottom:7px">${t('set_default_positions')}</div>`:''}
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':'<span style="font-size:11px;color:var(--color-neutral-500)">' + t('set_no_positions') + '</span>')}</div>
     </div>`;
   const baseCard=card('_default','All contracts (baseline)', base.positions||[], base.ranges||[], false, true);
   const typeCards=Object.keys(pb).filter(k=>k!=='_default').map(k=>{ const rp=resolvePlaybook(k); return card(k, pb[k].label||k, rp.positions, rp.ranges, true); }).join('');
   pv.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:12px;font-weight:600;color:var(--color-text)">Playbook positions by contract type</span>
+      <span style="font-size:12px;font-weight:600;color:var(--color-text)">${t('set_playbook_by_type')}</span>
       ${canEditPb?`<span style="margin-left:auto;display:flex;gap:8px">
         <button id="pb-add" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 10px">${icon('plus','w-3 h-3')} Add type</button>
         <button id="pb-reset" style="font-size:11px;font-weight:600;color:var(--color-neutral-600);background:none;border:0;cursor:pointer">Reset to defaults</button>
