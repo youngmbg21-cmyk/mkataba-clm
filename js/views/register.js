@@ -106,11 +106,19 @@ function renderFolder(){
                 <th style="text-align:right">Value</th>
                 <th>Expires</th>
                 <th>Updated</th>
+                <th style="width:58px;text-align:center" title="What has happened to the link you sent the counterparty">Link</th>
                 <th style="text-align:right;padding-right:12px">Status</th>
               </tr>
             </thead>
             <tbody id="fold-tbody" class="stagger">${folderRowsHtml(cs)}</tbody>
           </table>
+        </div>
+        ${''/* The legend belongs WITH the table it explains, so this page grew
+               a footer strip to hold it — the register already had one. A
+               column of coloured marks and no key is the thing that prompted
+               all of this. */}
+        <div style="border-top:1px solid var(--color-divider);padding:6px 12px">
+          ${window.shareLegendHtml?shareLegendHtml({style:'font-size:10.5px'}):''}
         </div>
       </section>
     </div>
@@ -152,7 +160,7 @@ function folderExpiryCell(c){
 }
 // Render up to state.folderShown rows as a table body, with a "Show more" pager.
 function folderRowsHtml(cs){
-  if(!cs.length) return `<tr><td colspan="7" style="padding:44px 20px;text-align:center">
+  if(!cs.length) return `<tr><td colspan="8" style="padding:44px 20px;text-align:center">
       <div style="font-size:13px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
       <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi Copilot to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
     </td></tr>`;
@@ -175,9 +183,12 @@ function folderRowsHtml(cs){
       <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
       <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
-      <td style="text-align:right;padding-right:12px;white-space:nowrap">${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
+      ${''/* Same split as the register: the link mark to its own column, the
+             question pill left with the stage it qualifies. */}
+      <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
+      <td style="text-align:right;padding-right:12px;white-space:nowrap">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
     </tr>`; }).join('') + (cs.length>shown
-      ? `<tr><td colspan="7" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      ? `<tr><td colspan="8" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).filter(k=>s[k]).length; }
@@ -421,7 +432,7 @@ function regRowsHtml(cs){
     const btn  = filtered
       ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:12px;padding:6px 14px">Clear all filters</button>`
       : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
-    return `<tr><td colspan="7" style="padding:48px 12px;text-align:center">
+    return `<tr><td colspan="8" style="padding:48px 12px;text-align:center">
       <div style="max-width:340px;margin:0 auto">
         <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
         <div style="font-size:14px;font-weight:600;color:var(--color-text)">${line}</div>
@@ -450,7 +461,12 @@ function regRowsHtml(cs){
         ${c._famChild?`<span style="display:block;font-size:10.5px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
       </td>
       <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
-      <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center"><span style="display:inline-flex;align-items:center;min-width:19px;flex:none">${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</span>${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></td>
+      ${''/* The link dot has left this cell for a column of its own — it was
+             answering a different question from the chip beside it under a
+             heading that said Status. The question pill stays: an unanswered
+             question IS about where the contract stands. */}
+      <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center">${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></td>
+      <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
@@ -636,6 +652,7 @@ function renderRegister(){
                 ${sortableTh('name','Contract Title')}
                 <th>Counterparty</th>
                 ${sortableTh('stage','Status')}
+                <th style="width:58px;text-align:center" title="What has happened to the link you sent the counterparty">Link</th>
                 ${sortableTh('value','Value','text-align:right')}
                 ${sortableTh('expiry','Expiry Date')}
                 <th style="text-align:right">Actions</th>
@@ -649,6 +666,7 @@ function renderRegister(){
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
           <!-- the legend explains the coloured row edge-stripe, so it lives
                with the table it annotates rather than as a band above it -->
+          ${window.shareLegendHtml?shareLegendHtml({style:'font-size:10.5px'}):''}
           ${folderLegendHtml({style:'font-size:10.5px'})}
           <span>${REG_PAGE} per page</span>
         </div>

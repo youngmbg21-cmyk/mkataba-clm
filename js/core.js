@@ -330,12 +330,60 @@ const SHARE_META = {
 };
 const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
   return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
-// traffic-light dot for dense tables — the tooltip carries the label. This is
-// the contract's dispatch status (sent → opened → signed); it lives outside the
-// stage chip so it reads as a distinct signal.
+/* ---- THE LINK COLUMN ----
+   This dot answers a different question from the stage chip beside it. The
+   chip says where the CONTRACT is; the dot says what happened to the LINK you
+   sent — sent, opened, changes back, signed, declined. The two were sharing a
+   column headed "Status", which is how somebody ends up asking why some rows
+   have a traffic light and some do not.
+
+   It has its own column now, headed Link, with a legend under the table. Three
+   things about it are deliberate.
+
+   OPENED IS A RING, not a filled dot. Opened and Signed sat a few degrees
+   apart on the same column — teal and emerald — and they are the two states
+   furthest apart in meaning: "they have glanced at it" and "it is done". The
+   pair you most need to tell apart was the pair hardest to tell apart. A ring
+   is not a hue, so it cannot be confused with a green and it cannot be lost by
+   somebody with a colour vision deficiency.
+
+   AND A RING DOES NOT FOLLOW THE THEME. Opened used the steel tone, which
+   derives from the brand accent — so on the Navy theme it turned navy. A
+   colour that MEANS something must not move when somebody changes the
+   platform's colour; that is the same rule the redline's green and red keep.
+
+   NOT SHARED IS A DASH, not an empty cell. A blank says "I do not know" and
+   cannot be told apart from a grey dot missed at a glance. A dash says the
+   true thing: nothing has gone out yet. */
+const SHARE_RING = 'opened';
+const shareDotStyle = st => {
+  const m = SHARE_META[st] || SHARE_META.sent;
+  return st === SHARE_RING
+    ? `border:2.5px solid var(--color-neutral-500);background:transparent;box-sizing:border-box`
+    : `background:${m.dot}`;
+};
+/* The bare mark. No margin — the cell that holds it does the spacing, and a
+   margin baked in here is what made it look like part of the chip next door. */
 const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[cid]; if(!s) return '';
   const m=SHARE_META[s.state]||SHARE_META.sent;
-  return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${m.dot};margin-right:8px;vertical-align:middle;flex:none"></span>`; };
+  return `<span title="Link: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;${shareDotStyle(s.state)};vertical-align:middle;flex:none"></span>`; };
+/* One cell, used by every table that carries the column, so the dash and the
+   dot can never come from two different opinions about what "not shared" is. */
+const shareLinkCell = cid => shareDot(cid)
+  || `<span title="Not sent to anyone yet" style="color:var(--color-neutral-400)">&mdash;</span>`;
+/* The legend. Only the five states a reader will actually meet — expired and
+   revoked are grey like Sent and naming all eight would make the legend longer
+   than the thing it explains. */
+const SHARE_LEGEND = ['sent','opened','changes','signed','declined'];
+function shareLegendHtml(opts={}){
+  const item = st => { const m=SHARE_META[st];
+    return `<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:9px;height:9px;border-radius:50%;${shareDotStyle(st)};display:inline-block;flex:none"></span>${m.label}</span>`; };
+  return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;color:var(--color-neutral-700);${opts.style||''}">
+    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Link</span>
+    ${SHARE_LEGEND.map(item).join('')}
+    <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="color:var(--color-neutral-400)">&mdash;</span>not sent</span>
+  </div>`;
+}
 /* A question the counterparty asked and nobody answered. It changes no document
    state, so without a mark here a contract carrying one looks identical in the
    list to a contract with nothing outstanding. */
@@ -463,7 +511,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{NAV_EARN_AT,navShowEverything,navSetShowEverything,navEarned,navSeen,navMarkSeen,STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,shareDotStyle,shareLinkCell,shareLegendHtml,SHARE_LEGEND,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
