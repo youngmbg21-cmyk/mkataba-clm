@@ -1299,8 +1299,8 @@ function negoTimelineScreenHtml(c, f = {}){
       ${sel('ht-f-outcome', 'Outcome', [['accepted', 'Accepted'], ['rejected', 'Rejected'], ['pending', 'Pending'], ['withdrawn', 'Withdrawn']], f.outcome)}
       <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">${i18t('ng_clear')}</button>
       <span style="flex:1"></span>
-      <button id="ht-verify" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="Recompute every fingerprint from the stored record, check the chain, the seal and the sealed-copy comparison">${i18t('ng_verify_integrity')}</button>
-      <button id="ht-export" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="A self-contained report for a reader with no HaTi login — the whole story, every filter off, with the verification result embedded">${i18t('ng_export_history')}</button>
+      <button id="ht-verify" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="${i18t('ng_recompute_title')}">${i18t('ng_verify_integrity')}</button>
+      <button id="ht-export" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="${i18t('ng_report_title')}">${i18t('ng_export_history')}</button>
     </div>
     <div id="ht-verify-result"></div>
     <div id="ht-list">${list.length
@@ -1642,9 +1642,9 @@ function negoDocHtml(c, opts){
   const tools = (cl, notes) => editable ? `<div class="nego-tools">
       ${notes || ''}
       ${opts.noAi ? '' : `<button class="nego-tool" data-nego-ai-clause="${_ne(cl.clauseId)}"
-        title="Ask the Copilot to redraft this clause — it comes back as a proposal you approve">&#10024; Copilot</button>`}
+        title="${i18t('ng_ai_redraft_title')}">&#10024; Copilot</button>`}
       <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}"
-        title="Propose a change to this clause — it goes to the other side to accept or reject">Change</button>
+        title="${i18t('ng_propose_change_title')}">Change</button>
       ${''/* "Add clause" is gone. Proposing a clause the contract does not
              have yet is a real act, but it was done through two blank prompt
              boxes — a heading, then a body, typed into a modal with no sight of
@@ -1990,7 +1990,7 @@ function negoLiveCardsHtml(c, opts){
         <div class="nego-thead">
           <span class="nego-tlabel">Discussion on #${_ne(ch.id)} — no formal round re-draft</span>
           <button class="nego-tmin" data-nego-collapse="${_ne(ch.id)}"
-            title="Collapse this discussion and put the card back the size it was">${i18t('ng_hide')}</button>
+            title="${i18t('ng_collapse_discussion')}">${i18t('ng_hide')}</button>
         </div>
         <div class="nego-tbody">${n ? msgs.map(m => {
             /* A note nobody sent is marked as one, every time it is read.
@@ -2008,11 +2008,11 @@ function negoLiveCardsHtml(c, opts){
           }).join('')
           : `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:8px">${i18t('ng_no_comments_yet')}</div>`}</div>
         ${canComment ? `<div class="nego-compose" style="flex-wrap:wrap">
-          <div class="nego-visswitch" role="group" aria-label="Who can read this reply" style="flex:none;margin-bottom:5px">
+          <div class="nego-visswitch" role="group" aria-label="${i18t('ng_who_can_read')}" style="flex:none;margin-bottom:5px">
             <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">\uD83D\uDD12 Internal</button>
             <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">\uD83C\uDF10 Send to them</button>
           </div>
-          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${i18t('ng_reply_on_change')}" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
           ${''/* "Send", because that is what it does: the comment goes to the
                   other side on the discussion channel the moment it is
                   pressed. It was briefly "Save" to keep it apart from the
@@ -2034,13 +2034,13 @@ function negoLiveCardsHtml(c, opts){
           aria-controls="nego-thread-${_ne(ch.id)}" data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
         ${undoable ? `<button class="b-undo" data-nego-undo="${_ne(ch.id)}">${i18t('ng_undo')}</button>` : ''}
         ${redecidable ? `<button class="b-redecide" data-nego-redecide="${_ne(ch.id)}"
-            title="You answered this and it has gone to them. Answering differently files a new decision, and that travels too.">${i18t('ng_change_decision')}</button>` : ''}
+            title="${i18t('ng_answered_and_sent')}">${i18t('ng_change_decision')}</button>` : ''}
         ${withdrawable && !ch.withdrawn
           ? `<button class="b-wdr" data-nego-withdraw="${_ne(ch.id)}"
-              title="They refused this. Take it off the table so it stops standing between you — the record keeps the ask and the refusal.">${i18t('ng_withdraw_ask')}</button>` : ''}
+              title="${i18t('ng_they_refused')}">${i18t('ng_withdraw_ask')}</button>` : ''}
         ${withdrawable && ch.withdrawn
           ? `<button class="b-undo" data-nego-unwithdraw="${_ne(ch.id)}"
-              title="Put this ask back on the table">${i18t('ng_put_it_back')}</button>` : ''}
+              title="${i18t('ng_put_ask_back')}">${i18t('ng_put_it_back')}</button>` : ''}
       </div>`;
 
     return `
@@ -2052,11 +2052,11 @@ function negoLiveCardsHtml(c, opts){
           ${negoVerifyPill(c, ch)}
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
           ${sent ? `<span class="nego-st sent" data-sent="${_ne(ch.id)}"
-            title="This answer has been sent. Decide it differently and the new answer travels too.">sent</span>` : ''}
+            title="${i18t('ng_answer_sent')}">sent</span>` : ''}
         ${held ? `<span class="nego-st unsent" data-unsent="${_ne(ch.id)}"
-            title="You have answered this, and it has not left this page. Press the blue Send button below the list to file it with the other side.">${i18t('ng_not_sent_yet_lc')}</span>` : ''}
+            title="${i18t('ng_answered_not_sent')}">${i18t('ng_not_sent_yet_lc')}</span>` : ''}
           ${ch.withdrawn ? `<span class="nego-st withdrawn" data-withdrawn="${_ne(ch.id)}"
-            title="Refused, and the side that asked for it has withdrawn the ask — it is no longer outstanding between the parties">withdrawn</span>` : ''}
+            title="${i18t('ng_refused_withdrawn')}">withdrawn</span>` : ''}
         </div>
         ${ch.status === 'rejected' && !ch.withdrawn ? `<div class="nego-contested" data-contested="${_ne(ch.id)}">
           <b>${i18t('ng_still_between_you')}</b> This was refused. It stops being outstanding when
@@ -2473,8 +2473,8 @@ function negoHeadHtml(c, opts){
           : 'No changes on the table yet. Propose wording and each change becomes a fingerprint on this list.'}
       </span>
       ${canAct && p.pending ? `
-        <button id="nego-all-acc" class="ui-btn" title="Accepts only the pending changes that trip no playbook, scan or review signal — the rest are held back for you" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
-        <button id="nego-all-rej" class="ui-btn" title="Rejects every pending change proposed by the other side. Your own asks are untouched." style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">${i18t('ng_reject_all_cp')}</button>` : ''}
+        <button id="nego-all-acc" class="ui-btn" title="${i18t('ng_accept_nonrisk_title')}" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-green-fg);color:var(--st-green-fg)">${i18t('ng_accept_all_nonrisk')}</button>
+        <button id="nego-all-rej" class="ui-btn" title="${i18t('ng_reject_all_title')}" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:var(--st-ruby-dot);color:var(--st-ruby-dot)">${i18t('ng_reject_all_cp')}</button>` : ''}
       ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none;font-size:11.5px;padding:5px 11px"
         title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}"${p.pending ? ' disabled' : ''}>${i18t('ng_export_clean_pdf')}</button>` : ''}
     </div>
@@ -2786,7 +2786,7 @@ function negoPanesHtml(c, opts = {}){
   return `<div class="nego-work${L.idxOff ? ' idx-off' : ''}" id="nego-work"
       style="--nego-f:${L.f};--nego-c:${L.c}px">
 
-    <section class="nego-pane baseline" aria-label="Original baseline, read-only">
+    <section class="nego-pane baseline" aria-label="${i18t('ng_original_baseline')}">
       <div class="nego-pane-head">${negoPaneSelectHtml(c, 'left', pair.left)}<span class="nego-sub">${
         clean ? 'clean — no marks' : 'read-only reference'}</span></div>
       <div class="nego-scroll" id="nego-scroll-base">${comparing
@@ -2796,10 +2796,10 @@ function negoPanesHtml(c, opts = {}){
     </section>
 
     <div class="nego-rz nego-rz-a" id="nego-rz-a" role="separator" aria-orientation="vertical"
-      aria-label="Drag to resize the baseline and working panes · double-click to reset"
-      title="Drag to resize · double-click to reset"></div>
+      aria-label="${i18t('ng_drag_resize_panes')}"
+      title="${i18t('ng_drag_resize')}"></div>
 
-    <section class="nego-pane working" aria-label="Working version with the proposed redline">
+    <section class="nego-pane working" aria-label="${i18t('ng_working_version')}">
       ${''/* THE PANE SAYS WHAT IT IS FOR BEFORE ANYTHING IS IN IT.
 
              "Proposed Redline · fingerprints anchor in the margin" describes a
@@ -2846,15 +2846,15 @@ function negoPanesHtml(c, opts = {}){
     </section>
 
     <div class="nego-rz nego-rz-b" id="nego-rz-b" role="separator" aria-orientation="vertical"
-      aria-label="Drag to resize the change index · double-click to reset"
-      title="Drag to resize · double-click to reset"></div>
+      aria-label="${i18t('ng_drag_resize_index')}"
+      title="${i18t('ng_drag_resize')}"></div>
 
-    <aside class="nego-pane index" id="nego-index" aria-label="Fingerprinted change index">
+    <aside class="nego-pane index" id="nego-index" aria-label="${i18t('ng_fingerprinted_index')}">
       <div class="nego-index-head">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
           <h3 style="font-size:12.5px;font-weight:800;margin:0;flex:1;min-width:0">${i18t('ng_change_index')}</h3>
           <span class="nego-count" id="nego-count">${cmp && !cmp.live ? cmp.moved : (p.pending || p.total)}</span>
-          <button class="nego-fold" id="nego-fold" title="Fold the index away and give its width to the documents">${i18t('ng_hide')}</button>
+          <button class="nego-fold" id="nego-fold" title="${i18t('ng_fold_index')}">${i18t('ng_hide')}</button>
         </div>
         ${cmp && !cmp.live ? `
         <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${i18t('ng_readonly_comparison')}</div>`
@@ -2895,11 +2895,11 @@ function negoPanesHtml(c, opts = {}){
       <div class="nego-index-scroll" id="nego-cards">${negoLinkedBarHtml()}${negoCardsHtml(c, opts)}</div>
     </aside>
 
-    <button id="nego-drawer" aria-label="Toggle the change index">CHG</button>
+    <button id="nego-drawer" aria-label="${i18t('ng_toggle_index')}">CHG</button>
   </div>
   ${L.idxOff ? `<button class="nego-fold" id="nego-unfold"
       style="position:absolute;right:14px;top:64px;z-index:8"
-      title="Bring the change index back">Show index (${p.pending || p.total})</button>` : ''}`;
+      title="${i18t('ng_bring_index_back')}">Show index (${p.pending || p.total})</button>` : ''}`;
 }
 
 /* Embedded mode: the panes with the summary strip above and the status strip
@@ -2997,10 +2997,10 @@ function negoNameFieldHtml(opts = {}){
      the seat the name kept being lost on. Idempotent, so drawing the box a
      hundred times installs one listener. */
   negoWireNameMemory();
-  return `<label class="nego-who" title="The name recorded against your answers">
+  return `<label class="nego-who" title="${i18t('ng_name_recorded')}">
     <span class="lbl">${i18t('ng_you')}</span>
-    <input id="nego-cp-name" type="text" value="${_ne(v)}" placeholder="Your full name"
-      aria-label="Your full name, recorded against your answers"/>
+    <input id="nego-cp-name" type="text" value="${_ne(v)}" placeholder="${i18t('ng_your_full_name')}"
+      aria-label="${i18t('ng_your_full_name_rec')}"/>
   </label>`;
 }
 /* IS THERE ANYWHERE TO GO? The room has a way out only when there is a page
@@ -3115,8 +3115,8 @@ function negoRoomActionsHtml(c, opts){
             Sharing is not lost: the workspace's own Share and the contracts
             list both open the same dialog, for the cases this room is not the
             right place for — a third party, a re-send, a link for signature. */}
-    <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>
-    ${canAct ? `<button class="nego-tbtn ghost" id="nego-insert-lib" title="Insert preferred wording from your clause library — filed as a tracked change, not an edit">+ Insert clause</button>` : ''}
+    <button class="nego-tbtn ghost" id="nego-copilot" title="${i18t('ng_ask_about_contract')}">✦ Ask Copilot</button>
+    ${canAct ? `<button class="nego-tbtn ghost" id="nego-insert-lib" title="${i18t('ng_insert_preferred')}">+ Insert clause</button>` : ''}
     <button class="nego-tbtn acc" id="nego-all-acc"${p.pending && canAct ? '' : ' disabled'}
       title="${comparing ? 'Not while you are comparing versions' : 'Accepts only the pending changes that trip no playbook, scan or review signal — the rest are held back for you'}">${i18t('ng_accept_all_nonrisk_btn')}</button>
     <button class="nego-tbtn rej" id="nego-all-rej"${p.pending && canAct ? '' : ' disabled'}
@@ -3144,10 +3144,10 @@ function negoRoomHtml(c, opts = {}){
     ? `${c.name || c.id || 'Contract'}${c.id ? ' · ' + c.id : ''}`
     : `${c.id || ''}${c.template ? ' · ' + c.template : ''}${c.name ? ' · ' + c.name : ''}`;
   const statusChip = String(c.status || 'Draft');
-  return `<div class="nego-room" id="nego-room" role="region" aria-label="Negotiation room">
+  return `<div class="nego-room" id="nego-room" role="region" aria-label="${i18t('ng_negotiation_room')}">
     <header class="nego-topbar">
       <div class="nego-brand"><span class="mark">Ha</span>HaTi <small>${i18t('ng_clm')}</small></div>
-      <nav class="nego-crumbs" aria-label="Workspace breadcrumbs">
+      <nav class="nego-crumbs" aria-label="${i18t('ng_workspace_breadcrumbs')}">
         ${''/* NO WAY OUT ON THEIR SIDE, and that is the correct shape.
 
               "← Doc" is a breadcrumb: it says there is a workspace behind this
@@ -3163,7 +3163,7 @@ function negoRoomHtml(c, opts = {}){
               portal page. It stopped being true when the room became the
               landing. The f49 test that asserted it has been rewritten to
               assert the opposite, rather than worked around. */}
-        ${negoRoomHasExit(opts) ? `<button class="nego-exit" id="nego-exit" title="Leave the negotiation room and go back to the Doc page (Esc)">
+        ${negoRoomHasExit(opts) ? `<button class="nego-exit" id="nego-exit" title="${i18t('ng_leave_room')}">
           <span aria-hidden="true">←</span> Doc
         </button>
         <span class="sep" aria-hidden="true">›</span>` : ''}
@@ -4255,7 +4255,7 @@ function wireNegotiationTab(c, opts = {}){
     };
     if (typeof opts.onShareLink === 'function') opts.onShareLink(c, shareOpts);
     else if (typeof window.openShareModal === 'function') openShareModal(c, shareOpts);
-    else if (window.toast) toast('Sharing is not available on this screen', 'err');
+    else if (window.toast) toast(i18t('ng_sharing_unavailable'), 'err');
   });
 
   host.querySelectorAll('[data-nego-edit]').forEach(b => b.addEventListener('click', e => {
@@ -4604,7 +4604,7 @@ function wireNegotiationTab(c, opts = {}){
       const clauseEl = btn.closest('[data-clause]') || host.querySelector(`[data-clause="${clauseId}"]`);
       const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
       const text = String((cl && cl.text) || (clauseEl && clauseEl.textContent) || '').trim();
-      if (!text){ if (window.toast) toast('That clause has no wording to work on', 'err'); return; }
+      if (!text){ if (window.toast) toast(i18t('ng_clause_no_wording'), 'err'); return; }
       let rect;
       try { rect = btn.getBoundingClientRect(); } catch (e){ return; }
       const changeId = clauseEl && (clauseEl.getAttribute('data-change')
@@ -4765,7 +4765,7 @@ function wireNegotiationTab(c, opts = {}){
     const send = async () => {
       const inp = byId('nego-ti-' + id);
       const text = inp ? String(inp.value || '').trim() : '';
-      if (!text){ if (window.toast) toast('Write your reply first', 'err'); return; }
+      if (!text){ if (window.toast) toast(i18t('ng_write_reply_first'), 'err'); return; }
       /* WHICH SWITCH IS PRESSED DECIDES WHO READS IT.
 
          The composer defaults to Send-to-them, because that is what this box
@@ -4855,7 +4855,7 @@ function wireNegotiationTab(c, opts = {}){
   const bulk = kind => {
     const split = negoBatchSplit(c, side);
     if (!split.pending.length){
-      if (window.toast) toast('Nothing pending — every change is already resolved');
+      if (window.toast) toast(i18t('ng_nothing_pending'));
       return;
     }
     const take = kind === 'accept' ? split.clear : split.theirs;
@@ -4872,7 +4872,7 @@ function wireNegotiationTab(c, opts = {}){
     const status = kind === 'accept' ? 'accepted' : 'rejected';
     let done = 0;
     for (const ch of take) if (negoResolve(c, ch.id, status, { side, by: opts.by })) done++;
-    if (!done){ if (window.toast) toast('Nothing moved — those changes are not yours to decide', 'err'); return; }
+    if (!done){ if (window.toast) toast(i18t('ng_nothing_moved'), 'err'); return; }
     if (opts.persist !== false && window.persist) persist(c);
     if (typeof opts.onDecided === 'function')
       for (const ch of take){ try { opts.onDecided(c, negoChangeById(c, ch.id)); } catch (e){} }
@@ -4892,9 +4892,9 @@ function wireNegotiationTab(c, opts = {}){
     byId('nego-index')?.classList.toggle('open'));
 
   byId('nego-export')?.addEventListener('click', () => {
-    if (negoProgress(c).pending){ if (window.toast) toast('Pending changes must be resolved before a clean export', 'err'); return; }
+    if (negoProgress(c).pending){ if (window.toast) toast(i18t('ng_resolve_before_export'), 'err'); return; }
     if (window.exportContractPdf) exportContractPdf(c);
-    else if (window.toast) toast('Export is unavailable on this page', 'err');
+    else if (window.toast) toast(i18t('ng_export_unavailable'), 'err');
   });
   /* The hand-off. It closes the round — making the agreed wording the baseline
      — and moves the reader to the tab that owns signing. It does NOT sign, and
@@ -4914,7 +4914,7 @@ function wireNegotiationTab(c, opts = {}){
     if (opts.onReadyToSign){ opts.onReadyToSign(c); return; }
     negoAdvanceRound(c, { by: opts.by });
     if (window.persist) persist(c);
-    if (window.toast) toast('Agreed wording carried to the Docs tab — sign it there when you are ready');
+    if (window.toast) toast(i18t('ng_agreed_carried'));
     if (window.renderWorkspace) renderWorkspace();
   });
 }
@@ -6484,7 +6484,7 @@ function renderRedline(){
   headAct('ws-tpl', () => { if (window.API_MODE && API_MODE() && window.saveContractToLibrary) saveContractToLibrary(c);
     else if (window.saveContractAsTemplate) saveContractAsTemplate(c); });
   headAct('ws-focus', () => rlSetFocus(!rlFocusOn()));
-  headAct('ws-collapse', () => window.toast && toast('The header is already at its shortest on this tab'));
+  headAct('ws-collapse', () => window.toast && toast(i18t('ng_header_shortest')));
   /* [data-rl-shell] went with the shell. Its three verbs are the head's own
      ids now — ws-share, ws-import, ws-compare — wired just above. */
   host.querySelectorAll('[data-redline-side]').forEach(el =>
@@ -6686,7 +6686,7 @@ function renderRedline(){
        purpose is what supersedes the standing negotiation link. */
     onIssueSigningLink(){
       if (typeof window.openShareModal !== 'function'){
-        if (window.toast) toast('Sharing is not available on this screen', 'err');
+        if (window.toast) toast(i18t('ng_sharing_unavailable'), 'err');
         return;
       }
       openShareModal(c, { purpose: 'sign',
@@ -6717,7 +6717,7 @@ function renderRedline(){
     el.addEventListener('click', async () => {
       if (window.negoConfirmCloseRound && !await negoConfirmCloseRound(c)) return;
       const r = negoAdvanceRound(c, { by: opts.by || (window.currentUser && currentUser()?.name) });
-      if (!r){ if (window.toast) toast('The round cannot close with changes still pending', 'err'); return; }
+      if (!r){ if (window.toast) toast(i18t('ng_round_cannot_close'), 'err'); return; }
       if (window.persist) persist(c);
       if (window.toast) toast(`Round ${r.n} closed — the agreed wording is the new baseline for round ${negoRound(c)}`);
       renderRedline();
@@ -7588,7 +7588,7 @@ function rlWireClauseTools(c, host, opts){
     const changeId = btn.getAttribute('data-rl-edit-change');
     if (changeId) rlLinkFocus(c, changeId, 'card');
     if (!rlJumpToClause(clauseId) && window.toast)
-      toast('That clause is no longer in the document', 'err');
+      toast(i18t('ng_clause_gone'), 'err');
   }));
 
   /* ---- THE ORIGIN FILTER ----
@@ -7768,7 +7768,7 @@ function rlWireClauseTools(c, host, opts){
     const id = (opts && opts.side) === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
     const engine = negoPick(host, id) || document.getElementById(id);
     if (engine && !engine.disabled){ engine.click(); return; }
-    if (window.toast) toast('There is nothing to send on this round yet', 'err');
+    if (window.toast) toast(i18t('ng_nothing_to_send'), 'err');
   }));
 
   /* The card's Retract — an unsent draft of your own comes off the table
@@ -8119,7 +8119,7 @@ function redlineDocHtml(c, opts = {}){
              internal and pointed at a fragment. */
     return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
       ${opts.noAi ? '' : `<button type="button" class="rl-tool rl-tool-ai" data-nego-ai-clause="${id}"
-        title="Ask the Copilot to redraft this clause — it comes back as a proposal you approve">&#10024; Copilot</button>`}
+        title="${i18t('ng_ai_redraft_title')}">&#10024; Copilot</button>`}
       <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
         title="Edit this clause's wording directly">&#9998; Direct Edit</button>
     </div>`;
@@ -8421,7 +8421,7 @@ async function rlFilePlaybookProposal(c, item, wording){
 /* The pass, end to end: run the review, propose, and let the reader rule. */
 async function rlOpenPlaybookReview(c, again){
   if (!window.runPlaybookReview || !window.openModal){
-    if (window.toast) toast('The playbook module is not loaded on this page', 'err');
+    if (window.toast) toast(i18t('ng_playbook_not_loaded'), 'err');
     return;
   }
   const btn = document.querySelector('[data-rl-pbreview]');
@@ -8431,7 +8431,7 @@ async function rlOpenPlaybookReview(c, again){
   try{ rev = await runPlaybookReview(c); }catch(e){ err = e; }
   if (btn){ btn.disabled = false; btn.innerHTML = restore; }
   if (err || !rev || !Array.isArray(rev.verdicts)){
-    if (window.toast) toast('The review could not run: ' + ((err && err.message) || 'no usable result'), 'err');
+    if (window.toast) toast(i18t('ng_review_failed') + ((err && err.message) || 'no usable result'), 'err');
     return;
   }
   c.playbook = rev;
@@ -8485,8 +8485,8 @@ async function rlOpenPlaybookReview(c, again){
     b.disabled = true;
     let ch = null;
     try{ ch = await rlFilePlaybookProposal(c, it, wordingOf(it)); }
-    catch(e){ if (window.toast) toast('Could not file that: ' + ((e && e.message) || e), 'err'); b.disabled = false; return; }
-    if (!ch){ if (window.toast) toast('That proposal could not be filed', 'err'); b.disabled = false; return; }
+    catch(e){ if (window.toast) toast(i18t('ng_could_not_file') + ((e && e.message) || e), 'err'); b.disabled = false; return; }
+    if (!ch){ if (window.toast) toast(i18t('ng_proposal_not_filed'), 'err'); b.disabled = false; return; }
     if (window.persist) persist(c);
     settle(i, `Filed as #${_ne(ch.id)} &#10003;`, 'var(--st-green-fg,#047857)');
     if (again) again();
@@ -8771,7 +8771,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     const verbs = [];
     if (canAct && sentHere && !reopen){
       verbs.push(`<button class="rl-edit" data-nego-redecide="${_ne(ch.id)}"
-        title="You answered this and it has gone to them. Answering differently files a new decision, and that travels too.">${i18t('ng_change_decision')}</button>`);
+        title="${i18t('ng_answered_and_sent')}">${i18t('ng_change_decision')}</button>`);
     }
     if (canAct && (reopen)){
       verbs.push(`<button class="rl-acc" data-nego-accept="${_ne(ch.id)}">${i18t('ng_accept')}</button>`);
@@ -9456,7 +9456,7 @@ function redlineDiscussionHtml(c, opts = {}){
       <div class="rl-thread-ref">Change ${_ne(ch.id)}${ch.clauseLabel ? ' &middot; ' + _ne(ch.clauseLabel) : ''}</div>
       ${body}
       ${canComment ? `<div class="rl-reply">
-        <div class="nego-visswitch" role="group" aria-label="Who can read this reply">
+        <div class="nego-visswitch" role="group" aria-label="${i18t('ng_who_can_read')}">
           <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">&#128274; Internal</button>
           <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; Send to them</button>
         </div>

@@ -64,7 +64,7 @@ function openFolderAccessEditor(userId){
     if(allBox.checked){ folders=null; delete state.settings.folderAccess[userId]; }
     else {
       const ids=[...document.querySelectorAll('[data-fa-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-fa-folder'));
-      if(!ids.length){ toast('Pick at least one stream, or choose All streams','err'); return; }
+      if(!ids.length){ toast(i18t('set_pick_one_stream'),'err'); return; }
       folders=ids; state.settings.folderAccess[userId]=ids;
     }
     /* H-3: write folder access through its own atomic endpoint, not the whole
@@ -76,7 +76,7 @@ function openFolderAccessEditor(userId){
     try{
       if(window.API_MODE && window.API_MODE()) await api('settings/folder-access','PUT',{ userId, folders });
       else await saveSettings();
-    }catch(e){ toast('Could not save access: '+e.message,'err'); return; }
+    }catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); return; }
     closeModal(); toast(`Folder access updated for ${u.name||u.email}`); renderTeam();
   });
 }
@@ -564,8 +564,8 @@ function renderTeam(){
     const okModel=(s)=>s===''||(!/\s/.test(s)&&/^claude-[a-z0-9][a-z0-9.\-]*$/i.test(s));
     document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
       const key=document.getElementById('ai-key').value.trim();
-      if(!key){ toast('Enter a key to save','err'); return; }
-      try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value=''; toast('Copilot engine key saved'); refreshAiCfg(); }
+      if(!key){ toast(i18t('set_enter_key'),'err'); return; }
+      try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value=''; toast(i18t('set_key_saved')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-model-save')?.addEventListener('click',async()=>{
@@ -573,12 +573,12 @@ function renderTeam(){
       const modelDeep=document.getElementById('ai-model-deep').value.trim();
       const model=document.getElementById('ai-model-global').value.trim();
       for(const m of [modelFast,modelDeep,model]) if(!okModel(m)){ toast(`Invalid model name "${m}" — expected a claude-… id with no spaces`,'err'); return; }
-      try{ await api('ai/config','PUT',{ modelFast, modelDeep, model }); toast('Model settings saved'); refreshAiCfg(); }
+      try{ await api('ai/config','PUT',{ modelFast, modelDeep, model }); toast(i18t('set_model_saved')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
       if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'Copilot features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
-      try{ await api('ai/config','PUT',{ clear:true }); toast('Copilot key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
+      try{ await api('ai/config','PUT',{ clear:true }); toast(i18t('set_key_removed')); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
       const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
@@ -588,7 +588,7 @@ function renderTeam(){
       const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
       for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ toast(`"${k}" must be a non-negative amount`,'err'); return; }
       const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked };
-      try{ await api('ai/config','PUT',body); toast('Copilot limits saved'); refreshAiCfg(); }
+      try{ await api('ai/config','PUT',body); toast(i18t('set_limits_saved')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     // ---- onboarding allowance ----
@@ -598,20 +598,20 @@ function renderTeam(){
     };
     document.getElementById('ai-allow-open')?.addEventListener('click',async()=>{
       const b=allowBody();
-      if(!(b.budget>0)&&!(b.docs>0)){ toast('Set a budget, a document count, or both','err'); return; }
+      if(!(b.budget>0)&&!(b.docs>0)){ toast(i18t('set_set_budget'),'err'); return; }
       if(!await confirmDialog({title:'Open an onboarding allowance?',
         message:`Bulk import and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
         confirmLabel:'Open allowance'})) return;
-      try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast('Onboarding allowance opened'); refreshAiCfg(); }
+      try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast(i18t('set_allowance_opened')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-allow-topup')?.addEventListener('click',async()=>{
-      try{ await api('ai/allowance','PUT',allowBody()); toast('Allowance updated'); refreshAiCfg(); }
+      try{ await api('ai/allowance','PUT',allowBody()); toast(i18t('set_allowance_updated')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-allow-close')?.addEventListener('click',async()=>{
       if(!await confirmDialog({title:'Close the onboarding allowance?', message:'Migration and OCR will go back to drawing on the daily budget.', confirmLabel:'Close allowance', danger:true})) return;
-      try{ await api('ai/allowance','PUT',{ close:true }); toast('Allowance closed'); refreshAiCfg(); }
+      try{ await api('ai/allowance','PUT',{ close:true }); toast(i18t('set_allowance_closed')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     // ---- model rate table ----
@@ -623,13 +623,13 @@ function renderTeam(){
         const o=Number(row.querySelector('[data-rate="out"]').value);
         if(Number.isFinite(i)&&Number.isFinite(o)&&i>=0&&o>=0) rates[m]={in:i,out:o};
       });
-      if(!Object.keys(rates).length){ toast('Nothing to save','err'); return; }
-      try{ await api('ai/config','PUT',{ rates }); toast('Rate table saved'); refreshAiCfg(); }
+      if(!Object.keys(rates).length){ toast(i18t('set_nothing_to_save'),'err'); return; }
+      try{ await api('ai/config','PUT',{ rates }); toast(i18t('set_rate_saved')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-rates-reset')?.addEventListener('click',async()=>{
       if(!await confirmDialog({title:'Reset the rate table?', message:'Every model goes back to the prices HaTi ships with. Past spend already recorded is not re-priced.', confirmLabel:'Reset rates', danger:true})) return;
-      try{ await api('ai/config','PUT',{ rates:{} }); toast('Rate table reset'); refreshAiCfg(); }
+      try{ await api('ai/config','PUT',{ rates:{} }); toast(i18t('set_rate_reset')); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
   }
@@ -645,23 +645,23 @@ function renderTeam(){
     const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
     document.getElementById('ai-key-save')?.addEventListener('click',()=>{
       const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
-      if(!key){ toast('Enter a key to save','err'); return; }
+      if(!key){ toast(i18t('set_enter_key'),'err'); return; }
       lsSet('hati.v1.aikey', key); inp.value='';
       toast('Key saved (ending ••••'+key.slice(-4)+') — HaTi Copilot is now live'); refresh(); refreshAiIndicators();
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
       if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'HaTi Copilot and Copilot features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
-      localStorage.removeItem('hati.v1.aikey'); toast('Copilot key removed'); refresh(); refreshAiIndicators();
+      localStorage.removeItem('hati.v1.aikey'); toast(i18t('set_key_removed')); refresh(); refreshAiIndicators();
     });
   }
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name').trim(), email=fval('tm-email').trim().toLowerCase(), role=document.getElementById('tm-role').value;
     const title=fval('tm-title'), pass=document.getElementById('tm-pass').value;
-    if(!name){ toast('Enter the member’s name','err'); return; }
-    if(!validEmail(email)){ toast('Enter a valid email address for the new member','err'); return; }
-    if(pass.length<8){ toast('Temporary password must be at least 8 characters','err'); return; }
-    if(getUsers().some(x=>x.email===email)){ toast('A member with that email already exists','err'); return; }
+    if(!name){ toast(i18t('set_enter_member_name'),'err'); return; }
+    if(!validEmail(email)){ toast(i18t('set_enter_valid_email'),'err'); return; }
+    if(pass.length<8){ toast(i18t('set_temp_password_min'),'err'); return; }
+    if(getUsers().some(x=>x.email===email)){ toast(i18t('set_member_exists'),'err'); return; }
     if(API_MODE()){
       try{ const r=await api('users','POST',{ name, email, role, title, password:pass });
         REMOTE.users=[...REMOTE.users, r.user];
@@ -688,7 +688,7 @@ function renderTeam(){
     const title=String(t).trim();
     if(API_MODE()){
       try{ const r=await api('users/'+id,'PATCH',{ title }); if(r&&r.user) Object.assign(u,r.user); else u.title=title; }
-      catch(e){ toast('Could not save the title: '+e.message,'err'); return; }
+      catch(e){ toast(i18t('set_could_not_save_title')+e.message,'err'); return; }
     } else { u.title=title; saveUsers(getUsers()); }
     // keep the people directory in step, so signer fields still auto-fill
     state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
@@ -709,14 +709,14 @@ function renderTeam(){
       if(r&&r.user) Object.assign(u,r.user); else u.canViewValues=to;
       toast(to?`${u.name} can now see contract values`:`Contract values are now hidden from ${u.name}`);
       renderTeam();
-    }catch(e){ toast('Could not change value access: '+e.message,'err'); }
+    }catch(e){ toast(i18t('set_could_not_change_access')+e.message,'err'); }
   }));
   document.getElementById('dir-import')?.addEventListener('change',e=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();
     rd.onload=async()=>{
       const parsed=parseDirectoryCsv(rd.result);
-      if(!parsed.length){ toast('No Name/Email rows found in that CSV','err'); return; }
+      if(!parsed.length){ toast(i18t('set_no_csv_rows'),'err'); return; }
       state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
       const byEmail={}; dir.forEach(p=>{ if(p.email) byEmail[p.email.toLowerCase()]=p; });
       let added=0, updated=0;
@@ -838,7 +838,7 @@ function renderPlaybookView(){
       <span style="font-size:12px;font-weight:600;color:var(--color-text)">${i18t('set_playbook_by_type')}</span>
       ${canEditPb?`<span style="margin-left:auto;display:flex;gap:8px">
         <button id="pb-add" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 10px">${icon('plus','w-3 h-3')} Add type</button>
-        <button id="pb-reset" style="font-size:11px;font-weight:600;color:var(--color-neutral-600);background:none;border:0;cursor:pointer">Reset to defaults</button>
+        <button id="pb-reset" style="font-size:11px;font-weight:600;color:var(--color-neutral-600);background:none;border:0;cursor:pointer">${i18t('set_reset_defaults2')}</button>
       </span>`:''}
     </div>
     ${baseCard}${typeCards}
@@ -872,14 +872,14 @@ function openPlaybookEditor(key){
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 12px">${isNew?'Add contract type':isBase?'Edit baseline positions':'Edit playbook — '+PB_ESC(e.label||key)}</h3>
     <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:3px">${isBase?'Name':'Contract type name'}</span>
       <input id="pb-f-label" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?'Baseline':'e.g. Distribution & logistics'}" style="${inp}"></label>
-    ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:3px">Applies to contracts matching <span style="font-weight:400;color:var(--color-neutral-500)">(comma-separated keywords in the contract type; leave blank for the built-in types)</span></span>
+    ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:3px">${i18t('set_applies_matching')} <span style="font-weight:400;color:var(--color-neutral-500)">${i18t('set_comma_keywords')}</span></span>
       <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="e.g. distribution, warehousing, freight" style="${inp}"></label>
-    <div style="font-size:10.5px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:6px;padding:7px 9px;margin-bottom:12px">Inherited from baseline: <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
+    <div style="font-size:10.5px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:6px;padding:7px 9px;margin-bottom:12px">${i18t('set_inherited_baseline')} <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
 
     <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:11px;font-weight:600;color:var(--color-text)">${isBase?'Positions':'Positions specific to this type'}</span><button id="pb-add-pos" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">+ Add position</button></div>
     <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
 
-    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:11px;font-weight:600;color:var(--color-text)">Numeric limits</span><button id="pb-add-rng" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">+ Add limit</button></div>
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:11px;font-weight:600;color:var(--color-text)">${i18t('set_numeric_limits')}</span><button id="pb-add-rng" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">+ Add limit</button></div>
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -907,7 +907,7 @@ function openPlaybookEditor(key){
         <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;outline:none">
         <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">⚑ Legal</label>
         <button data-pb-rmrng="${i}" title="Remove" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
-      </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">No numeric limits. Payment-terms and liability-cap limits are auto-checked by the review engine.</p>`;
+      </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">${i18t('set_no_numeric_limits')}</p>`;
     // wire row inputs → live working copy
     pl.querySelectorAll('[data-pb-cat]').forEach(el=>el.addEventListener('input',()=>{ e.positions[+el.dataset.pbCat].category=el.value; }));
     pl.querySelectorAll('[data-pb-esc]').forEach(el=>el.addEventListener('change',()=>{ e.positions[+el.dataset.pbEsc].escalate=el.checked; }));
@@ -975,10 +975,10 @@ function renderApprovalRules(){
     <div style="border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:10px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
-        <span style="font-size:12px;color:var(--color-text)"><b>IF</b> ${condLabel(r.cond)} <b>THEN</b> ${approverLabelOf(r.approver)}</span>
+        <span style="font-size:12px;color:var(--color-text)"><b>IF</b> ${condLabel(r.cond)} <b>${i18t('set_then')}</b> ${approverLabelOf(r.approver)}</span>
         ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">remove</button></span>`:''}
       </div>
-    </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500)">No approval rules — contracts can be signed without sign-off.</p>`;
+    </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
   host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast('Rule removed'); }));
 }
@@ -988,25 +988,25 @@ function openApprovalRuleEditor(idx){
   const members=(getUsers()||[]);
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} approval rule</h3>
-    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Order (lower approves first)</span>
+    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_order_lower_first')}</span>
       <input id="ar-order" type="number" min="1" value="${r.order||1}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>
-    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Condition</span>
+    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_condition')}</span>
       <select id="ar-cond" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select></label>
     <div id="ar-condval" class="mb-2.5"></div>
-    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Approver</span>
+    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_approver')}</span>
       <select id="ar-approver" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">
-        <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>Any Admin</option>
-        <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>Any Legal (or Admin)</option>
+        <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
+        <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
         ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${ROLE_LABEL[m.role]})</option>`).join('')}
       </select></label>
     <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-      <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save rule</button></div>
+      <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('set_save_rule')}</button></div>
   </div>`);
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
     if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Threshold (${jxCurrency()})</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
-    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Value stream</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
-    else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Type contains</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="e.g. lease" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
-    else h.innerHTML=`<p class="text-[11px] text-ink/55">No extra value needed for this condition.</p>`; };
+    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_value_stream')}</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
+    else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_type_contains')}</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="e.g. lease" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
+    else h.innerHTML=`<p class="text-[11px] text-ink/55">${i18t('set_no_extra_value')}</p>`; };
   document.getElementById('ar-cond').addEventListener('change',renderCondVal); renderCondVal();
   document.getElementById('ar-cancel').addEventListener('click',closeModal);
   document.getElementById('ar-save').addEventListener('click',()=>{
@@ -1029,15 +1029,15 @@ async function loadSessions(){
     host.innerHTML=rows.length?`<div style="display:flex;flex-direction:column;gap:6px">${rows.map(s=>{
       const ua=(s.ua||'').replace(/</g,'&lt;'); const dev=/mobile/i.test(ua)?'Mobile':/chrome/i.test(ua)?'Chrome':/firefox/i.test(ua)?'Firefox':/safari/i.test(ua)?'Safari':'Browser';
       return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:7px 10px">
-        <span style="min-width:0"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${dev}${s.current?' <span style="font-size:9px;font-family:var(--font-mono);color:var(--color-accent-700)">· this device</span>':''}</span>
+        <span style="min-width:0"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${dev}${s.current?` <span style="font-size:9px;font-family:var(--font-mono);color:var(--color-accent-700)">${i18t('set_this_device')}</span>`:''}</span>
         <span style="display:block;font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · last seen ${s.lastSeen?fmtDT(s.lastSeen):'—'}</span></span>
-        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">Revoke</button>`}
-      </div>`; }).join('')}</div>`:`<p style="font-size:11px;color:var(--color-neutral-500)">No active sessions.</p>`;
+        ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--st-ruby-dot);background:none;border:0;cursor:pointer">${i18t('set_revoke')}</button>`}
+      </div>`; }).join('')}</div>`:`<p style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_no_active_sessions')}</p>`;
     host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{
       try{ await api('sessions/'+b.getAttribute('data-sess-revoke'),'DELETE'); toast('Session revoked'); loadSessions(); }
       catch(e){ toast(e.message,'err'); }
     }));
-  }catch(e){ host.innerHTML='<p style="font-size:11px;color:var(--color-neutral-500)">Could not load sessions.</p>'; }
+  }catch(e){ host.innerHTML=`<p style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_could_not_load_sessions')}</p>`; }
 }
 
 Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel,loadSessions});

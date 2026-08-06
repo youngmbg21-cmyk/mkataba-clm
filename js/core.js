@@ -397,15 +397,15 @@ const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
 // server-side; these chips only render it. Distinct from STATUS_META — a
 // contract can be In Review while its shares are in several of these states.
 const SHARE_META = {
-  sent:    {label:'Sent',      dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
-  opened:  {label:'Opened',    dot:'var(--st-steel-dot)', bg:'var(--st-steel-bg)', tx:'var(--st-steel-fg)'},
-  changes: {label:'Changes',   dot:'var(--st-amber-dot)', bg:'var(--st-amber-bg)', tx:'var(--st-amber-fg)'},
-  accepted:{label:'Accepted',  dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)'},
-  reviewed:{label:'Reviewed',  dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
-  signed:  {label:'Signed',    dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)'},
-  declined:{label:'Declined',  dot:'var(--st-ruby-dot)',  bg:'var(--st-ruby-bg)',  tx:'var(--st-ruby-fg)'},
-  expired: {label:'Expired',   dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
-  revoked: {label:'Revoked',   dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
+  sent:    {get label(){ return i18t('co_sh_sent'); },      dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
+  opened:  {get label(){ return i18t('co_sh_opened'); },    dot:'var(--st-steel-dot)', bg:'var(--st-steel-bg)', tx:'var(--st-steel-fg)'},
+  changes: {get label(){ return i18t('co_sh_changes'); },   dot:'var(--st-amber-dot)', bg:'var(--st-amber-bg)', tx:'var(--st-amber-fg)'},
+  accepted:{get label(){ return i18t('co_sh_accepted'); },  dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)'},
+  reviewed:{get label(){ return i18t('co_sh_reviewed'); },  dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
+  signed:  {get label(){ return i18t('co_sh_signed'); },    dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)'},
+  declined:{get label(){ return i18t('co_sh_declined'); },  dot:'var(--st-ruby-dot)',  bg:'var(--st-ruby-bg)',  tx:'var(--st-ruby-fg)'},
+  expired: {get label(){ return i18t('co_sh_expired'); },   dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
+  revoked: {get label(){ return i18t('co_sh_revoked'); },   dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)'},
 };
 const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
   return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
@@ -449,7 +449,7 @@ const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[c
 /* One cell, used by every table that carries the column, so the dash and the
    dot can never come from two different opinions about what "not shared" is. */
 const shareLinkCell = cid => shareDot(cid)
-  || `<span title="Not sent to anyone yet" style="color:var(--color-neutral-400)">&mdash;</span>`;
+  || `<span title="${i18t('co_not_sent_anyone')}" style="color:var(--color-neutral-400)">&mdash;</span>`;
 /* The legend. Only the five states a reader will actually meet — expired and
    revoked are grey like Sent and naming all eight would make the legend longer
    than the thing it explains. */
@@ -640,7 +640,7 @@ async function deleteContract(id){
   if(!await confirmDialog({ title:`Delete “${c.name}”?`,
       message:`This permanently removes ${c.id} and its history from the workspace. This cannot be undone.`,
       confirmLabel:'Delete permanently', danger:true })) return false;
-  if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast('Delete failed: '+e.message,'err'); return false; } }
+  if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast(i18t('co_delete_failed')+e.message,'err'); return false; } }
   const idx=state.contracts.findIndex(x=>x.id===id);
   if(idx>=0) state.contracts.splice(idx,1);
   if(state.activeId===id) state.activeId=null;
@@ -687,7 +687,7 @@ async function saveContract(c){
       let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
       if(state.activeId===c.id){
         const keepMine=await confirmDialog({
-          title:'This contract just changed on the server',
+          get title(){ return i18t('co_just_changed'); },
           message:'Someone else saved a change to '+c.id+' while you were editing. Your change has not been saved. Keep yours and overwrite theirs, or discard yours and load their version?',
           confirmLabel:'Keep mine & save', cancelLabel:'Load theirs', danger:true });
         if(keepMine){ if(fresh) c._v=fresh._v; await saveContract(c); return; }
@@ -696,7 +696,7 @@ async function saveContract(c){
       } else {
         toast(c.id+' changed on the server — your edit is kept but not yet saved. Open it and save again to keep your version.','err');
       }
-    } else toast('Save failed: '+e.message,'err');
+    } else toast(i18t('co_save_failed')+e.message,'err');
   }
 }
 async function saveSettings(){
@@ -706,7 +706,7 @@ async function saveSettings(){
        let a stale, unrelated settings save silently revert a folder restriction.
        Stripped here so the general PUT preserves the server's copy. */
     const { folderAccess, ...rest } = (state.settings||{});
-    try{ await api('settings','PUT',rest); }catch(e){ toast('Settings save failed: '+e.message,'err'); }
+    try{ await api('settings','PUT',rest); }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); }
   }
   else persist();
 }
@@ -1004,7 +1004,7 @@ function renderAuth(mode){
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
     document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
     document.getElementById('li-reset')?.addEventListener('click',async()=>{
-      if(await confirmDialog({title:'Reset workspace?', message:'This permanently erases the workspace, all users and contracts stored in this browser. This cannot be undone.', confirmLabel:'Erase everything', danger:true})){
+      if(await confirmDialog({get title(){ return i18t('co_reset_workspace_q'); }, message:'This permanently erases the workspace, all users and contracts stored in this browser. This cannot be undone.', confirmLabel:'Erase everything', danger:true})){
         Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
       }
     });
@@ -1056,8 +1056,8 @@ async function doSetup(){
   const utitle=fval('su-title').trim();
   const pass=document.getElementById('su-pass').value;
   if(!name){ toast(i18t('co_enter_org_name'),'err'); return; }
-  if(!uname){ toast('Enter your full name','err'); return; }
-  if(!validEmail(email)){ toast('Enter a valid work email — it is your sign-in and your password-reset route','err'); return; }
+  if(!uname){ toast(i18t('co_enter_full_name'),'err'); return; }
+  if(!validEmail(email)){ toast(i18t('co_enter_work_email'),'err'); return; }
   if(pass.length<8){ toast(i18t('co_password_min8'),'err'); return; }
   if(REMOTE){
     try{
@@ -1122,9 +1122,9 @@ function renderMustChangePassword(){
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:30px;max-width:25rem;width:100%;">
         <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0 0 6px;">${i18t('co_choose_own_password')}</h1>
         <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55;">Your account was created with a temporary password someone else chose. Set your own before you continue — anything you sign has to be attributable to you alone.</p>
-        <input id="cp-current" type="password" placeholder="Temporary password" style="${F}"/>
-        <input id="cp-new" type="password" placeholder="New password (min 8 characters)" style="${F}"/>
-        <input id="cp-again" type="password" placeholder="Repeat the new password" style="${F}"/>
+        <input id="cp-current" type="password" placeholder="${i18t('co_temporary_password')}" style="${F}"/>
+        <input id="cp-new" type="password" placeholder="${i18t('co_new_password_min')}" style="${F}"/>
+        <input id="cp-again" type="password" placeholder="${i18t('co_repeat_password')}" style="${F}"/>
         <button id="cp-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:14px;">${i18t('co_set_my_password')}</button>
         <p id="cp-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>
       </div></div>`;
@@ -1227,7 +1227,7 @@ function renderSideUser(){
   const lo=document.getElementById('side-logout');
   if(lo) lo.onclick=async()=>{
     const ok=(typeof confirmDialog==='function')
-      ? await confirmDialog({ title:'Log out?', message:`End your session${org?` on ${org}`:''} and return to the sign-in screen?`, confirmLabel:'Log out' })
+      ? await confirmDialog({ get title(){ return i18t('co_log_out_q'); }, message:`End your session${org?` on ${org}`:''} and return to the sign-in screen?`, confirmLabel:'Log out' })
       : true;
     if(ok) logout();
   };
@@ -1428,7 +1428,7 @@ function renderNegotiationSection(c){
   host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',async()=>{
     // A rejection the other side cannot understand is a rejection they will
     // re-send. Ask for the reason here, where it is still fresh.
-    const why=await promptDialog({ title:'Why are you turning this down?',
+    const why=await promptDialog({ get title(){ return i18t('co_why_turning_down'); },
       message:'This is sent to the counterparty with your decision, so they know what to do next. Leave it blank to reject without a reason.',
       label:'Reply to '+(c.counterparty||'the counterparty'),
       placeholder:'e.g. Net-30 stands, or we can look at a 2% price increase.',
@@ -1488,7 +1488,7 @@ function openSidePanel(html, opts={}){
     style="position:fixed;top:0;right:0;bottom:0;width:100%;max-width:${w};z-index:70;display:flex;flex-direction:column;background:var(--color-surface);border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg);">
     <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--color-divider);">
       <span style="font-family:var(--font-heading);font-weight:700;font-size:12.5px;color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(opts.title||'')}</span>
-      <button id="side-panel-x" title="Close (Esc)" aria-label="Close"
+      <button id="side-panel-x" title="${i18t('co_close_esc')}" aria-label="Close"
         style="margin-left:auto;flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600);cursor:pointer;display:grid;place-items:center;padding:0;font:inherit;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
@@ -1725,30 +1725,30 @@ function sealString(c){
 }
 
 async function verifySeal(c){
-  if(!c.hash){ toast('Document is not sealed yet','err'); return; }
-  if(c.hash==='PRE-SEEDED'){ toast('Sample contract — sealed before evidence hashing existed','err'); return; }
+  if(!c.hash){ toast(i18t('co_not_sealed'),'err'); return; }
+  if(c.hash==='PRE-SEEDED'){ toast(i18t('co_sample_presealed'),'err'); return; }
   if(c.hash==='MIGRATED'){ toast(`Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 (${(c.upload?.fileHash||'').slice(0,16)}…) is the evidence of record`); return; }
   if(!isUpload(c)){
-    if(!c.execution?.html){ toast('No frozen snapshot on this record','err'); return; }
+    if(!c.execution?.html){ toast(i18t('co_no_snapshot'),'err'); return; }
     const th=await sha256(execHashInput(c.execution));
-    if(th!==c.execution.textHash){ toast('Seal MISMATCH — the sealed text was altered','err'); return; }
+    if(th!==c.execution.textHash){ toast(i18t('co_seal_mismatch_text'),'err'); return; }
   }
   // v2: each stored signature mark must still hash to the value bound at signing.
   if(Number(c.sealVersion||0)>=2){
     for(const s of (c.signatures||[])){
       if(s.image && s.imageHash){ const ih=await sha256(s.image);
-        if(ih!==s.imageHash){ toast('Seal MISMATCH — a signature mark was altered','err'); return; } }
+        if(ih!==s.imageHash){ toast(i18t('co_seal_mismatch_mark'),'err'); return; } }
     }
   }
   const h=await sha256(sealString(c));
-  if(h!==c.hash){ toast('Seal MISMATCH — the record changed after signing','err'); return; }
+  if(h!==c.hash){ toast(i18t('co_seal_mismatch_record'),'err'); return; }
   /* The seal can be perfectly valid and the workspace still be showing
      different wording, because the seal is computed over the frozen copy and
      this asks about the live one. Reported here rather than left to be noticed,
      since "Seal valid" on a screen whose text nobody signed is the most
      misleading thing this button could say. */
   const div=(typeof executedDivergence==='function')?executedDivergence(c):null;
-  if(div){ toast('Seal valid, BUT the wording on screen is not the wording that was sealed — '
+  if(div){ toast(i18t('co_seal_valid_but')
     +'the sealed copy is the evidence of record','err'); return; }
   toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
 }
@@ -1769,7 +1769,7 @@ function downloadEvidence(c){
     migration: isExternallyExecuted(c)
       ? { filedBy:(c.migration&&c.migration.importedBy)||null, filedAt:(c.migration&&c.migration.importedAt)||null,
           batch:(c.migration&&c.migration.batch)||null,
-          note:'Executed on (as recorded) is taken from the migrated record and is not verified by HaTi.' }
+          get note(){ return i18t('co_executed_on_note'); } }
       : null,
     contract:{ id:c.id, name:c.name, type:cKind(c), counterparty:c.counterparty,
       value:c.value, valueType:c.valueType, status:c.status },
@@ -1790,7 +1790,7 @@ function downloadEvidence(c){
     auditTrail:c.audit||[],
   },null,2));
   logAudit(c,'Exported','Evidence pack downloaded'); persist(c); renderAuditSection(c);
-  toast('Evidence pack downloaded');
+  toast(i18t('co_evidence_downloaded'));
 }
 
 /* ---------- readiness: is this contract fit to leave the building? ----------
@@ -1920,11 +1920,11 @@ function defaultSharePurpose(c){
   return settled?'sign':'negotiate';
 }
 const SHARE_PURPOSE_COPY={
-  negotiate:{ label:'Negotiate', title:'They read it and propose changes',
-    blurb:'They land in the negotiation room. Every clause they want changed comes back as its own item you accept or reject. Nothing can be signed on this link.' },
-  sign:{ label:'Sign', title:'They sign this exact wording',
-    blurb:'They land on the signing panel. Use this only when there is nothing left to argue about — proposing changes is not what this link is for.' },
-  view:{ label:'View only', title:'They read it, and can do nothing else',
+  negotiate:{ label:'Negotiate', get title(){ return i18t('co_purpose_negotiate'); },
+    get blurb(){ return i18t('co_purpose_negotiate_sub'); } },
+  sign:{ label:'Sign', get title(){ return i18t('co_purpose_sign'); },
+    get blurb(){ return i18t('co_purpose_sign_sub'); } },
+  view:{ get label(){ return i18t('co_purpose_view'); }, get title(){ return i18t('co_purpose_view_sub'); },
     blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
 };
 /* ---------- THE FIRST QUESTION, WHICH USED NOT TO BE ASKED ----------
@@ -2181,7 +2181,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
     ${w.length?`<div style="display:flex;gap:7px;align-items:flex-start;margin:0 0 10px;font-size:11px;line-height:1.55;color:var(--st-amber-fg)"><span style="flex:none;display:inline-flex;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span><span>Worth checking: ${esc(w.slice(0,2).join(' '))}${w.length>2?' …':''}</span></div>`:''}
     <div id="qs-result" style="margin:0 0 4px"></div>
     <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
-      <button id="qs-details" class="ui-btn" style="font-size:12px" title="Recipient, purpose, WhatsApp instead, link life, a personal message — the full form">${i18t('co_change_details')}</button>
+      <button id="qs-details" class="ui-btn" style="font-size:12px" title="${i18t('co_full_form')}">${i18t('co_change_details')}</button>
       <span style="flex:1"></span>
       <button id="qs-cancel" class="ui-btn">Cancel</button>
       <button id="qs-send" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 18px">${icon('send','w-3.5 h-3.5')} Send it</button>
@@ -2707,7 +2707,7 @@ async function openShareModal(c, opts={}){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
   if(isUpload(c) && !API_MODE()){
-    toast('To share an uploaded document, run the HaTi server — or send the original file directly','err');
+    toast(i18t('co_upload_share_server'),'err');
     return;
   }
   // A share copies the contract out of the building, so it must be copied
@@ -2992,7 +2992,7 @@ async function openShareModal(c, opts={}){
   const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
     const ta=document.getElementById('share-link'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-    toast('Share link copied to clipboard');
+    toast(i18t('co_share_copied'));
   });
 
   /* ONE SEND, TWO DOORS (WO N4). The form's Send button and the quick panel's
@@ -3012,8 +3012,8 @@ async function openShareModal(c, opts={}){
     const note=fval('sh-msg').trim();
     const msg=[summary,note].filter(Boolean).join('\n\n');
     payloadObj.contract.changeSummary=summary||null;
-    if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return false; }
-    if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return false; }
+    if(ch==='email' && !/.+@.+\..+/.test(email)){ toast(i18t('co_enter_recipient_email'),'err'); return false; }
+    if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast(i18t('co_enter_whatsapp'),'err'); return false; }
     /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
 
        Everything else on the readiness list is the sender's call — a missing
@@ -3042,7 +3042,7 @@ async function openShareModal(c, opts={}){
     // acknowledgement rather than a toast that scrolls away.
     const ack=document.getElementById('sh-ack');
     if(ack && !ack.checked){
-      toast('This contract is not ready to send — tick the confirmation, or close and complete it','err');
+      toast(i18t('co_not_ready_to_send'),'err');
       const panel=document.getElementById('share-readiness');
       if(panel){ panel.style.outline='2px solid var(--st-ruby-dot)'; setTimeout(()=>{ panel.style.outline=''; },1600);
                  panel.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
@@ -3056,7 +3056,7 @@ async function openShareModal(c, opts={}){
        negotiate is not this kind of risk. */
     if(purposeSel==='sign' && ch==='email'){
       const okAddr=await confirmDialog({
-        title:'Send the signing link to this address?',
+        get title(){ return i18t('co_send_signing_q'); },
         message:'The one-time signing code will go to '+email+' — and only to that address. Check it is exactly right; a signing code sent to the wrong inbox is hard to undo.',
         confirmLabel:'Send to '+email, cancelLabel:'Go back' });
       if(!okAddr) return false;
@@ -3269,7 +3269,7 @@ function reshareNotSentModal(c, out, who){
   document.getElementById('rs-copy').addEventListener('click',async()=>{
     const ta=document.getElementById('rs-link'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-    toast('Link copied');
+    toast(i18t('co_link_copied'));
   });
 }
 
@@ -3343,13 +3343,13 @@ function shareJourneyState(c, shares){
     : `Out with ${who} — they have not opened it yet.`;
   return { who, latest, signed, responded, opened, now, days, stale, sentence,
     stages:[
-      { k:'sent', label:'Sent', on:true,
+      { k:'sent', get label(){ return i18t('co_sh_sent'); }, on:true,
         words:`${fmtDT(latest.sentAt||latest.createdAt)}${(latest.expiresAt&&!responded&&!signed)?` · link valid to ${String(latest.expiresAt).slice(0,10)}`:''}` },
-      { k:'opened', label:'Opened', on:opened||responded||signed,
+      { k:'opened', get label(){ return i18t('co_sh_opened'); }, on:opened||responded||signed,
         words: opened?fmtDT(latest.firstOpenedAt):(responded||signed)?'answered directly':'not yet' },
-      { k:'responded', label:'Responded', on:responded||signed,
+      { k:'responded', get label(){ return i18t('co_responded'); }, on:responded||signed,
         words: responded?`${fmtDT(latest.respondedAt)}${signed?'':' — your turn'}`:(signed?'—':'not yet') },
-      { k:'signed', label:'Signed', on:signed, words: signed?'sealed & filed':'not yet' },
+      { k:'signed', get label(){ return i18t('co_sh_signed'); }, on:signed, words: signed?'sealed & filed':'not yet' },
     ] };
 }
 function shareJourneyHtml(c, shares){
@@ -3448,7 +3448,7 @@ async function renderSharesSection(c){
   host.querySelectorAll('[data-sh-copy]').forEach(b=>b.addEventListener('click',async()=>{
     const link=location.origin+location.pathname+'#share=t:'+b.getAttribute('data-sh-copy');
     try{ await navigator.clipboard.writeText(link); }catch(e){}
-    toast('Share link copied to clipboard');
+    toast(i18t('co_share_copied'));
   }));
   host.querySelectorAll('[data-sh-resend]').forEach(b=>b.addEventListener('click',async()=>{
     try{ const r=await api('shares/'+b.getAttribute('data-sh-resend')+'/resend','POST',{});
@@ -3456,10 +3456,10 @@ async function renderSharesSection(c){
     }catch(e){ toast(e.message,'err'); }
   }));
   host.querySelectorAll('[data-sh-revoke]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Revoke this share link?', message:'The recipient will no longer be able to open the contract from this link. You can share again at any time.', confirmLabel:'Revoke link', danger:true})) return;
+    if(!await confirmDialog({get title(){ return i18t('co_revoke_share_q'); }, message:'The recipient will no longer be able to open the contract from this link. You can share again at any time.', confirmLabel:'Revoke link', danger:true})) return;
     try{ await api('shares/'+b.getAttribute('data-sh-revoke')+'/revoke','POST',{});
       logAudit(c,'Share revoked','A counterparty share link was revoked'); persist(c); renderAuditSection(c);
-      toast('Share link revoked'); renderSharesSection(c); refreshShareOverview();
+      toast(i18t('co_share_revoked')); renderSharesSection(c); refreshShareOverview();
     }catch(e){ toast(e.message,'err'); }
   }));
 }
@@ -3504,7 +3504,7 @@ function openImportModal(c){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('upload')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_import_cp_response')}</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">${i18t('co_paste_response_code')}</p>
-      <textarea id="imp-code" rows="5" placeholder="Paste response code…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
+      <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="imp-cancel" class="ui-btn">Cancel</button>
         <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
@@ -3566,7 +3566,7 @@ function openImportModal(c){
   });
 }
 async function applyResponse(c, r, opts={}){
-  if(!r || r.kind!=='hati-response'){ if(!opts.background) toast('That code is not a valid HaTi response','err'); return false; }
+  if(!r || r.kind!=='hati-response'){ if(!opts.background) toast(i18t('co_invalid_response_code'),'err'); return false; }
   if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
   // The caller may hand us a LIGHT register row — the list endpoint strips
   // audit, comments, execution.html and the upload's text off every row. This
@@ -3574,7 +3574,7 @@ async function applyResponse(c, r, opts={}){
   // a light row would write those absences back over the full record and
   // destroy the audit trail at the exact moment a counterparty responds.
   try{ await ensureFull(c); }catch(e){
-    toast('Could not load the full contract to record the response — try again','err');
+    toast(i18t('co_could_not_load_full'),'err');
     return false;
   }
   // An agreement that is already executed is not a thing a share link may
@@ -3601,7 +3601,7 @@ async function applyResponse(c, r, opts={}){
     return false;
   }
   if(docChanged)
-    toast('Note: the document changed after this share link was created','err');
+    toast(i18t('co_doc_changed_after'),'err');
   const who=r.name+(r.title?', '+r.title:'');
   /* Values the counterparty filled into a template form. Only known open
      fields land (never fixed wording, never invented keys), each re-checked
@@ -3747,7 +3747,7 @@ async function applyResponse(c, r, opts={}){
        would not move. */
     const withdrew=applyNegoWithdrawals(c, r, who);
     if(!done.length && !filed.length && !withdrew.length){
-      if(!opts.background) toast('That response carried no decisions this contract recognises','err');
+      if(!opts.background) toast(i18t('co_no_decisions'),'err');
       return false;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
@@ -3813,7 +3813,7 @@ async function applyResponse(c, r, opts={}){
             +`${withdrew.length?`${withdrew.length} withdrawal${withdrew.length===1?'':'s'}`:''}`
             +` sent with it ${(done.length+withdrew.length)===1?'was':'were'} applied`
           : ''}.`);
-      if(!opts.background) toast('That readiness signal does not match this contract — something is still outstanding','err');
+      if(!opts.background) toast(i18t('co_readiness_mismatch'),'err');
       c.lastAction=todayStr(); persist(c);
       if(opts.background) setView(state.view||'dashboard'); else renderWorkspace();
       return !!(done.length||withdrew.length);
@@ -3875,7 +3875,7 @@ async function applyResponse(c, r, opts={}){
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Declined',`${who} declined via share link`);
     toast(`${r.name} declined the agreement`,'err');
-  } else { if(!opts.background) toast('Unknown response type','err'); return false; }
+  } else { if(!opts.background) toast(i18t('co_unknown_response'),'err'); return false; }
   c.lastAction=todayStr(); persist(c);
   /* WRITTEN BEFORE ANYTHING REPAINTS, and this is not a nicety.
 

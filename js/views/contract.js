@@ -1033,7 +1033,7 @@ function findingsFromText(c, text){
    the same reason. */
 let _up=null;   // pipeline result carried from the drop to the confirm
 function openUploadModal(){
-  if(!canEdit()){ toast('Viewers cannot add contracts','err'); return; }
+  if(!canEdit()){ toast(i18t('ct_viewers_no_add'),'err'); return; }
   _up=null;
   openModal(`
     <div class="p-6">
@@ -1041,7 +1041,7 @@ function openUploadModal(){
         <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
           <h2 class="font-display font-700 text-brand-900">${i18t('ct_add_received')}</h2></div>
         <p class="text-xs text-brand-800/70 mb-4">A contract another company sent you — on their own paper. Drop the file: HaTi reads the counterparty, value and dates out of the document, and you check them before anything is filed.</p>
-        <div id="up-drop" role="button" tabindex="0" aria-label="Drop the contract file here, or press to choose one" style="border:2px dashed var(--color-accent);border-radius:12px;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background .15s">
+        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:12px;background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background .15s">
           <div style="font-size:15px;font-weight:600;color:var(--color-text)">${i18t('ct_drop_here')}</div>
           <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:5px">PDF · Word .docx · photo or text — or click to choose · max ${uploadMaxLabel()} · legacy .doc must be re-saved first</div>
           <div style="font-size:11.5px;color:var(--color-accent-700);margin-top:8px;font-weight:600">${i18t('ct_thats_all')}</div>
@@ -1049,7 +1049,7 @@ function openUploadModal(){
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:12px"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
-          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-neutral-600);cursor:pointer" title="The bulk importer — every file read the same way, reviewed in one pass">${i18t('ct_whole_catalogue')} <u>${i18t('ct_import_many')}</u></button>
+          <button id="up-bulk" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-neutral-600);cursor:pointer" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} <u>${i18t('ct_import_many')}</u></button>
           <span style="flex:1"></span>
           <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
         </div>
@@ -1224,7 +1224,7 @@ async function runUploadPipeline(file){
         `Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser — slower and less accurate)':''}…`),
     });
     if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
-    else if(ocr.error) toast('Could not read this scan: '+ocr.error,'err');
+    else if(ocr.error) toast(i18t('ct_could_not_read_scan')+ocr.error,'err');
   }
   const u=currentUser();
   const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
@@ -1265,7 +1265,7 @@ async function runUploadPipeline(file){
    confidence rule: a value the person left as the machine read it keeps the
    machine's confidence, a value they corrected is theirs and reads high. */
 async function submitUpload(){
-  if(!_up||!_up.file){ toast('Choose a file to upload','err'); return; }
+  if(!_up||!_up.file){ toast(i18t('ct_choose_file_upload'),'err'); return; }
   const { file, mime, wordTracked, extractedText, textSource, upload, meta }=_up;
   const cp=fval('up-cp');
   const cpEmail=fval('up-cpemail');
@@ -1323,7 +1323,7 @@ async function submitUpload(){
   state.activeId=c.id;
   persist(c);
   closeModal();
-  toast('Contract uploaded and filed in '+FOLDERS[folder].name);
+  toast(i18t('ct_uploaded_filed_in')+FOLDERS[folder].name);
   setView('workspace');
   renderSideFolders();
 }
@@ -1355,14 +1355,14 @@ function redlineDocBody(c){
 /* Plain-text document editor (Admin + Legal). Saves are versioned so
    Compare shows exactly what changed; the audit trail records the edit. */
 function openEditDocModal(c){
-  if(!canEdit()){ toast('Viewers cannot edit documents','err'); return; }
-  if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
+  if(!canEdit()){ toast(i18t('ct_viewers_no_edit_doc'),'err'); return; }
+  if(c.status==='Signed'){ toast(i18t('ct_executed_readonly'),'err'); return; }
   // the Word-review soft lock: edits made here while the file is out would
   // silently lose to (or clobber) the wording coming back from Word
   const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
   const cur=wasRich ? docPlainText(c)
     : (window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
-  if(!cur){ toast('This document has no editable text yet','err'); return; }
+  if(!cur){ toast(i18t('ct_no_editable_text'),'err'); return; }
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const firstEdit=!c.redlineText&&!isUpload(c);
   // Full-window editor: the dialog takes the whole screen and the wording sits
@@ -1399,8 +1399,8 @@ function openEditDocModal(c){
   document.getElementById('ed-cancel').addEventListener('click',closeModal);
   document.getElementById('ed-save').addEventListener('click',()=>{
     const txt=ta.value;
-    if(txt.trim()===cur.trim()){ toast('No changes made'); closeModal(); return; }
-    if(!txt.trim()){ toast('The document text cannot be empty','err'); return; }
+    if(txt.trim()===cur.trim()){ toast(i18t('ct_no_changes_made')); closeModal(); return; }
+    if(!txt.trim()){ toast(i18t('ct_text_not_empty'),'err'); return; }
     const fromCp=!!document.getElementById('ed-from-cp')?.checked;
     if(fromCp){
       // THEIR wording, typed in by us. It becomes a round in their name and
@@ -1417,7 +1417,7 @@ function openEditDocModal(c){
     if(!v && !c.redlineText) return;
     persist(c);
     closeModal(); renderWorkspace();
-    toast('Changes saved — open Compare to review them');
+    toast(i18t('ct_changes_saved'));
   });
 }
 
@@ -1574,7 +1574,7 @@ function uploadDocBody(c){
    without a re-upload. Safe on executed contracts too — an upload's seal binds
    the file's own hash, not this text (see sealString). */
 async function rereadUploadText(c, btn){
-  if(!canEdit()){ toast('Viewers cannot change contracts','err'); return; }
+  if(!canEdit()){ toast(i18t('ct_viewers_no_change'),'err'); return; }
   const u=c.upload||{};
   const restore=btn?btn.innerHTML:'';
   if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_reading')}</span>`; }
@@ -1604,7 +1604,7 @@ async function rereadUploadText(c, btn){
     toast(`Document re-read — ${text.length.toLocaleString()} characters`);
     renderWorkspace();
   }catch(e){
-    toast('Could not re-read this document — '+e.message,'err');
+    toast(i18t('ct_could_not_reread')+e.message,'err');
     if(btn){ btn.disabled=false; btn.innerHTML=restore; }
   }
 }
@@ -2235,7 +2235,7 @@ function wireActionBar(c){
       return;
     }
     if(kind==='review'){
-      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
+      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast(i18t('ct_moved_to_review')); }
       return;
     }
     if(kind==='sign-scroll'){
@@ -2247,7 +2247,7 @@ function wireActionBar(c){
         const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
         const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
       },160);
-      toast('Tick intent-to-sign, then Sign');
+      toast(i18t('ct_tick_then_sign'));
       return;
     }
     /* SIGN WHERE THE SIGNING IS. This signed from wherever the reader happened
@@ -2271,7 +2271,7 @@ function focusKeyTerms(c){
   roomGoTab(c,'terms');
   setTimeout(()=>{
     const panel=document.querySelector('[data-kt="counterparty"]');
-    if(!panel){ toast('This document has no editable key terms','err'); return; }
+    if(!panel){ toast(i18t('ct_no_editable_terms'),'err'); return; }
     panel.focus(); panel.select&&panel.select();
   },250);
 }
@@ -2414,7 +2414,7 @@ function applyWsTabs(c){
        taken off and put back in Drafting, and a second route in would skip it
        silently. */
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
-    else toast('The redline workbench is unavailable on this page','err');
+    else toast(i18t('ct_workbench_unavailable'),'err');
     return;
   }
   if(_wsTab==='history') roomPaintHistory(c);
@@ -2431,7 +2431,7 @@ function roomGoTab(c,k){
   if(!c) return;
   if(k==='redline'){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
-    else if(window.toast) toast('The redline workbench is unavailable on this page','err');
+    else if(window.toast) toast(i18t('ct_workbench_unavailable'),'err');
     return;
   }
   if(state.view==='redline'){
@@ -2842,7 +2842,7 @@ function roomPaintHistory(c,f={}){
     vhost.innerHTML=roomVersionsHtml(c);
     vhost.querySelectorAll('[data-hist-compare]').forEach(b=>b.addEventListener('click',()=>{
       if(window.openCompareModal) openCompareModal(c);
-      else toast('Compare is unavailable on this page','err');
+      else toast(i18t('ct_compare_unavailable'),'err');
     }));
   }
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
@@ -2888,7 +2888,7 @@ function roomPaintHistory(c,f={}){
      well because people file it. So: build it, hand it to the browser. */
   host.querySelector('#ht-print')?.addEventListener('click',()=>{
     if(window.negoHistoryPrintRun) negoHistoryPrintRun(c);
-    else toast('Printing is unavailable on this page','err');
+    else toast(i18t('ct_printing_unavailable'),'err');
   });
 }
 /* The owner's side of the shared component. Everything side-specific about the
@@ -3024,7 +3024,7 @@ function openNegotiationOwnerRoom(c){
        decision taken in the room has to be visible on the Docs page the reader
        lands on. */
     onExit(){ renderWorkspace(); },
-    onSaveDraft(){ persist(c); toast('Draft saved'); },
+    onSaveDraft(){ persist(c); toast(i18t('ct_draft_saved')); },
     /* The second argument carries onSent/handOver when the room's turn banner
        is what opened this — the turn moves only if a share really goes out. */
     onShareLink(x, o){ closeNegotiationRoom(); renderWorkspace(); openShareModal(c, { purpose:'negotiate', ...(o||{}) }); },
@@ -3051,7 +3051,7 @@ function openNegotiationOwnerRoom(c){
       _wsTab='docs'; _docTopTab='signing';
       closeNegotiationRoom();
       renderWorkspace();
-      toast('Agreed wording carried to the Docs tab — sign it there when you are ready');
+      toast(i18t('ct_agreed_carried'));
     },
   });
 }
@@ -3068,16 +3068,16 @@ function openNegotiationOwnerRoom(c){
    about. One line per block, because that is what richToText emits and what
    negoClausesOf reads back. */
 function openNegoProposeModal(c){
-  if(!canEdit()){ toast('Viewers cannot propose changes','err'); return; }
-  if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
+  if(!canEdit()){ toast(i18t('ct_viewers_no_propose'),'err'); return; }
+  if(c.status==='Signed'){ toast(i18t('ct_executed_readonly'),'err'); return; }
   /* A library-template contract's wording is the template manager's, not the
      deal-maker's: fixed wording is read-only on both sides, and the blanks
      are filled through the form, not rewritten through a redline. Changing
      the standard is a template edit (a new published version), not a per-deal
      negotiation over company boilerplate. */
-  if(c.templateForm){ toast('This contract comes from a standard template — fixed wording is read-only. Fill the open fields in the form instead.','err'); return; }
+  if(c.templateForm){ toast(i18t('ct_standard_template_readonly'),'err'); return; }
   const base=negoBaseText(c);
-  if(!base.trim()){ toast('This contract has no wording to propose changes to','err'); return; }
+  if(!base.trim()){ toast(i18t('ct_no_wording_to_propose'),'err'); return; }
   const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
@@ -3121,10 +3121,10 @@ function openNegoProposeModal(c){
       if(why) for(const ch of filed) ch.why=why;
     }catch(err){
       btn.disabled=false; btn.innerHTML=restore;
-      toast('Could not file those changes — '+err.message,'err'); return;
+      toast(i18t('ct_could_not_file_changes')+err.message,'err'); return;
     }
     closeModal();
-    if(!filed.length){ toast('That wording is identical to the current baseline — nothing to propose'); return; }
+    if(!filed.length){ toast(i18t('ct_identical_to_baseline')); return; }
     persist(c);
     toast(`${filed.length} change${filed.length===1?'':'s'} proposed — ${filed.map(x=>'#'+x.id).join(', ')}`);
     renderWorkspace();
@@ -3299,7 +3299,7 @@ function wireChecksCard(c){
         await runFindObligations(c);
         renderChecksCard(c);
       }catch(e){
-        toast('That check is not available on this page','err');
+        toast(i18t('ct_check_unavailable'),'err');
         renderChecksCard(c);
       }
     });
@@ -3567,12 +3567,12 @@ function wireWsCollapse(c){
    document, not one clause — a tracked-changes file with three clauses in it
    is not the agreement. */
 function exportWordTracked(c){
-  if(!window.docxExportTracked||!window.redlineDocHtml){ toast('The Word writer is not loaded on this page','err'); return; }
+  if(!window.docxExportTracked||!window.redlineDocHtml){ toast(i18t('ct_word_writer_missing'),'err'); return; }
   let out;
   try{
     const html=redlineDocHtml(c,{side:'owner'});
     out=docxExportTracked(html,{author:(currentUser()&&currentUser().name)||'HaTi'});
-  }catch(e){ toast('That document could not be written as Word: '+((e&&e.message)||e),'err'); return; }
+  }catch(e){ toast(i18t('ct_word_write_failed')+((e&&e.message)||e),'err'); return; }
   const name=`${c.id}-redline.docx`;
   try{
     const blob=new Blob([out.bytes],{type:window.DOCX_MIME||'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
@@ -3581,7 +3581,7 @@ function exportWordTracked(c){
     a.href=url; a.download=name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),0);
-  }catch(e){ toast('The download could not start: '+((e&&e.message)||e),'err'); return; }
+  }catch(e){ toast(i18t('ct_download_failed')+((e&&e.message)||e),'err'); return; }
   logAudit(c,'Export',`Word export — ${name}`+(out.tracked&&(out.tracked.ins||out.tracked.del)
     ?` carrying ${out.tracked.ins} insertion${out.tracked.ins===1?'':'s'} and ${out.tracked.del} deletion${out.tracked.del===1?'':'s'} as tracked changes`
     :' (no redlines — clean wording)'));
@@ -4299,7 +4299,7 @@ function wireKeyTerms(c){
 async function fillKeyTermsFromDocument(c){
   const btn=document.getElementById('kt-fill');
   const text=(isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'';
-  if(text.length<200){ toast('No readable document text to read from','err'); return; }
+  if(text.length<200){ toast(i18t('ct_no_readable_text'),'err'); return; }
   if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_reading')}</span>`; }
   try{
     const meta=await extractMetadata(text, null);
@@ -4324,7 +4324,7 @@ async function fillKeyTermsFromDocument(c){
     toast(`Filled ${filled.join(', ')} — check it before signing`);
     renderWorkspace();
   }catch(e){
-    toast('Could not read the document — '+(e.message||'try again'),'err');
+    toast(i18t('ct_could_not_read_doc')+(e.message||'try again'),'err');
   }finally{
     if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=`${icon('sparkle','w-3 h-3')} Fill from document`; }
   }
@@ -4590,9 +4590,9 @@ function renderSignSide(c){
   host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
 }
 async function signDocument(c){
-  if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
-  if(!c.compliance.consent){ toast('Tick the intent-to-sign box first','err'); return; }
-  if(!approvalState(c).ok){ toast('This contract needs approval before signing','err'); return; }
+  if(!canEdit()){ toast(i18t('ct_viewers_no_sign'),'err'); return; }
+  if(!c.compliance.consent){ toast(i18t('ct_tick_intent_first'),'err'); return; }
+  if(!approvalState(c).ok){ toast(i18t('ct_needs_approval'),'err'); return; }
   // The document is out in Word: the counterparty may be mid-edit on wording
   // this signature would seal. Bring the file back (or cancel) before signing.
   /* E2-T5: don't seal over an unsettled negotiation. Admin/Legal may override.
@@ -4700,7 +4700,7 @@ async function signDocument(c){
           if(out && out.missingEmails)
             toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it, or share a link by hand`,'err');
           else
-            toast('Internal signing complete — now share it with the counterparty');
+            toast(i18t('ct_internal_complete'));
           setTimeout(()=>{ try{ openShareModal(c); }catch(e){} },500);
         }
       } else {
@@ -4738,9 +4738,9 @@ async function captureSignature(name){
    record says "executed outside HaTi" — the same language a migrated
    already-signed contract carries, because it is the same claim. */
 async function attachPaperSignature(c, file, opts={}){
-  if(!canEdit()){ toast('Viewers cannot execute contracts','err'); return null; }
+  if(!canEdit()){ toast(i18t('ct_viewers_no_execute'),'err'); return null; }
   if(c.status==='Signed' || (c.execution&&c.execution.at)){
-    toast('This contract is already executed — record an amendment instead','err'); return null; }
+    toast(i18t('ct_already_executed'),'err'); return null; }
   /* The same gate as the electronic route, through the same helper: a scan of
      a signature page is the same claim about the parties, and asked only about
      the old round model it let a room negotiation straight past. */
@@ -4753,7 +4753,7 @@ async function attachPaperSignature(c, file, opts={}){
   let dataUrl;
   try{ dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader();
     rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }); }
-  catch(e){ toast('Could not read that file','err'); return null; }
+  catch(e){ toast(i18t('ct_could_not_read_file'),'err'); return null; }
 
   const u=currentUser();
   const fileHash=await sha256(dataUrl);
@@ -4781,35 +4781,35 @@ async function attachPaperSignature(c, file, opts={}){
   logAudit(c,'Executed outside HaTi',
     `Signed on paper and filed by ${u?.name||'System'} — “${file.name}” (${Math.round(file.size/1024)} KB), SHA-256 ${fileHash.slice(0,16)}…${opts.signedOn?`, signed on ${opts.signedOn}`:''}. No electronic signature was taken in HaTi; the signatures are on the scanned document, which is retained here. The negotiation history above is the record of how this wording was reached.`);
   persist(c); renderWorkspace();
-  toast('Filed as executed on paper — the negotiation history stays with it');
+  toast(i18t('ct_filed_on_paper'));
   return c.execution;
 }
 /* The dialog: a date, an optional note, and the scan itself. */
 function openPaperSignatureModal(c){
-  if(!canEdit()){ toast('Viewers cannot execute contracts','err'); return; }
+  if(!canEdit()){ toast(i18t('ct_viewers_no_execute'),'err'); return; }
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('finger')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">${i18t('ct_signed_on_paper')}</h2></div>
       <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
         Attach the signed copy to <b>this</b> contract, so the ${(c.rounds||[]).length} round${(c.rounds||[]).length===1?'':'s'} of negotiation stay with the document they produced.
-        HaTi records it as <b>${i18t('ct_executed_outside')}</b> — no electronic signature is taken, and the seal is the scanned file's own fingerprint.</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Date signed (optional)</span>
+        HaTi records it as <b>${i18t('ct_executed_outside')}</b> ${i18t('ct_no_esig_scan')}</p>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_date_signed')}</span>
         <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Note (optional)</span>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_note_optional')}</span>
         <input id="ps-note" type="text" placeholder="e.g. Signed at the Nairobi office, both parties present" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
-      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">The signed copy *</span>
+      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:12.5px"/></label>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
         <button id="ps-cancel" class="ui-btn">Cancel</button>
-        <button id="ps-go" class="ui-btn ui-btn-primary">File as executed</button>
+        <button id="ps-go" class="ui-btn ui-btn-primary">${i18t('ct_file_as_executed')}</button>
       </div>
     </div>`);
   document.getElementById('ps-cancel').addEventListener('click',closeModal);
   document.getElementById('ps-go').addEventListener('click',async e=>{
     const input=document.getElementById('ps-file');
     const file=input&&input.files&&input.files[0];
-    if(!file){ toast('Choose the signed copy first','err'); return; }
+    if(!file){ toast(i18t('ct_choose_signed_copy'),'err'); return; }
     const btn=e.currentTarget; btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_filing')}</span>`;
     const ok=await attachPaperSignature(c, file, {
       signedOn:fval('ps-date')||null, note:fval('ps-note')||null });
@@ -4836,7 +4836,7 @@ async function finalizeExecution(c, opts={}){
   const u=opts.by||currentUser();
   const at=(opts.meta&&opts.meta.at)||nowISO();
   const ip=(opts.meta&&opts.meta.ip)||null;
-  const btn=document.getElementById('sign-btn'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`; }
+  const btn=document.getElementById('sign-btn'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_sealing')}</span>`; }
   /* Stamp the document design the contract is wearing RIGHT NOW onto the
      record, before anything freezes. resolveDocBranding() treats a sealed
      contract's snapshot as final, so this is the moment its look stops
@@ -4997,7 +4997,7 @@ function distributionPanelHtml(c){
   if(!d){
     if(!canEdit()) return '';
     return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
-      <div class="text-[11px] font-600 text-ink mb-1">Distribute copies</div>
+      <div class="text-[11px] font-600 text-ink mb-1">${i18t('ct_distribute_copies')}</div>
       <div class="text-[10.5px] text-ink/60 mb-2">${ex.fully
         ? 'Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.'
         : `Held: only <b>${(ex.ourName||'one party').replace(/</g,'&lt;')}</b> has signed, so the copy is not going out. Both parties have to sign before the contract is shared. Sending now delivers a progress notice — who has signed, who has not — with no copy and no seal in it.`}</div>
@@ -5008,18 +5008,18 @@ function distributionPanelHtml(c){
   }
   const rows=(d.recipients||[]).map(r=>`<div class="py-1 text-[11px]">
     <div class="flex items-center gap-2">
-    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}${r.attached?` <span class="text-[8.5px] font-mono px-1 py-px rounded bg-brand-50 text-brand-600" title="The executed contract document was attached to this email">DOC ATTACHED</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
+    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}${r.attached?` <span class="text-[8.5px] font-mono px-1 py-px rounded bg-brand-50 text-brand-600" title="The executed contract document was attached to this email">${i18t('ct_doc_attached')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
     <span class="text-[9.5px] font-mono flex items-center gap-1 shrink-0" style="color:${dot(r.status)}"><span style="width:6px;height:6px;border-radius:999px;background:${dot(r.status)}"></span>${stTxt(r.status)}</span>
     </div>
     ${r.detail?`<div class="text-[9.5px] mt-0.5" style="color:${dot(r.status)}">${String(r.detail).replace(/</g,'&lt;')}</div>`:''}
   </div>`).join('');
   return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
-    <div class="flex items-center gap-2 mb-1"><span class="text-[11px] font-600 text-ink">Copies sent</span>
+    <div class="flex items-center gap-2 mb-1"><span class="text-[11px] font-600 text-ink">${i18t('ct_copies_sent')}</span>
       <span class="text-[9px] font-mono text-ink/45 ml-auto">${d.at?fmtDT(d.at):''}</span></div>
-    ${rows||'<div class="text-[10.5px] text-ink/50">No recipients found.</div>'}
+    ${rows||`<div class="text-[10.5px] text-ink/50">${i18t('ct_no_recipients')}</div>`}
     ${d.error?`<div class="text-[10px] text-rose-600 mt-1">${String(d.error).replace(/</g,'&lt;')}</div>`:''}
     ${canEdit()?`<button id="dist-send" class="mt-2 w-full flex items-center justify-center gap-1.5 rounded-lg border border-line text-brand-700 py-1.5 text-[11px] font-600 hover:bg-brand-50">${icon('share','w-3 h-3')} Send again</button>`:''}
-    ${!API_MODE()?`<div class="text-[9.5px] text-ink/45 mt-1.5">Static mode: run the HaTi server to send email automatically.</div>`:''}
+    ${!API_MODE()?`<div class="text-[9.5px] text-ink/45 mt-1.5">${i18t('ct_static_mode_email')}</div>`:''}
   </div>`;
 }
 
