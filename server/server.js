@@ -10,6 +10,20 @@ const express = require('express');
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
 const { jxPack, JX_DEFAULT, JURISDICTIONS } = require('../js/jurisdiction.js');
+/* One dictionary, two hosts. The server writes email and needs the recipient's
+   own language from the SAME table the screens use — a second copy here would
+   drift from js/i18n.js without anything noticing, which is the fault the
+   jurisdiction module above was written to avoid. */
+const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
+/* Look a string up in a specific language rather than "the current" one: there
+   is no current language on a server writing to five recipients at once. */
+const tFor = (lang, key, vars) => {
+  const table = I18N_STRINGS[lang] || I18N_STRINGS[I18N_DEFAULT];
+  let s = table[key];
+  if (s == null) s = I18N_STRINGS[I18N_DEFAULT][key];
+  if (s == null) return key;
+  return vars ? String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] == null ? m : String(vars[k]))) : s;
+};
 const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org')) || {}).jurisdiction || JX_DEFAULT);
 const crypto = require('crypto');
 const path = require('path');
@@ -168,6 +182,12 @@ const getStore = k => { const r = db.prepare('SELECT json FROM store WHERE key=?
 const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
 const userPrefs = u => { try { return JSON.parse(u.prefs || '{}') || {}; } catch (_) { return {}; } };
 const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, title: u.title || '',
+  /* The language THIS PERSON reads the app in, and the one their email is
+     written in. Null until they choose: the browser then falls back to the
+     language that goes with the workspace's market, and an email falls back to
+     the default — see js/i18n.js for why this lives on the user and not the
+     org. */
+  lang: u.lang || null,
   createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u) });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
@@ -313,6 +333,7 @@ function addColumnIfMissing(table, col, decl) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
   if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
 }
+addColumnIfMissing('users', 'lang', 'TEXT');   // per-person UI + email language (js/i18n.js)
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -1931,6 +1952,23 @@ app.put('/api/org/jurisdiction', auth, admin, (req, res) => {
   const org = getSetting('org') || {};
   setSetting('org', { ...org, jurisdiction: id });
   res.json({ ok: true, jurisdiction: id });
+});
+
+/* WHICH LANGUAGE THIS PERSON READS, stored per user rather than per workspace.
+   Note the middleware: `auth` and not `admin`, and it writes req.user.id and
+   never an id from the body — changing your own language is every member's
+   business, and changing somebody else's is nobody's. The market above is the
+   opposite (admin-only, one answer for the whole workspace) because it decides
+   what the contracts SAY; this only decides what the reader sees.
+
+   The server needs it at all because it writes email — a signature request or
+   a reminder goes out while nobody is looking at a browser, so the recipient's
+   language has to be a stored fact rather than a page state. */
+app.put('/api/me/lang', auth, (req, res) => {
+  const lang = String((req.body || {}).lang || '').trim();
+  if (!I18N_STRINGS[lang]) return res.status(400).json({ error: 'Unknown language' });
+  db.prepare('UPDATE users SET lang=? WHERE id=?').run(lang, req.user.id);
+  res.json({ ok: true, lang });
 });
 
 app.put('/api/settings', auth, admin, (req, res) => {

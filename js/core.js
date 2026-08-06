@@ -1134,6 +1134,12 @@ function startApp(){
     renderMustChangePassword(); return;
   }
   FIRST_PARTY = getOrg().name;
+  /* BEFORE THE FIRST RENDER, not after: this is the moment the signed-in user
+     is known, and langId() reads through them. Painting the shell first and
+     translating afterwards would show every returning Swedish user a flash of
+     English. repaint:false because nothing has been drawn yet — there is no
+     screen to redraw and setView is about to run anyway. */
+  window.applyLanguage && applyLanguage({repaint:false});
   document.getElementById('auth-root').innerHTML='';
   const shell=document.getElementById('app-shell');
   shell.classList.remove('hidden');   // renderAuth hides the shell; .hidden is !important so the class must go

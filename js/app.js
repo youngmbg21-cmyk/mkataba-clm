@@ -1,5 +1,6 @@
 // HaTi — entry module (E0): imports every module in original
 // execution order, then nav + shell wiring + boot.
+import './i18n.js';        // what language this PERSON reads the app in — theirs, not the company's
 import './components.js';
 import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
@@ -1060,7 +1061,47 @@ function wireShell(){
      record) must not have it silently reverted by whatever this browser last
      had in localStorage. */
   setRegion(regionCodeFor(window.jxId?jxId():'kenya'),{silent:true});
+  wireLanguagePicker();
 }
+
+/* ---------- THE LANGUAGE PICKER ----------
+   Options come from js/i18n.js rather than the markup, so adding a language is
+   one entry in that file and this control grows by itself. Each option is
+   written IN its own language: a picker offering "Swedish" to a Swedish speaker
+   is offering it in English. */
+function wireLanguagePicker(){
+  const sel=document.getElementById('lang-select');
+  if(!sel||typeof langList!=='function') return;
+  sel.innerHTML=langList().map(l=>
+    `<option value="${l.id}"${l.id===langId()?' selected':''}>${l.name}</option>`).join('');
+  sel.addEventListener('change',e=>{
+    langSet(e.target.value);
+    closeNavDrawer();   // below 900 this control lives inside the drawer
+  });
+  applyLanguage({repaint:false});   // paint the static shell before the first render
+}
+
+/* WHAT REDRAWS WHEN THE LANGUAGE CHANGES. js/i18n.js rewrites the static markup
+   itself and then calls this for everything the app DRAWS — which is most of
+   it. Kept here rather than in i18n.js because it is the router's business
+   which screen is open, and i18n.js has no opinion about screens.
+
+   i18n.js does not call this while something is being edited; see
+   langEditingNow() there for why a language switch must never cost unsaved
+   work. */
+if(typeof window!=='undefined') window.onLanguageChange=function(){
+  try{
+    const sel=document.getElementById('lang-select');
+    if(sel && sel.value!==langId()) sel.value=langId();
+    updateSidebarCounts();
+    renderPageHeader&&renderPageHeader();
+    /* Re-entering the SAME view, which setView already treats as a repaint and
+       not a navigation — it puts the scroll position back afterwards, so the
+       reader stays exactly where they were rather than being thrown to the top
+       of the page for changing a setting. */
+    setView(state.view);
+  }catch(e){}
+};
 
 // default panel state — closed on load/refresh; the user opens it with the
 // panel toggle (never auto-summoned by a page load)

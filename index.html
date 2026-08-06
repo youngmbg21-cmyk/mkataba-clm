@@ -1956,6 +1956,21 @@
         <button id="region-se" class="region-btn" title="Swedish workspace — EU/GDPR compliance profile"><span class="region-flag" aria-hidden="true"><svg viewBox="0 0 16 11" width="16" height="11"><rect width="16" height="11" rx="1.5" fill="#005293"/><rect x="4.5" width="2.6" height="11" fill="#fecb00"/><rect y="4.2" width="16" height="2.6" fill="#fecb00"/></svg></span><span class="region-abbr">SE</span> Sweden (EU/GDPR)</button>
         <button id="region-ke" class="region-btn" title="Kenyan workspace — KICA/ODPC compliance profile"><span class="region-flag" aria-hidden="true"><svg viewBox="0 0 16 11" width="16" height="11"><rect width="16" height="11" rx="1.5" fill="#fff"/><rect width="16" height="3.2" fill="#000"/><rect y="3.9" width="16" height="3.2" fill="#bb0000"/><rect y="7.8" width="16" height="3.2" fill="#006600"/><ellipse cx="8" cy="5.5" rx="1.5" ry="3.4" fill="#bb0000" stroke="#fff" stroke-width=".7"/></svg></span><span class="region-abbr">KE</span> Kenya (KICA/ODPC)</button>
       </div>
+
+      <!-- WHICH LANGUAGE YOU READ THE APP IN. Deliberately its own control
+           beside the jurisdiction switch and not part of it: the market is the
+           COMPANY's (one answer for everyone, it decides what the contracts
+           say) and the language is the PERSON's. A Swedish company's legal team
+           may work in English; an international firm in Kenya wants English
+           throughout while a colleague in Stockholm wants Swedish.
+
+           A SELECT, NOT A TWO-WAY TOGGLE. Norwegian, Danish and Finnish are the
+           obvious next ones, and the difference now is a list instead of a
+           switch — options are filled from js/i18n.js in wireShell. -->
+      <label id="lang-switch" style="display:flex;align-items:center;gap:6px;flex:none;">
+        <span data-i18n="lang_label" style="font-size:11px;color:var(--color-neutral-500);font-weight:500;">Language</span>
+        <select id="lang-select" style="border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:10px;padding:4px 8px;font:inherit;font-size:11.5px;color:inherit;outline:none;cursor:pointer;"></select>
+      </label>
     </div>
 
     <!-- central global search (filters the register; ⌘K opens the jump palette) -->
@@ -2059,44 +2074,44 @@
            choice. -->
       <div class="nav-section open" data-section="work">
         <div class="nav-section-body">
-          <button data-view="dashboard" class="nav-item active" title="Home">
+          <button data-view="dashboard" class="nav-item active" title="Home" data-i18n-title="nav_home_title">
             <span class="nav-rail"></span>
             <!-- pie chart (the design's fa-chart-pie), drawn solid so it reads
                  at 15px the way the flat glyph does -->
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
-            <span style="flex:1;">Home</span>
+            <span style="flex:1;" data-i18n="nav_home">Home</span>
           </button>
-          <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing">
+          <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
-            <span style="flex:1;">Contracts</span><span class="nav-count" data-count="register"></span>
+            <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><span class="nav-count" data-count="register"></span>
           </button>
-          <button data-view="calendar" class="nav-item" title="Calendar">
+          <button data-view="calendar" class="nav-item" title="Calendar" data-i18n-title="nav_calendar_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
-            <span style="flex:1;">Calendar</span><span class="nav-count" data-count="calendar"></span>
+            <span style="flex:1;" data-i18n="nav_calendar">Calendar</span><span class="nav-count" data-count="calendar"></span>
           </button>
-          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving">
+          <button data-view="intel" class="nav-item" title="Insights — how your portfolio is behaving" data-i18n-title="nav_insights_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
-            <span style="flex:1;">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
+            <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
               title="Newly unlocked — your portfolio is big enough for Insights to say something">New</span>
           </button>
           <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
-            <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
+            <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
           </button>
         </div>
       </div>
 
       <div class="nav-section" data-section="settings">
-        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false">Administration<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false"><span data-i18n="nav_administration">Administration</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
           <button data-view="team" class="nav-item" title="Team">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
-            <span style="flex:1;">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
+            <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
           </button>
           <!-- Our standards — the clause library and the negotiation playbook
                every review is checked against. Governance, not drafting, so it
@@ -2105,7 +2120,7 @@
           <button data-view="playbook" class="nav-item" title="Our standards — the clause library and negotiation playbook every review checks against">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-            <span style="flex:1;">Our standards</span>
+            <span style="flex:1;" data-i18n="nav_our_standards">Our standards</span>
           </button>
           <!-- Advice Desk is the one operational desk left in the fold: the
                Queue and Reports doors were retired as premature for this
