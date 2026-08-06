@@ -2390,11 +2390,18 @@ function ktReadValue(c,key){
   if(key==='expiry') return day(c.expiry);
   return '';
 }
+/* "Nothing here yet" vs "nothing to put here". Both render through .kt-none —
+   an unfilled date says "Not set", a contract with no money on it says
+   "Non-monetary" — and only the first is an invitation. The dashed prompt goes
+   on the first alone, so a non-monetary contract is not nagged to price
+   itself. */
+const ktIsEmptyRead = html => /class="kt-none">Not set</.test(String(html));
 function ktRowHtml(key,label,readHtml,fieldHtml,editable){
   if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
+  const empty=ktIsEmptyRead(readHtml)?' data-kt-empty="1"':'';
   return `<div class="kt-row is-editable" data-kt-row="${key}">
     <span class="kt-k">${label}</span>
-    <button type="button" class="kt-v kt-read" data-kt-edit="${key}" title="Click to change">${readHtml}</button>
+    <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${ktIsEmptyRead(readHtml)?'Empty — click to fill this in':'Click to change'}">${readHtml}</button>
     <span class="kt-field hidden">${fieldHtml}</span></div>`;
 }
 function ktTermsRowsHtml(c,opts={}){
@@ -3137,10 +3144,26 @@ function checksNoteHtml(c){
    used to, so the existing renderer fills it without knowing it moved — which
    is also why the column no longer carries one: two elements with one id is
    how a "why did nothing happen" bug starts. */
+/* Findings open at the RIGHT EDGE, not in the middle, and without a scrim.
+   Every finding in here offers "Go to the wording", which scrolls the document
+   and flashes the clause — behind a centred, scrimmed modal that was a jump you
+   could not watch. See openSidePanel in js/core.js. */
 function openCheckPanel(c,kind){
   const id=kind==='playbook'?'playbook-section':'scan-section';
-  openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
+  const title=kind==='playbook'?'Playbook review':'Risk scan';
+  if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,label:'Checks'});
+  else openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
   if(kind==='playbook') renderPlaybookSection(c); else renderScanSection(c);
+  /* Both section renderers empty their host when there is nothing to show, and
+     a full-height column of nothing is a worse answer than a sentence. The
+     Checks card only opens this once something HAS run, so this is a backstop
+     rather than a normal path — but a panel that can open blank will. */
+  const host=document.getElementById(id);
+  if(host && !host.innerHTML.trim()){
+    host.innerHTML=`<p style="margin:0;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
+      Nothing has been ${kind==='playbook'?'reviewed against the playbook':'scanned'} on this contract yet.
+      Close this and press <b>${kind==='playbook'?'Playbook review':'Copilot risk scan'}</b> in the Checks card to run it.</p>`;
+  }
 }
 function wireChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
@@ -3666,6 +3689,22 @@ function wireRoomHead(c){
     if(r.view==='folder'&&r.folderId&&window.FOLDERS&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
     else setView(r.view&&r.view!=='workspace'?r.view:'register');
   });
+  /* ---- DELETE BELONGS TO THE HEAD, NOT TO ONE OF THE TABS THAT WEARS IT ----
+     roomHeadHtml draws this menu for BOTH the Document tab and the Negotiate
+     workbench, but each tab used to wire the menu's buttons for itself, and
+     the workbench's list — ws-share, ws-import, ws-compare, ws-pdf, ws-word,
+     ws-tpl, ws-focus, ws-collapse — simply did not include ws-delete. So on
+     Negotiate the item rendered, opened nothing, said nothing and did nothing.
+     A dead button is worse than a missing one: it reads as a refusal, and a
+     refusal with no reason is something you try again.
+
+     It is wired HERE, in the one function both views call, so it cannot come
+     apart again. deleteContract already explains every refusal it makes — a
+     viewer's role, a status past review, or the server's own answer for an
+     executed agreement — and none of those messages could be reached from
+     this tab before, because the click never arrived. */
+  document.getElementById('ws-delete')?.addEventListener('click',()=>
+    deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
 }
 
 function renderWorkspace(){
@@ -4012,7 +4051,8 @@ function renderWorkspace(){
 
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
   // WP-2.1 — read-only by nature, so no canEdit gate: a viewer reads the story too.
-  document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
+  // ws-delete is wired in wireRoomHead — the one function BOTH the Document tab
+  // and the Negotiate workbench call. A second listener here would fire twice.
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   // No ws-edit wiring: the button is gone, and leaving the listener behind is
@@ -4090,7 +4130,13 @@ function wireDocumentSync(c){
       syncKeyTermsUI(c, inp);
       /* The read-out beside the field has to agree with what was just typed. */
       const _row=inp.closest('[data-kt-row]');
-      if(_row){ const rd=_row.querySelector('.kt-read'); if(rd) rd.innerHTML=ktReadValue(c,_row.getAttribute('data-kt-row')); }
+      /* The prompt has to clear the moment the row stops being empty, or a
+         filled value keeps wearing the dashed "fill me in" box for ever. */
+      if(_row){ const rd=_row.querySelector('.kt-read');
+        if(rd){ const html=ktReadValue(c,_row.getAttribute('data-kt-row'));
+          rd.innerHTML=html;
+          if(ktIsEmptyRead(html)){ rd.setAttribute('data-kt-empty','1'); rd.title='Empty — click to fill this in'; }
+          else { rd.removeAttribute('data-kt-empty'); rd.title='Click to change'; } } }
       keyTermsProgress(c);
       c.lastAction=todayStr();
       logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
@@ -4473,6 +4519,29 @@ async function signDocument(c){
   if(blockers.length){
     toast(`Not signed — ${blockers.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,'err');
     return;
+  }
+  /* ---- THE SAME BAR THE SHARE DIALOG ALREADY HOLDS THIS CONTRACT TO ----
+     contractReadiness has listed the blanks that make a contract unsafe to
+     send since it was written — no counterparty, no value on a contract type
+     that carries one, and placeholders still sitting in the wording — and
+     readinessBlocks has filtered them to the refusing kind. NOTHING EVER
+     CALLED IT. So Share showed you the list and Sign, the one act in this
+     product that cannot be taken back, asked for none of it: a contract that
+     did not come through the template form could be sealed with [COUNTERPARTY]
+     still in the text, and the seal makes that wording the record of the deal.
+
+     Through window, because readinessBlocks is a const in js/core.js and a
+     bare name here would never reach it.
+
+     The template-form check below is the same rule for contracts that DID come
+     through the form, and is left exactly as it was; this is every other way a
+     contract arrives — uploaded, imported, or drafted before the form existed. */
+  if(window.readinessBlocks){
+    const unfilled=readinessBlocks(c);
+    if(unfilled.length){
+      toast(`Not signed — ${unfilled.map(x=>x.label).join(' ')} Fill these in on Key terms, or in the document, before signing.`,'err');
+      return;
+    }
   }
   /* A template contract signs only when its form holds together: every
      required blank filled and every value valid per the shared registry. The
@@ -4866,7 +4935,7 @@ Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,
      scope, where a bare `wireKtRows` resolves whether it was exported or not.
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
-  wireKtRows,ktTermsRowsHtml,ktReadValue,renderKeyTerms,
+  wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
   /* And layoutDocResizer, for the same reason and with worse consequences: the
      line that re-measures the Document pane the moment its tab is shown is
      guarded on `window.layoutDocResizer`. Unexported, that guard was false, so

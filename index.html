@@ -846,10 +846,26 @@
   .kt-row:last-of-type{ border-bottom:0; }
   .kt-k{ color:var(--color-neutral-600); font-size:11.5px; flex:1; min-width:0; }
   .kt-v{ font-size:11.5px; font-weight:600; text-align:right; min-width:0; max-width:62%; }
-  .kt-row.is-editable .kt-read{ border:1px solid transparent; background:none; cursor:pointer;
-    font:inherit; font-size:11.5px; font-weight:600; color:inherit; padding:3px 7px;
-    margin:-3px -7px; border-radius:5px; text-align:right; }
-  .kt-row.is-editable:hover .kt-read{ border-color:var(--color-divider); background:var(--color-bg); }
+  /* ---- AN ENTRY FIELD HAS TO LOOK LIKE ONE WHEN NOBODY IS POINTING AT IT ----
+     These values are buttons that open an input, and they were drawn with a
+     TRANSPARENT border and no background — the box only appeared on hover. So
+     at rest "Not set" was grey text on white with nothing round it, sitting in
+     a column of other grey text, and the three empty rows read as a blank gap
+     in a table rather than as three things waiting to be filled in. Nobody
+     hovers over what they have already decided is a label.
+     The box is now there at rest. Filled rows get a quiet one; EMPTY rows get
+     a dashed accent one, because those are the ones with something to do. */
+  .kt-row.is-editable .kt-read{ border:1px solid var(--color-divider); background:var(--color-bg);
+    cursor:pointer; font:inherit; font-size:11.5px; font-weight:600; color:inherit;
+    padding:3px 7px; margin:-3px -7px; border-radius:5px; text-align:right;
+    transition:border-color .12s, background .12s; }
+  .kt-row.is-editable .kt-read[data-kt-empty]{ border-style:dashed;
+    border-color:color-mix(in srgb,var(--color-accent) 55%,var(--color-divider));
+    background:color-mix(in srgb,var(--color-accent) 5%,var(--color-bg)); }
+  .kt-row.is-editable .kt-read[data-kt-empty] .kt-none{ color:var(--accent-ink); font-weight:500; }
+  .kt-row.is-editable:hover .kt-read,
+  .kt-row.is-editable .kt-read:hover{ border-style:solid; border-color:var(--color-accent);
+    background:var(--color-surface); }
   .kt-row.is-editable .kt-read:focus-visible{ outline:2px solid var(--color-accent); outline-offset:1px; }
   .kt-row .kt-field{ flex:none; min-width:0; max-width:66%; width:100%; }
   .kt-row.is-open{ background:var(--color-bg); }
@@ -1485,6 +1501,11 @@
   #party-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
   #party-scrim.open{opacity:1;pointer-events:auto;}
   .modal-in{animation:viewIn .2s cubic-bezier(.22,.61,.36,1);}
+  /* The right-docked panel arrives FROM the right, so the movement says where
+     it came from and that the page underneath was never replaced. */
+  .side-panel-in{animation:sidePanelIn .22s cubic-bezier(.22,.61,.36,1);}
+  @keyframes sidePanelIn{from{opacity:0;transform:translateX(18px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .side-panel-in{animation:none;} }
 
   .seal-in{animation:sealIn .5s cubic-bezier(.34,1.56,.64,1);}
   @keyframes sealIn{from{opacity:0;transform:scale(.9) rotate(-3deg);}to{opacity:1;transform:none;}}

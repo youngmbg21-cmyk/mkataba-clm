@@ -1335,6 +1335,43 @@ function openModal(html, opts={}){
 }
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 
+/* ---- A PANEL THAT DOES NOT STAND IN FRONT OF WHAT IT IS TALKING ABOUT ----
+
+   openModal centres its panel and lays a 50% scrim over the page. That is
+   right for a dialog you answer and dismiss. It is wrong for FINDINGS: every
+   one of them offers "Go to the wording", which scrolls the document behind
+   and flashes the clause it means. Centred, the panel sat on top of that
+   clause; scrimmed, the whole document was dimmed to half. You pressed the
+   button, the page did exactly what it promised, and you could see none of it.
+
+   So this one docks to the right edge, takes the full height, and lays NO
+   scrim: the page behind stays bright, scrollable and clickable while it is
+   open, which is the entire point. It closes on its own × or on Escape —
+   there is no scrim left to click, so it must offer both. Shares #modal-root
+   with openModal, so the two can never be open at once. */
+function openSidePanel(html, opts={}){
+  const root=document.getElementById('modal-root');
+  const w=opts.width||'400px';
+  root.innerHTML=`
+  <aside id="side-panel" class="side-panel-in scroll-thin" role="dialog" aria-label="${String(opts.label||opts.title||'Panel').replace(/"/g,'')}"
+    style="position:fixed;top:0;right:0;bottom:0;width:100%;max-width:${w};z-index:70;display:flex;flex-direction:column;background:var(--color-surface);border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg);">
+    <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--color-divider);">
+      <span style="font-family:var(--font-heading);font-weight:700;font-size:12.5px;color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${String(opts.title||'')}</span>
+      <button id="side-panel-x" title="Close (Esc)" aria-label="Close"
+        style="margin-left:auto;flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600);cursor:pointer;display:grid;place-items:center;padding:0;font:inherit;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:10px 12px 18px;">${html}</div>
+  </aside>`;
+  document.getElementById('side-panel-x').addEventListener('click',closeModal);
+  document.addEventListener('keydown',function esc(e){
+    if(e.key!=='Escape'){ if(!document.getElementById('side-panel')) document.removeEventListener('keydown',esc); return; }
+    document.removeEventListener('keydown',esc); closeModal();
+  });
+  return root;
+}
+
 /* Styled confirm — a branded replacement for the native window.confirm().
    Returns a Promise<boolean>. Self-contained overlay (appended to <body>) so it
    never clobbers an open modal in #modal-root. Usage:
@@ -3971,4 +4008,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
