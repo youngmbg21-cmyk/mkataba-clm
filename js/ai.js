@@ -251,6 +251,11 @@ function runScanAct(c){
     logAudit(c,'Scanned',`Copilot contract scan run — ${n} open finding${n===1?'':'s'}`);
     persist(c);
     renderScanSection(c); renderSignButton(c); renderAuditSection(c);
+    /* The Checks row takes the verdict, and the findings open over the page.
+       Both are the Document tab's; guarded so a scan run from anywhere else
+       still completes normally. */
+    if(window.renderChecksCard) renderChecksCard(c);
+    if(window.openCheckPanel && document.getElementById('checks-card')) openCheckPanel(c,'risk');
     toast(n?`Scan complete — ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete — no issues found');
   }, 1100);
 }

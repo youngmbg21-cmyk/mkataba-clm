@@ -2326,6 +2326,7 @@ function applyWsTabs(c){
     return;
   }
   if(_wsTab==='history') roomPaintHistory(c);
+  if(_wsTab==='terms') renderKeyTermsSide(c);
 }
 /* The one router BOTH shells press. From the Docs page a tab is a pane swap;
    from the workbench every tab but Negotiate is a journey back to this view,
@@ -2349,20 +2350,222 @@ function wireWsTabs(c){
     roomGoTab(c,b.getAttribute('data-ws-tab'))));
   applyWsTabs(c);
 }
-/* ---- HISTORY, IN THE ROOM RATHER THAN IN A DIALOG ----
-   The same screen the History button always opened — negoTimelineScreenHtml
-   builds it, filters, integrity check and export included. It is painted into
-   the tab instead of into a modal, and re-painted on every filter change so
-   the filter state has exactly one home. */
+/* ============ KEY TERMS ============
+   WHAT THE CONTRACT SAYS, AND WHAT IT COMMITS YOU TO.
+
+   The mockup put three more rows on this panel — governing law, liability cap,
+   payment terms — by typing them in. HaTi does not store them; they live in the
+   wording. So they are shown when, and only when, the playbook review has
+   actually READ them out of the document, each with the quote it read. Where it
+   has not been run the panel says which rows are missing and offers to go and
+   get them, which is more useful than a blank row and more honest than a
+   plausible one. */
+function termsFromPlaybook(c){
+  const r=c&&c.playbook;
+  if(!r||!Array.isArray(r.verdicts)) return [];
+  return r.verdicts.filter(v=>v&&v.quote&&String(v.quote).trim())
+    .map(v=>({ label:String(v.category||'Term'), quote:String(v.quote).trim(), status:v.status||'' }));
+}
+function readTermsHtml(c){
+  const rows=termsFromPlaybook(c);
+  const H='font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)';
+  if(!rows.length) return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
+      <div style="${H};margin-bottom:5px">Read from the document</div>
+      <p style="margin:0 0 8px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review reads them out and quotes the clause it found them in.</p>
+      ${(canEdit()&&c.status!=='Signed')?`<button id="kt-readdoc" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('shield','w-3.5 h-3.5')} Run the playbook review</button>`:''}
+    </div>`;
+  return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
+      <div style="${H};margin-bottom:6px">Read from the document</div>
+      ${rows.map(r=>`<div class="kt-read" title="${esc(r.quote)}">
+        <span class="kt-read-k">${esc(r.label)}</span>
+        <span class="kt-read-v">&ldquo;${esc(r.quote.slice(0,120))}${r.quote.length>120?'&hellip;':''}&rdquo;</span></div>`).join('')}
+      <p style="margin:7px 0 0;font-size:10.5px;color:var(--color-neutral-500)">Quoted from the clause the playbook review found each one in.</p>
+    </div>`;
+}
+/* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
+   The mockup's risk score was invented. This one is arithmetic on findings
+   that already exist: the playbook's verdicts, and the scan's open findings by
+   severity. Run neither and it says so rather than showing a zero that would
+   read as "no risk". */
+function riskRead(c){
+  const pb=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:null;
+  const open=(typeof openFindings==='function')?openFindings(c):[];
+  if(!pb&&!c.scan) return null;
+  const bars=[];
+  if(pb) pb.slice(0,5).forEach(v=>bars.push({ label:String(v.category||'Term'),
+    n:v.status==='aligned'?8:v.status==='deviation'?55:v.escalate?90:75 }));
+  /* ---- THE SCALE, AND WHY IT IS NOT AN AVERAGE OF THE BARS ----
+     Averaging saturated instantly: one scan bar drawn from six ordinary
+     findings scored the whole contract 100 — maximum risk on a routine supply
+     agreement, which is the sort of number that gets a scoring system ignored.
+     The score is a WEIGHTED COUNT of what was actually found, on a scale where
+     60 (the Legal sign-off line) takes something real to reach: three high
+     findings, or two missing standards, or a spread of smaller ones. */
+  let scan=0;
+  if(c.scan){
+    const w={high:20,med:9,low:3};
+    scan=Math.min(100,open.reduce((a,x)=>a+(w[x.sev]||3),0));
+    bars.push({ label:'Open scan findings', n:scan });
+  }
+  let book=0;
+  if(pb) book=Math.min(100,pb.reduce((a,v)=>a+(v.status==='aligned'?0:v.status==='deviation'?12:18)+(v.escalate&&v.status!=='aligned'?10:0),0));
+  const score=Math.min(100,Math.round(scan*0.6+book*0.6));
+  return { score, bars, ranPb:!!pb, ranScan:!!c.scan };
+}
+function riskCardHtml(c){
+  const H='margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)';
+  const r=riskRead(c);
+  if(!r) return `<h6 style="${H};margin-bottom:7px">Risk</h6>
+    <p style="margin:0 0 9px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Nothing has been checked yet, so there is nothing to score. The reading below comes from the playbook review and the Copilot scan — run either on the <b>Document</b> tab.</p>
+    <button id="kt-gocheck" class="ui-btn" style="font-size:11.5px;padding:5px 11px">Go to the checks &rarr;</button>`;
+  const tone=r.score>=60?'var(--st-ruby-fg)':r.score>=35?'var(--st-amber-fg)':'var(--st-green-fg)';
+  const bg=r.score>=60?'var(--st-ruby-bg)':r.score>=35?'var(--st-amber-bg)':'var(--st-green-bg)';
+  return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+      <h6 style="${H};flex:1">Risk</h6>
+      <span class="pill-x" style="background:${bg};color:${tone};font-family:var(--font-mono)">${r.score}</span>
+    </div>
+    ${r.bars.map(b=>`<div class="risk-row"><span class="risk-k">${esc(b.label)}</span>
+      <span class="risk-bar"><i style="width:${b.n}%;background:${b.n>=60?'var(--st-ruby-dot)':b.n>=35?'var(--st-amber-dot)':'var(--st-green-dot)'}"></i></span>
+      <span class="risk-n">${b.n}</span></div>`).join('')}
+    <p style="margin:8px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">Scored from ${[r.ranPb?'the playbook review':'',r.ranScan?'the Copilot scan':''].filter(Boolean).join(' and ')}. Anything above 60 needs Legal sign-off before signing.</p>`;
+}
+function renderKeyTermsSide(c){
+  const host=document.getElementById('kt-side'); if(!host) return;
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
+  host.innerHTML=`<section id="obligations-section" style="${CARD}"></section>
+    <section style="${CARD}">${riskCardHtml(c)}</section>`;
+  if(window.renderObligationsSection) renderObligationsSection(c);
+  host.querySelector('#kt-gocheck')?.addEventListener('click',()=>roomGoTab(c,'docs'));
+  const read=document.getElementById('kt-readdoc');
+  if(read) read.addEventListener('click',()=>roomGoTab(c,'docs'));
+}
+
+/* ============ HISTORY ============
+   ONE STORY, TOLD ONCE, AS A TIMELINE.
+
+   This tab used to open on five filter dropdowns and three buttons, then a flat
+   list of negotiation events, then a SECOND card underneath holding the audit
+   trail — which is the same story told by the system instead of by people. Two
+   lists answering "what happened to this contract" is one list too many.
+
+   The two are merged, oldest first, on one rail. The filters, the integrity
+   check and the export are all kept — they are the reason this record is worth
+   anything to an auditor — but they belong on the card's head, not in front of
+   the story. Versions sit beside it, because "what changed between these two
+   dates" is asked in the same breath as "what happened", and until now the only
+   way to compare two versions was a menu on another tab. */
+const HIST_KIND={ proposed:{mark:'✎',tone:'var(--color-accent)'}, decided:{mark:'✓',tone:'var(--st-green-dot)'},
+  withdrawn:{mark:'↩',tone:'var(--color-neutral-400)'}, 'round-closed':{mark:'⊘',tone:'var(--st-steel-dot)'},
+  system:{mark:'·',tone:'var(--color-neutral-400)'} };
+/* ---- THE AUDIT TRAIL CONTRIBUTES WHAT THE TIMELINE CANNOT TELL ----
+   Merging the two lists naively doubles the page up, and it took putting them
+   on one rail to see how badly: the trail writes its OWN entry for every
+   proposal the negotiation already reports — same change, same clause, in
+   machine language with the fingerprint spelled out — so a three-change round
+   printed six events, half of them unreadable.
+
+   The negotiation's own account is the better one: it names the clause, the
+   person and the outcome. So the trail is asked only for what that account has
+   no way to know — the contract being created, sent, scanned, reviewed,
+   renamed, signed. Nothing is deleted; the fingerprints it was reciting are
+   still on the record and still what Verify integrity recomputes. */
+const HIST_AUDIT_SKIP=/^negotiation$/i;
+function roomHistoryEvents(c,f={}){
+  const filtered=Object.values(f||{}).some(v=>v);
+  const nego=(window.negoTimeline?negoTimeline(c,f):[]).map(e=>({...e,_k:e.kind||'proposed'}));
+  /* System events carry no clause, side or round, so no filter can match one.
+     They drop out the moment a filter is on rather than sitting there looking
+     as though the filter had missed them. */
+  if(filtered) return nego.sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+  const said=new Set(nego.map(e=>String(e.at||'').slice(0,10)+'|'+String(e.text||'').slice(0,60).toLowerCase()));
+  const sys=(c.audit||[])
+    .filter(a=>!HIST_AUDIT_SKIP.test(String(a.action||'')))
+    .filter(a=>!said.has(String(a.at||'').slice(0,10)+'|'+String(a.detail||'').slice(0,60).toLowerCase()))
+    .map(a=>({ _k:'system', at:a.at||'', actor:a.user||'System',
+      text:`${a.action||'Recorded'}${a.detail?' — '+a.detail:''}`, clauseLabel:'', round:null }));
+  return nego.concat(sys).sort((a,b)=>String(a.at||'').localeCompare(String(b.at||'')));
+}
+function roomHistoryHtml(c,f={}){
+  const evs=roomHistoryEvents(c,f);
+  const all=(window.negoTimeline?negoTimeline(c):[]).length+((c.audit||[]).length);
+  const on=Object.values(f||{}).filter(Boolean).length;
+  const row=e=>{
+    const m=HIST_KIND[e._k]||HIST_KIND.system;
+    const when=e.at?String(e.at).slice(0,10):'';
+    const meta=[when,e.actor||'',e.round!=null&&e.round!==''?`round ${e.round}`:'',e.clauseLabel||'']
+      .filter(Boolean).map(esc).join(' · ');
+    return `<div class="hist-ev"><span class="hist-mark" style="color:${m.tone};border-color:${m.tone}" aria-hidden="true">${m.mark}</span>
+      <div class="hist-body"><div class="hist-text">${esc(e.text||'')}</div>
+      <div class="hist-meta">${meta}</div></div></div>`;
+  };
+  return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
+      <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${evs.length} of ${all} events</span>
+      <button id="hist-filter" class="ui-btn" style="font-size:11px;padding:4px 10px">Filter${on?` · ${on}`:''} &#9662;</button>
+      <div style="position:relative">
+        <button id="hist-more" class="ui-btn" aria-haspopup="true" style="width:28px;height:28px;padding:0;font-size:14px;line-height:1">&#8943;</button>
+        <div id="hist-more-menu" class="room-menu hidden" style="min-width:230px">
+          <button type="button" id="ht-verify">Verify integrity<span class="mnote">recompute every fingerprint</span></button>
+          <button type="button" id="ht-export">Export history<span class="mnote">standalone report</span></button>
+        </div>
+      </div>
+    </div>
+    <div id="hist-filters" class="hidden" style="margin-bottom:10px">${roomHistoryFiltersHtml(c,f)}</div>
+    <div id="ht-verify-result"></div>
+    <div class="hist-rail">${evs.length?evs.map(row).join('')
+      :`<p style="margin:6px 0;font-size:12px;color:var(--color-neutral-600)">${on?'Nothing matches these filters.':'Nothing has happened to this contract yet.'}</p>`}</div>`;
+}
+function roomHistoryFiltersHtml(c,f){
+  const all=window.negoTimeline?negoTimeline(c):[];
+  const uniq=pairs=>Array.from(new Map(pairs.filter(x=>x&&String(x[0])).map(x=>[String(x[0]),x])).values());
+  const sel=(k,label,pairs)=>`<label class="hist-f"><span>${label}</span>
+    <select data-ht-filter="${k}">${'<option value="">All</option>'}${pairs.map(p=>
+      `<option value="${esc(String(p[0]))}"${String(f[k]||'')===String(p[0])?' selected':''}>${esc(String(p[1]).slice(0,42))}</option>`).join('')}</select></label>`;
+  return `<div class="hist-filters">
+    ${sel('clauseId','Clause',uniq(all.map(e=>[e.clauseId||'',e.clauseLabel||''])))}
+    ${sel('actor','Person',uniq(all.map(e=>[e.actor||'',e.actor||''])))}
+    ${sel('side','Side',[['owner','Owner side'],['counterparty','Counterparty']])}
+    ${sel('round','Round',uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,'Round '+e.round])))}
+    ${sel('outcome','Outcome',[['accepted','Accepted'],['rejected','Rejected'],['pending','Pending'],['withdrawn','Withdrawn']])}
+    <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">Clear</button>
+  </div>`;
+}
+function roomVersionsHtml(c){
+  const vs=(window.listedVersions?listedVersions(c):(c.versions||[])).slice().reverse();
+  return `<h6 style="margin:0 0 9px;font-size:13px;font-weight:700;font-family:var(--font-heading)">Versions</h6>
+    ${vs.length?vs.map((v,i)=>`<div class="check-row" style="border-top:${i?'1px solid var(--color-divider)':'0'}">
+      <span class="ci">${icon('file','w-3.5 h-3.5')}</span>
+      <span class="cn">v${v.n} ${i===0?'· current':''}<span style="display:block;font-weight:400;font-size:10.5px;color:var(--color-neutral-500)">${esc(String(v.label||'Saved'))} · ${window.fmtDT?fmtDT(v.at):esc(String(v.at||'').slice(0,10))}</span></span>
+      <button class="ui-btn" data-hist-compare="${v.n}" style="flex:none;font-size:11px;padding:4px 10px">Compare</button>
+    </div>`).join('')
+    :`<p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">No saved versions yet. One is taken whenever a round closes, and you can take one at any time from Compare.</p>`}`;
+}
 function roomPaintHistory(c,f={}){
   const host=document.getElementById('ws-history-pane');
-  if(!host||!window.negoTimelineScreenHtml) return;
-  host.innerHTML=negoTimelineScreenHtml(c,f);
-  const read=()=>{ const g=k=>{ const el=document.getElementById('ht-f-'+k); return el&&el.value?el.value:''; };
+  if(!host) return;
+  host.innerHTML=roomHistoryHtml(c,f);
+  const vhost=document.getElementById('ws-versions-pane');
+  if(vhost){
+    vhost.innerHTML=roomVersionsHtml(c);
+    vhost.querySelectorAll('[data-hist-compare]').forEach(b=>b.addEventListener('click',()=>{
+      if(window.openCompareModal) openCompareModal(c);
+      else toast('Compare is unavailable on this page','err');
+    }));
+  }
+  const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     return {clauseId:g('clauseId'),actor:g('actor'),side:g('side'),round:g('round'),outcome:g('outcome')}; };
+  const panel=host.querySelector('#hist-filters');
+  host.querySelector('#hist-filter')?.addEventListener('click',()=>panel?.classList.toggle('hidden'));
+  if(Object.values(f).some(Boolean)) panel?.classList.remove('hidden');
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
     s.addEventListener('change',()=>roomPaintHistory(c,read())));
   host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{}));
+  const mb=host.querySelector('#hist-more'), mm=host.querySelector('#hist-more-menu');
+  if(mb&&mm){
+    mb.addEventListener('click',e=>{ e.stopPropagation(); mm.classList.toggle('hidden'); });
+    mm.addEventListener('click',()=>setTimeout(()=>mm.classList.add('hidden'),0));
+    document.addEventListener('click',ev=>{ if(!mm.contains(ev.target)&&ev.target!==mb) mm.classList.add('hidden'); });
+  }
   host.querySelector('#ht-verify')?.addEventListener('click',async()=>{
     const box=host.querySelector('#ht-verify-result');
     if(!box||!window.negoIntegrityReport) return;
@@ -2639,44 +2842,110 @@ function wireDocTabs(c){
   document.getElementById('screening-next')?.addEventListener('click',()=>roomGoTab(c,'sign'));
   applyDocTabs();
 }
-/* ---- THE CHECKS ROWS PRESS EXISTING ACTS, NOT NEW ONES ----
-   Each row is a shortcut to work the app already does, reached through the
-   same function the old card's own button called. Nothing here reimplements a
-   check; if one of them ever behaves differently from the card below it, this
-   is not the file to look in.
+/* ============ CHECKS ============
+   THE ROW IS THE ANSWER, NOT JUST THE INVITATION.
 
-   Findings and verdicts land in the cards under this one, which draw
-   themselves only once there is something to draw. */
+   This card and the results cards under it were the same idea drawn twice: a
+   row saying "Run →" that never changed, and — permanently, once run — a full
+   card repeating everything the row could have said in three words. A column a
+   third of the screen wide cannot afford to say anything twice.
+
+   So the row carries the verdict once the check has run ("2 to escalate",
+   "All clear", "4 found"), and pressing it again opens the findings OVER the
+   page, where they are read, acted on, and dismissed. The findings themselves
+   are unchanged: the same builders draw them, into a panel instead of into the
+   column, so a finding still pins to its clause and still files a redline.
+
+   Nothing here reimplements a check. Each row presses the act the product
+   already has — runScanAct, runPlaybookReview, runFindObligations — so a row
+   and its panel can never come to disagree about what was found. */
+function checkVerdict(c,kind){
+  if(kind==='playbook'){
+    const r=c.playbook;
+    if(!r) return null;
+    const s=(typeof deviationSummary==='function')?deviationSummary(c):{dev:0,miss:0};
+    const bad=(s.dev||0)+(s.miss||0);
+    return bad ? {tone:'bad',label:`${bad} to look at`} : {tone:'ok',label:'All aligned'};
+  }
+  if(kind==='risk'){
+    if(!c.scan) return null;
+    const open=(typeof openFindings==='function')?openFindings(c):[];
+    if(!open.length) return {tone:'ok',label:'All clear'};
+    const high=open.filter(x=>x.sev==='high').length;
+    return {tone:high?'bad':'warn',label:high?`${high} high · ${open.length} open`:`${open.length} open`};
+  }
+  const n=((c.obligations)||[]).length;
+  return n ? {tone:'ok',label:`${n} tracked`} : null;
+}
+function checksRowsHtml(c){
+  const row=(kind,ic,name)=>{
+    const v=checkVerdict(c,kind);
+    const tone=v&&v.tone==='bad'?'background:var(--st-ruby-bg);color:var(--st-ruby-fg)'
+      :v&&v.tone==='warn'?'background:var(--st-amber-bg);color:var(--st-amber-fg)'
+      :'background:var(--st-green-bg);color:var(--st-green-fg)';
+    return `<div class="check-row"><span class="ci">${icon(ic,'w-3.5 h-3.5')}</span><span class="cn">${name}</span>
+      <button class="cg" data-check="${kind}" title="${v?'See what it found':'Run this check'}">${
+        v?`<span class="pill-x" style="${tone}">${v.label}</span>`:'Run &rarr;'}</button></div>`;
+  };
+  return row('playbook','shield','Playbook review')
+    + row('risk','scan','Copilot risk scan')
+    + row('oblig','calendar','Find obligations');
+}
+function renderChecksCard(c){
+  const card=document.getElementById('checks-card'); if(!card) return;
+  const rows=card.querySelector('[data-checks-rows]'); if(!rows) return;
+  rows.innerHTML=checksRowsHtml(c);
+  wireChecksCard(c);
+}
+/* The findings, over the page. The panel hosts the SAME element id the column
+   used to, so the existing renderer fills it without knowing it moved — which
+   is also why the column no longer carries one: two elements with one id is
+   how a "why did nothing happen" bug starts. */
+function openCheckPanel(c,kind){
+  const id=kind==='playbook'?'playbook-section':'scan-section';
+  openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
+  if(kind==='playbook') renderPlaybookSection(c); else renderScanSection(c);
+}
 function wireChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
   const editable=(typeof canEdit!=='function'||canEdit())&&c.status!=='Signed';
   card.querySelectorAll('[data-check]').forEach(b=>{
     const kind=b.getAttribute('data-check');
-    if(!editable&&kind!=='oblig'){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default'; b.title='Read-only for your role, or this contract is executed'; return; }
+    const ran=!!checkVerdict(c,kind);
+    /* Reading a finding is not editing. A viewer, and anyone on an executed
+       contract, can still open what was found — they just cannot re-run it. */
+    if(!editable&&!ran){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default';
+      b.title='Read-only for your role, or this contract is executed'; return; }
     b.addEventListener('click',async()=>{
-      if(kind==='risk'){
-        if(!window.runScanAct) return toast('The scan is unavailable on this page','err');
-        b.textContent='Running…'; runScanAct(c); return;
-      }
-      if(kind==='playbook'){
-        if(!window.runPlaybookReview) return toast('The playbook review is unavailable on this page','err');
-        b.textContent='Reviewing…'; b.disabled=true;
-        const res=await runPlaybookReview(c);
-        if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
-        renderPlaybookSection(c); if(window.renderSignButton) renderSignButton(c);
-        b.textContent='Re-run →'; b.disabled=false;
-        return;
-      }
-      if(kind==='oblig'){
-        if(!window.extractObligations) return toast('Obligation extraction is unavailable on this page','err');
-        b.textContent='Reading…'; b.disabled=true;
-        try{
-          await extractObligations(c);
-          const n=(c.obligations||[]).length;
-          toast(n?`${n} obligation${n===1?'':'s'} found — they are on the calendar`:'No dated obligations found in this document');
-        }catch(e){ toast('Could not read obligations from this document','err'); }
-        b.textContent='Run →'; b.disabled=false;
-        if(window.renderAuditSection) renderAuditSection(c);
+      if(ran&&kind!=='oblig') return openCheckPanel(c,kind);
+      if(ran&&kind==='oblig') return roomGoTab(c,'terms');
+      if(!editable) return;
+      b.innerHTML='<span style="opacity:.6">Working…</span>'; b.disabled=true;
+      try{
+        if(kind==='risk'){
+          if(!window.runScanAct) throw new Error('unavailable');
+          runScanAct(c);            // repaints the card itself when it lands
+          return;
+        }
+        if(kind==='playbook'){
+          if(!window.runPlaybookReview) throw new Error('unavailable');
+          const res=await runPlaybookReview(c);
+          if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
+          renderChecksCard(c);
+          if(window.renderSignButton) renderSignButton(c);
+          openCheckPanel(c,'playbook');
+          return;
+        }
+        /* Obligations go through the product's own review step — the found
+           list is shown and nothing is filed until it is confirmed. This used
+           to call the extractor directly and throw its result away, so the
+           toast reported a count that had nothing to do with the scan. */
+        if(!window.runFindObligations) throw new Error('unavailable');
+        await runFindObligations(c);
+        renderChecksCard(c);
+      }catch(e){
+        toast('That check is not available on this page','err');
+        renderChecksCard(c);
       }
     });
   });
@@ -2956,6 +3225,30 @@ function exportWordTracked(c){
    (the collapse button above learned the same lesson). A posture, not a
    setting: it resets when the reader moves to another contract. */
 let _wsFocus=false,_wsFocusFor=null;
+/* ---- FOCUS MODE HAD NO EXIT ----
+   It hides the header, and the only switch was the one inside the header it
+   had just hidden. There was no key out either. A reader who pressed it was
+   stuck until they opened a different contract and came back — which is not a
+   mode, it is a trap.
+
+   Two ways out now, the same two the negotiation workbench has always had: a
+   chip that stays on the page, and Escape. The chip is created on entry and
+   removed on exit, so it costs nothing when focus is off. */
+function wsFocusChip(){
+  let chip=document.getElementById('ws-focus-out');
+  if(!_wsFocus){ if(chip) chip.remove(); return; }
+  if(chip) return;
+  chip=document.createElement('button');
+  chip.id='ws-focus-out';
+  chip.type='button';
+  chip.className='ui-btn ui-btn-primary';
+  chip.title='Exit focus mode and bring the header back (Esc)';
+  chip.style.cssText='position:fixed;right:18px;bottom:18px;z-index:70;font-size:12px;padding:8px 14px;box-shadow:var(--shadow-md)';
+  chip.innerHTML='Exit focus &middot; Esc';
+  chip.addEventListener('click',()=>{ _wsFocus=false; applyWsFocus(); });
+  document.body.appendChild(chip);
+}
+let _wsFocusKeyWired=false;
 function applyWsFocus(){
   const head=document.getElementById('ws-head');
   if(head) head.style.display=_wsFocus?'none':'';
@@ -2964,15 +3257,26 @@ function applyWsFocus(){
   const b=document.getElementById('ws-focus');
   if(b){
     b.setAttribute('aria-pressed',_wsFocus?'true':'false');
-    b.style.background=_wsFocus?'var(--color-accent-800)':'';
-    b.style.color=_wsFocus?'#fff':'';
-    b.style.borderColor=_wsFocus?'var(--color-accent-800)':'';
+    b.textContent=_wsFocus?'Exit focus mode':'Focus mode';
     b.title=_wsFocus?'Exit focus mode — bring the header back':'Focus mode — hide the header and give the room to the document';
   }
+  wsFocusChip();
 }
 function wireWsFocus(c){
   if(_wsFocusFor!==c.id){ _wsFocus=false; _wsFocusFor=c.id; }
   document.getElementById('ws-focus')?.addEventListener('click',()=>{ _wsFocus=!_wsFocus; applyWsFocus(); });
+  /* Bound ONCE on the document, not per paint: this page rebuilds itself on
+     every save, and a listener per paint is a leak. */
+  if(!_wsFocusKeyWired){
+    _wsFocusKeyWired=true;
+    document.addEventListener('keydown',e=>{
+      if(e.key!=='Escape'||!_wsFocus) return;
+      const t=e.target;
+      if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||'')) return;
+      if(t&&t.isContentEditable) return;
+      _wsFocus=false; applyWsFocus();
+    });
+  }
   applyWsFocus();
 }
 
@@ -3210,18 +3514,19 @@ function renderWorkspace(){
                spent describing work nobody had asked for yet. They are rows
                now. Each one's RESULTS still open into the full card below,
                which is what those cards were always for. -->
-          <section id="checks-card" style="${CARD};padding:12px 14px">
-            <h6 style="${H6}">Checks</h6>
-            <p style="font-size:11.5px;color:var(--color-neutral-600);margin:5px 0 2px;line-height:1.5">Run before sending — findings pin to the clause they concern.</p>
-            <div class="check-row"><span class="ci">${icon('shield','w-3.5 h-3.5')}</span><span class="cn">Playbook review</span><button class="cg" data-check="playbook">Run &rarr;</button></div>
-            <div class="check-row"><span class="ci">${icon('scan','w-3.5 h-3.5')}</span><span class="cn">Copilot risk scan</span><button class="cg" data-check="risk">Run &rarr;</button></div>
-            <div class="check-row"><span class="ci">${icon('calendar','w-3.5 h-3.5')}</span><span class="cn">Find obligations</span><button class="cg" data-check="oblig">Run &rarr;</button></div>
+          <section id="checks-card" style="${CARD};padding:13px 15px">
+            <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">Checks</h6>
+            <p style="font-size:11.5px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">Run before sending — findings pin to the clause they concern.</p>
+            <div data-checks-rows>${checksRowsHtml(c)}</div>
           </section>
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <!-- review & fix — the RESULTS of the rows above -->
-          <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <div id="scan-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          ${''/* THE RESULTS CARDS HAVE LEFT THIS COLUMN. They open over the
+                 page from the rows above — see openCheckPanel — because a
+                 finding is something you read and act on, not something that
+                 lives in the sidebar forever repeating a verdict the row can
+                 say in three words. Their ids move with them; they are not
+                 declared twice. */}
 
           <!-- collaborate & negotiate -->
           ${''/* The role chip that used to sit beside every name is gone. It was
@@ -3297,16 +3602,28 @@ function renderWorkspace(){
          the dates can be set, which is a poor reason to be hard to find.
          Editable until the seal binds them. -->
     <div data-ws-pane="terms" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
-      <div style="${CARD};padding:16px 18px;max-width:640px;width:100%;margin:0 auto">
+      <div class="terms-grid">
+      <div style="${CARD};padding:16px 18px;align-self:start">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <h6 style="${H6};flex:1">Key terms</h6>
+          <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">Key terms</h6>
+          ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">Confirmed</span>`:''}
           ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
         </div>
         ${ktEditable?`
             <label style="${KROW}"><span style="${KKEY}">Counterparty</span>
               <input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/></label>
-            <label style="${KROW}"><span style="${KKEY}">Value</span>
-              <input data-kt="value" type="number" min="0" value="${c.value||''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};text-align:right;font-family:var(--font-mono)${isMonetary(c)?'':';opacity:.45'}"/></label>
+            ${''/* THE VALUE READS AS MONEY. It was a bare number input, so a
+                   78-million-shilling contract said `78000000` — eight digits
+                   with no separators and no currency, on the panel whose job is
+                   to state the commercial facts. The field is still the field;
+                   what changed is that the figure beside it is the one every
+                   other screen in HaTi prints. Non-monetary rides here too,
+                   because it is a modifier on the value rather than a term of
+                   its own. */}
+            <label style="${KROW}"><span style="${KKEY}">Contract value</span>
+              <span style="display:flex;align-items:center;gap:6px;justify-content:flex-end;min-width:0;max-width:62%">
+                <span style="font-size:11px;color:var(--color-neutral-500);flex:none">KES</span>
+                <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString('en-KE'):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};max-width:none;text-align:right;font-family:var(--font-mono)${isMonetary(c)?'':';opacity:.45'}"/></span></label>
             <label style="${KROW};cursor:pointer"><span style="${KKEY}">Non-monetary</span>
               <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600)">no consideration passes
                 <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/></span></label>
@@ -3325,21 +3642,36 @@ function renderWorkspace(){
         ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
         ${kv('Expiry',c.expiry||'—')}
         <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`}
+        ${readTermsHtml(c)}
+      </div>
+      ${''/* Obligations and Risk. What this contract COMMITS you to, and where
+             it sits against your standards — the two questions a reader has
+             the moment they have finished reading the terms themselves. Both
+             are filled by renderKeyTermsSide from records that already exist:
+             the obligations the Calendar chases, and the checks you have run. */}
+      <div id="kt-side" style="display:flex;flex-direction:column;gap:12px;align-self:start"></div>
       </div>
     </div>
 
-    <!-- ============ SIGNING — its own tab now ============
-         It was an inner tab inside a card inside a sub-tab on the right-hand
-         panel: three levels deep for the act the whole room is for. -->
+    ${''/* ============ SIGNING ============
+           The page is named after a signature and used to show none — not who
+           signs, not for which company, not whether the other side had. The
+           block is the page now: a box per party, in signing order, filling in
+           as each mark lands. Beside it, what is holding the signature up (the
+           approval gate) and who is queued behind it (the route) — both of
+           which were stacked on top of the button in a third of the screen. */}
     <div data-ws-pane="sign" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
-      <div style="${CARD};padding:16px 18px;max-width:640px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px">
-        <h6 style="${H6}">Signing</h6>
-        ${(!locked&&canEdit())?`
-        <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:10px;cursor:pointer">
-          <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-          <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
-        </label>`:''}
-        <div id="sign-wrap"></div>
+      <div class="sign-grid">
+        <div style="${CARD};padding:16px 18px;display:flex;flex-direction:column;gap:12px;align-self:start">
+          <div id="sign-block"></div>
+          ${(!locked&&canEdit())?`
+          <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:6px;padding:10px;cursor:pointer">
+            <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
+            <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
+          </label>`:''}
+          <div id="sign-wrap"></div>
+        </div>
+        <div id="sign-side" style="display:flex;flex-direction:column;gap:12px;align-self:start"></div>
       </div>
     </div>
 
@@ -3353,13 +3685,17 @@ function renderWorkspace(){
 
          The header's History button still opens the dialog; both read one
          builder, so they cannot tell different stories. -->
-    <div data-ws-pane="history" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;gap:12px;padding:2px">
-      ${''/* flex:none on both. The pane is a flex COLUMN, so without it these
-             two shrink to share the height instead of taking what they need —
-             which on a 590px laptop page clipped 28px off the foot of the
-             audit trail with nothing to scroll it back. */}
-      <div id="ws-history-pane" style="${CARD};flex:none;max-width:860px;width:100%;margin:0 auto"></div>
-      <div id="audit-section" style="${CARD};flex:none;overflow:hidden;max-width:860px;width:100%;margin:0 auto"></div>
+    <div data-ws-pane="history" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
+      <div class="hist-grid">
+        <div id="ws-history-pane" style="${CARD};padding:14px 16px;align-self:start"></div>
+        <div id="ws-versions-pane" style="${CARD};padding:14px 16px;align-self:start"></div>
+      </div>
+      ${''/* The audit-trail CARD has gone: its entries are on the one timeline
+             now, marked as system events. The element stays, empty and hidden,
+             because renderAuditSection is called from a dozen places and a
+             missing host there would be a silent no-op rather than an error —
+             this way it keeps working and simply is not drawn. */}
+      <div id="audit-section" hidden></div>
     </div>
 
     <!-- ============ NEGOTIATION: the three-pane fingerprinted redline ============
@@ -3448,7 +3784,10 @@ function wireDocCanvas(c){
 function syncKeyTermsUI(c, source){
   const put=(sel,val)=>document.querySelectorAll(sel).forEach(el=>{ if(el!==source&&el.value!==String(val)) el.value=val; });
   put('#doc-canvas [data-sync="counterparty"], [data-kt="counterparty"]', c.counterparty||'');
-  put('#doc-canvas [data-sync="value"], [data-kt="value"]', c.value||'');
+  put('#doc-canvas [data-sync="value"]', c.value||'');
+  /* The key-terms field carries thousand separators; writing the raw number
+     into it here would strip them back out on every keystroke. */
+  put('[data-kt="value"]', c.value?Number(c.value).toLocaleString('en-KE'):'');
   const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
   const mv=document.getElementById('meta-value');
   if(mv){
@@ -3499,7 +3838,16 @@ function wireKeyTerms(c){
     const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
     inp.addEventListener(evt,()=>{
       if(key==='counterparty') c.counterparty=inp.value.trim();
-      else if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      /* THE FIGURE READS AS A FIGURE. This field was type=number, so a
+         78-million-shilling contract showed `78000000` — eight digits with no
+         separators, on the panel whose whole job is to state the commercial
+         facts. It is a text field now that carries the separators; every
+         non-digit is stripped on the way into the record, so what is stored is
+         the same plain number it always was. */
+      else if(key==='value'){
+        const digits=String(inp.value).replace(/[^\d]/g,'');
+        c.value=digits===''?0:Number(digits);
+      }
       else if(key==='nonmonetary'){
         c.valueType=inp.checked?'none':(c.valueType==='none'?'estimated':c.valueType||'estimated');
         const v=document.querySelector('[data-kt="value"]');
@@ -3631,6 +3979,66 @@ function wireCompliance(c){
     persist(c); renderSignButton(c); renderAuditSection(c);
   }));
 }
+/* ---- THE SIGNATURE BLOCK — THE THING THE PAGE IS NAMED AFTER ----
+   The Signing tab did not show a signature. Not who signs, not for which
+   company, not whether the other side had. All of it was already on the
+   contract; none of it was drawn.
+
+   A box per party, in signing order. Where a route has been set the boxes are
+   its signers; where none has, there are two — one for each side of the table —
+   because a contract with no route still has two parties, and showing them is
+   how a reader discovers a route is worth setting.
+
+   Signed boxes carry what the SEAL carries: the name, the capacity, the moment,
+   and the drawn or typed mark itself. This screen and the sealed copy read the
+   same record, so they cannot come to disagree. */
+function signPartyBoxes(c){
+  const plan=(window.signerPlan?signerPlan(c):[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  const sigs=c.signatures||[];
+  if(plan.length) return plan.map(s=>({
+    id:s.id, side:s.party==='counterparty'?'counterparty':'first',
+    org:s.party==='counterparty'?(c.counterparty||'the counterparty'):(window.FIRST_PARTY||'us'),
+    name:s.name||'', role:s.role||'', signed:!!s.signed, at:s.at||'',
+    image:(s.signature&&s.signature.image)||'',
+  }));
+  /* No route yet: the two implied parties. Ours is whoever has already signed,
+     else the signatory named on the contract, else the person reading — the
+     same order signDocument itself uses when it stamps a signature. */
+  const ourSig=sigs.find(s=>s.party!=='counterparty');
+  const theirSig=sigs.find(s=>s.party==='counterparty');
+  const me=(typeof currentUser==='function'&&currentUser())||null;
+  const contact=(typeof counterpartyContact==='function')?counterpartyContact(c):null;
+  return [
+    { side:'first', org:window.FIRST_PARTY||'us',
+      name:(ourSig&&ourSig.name)||c.signatory||(me&&me.name)||'',
+      role:(ourSig&&(ourSig.role||ourSig.capacity))||(me&&window.signerTitle?signerTitle(me):'')||'',
+      signed:!!ourSig, at:(ourSig&&ourSig.at)||'', image:(ourSig&&ourSig.image)||'' },
+    { side:'counterparty', org:c.counterparty||'the counterparty',
+      name:(theirSig&&theirSig.name)||(contact&&contact.name)||'',
+      role:(theirSig&&(theirSig.role||theirSig.capacity))||'', signed:!!theirSig,
+      at:(theirSig&&theirSig.at)||'', image:(theirSig&&theirSig.image)||'' },
+  ];
+}
+function signBlockHtml(c){
+  const boxes=signPartyBoxes(c);
+  const done=boxes.filter(b=>b.signed).length;
+  const chip=done===boxes.length&&done
+    ? `<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">Fully executed</span>`
+    : done ? `<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${done} of ${boxes.length} signed</span>`
+    : `<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">Awaiting signature</span>`;
+  const box=b=>`<div class="sig-box${b.signed?' is-signed':''}">
+      <div class="sig-mark">${b.image
+        ? `<img src="${b.image}" alt="signature of ${esc(b.name)}"/>`
+        : b.signed ? `<span class="sig-name">${esc(b.name||'Signed')}</span>`
+        : `<span class="sig-none">Not yet signed</span>`}</div>
+      <div class="sig-who">For <b>${esc(b.org)}</b>${b.name?`<br>${esc(b.name)}${b.role?' · '+esc(b.role):''}`:''}${
+        b.signed&&b.at?`<br><span class="sig-at">${window.fmtDT?fmtDT(b.at):esc(b.at)}</span>`:''}</div>
+    </div>`;
+  return `<div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
+      <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">Signature block</h6>${chip}
+    </div>
+    <div class="sig-grid">${boxes.map(box).join('')}</div>`;
+}
 function renderSignButton(c){
   const wrap=document.getElementById('sign-wrap'); if(!wrap) return;
   if(c.status==='Signed'){
@@ -3669,7 +4077,19 @@ function renderSignButton(c){
   if(isMonetary(c)&&!(Number(c.value)>0))missing.push('contract value');
   if(!c.compliance.consent)missing.push('intent-to-sign consent');
   if(!appr.ok)missing.push('approvals');
-  const signLabel = planned&&ns ? `Sign as ${ns.name}` : 'Sign Document';
+  /* ---- THE BUTTON SAYS WHAT IS STOPPING IT ----
+     It used to grey out and print the reason in 11px underneath, which is the
+     one arrangement guaranteed to be missed: the eye goes to the disabled
+     control, finds no explanation on it, and concludes the page is broken.
+     The blocker IS the label now, and the small print underneath explains the
+     act rather than repeating the obstacle. */
+  const blockLabel = !c.counterparty ? 'Sign — add the counterparty'
+    : (isMonetary(c)&&!(Number(c.value)>0)) ? 'Sign — add the contract value'
+    : !appr.ok ? 'Sign — approvals outstanding'
+    : !c.compliance.consent ? 'Sign — tick intent to sign first'
+    : (planned&&ns&&ns.party==='counterparty') ? `Sign — waiting on ${ns.name}`
+    : 'Sign Document';
+  const signLabel = ready ? (planned&&ns ? `Sign as ${ns.name}` : 'Sign Document') : blockLabel;
   /* WHO SIGNS, AND IN WHAT ORDER — asked BEFORE the button that ends it.
 
      This was an 11px text link UNDERNEATH "Sign Document": a decision about
@@ -3687,21 +4107,59 @@ function renderSignButton(c){
       </button>
       <p class="mb-3 text-[10.5px] text-center text-brand-800/60 leading-relaxed">More than one signatory? Set the order first — signing seals the document.</p>`
     : '';
+  /* The approval chain and the signing route render in the Signing tab's OWN
+     right-hand column now (renderSignSide) rather than stacked on top of this
+     button. Where that column does not exist — any older slot that still fills
+     #sign-wrap — they are drawn here as before, so nothing loses them. */
+  const sideCol=document.getElementById('sign-side');
   wrap.innerHTML=`
-    ${approvalPanelHtml(c)}
-    ${signerRoute}
+    ${sideCol?'':approvalPanelHtml(c)}
+    ${sideCol?'':signerRoute}
     <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/60 cursor-not-allowed'}">
       ${icon('finger','w-[18px] h-[18px]')} ${signLabel}
     </button>
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
-           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Next signer is <b>${ns.name}</b> (counterparty) — share the link to collect their signature.`:`Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span>`}</p>`}
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Their link collects it — share the contract to start their turn.`:`Signing freezes the wording and seals it. It cannot be undone.`}</p>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
       return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}
     ${paperRoute}`;
   if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
   document.getElementById('sp-setup')?.addEventListener('click',()=>openSignerPlanEditor(c));
   wirePaper();
+  renderSignSide(c);
   wireApprovalPanel(c);
+  document.getElementById('sign-block')&&(document.getElementById('sign-block').innerHTML=signBlockHtml(c));
+}
+/* ---- THE SIGNING TAB'S RIGHT-HAND COLUMN ----
+   What is holding the signature up, and who is queued behind it. Both were
+   already built — the approval chain and the route panel — and both were stacked
+   above the Sign button in a third of the screen. They get their own column.
+
+   ADD SIGNER IS ALWAYS OFFERED. The old control appeared only while NO route
+   existed, so the moment you set one you could no longer add anybody to it from
+   this page — you had to find "edit route" inside the panel. Adding a signatory
+   is the commonest thing to want here and it is a top-level button now, whether
+   the route is empty or five deep. */
+function renderSignSide(c){
+  const host=document.getElementById('sign-side'); if(!host) return;
+  const plan=(window.signerPlan?signerPlan(c):[]);
+  const may=canEdit()&&c.status!=='Signed';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
+  const H='margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)';
+  const chain=window.approvalChainHtml?approvalChainHtml(c,{bare:true}):'';
+  const route=window.signerRouteHtml?signerRouteHtml(c,{bare:true}):'';
+  host.innerHTML=`
+    ${chain?`<section style="${CARD}"><h6 style="${H};margin-bottom:9px">Approval gate</h6>${chain}</section>`:''}
+    <section style="${CARD}">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
+        <h6 style="${H};flex:1">Signing order</h6>
+        ${plan.length?`<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
+      </div>
+      ${route||`<p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">No route set. One signature each side is assumed — ${esc(window.FIRST_PARTY||'us')} first, then ${esc(c.counterparty||'the counterparty')}. Add signers to change that.</p>`}
+      ${may?`<button id="sp-add-signer" class="ui-btn" style="width:100%;justify-content:center;font-size:12px;padding:7px 12px;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
+      ${may?`<p style="margin:7px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
+    </section>`;
+  host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
 }
 async function signDocument(c){
   if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
@@ -4116,6 +4574,6 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,docFillable,wireChecksCard,roomHeadHtml,wireRoomHead});
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,openCheckPanel,roomHeadHtml,wireRoomHead});

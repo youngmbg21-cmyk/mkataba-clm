@@ -668,6 +668,69 @@
   .field-frozen[title]{ background:var(--st-amber-bg); border-bottom-color:var(--st-amber-dot);
     color:var(--st-amber-fg); font-weight:700; }
 
+  /* ---- THE SIGNATURE BLOCK ----
+     One box per party, in signing order. A dashed edge while it is empty — a
+     line waiting to be signed on — turning solid and tinted once a mark lands,
+     so "who is still missing" reads across the row without any label saying so. */
+  /* The block on the left, what is holding it up on the right. Stacks below
+     980px, where two columns would leave the signature boxes too narrow to
+     hold a drawn mark. */
+  /* ---- KEY TERMS: THE FACTS, AND WHAT THEY COMMIT YOU TO ---- */
+  .terms-grid{ display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+    gap:14px; max-width:1040px; width:100%; margin:0 auto; }
+  @media (max-width:980px){ .terms-grid{ grid-template-columns:1fr; max-width:640px; } }
+  .kt-read{ padding:6px 0; border-top:1px solid var(--color-divider); }
+  .kt-read:first-of-type{ border-top:0; }
+  .kt-read-k{ display:block; font-size:11.5px; font-weight:600; }
+  .kt-read-v{ display:block; font-size:11px; line-height:1.5; color:var(--color-neutral-600);
+    font-style:italic; margin-top:1px; }
+  .risk-row{ display:flex; align-items:center; gap:9px; padding:4px 0; font-size:11.5px; }
+  .risk-k{ flex:0 0 40%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    color:var(--color-neutral-700); }
+  .risk-bar{ flex:1; height:6px; border-radius:999px; background:var(--color-neutral-200); overflow:hidden; }
+  .risk-bar i{ display:block; height:100%; border-radius:999px; }
+  .risk-n{ flex:none; font-family:var(--font-mono); font-size:10.5px; color:var(--color-neutral-500);
+    min-width:22px; text-align:right; }
+
+  /* ---- HISTORY: THE STORY, AND THE VERSIONS BESIDE IT ---- */
+  .hist-grid{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);
+    gap:14px; max-width:1120px; width:100%; margin:0 auto; }
+  @media (max-width:980px){ .hist-grid{ grid-template-columns:1fr; max-width:680px; } }
+  .hist-rail{ position:relative; padding-left:26px; }
+  .hist-rail::before{ content:""; position:absolute; left:10px; top:10px; bottom:10px;
+    width:1px; background:var(--color-divider); }
+  .hist-ev{ position:relative; padding:7px 0; }
+  .hist-mark{ position:absolute; left:-26px; top:6px; width:21px; height:21px; border-radius:50%;
+    display:grid; place-items:center; font-size:11px; line-height:1;
+    background:var(--color-surface); border:1px solid var(--color-divider); }
+  .hist-text{ font-size:12.5px; line-height:1.5; }
+  .hist-meta{ font-size:10.5px; color:var(--color-neutral-500); margin-top:1px; }
+  .hist-filters{ display:flex; gap:8px; flex-wrap:wrap; padding-bottom:11px;
+    border-bottom:1px solid var(--color-divider); }
+  .hist-f{ display:flex; flex-direction:column; gap:2px; font-size:9.5px; font-weight:700;
+    letter-spacing:.06em; text-transform:uppercase; color:var(--color-neutral-500); }
+  .hist-f select{ font:inherit; font-size:11.5px; font-weight:400; text-transform:none;
+    letter-spacing:0; border:1px solid var(--color-divider); border-radius:5px; padding:4px 6px;
+    background:var(--color-surface); color:var(--color-text); max-width:150px; }
+
+  .sign-grid{ display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+    gap:14px; max-width:1080px; width:100%; margin:0 auto; }
+  @media (max-width:980px){ .sign-grid{ grid-template-columns:1fr; max-width:660px; } }
+  .sig-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:11px; }
+  .sig-box{ border:1px dashed var(--color-neutral-300); border-radius:9px; padding:12px 13px;
+    text-align:center; background:var(--color-bg); }
+  .sig-box.is-signed{ border-style:solid; border-color:var(--st-green-line);
+    background:color-mix(in srgb, var(--st-green-bg) 55%, transparent); }
+  .sig-mark{ min-height:46px; display:grid; place-items:center; }
+  .sig-mark img{ height:42px; max-width:100%; object-fit:contain; }
+  .sig-name{ font-family:var(--font-heading); font-size:19px; font-weight:600;
+    color:var(--st-green-fg); }
+  .sig-none{ font-size:12px; color:var(--color-neutral-500); }
+  .sig-who{ border-top:1px solid var(--color-divider); margin-top:9px; padding-top:8px;
+    font-size:11px; line-height:1.5; color:var(--color-neutral-600); }
+  .sig-at{ font-family:var(--font-mono); font-size:10px; }
+  .pill-x{ font-size:10px; font-weight:700; padding:2px 9px; border-radius:999px; white-space:nowrap; }
+
   /* The Checks card's rows — an icon, a name, and the verb. Replaces two
      full-height cards that each carried a paragraph and a filled button
      before anything had been run. */

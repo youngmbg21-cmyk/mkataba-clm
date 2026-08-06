@@ -394,9 +394,22 @@ function openSignerPlanEditor(c){
 }
 
 /* ---- approval + signer status panel (rendered in the sign area) ---- */
+/* ---- TWO CARDS, AND THE SIGNING TAB PLACES THEM SEPARATELY ----
+   These were one string: the approval chain and the signing route, stacked,
+   dropped into whatever slot asked for them. The Signing tab puts the chain and
+   the route side by side in its right-hand column, so each half is now its own
+   function and approvalPanelHtml is the two of them together — which is what
+   every other caller still gets. */
 function approvalPanelHtml(c){
+  return approvalChainHtml(c) + signerRouteHtml(c);
+}
+/* opts.bare — drawn INSIDE a host card that supplies its own frame and title
+   (the Signing tab's "Approval gate"). Without it this box nests inside that
+   one and the reader gets two borders and two headings for one thing. */
+function approvalChainHtml(c, opts){
+  const bare=!!(opts&&opts.bare);
   const st=approvalState(c);
-  if(!st.required && !signerPlan(c).length) return '';
+  if(!st.required) return '';
   const stepChip=s=>s.status==='approved'?'text-brand-600':s.status==='rejected'?'text-rose-600':s.status==='stale'?'text-gold-700':'text-ink/50';
   const esc1=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const stepRight=s=>s.status==='approved'?`✓ ${esc1(s.by)}`
@@ -404,15 +417,15 @@ function approvalPanelHtml(c){
     :s.status==='stale'?`↻ re-approval needed`
     :'needs '+approverLabelOf(s.approver);
   let html='';
-  if(st.required){
+  {
     /* THE REFUSAL, AND THE WAY OUT OF IT — both on the panel the owner reads.
        A rejected step used to be erased before it could be drawn (see
        buildApprovalChain); now that it survives, the owner is told what was
        refused, by whom and why, and given the one control that moves it on. */
     const blocked=(st.rejected||[]).concat(st.stale||[]);
     const owner=canEdit()&&c.status!=='Signed'&&blocked.length;
-    html+=`<div class="rounded-xl border ${st.rejected&&st.rejected.length?'border-rose-200':'border-line'} bg-white p-3 mb-2">
-      <div class="text-[11px] font-600 text-ink mb-1.5">Approval chain</div>
+    html+=`<div class="${bare?'':'rounded-xl border '+(st.rejected&&st.rejected.length?'border-rose-200':'border-line')+' bg-white p-3 mb-2'}">
+      ${bare?'':'<div class="text-[11px] font-600 text-ink mb-1.5">Approval chain</div>'}
       ${st.chain.map((s,i)=>`<div class="flex items-center gap-2 text-[11.5px] py-0.5">
         <span class="h-4 w-4 grid place-items-center rounded-full text-[8px] font-700 ${s.status==='approved'?'bg-brand-600 text-white':s.status==='rejected'?'bg-rose-500 text-white':s.status==='stale'?'bg-gold-500 text-white':'bg-slate-200 text-ink/60'}">${i+1}</span>
         <span class="${stepChip(s)}">${esc1(s.name)}</span>
@@ -433,6 +446,17 @@ function approvalPanelHtml(c){
       ${owner?`<button id="ap-resubmit" class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50">Revise &amp; send back for approval</button>`:''}
     </div>`;
   }
+  return html;
+}
+/* ---- THE SIGNING ROUTE ----
+   Who signs, in what order, and where each of them has got to. Drawn whenever
+   a route exists; the Signing tab draws its own head above it and offers the
+   editor whether or not one has been set yet, because "add another signer" is
+   the one thing this card could never do from inside itself. */
+function signerRouteHtml(c, opts){
+  const bare=!!(opts&&opts.bare);
+  const esc1=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  let html='';
   const plan=signerPlan(c);
   if(plan.length){
     const sorted=plan.slice().sort((a,b)=>a.order-b.order);
@@ -443,10 +467,10 @@ function approvalPanelHtml(c){
       state==='done'?'bg-brand-600 border-brand-600 text-white':
       state==='cur'?'bg-white border-gold-500 text-gold-600 ring-4 ring-gold-100':
       'bg-white border-slate-300 text-ink/40'}">${label}</span>`;
-    html+=`<div class="rounded-xl border border-line bg-white p-3 mb-2">
-      <div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">Signature progress</span>
+    html+=`<div class="${bare?'':'rounded-xl border border-line bg-white p-3 mb-2'}">
+      ${bare?'':`<div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">Signature progress</span>
         <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${signedCount} of ${sorted.length} signed</span>
-        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>
+        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>`}
       <div class="relative">
         ${sorted.map((s,i)=>{ const isCur=ns&&ns.id===s.id; const st=s.signed?'done':isCur?'cur':'wait';
           /* Behind an unsigned INTERNAL step, by ORDER — not the old blanket
@@ -566,4 +590,4 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel});
+Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
