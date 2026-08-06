@@ -9,19 +9,21 @@
    cards show, drags them to reorder, and the grid adapts to the count. The
    chosen subset + order is stored PER USER in localStorage so it survives
    reloads and stays independent of other teammates on the same server. */
-const KPI_META={
-  under_mgmt:  'Active contracts',
-  active_value:'Active value',
-  awaiting:    'Awaiting counterparty',
-  approvals:   'Pending approvals',
-  compliance:  'Compliance rating',
-  expiring30:  'Expiring < 30 days',
-  expiring60:  'Expiring < 60 days',
-  expiring90:  'Expiring < 90 days',
-  expired:     'Term already ended',
-  highrisk:    'High-risk findings',
-  avgcycle:    'Avg turnaround time',
-};
+/* Read as KPI_META[id] by the dashboard tiles AND by the phone's figures list,
+   so these are getters: every existing call site keeps working unchanged and
+   picks up the reader's language, where a plain string would have frozen the
+   label at load. */
+const KPI_EN={
+  under_mgmt:'Active contracts', active_value:'Active value', awaiting:'Awaiting counterparty',
+  approvals:'Pending approvals', compliance:'Compliance rating', expiring30:'Expiring < 30 days',
+  expiring60:'Expiring < 60 days', expiring90:'Expiring < 90 days', expired:'Term already ended',
+  highrisk:'High-risk findings', avgcycle:'Avg turnaround time' };
+/* Falls back to the English WORD, never the dictionary key — a tile reading
+   `kpi_avgcycle` looks like broken software, one reading "Avg turnaround time"
+   on a Swedish screen looks only untranslated. */
+const KPI_META=Object.keys(KPI_EN)
+  .reduce((o,k)=>(Object.defineProperty(o,k,{enumerable:true,
+    get(){ return typeof t==='function' ? t('kpi_'+k) : KPI_EN[k]; }}),o),{});
 const KPI_ALL_ORDER=['under_mgmt','active_value','avgcycle','approvals','compliance','awaiting','expiring30','expiring60','expiring90','expired','highrisk'];
 /* The four the design leads on: how much paper is live, how fast it moves,
    what is stuck on a person, and how much of it is clean. Everything else in

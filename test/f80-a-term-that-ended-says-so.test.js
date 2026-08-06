@@ -54,6 +54,10 @@ function stageWorld(over = {}) {
     state: { contracts: [], settings: {} },
     effectiveExpiry: c => c.expiry || null,
     daysUntil: iso => Math.ceil((new Date(iso + 'T00:00:00') - Date.now()) / 86400000),
+    /* core.js builds its status metas through this helper, which is declared
+       ABOVE the slice lifted below — so it is stubbed here alongside
+       STATUS_META, returning the English label this file asserts on. */
+    _stMeta: (key, en, dot, bg, tx, bd) => ({ label: en, dot, bg, tx, bd }),
     STATUS_META: { 'Draft': { label: 'Drafting', bg: '#eceae6', tx: '#5d5d60' },
       'Under Review': { label: 'In Review', bg: '#fbf4e3', tx: '#7d5a14' },
       'Signed': { label: 'Executed', bg: '#e8f4ee', tx: '#1e6b4d' },
@@ -125,6 +129,8 @@ describe('F80 — the money', () => {
       state: { contracts, settings: {} },
       effectiveExpiry: c => c.expiry || null,
       daysUntil: iso => Math.ceil((new Date(iso + 'T00:00:00') - Date.now()) / 86400000),
+      // declared above the slice lifted below — see the first harness
+      _stMeta: (key, en, dot, bg, tx, bd) => ({ label: en, dot, bg, tx, bd }),
     });
     const core = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
     const from = core.indexOf('function contractExpired(c){');

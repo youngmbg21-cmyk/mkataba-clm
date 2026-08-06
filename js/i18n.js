@@ -47,8 +47,11 @@ const I18N_LS = 'hati.v1.lang';
    a picker that lists "Swedish" to a Swedish speaker is listing it in English.
    `market` is the jurisdiction a new user in that market defaults to. */
 const LANGUAGES = [
-  { id: 'en', name: 'English',  market: 'kenya'  },
-  { id: 'sv', name: 'Svenska',  market: 'sweden' },
+  /* `name` is the picker label, written in its own language. `enName` is the
+     language's name IN ENGLISH, which is what a prompt needs: models follow
+     "answer in Swedish" far more reliably than "answer in sv" or "in Svenska". */
+  { id: 'en', name: 'English',  enName: 'English', market: 'kenya'  },
+  { id: 'sv', name: 'Svenska',  enName: 'Swedish', market: 'sweden' },
 ];
 const I18N_DEFAULT = 'en';
 
@@ -117,12 +120,19 @@ const STRINGS = {
     act_accept: 'Accept',
     act_reject: 'Reject',
 
-    // ---- contract status ----
-    status_draft: 'Draft',
-    status_under_review: 'Under Review',
-    status_signed: 'Signed',
-    status_declined: 'Declined',
+    /* ---- contract status ----
+       These are the DISPLAY labels, which differ from the values stored on a
+       contract: a contract whose status is 'Draft' shows as "Drafting" and one
+       stored 'Signed' shows as "Executed". Translating the label never touches
+       the stored value, so filters, exports and the server keep working off
+       the same English keys they always did. */
+    status_drafting: 'Drafting',
+    status_in_review: 'In Review',
+    status_executed: 'Executed',
+    status_closed: 'Closed',
     status_expired: 'Expired',
+    status_partially_signed: 'Partially signed',
+    status_partially_signed_title: "Sealed — awaiting the counterparty's signature. Copies go out when every party has signed.",
 
     // ---- the contract room's five tabs ----
     tab_document: 'Document',
@@ -130,6 +140,7 @@ const STRINGS = {
     tab_key_terms: 'Key terms',
     tab_signing: 'Signing',
     tab_history: 'History',
+    tab_room_aria: 'Contract room',
 
     /* ---- THE LEGAL GLOSSARY ----
        These are interface words that are also terms of art, and the everyday
@@ -183,16 +194,18 @@ const STRINGS = {
     reg_showing_one: 'Showing {start}–{end} of {total} contract',
     reg_showing_other: 'Showing {start}–{end} of {total} contracts',
 
-    // ---- dashboard ----
-    dash_under_mgmt: 'Under management',
-    dash_active_value: 'Active value',
-    dash_awaiting: 'Awaiting counterparty',
-    dash_approvals: 'Approvals',
-    dash_expiring30: 'Expiring in 30 days',
-    dash_expiring60: 'Expiring in 60 days',
-    dash_expiring90: 'Expiring in 90 days',
-    dash_expired: 'Expired',
-    dash_highrisk: 'High risk',
+    // ---- dashboard KPI tiles (shared with the phone's figures list) ----
+    kpi_under_mgmt: 'Active contracts',
+    kpi_active_value: 'Active value',
+    kpi_awaiting: 'Awaiting counterparty',
+    kpi_approvals: 'Pending approvals',
+    kpi_compliance: 'Compliance rating',
+    kpi_expiring30: 'Expiring < 30 days',
+    kpi_expiring60: 'Expiring < 60 days',
+    kpi_expiring90: 'Expiring < 90 days',
+    kpi_expired: 'Term already ended',
+    kpi_highrisk: 'High-risk findings',
+    kpi_avgcycle: 'Avg turnaround time',
     dash_contracts_under_mgmt_one: '{n} contract under management',
     dash_contracts_under_mgmt_other: '{n} contracts under management',
 
@@ -272,12 +285,14 @@ const STRINGS = {
     act_accept: 'Godkänn',
     act_reject: 'Avslå',
 
-    // ---- avtalsstatus ----
-    status_draft: 'Utkast',
-    status_under_review: 'Under granskning',
-    status_signed: 'Undertecknat',
-    status_declined: 'Avböjt',
+    // ---- avtalsstatus (visningsetiketter, inte lagrade värden) ----
+    status_drafting: 'Under utformning',
+    status_in_review: 'Under granskning',
+    status_executed: 'Undertecknat',
+    status_closed: 'Avslutat',
     status_expired: 'Utgånget',
+    status_partially_signed: 'Delvis undertecknat',
+    status_partially_signed_title: 'Förseglat — väntar på motpartens underskrift. Kopior skickas ut när alla parter har undertecknat.',
 
     // ---- avtalsrummets fem flikar ----
     tab_document: 'Dokument',
@@ -285,6 +300,7 @@ const STRINGS = {
     tab_key_terms: 'Nyckelvillkor',
     tab_signing: 'Undertecknande',
     tab_history: 'Historik',
+    tab_room_aria: 'Avtalsrum',
 
     /* ---- JURIDISK ORDLISTA ----
        Ingen svensktalande jurist har granskat dessa. Se
@@ -336,16 +352,18 @@ const STRINGS = {
     reg_showing_one: 'Visar {start}–{end} av {total} avtal',
     reg_showing_other: 'Visar {start}–{end} av {total} avtal',
 
-    // ---- översikt ----
-    dash_under_mgmt: 'Under förvaltning',
-    dash_active_value: 'Aktivt värde',
-    dash_awaiting: 'Väntar på motpart',
-    dash_approvals: 'Godkännanden',
-    dash_expiring30: 'Går ut inom 30 dagar',
-    dash_expiring60: 'Går ut inom 60 dagar',
-    dash_expiring90: 'Går ut inom 90 dagar',
-    dash_expired: 'Utgångna',
-    dash_highrisk: 'Hög risk',
+    // ---- nyckeltal på översikten (delas med telefonens siffervy) ----
+    kpi_under_mgmt: 'Aktiva avtal',
+    kpi_active_value: 'Aktivt värde',
+    kpi_awaiting: 'Väntar på motpart',
+    kpi_approvals: 'Väntande godkännanden',
+    kpi_compliance: 'Efterlevnadsbetyg',
+    kpi_expiring30: 'Går ut < 30 dagar',
+    kpi_expiring60: 'Går ut < 60 dagar',
+    kpi_expiring90: 'Går ut < 90 dagar',
+    kpi_expired: 'Löptiden har gått ut',
+    kpi_highrisk: 'Högriskfynd',
+    kpi_avgcycle: 'Genomsnittlig handläggningstid',
     dash_contracts_under_mgmt_one: '{n} avtal under förvaltning',
     dash_contracts_under_mgmt_other: '{n} avtal under förvaltning',
 
@@ -400,6 +418,12 @@ function langId() {
 const langList = () => LANGUAGES.slice();
 const langIs = id => langId() === id;
 const langName = id => (LANGUAGES.find(l => l.id === id) || {}).name || id;
+/* How to name this language TO A MODEL. Used when building a prompt, and when
+   rendering a saved answer in whatever language it was originally written in. */
+const langPromptName = id => {
+  const l = LANGUAGES.find(x => x.id === (id || langId()));
+  return l ? `${l.enName} (${l.id})` : String(id || langId());
+};
 
 /* ---------- the accessor ----------
    Three levels: this language → English → the key itself. The last is a
@@ -512,7 +536,7 @@ function langEditingNow() {
 }
 
 const I18N_API = { STRINGS, LANGUAGES, I18N_DEFAULT, I18N_LS,
-  t, tn, langId, langSet, langList, langIs, langName, langMissingKeys,
+  t, tn, langId, langSet, langList, langIs, langName, langPromptName, langMissingKeys,
   applyLanguage, langEditingNow };
 /* Two hosts, one dictionary: the browser gets globals like every other module,
    and server/server.js requires this file so an email can be written in the

@@ -237,9 +237,17 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
        builder, so the two shells cannot draw different rows. */
     const s = code();
     assert.match(s, /const ROOM_TABS=\[/, 'the tabs are declared in one list');
-    [['docs', 'Document'], ['redline', 'Negotiate'], ['terms', 'Key terms'],
-      ['sign', 'Signing'], ['history', 'History']].forEach(([k, label]) =>
-      assert.ok(s.includes(`['${k}','${label}']`), `${label} is a tab, keyed '${k}'`));
+    /* The second entry is a DICTIONARY KEY now, not a label — the row is drawn
+       in the reader's language, and the label itself lives in js/i18n.js. The
+       tab keys are what this test is really about and they have not moved. */
+    const { STRINGS } = require('../js/i18n.js');
+    [['docs', 'tab_document', 'Document'], ['redline', 'tab_negotiate', 'Negotiate'],
+      ['terms', 'tab_key_terms', 'Key terms'], ['sign', 'tab_signing', 'Signing'],
+      ['history', 'tab_history', 'History']].forEach(([k, key, english]) => {
+      assert.ok(s.includes(`['${k}','${key}']`), `${english} is a tab, keyed '${k}'`);
+      assert.equal(STRINGS.en[key], english, `and still reads "${english}" in English`);
+      assert.ok(STRINGS.sv[key], `and has a Swedish label`);
+    });
     assert.ok(!/'negotiation','/.test(s), 'the old tab key must not linger');
     assert.match(s, /function roomTabsHtml\(c,active\)/, 'one builder for both shells');
   });

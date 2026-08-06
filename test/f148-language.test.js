@@ -204,6 +204,108 @@ describe('f148 — language and market are separate settings', () => {
   });
 });
 
+/* ---- THE SHARED RENDERERS ----
+   These three are drawn by BOTH shells: the status chip appears on every card,
+   row, tile and phone screen; the room tab row is called by the workspace view,
+   the redline view and the phone; the KPI labels feed the dashboard tiles and
+   the phone's figures list. They are where a single fix reaches everywhere, so
+   they are where a regression would also reach everywhere. */
+describe('f148 — the shared renderers follow the language in both shells', () => {
+  function shared() {
+    const dom = new JSDOM('<!doctype html><html><body><div id="content"></div></body></html>',
+      { runScripts: 'outside-only', url: 'https://hati.test/' });
+    const win = dom.window; win.window = win;
+    const store = new Map();
+    Object.assign(win, {
+      FIRST_PARTY: 'X', PORTAL_MODE: false, canEdit: () => true, isUpload: () => false,
+      openFindings: () => [], SEV_RANK: {}, icon: () => '', esc: s => String(s),
+      state: { settings: {} }, negoTabCountHtml: () => '', isMonetary: () => true,
+      TEMPLATES: new Proxy({}, { get: () => ({ folder: 'proc', valueType: 'standard', kind: 'C' }) }),
+      lsGet: k => (store.has(k) ? store.get(k) : null),
+      lsSet: (k, v) => { store.set(k, v); },
+    });
+    const ctx = dom.getInternalVMContext();
+    for (const rel of ['js/i18n.js', 'js/jurisdiction.js', 'js/core.js',
+      'js/views/home.js', 'js/views/contract.js']) {
+      try { vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), ctx, { filename: rel }); }
+      catch (e) { /* these files reach for screens as they load; the renderers are what matter */ }
+    }
+    return win;
+  }
+  const win = shared();
+  const strip = h => String(h).replace(/<[^>]+>/g, '|').replace(/\|+/g, ' ').trim();
+
+  test('status labels — every card, row, tile and phone screen', () => {
+    win.langSet('en', { repaint: false });
+    assert.equal(win.statusLabel('Signed'), 'Executed');
+    assert.equal(win.EXPIRED_META.label, 'Expired');
+    win.langSet('sv', { repaint: false });
+    assert.equal(win.statusLabel('Signed'), 'Undertecknat');
+    assert.equal(win.statusLabel('Under Review'), 'Under granskning');
+    assert.equal(win.EXPIRED_META.label, 'Utgånget');
+    assert.equal(win.PARTIAL_META.label, 'Delvis undertecknat');
+  });
+
+  test('the STORED status values never move, only the labels', () => {
+    /* Filters, exports and the server all match on these. If translating a
+       label ever renamed a key, a Swedish workspace would silently stop
+       matching its own contracts. */
+    win.langSet('sv', { repaint: false });
+    assert.deepEqual(Object.keys(win.STATUS_META),
+      ['Draft', 'Under Review', 'Signed', 'Declined']);
+  });
+
+  test('the room tab row — workspace view, redline view and phone', () => {
+    win.langSet('en', { repaint: false });
+    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Key terms Document Negotiate Signing History');
+    win.langSet('sv', { repaint: false });
+    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Nyckelvillkor Dokument Förhandla Undertecknande Historik');
+  });
+
+  test('KPI labels — dashboard tiles and the phone figures list', () => {
+    win.langSet('en', { repaint: false });
+    assert.equal(win.KPI_META.avgcycle, 'Avg turnaround time');
+    win.langSet('sv', { repaint: false });
+    assert.equal(win.KPI_META.avgcycle, 'Genomsnittlig handläggningstid');
+    assert.equal(win.KPI_META.under_mgmt, 'Aktiva avtal');
+  });
+});
+
+describe('f148 — a label never renders as a dictionary key', () => {
+  /* js/core.js and js/views/home.js are evaluated in places that do not load
+     js/i18n.js. Falling back to the KEY would put `status_executed` on a chip,
+     which reads as broken software; falling back to the English word reads only
+     as untranslated. */
+  function withoutI18n() {
+    const dom = new JSDOM('<!doctype html><html><body></body></html>',
+      { runScripts: 'outside-only', url: 'https://hati.test/' });
+    const win = dom.window; win.window = win;
+    Object.assign(win, {
+      FIRST_PARTY: 'X', PORTAL_MODE: false, canEdit: () => true, isUpload: () => false,
+      openFindings: () => [], SEV_RANK: {}, icon: () => '', esc: s => String(s),
+      state: { settings: {} }, isMonetary: () => true,
+      TEMPLATES: new Proxy({}, { get: () => ({ folder: 'proc', valueType: 'standard', kind: 'C' }) }),
+      lsGet: () => null, lsSet: () => {},
+    });
+    const ctx = dom.getInternalVMContext();
+    for (const rel of ['js/jurisdiction.js', 'js/core.js', 'js/views/home.js']) {
+      try { vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), ctx, { filename: rel }); }
+      catch (e) {}
+    }
+    return win;
+  }
+  const win = withoutI18n();
+
+  test('status labels fall back to English words', () => {
+    assert.equal(win.statusLabel('Signed'), 'Executed');
+    assert.equal(win.EXPIRED_META.label, 'Expired');
+  });
+
+  test('KPI labels fall back to English words', () => {
+    assert.equal(win.KPI_META.under_mgmt, 'Active contracts');
+  });
+});
+
 describe('f148 — a browser that refuses to remember still boots', () => {
   test('langId falls back to the default when storage throws', () => {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

@@ -1,6 +1,60 @@
 # PLAN — HaTi in English and Swedish
 
-Written 2026-08-06. Nothing in this plan has been built yet.
+Written 2026-08-06.
+
+---
+
+## STATUS — updated 2026-08-06, end of the first build session
+
+**Done and tested**
+
+- **Phase 1 — complete.** All five parts. A Swedish workspace now gets Swedish
+  contract wording, Swedish dates and money, no Nairobi in its risk advice, a
+  Swedish company-number field, and thirty Swedish demo contracts. The market is
+  asked for on the setup screen, which is what makes the Swedish portfolio
+  reachable at all.
+- **Phase 2 — complete.** The language machinery, storage on the user record,
+  the server column and endpoint, the picker, the repaint-on-change with its
+  mid-edit guard, and the app shell translated.
+- **Phase 7.2 and 7.4 — done early** because they protect everything else: the
+  key-parity check that stops the two languages drifting, and the
+  blocked-storage boot.
+
+**Partly done**
+
+- **Phase 3 — the shared renderers only.** Contract status labels, the contract
+  room's five tabs, and the dashboard KPI labels. These were done first
+  deliberately: each is a single function drawn by BOTH shells, so one change
+  reaches the desktop, the phone, the register, the cards, reports, the graph
+  and the CSV export at once. **Not done:** each screen's own strings — the
+  register's columns and footer, the library, templates, reports, calendar and
+  settings.
+- **Phase 5 — the language plumbing only.** AI answers now follow the READER's
+  language rather than the market's (both the server route and the browser-direct
+  route; they were reading the workspace's locale, which gave a Swedish reader in
+  a Kenyan workspace English and vice versa). Saved scans are stamped with the
+  language they were written in. **Not done:** the renderers do not yet read that
+  stamp back, so a saved Swedish scan still draws its labels in the reader's
+  current language.
+
+**Not started**
+
+- **Phase 4** — the negotiation workbench.
+- **Phase 6** — counterparty pages, share links and emails. The server can now
+  reach the dictionary and users carry a language, so the groundwork is in;
+  no email text has been translated.
+- **Phase 7.1, 7.3, 7.5** — layout overflow at real widths, switching from every
+  screen, and the browser-driven suite.
+
+**Honest summary:** the foundations and the highest-leverage shared surfaces are
+done and green. The bulk of the per-screen translation — the thousands of
+strings this plan sizes at weeks of work — is still ahead.
+
+**Test state:** the full Node suite passes. Three existing tests needed updating
+rather than the code: two lifted a slice of core.js that no longer carried a
+helper, and one pinned the tab row's old source shape.
+
+---
 
 This is the plan for serving Swedish customers alongside Kenyan ones. It replaces
 the VCFO handoff spec, which was written for a much smaller app and gets three

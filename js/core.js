@@ -296,11 +296,26 @@ function fieldDisplayValue(inp){
 // Closed/Expired=ruby. Internal status values stay Draft/Under Review/Signed/
 // Declined so filters, backend and logic are untouched — only the visible
 // chip label and colours change.
+/* THE KEYS ARE THE STORED VALUES AND NEVER MOVE; the labels are what a reader
+   sees and follow their language. `label` is a GETTER for that reason — every
+   existing call site (the register, the cards, the phone, reports, the graph,
+   the CSV export) reads `.label` exactly as it always did and gets the current
+   language without knowing this file changed. A plain string here would have
+   frozen the label at load and left every screen in whichever language the app
+   booted in. */
+const _stMeta = (key, en, dot, bg, tx, bd) => ({
+  /* Falls back to the ENGLISH WORD, never to the dictionary key. A label that
+     renders as `status_executed` on a chip reads as broken software; the same
+     chip reading "Executed" in an otherwise Swedish screen reads only as
+     untranslated. The fallback matters because this file is also evaluated in
+     places that do not load js/i18n.js. */
+  get label(){ return typeof t==='function' ? t(key) : en; },
+  dot, bg, tx, bd });
 const STATUS_META = {
-  'Draft':        {label:'Drafting',  dot:'var(--st-gray-dot)',  bg:'var(--st-gray-bg)',  tx:'var(--st-gray-fg)',  bd:'var(--st-gray-line)'},
-  'Under Review': {label:'In Review', dot:'var(--st-amber-dot)', bg:'var(--st-amber-bg)', tx:'var(--st-amber-fg)', bd:'var(--st-amber-line)'},
-  'Signed':       {label:'Executed',  dot:'var(--st-green-dot)', bg:'var(--st-green-bg)', tx:'var(--st-green-fg)', bd:'var(--st-green-line)'},
-  'Declined':     {label:'Closed',    dot:'var(--st-ruby-dot)',  bg:'var(--st-ruby-bg)',  tx:'var(--st-ruby-fg)',  bd:'var(--st-ruby-line)'},
+  'Draft':        _stMeta('status_drafting', 'Drafting',  'var(--st-gray-dot)',  'var(--st-gray-bg)',  'var(--st-gray-fg)',  'var(--st-gray-line)'),
+  'Under Review': _stMeta('status_in_review', 'In Review', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)'),
+  'Signed':       _stMeta('status_executed', 'Executed',  'var(--st-green-dot)', 'var(--st-green-bg)', 'var(--st-green-fg)', 'var(--st-green-line)'),
+  'Declined':     _stMeta('status_closed', 'Closed',    'var(--st-ruby-dot)',  'var(--st-ruby-bg)',  'var(--st-ruby-fg)',  'var(--st-ruby-line)'),
 };
 const statusLabel = s => (STATUS_META[s]||{}).label || s;
 
@@ -363,10 +378,10 @@ function contractPartiallySigned(c){
    never fully in force, and "Expired" would read as "it was". */
 const contractStage = c => contractPartiallySigned(c) ? 'Partially signed'
   : contractExpired(c) ? 'Expired' : (c&&c.status);
-const EXPIRED_META = {label:'Expired', dot:'var(--st-gray-dot)', bg:'var(--st-gray-bg)', tx:'var(--st-gray-fg)', bd:'var(--st-gray-line)'};
-const PARTIAL_META = {label:'Partially signed', dot:'var(--st-amber-dot)', bg:'var(--st-amber-bg)', tx:'var(--st-amber-fg)', bd:'var(--st-amber-line)'};
+const EXPIRED_META = _stMeta('status_expired', 'Expired', 'var(--st-gray-dot)', 'var(--st-gray-bg)', 'var(--st-gray-fg)', 'var(--st-gray-line)');
+const PARTIAL_META = _stMeta('status_partially_signed', 'Partially signed', 'var(--st-amber-dot)', 'var(--st-amber-bg)', 'var(--st-amber-fg)', 'var(--st-amber-line)');
 const contractStatusChip = c => contractPartiallySigned(c)
-  ? `<span class="badge" title="Sealed — awaiting the counterparty's signature. Copies go out when every party has signed." style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
+  ? `<span class="badge" title="${typeof t==='function'?t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
   : contractExpired(c)
   ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
   : statusChip(c&&c.status);

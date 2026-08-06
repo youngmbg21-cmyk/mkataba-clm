@@ -2353,15 +2353,18 @@ function wsTabDefaults(c){
    the order of the row moved. Opening a contract still LANDS on Document: you
    opened it to look at it, and the next-step button says where to go from
    there. */
+/* The second entry is a DICTIONARY KEY, not a label: this row is drawn by both
+   the workspace view and the redline view, and on the phone, so translating it
+   here reaches every one of them. */
 const ROOM_TABS=[
-  ['terms','Key terms'],['docs','Document'],['redline','Negotiate'],
-  ['sign','Signing'],['history','History'],
+  ['terms','tab_key_terms'],['docs','tab_document'],['redline','tab_negotiate'],
+  ['sign','tab_signing'],['history','tab_history'],
 ];
 function roomTabsHtml(c,active){
-  return `<div id="ws-tabs" class="room-tabs" role="tablist" aria-label="Contract room">${
-    ROOM_TABS.map(([k,label])=>{
+  return `<div id="ws-tabs" class="room-tabs" role="tablist" aria-label="${t('tab_room_aria')}">${
+    ROOM_TABS.map(([k,key])=>{
       const on=k===active;
-      return `<button type="button" data-ws-tab="${k}" data-room-tab="${k}" role="tab" aria-selected="${on}" class="room-tab${on?' on':''}">${label}${k==='redline'?negoTabCountHtml(c):''}</button>`;
+      return `<button type="button" data-ws-tab="${k}" data-room-tab="${k}" role="tab" aria-selected="${on}" class="room-tab${on?' on':''}">${t(key)}${k==='redline'?negoTabCountHtml(c):''}</button>`;
     }).join('')}</div>`;
 }
 /* The count of changes on the tab itself, and WHOSE turn it is in its colour.
