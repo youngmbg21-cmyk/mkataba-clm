@@ -69,8 +69,11 @@ import './mobile-portal.js';
    Administration, so it lights itself. A view with its own nav item must
    never appear here — that is how a screen ends up highlighting a door it
    does not live behind. */
-const NAV_HOME_FOR={ folder:'register', workspace:'register', redline:'register',
-  migration:'register' };
+/* A view with no door of its own lights the door it lives behind. Import has
+   its own door again, so it is no longer in here — leaving it would light
+   Contracts while you stood on the import page, which is how a sidebar comes
+   to disagree with the screen it is next to. */
+const NAV_HOME_FOR={ folder:'register', workspace:'register', redline:'register' };
 function setActiveNav(view){
   const navFor = NAV_HOME_FOR[view] || view;
   document.querySelectorAll('.nav-item').forEach(b=>{
@@ -467,8 +470,10 @@ function renderNewMenu(){
      re-renders the open menu when the list has moved. */
   const libTpls=(window.tplLibPublished&&canEdit())?tplLibPublished():[];
   /* WO N1: the three ways a contract gets INTO HaTi, in one menu, named for
-     what they do. "Import many at once" is the door to the bulk-import page
-     that used to sit in the sidebar as "Migration". */
+     what they do. "Import many at once" reaches the same bulk-import page the
+     sidebar's own "Import contracts" door does — deliberately two doors, since
+     this menu is where you go to START one and the sidebar is where you go to
+     RESUME one. */
   menu.innerHTML=`
     ${item('sparkle','var(--tile-steel-bg)','var(--tile-steel-fg)','Draft from a template','Pick a template &amp; answer a few questions','id="menu-wizard"')}
     ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}

@@ -1983,9 +1983,11 @@
            document and negotiation live INSIDE the contract (Docs · Negotiate
            tabs on its page), so Redline is no longer a sidebar door — the
            workbench keeps its route (view-redline) and is reached
-           from the contract. Bulk import ("Migration") moved into the + New
-           contract menu; the company playbook and clause library have their
-           own door under ADMINISTRATION as "Our standards" — it used to be
+           from the contract. Bulk import ("Import contracts") went into the
+           + New contract menu and has since come back to the sidebar as well,
+           because it is a job you resume rather than an act you perform — see
+           the note on its button. The company playbook and clause library have
+           their own door under ADMINISTRATION as "Our standards" — it used to be
            reached only through the Templates page, which gave a governance
            screen a home inside a drafting one. Every retired door stays a
            routable view, so saved links keep working. Only ADMINISTRATION
@@ -2021,6 +2023,21 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
+          </button>
+          <!-- Bulk import has its own door again. It was retired to the
+               "+ New contract" menu on the reasoning that the three ways a
+               contract gets in belong together — which is true of DRAFTING one
+               and UPLOADING one, both of which end with a contract on screen a
+               moment later. Importing a back-catalogue is not that act: it is a
+               job of work with a queue, a review pass and a Copilot budget, and
+               you come back to it across days. A menu called "+ New contract"
+               is where you go to make one, not where you go to resume one.
+               The menu entry stays — the two doors reach the same page. -->
+          <button data-view="migration" class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9.5"/><path d="m8 9 4 4 4-4"/><path d="M3 15h5l1.2 2.2h5.6L16 15h5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+            <span style="flex:1;">Import contracts</span><span class="nav-count" data-count="migration"
+              title="Imported contracts still waiting on a human review pass"></span>
           </button>
         </div>
       </div>
