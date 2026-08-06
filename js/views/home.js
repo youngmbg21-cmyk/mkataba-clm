@@ -61,11 +61,11 @@ function openKpiCustomizer(anchor){
       <span style="flex:1;">${KPI_META[id]}</span>
     </label>`;
   pop.innerHTML=`
-    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">Show metrics</div>
+    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">${t('home_show_metrics')}</div>
     ${kpiCatalogOrder().map(row).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
-      <span style="font-size:10.5px;color:var(--color-neutral-500);">Drag cards to reorder</span>
-      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">Reset</button>
+      <span style="font-size:10.5px;color:var(--color-neutral-500);">${t('home_drag_reorder')}</span>
+      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">${t('home_reset')}</button>
     </div>`;
   anchor.parentElement.style.position='relative';
   anchor.parentElement.appendChild(pop);
@@ -73,7 +73,7 @@ function openKpiCustomizer(anchor){
     const id=cb.getAttribute('data-kpi-toggle');
     let cur=currentKpiSel();
     if(cb.checked){ if(!cur.includes(id)) cur.push(id); }
-    else { if(cur.length<=1){ cb.checked=true; toast('Keep at least one metric','err'); return; } cur=cur.filter(x=>x!==id); }
+    else { if(cur.length<=1){ cb.checked=true; toast(t('home_keep_one_metric'),'err'); return; } cur=cur.filter(x=>x!==id); }
     setKpiSel(cur); renderDashboard();
   }));
   pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ setKpiSel(DEFAULT_KPI_SEL.slice()); renderDashboard(); });
@@ -113,7 +113,7 @@ function readyToSignRowsHtml(items){
   if(!items||!items.length) return '';
   return `
     <div style="margin-bottom:10px" id="dd-ready-rows">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--st-green-fg);margin-bottom:5px">Ready to sign — issue a signing link</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--st-green-fg);margin-bottom:5px">${t('home_ready_to_sign')}</div>
       ${items.slice(0,6).map(r=>`
         <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
@@ -199,7 +199,7 @@ function gettingStartedHtml(){
         <span style="display:block;font-size:12.5px;font-weight:600;color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
         ${isCur?`<span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
       </span>
-      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:11.5px;font-weight:600;color:var(--color-accent-700)">Go &rarr;</span>`:''}`;
+      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:11.5px;font-weight:600;color:var(--color-accent-700)">${t('home_go')}</span>`:''}`;
     /* The whole current row is the button — a target the size of the step,
        not a link the size of an arrow. */
     return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
@@ -212,7 +212,7 @@ function gettingStartedHtml(){
         <h2 style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:14.5px;color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
         <span style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
         <span style="flex:1"></span>
-        <button id="gs-dismiss" class="ui-btn" title="Hide this checklist — it will not come back" style="font-size:11px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
+        <button id="gs-dismiss" class="ui-btn" title="${t('home_hide_checklist')}" style="font-size:11px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
       </div>
       <div style="height:6px;border-radius:4px;background:var(--color-neutral-100);margin-bottom:10px"><i style="display:block;height:100%;border-radius:4px;background:var(--color-accent);width:${Math.round(done/steps.length*100)}%"></i></div>
       ${all?`<p style="margin:0;font-size:12px;color:var(--color-neutral-600);line-height:1.55">Your workspace has done the whole journey — a contract in, scanned, sent and signed. Everything from here is more of the same.</p>`:rows}
@@ -358,8 +358,8 @@ function hmDashSlices(){
        `days >= 0`, so a contract dropped out of all three on the morning its
        term ended — the one day it most needed somebody to look at it. */
     expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString(jxLocale()),    delta:money?`${fmtMoneyShort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
-    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:`${onExecuted} on executed paper`, sub:'risk score 60 or above', grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
-    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', sub:'draft to signed, from the audit trail', grad:G.green, ic:'clock',    go:{stage:'Signed'}},
+    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:`${onExecuted} on executed paper`, get sub(){ return t('home_risk_60'); }, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
+    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', get sub(){ return t('home_draft_to_signed'); }, grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -380,8 +380,8 @@ function emailSetupLineHtml(){
   return `
     <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:10px;font-size:11.5px;color:var(--st-amber-fg);line-height:1.45;">
       <span style="flex:none;display:inline-flex;color:var(--st-amber-dot);">${icon('alert','w-3.5 h-3.5')}</span>
-      <span style="flex:1;min-width:0;">Email isn’t set up — review links and signing codes have to be copied out by hand.</span>
-      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">Set it up</button>`:''}
+      <span style="flex:1;min-width:0;">${t('home_email_not_setup')}</span>
+      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${t('home_set_it_up')}</button>`:''}
     </div>`;
 }
 
@@ -463,9 +463,9 @@ function renderDashboard(){
      still works. "Closed" is not a lifecycle stage you work in, so it keeps its
      place on the bar below rather than taking a fourth column. */
   const PIPE_DEF=[
-    {k:'Draft',        n:1, title:'Draft & Template',  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)',                              chip:'var(--color-neutral-100)'},
-    {k:'Under Review', n:2, title:'Review & Redline',  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
-    {k:'Signed',       n:3, title:'Sign & Executed',   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
+    {k:'Draft',        n:1, get title(){ return t('home_stage_draft'); },  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)',                              chip:'var(--color-neutral-100)'},
+    {k:'Under Review', n:2, get title(){ return t('home_stage_review'); },  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
+    {k:'Signed',       n:3, get title(){ return t('home_stage_sign'); },   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
   ];
   const pipeDocCard=(c,st)=>{
     const risky=st.k==='Under Review'&&contractRisk(c)>=60;
@@ -475,7 +475,7 @@ function renderDashboard(){
     return `<button data-sel="${c.id}" style="display:block;width:100%;text-align:left;padding:9px 10px;border-radius:10px;background:var(--color-surface);border:1px solid ${st.bd};font:inherit;color:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='${st.bd}'">
       <span style="display:flex;align-items:flex-start;justify-content:space-between;gap:7px;">
         <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${esc(c.name)}</span>
-        ${risky?`<span style="flex:none;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--st-amber-bg);color:var(--st-amber-fg);">Action</span>`:''}
+        ${risky?`<span style="flex:none;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${t('home_action')}</span>`:''}
       </span>
       <span style="display:block;margin-top:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</span>
     </button>`;
@@ -498,7 +498,7 @@ function renderDashboard(){
         <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${list.length} doc${list.length===1?'':'s'}</span>
       </button>
       <div class="hm-pipe-list scroll-thin" style="display:flex;flex-direction:column;gap:7px;">
-        ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">Nothing at this stage.</div>`}
+        ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">${t('home_nothing_at_stage')}</div>`}
       </div>
       ${list.length>shown.length?`<button data-stage="${st.k}" style="flex:none;border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">+ ${list.length-shown.length} more →</button>`:''}
     </div>`;
@@ -506,8 +506,8 @@ function renderDashboard(){
   const lifecycleSection=`
     <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
       <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">Active contract lifecycle pipeline</h4>
-        <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">View full register →</button>
+        <h4 style="font-size:15px;margin:0;font-weight:700;">${t('home_pipeline_aria')}</h4>
+        <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">${t('home_view_register')}</button>
       </div>
       <div class="hm-pipe-cols" style="display:grid;gap:11px;">${pipeCols}</div>
     </section>`;
@@ -546,7 +546,7 @@ function renderDashboard(){
         <span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
       </span>
     </button>`; }).join('')
-    || `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>Nothing to decide — you're all caught up.</div>`;
+    || `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${t('home_nothing_to_decide')}</div>`;
   /* The footer link has to lead where the rows actually live, and this card
      holds two different kinds of item. A renewal decision is a date, so the
      calendar is its home; a contract sitting in review is not on any calendar —
@@ -566,7 +566,7 @@ function renderDashboard(){
   const activitySection=`
     <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">Decisions due</h4>
+        <h4 style="font-size:15px;margin:0;font-weight:700;">${t('home_decisions_due')}</h4>
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'#f59e0b':'#10b981'};flex:none;"></span>
         ${decisionItems.length?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
@@ -581,20 +581,20 @@ function renderDashboard(){
      additive, so nothing that already renders disappears. */
   const firstRunBanner = countAll===0 ? `
     <section style="border:1px solid var(--color-divider);border-radius:14px;background:var(--color-surface);padding:22px 22px 20px;">
-      <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">Welcome — let's put your first contract in.</h2>
-      <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">Your workspace is ready. Start one of three ways — you can always do the others later.</p>
+      <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">${t('home_welcome')}</h2>
+      <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">${t('home_welcome_sub')}</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
         <button id="fr-draft" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Draft a contract</div>
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${t('home_draft_contract')}</div>
           <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
         </button>
         <button id="fr-import" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Import your existing contracts</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Drop a back-catalogue of PDFs or scans — HaTi extracts the terms and files them for you.</div>
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${t('home_import_existing')}</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${t('home_import_sub')}</div>
         </button>
         <button id="fr-explore" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Explore the register</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">See where contracts live once they're in — search, filters, stages and export.</div>
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${t('home_explore_register')}</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${t('home_explore_sub')}</div>
         </button>
       </div>
     </section>` : '';
@@ -614,8 +614,8 @@ function renderDashboard(){
     <!-- KPI ribbon — customizable gradient hero cards (pick, drag to reorder) -->
     <section>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">Key metrics</span>
-        <button id="kpi-customize" class="ui-btn" title="Choose which metrics to show" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${t('home_key_metrics')}</span>
+        <button id="kpi-customize" class="ui-btn" title="${t('home_choose_metrics')}" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
           Customize
         </button>
