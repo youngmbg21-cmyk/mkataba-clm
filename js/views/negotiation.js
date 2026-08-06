@@ -2738,6 +2738,20 @@ function negoIndexSendHtml(c, opts = {}){
     </div>`;
   }
   if (me !== 'counterparty') return '';
+  /* ---- THE PREVIEW SEAT SAYS WHAT IT IS, ALWAYS ----
+     Above the pending-count check on purpose. This line is not a status about
+     unsent work — it is the answer to "where is the send?", and that question
+     is asked hardest when the column looks ready to send and offers nothing.
+     Below the check it only rendered when something was pending, which is the
+     one case it did not need to explain. */
+  if (opts.preview){
+    const org = _ne(String(opts.org || window.FIRST_PARTY || 'the other side'));
+    return `<div class="nego-index-send">
+      <span class="why">This is a PREVIEW of their seat, not their seat. Anything entered here is
+      stamped as entered by you on their behalf, and only they can send — from their own link.
+      Nothing on this view reaches ${org} or moves whose turn it is.</span>
+    </div>`;
+  }
   const n = opts.pendingDecisions || 0;
   /* WORDING THEY HAVE ASKED FOR COUNTS TOO, and leaving it out was a dead end
      with no bottom. This postbox counted decisions only — answers to the
@@ -5498,6 +5512,12 @@ function redlineLayoutCss(){
   .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
   html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
   html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
+  /* The on-behalf stamp reads as a CAUTION, not as decoration: it is the line
+     that stops a card being taken as something the other side sent. */
+  .redline-page .rl-card-behalf{margin-top:6px;border-left:2px solid var(--st-amber-dot);
+    background:var(--st-amber-bg);border-radius:0 4px 4px 0;padding:5px 9px;
+    font-size:10.5px;font-weight:600;line-height:1.5;color:var(--st-amber-fg);
+    overflow-wrap:anywhere}
   .redline-page .rl-card-why{margin-top:6px;border-left:2px solid var(--color-accent);
     background:color-mix(in srgb,var(--color-accent) 6%,transparent);border-radius:0 4px 4px 0;
     padding:6px 9px;font-size:11.5px;line-height:1.55;color:var(--color-text);
@@ -6421,10 +6441,10 @@ function renderRedline(){
                not depend on another page's module being present. */}
         <div class="rl-actions">
           <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
-          <button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
+          ${side === 'counterparty' ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-            ${_ne(sendLabel)}</button>
-          ${closer}
+            ${_ne(sendLabel)}</button>`}
+          ${side === 'counterparty' ? '' : closer}
         </div>
       </section>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
@@ -6506,7 +6526,16 @@ function renderRedline(){
      layout exactly as it binds to its own. */
   const mount = document.getElementById('redline-host');
   negoEnsureStyle();
-  const opts = { hostId: 'redline-host', side,
+  /* ---- THIS IS A PREVIEW OF THEIR SEAT, NOT THEIR SEAT ----
+     Counterparty View exists so the owner can check what crosses the wall
+     before it does. It is the same component with the side flag flipped, so it
+     also came with their SEND — which on this page is negoHandOver, a turn
+     move recorded as made BY the counterparty. Pressing it produced a record
+     of the other side handing the table back when they had done nothing at
+     all. Nothing needs to travel from here in any case: both sides of this
+     toggle read the same record, so an ask entered on their behalf is already
+     on it. The send is theirs alone, on their own link. */
+  const opts = { hostId: 'redline-host', side, preview: side === 'counterparty',
     /* ---------- A SEALED CONTRACT SHOWS NO VERBS ----------
        The closed banner at negoBannerHtml has fired on 'Signed' for a long
        time, and the panes underneath it went on rendering Direct Edit, Propose
@@ -8681,6 +8710,16 @@ function redlineChangeCardsHtml(c, opts = {}){
     const whyBlock = ch.why
       ? `<div class="rl-card-why"><span class="rl-card-why-k">Why they asked</span><span class="nego-why-clamp">${_ne(ch.why)}</span></div>`
       : '';
+    /* ---- AND WHO PUT IT THERE, WHEN THAT IS NOT WHO IT IS FROM ----
+       An ask entered from this workspace wearing the counterparty's hat is
+       recorded in their name — correctly, it IS their ask — but a card saying
+       only that is a card claiming they sent it. The stamp is on the change
+       itself (negoFileChange sets enteredBy), so it travels into the audit
+       trail and the exports; this is it on the face of the card. */
+    const behalfBlock = ch.enteredBy
+      ? `<div class="rl-card-behalf" title="Typed on this workspace on their behalf — it did not arrive through their link">`
+        + `<span aria-hidden="true">&#9998;</span> Entered by ${_ne(ch.enteredBy)} on behalf of ${_ne(ch.author)}</div>`
+      : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
        card and not only the decidable ones: revising your own ask is the most
@@ -8793,7 +8832,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        column — repainting on mouseenter would fight the pointer and drop the
        node the event came from. Safe only because of the exemption above: a
        card that can be in the hidden state carries nothing but inert verbs. */
-    const body = `<div class="rl-card-body">${whyBlock}${
+    const body = `<div class="rl-card-body">${behalfBlock}${whyBlock}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"

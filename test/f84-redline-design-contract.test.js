@@ -434,7 +434,15 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
 
   test('and it carries their words instead — on the column\'s own control', async () => {
     const p = await asCounterparty();
-    assert.ok(/Send Response/.test(headerLabels(p).join(' | ')));
+    /* The send that used to be asserted here is GONE, and that is the stronger
+       version of this test's own claim. It read "Send Response" and pointed at
+       the counterparty postbox — which on the owner's page is negoHandOver, a
+       turn move recorded as made BY the counterparty. Offering it from a
+       preview meant the owner could produce a record of the other side handing
+       the table back having done nothing. Counterparty View is for checking
+       what crosses the wall; sending is theirs, on their own link. */
+    assert.ok(!/Send Response/.test(headerLabels(p).join(' | ')),
+      'the preview seat offers no send — it cannot move the table in their name');
     assert.match(p.doc.getElementById('nego-bulk-acc').textContent, /Accept all/,
       'the bulk verb is seat-relative where it actually renders — the column head');
   });
@@ -451,10 +459,19 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'the blast identity lives on the engine\'s own send, nowhere else');
   });
 
-  test('the ACT is untouched — only the placement moved', async () => {
+  test('and no send survives anywhere on the preview seat', async () => {
+    /* Was: "the ACT is untouched — only the placement moved", asserting the
+       header proxy onto the counterparty postbox. Both the proxy and the
+       postbox are gone from this seat now — see the test above. Asserted in
+       both places, because a proxy left behind when its target goes is how a
+       removed control comes back. */
     const p = await asCounterparty();
-    assert.ok(p.$('[data-redline-proxy="nego-send-decisions"]'),
-      'the header\'s send still points at the counterparty postbox, as it already did');
+    assert.equal(p.$('[data-redline-proxy="nego-send-decisions"]'), null,
+      'no header proxy onto their postbox');
+    assert.equal(p.doc.getElementById('nego-send-decisions'), null,
+      'and no postbox for it to point at');
+    assert.match(p.doc.querySelector('.nego-index-send .why').textContent, /PREVIEW of their seat/,
+      'the column says what this seat is, rather than going quiet');
   });
 
   test('flipping back restores the owner\'s own words', async () => {

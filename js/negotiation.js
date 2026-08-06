@@ -939,6 +939,35 @@ async function negoFileChange(c, draft, opts = {}){
   const author = String(opts.author || (side === 'owner'
     ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
     : (c.counterparty || 'The counterparty'))).trim();
+  /* ---- WHO ACTUALLY TYPED IT, WHEN THAT IS NOT WHO IT IS FROM ----
+
+     The workbench is one component with a side flag, so the owner's
+     "Counterparty View" is not a preview of their seat — it IS their seat, and
+     anything filed from it was recorded in the counterparty's name with
+     nothing anywhere saying otherwise. An owner could produce a fingerprinted,
+     hash-chained record of the other side asking for something they never
+     asked for. On a product whose whole worth is that the negotiation record
+     is trustworthy evidence, that is the one thing it must not be able to do
+     quietly.
+
+     Entering a change on their behalf is a REAL need — they email a marked-up
+     PDF and somebody types it in — so it is not forbidden. It is stamped.
+
+     WORKED OUT HERE, IN THE FUNNEL, AND BY DEFAULT. Every genuine inbound
+     route already says where it came from: applyResponse and
+     applyNegoProposals set `via` to their link, the Word round-trip to the
+     returned file, and the counterparty's own page runs in PORTAL_MODE. So a
+     counterparty-side change with no origin, filed on a logged-in workspace,
+     was typed by the person sitting there. Defaulting to honesty means a
+     future caller that forgets to declare itself gets stamped rather than
+     getting anonymity — the failure lands on the safe side. */
+  const enteredBy = (side === 'counterparty'
+      && !(typeof window !== 'undefined' && window.PORTAL_MODE)
+      && !opts.via
+      && !opts.enteredBy0
+      && (window.currentUser && window.currentUser()?.name))
+    ? String(window.currentUser().name).trim()
+    : (opts.enteredBy || null);
   const at = opts.at || (window.nowISO ? window.nowISO() : new Date().toISOString());
   const roundN = opts.roundN != null ? opts.roundN : negoRound(c);
 
@@ -1010,6 +1039,9 @@ async function negoFileChange(c, draft, opts = {}){
     revisions: [],
     status: 'pending',
     author, authorSide: side,
+    /* Null on everything that genuinely came from them — see above. Set only
+       when somebody on this workspace typed it wearing their hat. */
+    enteredBy: enteredBy || null,
     createdAt: at, updatedAt: at,
     roundN,
     clauseLabel: draft.clauseLabel || negoClauseLabel(cl) || null,
@@ -1033,7 +1065,11 @@ async function negoFileChange(c, draft, opts = {}){
   if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
     `#${ch.id} proposed by ${author} in round ${roundN} — “${ch.summary}”` +
     ` on ${ch.clauseLabel || ch.clauseId} · fingerprint ${ch.hash}` +
-    `${side === 'counterparty' ? ' (the counterparty\'s wording, recorded in their name)' : ''}` +
+    `${side === 'counterparty' && !enteredBy ? ' (the counterparty\'s wording, recorded in their name)' : ''}` +
+    /* The trail must never read as "they asked for this" when somebody here
+       typed it. It names both parties to the act: whose ask it is, and whose
+       hands entered it. */
+    `${enteredBy ? ` — ENTERED BY ${enteredBy} on behalf of ${author}, not received from them` : ''}` +
     `${opts.via ? ` · received via ${opts.via}` : ''}`);
   return ch;
 }

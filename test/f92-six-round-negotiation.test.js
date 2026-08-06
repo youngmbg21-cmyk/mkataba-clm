@@ -178,10 +178,24 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.ok(!t.card(counter.id).querySelector('.rl-acc'),
       'and no Accept on their own ask');
 
-    // Hand the table back — the control G2 restored.
-    const back = t.doc.getElementById('nego-send-decisions');
-    assert.ok(back, 'G2: Counterparty View must be able to hand the contract back');
-    back.click();
+    /* Hand the table back.
+
+       THE BUTTON THAT USED TO DO THIS IS GONE, deliberately. Counterparty View
+       is a PREVIEW of their seat — its purpose is checking what crosses the
+       wall before it does — and it came with their send, which on this page is
+       negoHandOver recorded as a move made BY the counterparty. Pressing it
+       produced a record of the other side handing the table back when they had
+       done nothing at all, on a product whose worth is that the record is
+       trustworthy. The seat now says so in the change column, and only their
+       own link can send.
+
+       The six rounds this file walks are unaffected: the turn move is what the
+       simulation needs, so it is made directly. Asserted as ABSENT from the
+       preview as well, so the button cannot quietly return. */
+    assert.equal(t.doc.getElementById('nego-send-decisions'), null,
+      'the preview seat offers no send — only their own link can move the table');
+    win.negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });
+    win.renderRedline();
     await t.pause();
     assert.equal(win.negoTurn(c), 'owner');
 
@@ -234,7 +248,9 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.equal(thread.filter(m => m.visibility === 'shared').length, 1, 'the reply travelled shared');
     t.card(storage.id).querySelector('[data-nego-accept]').click();
     await t.pause();
-    t.doc.getElementById('nego-send-decisions').click();
+    // the preview seat has no send — see the note in round 2
+    win.negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });
+    win.renderRedline();
     await t.pause();
     assert.equal(win.negoTurn(c), 'owner');
 
@@ -295,7 +311,9 @@ describe('F92 — the six-round negotiation, end to end', () => {
     await t.pause();
     t.card(gl.id).querySelector('[data-nego-accept]').click();
     await t.pause();
-    t.doc.getElementById('nego-send-decisions').click();
+    // the preview seat has no send — see the note in round 2
+    win.negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });
+    win.renderRedline();
     await t.pause();
     t.view('owner');
     await t.pause();
