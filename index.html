@@ -97,6 +97,14 @@
   :root{
     --color-bg:#f8fafc;
     --color-surface:#ffffff;
+    /* THE COPILOT'S CONVERSATION AREA IS ITS OWN SURFACE. It was --color-bg,
+       which is the PAGE's background — so the panel's feed was painted the
+       exact colour of the platform behind it and the drawer had no visible
+       body of its own, only a shadow at its edge. It is a third tone now:
+       apart from the page it floats over and apart from the white cards and
+       the panel's own header and footer, so the conversation reads as a
+       surface rather than as a hole. */
+    --color-chat-bg:#eef2f7;
     --color-text:#1e293b;
     /* The one-word accent IS step 600 of the ramp — the two were the same
        colour typed twice, which is how a theme moves one and forgets the other. */
@@ -262,6 +270,11 @@
   html.dark{
     --color-bg:#020617;
     --color-surface:#0f172a;
+    /* Dark had the same fault and worse: page and feed were both #020617, the
+       darkest tone in the theme, so the panel simply merged with the page.
+       Lifted BETWEEN the page and the panel's surface — raised enough to read
+       as a layer without becoming a light patch in a dark room. */
+    --color-chat-bg:#0a1122;
     --color-text:#e2e8f0;
     --color-divider:#1e293b;
 
@@ -2301,7 +2314,7 @@
     <button id="ai-close" title="Close" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="x"></button>
   </header>
 
-  <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4" style="background:var(--color-bg);"></div>
+  <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4" style="background:var(--color-chat-bg);"></div>
 
   <!-- How much to say, and in what register. Above the input because it
        changes the NEXT answer, not the ones already on the screen. -->

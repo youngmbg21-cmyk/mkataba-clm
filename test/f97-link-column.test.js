@@ -72,10 +72,36 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
     assert.equal(titled.length, 2, 'a column heading of one word earns a sentence');
   });
 
-  test('both tables carry the legend', () => {
+  /* ONE LEGEND, AND IT IS THE FOLDER PAGE'S. Both tables used to carry it. The
+     register's footer also carries the count, the pager, the page size and the
+     value-stream key, and with the link states as well it wrapped to two lines
+     and read as a wall — reported from a real workspace.
+
+     What makes dropping it safe there is that the column explains itself where
+     a reader is already looking: it has a heading, the heading has a sentence
+     on hover, and every dot names its own state. The folder page keeps the key
+     because its strip holds nothing else, and those marks are the reason the
+     strip was added. Both halves are asserted, so the key cannot be removed
+     from the register's sibling without the replacement still being true. */
+  test('the folder page carries the link legend, and the register does not', () => {
     const legends = reg.match(/shareLegendHtml\(/g) || [];
-    assert.equal(legends.length, 2,
-      'a column of coloured marks with no key is what started this');
+    assert.equal(legends.length, 1, 'the folder page still keys its marks');
+    const foot = reg.slice(reg.indexOf('<span id="reg-showing">'));
+    assert.ok(!/shareLegendHtml\(/.test(foot),
+      'the register footer was the crowded one; the link key came out of it');
+    assert.ok(/folderLegendHtml\(/.test(foot),
+      'the value-stream key stays — the row edge-stripe has no other explanation');
+  });
+
+  test('and the register column still explains itself without one', () => {
+    /* A column of coloured marks with no key is what started this, so removing
+       the key is only allowed while the marks answer for themselves. */
+    assert.match(reg, /title="\$\{i18t\('reg_link_title'\)\}"/,
+      'the heading keeps its sentence');
+    const core = fs.readFileSync(path.join(ROOT, 'js', 'core.js'), 'utf8');
+    const dot = core.slice(core.indexOf('const shareDot = cid =>'));
+    assert.match(dot.slice(0, dot.indexOf('};')), /title="\$\{i18t\('co_link_label'/,
+      'and every dot names its own state on hover');
   });
 
   test('the full-width rows were widened with the tables', () => {

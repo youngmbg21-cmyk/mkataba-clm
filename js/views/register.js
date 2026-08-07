@@ -665,9 +665,16 @@ function renderRegister(){
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:5px 12px;font-size:11px;color:var(--color-neutral-600)">
           <span id="reg-showing">${regFooterText(cs)}</span>
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
-          <!-- the legend explains the coloured row edge-stripe, so it lives
-               with the table it annotates rather than as a band above it -->
-          ${window.shareLegendHtml?shareLegendHtml({style:'font-size:10.5px'}):''}
+          ${''/* ONE LEGEND DOWN HERE, NOT TWO. The strip carried both the link
+                 states (sent · opened · changes · signed · declined · not sent)
+                 and the value streams, and between them and the count and the
+                 pager it wrapped to two lines and read as a wall. The value
+                 streams key stays because the stripe down the left edge of
+                 every row is the thing on this page with no other explanation;
+                 the LINK column has a heading and every dot names its own state
+                 on hover, so it explains itself where a reader is already
+                 looking. The folder page keeps its link key — there the strip
+                 holds nothing else, and the marks are why it exists. */}
           ${folderLegendHtml({style:'font-size:10.5px'})}
           <span>${i18t('reg_per_page',{n:REG_PAGE})}</span>
         </div>

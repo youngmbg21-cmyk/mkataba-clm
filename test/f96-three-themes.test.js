@@ -217,3 +217,40 @@ describe('F96 — Navy changes colour and nothing else', () => {
       'the status palette sits outside any theme block');
   });
 });
+
+/* ============================================================ */
+describe('F96 — the Copilot is a layer, not a hole', () => {
+  const css = src('index.html');
+
+  /* WHAT WENT WRONG. The conversation area was painted var(--color-bg) — the
+     PAGE's own background — so in every theme the drawer's body was exactly
+     the colour of the platform behind it and the panel had no visible surface
+     of its own, only a shadow at its edge. Worst in dark, where page and feed
+     were both the darkest tone the theme owns. */
+  test('the chat backdrop has a token of its own', () => {
+    assert.match(css, /id="ai-feed"[^>]*style="background:var\(--color-chat-bg\);"/,
+      'the feed must not borrow the page background');
+  });
+
+  /* Read the value out of each palette block rather than trusting one
+     definition: a theme that overrides --color-bg and forgets this is exactly
+     how the blend comes back. */
+  const tokenIn = (blockStart, name) => {
+    const at = css.indexOf(blockStart);
+    assert.ok(at > 0, 'the ' + name + ' palette is still there');
+    const block = css.slice(at, css.indexOf('\n  }', at));
+    const grab = k => (block.match(new RegExp('--' + k + ':\\s*(#[0-9a-fA-F]{3,8})')) || [])[1];
+    return { bg: grab('color-bg'), surface: grab('color-surface'), chat: grab('color-chat-bg') };
+  };
+
+  for (const [start, name] of [['  :root{\n    --color-bg:', 'light'], ['  html.dark{\n    --color-bg:', 'dark']]) {
+    test(`${name}: the chat backdrop is its own tone, apart from the page and the panel`, () => {
+      const t = tokenIn(start, name);
+      assert.ok(t.bg && t.surface && t.chat, `${name} defines all three`);
+      assert.notEqual(t.chat.toLowerCase(), t.bg.toLowerCase(),
+        'the same colour as the page is the blend this fixes');
+      assert.notEqual(t.chat.toLowerCase(), t.surface.toLowerCase(),
+        'the same colour as the panel leaves the conversation with no edge');
+    });
+  }
+});
