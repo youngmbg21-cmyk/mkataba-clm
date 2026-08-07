@@ -1,0 +1,112 @@
+:root{
+  --ink:#16202B;
+  --ink-soft:#41535F;
+  --paper:#F1F3F2;
+  --card:#FFFFFF;
+  --rule:#D6DCDA;
+  --se:#2F6DB4;        /* Sweden */
+  --ke:#C8871A;        /* Kenya */
+  --verified:#2E7D5B;
+  --estimate:#8A7A2E;
+  --assumption:#B4462F;
+  --shadow:0 1px 2px rgba(22,32,43,.06), 0 8px 24px rgba(22,32,43,.05);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:15px; line-height:1.5;
+}
+.num,input[type=number],.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:"Bricolage Grotesque",Georgia,serif;font-weight:800;letter-spacing:-.02em;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* ---------- header ---------- */
+header{background:var(--ink);color:#EAF0EE;padding:26px 0 0}
+.hd{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between}
+h1{font-size:30px;color:#fff}
+.tag{font-size:12.5px;color:#9DB0BC;max-width:460px;margin-top:6px}
+.meter{min-width:230px}
+.meter .lbl{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:#9DB0BC;display:flex;justify-content:space-between}
+.bar{height:6px;background:#2C3B49;border-radius:3px;margin-top:7px;overflow:hidden;display:flex}
+.bar i{display:block;height:100%;transition:width .3s ease}
+nav{display:flex;gap:2px;margin-top:22px;overflow-x:auto}
+nav button{
+  background:none;border:0;color:#9DB0BC;font-family:inherit;font-size:14px;cursor:pointer;
+  padding:11px 16px;border-bottom:3px solid transparent;white-space:nowrap
+}
+nav button:hover{color:#fff}
+nav button[aria-selected=true]{color:#fff;border-bottom-color:var(--ke);background:rgba(255,255,255,.05)}
+.who{font-size:11.5px;color:#9DB0BC;display:flex;align-items:center;gap:10px}
+.who button{background:none;border:1px solid #3B4A58;color:#9DB0BC;border-radius:6px;padding:3px 9px;font-family:inherit;font-size:11.5px;cursor:pointer}
+.who button:hover{color:#fff;border-color:#5A6C7A}
+
+/* ---------- layout ---------- */
+main{padding:28px 0 80px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}
+.card > h2{font-size:19px}
+.card > .sub{font-size:13px;color:var(--ink-soft);margin:5px 0 16px;max-width:70ch}
+.row{display:grid;gap:18px;grid-template-columns:1fr 1fr}
+@media(max-width:820px){.row{grid-template-columns:1fr}}
+
+/* the meridian: Sweden left, Kenya right, always paired */
+.split{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 26px}
+.split .rule{background:var(--rule)}
+.mkt{font-family:"Bricolage Grotesque";font-weight:800;font-size:12px;letter-spacing:.13em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.mkt::before{content:"";width:10px;height:10px;border-radius:2px;background:currentColor}
+.se{color:var(--se)} .ke{color:var(--ke)}
+@media(max-width:820px){.split{grid-template-columns:1fr}.split .rule{height:1px;margin:18px 0}}
+
+/* ---------- fields ---------- */
+.field{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dotted var(--rule)}
+.field:last-child{border-bottom:0}
+.field label{flex:1;font-size:13.5px}
+.field .hint{display:block;font-size:11.5px;color:var(--ink-soft)}
+input[type=number],input[type=text],select{
+  border:1px solid var(--rule);border-radius:6px;padding:6px 8px;font-size:13.5px;
+  background:#fff;color:var(--ink);width:108px;text-align:right;font-family:"IBM Plex Mono",monospace
+}
+input[type=text]{text-align:left;font-family:"IBM Plex Sans",sans-serif;width:150px}
+select{width:auto;text-align:left;font-family:"IBM Plex Sans",sans-serif}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--se);outline-offset:1px}
+.unit{font-size:11.5px;color:var(--ink-soft);width:34px}
+
+/* confidence chip — the structural device: every number states how much we trust it */
+.chip{
+  border:1px solid;border-radius:20px;padding:2px 9px;font-size:10.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;cursor:pointer;background:#fff;white-space:nowrap;
+  font-family:"IBM Plex Sans",sans-serif
+}
+.chip[data-c=A]{color:var(--assumption);border-color:#E8C6BD;background:#FDF4F1}
+.chip[data-c=E]{color:var(--estimate);border-color:#E2DBB6;background:#FBF9EE}
+.chip[data-c=V]{color:var(--verified);border-color:#B9D9C9;background:#F0F8F4}
+
+/* ---------- readouts ---------- */
+.stat{border-left:3px solid var(--rule);padding:2px 0 2px 12px;margin:14px 0}
+.stat b{display:block;font-family:"IBM Plex Mono";font-size:26px;font-weight:600;letter-spacing:-.02em}
+.stat span{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+.stat.good{border-color:var(--verified)} .stat.warn{border-color:var(--assumption)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:8px 6px;border-bottom:1px solid var(--rule)}
+td{padding:8px 6px;border-bottom:1px solid #EDF0EF}
+th.r,td.r{text-align:right}
+.scroll{overflow-x:auto}
+.btn{background:var(--ink);color:#fff;border:0;border-radius:7px;padding:9px 15px;font-family:inherit;font-size:13.5px;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--rule)}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.note{background:#F7F9F8;border:1px solid var(--rule);border-left:3px solid var(--ke);border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:var(--ink-soft);margin-top:14px}
+.note.warn{border-left-color:var(--assumption)}
+textarea{width:100%;min-height:190px;border:1px solid var(--rule);border-radius:8px;padding:12px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.6;color:var(--ink);background:#fff}
+.qbtn{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--rule);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-family:inherit;font-size:13.5px;cursor:pointer;color:var(--ink)}
+.qbtn:hover{border-color:var(--se)}
+
+/* ---------- sign in ---------- */
+.signin{max-width:420px;margin:12vh auto;padding:0 20px}
+.signin .card{padding:28px}
+.signin input[type=text]{width:100%;text-align:left}
+.signin .btn{width:100%;margin-top:12px}
+
+/* ---------- saving indicator ---------- */
+.saving{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+.saving.on{color:var(--se)}
+.err{background:#FDF4F1;border:1px solid #E8C6BD;color:var(--assumption);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:14px}

@@ -1,0 +1,26 @@
+{
+  "name": "hati-strategy-room",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Pricing, growth and profitability model for HaTi across Sweden and Kenya",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.72.0",
+    "@supabase/supabase-js": "^2.58.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.0",
+    "vite": "^7.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
