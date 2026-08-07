@@ -1850,6 +1850,10 @@ const STRINGS = {
     empty_nothing_here: 'Nothing here yet.',
     loading: 'Loading…',
 
+    // ---- the workbench's own view toggle ----
+    ng_internal_view: 'Internal View',
+    ng_counterparty_view: 'Counterparty View',
+
     // ---- the register: renewal filter option ----
     reg_renew_auto: 'Auto-renew',
 
@@ -4357,6 +4361,10 @@ const STRINGS = {
     err_offline: 'Du verkar vara offline.',
     empty_nothing_here: 'Inget här ännu.',
     loading: 'Laddar…',
+
+    // ---- the workbench's own view toggle ----
+    ng_internal_view: 'Intern vy',
+    ng_counterparty_view: 'Motpartens vy',
 
     // ---- the register: renewal filter option ----
     reg_renew_auto: 'Automatisk förnyelse',

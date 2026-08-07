@@ -385,7 +385,7 @@ function openContractEssentials(opts){
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
       <button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
-      <button id="ce-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">Skip for now</button>
+      <button id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
       <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
     </div></div>`, { maxWidth:'620px' });
 

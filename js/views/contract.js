@@ -4056,7 +4056,7 @@ function renderWorkspace(){
       <div class="terms-grid">
       <div style="${CARD};padding:16px 18px;align-self:start">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">Key terms</h6>
+          <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('tab_key_terms')}</h6>
           ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('ct_confirmed')}</span>`:''}
           ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="${i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
         </div>
