@@ -334,7 +334,7 @@ function renderScanSection(c){
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">${i18t('ai_suggested_fix')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
             ${(findingQuote(x)||(x.anchor&&x.anchor!=='doc'&&document.querySelector(`#doc-canvas [data-anchor="${x.anchor}"]`)))
-              ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} Go to the wording</button>`
+              ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} ${i18t('ai_go_to_wording')}</button>`
               : `<span class="text-[11px] text-brand-800/45">${i18t('ai_whole_document')}</span>`}
             <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">${i18t('ai_dismiss')}</button>
           </div>
@@ -832,7 +832,7 @@ function aiContractCard(c){
 const aiCards = list => {
   if(list.length<=3) return `<div class="space-y-1.5">${list.map(aiContractCard).join('')}</div>`;
   return `<div class="space-y-1.5">${list.slice(0,3).map(aiContractCard).join('')}</div>
-    <details class="mt-1.5"><summary class="cursor-pointer select-none text-[11px] font-600 text-brand-600 hover:text-brand-800">Show all ${list.length} contracts ▾</summary>
+    <details class="mt-1.5"><summary class="cursor-pointer select-none text-[11px] font-600 text-brand-600 hover:text-brand-800">${i18tn('ai_show_all',list.length,{n:list.length})}</summary>
       <div class="space-y-1.5 mt-1.5">${list.slice(3).map(aiContractCard).join('')}</div></details>`;
 };
 
@@ -860,7 +860,7 @@ function aiAnswer(qRaw){
       if(cmp) return { text:`Here's a side-by-side of <strong>${ids.join(' and ')}</strong> from your live contract data.${cmp.verdict?' '+cmp.verdict:''}${copilotAvailable()?'':` <span class="text-[11px] text-amber-700">${i18t('ai_add_key_deeper')}</span>`}`,
         cards:aiCompareTable(cmp) };
     }
-    return { text:`Happy to compare — tell me which ones. Try <em>"compare MK-101 and MK-104"</em>, name a counterparty (<em>"compare the Naivas contracts"</em>), or say <em>"compare my two highest-value contracts"</em>.` };
+    return { text:i18t('ai_compare_help') };
   }
 
   // 1) direct contract-ID summary
@@ -871,7 +871,7 @@ function aiAnswer(qRaw){
     if(!c) c=cs.find(x=>q.includes(x.counterparty.toLowerCase().split(' ')[0]) && x.counterparty);
     if(!c) c=cs.find(x=>x.name.toLowerCase().split(' ').some(w=>w.length>4&&q.includes(w)));
     if(c){
-      return { text:`<strong>${esc(c.name)}</strong> (${esc(c.id)}) is ${isUpload(c)?'an uploaded <strong>external document</strong>':`a ${cKind(c)}`} with <strong>${esc(c.counterparty||'no counterparty yet')}</strong>, filed under ${esc(FOLDERS[c.folder].name)}. Value: <strong>${!isMonetary(c)?'non-monetary (no consideration passes)':(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?' (estimated)':''):'not set')}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been Copilot-scanned yet.'; const o=openFindings(c); return o.length?` The Copilot scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The Copilot scan is clean — no open findings.'; })()}`,
+      return { text:`${i18t('ai_summary_line',{name:`<strong>${esc(c.name)}</strong>`,id:esc(c.id),kind:isUpload(c)?i18t('ai_an_external_doc'):i18t('ai_a_kind',{kind:cKind(c)}),who:esc(c.counterparty||i18t('ai_no_counterparty_yet')),folder:esc(FOLDERS[c.folder].name)})} ${i18t('ai_value_label')} <strong>${!isMonetary(c)?i18t('ai_non_monetary'):(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?i18t('ai_estimated'):''):i18t('ai_not_set'))}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been Copilot-scanned yet.'; const o=openFindings(c); return o.length?` The Copilot scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The Copilot scan is clean — no open findings.'; })()}`,
         cards:aiCards([c]) };
     }
   }
@@ -898,7 +898,7 @@ function aiAnswer(qRaw){
   if(has('pending','under review','waiting','counterparty action','awaiting')){
     const list=cs.filter(c=>c.status==='Under Review');
     const val=list.reduce((s,c)=>s+Number(c.value||0),0);
-    return { text:`You have <strong>${list.length} contracts pending counterparty action</strong>, worth ${fmtMoney(val)} combined. Tap any to open its workspace:`, cards:aiCards(list) };
+    return { text:i18tn('ai_pending_cp',list.length,{n:list.length,value:fmtMoney(val)}), cards:aiCards(list) };
   }
   // 3) drafts
   if(has('draft')){
@@ -909,7 +909,7 @@ function aiAnswer(qRaw){
   if(has('signed','executed','sealed','completed')){
     const list=cs.filter(c=>c.status==='Signed');
     const val=list.reduce((s,c)=>s+Number(c.value||0),0);
-    return { text:`<strong>${list.length} contracts are signed and executed</strong> this month, totalling <strong>${fmtMoney(val)}</strong>. All carry SHA-256 document seals with IPRS and CAK PKI verification.`, cards:aiCards(list) };
+    return { text:i18tn('ai_signed_month',list.length,{n:list.length,value:fmtMoney(val)})+' '+i18t('ai_seals_note'), cards:aiCards(list) };
   }
   // 5) declined
   if(has('declined','expired','rejected','lost')){
@@ -941,7 +941,7 @@ function aiAnswer(qRaw){
     }
   }
   // fallback
-  return { text:`I couldn't match that to your contract data. I can help with things like: <em>"show pending contracts"</em>, <em>"total value of signed"</em>, <em>"summarize MK-103"</em>, or searching by counterparty name (e.g. <em>"Naivas"</em>).` };
+  return { text:i18t('ai_no_match_help') };
 }
 
 /* Tiny safe escaper for Copilot-authored text (the keyword engine and contract
@@ -2165,7 +2165,7 @@ function aiProposalCardHtml(p){
         background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:999px;padding:2px 8px">${i18t('ai_proposed_wording')}</span>
       ${p.clauseLabel ? `<span style="font-size:10.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${e(p.clauseLabel)}</span>` : ''}
       ${p.strict === false ? `<span title="The Copilot did not return the structured shape, so this is its whole reply treated as wording."
-        style="font-size:9.5px;color:var(--st-amber-fg)">unstructured reply</span>` : ''}
+        style="font-size:9.5px;color:var(--st-amber-fg)">${i18t('ai_unstructured_reply')}</span>` : ''}
     </div>
     ${p.editing
       ? `<textarea data-ai-prop-edit="${e(p.id)}" class="ai-suggestion-editor" spellcheck="true" rows="6"
@@ -2189,7 +2189,7 @@ function aiProposalCardHtml(p){
               the box invites. */}
         <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
-          placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment."
+          placeholder="${_aiEsc(i18t('ng_ph_reason_example'))}"
           style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:6px;padding:7px 9px;font:inherit;font-size:11.5px;line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
       </label>`}
     ${done
@@ -2598,7 +2598,7 @@ async function aiSubmit(){
       }
     }catch(e){
       ai.busy=false;
-      aiPush('assistant',{text:`<div>That did not come back: ${_aiEsc((e&&e.message)||'the Copilot could not answer')}. Nothing was changed.</div>`});
+      aiPush('assistant',{text:`<div>${i18t('ai_did_not_come_back',{err:_aiEsc((e&&e.message)||i18t('ai_could_not_answer'))})}</div>`});
       renderAIFeed();
     }
     if(!ai.open){ ai.unread=true; updateAIBadge(); }

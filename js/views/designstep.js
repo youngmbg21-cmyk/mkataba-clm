@@ -170,7 +170,7 @@ function dsPaint(opts) {
         ${sel ? `<span class="badge" style="background:var(--color-accent-700);color:#fff;font-size:9px">${i18t('ds_selected')}</span>` : ''}
       </span>
       <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.45;margin-top:3px">${esc(o.blurb)}</span>
-      <span style="display:block;font-size:9.5px;color:var(--color-neutral-500);margin-top:3px">Best for: ${esc(o.bestFor)}</span>
+      <span style="display:block;font-size:9.5px;color:var(--color-neutral-500);margin-top:3px">${i18t('ds_best_for',{what:esc(o.bestFor)})}</span>
     </button>`;
 
   /* A miniature of the page each structure builds. Drawn in CSS rather than
@@ -321,7 +321,7 @@ function dsPaint(opts) {
   const stepAction = step === 1
     ? `<button id="ds-next" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">
          Next: choose a structure ${icon('arrowRight', 'w-3.5 h-3.5')}</button>
-       <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">Step 2 of 2, then ${publish ? 'publish' : 'save'}.</p>`
+       <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0;text-align:center">${publish ? i18t('ds_step_2_then_publish') : i18t('ds_step_2_then_save')}</p>`
     : publish
       ? `<button id="ds-publish" class="ui-btn ui-btn-primary" style="width:100%;font-size:13px;padding:8px">Publish v${_ds.versionNumber}</button>
          <p style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin:7px 0 0">Publishing freezes this version forever and makes it what the whole team creates contracts from. Contracts already created from earlier versions are not touched.</p>`
@@ -354,7 +354,7 @@ function dsPaint(opts) {
           <div data-ds-step="${rh.n}" style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-size:11px;
             font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--color-accent-700)">
             <span style="width:17px;height:17px;border-radius:50%;background:var(--accent-solid);color:#fff;
-              display:grid;place-items:center;font-size:9.5px;font-weight:800">${rh.n}</span> Step ${rh.n} of 2</div>
+              display:grid;place-items:center;font-size:9.5px;font-weight:800">${rh.n}</span> ${i18t('ds_step_n_of_2',{n:rh.n})}</div>
           <h4 data-ds-step-title style="font-family:var(--font-heading);font-size:15px;margin:6px 0 3px;letter-spacing:-.015em">${rh.title}</h4>
           <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
         </div>

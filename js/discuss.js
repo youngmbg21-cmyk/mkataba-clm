@@ -193,7 +193,7 @@ function discussPanelHtml(opts){
         <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:4px">${i18t('di_what_about')}</span>
         <select id="${idp}-topic" style="width:100%;font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:7px 9px;color:inherit">${options}</select>
       </label>
-      <textarea id="${idp}-body" rows="2" placeholder="e.g. Would you take Net-45?" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:8px 11px;font:inherit;font-size:12.5px;outline:none;resize:vertical"></textarea>
+      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:8px 11px;font:inherit;font-size:12.5px;outline:none;resize:vertical"></textarea>
       <div style="display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap">
         <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${i18t('di_sends_message')}</span>
         <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">${i18t('di_send')}</button>
@@ -348,8 +348,8 @@ function discussDiscardBtnHtml(change, opts){
   const e = window.esc || (s => String(s == null ? '' : s));
   const id = e(change.id);
   return `<button type="button" class="discuss-discard ui-btn" data-discuss-discard="${id}"
-    title="Discard ${id} — it has not been sent, so nothing is withdrawn from anyone"
-    aria-label="Discard draft change ${id}"
+    title="${e(i18t('di_discard_title',{id}))}"
+    aria-label="${e(i18t('di_discard_aria',{id}))}"
     style="margin-left:auto;flex:none;font-size:10.5px;padding:3px 8px;line-height:1.4;
       border:1px solid rgba(143,50,43,.28);background:rgba(244,63,94,.08);color:var(--st-ruby-fg);border-radius:5px;cursor:pointer">🗑️ Discard</button>`;
 }

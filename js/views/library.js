@@ -136,7 +136,7 @@ function openTemplateFillModal(t){
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
       <button id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
-      <button id="tf-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">${i18t('lib_skip_for_now')}</button>
+      <button id="tf-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">${i18t('lib_create_draft')}</button>
     </div></div>`, {maxWidth:'620px'});
   document.getElementById('tf-cancel').addEventListener('click',closeModal);
@@ -402,7 +402,7 @@ function openCreateTemplateModal(mode){
       // Legacy .doc is refused on the bytes, not the extension — nothing is saved.
       const wordKind=detectWordFile(dataUrl, file.type||'', file.name);
       if(wordKind==='doc'){
-        st(`<span style="color:var(--st-ruby-fg)">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> ${i18t('lib_use_other_tab')}</span>`); return; }
+        st(`<span style="color:var(--st-ruby-fg)">${_tplEsc(WORD_REFUSAL)} ${i18t('lib_open_in_word_paste')} ${i18t('lib_use_other_tab')}</span>`); return; }
       st('Reading the document and rebuilding its structure…');
       // Recover the document's SHAPE, not just its words — headings, bold,
       // italics, clause numbering and indentation are all stated by the PDF and
@@ -441,7 +441,7 @@ function openCreateTemplateModal(mode){
       if(state.view==='templates') renderTemplatesPage();
       updateSidebarCounts();
       if(extra&&extra.fields) setTimeout(()=>openBlanksEditor(rec.id), 120);
-    }catch(e){ st('<span style="color:var(--st-ruby-fg)">Extraction failed: '+_tplEsc(e.message)+'</span>'); }
+    }catch(e){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_extraction_failed',{err:_tplEsc(e.message)})}</span>`); }
   });
 
   paint();
@@ -675,11 +675,11 @@ function openBlanksEditor(tid){
   document.getElementById('be-save').addEventListener('click',()=>{
     const used=bodyPlaceholders(body);
     const orphan=used.filter(k=>!fields.some(f=>f.key===k));
-    if(orphan.length){ status(`<span style="color:var(--st-ruby-fg)">The body uses ${orphan.map(k=>'{{'+k+'}}').join(', ')} with no matching field. Add the field or remove the placeholder.</span>`); return; }
+    if(orphan.length){ status(`<span style="color:var(--st-ruby-fg)">${i18t('lib_orphan_placeholders',{keys:orphan.map(k=>'{{'+k+'}}').join(', ')})}</span>`); return; }
     const bad=fields.find(f=>!String(f.label||'').trim());
     if(bad){ status(`<span style="color:var(--st-ruby-fg)">${i18t('lib_every_blank_label')}</span>`); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
-    if(badSel){ status(`<span style="color:var(--st-ruby-fg)">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
+    if(badSel){ status(`<span style="color:var(--st-ruby-fg)">${i18t('lib_choice_no_choices',{label:_tplEsc(badSel.label)})}</span>`); return; }
     updateTemplateRecord(tid, { fields, body, chars:bodyText().length });
     closeModal(); toast(`${fields.length} blank${fields.length===1?'':'s'} saved on “${rec.name}”`);
     if(state.view==='templates') renderTemplatesPage();
@@ -776,7 +776,7 @@ function openTemplateEditor(tid){
     </div>
 
     <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
-      <span style="font-size:11px;font-weight:600">Document</span>
+      <span style="font-size:11px;font-weight:600">${i18t('lib_document')}</span>
       <span style="font-size:10.5px;color:var(--color-neutral-600)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</span>
       <span style="flex:1"></span>
       <button id="te-blank" class="ui-btn" style="font-size:11px;padding:3px 9px">${i18t('lib_make_selection_blank')}</button>
@@ -795,7 +795,7 @@ function openTemplateEditor(tid){
     <div id="te-warn" style="font-size:10.5px;margin:7px 0;min-height:15px;line-height:1.5"></div>
 
     <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('lib_what_changed')} <span style="font-weight:400;color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
-      <input id="te-note" placeholder="e.g. New payment terms per the 2026 policy" style="${FLD}"/></label>
+      <input id="te-note" placeholder="${esc(i18t('lib_ph_version_note'))}" style="${FLD}"/></label>
 
     <div id="te-status" style="font-size:11px;min-height:16px;margin-bottom:8px"></div>
     <div style="display:flex;justify-content:space-between;gap:8px">
@@ -821,7 +821,7 @@ function openTemplateEditor(tid){
       const r=pasteConversionReport(body, res.plain||'');
       st(r.ok
         ? `<span style="color:var(--color-neutral-700)">Pasted ${richToText(body).length.toLocaleString()} characters.${res.via==='text'?' The source offered no formatting, so this came in as plain text.':''} <b>${i18t('lib_preview')}</b> before saving.</span>`
-        : `<span style="color:var(--st-ruby-fg)"><b>${i18t('lib_did_not_come_across')}</b> ${_tplEsc(r.reason)} Undo (Ctrl+Z) and paste again, or use the plain-text version.</span>`);
+        : `<span style="color:var(--st-ruby-fg)"><b>${i18t('lib_did_not_come_across')}</b> ${_tplEsc(r.reason)} ${i18t('lib_undo_and_paste')}</span>`);
       markEmpty(); drawFields();
     },
   });
@@ -879,7 +879,7 @@ function openTemplateEditor(tid){
       if(orphanBlanks.length) bits.push(`<span style="display:block;color:var(--st-ruby-fg)"><b>${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'}</b> in the document with no matching blank: ${orphanBlanks.map(k=>`{{${k}}} — ${act('mk',k,'create the blank')} or ${act('rm',k,'remove it from the document')}`).join('; ')}. Saving is blocked until this is resolved: an unmatched placeholder prints as literal braces in every contract.</span>`);
       if(orphanFields.length) bits.push(`<span style="display:block;color:var(--st-amber-fg);margin-top:3px"><b>${orphanFields.length} blank${orphanFields.length===1?'':'s'}</b> no longer used in the document: ${orphanFields.map(f=>`${_tplEsc(f.label||f.key)} — ${act('del',f.key,'remove the blank')} or ${act('ins',f.key,'put {{'+f.key+'}} back at the end')}`).join('; ')}. Left as-is ${orphanFields.length===1?'it':'they'} will still be asked for, and the answer will go nowhere.</span>`);
       warn.innerHTML = bits.length?bits.join('')
-        : `<span style="color:var(--color-neutral-600)">${fields.length} blank${fields.length===1?'':'s'}, all present in the document.</span>`;
+        : `<span style="color:var(--color-neutral-600)">${i18tn('lib_blanks_present',fields.length,{n:fields.length})}</span>`;
       warn.querySelectorAll('[data-fix]').forEach(b=>b.addEventListener('click',()=>{
         const k=b.getAttribute('data-k');
         switch(b.getAttribute('data-fix')){
@@ -981,7 +981,7 @@ function openTemplateEditor(tid){
     const bad=fields.find(f=>!String(f.label||'').trim());
     if(bad){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_every_blank_label')}</span>`); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
-    if(badSel){ st(`<span style="color:var(--st-ruby-fg)">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
+    if(badSel){ st(`<span style="color:var(--st-ruby-fg)">${i18t('lib_choice_no_choices',{label:_tplEsc(badSel.label)})}</span>`); return; }
 
     const note=document.getElementById('te-note').value.trim();
     const next=saveTemplateVersion(tid, {
@@ -1009,7 +1009,7 @@ function openTemplateVersions(tid){
   openModal(`<div style="padding:20px 22px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
       <span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
-      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Versions of “${_tplEsc(rec.name)}”</h3>
+      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('lib_versions_of',{name:_tplEsc(rec.name)})}</h3>
     </div>
     <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">${i18t('lib_every_save_kept')} <b>new</b> ${i18t('lib_history_intact')} <b>${i18t('lib_no_contract_changes')}</b>${i18t('lib_copies_wording')}</p>
     <div class="scroll-thin" style="max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
@@ -1123,9 +1123,9 @@ function openBulkCreateModal(t){
   openModal(`<div style="padding:20px 22px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('list','w-4 h-4')}</span>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Create in bulk — ${_tplEsc(t.name||t.kind)}</h3></div>
-    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">For high-volume, low-variation paper — distributor agreements, employment letters. Download the sheet, fill one row per contract, upload it back. <b>${i18t('lib_every_row_checked')}</b>, so a bad cell stops the whole run rather than leaving half a batch in the register. Up to ${TPL_BULK_MAX} rows.</p>
+    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">For high-volume, low-variation paper — distributor agreements, employment letters. Download the sheet, fill one row per contract, upload it back. <b>${i18t('lib_every_row_checked')}</b>${i18t('lib_bad_cell_note')} Up to ${TPL_BULK_MAX} rows.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <button id="bk-csv" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('download','w-3.5 h-3.5')} Download the CSV (${fs.length} column${fs.length===1?'':'s'})</button>
+      <button id="bk-csv" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('download','w-3.5 h-3.5')} ${i18tn('lib_download_csv',fs.length,{n:fs.length})}</button>
       <label class="ui-btn" style="font-size:11.5px;padding:5px 11px;cursor:pointer">${icon('upload','w-3.5 h-3.5')} Upload the filled sheet
         <input id="bk-file" type="file" accept=".csv" style="display:none"/></label>
     </div>
@@ -1166,7 +1166,7 @@ function openBulkCreateModal(t){
         <b>${r.rows.length} row${r.rows.length===1?'':'s'} checked, every cell valid.</b> ${i18t('lib_press')} <b>${i18t('lib_create_drafts')}</b> to file them all in one pass.
         <div style="margin-top:5px;color:var(--color-neutral-700);font-size:11px">First few: ${r.rows.slice(0,3).map(x=>_tplEsc(x.name)).join(' · ')}${r.rows.length>3?` … and ${r.rows.length-3} more`:''}</div></div>`;
       go.disabled=false; go.style.opacity='1';
-    }catch(err){ out.innerHTML=`<span style="color:var(--st-ruby-fg)">Could not read that CSV: ${_tplEsc(err.message)}</span>`; }
+    }catch(err){ out.innerHTML=`<span style="color:var(--st-ruby-fg)">${i18t('lib_bad_csv',{err:_tplEsc(err.message)})}</span>`; }
   });
   go.addEventListener('click',()=>{
     if(!ready||!ready.length) return;

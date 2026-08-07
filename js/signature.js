@@ -95,8 +95,8 @@ function openSignaturePad(opts={}){
           </div>
           <!-- SAVED -->
           ${saved?`<div data-sig-pane="saved" style="display:none">
-            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:10px;background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="Saved signature" style="max-width:90%;max-height:80%"/></div>
-            <div style="font-size:11px;color:${N6};margin-top:8px;font-family:var(--font-mono)">Your adopted signature (${saved.form})</div>
+            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:10px;background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="${i18t('si_saved_signature')}" style="max-width:90%;max-height:80%"/></div>
+            <div style="font-size:11px;color:${N6};margin-top:8px;font-family:var(--font-mono)">${i18t('si_your_adopted',{form:saved.form})}</div>
           </div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 18px;flex-wrap:wrap;border-top:1px solid ${C};margin-top:8px">
@@ -105,7 +105,7 @@ function openSignaturePad(opts={}){
           </label>
           <div style="margin-left:auto;display:flex;gap:8px">
             <button id="sig-cancel" class="ui-btn" style="padding:8px 16px;font-size:13px">${i18t('act_cancel')}</button>
-            <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:8px 18px;font-size:13px">${icon('finger','w-4 h-4')} Adopt &amp; sign</button>
+            <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:8px 18px;font-size:13px">${icon('finger','w-4 h-4')} ${i18t('si_adopt_and_sign')}</button>
           </div>
         </div>
       </div>`;

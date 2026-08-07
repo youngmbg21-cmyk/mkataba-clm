@@ -77,7 +77,7 @@ function renderFolder(){
           <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
         </div>
         <span style="flex:1"></span>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">${i18t('reg_sort')}
           <select id="folder-sort" style="${selStyle}">${sortOpts}</select>
         </label>
         <div style="position:relative">
@@ -87,7 +87,7 @@ function renderFolder(){
       </div>
 
       <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:4px;padding:8px 12px">
-        <span id="fold-sel-count" style="font-size:12px;font-weight:600">0 selected</span>
+        <span id="fold-sel-count" style="font-size:12px;font-weight:600">${i18t('reg_n_selected',{n:0})}</span>
         <div style="display:flex;align-items:center;gap:8px">
           <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:4px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
           <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${i18t('reg_clear')}</button>
@@ -150,9 +150,9 @@ function folderExpiryCell(c){
   const from=window.expirySource?expirySource(c):null;
   const dt=new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
   let col='var(--color-neutral-700)', hint='', weight=400;
-  if(from) hint=`from ${from.id}`;
+  if(from) hint=i18t('reg_from_id',{id:from.id});
   if(c.status!=='Declined'){ const d=daysUntil(eff);
-    if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${-d}d ago${from?' · from '+from.id:''}`; }
+    if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_days_ago',{n:-d})}${from?' · '+i18t('reg_from_id',{id:from.id}):''}`; }
     else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
     else if(d<=90){ col='var(--st-amber-fg)'; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
   }
@@ -195,7 +195,7 @@ function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).fi
 function renderFolderSelBar(){
   const bar=document.getElementById('fold-selbar'); if(!bar) return; const n=folderSelCount();
   bar.classList.toggle('hidden',n===0);
-  const lbl=document.getElementById('fold-sel-count'); if(lbl) lbl.textContent=n+' selected';
+  const lbl=document.getElementById('fold-sel-count'); if(lbl) lbl.textContent=i18t('reg_n_selected',{n});
 }
 // per-body wiring — safe to call on every tbody re-render (row checkboxes,
 // the row "open" handler and the pager all live inside #fold-tbody).
@@ -448,7 +448,7 @@ function regRowsHtml(cs){
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
     const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'2-digit'}):'—';
-    const renIn=din==null?'':(din<0?Math.abs(din)+'d over':'in '+din+'d');
+    const renIn=din==null?'':(din<0?i18t('reg_days_over',{n:Math.abs(din)}):i18t('reg_in_days',{n:din}));
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
     const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-500)');
@@ -576,8 +576,8 @@ function renderRegister(){
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:9px;color:var(--color-neutral-400)">↕</span>`;
   const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
   const renewalActive=!!(R.renewal&&R.renewal!=='all');
-  const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
-    <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+  const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">${i18t('reg_renewal')}
+    <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   // Server-mode full-text search + semantic ask live in a secondary strip (the
   // command bar owns the primary search); kept here so FTS wiring stays intact.
   const ftsBlock=API_MODE()?`
@@ -632,7 +632,7 @@ function renderRegister(){
         ${renewalSel}
         ${filtered?`<button id="reg-clear-filters" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">Sort
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">${i18t('reg_sort')}
           <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
         </label>
         ${ftsBlock}
@@ -669,7 +669,7 @@ function renderRegister(){
                with the table it annotates rather than as a band above it -->
           ${window.shareLegendHtml?shareLegendHtml({style:'font-size:10.5px'}):''}
           ${folderLegendHtml({style:'font-size:10.5px'})}
-          <span>${REG_PAGE} per page</span>
+          <span>${i18t('reg_per_page',{n:REG_PAGE})}</span>
         </div>
       </section>
     </div>

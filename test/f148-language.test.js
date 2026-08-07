@@ -280,6 +280,19 @@ describe('f148 — the static shell only points at keys that exist', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const used = attr => [...html.matchAll(new RegExp(`${attr}="([^"]+)"`, 'g'))].map(m => m[1]);
 
+  /* index.html IS PLAIN HTML. ${...} is a JavaScript template-literal trick
+     that works in the view files because those build their markup as template
+     strings — here the same characters are TEXT and print onto the page. It
+     has now happened twice: once a whole paragraph about moons across the top
+     of the platform, and once a bare ${''} beside the brand mark, both caught
+     only by photographing the header. */
+  test('no template-literal syntax leaks into the static shell', () => {
+    const withoutComments = html.replace(/<!--[\s\S]*?-->/g, '');
+    const stray = [...withoutComments.matchAll(/\$\{[^}]{0,60}\}?/g)].map(m => m[0]);
+    assert.deepEqual(stray, [],
+      'this file is plain HTML — ${...} is printed, not evaluated');
+  });
+
   test('every data-i18n / -title / -ph key is in the dictionary', () => {
     const keys = [...used('data-i18n'), ...used('data-i18n-title'), ...used('data-i18n-ph'),
       ...used('data-i18n-aria')];

@@ -739,7 +739,7 @@ function reviewProposedRound(c, n){
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <span style="color:var(--st-amber-dot);display:inline-flex">${icon('history','w-4 h-4')}</span>
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Changes proposed by ${e(r.by||'the counterparty')}</h3>
-            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:3px 9px">Round ${n} · open</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:3px 9px">${i18t('ve_round_open',{n})}</span>
           </div>
           <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${fmtDT(r.at)} · ${_statLine(st)} · ${_diffLegend}</p>
         </div>
@@ -748,7 +748,7 @@ function reviewProposedRound(c, n){
         <div style="${COL}">
           ${blocks.length?`
             <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
-              <span style="font-size:12px;font-weight:600">${blocks.length} change${blocks.length===1?'':'s'} — decide each one</span>
+              <span style="font-size:12px;font-weight:600">${i18tn('ve_decide_each',blocks.length,{n:blocks.length})}</span>
               <span style="flex:1"></span>
               <button id="pr-all-acc" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${i18t('ve_accept_all')}</button>
               <button id="pr-all-rej" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${i18t('ve_reject_all')}</button>
@@ -760,8 +760,8 @@ function reviewProposedRound(c, n){
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_their_comment')}</div>
             <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${e(r.comment)}</div></div>`:''}
           <label style="display:block;margin-top:14px">
-            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Your reply to ${e(r.by||'them')} — sent with your decision</span>
-            <textarea id="pr-reply" rows="2" placeholder="e.g. Net-30 stands, or we can look at a 2% price increase." style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"></textarea>
+            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ve_your_reply_to',{who:e(r.by||i18t('ve_them'))})}</span>
+            <textarea id="pr-reply" rows="2" placeholder="${e(i18t('ve_ph_reply'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"></textarea>
           </label>
         </div>
       </div>

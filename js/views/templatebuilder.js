@@ -104,10 +104,10 @@ function tbPaint() {
   <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:14px;max-width:980px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <button id="tb-back" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('arrowLeft', 'w-3.5 h-3.5')} ${esc(t.name)}</button>
-      <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:3px;padding:1px 7px">v${_tb.versionNumber} draft</span>
+      <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:3px;padding:1px 7px">${i18t('tb_v_draft',{n:_tb.versionNumber})}</span>
       <span id="tb-dirty" style="font-size:11px;color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
       <span style="flex:1"></span>
-      <button id="tb-save" class="ui-btn" style="font-size:12px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} Save draft</button>
+      <button id="tb-save" class="ui-btn" style="font-size:12px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
       <button id="tb-publish" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 13px">Publish v${_tb.versionNumber}</button>
     </div>
 
@@ -119,7 +119,7 @@ function tbPaint() {
         <select id="tb-addtype" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 8px;font:inherit;font-size:11.5px">
           ${Object.entries(TB_BLOCK_META).map(([k, m]) => `<option value="${k}">${m.label}</option>`).join('')}
         </select>
-        <button id="tb-addblock" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('plus', 'w-3 h-3')} Add block</button>
+        <button id="tb-addblock" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('plus', 'w-3 h-3')} ${i18t('tb_add_block')}</button>
       </div>
       ${blockRows || `<div style="padding:26px;text-align:center;color:var(--color-neutral-500);font-size:12px">${i18t('tb_no_blocks')}</div>`}
     </section>
@@ -129,7 +129,7 @@ function tbPaint() {
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:13.5px;margin:0">${i18t('tb_fields')}</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">the blanks a contract creator fills — place them in wording as {{field_key}}</span>
         <span style="flex:1"></span>
-        <button id="tb-addfield" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('plus', 'w-3 h-3')} Add field</button>
+        <button id="tb-addfield" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('plus', 'w-3 h-3')} ${i18t('tl_add_field')}</button>
       </div>
       ${fieldRows || `<div style="padding:26px;text-align:center;color:var(--color-neutral-500);font-size:12px">${i18t('tb_no_fields')}</div>`}
     </section>
@@ -141,7 +141,7 @@ function tbPaint() {
          that requires scrolling back up is a save that gets skipped. -->
     <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;padding-top:2px">
       <span id="tb-dirty-bottom" style="font-size:11px;color:var(--color-neutral-500)">${_tb.dirty ? 'Unsaved changes' : ''}</span>
-      <button id="tb-save-bottom" class="ui-btn" style="font-size:12px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} Save draft</button>
+      <button id="tb-save-bottom" class="ui-btn" style="font-size:12px;padding:5px 13px">${icon('check2', 'w-3.5 h-3.5')} ${i18t('tb_save_draft')}</button>
       <button id="tb-publish-bottom" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 13px">Publish v${_tb.versionNumber}</button>
     </div>
   </div>`;

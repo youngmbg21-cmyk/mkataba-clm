@@ -108,7 +108,7 @@ function openWizard(preTid){
               <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);">v${t.publishedVersion} · pre-filled &amp; branded</span></button>`).join('')}</div>
           </div>`:''}
           ${curated?`<div style="margin-bottom:12px">
-            <span style="${EYE}">For you${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
+            <span style="${EYE}">${i18t('wz_for_you')}${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
             <div style="${GRID}">${forYou.map(card).join('')}</div>
           </div>`:''}
           ${admin?`<label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:11px;color:var(--color-neutral-600)">Line of business — tunes this list
@@ -120,7 +120,7 @@ function openWizard(preTid){
             style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:8px 12px;font:inherit;font-size:12.5px;color:inherit;outline:none;margin-bottom:10px"/>
           <div id="wz-hits" style="${GRID};margin-bottom:10px"></div>
           <details id="wz-all" ${curated?'':'open'}>
-            <summary style="cursor:pointer;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:8px">All templates (${tmpls.length})</summary>
+            <summary style="cursor:pointer;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:8px">${i18t('wz_all_templates_n',{n:tmpls.length})}</summary>
             <div style="${GRID}">${tmpls.map(card).join('')}</div>
           </details>
         </div></div>`);
@@ -138,7 +138,7 @@ function openWizard(preTid){
         const q=search.value.trim().toLowerCase();
         const rows=q?tmpls.filter(t=>`${t.kind} ${t.name} ${t.blurb||''}`.toLowerCase().includes(q)):[];
         hits.innerHTML=q?(rows.length?rows.map(card).join('')
-          :`<div style="grid-column:1/-1;font-size:11.5px;color:var(--color-neutral-600);padding:6px 2px">Nothing matches “${q.replace(/</g,'&lt;')}” — open All templates below, or create your own under Templates.</div>`):'';
+          :`<div style="grid-column:1/-1;font-size:11.5px;color:var(--color-neutral-600);padding:6px 2px">${i18t('wz_nothing_matches_q',{q:q.replace(/</g,'&lt;')})}</div>`):'';
         const all=document.getElementById('wz-all');
         if(all&&q) all.removeAttribute('open');
       });
@@ -174,14 +174,14 @@ function openWizard(preTid){
                Send. Three times for one fact, in one sitting. Once it is on the
                contract the strip never appears and the send goes straight out. */}
         <label style="display:block;">
-          <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Their email<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
+          <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('wz_their_email')}<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
           <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <span style="flex:1"></span>
-        <button id="wz-skip" class="ui-btn" title="${i18t('wz_create_and_fill')}">Skip for now</button>
-        <button id="wz-create" class="ui-btn ui-btn-primary">Create draft</button>
+        <button id="wz-skip" class="ui-btn" title="${i18t('wz_create_and_fill')}">${i18t('wz_skip_for_now')}</button>
+        <button id="wz-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
       </div></div>`);
     document.getElementById('wz-back').addEventListener('click',()=>{ tid=null; renderStep(); });
     document.getElementById('wz-cancel').addEventListener('click',closeModal);
