@@ -445,7 +445,7 @@ const shareDotStyle = st => {
    margin baked in here is what made it look like part of the chip next door. */
 const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[cid]; if(!s) return '';
   const m=SHARE_META[s.state]||SHARE_META.sent;
-  return `<span title="Link: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;${shareDotStyle(s.state)};vertical-align:middle;flex:none"></span>`; };
+  return `<span title="${i18t('co_link_label',{label:m.label})}${s.n>1?i18t('co_recipients',{n:s.n}):''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;${shareDotStyle(s.state)};vertical-align:middle;flex:none"></span>`; };
 /* One cell, used by every table that carries the column, so the dash and the
    dot can never come from two different opinions about what "not shared" is. */
 const shareLinkCell = cid => shareDot(cid)
@@ -460,7 +460,7 @@ function shareLegendHtml(opts={}){
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:11px;color:var(--color-neutral-700);${opts.style||''}">
     <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('co_link')}</span>
     ${SHARE_LEGEND.map(item).join('')}
-    <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="color:var(--color-neutral-400)">&mdash;</span>not sent</span>
+    <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="color:var(--color-neutral-400)">&mdash;</span>${i18t('reg_not_sent')}</span>
   </div>`;
 }
 /* A question the counterparty asked and nobody answered. It changes no document
@@ -471,7 +471,7 @@ const questionCount = cid => {
   const hit=w.find(x=>x.contractId===cid);
   return hit?hit.count:0; };
 const questionDot = cid => { const n=questionCount(cid); if(!n) return '';
-  return `<span title="${n} question${n===1?'':'s'} waiting for your reply" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
+  return `<span title="${i18tn('co_questions_waiting',n,{n})}" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
@@ -817,7 +817,7 @@ function approvalState(c){
   const required = Number(cfg.threshold)>0 && isMonetary(c) && Number(c.value)>=Number(cfg.threshold) && c.status!=='Signed';
   const me=currentUser();
   const canApprove = !!me && (me.role==='admin' || (cfg.approverRole==='legal' && me.role==='legal'));
-  const approverLabel = cfg.approverRole==='legal' ? 'an Admin or Legal approver' : 'an Admin';
+  const approverLabel = cfg.approverRole==='legal' ? i18t('ap_admin_or_legal') : i18t('ap_an_admin');
   return { required, ok: !required || !!c.approval, threshold:Number(cfg.threshold),
     by:c.approval?.by, approverLabel, canApprove };
 }
@@ -839,7 +839,22 @@ const userById = id => getUsers().find(u=>u.id===id);
 const currentUser = () => REMOTE ? REMOTE.me : (getSession() ? userById(getSession().userId) : null);
 const canEdit = () => { const u=currentUser(); return !!u && u.role!=='viewer'; };
 const isAdmin = () => currentUser()?.role==='admin';
+/* ---- TWO NAMES FOR A ROLE, AND THEY ARE NOT INTERCHANGEABLE ----
+   ROLE_LABEL is the RECORD's word. It is stamped into approval records, audit
+   lines and comment attributions, all of which are history: what somebody's
+   role was called on the day they approved something. It stays English on
+   purpose — a Swedish approver and an English one must not leave two different
+   words behind for the same act, and an audit line is not re-read through a
+   translator when the reader changes. It is also what ROLE_LABEL_SET compares
+   against when it decides whether an old signature has a permission level
+   sitting in its capacity field.
+
+   roleName() is the SCREEN's word — what the reader is shown right now, in
+   their own language. Anything a person reads off a table, a menu or a badge
+   goes through this; anything written into a record does not. */
 const ROLE_LABEL = { admin:'Admin', legal:'Legal', viewer:'Viewer' };
+const roleName = r => ({ admin:i18t('role_admin'), legal:i18t('role_legal'), viewer:i18t('role_viewer') })[r]
+  || ROLE_LABEL[r] || '';
 
 /* ---------- directory & per-member folder access ----------
    Both live in the org-wide appSettings blob, so they persist through
@@ -961,26 +976,26 @@ function renderAuth(mode){
   const LINKBTN='margin-top:14px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);';
   if(mode==='setup'){
     root.innerHTML = shell(`
-      <h1 style="${H1}">Create your workspace</h1>
-      <p style="${SUB}">Set up your organization and the first admin account.</p>
-      ${input('su-org','Organization name','text','e.g. Highland Corporate Ltd')}
-      ${input('su-name','Your full name','text','e.g. Amina Otieno')}
-      ${input('su-title','Your job title','text','e.g. Chief Operating Officer')}
-      ${input('su-email','Work email','email','you@company.co.ke')}
-      ${input('su-pass','Password','password','Min 8 characters')}
+      <h1 style="${H1}">${i18t('co_create_workspace_h')}</h1>
+      <p style="${SUB}">${i18t('co_setup_sub')}</p>
+      ${input('su-org',i18t('co_org_name'),'text',i18t('co_ph_org'))}
+      ${input('su-name',i18t('co_your_full_name'),'text',i18t('co_ph_person'))}
+      ${input('su-title',i18t('co_your_job_title'),'text',i18t('co_ph_job_title'))}
+      ${input('su-email',i18t('co_work_email'),'email',i18t('co_ph_work_email'))}
+      ${input('su-pass',i18t('co_password'),'password',i18t('co_ph_min8'))}
       ${/* WHERE THE WORKSPACE OPERATES, ASKED BEFORE ANYTHING IS BUILT. The
            market switch lived only in the shell, which is after this screen —
            so the sample portfolio, the money on it and the law in its wording
            were always the default market's, and a Swedish pilot had to switch
            afterwards and re-read everything it had just been shown. */''}
       <label style="display:block;margin-bottom:14px;">
-        <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">Where you operate</span>
+        <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('co_where_you_operate')}</span>
         <select id="su-market" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;">
           ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${p.name}</option>`).join('')}
         </select>
-        <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:4px;line-height:1.45">Sets your currency, the governing law your templates propose and which risk checks apply. Changeable later in Settings.</span></label>
+        <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:4px;line-height:1.45">${i18t('co_market_sets')}</span></label>
       <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> ${i18t('co_load_sample')} <span id="su-sample-label">${jx().sampleLabel}</span> ${i18t('co_portfolio_30')}</label>
-      <button id="su-go" class="ui-btn ui-btn-primary" style="${PBTN}">Create workspace &amp; sign in</button>`);
+      <button id="su-go" class="ui-btn ui-btn-primary" style="${PBTN}">${i18t('co_create_and_signin')}</button>`);
     /* Applied on CHANGE, not at submit, so the sample label under it tells the
        truth about what is on the other side of the button. */
     document.getElementById('su-market')?.addEventListener('change',e=>{
@@ -992,11 +1007,11 @@ function renderAuth(mode){
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
   } else if(mode==='login'){
     root.innerHTML = shell(`
-      <h1 style="${H1}">Sign in to ${getOrg()?.name||'your workspace'}</h1>
-      <p style="${SUB}">Use your workspace credentials.</p>
-      ${input('li-email','Email','email')}
-      ${input('li-pass','Password','password')}
-      <button id="li-go" class="ui-btn ui-btn-primary" style="${PBTN}">Sign in</button>
+      <h1 style="${H1}">${i18t('co_sign_in_to',{org:getOrg()?.name||i18t('co_your_workspace')})}</h1>
+      <p style="${SUB}">${i18t('co_use_credentials')}</p>
+      ${input('li-email',i18t('co_email'),'email')}
+      ${input('li-pass',i18t('co_password'),'password')}
+      <button id="li-go" class="ui-btn ui-btn-primary" style="${PBTN}">${i18t('co_sign_in')}</button>
       <p id="li-err" class="hidden" style="text-align:center;font-size:12px;color:var(--st-ruby-dot);margin-top:12px;"></p>
       ${REMOTE?`<button id="li-forgot" style="${LINKBTN}">${i18t('co_forgot_password')}</button>`:''}
       ${REMOTE?'':`<button id="li-reset" style="${LINKBTN}">${i18t('co_reset_workspace')}</button>`}`);
@@ -1004,7 +1019,7 @@ function renderAuth(mode){
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
     document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
     document.getElementById('li-reset')?.addEventListener('click',async()=>{
-      if(await confirmDialog({get title(){ return i18t('co_reset_workspace_q'); }, message:'This permanently erases the workspace, all users and contracts stored in this browser. This cannot be undone.', confirmLabel:'Erase everything', danger:true})){
+      if(await confirmDialog({get title(){ return i18t('co_reset_workspace_q'); }, get message(){ return i18t('co_erase_msg'); }, get confirmLabel(){ return i18t('co_erase_everything'); }, danger:true})){
         Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
       }
     });
@@ -1012,7 +1027,7 @@ function renderAuth(mode){
     root.innerHTML = shell(`
       <h1 style="${H1}">${i18t('co_reset_your_password')}</h1>
       <p style="${SUB}">${i18t('co_enter_email_reset')}</p>
-      ${input('fp-email','Email','email')}
+      ${input('fp-email',i18t('co_email'),'email')}
       <button id="fp-go" class="ui-btn ui-btn-primary" style="${PBTN}">${i18t('co_send_reset_link')}</button>
       <div id="fp-result" style="margin-top:12px;"></div>
       <button id="fp-back" style="${LINKBTN}">${i18t('co_back_to_signin')}</button>`);
@@ -1025,8 +1040,8 @@ function renderAuth(mode){
            not configured the reset link is in the ADMIN-ONLY outbox (Team &
            Settings), the same place signing codes queue — so the shortcut that
            used to open the reset form for anyone is gone. */
-        const outboxHint = r.emailSent ? '' : ` <br/>Email isn’t configured — an admin can find the reset link in the outbox under Team &amp; Settings.`;
-        document.getElementById('fp-result').innerHTML=`<div style="border-radius:4px;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:11px;font-size:11px;color:var(--color-accent-800);line-height:1.5;">If that email is registered, a reset link has been sent.${outboxHint}</div>`;
+        const outboxHint = r.emailSent ? '' : ` <br/>${i18t('co_outbox_hint')}`;
+        document.getElementById('fp-result').innerHTML=`<div style="border-radius:4px;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:11px;font-size:11px;color:var(--color-accent-800);line-height:1.5;">${i18t('co_reset_sent')}${outboxHint}</div>`;
       }catch(e){ toast(e.message,'err'); }
     });
   } else if(mode && mode.startsWith('reset:')){
@@ -1223,7 +1238,7 @@ function renderSideUser(){
   const org=getOrg().name||'HaTi';
   const initials=(u.name||org).split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   const av=document.getElementById('rail-avatar');
-  if(av){ av.title=`${u.name} · ${org} · ${ROLE_LABEL[u.role]}`; av.onclick=()=>setView('team'); }
+  if(av){ av.title=`${u.name} · ${org} · ${roleName(u.role)}`; av.onclick=()=>setView('team'); }
   const lo=document.getElementById('side-logout');
   if(lo) lo.onclick=async()=>{
     const ok=(typeof confirmDialog==='function')
@@ -1234,7 +1249,7 @@ function renderSideUser(){
   const setTxt=(id,t)=>{ const el=document.getElementById(id); if(el) el.textContent=t; };
   setTxt('side-avatar', initials);
   setTxt('side-name', u.name||org);
-  setTxt('side-role', `${ROLE_LABEL[u.role]||'Member'} · ${org}`);
+  setTxt('side-role', `${roleName(u.role)||i18t('role_member')} · ${org}`);
   const online=(getUsers()||[]).length||1;
   // Show the storage backend AND whether the Copilot brain is live, so an entered key
   // is visibly reflected (green ✦ = Claude answering; grey = keyword fallback).
@@ -1374,7 +1389,7 @@ function renderNegotiationSection(c){
         ${rounds.slice().reverse().map(r=>`
           <div class="rounded-lg border ${r.status==='open'?'border-gold-500/30 bg-gold-500/5':'border-brand-100 bg-white'} p-3">
             <div class="flex items-center gap-2 text-[11px] mb-1">
-              <span class="font-semibold text-brand-900">Round ${r.n} — ${r.via==='word'?'returned Word file':'changes requested'}</span>
+              <span class="font-semibold text-brand-900">${r.via==='word'?i18t('co_round_via_word',{n:r.n}):i18t('co_round_via_changes',{n:r.n})}</span>
               <span class="ml-auto text-brand-800/60 font-mono">${fmtDT(r.at)}</span>
             </div>
             <div class="text-[11px] text-brand-800/65 mb-1">by ${r.by}</div>
@@ -1385,7 +1400,7 @@ function renderNegotiationSection(c){
               <div class="mt-2 flex items-center gap-2">
                 ${r.proposedText?`<button data-nego-redline="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('history','w-3 h-3')} Review redline</button>
                 <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">${i18t('co_reject')}</button>`
-                :`<button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
+                :`<button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} ${r.proposedValue!=null?i18t('co_accept_apply_value'):i18t('co_accept')}</button>
                 <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">${i18t('co_reject')}</button>`}
               </div>`:`<div class="mt-2 text-[11px] text-brand-800/65">${i18t('co_awaiting_approver')}</div>`)
             :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>
@@ -1395,7 +1410,7 @@ function renderNegotiationSection(c){
       ${resolvedRounds(c).length&&canEdit()&&c.status!=='Signed'?`
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px;border-top:1px solid var(--color-divider);padding-top:10px">
           <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-700)">${i18t('co_ready_next_round')}</span>
-          <button id="nego-reshare" class="ui-btn ui-btn-primary" style="flex:none;font-size:11.5px;padding:6px 12px">${icon('send','w-3.5 h-3.5')} Send updated version</button>
+          <button id="nego-reshare" class="ui-btn ui-btn-primary" style="flex:none;font-size:11.5px;padding:6px 12px">${icon('send','w-3.5 h-3.5')} ${i18t('co_send_updated')}</button>
         </div>`
       :`<p class="mt-2 text-[10px] text-brand-800/60">${i18t('co_after_resolving')}</p>`}
     </div>`;
@@ -1656,7 +1671,7 @@ function readOnlyDocHtml(html){
     s.className='field-frozen';
     const v=fieldDisplayValue(inp);
     s.textContent=v||'—';
-    if(!v) s.setAttribute('title','This term was not filled in before the contract was sent');
+    if(!v) s.setAttribute('title',i18t('ct_term_not_filled'));
     inp.replaceWith(s);
   });
   return tmp.innerHTML;
@@ -2173,7 +2188,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
   return `
   <div id="share-step-0">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('send')}</span>
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Send “${esc(c.name)}”</h2></div>
+      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_send_named',{name:esc(c.name)})}</h2></div>
     <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px;padding:14px 16px;margin-bottom:10px">
       <p style="margin:0;font-size:13.5px;line-height:1.6;color:var(--color-text)">To <b style="color:var(--color-accent-800)">${who}</b> — ${quickSendPhrase(purpose)}.</p>
       <p style="margin:6px 0 0;font-size:11.5px;line-height:1.5;color:var(--color-neutral-600)">${i18t('co_secure_link')}</p>
@@ -2184,7 +2199,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
       <button id="qs-details" class="ui-btn" style="font-size:12px" title="${i18t('co_full_form')}">${i18t('co_change_details')}</button>
       <span style="flex:1"></span>
       <button id="qs-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="qs-send" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 18px">${icon('send','w-3.5 h-3.5')} Send it</button>
+      <button id="qs-send" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 18px">${icon('send','w-3.5 h-3.5')} ${i18t('co_send_it')}</button>
     </div>
   </div>`;
 }
@@ -2793,12 +2808,12 @@ async function openShareModal(c, opts={}){
       <p id="share-send-blurb-hist" class="hidden" style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">${i18t('co_send_readonly_to')} <strong>negotiation history</strong> ${i18t('co_every_change_who')} <strong>${i18t('co_no_account_needed')}</strong>${i18t('co_nothing_to_sign')}</p>
       ${readinessPanelHtml(c)}
       ${emailOff()?`<div id="sh-noemail" style="margin:0 0 12px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">
-        <b>${i18t('co_not_emailed')}</b> ${EMAIL_SETUP_LINE} Press <b>${i18t('co_create_link')}</b> instead and send it to ${esc(c.counterparty||'them')} yourself — or set email up first and come back.</div>`:''}
+        <b>${i18t('co_not_emailed')}</b> ${EMAIL_SETUP_LINE} ${i18t('co_press_create_link',{what:i18t('co_create_link'),who:esc(c.counterparty||i18t('co_them'))})}</div>`:''}
       ${server?'':`<div style="margin:0 0 12px;border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:10px 12px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Demo sharing — for demonstrations only</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
         <p style="margin:0;font-size:11.5px;line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
       </div>`}
-      <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
+      <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link',i18t('co_copy_link'),false)}</div>
       <div id="share-fields">
         ${pre.email||pre.phone||pre.name?`<div style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:7px 10px">
           <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
@@ -2810,7 +2825,7 @@ async function openShareModal(c, opts={}){
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
         <label style="display:block;margin-top:10px;"><span style="${LBL}">${i18t('co_personal_message')}</span>
-          <textarea id="sh-msg" rows="2" placeholder="e.g. As discussed — please review clause 4 in particular." style="${FLD}min-height:0;"></textarea></label>
+          <textarea id="sh-msg" rows="2" placeholder="${esc(i18t('co_ph_share_msg'))}" style="${FLD}min-height:0;"></textarea></label>
         ${server?`<div style="margin-top:11px;border:1px solid var(--color-divider);border-radius:5px;padding:9px 11px">
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--color-neutral-800);cursor:pointer">
             ${''/* A SIGNING LINK OPENS ONE-SHOT, and the dialog's own words say
@@ -2821,7 +2836,7 @@ async function openShareModal(c, opts={}){
                    beside it is worse than no default. Still theirs to change. */}
             <input type="checkbox" id="sh-durable"${purposeSel==='sign'?'':' checked'} style="margin-top:2px;flex:none"/>
             <span><b>${i18t('co_keep_link_open')}</b>
-            <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('co_one_link_current')} <b>single-answer link</b> ${i18t('co_right_for_final')}</span></span>
+            <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('co_one_link_current')} <b>${i18t('co_single_answer_link')}</b> ${i18t('co_right_for_final')}</span></span>
           </label>
         </div>
         <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--color-neutral-700)">Link expires in
@@ -2987,7 +3002,7 @@ async function openShareModal(c, opts={}){
     <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:12px;">
       ${note?`<div style="font-size:11.5px;color:var(--color-accent-800);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">${icon('check2','w-3.5 h-3.5')} ${note}</div>`:''}
       <textarea id="share-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
-      <button id="share-copy" class="ui-btn" style="margin-top:6px;font-size:12px;">${icon('copy','w-3 h-3')} Copy link</button>
+      <button id="share-copy" class="ui-btn" style="margin-top:6px;font-size:12px;">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
     </div>`;
   const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
     const ta=document.getElementById('share-link'); ta.select();
@@ -3095,7 +3110,7 @@ async function openShareModal(c, opts={}){
       }
       catch(e){ toast(e.message,'err'); return false; }
       reuseNote = reuse ? `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--color-accent-800);margin-bottom:8px">
-        <b>${esc(name||email)} already had a link to this contract, so that link now shows this version.</b>
+        <b>${i18t('co_already_had_link',{who:esc(name||email)})}</b>
         No second link was created — there is still exactly one, and nothing older is left open.</div>` : '';
       if(ch==='email'){
         // Three different outcomes used to read as one cheerful green box that
@@ -3261,7 +3276,7 @@ function reshareNotSentModal(c, out, who){
         ${reason} Send them this link yourself:</p>
       <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} Copy link</button>
+        <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} ${i18t('co_copy_link')}</button>
         <button id="rs-close" class="ui-btn ui-btn-primary">${i18t('act_close')}</button>
       </div>
     </div>`);
@@ -3305,7 +3320,7 @@ function counterpartySeenHtml(c, shares){
   if(st.kind==='opened') return `
     <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:var(--color-neutral-700)">
       <span style="flex:none;color:var(--st-green-fg);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
-      <span style="flex:1;min-width:160px"><b>${esc(st.who)}</b> opened the current wording ${days===0?'today':`${days} day${days===1?'':'s'} ago`}. No response yet.</span>
+      <span style="flex:1;min-width:160px">${i18t('co_opened_no_response',{who:esc(st.who),when:days===0?i18t('co_opened_today'):i18tn('co_opened_days',days,{n:days})})}</span>
     </div>`;
   return `
     <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid ${stale?'var(--st-amber-line)':'var(--color-divider)'};background:${stale?'var(--st-amber-bg)':'var(--color-surface)'};border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:${stale?'var(--st-amber-fg)':'var(--color-neutral-700)'}">
@@ -4144,4 +4159,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

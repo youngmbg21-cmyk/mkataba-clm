@@ -132,7 +132,13 @@ describe('F7 — static-mode sharing is labelled', () => {
        in the sender's own language. */
     const at = CORE.indexOf("co_share_with_cp");
     const modal = CORE.slice(at - 4000, at + 4000);
-    assert.match(modal, /for demonstrations only/i, 'static mode must say it is demo-only');
+    /* Same move as the never-expires line below: the banner is read in the
+       sender's own language now, so the source carries the KEY and the words
+       live in the dictionary. Both halves are checked. */
+    assert.match(modal, /i18t\('co_demo_sharing'\)/, 'the dialog must still carry the demo-only banner');
+    const { STRINGS: S0 } = require('../js/i18n.js');
+    assert.match(S0.en.co_demo_sharing, /for demonstrations only/i, 'static mode must say it is demo-only');
+    assert.ok(S0.sv.co_demo_sharing, 'in every language the app offers');
     /* The warning's wording lives in the dictionary now, because the sender
        reads it in their own language. Two halves to check: the dialog still
        asks for it, and the sentence still says the thing that matters. */
@@ -145,7 +151,12 @@ describe('F7 — static-mode sharing is labelled', () => {
   });
 
   test('the warning is shown only without a server', () => {
-    const at = CORE.indexOf('Demo sharing');
+    /* Anchored on the KEY, not on the banner's words — indexOf on English
+       returned -1 once the sentence moved into the dictionary, and slicing
+       from -1 quietly handed this the tail of the file instead of failing
+       where the problem was. */
+    const at = CORE.indexOf("i18t('co_demo_sharing')");
+    assert.ok(at > 0, 'the demo-sharing banner is still drawn here');
     const before = CORE.slice(at - 400, at);
     assert.match(before, /\$\{server\?''\:`/, 'the block must be gated on static mode');
   });

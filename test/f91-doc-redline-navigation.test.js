@@ -203,8 +203,14 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
 
   test('the header slot offers Draft new agreement, not Ask Copilot', () => {
     const s = code();
-    assert.match(s, /id="ws-new"[^>]*>[\s\S]{0,120}Draft new agreement/,
+    /* The label is read in the user's own language now, so the slot carries
+       the KEY. The words themselves are checked in the dictionary below —
+       matching on English here would pass in English and mean nothing. */
+    assert.match(s, /id="ws-new"[^>]*>[\s\S]{0,160}i18t\('home_draft_new'\)/,
       'the prominent slot must carry the act the page does not otherwise offer');
+    const { STRINGS } = require('../js/i18n.js');
+    assert.match(STRINGS.en.home_draft_new, /Draft new agreement/i, 'and it must still say so');
+    assert.ok(STRINGS.sv.home_draft_new, 'in every language the app offers');
     assert.ok(!/id="ws-ai"/.test(s), 'the third door to the Copilot is gone');
     assert.ok(!/Ask Copilot/.test(s), 'and so is its label');
   });

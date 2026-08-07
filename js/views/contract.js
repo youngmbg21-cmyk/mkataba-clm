@@ -2152,7 +2152,7 @@ function wsNextAction(c){
           guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
   }
   // Under Review
-  if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
+  if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', get guide(){ return i18t('ct_share_draft_guide'); }, kind:'share' };
   // U-8: when intent-to-sign is not yet ticked, this button only scrolls to the
   // consent box — it does not sign. Labelling it "Sign" made the prominent verb
   // a false promise (tick the box, then hunt for a second Sign control). It now
@@ -2195,7 +2195,7 @@ function actionBarHtml(c){
      this tab is now for; the status guidance is on every other tab, where a
      next step is what the reader came for. */
   if(_wsTab==='docs'&&!docFillable(c))
-    return `${statusChip(c.status)}${line('The contract as it stands — a clean read, with no marks on it. Proposed wording lives on the <b>Negotiate</b> tab.')}${tail}`;
+    return `${statusChip(c.status)}${line(i18t('ct_clean_read'))}${tail}`;
   if(_wsTab==='docs'&&docFillable(c))
     return `${statusChip(c.status)}${line('This draft still has blanks — fill the highlighted fields below. Once it goes for review, wording changes happen on <b>Negotiate</b>.')}${tail}`;
   const na=wsNextAction(c);
@@ -2499,7 +2499,7 @@ function ktRowHtml(key,label,readHtml,fieldHtml,editable){
   const empty=ktIsEmptyRead(readHtml)?' data-kt-empty="1"':'';
   return `<div class="kt-row is-editable" data-kt-row="${key}">
     <span class="kt-k">${label}</span>
-    <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${ktIsEmptyRead(readHtml)?'Empty — click to fill this in':'Click to change'}">${readHtml}</button>
+    <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${esc(ktIsEmptyRead(readHtml)?i18t('ct_empty_click'):i18t('ct_click_change'))}">${readHtml}</button>
     <span class="kt-field hidden">${fieldHtml}</span></div>`;
 }
 function ktTermsRowsHtml(c,opts={}){
@@ -2797,9 +2797,9 @@ function roomHistoryHtml(c,f={}){
              it is in — "Detailed" tells you nothing about which way you are
              about to go. */}
       <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
-        title="${_histDetail?'Go back to the short list':'Print the wording that changed under each proposal'}"
-        style="font-size:11px;padding:4px 10px">${_histDetail?'Hide the wording':'Show the wording'}</button>
-      <button id="hist-filter" class="ui-btn" style="font-size:11px;padding:4px 10px">Filter${on?` · ${on}`:''} &#9662;</button>
+        title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"
+        style="font-size:11px;padding:4px 10px">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
+      <button id="hist-filter" class="ui-btn" style="font-size:11px;padding:4px 10px">${i18t('ct_filter')}${on?` · ${on}`:''} &#9662;</button>
       <div style="position:relative">
         <button id="hist-more" class="ui-btn" aria-haspopup="true" style="width:28px;height:28px;padding:0;font-size:14px;line-height:1">&#8943;</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
@@ -3217,11 +3217,11 @@ function checksRowsHtml(c){
       :v&&v.tone==='warn'?'background:var(--st-amber-bg);color:var(--st-amber-fg)'
       :'background:var(--st-green-bg);color:var(--st-green-fg)';
     return `<div class="check-row"><span class="ci">${icon(ic,'w-3.5 h-3.5')}</span><span class="cn">${name}</span>
-      <button class="cg" data-check="${kind}" title="${v?'See what it found':'Run this check'}">${
+      <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${
         v?`<span class="pill-x" style="${tone}">${v.label}</span>`:'Run &rarr;'}</button></div>`;
   };
-  return row('playbook','shield','Playbook review')
-    + row('risk','scan','Copilot risk scan')
+  return row('playbook','shield',i18t('ct_playbook_review'))
+    + row('risk','scan',i18t('ct_copilot_risk_scan'))
     + row('oblig','calendar','Find obligations');
 }
 function renderChecksCard(c){
@@ -3240,7 +3240,7 @@ function checksNoteHtml(c){
   const n=tplFormOpenCount(c);
   return n
     ? `Fill the contract form above first — ${n} required field${n===1?'':'s'} still empty. A check reads the wording as it stands.`
-    : 'Run before sending — findings pin to the clause they concern.';
+    : i18t('ct_run_before_sending');
 }
 /* The findings, over the page. The panel hosts the SAME element id the column
    used to, so the existing renderer fills it without knowing it moved — which
@@ -3252,7 +3252,7 @@ function checksNoteHtml(c){
    could not watch. See openSidePanel in js/core.js. */
 function openCheckPanel(c,kind){
   const id=kind==='playbook'?'playbook-section':'scan-section';
-  const title=kind==='playbook'?'Playbook review':'Risk scan';
+  const title=kind==='playbook'?i18t('ct_playbook_review'):i18t('ct_risk_scan');
   if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,get label(){ return i18t('ct_checks'); }});
   else openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
   if(kind==='playbook') renderPlaybookSection(c); else renderScanSection(c);
@@ -3264,7 +3264,7 @@ function openCheckPanel(c,kind){
   if(host && !host.innerHTML.trim()){
     host.innerHTML=`<p style="margin:0;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
       Nothing has been ${kind==='playbook'?'reviewed against the playbook':'scanned'} on this contract yet.
-      Close this and press <b>${kind==='playbook'?'Playbook review':'Copilot risk scan'}</b> ${i18t('ct_in_checks_card')}</p>`;
+      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
   }
 }
 function wireChecksCard(c){
@@ -3545,7 +3545,7 @@ function applyWsCollapse(){
   const btn=document.getElementById('ws-collapse');
   if(btn){
     btn.setAttribute('aria-expanded', on?'false':'true');
-    btn.title=on?'Show the toolbar again':'Collapse this bar and give the contract more room';
+    btn.title=on?i18t('ct_show_toolbar'):i18t('ct_collapse_bar');
     /* THE LABEL COMES BACK WITH THE ICON. This wrote the icon ALONE into the
        row, so the menu carried a line holding nothing but a dash — no words at
        all — which is what the owner photographed. Same fault as Focus mode
@@ -3642,7 +3642,7 @@ function applyWsFocus(){
        runs on every render, so Focus mode was the one line in the menu with no
        symbol beside it and no hint after it, from the moment it was built. */
     b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${_wsFocus?'Exit focus mode':'Focus mode'}<span class="mnote">${i18t('ct_esc_to_leave')}</span>`;
-    b.title=_wsFocus?'Exit focus mode — bring the header back':'Focus mode — hide the header and give the room to the document';
+    b.title=_wsFocus?i18t('ct_exit_focus'):i18t('ct_focus_mode');
   }
   wsFocusChip();
 }
@@ -3682,8 +3682,8 @@ function roomHeadHtml(c,opts={}){
      — a head that throws there takes the whole page with it. */
   const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
   const backLabel=(_wr.view==='folder'&&_wr.folderId&&F[_wr.folderId])
-    ? 'Back to '+F[_wr.folderId].name
-    : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
+    ? i18t('ct_back_to',{where:F[_wr.folderId].name})
+    : i18t('ct_back_to',{where:({register:i18t('ct_back_register'),pipeline:i18t('ct_back_queue'),intel:i18t('ct_back_intel'),calendar:i18t('ct_back_calendar'),dashboard:i18t('ct_back_portfolio'),reports:i18t('ct_back_reports'),advice:i18t('ct_back_advice')}[_wr.view]||i18t('ct_back_register'))});
   const may=(typeof canEdit!=='function')||canEdit();
   const locked=c.status==='Signed';
   /* The primary is the CONTRACT'S next act, read from wsNextAction — the same
@@ -3720,7 +3720,7 @@ function roomHeadHtml(c,opts={}){
      its own (Publish Round) and is a working surface, not a landing — offering
      to start a different agreement mid-round is noise. */
   const newBtn=(opts.primary===undefined&&may&&!(typeof PORTAL_MODE!=='undefined'&&PORTAL_MODE))
-    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-primary room-new" style="font-size:12.5px;padding:7px 14px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>`
+    ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-primary room-new" style="font-size:12.5px;padding:7px 14px">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
     : '';
   return `<section class="room-head" id="ws-head">
     <button id="ws-back" title="${backLabel}" class="ui-btn room-back">${icon('arrowLeft','w-4 h-4')}</button>
@@ -3730,7 +3730,7 @@ function roomHeadHtml(c,opts={}){
         <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c)
           :(window.statusChip?statusChip(c.status):esc(c.status||''))}</span>
       </div>
-      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${c.lastAction?' · updated '+esc(c.lastAction):''}</div>
+      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
     </div>
     <div class="room-acts">
       <div style="position:relative;flex:none">
@@ -3767,7 +3767,7 @@ function roomHeadHtml(c,opts={}){
                  on the Document tab now, so it is not repeated here. */}
         </div>
       </div>
-      ${may?`<button id="ws-share" class="ui-btn" style="font-size:12.5px;padding:7px 14px" title="Share with counterparty">${icon('share','w-3.5 h-3.5')} Share</button>`:''}
+      ${may?`<button id="ws-share" class="ui-btn" style="font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary)}
       ${newBtn}
     </div>
@@ -3819,7 +3819,7 @@ function renderWorkspace(){
         <div class="mx-auto h-14 w-14 grid place-items-center rounded-2xl bg-white border border-brand-100 text-brand-300 mb-4">${icon('file','w-7 h-7')}</div>
         <h2 class="font-display font-600 text-lg text-brand-900">${i18t('ct_no_contract_open')}</h2>
         <p class="text-sm text-brand-800/70 mt-1">${i18t('ct_open_folder_or_template')}</p>
-        <button onclick="setView('dashboard')" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('grid')} Go to dashboard</button>
+        <button onclick="setView('dashboard')" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('grid')} ${i18t('ct_go_to_dashboard')}</button>
       </div>
     </div>`;
     setActiveNav('workspace'); return;
@@ -3853,8 +3853,8 @@ function renderWorkspace(){
   // defaulting to the register. state.wsReturn is captured in setView.
   const _wr=state.wsReturn||{};
   const backLabel=(_wr.view==='folder'&&_wr.folderId&&FOLDERS[_wr.folderId])
-    ? 'Back to '+FOLDERS[_wr.folderId].name
-    : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
+    ? i18t('ct_back_to',{where:FOLDERS[_wr.folderId].name})
+    : i18t('ct_back_to',{where:({register:i18t('ct_back_register'),pipeline:i18t('ct_back_queue'),intel:i18t('ct_back_intel'),calendar:i18t('ct_back_calendar'),dashboard:i18t('ct_back_portfolio'),reports:i18t('ct_back_reports'),advice:i18t('ct_back_advice')}[_wr.view]||i18t('ct_back_register'))});
   content.innerHTML=`
   <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
@@ -3977,7 +3977,7 @@ function renderWorkspace(){
           <section style="${CARD};padding:12px 14px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
               <h6 style="${H6};flex:1">${i18t('ct_activity_comments')}</h6>
-              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:var(--st-green-dot);display:inline-block"></span>live</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--st-green-fg);font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
             </div>
             <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px;display:flex;flex-direction:column;gap:14px"></div>
             <div style="margin-top:12px;padding-top:11px;border-top:1px solid var(--color-divider)">
@@ -4242,8 +4242,8 @@ function wireDocumentSync(c){
       if(_row){ const rd=_row.querySelector('.kt-read');
         if(rd){ const html=ktReadValue(c,_row.getAttribute('data-kt-row'));
           rd.innerHTML=html;
-          if(ktIsEmptyRead(html)){ rd.setAttribute('data-kt-empty','1'); rd.title='Empty — click to fill this in'; }
-          else { rd.removeAttribute('data-kt-empty'); rd.title='Click to change'; } } }
+          if(ktIsEmptyRead(html)){ rd.setAttribute('data-kt-empty','1'); rd.title=i18t('ct_empty_click'); }
+          else { rd.removeAttribute('data-kt-empty'); rd.title=i18t('ct_click_change'); } } }
       keyTermsProgress(c);
       c.lastAction=todayStr();
       logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);

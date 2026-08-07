@@ -337,7 +337,7 @@ describe('F100c — a message box you can read back', () => {
       /* the placeholder is a dictionary key now — the reader sees it in their
          own language; what this test is about is that it is a TEXTAREA */
       ['js/views/negotiation.js', /<textarea class="chat-field"[^>]*id="nego-ti-\$\{_ne\(ch\.id\)\}"[^>]*placeholder="\$\{i18t\('ng_reply_on_change'\)\}/, 'reply on a change'],
-      ['js/views/negotiation.js', /<textarea class="chat-field"[^>]*placeholder="Start a thread/, 'start a thread'],
+      ['js/views/negotiation.js', /<textarea class="chat-field"[^>]*placeholder="\$\{_nea\(i18t\('ng_ph_start_thread'/, 'start a thread'],
       ['js/discuss.js', /<textarea data-point-body[^>]*class="chat-field"/, 'reply on a point'],
       ['js/views/contract.js', /<textarea id="comment-input" class="chat-field"/, 'comment on the terms'],
       ['js/views/portal.js', /<textarea data-cl-note[^>]*class="chat-field"/, 'the counterparty\'s clause note'],

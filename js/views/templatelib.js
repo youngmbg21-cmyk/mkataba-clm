@@ -136,7 +136,7 @@ function tplCompanySectionHtml() {
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${list.length} in the library · versioned &amp; permissioned</span>
         <span style="flex:1"></span>
         ${canManage ? `<button id="tpllib-upload" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:5px 12px">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
-        <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} New template</button>` : ''}
+        <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} ${i18t('lib_new_template_plain')}</button>` : ''}
       </div>
       ${cards
         ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${cards}</div>`

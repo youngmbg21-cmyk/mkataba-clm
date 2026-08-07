@@ -37,7 +37,8 @@ function ruleMatches(rule, c){
     default: return false;
   }
 }
-function approverLabelOf(a){ return a.kind==='member' ? a.name : (a.role==='legal'?'a Legal approver':a.role==='admin'?'an Admin':`a ${a.role}`); }
+function approverLabelOf(a){ return a.kind==='member' ? a.name
+  : (a.role==='legal'?i18t('ap_a_legal_approver'):a.role==='admin'?i18t('ap_an_admin'):i18t('ap_a_role',{role:a.role})); }
 function userCanApprove(a, u){
   if(!u) return false;
   if(a.kind==='member') return a.name===u.name;

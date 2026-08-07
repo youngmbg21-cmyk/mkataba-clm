@@ -77,16 +77,16 @@ function renderAdviceDesk(){
       .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>
     <div style="display:flex;align-items:stretch;gap:10px;flex:none;flex-wrap:wrap">
-      ${kpi('Active requests',active.length)}
-      ${kpi('Due in 48h',dueSoon,dueSoon?'var(--st-amber-fg)':undefined)}
+      ${kpi(i18t('adv_active_requests'),active.length)}
+      ${kpi(i18t('adv_due_48h'),dueSoon,dueSoon?'var(--st-amber-fg)':undefined)}
       ${kpi('Overdue',overdue,overdue?'var(--st-ruby-dot)':undefined)}
       ${kpi('Delivered · 30d',delivered30,'var(--st-green-fg)')}
-      ${kpi('Projected fees · active',fmtMoneyShort(projected))}
+      ${kpi(i18t('adv_projected_fees'),fmtMoneyShort(projected))}
       <span style="flex:1"></span>
       <div style="display:flex;align-items:center;gap:8px;flex:none">
         <button id="adv-rates" class="ui-btn">${icon('coins','w-3.5 h-3.5')} Rate card</button>
-        <button id="adv-link" class="ui-btn">${icon('share','w-3.5 h-3.5')} Intake link</button>
-        ${canEdit()?`<button id="adv-new" class="ui-btn ui-btn-primary">${icon('plus','w-3.5 h-3.5')} New request</button>`:''}
+        <button id="adv-link" class="ui-btn">${icon('share','w-3.5 h-3.5')} ${i18t('adv_intake_link')}</button>
+        ${canEdit()?`<button id="adv-new" class="ui-btn ui-btn-primary">${icon('plus','w-3.5 h-3.5')} ${i18t('adv_new_request')}</button>`:''}
       </div>
     </div>
     <div class="board-cols board-5" style="flex:1;min-height:0;display:grid;gap:12px">${columnsHtml}</div>
@@ -196,7 +196,7 @@ function openAdviceModal(id){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
         <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_assigned_counsel')}</span>
           <select id="adv-assignee" style="${selStyle}"><option value="">${i18t('adv_unassigned')}</option>
-            ${members.map(u=>`<option value="${esc(u.name)}" ${r.assignee===u.name?'selected':''}>${esc(u.name)} (${ROLE_LABEL[u.role]})</option>`).join('')}</select></label>
+            ${members.map(u=>`<option value="${esc(u.name)}" ${r.assignee===u.name?'selected':''}>${esc(u.name)} (${roleName(u.role)})</option>`).join('')}</select></label>
         <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_stage')}</span>
           <select id="adv-status" style="${selStyle}">${ADVICE_STAGES.map(s=>`<option value="${s.k}" ${r.status===s.k?'selected':''}>${s.label}</option>`).join('')}</select></label>
       </div>

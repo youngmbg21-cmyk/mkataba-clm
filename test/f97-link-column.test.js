@@ -139,7 +139,13 @@ describe('F97 — what the marks mean, and what they must not do', () => {
   });
 
   test('and it says Link, not Share, in its tooltip', () => {
-    assert.match(core, /title="Link: \$\{m\.label\}/,
+    /* Anchored on the key: the tooltip is read in the owner's own language,
+       so "Link:" lives in the dictionary rather than in the template. */
+    assert.match(core, /title="\$\{i18t\('co_link_label',\s*\{label:\s*m\.label\}\)\}/,
+      'the tooltip must still be built from the label');
+    const { STRINGS } = require('../js/i18n.js');
+    assert.match(STRINGS.en.co_link_label, /^Link: \{label\}$/,
       'the column is called Link; the tooltip agreeing with the heading is free');
+    assert.ok(STRINGS.sv.co_link_label, 'in every language the app offers');
   });
 });

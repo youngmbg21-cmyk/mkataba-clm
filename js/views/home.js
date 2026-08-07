@@ -252,13 +252,19 @@ function hmDashSlices(){
   const idleOf=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:Math.max(0,Math.floor((Date.now()-t)/86400000)); };
 
   // ---- slices ----
+  /* GETTERS, not fixed strings. This table is built once per render but read
+     again by callers that outlive the render, and a plain string would freeze
+     whatever language was current when the array was made. */
   const STAGE_DEF=[
-    {k:'Draft',        label:'Drafting',  color:'var(--st-gray-dot)'},
-    {k:'Under Review', label:'In Review', color:'var(--st-amber-dot)'},
-    {k:'Signed',       label:'Executed',  color:'var(--st-green-dot)'},
-    {k:'Declined',     label:'Closed',    color:'var(--st-ruby-dot)'},
+    {k:'Draft',        get label(){ return i18t('home_stage_drafting'); },  color:'var(--st-gray-dot)'},
+    {k:'Under Review', get label(){ return i18t('home_stage_in_review'); }, color:'var(--st-amber-dot)'},
+    {k:'Signed',       get label(){ return i18t('home_stage_executed'); },  color:'var(--st-green-dot)'},
+    {k:'Declined',     get label(){ return i18t('home_stage_closed'); },    color:'var(--st-ruby-dot)'},
   ];
-  const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
+  /* Spread would COPY the getter's current value and freeze it, so label is
+     re-declared as a getter on the new object rather than carried across. */
+  const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k);
+    return { k:s.k, color:s.color, get label(){ return s.label; }, n:list.length, val:valOf(list) }; });
 
   // family-aware: a master agreement's real end date is whatever the latest
   // amendment says, and an amendment is not itself an expiring agreement
@@ -335,7 +341,7 @@ function hmDashSlices(){
   const G={steel:'var(--grad-steel)',green:'var(--grad-emerald)',amber:'var(--grad-amber)',ruby:'var(--grad-ruby)'};
   /* Third line on every card, per the design: the figure's composition, so the
      number can be read without opening the register. */
-  const stageSub=stages.filter(s=>s.n).map(s=>`${s.n} ${s.label.toLowerCase()}`).join(' · ')||'nothing filed yet';
+  const stageSub=stages.filter(s=>s.n).map(s=>`${s.n} ${s.label.toLowerCase()}`).join(' · ')||i18t('home_nothing_filed');
   /* Compliance rating — a measured share, not a badge: how many live agreements
      carry NO high-risk finding. The delta names the regulatory profile in force
      (the header's jurisdiction switcher), because that is what the rating is
@@ -346,20 +352,20 @@ function hmDashSlices(){
   const REG_PROFILE={SE:'EU / GDPR', KE:'KICA / ODPC'};
   const apprMineN=myApprovals.filter(x=>x.mine).length;
   const KPI_CATALOG={
-    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:`+${newThisWeek} this week`,                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
-    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString(jxLocale())} executed`,       sub:`across ${agreementsIn(cs).length.toLocaleString(jxLocale())} agreements`, grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
-    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString(jxLocale()),    delta:`${stalled} stalled > 14d`,                                     sub:API_MODE()?'out with counterparties':'shares need server mode', grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
-    approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString(jxLocale()), delta:myApprovals.length?'Action required':'All clear',            sub:myApprovals.length?`${apprMineN} waiting on you · ${myApprovals.length-apprMineN} on others`:'no approval chain is open', grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
-    compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:`${clean} of ${live.length} live with no high-risk finding`, grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},
+    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:i18t('home_new_this_week',{n:newThisWeek}),                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
+    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:i18t('home_executed',{n:Number(m.signed||0).toLocaleString(jxLocale())}),       sub:i18t('home_across_agreements',{n:agreementsIn(cs).length.toLocaleString(jxLocale())}), grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
+    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString(jxLocale()),    delta:i18t('home_stalled',{n:stalled}),                                     sub:API_MODE()?i18t('home_out_with_cp'):i18t('home_shares_need_server'), grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
+    approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString(jxLocale()), delta:myApprovals.length?i18t('home_action_required'):i18t('home_all_clear'),            sub:myApprovals.length?i18t('home_waiting_split',{mine:apprMineN,others:myApprovals.length-apprMineN}):i18t('home_no_chain_open'), grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
+    compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:i18t('home_clean_of_live',{clean,live:live.length}), grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},
     expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString(jxLocale()),     delta:expDelta(exp30),  sub:expSub(exp30),                           grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
     expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString(jxLocale()),     delta:expDelta(exp60),  sub:expSub(exp60),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
     expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString(jxLocale()),     delta:expDelta(exp90),  sub:expSub(exp90),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
     /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
        `days >= 0`, so a contract dropped out of all three on the morning its
        term ended — the one day it most needed somebody to look at it. */
-    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString(jxLocale()),    delta:money?`${fmtMoneyShort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
-    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:`${onExecuted} on executed paper`, get sub(){ return i18t('home_risk_60'); }, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
-    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', get sub(){ return i18t('home_draft_to_signed'); }, grad:G.green, ic:'clock',    go:{stage:'Signed'}},
+    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString(jxLocale()),    delta:money?i18t('home_no_longer_active',{v:fmtMoneyShort(valOf(lapsed))}):(lapsed.length?i18t('home_longest_ago',{n:Math.abs(dU(effectiveExpiry(lapsed[0])||''))}):i18t('home_none')), sub:i18t('home_past_end_date',{n:lapsed.length}), grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
+    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:i18t('home_on_executed',{n:onExecuted}), get sub(){ return i18t('home_risk_60'); }, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
+    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?i18t('home_signed_sampled',{n:cycles.length}):'—', get sub(){ return i18t('home_draft_to_signed'); }, grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -433,14 +439,15 @@ function renderDashboard(){
   /* The band greets the person and states the shape of their portfolio, rather
      than naming the product back at them. Same slot, same one button — the
      words changed, not the furniture. */
-  const firstName=(((me&&me.name)||'').trim().split(/\s+/)[0])||'there';
+  /* The PERSON'S OWN NAME is never translated — only the greeting around it. */
+  const firstName=(((me&&me.name)||'').trim().split(/\s+/)[0])||i18t('home_greet_there');
   const hourNow=new Date().getHours();
-  const greeting=hourNow<12?'Good morning':hourNow<17?'Good afternoon':'Good evening';
+  const greeting=hourNow<12?i18t('home_greet_morning'):hourNow<17?i18t('home_greet_afternoon'):i18t('home_greet_evening');
   const activeVal=(money&&typeof fmtMoneyShort==='function')?fmtMoneyShort(valOf(live)):'';
   const heroLine=[
-    `${Number(countAll).toLocaleString(jxLocale())} contract${countAll===1?'':'s'} under management`,
-    activeVal?`${activeVal} active value`:'',
-    apprMineN?`${apprMineN} need${apprMineN===1?'s':''} you today`:'',
+    i18tn('home_hero_managed',countAll,{n:Number(countAll).toLocaleString(jxLocale())}),
+    activeVal?i18t('home_hero_value',{v:activeVal}):'',
+    apprMineN?i18tn('home_hero_need',apprMineN,{n:apprMineN}):'',
   ].filter(Boolean).join(' · ');
   const heroSection=`
     <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-radius:20px;background:var(--brand-hero);box-shadow:var(--shadow-md);color:#fff;">
@@ -451,7 +458,7 @@ function renderDashboard(){
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
         <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:#fff;color:var(--color-accent-700);font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px rgba(3,25,25,.5);transition:filter .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter='none'">
-          ${icon('plus','w-3.5 h-3.5',2)} Draft new agreement
+          ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
         </button>
       </div>
     </section>`;
@@ -470,8 +477,8 @@ function renderDashboard(){
   const pipeDocCard=(c,st)=>{
     const risky=st.k==='Under Review'&&contractRisk(c)>=60;
     const sub=st.k==='Signed'
-      ? `<span style="color:var(--st-green-fg);font-weight:600;display:inline-flex;align-items:center;gap:4px;">${icon('check2','w-3 h-3',2)}${c.signedAt?'Executed':'Signed'}</span>`
-      : `<span style="color:var(--color-neutral-500);">${esc(c.counterparty||'No counterparty yet')}</span>`;
+      ? `<span style="color:var(--st-green-fg);font-weight:600;display:inline-flex;align-items:center;gap:4px;">${icon('check2','w-3 h-3',2)}${c.signedAt?i18t('home_stage_executed'):i18t('home_signed')}</span>`
+      : `<span style="color:var(--color-neutral-500);">${esc(c.counterparty||i18t('home_no_counterparty_yet'))}</span>`;
     return `<button data-sel="${c.id}" style="display:block;width:100%;text-align:left;padding:9px 10px;border-radius:10px;background:var(--color-surface);border:1px solid ${st.bd};font:inherit;color:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='${st.bd}'">
       <span style="display:flex;align-items:flex-start;justify-content:space-between;gap:7px;">
         <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${esc(c.name)}</span>
@@ -495,12 +502,12 @@ function renderDashboard(){
     return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-surface);border:1px solid ${st.bd};min-width:0;min-height:0;">
       <button data-stage="${st.k}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:inherit;">
         <span style="font-size:11.5px;font-weight:700;color:${st.fg};">${st.n}. ${st.title}</span>
-        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${list.length} doc${list.length===1?'':'s'}</span>
+        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${i18tn('home_docs',list.length,{n:list.length})}</span>
       </button>
       <div class="hm-pipe-list scroll-thin" style="display:flex;flex-direction:column;gap:7px;">
         ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">${i18t('home_nothing_at_stage')}</div>`}
       </div>
-      ${list.length>shown.length?`<button data-stage="${st.k}" style="flex:none;border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">+ ${list.length-shown.length} more →</button>`:''}
+      ${list.length>shown.length?`<button data-stage="${st.k}" style="flex:none;border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${i18t('home_more_arrow',{n:list.length-shown.length})}</button>`:''}
     </div>`;
   }).join('');
   const lifecycleSection=`
@@ -522,15 +529,15 @@ function renderDashboard(){
   const decisionItems=[
     ...decisions.map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',
-      txt:`Renew or exit — <strong style="font-weight:600">${esc(x.c.name)}</strong>`,
-      meta:`${esc(x.c.counterparty||'no counterparty')} · decide by ${fmtDDay(x.dd)}`,
-      tag:x.d===0?'today':`in ${x.d}d`,
+      txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:600">${esc(x.c.name)}</strong>`}),
+      meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
+      tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
     })),
     ...waitingLongest.map(x=>({
       cid:x.c.id, urgent:x.idle>=30, ic:'clock',
-      txt:`Waiting on review — <strong style="font-weight:600">${esc(x.c.name)}</strong>`,
-      meta:`${esc(x.c.counterparty||'no counterparty')} · ${esc(x.c.id)}`,
-      tag:`${x.idle}d idle`,
+      txt:i18t('home_waiting_on_review',{name:`<strong style="font-weight:600">${esc(x.c.name)}</strong>`}),
+      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
+      tag:i18t('home_idle_days',{n:x.idle}),
     })),
   ];
   const decisionRows=decisionItems.slice(0,8).map(it=>{
@@ -558,7 +565,7 @@ function renderDashboard(){
   const renewalN=decisions.length, reviewN=waitingLongest.length;
   const footerLinks=[
     renewalN?lnk('data-open-decisions',`${renewalN} renewal decision${renewalN===1?'':'s'} in the calendar →`):'',
-    reviewN?lnk('data-open-review',`${reviewN} waiting in review →`):'',
+    reviewN?lnk('data-open-review',i18t('home_waiting_in_review',{n:reviewN})):'',
   ].filter(Boolean);
   const decisionFooter=(decisionItems.length>8||footerLinks.length>1)&&footerLinks.length
     ? `<div style="flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
@@ -617,7 +624,7 @@ function renderDashboard(){
         <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_key_metrics')}</span>
         <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-          Customize
+          ${i18t('home_customize')}
         </button>
       </div>
       <!-- The chosen count is what the row wants; minmax gives it a floor, so

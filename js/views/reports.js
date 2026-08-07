@@ -74,10 +74,10 @@ function bar(label, value, max, valStr, color){
    to them — value isn't forced. `get(r)` returns {val, sub} from the computed
    report object; grad/ic set the card's look. */
 const REPORT_METRICS=[
-  {k:'avgCycle',   get label(){ return i18t('rep_avg_cycle'); }, grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:r.cycleN+' signed sampled'})},
+  {k:'avgCycle',   get label(){ return i18t('rep_avg_cycle'); }, grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:i18t('rep_signed_sampled',{n:r.cycleN})})},
   {k:'ageReview',  get label(){ return i18t('rep_avg_age_review'); },       grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', get sub(){ return i18t('rep_time_on_cp'); }})},
-  {k:'ageDraft',   get label(){ return i18t('rep_avg_age_draft'); },        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:'time internal'})},
-  {k:'renewal',    get label(){ return i18t('rep_renewal_pipeline_12'); },   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtMoneyShort(r.pipeTotal), sub:r.pipeMonthsN+' months with expiries'})},
+  {k:'ageDraft',   get label(){ return i18t('rep_avg_age_draft'); },        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:i18t('rep_time_internal')})},
+  {k:'renewal',    get label(){ return i18t('rep_renewal_pipeline_12'); },   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtMoneyShort(r.pipeTotal), sub:i18tn('rep_months_expiries',r.pipeMonthsN,{n:r.pipeMonthsN})})},
   {k:'totalValue', get label(){ return i18t('rep_total_value'); },     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtMoneyShort(r.totalValue), sub:r.active+' active contracts'})},
   {k:'count',      get label(){ return i18t('rep_contracts_total'); },         grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
   {k:'expiring',   get label(){ return i18t('rep_expiring_90'); },        grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
@@ -144,7 +144,7 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
   const chev=hero?'#fff':'var(--color-neutral-500)';
   const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12.5px;padding:7px 11px;border-radius:6px;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
-    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="Choose the ${hero?'metric':'chart'} this card follows" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:999px;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
+    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${esc(hero?i18t('rep_choose_metric'):i18t('rep_choose_chart'))}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:999px;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
       <span aria-hidden="true" class="rd-chev" style="flex:none;color:${chev};pointer-events:none">▾</span>
     </button>

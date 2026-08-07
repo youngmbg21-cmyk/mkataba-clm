@@ -153,8 +153,8 @@ function folderExpiryCell(c){
   if(from) hint=`from ${from.id}`;
   if(c.status!=='Declined'){ const d=daysUntil(eff);
     if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${-d}d ago${from?' · from '+from.id:''}`; }
-    else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`in ${d}d${from?' · from '+from.id:''}`; }
-    else if(d<=90){ col='var(--st-amber-fg)'; hint=`in ${d}d${from?' · from '+from.id:''}`; }
+    else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
+    else if(d<=90){ col='var(--st-amber-fg)'; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
   }
   return `<span style="color:${col};font-weight:${weight}">${dt}</span>${hint?`<span style="display:block;font-size:10px;color:${col};opacity:.85">${hint}</span>`:''}`;
 }
@@ -415,21 +415,21 @@ const REG_ROW_ACTIONS=[
    same company twice on every row. cPrimary is left alone — the Queue board,
    the calendar and the cards are all still party-led and correct. */
 function regTitleOf(c){
-  return esc((c && c.name && c.name.trim()) || cParty(c) || 'Untitled contract');
+  return esc((c && c.name && c.name.trim()) || cParty(c) || i18t('reg_untitled'));
 }
 function regPrimaryAction(c){
   const s = String((c && c.status) || 'Draft');
-  if (s === 'Signed')       return 'View contract';
-  if (s === 'Under Review') return 'Review terms';
-  if (s === 'Declined')     return 'View record';
-  return 'Open draft';
+  if (s === 'Signed')       return i18t('reg_act_view');
+  if (s === 'Under Review') return i18t('reg_act_review');
+  if (s === 'Declined')     return i18t('reg_act_record');
+  return i18t('reg_act_draft');
 }
 function regRowsHtml(cs){
   const R=regState();
   if(!cs.length){
     const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all');
-    const line = filtered ? 'No contracts match the current filters.' : 'No contracts in your register yet.';
-    const sub  = filtered ? 'Try widening the filters, or clear them to see everything.' : 'Create one from a template, or upload a contract you received.';
+    const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
+    const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
       ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:12px;padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
       : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
@@ -574,7 +574,7 @@ function renderRegister(){
   const sortCaret=key=>R.sort===key
     ? `<span style="margin-left:4px;font-size:9px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:9px;color:var(--color-neutral-400)">↕</span>`;
-  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="Sort by ${label}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
+  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
   const renewalActive=!!(R.renewal&&R.renewal!=='all');
   const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
     <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
@@ -583,7 +583,7 @@ function renderRegister(){
   const ftsBlock=API_MODE()?`
     <div style="position:relative;flex:1;min-width:200px;max-width:340px">
       <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="Full-text: names, parties &amp; clauses…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;max-height:320px;overflow-y:auto"></div>
     </div>`:'';
 
@@ -627,8 +627,8 @@ function renderRegister(){
            itself starts above the fold. -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
-        ${selFilter('reg-type-sel',typeOpts,R.type!=='all','Value stream')}
-        ${selFilter('reg-view-sel',viewOpts,!!R.view,'Saved views — expiry, auto-renewal and obligation presets')}
+        ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
+        ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'))}
         ${renewalSel}
         ${filtered?`<button id="reg-clear-filters" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
@@ -650,12 +650,12 @@ function renderRegister(){
                    a tool, not a decoration. -->
               <tr>
                 <th style="width:96px">MK</th>
-                ${sortableTh('name','Contract Title')}
+                ${sortableTh('name',i18t('reg_col_title'))}
                 <th>${i18t('reg_col_counterparty')}</th>
-                ${sortableTh('stage','Status')}
+                ${sortableTh('stage',i18t('reg_col_status'))}
                 <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
-                ${sortableTh('value','Value','text-align:right')}
-                ${sortableTh('expiry','Expiry Date')}
+                ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
+                ${sortableTh('expiry',i18t('reg_col_expiry'))}
                 <th style="text-align:right">${i18t('reg_col_actions')}</th>
               </tr>
             </thead>

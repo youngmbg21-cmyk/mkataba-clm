@@ -1232,7 +1232,10 @@ function openTemplatePreview(tpl){
    card grid offered is still here — Use, Open, bulk creation, blanks,
    versions, delete — the rarer ones behind one … menu per row. */
 let _tplPage={ group:'all', stream:null, q:'', showAll:false };
-const TPL_GROUP_LABEL={ all:'All templates', company:'Company standard', cp:'Counterparty paper', builtin:'HaTi standard', sample:'Samples' };
+/* GETTERS: this table is read on every paint, and a plain object built once
+   at module load would freeze whatever language the page started in. */
+const TPL_GROUP_LABEL={ get all(){ return i18t('lib_grp_all'); }, get company(){ return i18t('lib_grp_company'); },
+  get cp(){ return i18t('lib_grp_cp'); }, get builtin(){ return i18t('lib_grp_builtin'); }, get sample(){ return i18t('lib_grp_sample'); } };
 function tplPageRows(){
   const rows=[];
   const lib=(typeof tplLibAll==='function')?tplLibAll():{list:[],canManage:false};
@@ -1240,7 +1243,7 @@ function tplPageRows(){
     const draft=t.status!=='published';
     rows.push({ kind:'company', id:t.id, name:t.name, draft,
       sub:`${(typeof TPLLIB_CATEGORIES!=='undefined'&&TPLLIB_CATEGORIES[t.category])||'Company paper'}${draft?' · not published':''}`,
-      stream:null, origin:'Company standard',
+      stream:null, get origin(){ return i18t('lib_grp_company'); },
       version:t.publishedVersion?('v'+t.publishedVersion):null,
       used:Number(t.contractsCreated)||0, at:t.lastUsedAt||'' });
   }
@@ -1322,16 +1325,18 @@ function tplPagePaintRows(){
   const hidden=rows.length-shown.length;
   const th=t=>`<th style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:7px 8px;border-bottom:1px solid var(--color-divider)">${t}</th>`;
   const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
-    .map(([k,n])=>`${n} ${TPL_GROUP_LABEL[k]==='Samples'?'sample document'+(n===1?'':'s'):TPL_GROUP_LABEL[k]}`).join(', '):'';
+    /* Keyed on the KIND, not on the label's words — comparing the label to
+       "Samples" stops being true the moment the label can be translated. */
+    .map(([k,n])=>k==='sample'?i18tn('lib_sample_doc',n,{n}):`${n} ${TPL_GROUP_LABEL[k]}`).join(', '):'';
   const count=document.getElementById('tpl-count');
-  if(count) count.textContent=`${rows.length} template${rows.length===1?'':'s'} · company paper first, most-used first`;
+  if(count) count.textContent=i18tn('lib_count',rows.length,{n:rows.length});
   host.innerHTML=rows.length?`
     <div class="table-scroll"><table style="border-collapse:collapse;width:100%">
-      <tr>${th('Template')}${th('Origin')}${th('Version')}${th('Used')}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
+      <tr>${th(i18t('lib_col_template'))}${th(i18t('lib_col_origin'))}${th(i18t('lib_col_version'))}${th(i18t('lib_col_used'))}<th style="border-bottom:1px solid var(--color-divider)"></th></tr>
       ${shown.map(tplPageRowHtml).join('')}
     </table></div>
     ${hidden>0?`<div style="display:flex;align-items:center;padding:11px 14px;font-size:11.5px;color:var(--color-neutral-600)">
-      ${hidden} more · ${hiddenKinds}<span style="flex:1"></span>
+      ${i18t('lib_more_kinds',{n:hidden,kinds:hiddenKinds})}<span style="flex:1"></span>
       <button id="tpl-showall" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">${i18t('lib_show_all')}</button></div>`:''}`
     :`<div style="padding:28px 14px;text-align:center;font-size:12px;color:var(--color-neutral-600)">${i18t('lib_nothing_matches')}</div>`;
   // row verbs (rebound on every paint — the rows are rebuilt wholesale)
@@ -1381,7 +1386,7 @@ function tplNewMenu(){
     <span style="display:block;font-size:13px;font-weight:700">${label}</span><span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:2px;line-height:1.45">${sub}</span></button>`;
   openModal(`<div style="padding:20px 22px;max-width:380px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 10px">${i18t('lib_what_kind')}</h3>
-    ${opt('tn-company','Company standard','Published to the whole team — versioned, branded, one-click drafting.')}
+    ${opt('tn-company',i18t('lib_grp_company'),i18t('lib_published_whole_team'))}
     ${opt('tn-cp','Counterparty paper','Their template, saved so the negotiation runs through HaTi.')}
     <div style="display:flex;justify-content:flex-end"><button id="tn-close" class="ui-btn" style="font-size:12px">${i18t('act_cancel')}</button></div>
   </div>`);
@@ -1404,12 +1409,12 @@ function renderTemplatesPage(){
   <div class="view-enter" style="padding:16px 18px 28px">
     <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px">
       <div style="min-width:0">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:clamp(18px,16px + 0.35vw,24px);font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">Templates</h1>
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:clamp(18px,16px + 0.35vw,24px);font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
         <p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500)">${i18t('lib_templates_sub')}</p>
       </div>
       <span style="flex:1"></span>
       ${canManage?`<button id="tpl-convert" class="ui-btn ui-btn-secondary" style="font-size:12px;padding:6px 13px">${i18t('lib_convert_document')}</button>
-      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New template</button>`:''}
+      <button id="tpl-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">${i18t('lib_new_template')}</button>`:''}
     </div>
     <div class="tpl-cols" style="display:grid;gap:16px;align-items:start">
       <div>
@@ -1483,10 +1488,10 @@ function renderPlaybookPage(){
 
       <section style="${CARD};padding:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <h4 style="${H4}">Clause library</h4>
-          <span style="font-size:10.5px;color:var(--color-neutral-600)">preferred &amp; fallback wording · ${canEditLib?'Admin / Legal can edit':'read-only for your role'}</span>
+          <h4 style="${H4}">${i18t('lib_clause_library')}</h4>
+          <span style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('lib_fallback_wording')} · ${canEditLib?i18t('lib_admin_legal_edit'):i18t('lib_read_only_role')}</span>
           <span style="flex:1"></span>
-          ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Add clause</button>`:''}
+          ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} ${i18t('lib_add_clause')}</button>`:''}
         </div>
         <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('lib_clause_library_sub')}</p>
         <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>

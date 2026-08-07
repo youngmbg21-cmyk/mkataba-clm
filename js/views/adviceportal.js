@@ -104,7 +104,7 @@ function renderAdviceIntake(){
         ${field('ap-company','Company','e.g. Tamu Beverages Ltd')}
         ${field('ap-contract','Contract concerned','e.g. Distribution Agreement — Coast Region')}
         <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('apo_describe')}</span>
-          <textarea id="ap-desc" rows="4" placeholder="e.g. We received this distribution agreement and need to know the termination and exclusivity risks before we sign…" style="${inputStyle}min-height:0"></textarea></label>
+          <textarea id="ap-desc" rows="4" placeholder="${esc(i18t('po_ph_advice_example'))}" style="${inputStyle}min-height:0"></textarea></label>
         <label style="display:flex;align-items:flex-start;gap:9px;font-size:11.5px;color:var(--color-neutral-700);margin-bottom:14px;line-height:1.45"><input id="ap-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent);margin-top:1px"/><span><strong>${i18t('apo_priority')}</strong> ${i18t('apo_priority_note')}</span></label>
         <button id="ap-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:13px">${icon('send','w-4 h-4')} Submit request</button>
         <div id="ap-result" style="margin-top:14px"></div>
@@ -157,7 +157,7 @@ function renderAdviceIntake(){
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(req.eta)}</strong>${i18t('apo_follow_stage')}</p>
         <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <button id="ap-copy" class="ui-btn" style="padding:8px;font-size:12px">${icon('copy','w-3 h-3')} Copy link</button>
+          <button id="ap-copy" class="ui-btn" style="padding:8px;font-size:12px">${icon('copy','w-3 h-3')} ${i18t('po_copy_link')}</button>
           <button id="ap-open" class="ui-btn ui-btn-primary" style="padding:8px;font-size:12px">${i18t('apo_open_tracking')}</button>
         </div>
       </div>`;

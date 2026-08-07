@@ -782,7 +782,7 @@ function migAllowanceHtml(){
   const a=M.allowance;
   if(!a||!a.open){
     return `<div style="font-size:11px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">
-      This batch draws on the workspace's <b>daily Copilot budget</b>. For a large back catalogue, an admin can open a one-off <b>onboarding allowance</b> in Team &amp; Settings so the day-to-day ceiling doesn't stop the import.</div>`;
+      ${i18t('mig_batch_draws')}</div>`;
   }
   const moneyPct=a.budget>0?Math.min(100,Math.round((a.spent||0)/a.budget*100)):0;
   const docsPct=a.docs>0?Math.min(100,Math.round((a.docsUsed||0)/a.docs*100)):0;
@@ -982,10 +982,10 @@ function renderMigration(){
 
       <!-- KPI strip -->
       <div id="mig-kpis" class="mig-kpis">
-        ${kpi(k.agreements===k.total?k.total:`${k.agreements}<span style="font-size:13px;color:var(--color-neutral-500)"> · ${k.total}</span>`, k.agreements===k.total?'Contracts migrated':'Agreements · documents')}
+        ${kpi(k.agreements===k.total?k.total:`${k.agreements}<span style="font-size:13px;color:var(--color-neutral-500)"> · ${k.total}</span>`, k.agreements===k.total?i18t('mig_contracts_migrated'):i18t('mig_agreements_documents'))}
         ${kpi(k.complete,'Fully migrated', k.total&&k.complete===k.total?'var(--st-green-fg)':undefined)}
-        ${kpi(k.review,'Need review', k.review?'var(--st-amber-fg)':'var(--st-green-fg)')}
-        ${kpi(k.blocked,'No readable text', k.blocked?'var(--st-ruby-fg)':'var(--st-green-fg)')}
+        ${kpi(k.review,i18t('mig_need_review'), k.review?'var(--st-amber-fg)':'var(--st-green-fg)')}
+        ${kpi(k.blocked,i18t('mig_no_text'), k.blocked?'var(--st-ruby-fg)':'var(--st-green-fg)')}
         ${k.linkPending?kpi(k.linkPending,'Link decision waiting','var(--st-amber-fg)'):''}
         ${recon?kpi(`${recon.matched}/${M.manifest.length}`,'Manifest matched', recon.matched===M.manifest.length?'var(--st-green-fg)':'var(--st-amber-fg)'):''}
       </div>
@@ -997,11 +997,11 @@ function renderMigration(){
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('mig_bulk_import')}</h3>
         </div>
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, Word .docx, image or text · max ${uploadMaxLabel()} each · legacy .doc must be re-saved as .docx or PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the Copilot engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':`<strong>${i18t('mig_static_mode')}</strong>`}</p>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">${i18t('mig_drop_all',{max:uploadMaxLabel(),how:API_MODE()&&state.aiConfigured?i18t('mig_read_by_copilot'):i18t('mig_pattern_matched')})} ${API_MODE()?'':`<strong>${i18t('mig_static_mode')}</strong>`}</p>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">Import as
+          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">${i18t('mig_import_as')}
             <select id="mig-status" style="${selStyle}">${statusOpts}</select></label>
-          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">File under
+          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">${i18t('mig_file_under')}
             <select id="mig-folder" style="${selStyle}">${folderOpts}</select></label>
           <span style="flex:1"></span>
           <button id="mig-manifest-btn" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('list','w-3.5 h-3.5')} ${M.manifest?'Replace manifest':'Load manifest CSV'}</button>

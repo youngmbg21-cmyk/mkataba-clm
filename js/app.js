@@ -100,32 +100,35 @@ function commandMeta(view){
       // agreements, not files: a master agreement plus six addenda is ONE
       const fam=(window.familyCounts?familyCounts(cs):{agreements:count,documents:count,amendments:0});
       const head=fam.amendments
-        ? `${fam.agreements.toLocaleString(jxLocale())} agreements · ${fam.documents.toLocaleString(jxLocale())} documents`
-        : `${count.toLocaleString(jxLocale())} contracts under management`;
-      return ['Portfolio', `${head} · ${totalV} active value`];
+        ? i18t('pg_dash_agreements',{a:fam.agreements.toLocaleString(jxLocale()),d:fam.documents.toLocaleString(jxLocale())})
+        : i18tn('pg_dash_managed',count,{n:count.toLocaleString(jxLocale())});
+      return [i18t('pg_portfolio'), i18t('pg_dash_sub',{head,value:totalV})];
     }
-    case 'register':  return ['Contracts', 'filter, sort and act in bulk across the working set'];
-    case 'templates': return ['Templates', 'company standard templates, HaTi standard paper and sample documents'];
-    case 'playbook':  return ['Our standards', 'your clause library and negotiation positions — standard wording, playbook and portfolio deviations'];
-    case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
-    case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
+    case 'register':  return [i18t('nav_contracts'), i18t('pg_contracts_sub')];
+    case 'templates': return [i18t('nav_templates'), i18t('pg_templates_sub')];
+    case 'playbook':  return [i18t('nav_our_standards'), i18t('pg_standards_sub')];
+    case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
+    case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
-    case 'intel':     return ['Insights', 'negotiation friction control tower · Copilot contract graph'];
-    case 'calendar':  return ['Renewal Calendar & Obligations', 'expiry, renewal-decision deadlines and obligations — surfaced automatically from every contract'];
-    case 'migration': return ['Import contracts', 'bulk-import an existing portfolio · Copilot extraction with human review'];
-    case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
-    case 'team':      return ['Team & Settings', 'members, roles, approval gate and the Copilot engine'];
+    case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
+    case 'calendar':  return [i18t('pg_calendar'), i18t('pg_calendar_sub')];
+    case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
+    case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
+    case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
     case 'folder': {
-      const f=FOLDERS[state.folderId]; return ['Contracts', f?`filtered to ${f.name}`:'filter, sort and act in bulk'];
+      /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
+         the sentence around it turns. */
+      const f=FOLDERS[state.folderId];
+      return [i18t('nav_contracts'), f?i18t('pg_folder_filtered',{name:f.name}):i18t('pg_contracts_sub_short')];
     }
     case 'workspace': {
       const c=getContract(state.activeId);
-      return ['Contract Workspace', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+      return [i18t('pg_workspace'), c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     case 'redline': {
       const c=getContract(state.activeId);
-      return ['Negotiate', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+      return [i18t('pg_negotiate'), c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     default: return ['HaTi', ''];
   }
@@ -157,7 +160,7 @@ const PAGE_ACTIONS = {
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:12px;padding:6px 12px" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
-  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
+  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">${i18t('pg_new_contract')}</button>`;
   return '';
 }
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
@@ -690,7 +693,14 @@ function applyRail(){
   const btn=document.getElementById('cmd-rail');
   if(btn){
     btn.setAttribute('aria-pressed',on?'true':'false');
-    btn.title=on?'Show the sidebar labels':'Collapse the sidebar to icons';
+    /* The KEY is written alongside the text, not just the text. This tooltip
+       flips with the rail's state, so a language switch that only rewrote
+       data-i18n-title would leave the wrong half showing; and one that only
+       set .title here would be reverted to English by the next repaint. Both
+       are set together so whichever fires second still agrees. */
+    const railKey=on?'sh_rail_show':'sh_rail_hide';
+    btn.setAttribute('data-i18n-title',railKey);
+    btn.title=i18t(railKey);
     /* THE CHEVRON POINTS THE WAY THE PRESS GOES, not the way the sidebar
        currently is. Pointing at the state rather than the act is how a toggle
        comes to describe the wrong half of itself. */
@@ -1108,6 +1118,12 @@ function wireLanguagePicker(){
 if(typeof window!=='undefined') window.onLanguageChange=function(){
   try{
     window.repaintLanguagePicker && repaintLanguagePicker();
+    /* The SIDEBAR'S OWN FURNITURE, which no view redraws: the profile line
+       carries the reader's role, and the folder list its counts. Without this
+       the role under your own name stayed in whatever language you signed in
+       with, on every screen. */
+    window.renderSideUser && renderSideUser();
+    window.renderSideFolders && renderSideFolders();
     updateSidebarCounts();
     renderPageHeader&&renderPageHeader();
     /* Re-entering the SAME view, which setView already treats as a repaint and

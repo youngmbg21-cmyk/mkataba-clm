@@ -1926,11 +1926,19 @@
   <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
 
     <!-- brand + jurisdiction switcher -->
-    <div style="display:flex;align-items:center;gap:20px;min-width:0;">
+    ${''}<!-- flex:none, NOT min-width:0. This group holds the brand and the
+         language toggle, and both of those are themselves flex:none — so a
+         group allowed to shrink below its content does not shrink the
+         children, it lets them SPILL out of its right edge and under the
+         search box, which is painted after it. At 1280 that put the search
+         magnifier exactly over the "Svenska" button: on screen, correct size,
+         and unpressable. The search is the thing with room to give (it shrinks
+         from 24rem to 130px), so it is the thing that shrinks. -->
+    <div style="display:flex;align-items:center;gap:20px;flex:none;">
       <!-- Phone-only door to the nav. Below 900 the sidebar is an off-canvas
            drawer (see the RESPONSIVE SHELL block), so it needs a handle; above
            900 the sidebar is on screen and this is hidden. -->
-      <button id="nav-toggle" class="hdr-icon-btn" title="Menu" aria-label="Open navigation" aria-expanded="false" style="display:none;flex:none;">
+      <button id="nav-toggle" class="hdr-icon-btn" title="Menu" data-i18n-title="sh_menu" aria-label="Open navigation" data-i18n-aria="sh_open_nav" aria-expanded="false" style="display:none;flex:none;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
       <div id="brand-block" style="display:flex;align-items:center;gap:11px;flex:none;">
@@ -1942,7 +1950,7 @@
             <span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em;">HaTi</span>
             <span style="font-size:10px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 22%,transparent);color:var(--color-accent-600);font-weight:700;">CLM</span>
           </div>
-          <div id="brand-caption" style="font-size:10px;color:var(--color-neutral-500);font-weight:500;">SME Contract Platform</div>
+          <div id="brand-caption" data-i18n="sh_brand_caption" style="font-size:10px;color:var(--color-neutral-500);font-weight:500;">SME Contract Platform</div>
         </div>
       </div>
 
@@ -1966,15 +1974,15 @@
     <!-- central global search (filters the register; ⌘K opens the jump palette) -->
     <div class="cmd-search">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.45;flex:none;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="cmd-search" placeholder="Search contracts, clauses, counterparties…"/>
-      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;color:var(--color-neutral-500);font-family:var(--font-code);border-radius:6px;background:var(--color-surface);cursor:pointer;flex:none;">⌘K</button>
+      <input id="cmd-search" data-i18n-ph="sh_search_ph" placeholder="Search contracts, clauses, counterparties…"/>
+      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" data-i18n-title="sh_search_hint" style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;color:var(--color-neutral-500);font-family:var(--font-code);border-radius:6px;background:var(--color-surface);cursor:pointer;flex:none;">⌘K</button>
     </div>
 
     <!-- right actions: Copilot · theme · notifications · profile -->
     <div style="display:flex;align-items:center;gap:10px;flex:none;">
-      <button id="cmd-ai" title="Ask Copilot" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 30%,transparent);color:var(--color-accent-600);cursor:pointer;font-family:var(--font-body);font-size:11.5px;font-weight:600;">
+      <button id="cmd-ai" title="Ask Copilot" data-i18n-title="sh_ask_copilot" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 30%,transparent);color:var(--color-accent-600);cursor:pointer;font-family:var(--font-body);font-size:11.5px;font-weight:600;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
-        <span class="cmd-ai-label">Ask Copilot</span>
+        <span class="cmd-ai-label" data-i18n="sh_ask_copilot">Ask Copilot</span>
         <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
       </button>
 
@@ -1991,18 +1999,18 @@
            paragraph about moons across the top of the platform. Caught by
            photographing the header. -->
       <div style="position:relative;flex:none">
-        <button id="theme-btn" class="hdr-icon-btn" aria-haspopup="true" aria-expanded="false" title="Theme">
+        <button id="theme-btn" class="hdr-icon-btn" aria-haspopup="true" aria-expanded="false" title="Theme" data-i18n-title="sh_theme">
           <span id="theme-swatch" aria-hidden="true"></span>
         </button>
         <div id="theme-menu" class="room-menu hidden" style="min-width:212px"></div>
       </div>
 
-      <button id="hdr-notify" class="hdr-icon-btn" title="Notifications — the Activity panel carries the live feed">
+      <button id="hdr-notify" class="hdr-icon-btn" title="Notifications — the Activity panel carries the live feed" data-i18n-title="sh_notifications">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
         <span style="position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--accent-solid);border:2px solid var(--color-surface);"></span>
       </button>
 
-      <button id="cmd-panel" class="hdr-icon-btn" title="Toggle the Activity panel">
+      <button id="cmd-panel" class="hdr-icon-btn" title="Toggle the Activity panel" data-i18n-title="sh_toggle_panel">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
       </button>
 
@@ -2015,14 +2023,14 @@
 
       <!-- regional profile badge — renderSideUser() (js/core.js) fills these -->
       <div style="display:flex;align-items:center;gap:10px;padding-left:12px;border-left:1px solid var(--color-divider);">
-        <button id="rail-avatar" title="Team &amp; settings" style="display:flex;align-items:center;gap:9px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
+        <button id="rail-avatar" title="Team &amp; settings" data-i18n-title="sh_team_settings" style="display:flex;align-items:center;gap:9px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
           <span id="side-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--brand-grad);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;font-family:var(--font-heading);flex:none;border:1px solid color-mix(in srgb,var(--accent-solid) 40%,transparent);">AM</span>
           <span id="hdr-profile-meta" style="line-height:1.25;min-width:0;">
             <span id="side-name" style="display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Amina Mwangi</span>
             <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Admin</span>
           </span>
         </button>
-        <button id="side-logout" title="Log out of HaTi" aria-label="Log out" class="hdr-icon-btn" style="width:32px;height:32px;">
+        <button id="side-logout" title="Log out of HaTi" data-i18n-title="sh_logout_title" aria-label="Log out" data-i18n-aria="sh_logout_aria" class="hdr-icon-btn" style="width:32px;height:32px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
         </button>
       </div>
@@ -2039,8 +2047,8 @@
          not be found by somebody looking straight at it, twice.
          A control belongs on the thing it acts on. -->
     <div class="rail-head">
-      <span class="rail-head-label">Menu</span>
-      <button id="cmd-rail" class="rail-toggle" title="Show the sidebar labels" aria-pressed="true">
+      <span class="rail-head-label" data-i18n="sh_menu">Menu</span>
+      <button id="cmd-rail" class="rail-toggle" title="Show the sidebar labels" data-i18n-title="sh_rail_show" aria-pressed="true">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="rail-chev" d="M9.5 6 15.5 12l-6 6"/></svg>
       </button>
     </div>
@@ -2085,9 +2093,9 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
             <span style="flex:1;" data-i18n="nav_insights">Insights</span><span id="nav-intel-new" class="nav-count" data-tone="teal" hidden
-              title="Newly unlocked — your portfolio is big enough for Insights to say something">New</span>
+              title="Newly unlocked — your portfolio is big enough for Insights to say something" data-i18n-title="nav_insights_new_title" data-i18n="nav_new_badge">New</span>
           </button>
-          <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own">
+          <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own" data-i18n-title="nav_templates_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
@@ -2098,7 +2106,7 @@
       <div class="nav-section" data-section="settings">
         <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false"><span data-i18n="nav_administration">Administration</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
-          <button data-view="team" class="nav-item" title="Team">
+          <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
             <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
@@ -2107,7 +2115,7 @@
                every review is checked against. Governance, not drafting, so it
                sits with the other Administration doors rather than under
                Templates. -->
-          <button data-view="playbook" class="nav-item" title="Our standards — the clause library and negotiation playbook every review checks against">
+          <button data-view="playbook" class="nav-item" title="Our standards — the clause library and negotiation playbook every review checks against" data-i18n-title="nav_our_standards_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
             <span style="flex:1;" data-i18n="nav_our_standards">Our standards</span>
@@ -2116,10 +2124,10 @@
                Queue and Reports doors were retired as premature for this
                stage — both views stay routable (a saved link still opens
                them), they just no longer occupy the sidebar. -->
-          <button data-view="advice" class="nav-item" title="Advice Desk">
+          <button data-view="advice" class="nav-item" title="Advice Desk" data-i18n-title="nav_advice_desk_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>
-            <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
+            <span style="flex:1;" data-i18n="nav_advice_desk">Advice Desk</span><span class="nav-count" data-count="advice"></span>
           </button>
           <!-- Bulk import has a door again, and it is in here rather than in
                the everyday five. It was retired to the "+ New contract" menu on
@@ -2134,11 +2142,11 @@
                fold is for what is reached rarely and by choice, and a
                back-catalogue import is a setup job, not a daily destination.
                The menu entry stays; the two doors reach the same page. -->
-          <button data-view="migration" class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass">
+          <button data-view="migration" class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass" data-i18n-title="nav_import_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9.5"/><path d="m8 9 4 4 4-4"/><path d="M3 15h5l1.2 2.2h5.6L16 15h5v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
-            <span style="flex:1;">Import contracts</span><span class="nav-count" data-count="migration"
-              title="Imported contracts still waiting on a human review pass"></span>
+            <span style="flex:1;" data-i18n="nav_import">Import contracts</span><span class="nav-count" data-count="migration"
+              title="Imported contracts still waiting on a human review pass" data-i18n-title="nav_import_count_title"></span>
           </button>
         </div>
       </div>
@@ -2147,7 +2155,7 @@
     <!-- HaTi Copilot launcher — pinned above the footer, on the brand gradient
          so it stands off the surface in both themes -->
     <div class="copilot-wrap" style="padding:8px 12px;">
-      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--brand-grad);color:#fff;border:0;border-radius:12px;padding:10px;cursor:pointer;font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:.01em;box-shadow:0 6px 16px -6px rgb(var(--color-accent-600-rgb)/.55);transition:filter .15s;">
+      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" data-i18n-title="nav_copilot_title" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--brand-grad);color:#fff;border:0;border-radius:12px;padding:10px;cursor:pointer;font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:.01em;box-shadow:0 6px 16px -6px rgb(var(--color-accent-600-rgb)/.55);transition:filter .15s;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
         <span class="sc-label">HaTi Copilot</span>
         <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
@@ -2166,22 +2174,22 @@
       <div class="foot-card">
         <div class="foot-card-head">
           <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
-          <span class="foot-card-title">Workspace status</span>
+          <span class="foot-card-title" data-i18n="foot_status_title">Workspace status</span>
         </div>
-        <div class="foot-kpi" title="Where this workspace keeps your contracts.">
-          <span class="foot-k">Storage</span><span class="foot-v" id="side-status-mode">—</span>
+        <div class="foot-kpi" title="Where this workspace keeps your contracts." data-i18n-title="foot_storage_title">
+          <span class="foot-k" data-i18n="foot_storage">Storage</span><span class="foot-v" id="side-status-mode">—</span>
         </div>
-        <div class="foot-kpi" title="Whether Claude is answering the Copilot, or it is falling back to keyword matching.">
-          <span class="foot-k">Copilot</span><span class="foot-v" id="side-status-ai">—</span>
+        <div class="foot-kpi" title="Whether Claude is answering the Copilot, or it is falling back to keyword matching." data-i18n-title="foot_copilot_title">
+          <span class="foot-k" data-i18n="foot_copilot">Copilot</span><span class="foot-v" id="side-status-ai">—</span>
         </div>
-        <div class="foot-kpi" title="People with a login on this workspace.">
-          <span class="foot-k">Team</span><span class="foot-v" id="side-status-online">—</span>
+        <div class="foot-kpi" title="People with a login on this workspace." data-i18n-title="foot_team_title">
+          <span class="foot-k" data-i18n="foot_team">Team</span><span class="foot-v" id="side-status-online">—</span>
         </div>
-        <button id="side-ai-usage" type="button" title="What the Copilot has cost today across the whole workspace in real Anthropic API calls — resets at local midnight. Click to set the daily limit." style="display:none;">
+        <button id="side-ai-usage" type="button" title="What the Copilot has cost today across the whole workspace in real Anthropic API calls — resets at local midnight. Click to set the daily limit." data-i18n-title="foot_spend_title" style="display:none;">
           <span class="foot-ai-dot" style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex:none;"></span>
           <span class="foot-ai-body">
             <span class="foot-kpi">
-              <span class="foot-k" id="side-ai-usage-label">Copilot spend</span>
+              <span class="foot-k" id="side-ai-usage-label" data-i18n="foot_spend">Copilot spend</span>
               <span class="foot-v" id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
             </span>
             <span class="foot-note" id="side-ai-usage-sub"></span>

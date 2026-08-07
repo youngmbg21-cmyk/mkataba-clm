@@ -43,6 +43,12 @@ const SAME_IN_BOTH = new Set([
   'kind_risk',            // ditto
   'tf_text',              // 'Text' is the same word in Swedish
   'ct_system',            // 'System' is the same word in Swedish
+  'nav_team_title',       // 'Team' is the ordinary Swedish word too
+  'foot_team',            // ditto
+  'foot_copilot',         // the product name
+  'lib_col_version',      // 'Version' is the same word in Swedish
+  'set_rate_in',          // token rate "in" — the same preposition in Swedish
+  'ct_live',              // 'live' is the borrowed word Swedish uses too
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {
@@ -170,6 +176,97 @@ describe('f148 — nothing matches on translated text', () => {
       'inside a regex literal ${...} is four characters, not a call — it will never match');
   });
 
+  /* TRAP 1, THE OTHER HALF OF THE SAME MISTAKE. `${i18t('k')}` is a call inside
+     a TEMPLATE literal and four literal characters inside a quoted one — and a
+     button whose face reads "${i18t('act_save')}" is still a well-formed
+     button, so no layout check and no parity check notices. Fifty-nine of
+     these once shipped at once.
+
+     Parsed with a STACK rather than a mode flag, because a template literal's
+     ${ } holds ordinary code that may open another string that may itself be a
+     template literal. Regex literals are tracked too: /["']/ is not a string
+     opening, and a scan that thinks it is reports the rest of the file. */
+  const translatorCallsInQuotedStrings = src => {
+    const CALL = /^\$\{\s*i18tn?\s*\(/;
+    const st = [], out = [];
+    const top = () => (st.length ? st[st.length - 1] : null);
+    let i = 0, line = 1;
+    while (i < src.length) {
+      const c = src[i], n = src[i + 1];
+      if (c === '\n') { line++; i++; continue; }
+      const T = top();
+      if (T && T.k === 'q') {                       // inside '…' or "…"
+        if (c === '\\') { i += 2; continue; }
+        if (c === T.q) { st.pop(); i++; continue; }
+        if (c === '$' && n === '{' && CALL.test(src.slice(i, i + 16))) out.push(line);
+        i++; continue;
+      }
+      if (T && T.k === 't') {                       // inside `…`
+        if (c === '\\') { i += 2; continue; }
+        if (c === '$' && n === '{') { st.push({ k: 'e', depth: 0 }); i += 2; continue; }
+        if (c === '`') { st.pop(); i++; continue; }
+        i++; continue;
+      }
+      if (c === '/' && n === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
+      if (c === '/' && n === '*') {
+        i += 2;
+        while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { if (src[i] === '\n') line++; i++; }
+        i += 2; continue;
+      }
+      if (c === '/') {                              // regex, or division
+        let j = i - 1; while (j >= 0 && /\s/.test(src[j])) j--;
+        const prev = j >= 0 ? src[j] : '';
+        if (prev === '' || '(,=:[!&|?{};+-*%~^<>'.includes(prev)) {
+          i++;
+          let inClass = false;
+          while (i < src.length) {
+            if (src[i] === '\\') { i += 2; continue; }
+            if (src[i] === '[') inClass = true;
+            else if (src[i] === ']') inClass = false;
+            else if (src[i] === '/' && !inClass) { i++; break; }
+            else if (src[i] === '\n') { line++; break; }   // not a regex after all
+            i++;
+          }
+          continue;
+        }
+        i++; continue;
+      }
+      if (c === "'" || c === '"') { st.push({ k: 'q', q: c }); i++; continue; }
+      if (c === '`') { st.push({ k: 't' }); i++; continue; }
+      if (T && T.k === 'e') {
+        if (c === '{') { T.depth++; i++; continue; }
+        if (c === '}') { if (T.depth === 0) st.pop(); else T.depth--; i++; continue; }
+      }
+      i++;
+    }
+    return out;
+  };
+
+  test('no dictionary call sits inside a quoted string', () => {
+    const bad = [];
+    for (const f of jsFiles()) {
+      if (path.basename(f) === 'i18n.js') continue;
+      for (const line of translatorCallsInQuotedStrings(fs.readFileSync(f, 'utf8')))
+        bad.push(`${path.basename(f)}:${line}`);
+    }
+    assert.deepEqual(bad, [],
+      'in a quoted string ${i18t(…)} is text, not a call — it prints onto the screen');
+  });
+
+  test('the checker itself can tell the two apart', () => {
+    /* Built by hand rather than written as literals, so this file does not
+       contain the very thing the test above forbids. */
+    const D = '$' + '{i18t(\'k\')}';
+    assert.deepEqual(translatorCallsInQuotedStrings('const a = "x' + D + 'y";'), [1],
+      'a call in a quoted string is the fault being hunted');
+    assert.deepEqual(translatorCallsInQuotedStrings('const a = `x' + D + 'y`;'), [],
+      'the same characters in a template literal are correct');
+    assert.deepEqual(translatorCallsInQuotedStrings('const r = /["\']/; const a = `' + D + '`;'), [],
+      'a quote inside a regex must not be read as opening a string');
+    assert.deepEqual(translatorCallsInQuotedStrings('const a = `${ f("z") }' + D + '`;'), [],
+      'a quoted string nested inside ${ } must not swallow the rest');
+  });
+
   test('the empty key-term read is recognised by a marker, not by its words', () => {
     const src = fs.readFileSync(path.join(ROOT, 'js/views/contract.js'), 'utf8');
     assert.match(src, /ktIsEmptyRead = html => \/data-kt-none="1"\//,
@@ -184,7 +281,8 @@ describe('f148 — the static shell only points at keys that exist', () => {
   const used = attr => [...html.matchAll(new RegExp(`${attr}="([^"]+)"`, 'g'))].map(m => m[1]);
 
   test('every data-i18n / -title / -ph key is in the dictionary', () => {
-    const keys = [...used('data-i18n'), ...used('data-i18n-title'), ...used('data-i18n-ph')];
+    const keys = [...used('data-i18n'), ...used('data-i18n-title'), ...used('data-i18n-ph'),
+      ...used('data-i18n-aria')];
     assert.ok(keys.length, 'the shell is tagged at all');
     const unknown = [...new Set(keys)].filter(k => STRINGS[I18N_DEFAULT][k] == null);
     assert.deepEqual(unknown, [], 'a tag pointing at a missing key paints the key onto the screen');

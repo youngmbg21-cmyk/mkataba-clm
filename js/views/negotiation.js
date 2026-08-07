@@ -1250,7 +1250,7 @@ function negoTimelineEventHtml(c, e){
     ? `<div class="ht-redline">${negoChangeHtml(e.ch)}</div>`
       + (e.note ? `<div class="ht-note">Why they asked: ${_ne(e.note)}</div>` : '')
     : e.kind === 'decided' && e.reply
-    ? `<div class="ht-note">Reply: ${_ne(e.reply)}</div>`
+    ? `<div class="ht-note">${i18t('ng_reply_prefix',{text:_ne(e.reply)})}</div>`
     : '';
   return `<div class="ht-ev" data-ht-kind="${_nea(e.kind)}" data-ht-outcome="${_nea(e.outcome || '')}">
     <span class="ht-mark" aria-hidden="true">${m.mark}</span>
@@ -1477,7 +1477,7 @@ function negoRenumberPreviewHtml(c, plan){
   const refRows = plan.refs.map(r => `
     <div class="flex items-start gap-2 py-1 text-[11.5px]" data-renum-ref="${_ne(r.clauseId)}">
       <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-ink/70 shrink-0">${_ne(r.from)} → ${_ne(r.to)}</span>
-      <span class="text-ink/70">in Clause ${_ne(r.fromNum || '?')} — “${_ne(r.refText)}”</span>
+      <span class="text-ink/70">${i18t('ng_in_clause_ref',{num:_ne(r.fromNum || '?'),text:_ne(r.refText)})}</span>
     </div>`).join('');
   const dangling = plan.untouched.filter(u => u.reason === 'dangling');
   const unreachable = plan.untouched.filter(u => u.reason === 'formatting')
@@ -1493,13 +1493,13 @@ function negoRenumberPreviewHtml(c, plan){
       Nothing is written until you confirm.</p>
     <div class="text-[11px] font-700 text-ink/70 mb-1">Headings — ${plan.headings.length}</div>
     <div class="max-h-52 overflow-y-auto pr-1">${hRows}</div>
-    <div class="text-[11px] font-700 text-ink/70 mt-3 mb-1">Cross-references repointed to follow — ${plan.refs.length}</div>
+    <div class="text-[11px] font-700 text-ink/70 mt-3 mb-1">${i18t('ng_refs_repointed',{n:plan.refs.length})}</div>
     ${plan.refs.length ? `<div class="max-h-36 overflow-y-auto pr-1">${refRows}</div>`
       : `<div class="text-[11.5px] text-ink/50">${i18t('ng_none_cite')}</div>`}
     ${leftAlone}
     <div class="flex justify-end gap-2 mt-4">
       <button id="renum-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
-      <button id="renum-apply" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-600 hover:bg-brand-800">Renumber ${plan.headings.length} clause${plan.headings.length === 1 ? '' : 's'}</button>
+      <button id="renum-apply" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-600 hover:bg-brand-800">${i18tn('ng_renumber',plan.headings.length,{n:plan.headings.length})}</button>
     </div>
   </div>`;
 }
@@ -1710,7 +1710,7 @@ function negoDocHtml(c, opts){
          fingerprint is in the margin an inch away and whose entry is in the
          index on the right — rather than as a stamp on the document. */
       note = ch.changeType === 'deleteClause'
-        ? `<span class="nego-note ok">#${_ne(ch.id)} accepted — clause removed</span>`
+        ? `<span class="nego-note ok">${i18t('ng_accepted_removed',{id:_ne(ch.id)})}</span>`
         : `<span class="nego-note ok">#${_ne(ch.id)} accepted</span>`;
     } else {
       /* Rejected: the baseline stands, so this clause is not under redline any
@@ -1723,7 +1723,7 @@ function negoDocHtml(c, opts){
     }
     const active = _negoActive === ch.id;
     const flag = ch.needsReview
-      ? `<span class="nego-note no" title="${_ne(ch.needsReviewWhy || '')}">#${_ne(ch.id)} needs review</span>` : '';
+      ? `<span class="nego-note no" title="${_ne(ch.needsReviewWhy || '')}">${i18t('ng_needs_review',{id:_ne(ch.id)})}</span>` : '';
     const notes = note + flag;
     /* Emitted ONCE: in the tools row where there is one, in the heading where
        there is not. Rendering it in both places is the thing this change exists
@@ -1732,7 +1732,7 @@ function negoDocHtml(c, opts){
     const inHead = row ? '' : notes;
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${_ne(ch.id)}">
       ${row}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
-        data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="Change ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${badgeSuffix}</button>
+        data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="${_ne(i18t('ng_change_aria',{id:ch.id,status:ch.status}))}">#${_ne(ch.id)}${badgeSuffix}</button>
       ${head(cl) ? `<h2 data-nego-chrome>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
   };
 
@@ -1744,12 +1744,12 @@ function negoDocHtml(c, opts){
       ? `<span class="nego-del">${_ne(ch.newText)}</span>`
       : ch.status === 'accepted' ? resolvedHtml(ch)
       : `<span class="nego-ins">${_ne(ch.newText)}</span>`;
-    const note = ch.status === 'accepted' ? `<span class="nego-note ok">#${_ne(ch.id)} accepted — clause added</span>`
-      : ch.status === 'rejected' ? `<span class="nego-note no">#${_ne(ch.id)} rejected — not added</span>` : '';
+    const note = ch.status === 'accepted' ? `<span class="nego-note ok">${i18t('ng_accepted_added',{id:_ne(ch.id)})}</span>`
+      : ch.status === 'rejected' ? `<span class="nego-note no">${i18t('ng_rejected_not_added',{id:_ne(ch.id)})}</span>` : '';
     const label = ch.headingText || ch.clauseLabel || 'New clause';
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="nw-${negoDomId(ch.clauseId)}" data-clause="${_ne(ch.clauseId)}" data-change="${_ne(ch.id)}">
       <button class="nego-badge${cls ? ' ' + cls : ''}" data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}"
-        aria-label="New clause ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${sfx}</button>
+        aria-label="${_ne(i18t('ng_new_clause_aria',{id:ch.id,status:ch.status}))}">#${_ne(ch.id)}${sfx}</button>
       <h2 data-nego-chrome>${_ne(label)}${note}</h2><p>${inner}</p></div>`;
   };
 
@@ -1812,7 +1812,7 @@ function negoModeHtml(c, opts = {}){
   return `
     <div class="nego-mode is-published" role="status">
       <b>${i18t('ng_cp_published_round')}</b>
-      <span style="flex:1;min-width:180px">Everything on the table has been sent to ${_ne(other)}. Nothing here is private.</span>
+      <span style="flex:1;min-width:180px">${i18t('ng_all_shared',{who:_ne(other)})}</span>
     </div>`;
 }
 
@@ -1872,7 +1872,7 @@ function negoLiveCardsHtml(c, opts){
   const history = negoHistoryHtml(c, opts);
   if (!changes.length) return `
     <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
-      <b style="display:block;color:var(--n-ink);margin-bottom:4px">No changes on the table.</b>
+      <b style="display:block;color:var(--n-ink);margin-bottom:4px">${i18t('ng_no_changes')}</b>
       ${canAct
         ? `To ask for something different, press <b>${i18t('ng_change')}</b> beside any clause in the middle pane. `
           + 'Each one you make lands here as its own item, and the other side accepts or rejects them one at a time.'
@@ -1897,7 +1897,7 @@ function negoLiveCardsHtml(c, opts){
       && negoThreadUnread(msgs, side, negoThreadSeenAt(seenScope, ch.id)));
     const disCls = `b-dis${n ? ' has-thread' : ''}${unread ? ' has-unread' : ''}`;
     const disTitle = unread
-      ? ` title="${_ne((msgs[msgs.length - 1] || {}).who || 'They')} has replied and is waiting on you"`
+      ? ` title="${_ne(i18t('ng_replied_waiting',{who:(msgs[msgs.length - 1] || {}).who || i18t('ng_they')}))}"`
       : '';
     /* A side may decide the OTHER side's proposals. Nobody rules on their own
        ask: it would let one party mark their own wording adopted and tell the
@@ -1988,7 +1988,7 @@ function negoLiveCardsHtml(c, opts){
     const thread = `
       <div class="nego-thread${open ? ' open' : ''}" id="nego-thread-${_ne(ch.id)}">
         <div class="nego-thead">
-          <span class="nego-tlabel">Discussion on #${_ne(ch.id)} — no formal round re-draft</span>
+          <span class="nego-tlabel">${i18t('ng_discussion_no_redraft',{id:_ne(ch.id)})}</span>
           <button class="nego-tmin" data-nego-collapse="${_ne(ch.id)}"
             title="${i18t('ng_collapse_discussion')}">${i18t('ng_hide')}</button>
         </div>
@@ -2010,9 +2010,9 @@ function negoLiveCardsHtml(c, opts){
         ${canComment ? `<div class="nego-compose" style="flex-wrap:wrap">
           <div class="nego-visswitch" role="group" aria-label="${i18t('ng_who_can_read')}" style="flex:none;margin-bottom:5px">
             <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">\uD83D\uDD12 Internal</button>
-            <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">\uD83C\uDF10 Send to them</button>
+            <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">\uD83C\uDF10 ${i18t('ng_send_to_them')}</button>
           </div>
-          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${i18t('ng_reply_on_change')}" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${i18t('ng_reply_on_change')}" aria-label="${_ne(i18t('ng_reply_on_change_aria',{id:ch.id}))}"></textarea>
           ${''/* "Send", because that is what it does: the comment goes to the
                   other side on the discussion channel the moment it is
                   pressed. It was briefly "Save" to keep it apart from the
@@ -2152,7 +2152,7 @@ function negoHistoryHtml(c, opts = {}){
         <button class="nego-round-tog" data-nego-round="${_ne(r.n)}"
           aria-expanded="${open ? 'true' : 'false'}" aria-controls="nego-round-body-${_ne(r.n)}">
           <span class="nego-round-caret" aria-hidden="true">${open ? '▾' : '▸'}</span>
-          <span class="nego-round-name">Round ${_ne(r.n)}</span>
+          <span class="nego-round-name">${i18t('ng_round_n',{n:_ne(r.n)})}</span>
           <span class="nego-round-count">${list.length} change${list.length === 1 ? '' : 's'}${
             acc ? ` · ${acc} accepted` : ''}${rej ? ` · ${rej} rejected` : ''}</span>
         </button>
@@ -2183,7 +2183,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
       <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
       ${ch.withdrawn ? '<span class="nego-st withdrawn">withdrawn</span>' : ''}
       <span class="nego-st past" data-past-round="${_ne(ch.id)}"
-        title="Decided in round ${_ne(r.n)} and archived. It cannot be decided again.">round ${_ne(r.n)}</span>
+        title="${_ne(i18t('ng_decided_archived',{n:r.n}))}">${i18t('ng_round_lower',{n:_ne(r.n)})}</span>
     </div>
     <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
@@ -2194,7 +2194,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
     ${msgs.length ? `<div class="nego-past-thread">
-      <div class="nego-tlabel">Discussion on #${_ne(ch.id)} — ${msgs.length} message${msgs.length === 1 ? '' : 's'}, closed with the round</div>
+      <div class="nego-tlabel">${i18tn('ng_discussion_closed',msgs.length,{id:_ne(ch.id),n:msgs.length})}</div>
       ${msgs.map(m => (window.discussBubbleHtml
         ? discussBubbleHtml({ author: m.who, at: m.at, body: m.text, side: m.side }, side)
         : `<div style="font-size:11.5px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`)).join('')}
@@ -2220,7 +2220,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
    reader looking at that change sees the problem where the problem is. */
 function negoVerifyPill(c, ch){
   const v = window.negoVerifyCached ? negoVerifyCached(c) : null;
-  if (!v) return `<span class="nego-st verified" title="Recomputing this change's fingerprint from the stored wording">${i18t('ng_checking')}</span>`;
+  if (!v) return `<span class="nego-st verified" title="${_ne(i18t('ng_recomputing_fp'))}">${i18t('ng_checking')}</span>`;
   /* "Verified in part" is not a hedge, it is the truth about this copy: every
      record it holds was recomputed and matched, and the links across records it
      was never given could not be. It stays GREEN — nothing here suggests
@@ -2283,7 +2283,7 @@ function negoPaneSelectHtml(c, which, current){
      word "Round" — so the reader needs to know which of them are still moving
      without reading each number against the one at the top of the screen. */
   const cur = window.negoRound ? negoRound(c) : null;
-  return `<select class="nego-vsel" data-nego-vsel="${which}" aria-label="${which === 'left' ? 'Left' : 'Right'} pane version">
+  return `<select class="nego-vsel" data-nego-vsel="${which}" aria-label="${which === 'left' ? i18t('ng_pane_left') : i18t('ng_pane_right')}">
     ${opts.map(o => {
       const closed = cur != null && o.roundN != null && o.roundN < cur;
       return `<option value="${_ne(o.key)}" class="${closed ? 'closed' : 'live'}"${
@@ -2426,7 +2426,7 @@ function negoStatusHtml(c, opts){
     <div class="nego-status" id="nego-status">
       ${theirs ? '' : `<div class="seg"><span class="dot ${off ? 'warn' : 'ok'}"></span>Email: ${off ? 'Not Configured' : 'Configured'}${off ? ` <span style="opacity:.65">${i18t('ng_sharing_limits')}</span>` : ''}</div>`}
       ${theirs ? '' : `<div class="seg"><span class="dot ${seen && seen.kind !== 'unopened' ? 'ok' : 'warn'}"></span>${_ne(seenLine)}</div>`}
-      <div class="seg">Negotiation: Round ${p.total ? negoRound(c) : negoRound(c)}</div>
+      <div class="seg">${i18t('ng_negotiation_round',{n:negoRound(c)})}</div>
       <div class="seg" id="nego-resolved">Resolved: ${p.done} / ${p.total}</div>
       ${negoIntegritySeg(c)}
       <span class="spacer"></span>
@@ -2442,7 +2442,7 @@ function negoIntegritySeg(c){
   if (!v) return `<div class="seg" id="nego-integrity"><span class="dot warn"></span>${i18t('ng_fingerprints_checking')}</div>`;
   if (v.ok) return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot ok"></span>Fingerprints: ${v.checked} verified${
     v.partial ? ' in part — this copy does not carry every earlier draft' : ''}</div>`;
-  return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot warn"></span>Integrity check failed — first broken link ${_ne('#' + (v.failedAt || 'unknown'))}</div>`;
+  return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot warn"></span>${i18t('ng_integrity_failed_at',{at:_ne('#' + (v.failedAt || 'unknown'))})}</div>`;
 }
 
 /* ---------- the header strip ----------
@@ -2466,7 +2466,7 @@ function negoHeadHtml(c, opts){
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;
       background:var(--n-paper);border:1px solid var(--n-line);border-radius:6px;box-shadow:var(--shadow-sm)">
       <span style="font-size:12.5px;font-weight:700;color:var(--n-ink)">${i18t('ng_negotiation')}</span>
-      <span class="nego-ver">Round ${negoRound(c)}</span>
+      <span class="nego-ver">${i18t('ng_round_n',{n:negoRound(c)})}</span>
       <span style="font-size:11.5px;color:var(--n-ink-soft);min-width:0;flex:1">
         ${p.total
           ? `${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved — every change carries its own fingerprint.`
@@ -2502,7 +2502,7 @@ function negoReadyHtml(c, opts){
       </span>
       ${side === 'owner'
         ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary nego-go" style="flex:none">${i18t('ng_send_to_docs')}</button>`
-        : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
+        : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${i18t('ng_will_send_signature',{who:_ne(window.FIRST_PARTY || i18t('ng_other_side'))})}</span>`}
     </div>`;
 }
 
@@ -2688,7 +2688,7 @@ function negoTurnBannerHtml(c, opts){
            the index beside them; with none, this is the way to hand the
            contract back unchanged, and there is nowhere else for it. */}
     ${mine && !heldHere && !opts.readonly && side === 'owner'
-      ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
+      ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">${i18t('ng_send_to_who',{who:_ne(c.counterparty || i18t('ng_the_counterparty'))})}</button>`
       : ''}
   </div>`;
 }
@@ -2733,8 +2733,8 @@ function negoIndexSendHtml(c, opts = {}){
        count, same blast styling, beside the cards it publishes. */
     return `<div class="nego-index-send">
       <button id="nego-send" data-rl-blast class="nego-pulse rl-btn-blast"
-        title="Publish every unsent redline to ${them} in one action">&#9889; Send All (${n}) Redline${n === 1 ? '' : 's'}</button>
-      <span class="why">Held on this page until you send. Nothing has reached ${them} yet.</span>
+        title="${i18t('ng_publish_all_title',{who:them})}">&#9889; ${i18tn('ng_send_all',n,{n})}</button>
+      <span class="why">${i18t('ng_held_until_send',{who:them})}</span>
     </div>`;
   }
   if (me !== 'counterparty') return '';
@@ -2766,8 +2766,8 @@ function negoIndexSendHtml(c, opts = {}){
   if (n) parts.push(`${n} decision${n === 1 ? '' : 's'}`);
   const who = _ne(String(opts.org || window.FIRST_PARTY || 'the other side'));
   return `<div class="nego-index-send">
-    <button id="nego-send-decisions" class="nego-pulse">Send ${parts.join(' and ')} to ${who}</button>
-    <span class="why">Held on this page until you send. Nothing has reached ${who} yet.</span>
+    <button id="nego-send-decisions" class="nego-pulse">${i18t('ng_send_parts_to',{what:parts.join(i18t('ng_and')),who})}</button>
+    <span class="why">${i18t('ng_held_until_send',{who})}</span>
   </div>`;
 }
 function negoPanesHtml(c, opts = {}){
@@ -2860,7 +2860,7 @@ function negoPanesHtml(c, opts = {}){
         <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${i18t('ng_readonly_comparison')}</div>`
         : `
         <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
-        <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
+        <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${i18tn('ng_resolved',p.total,{done:p.done,total:p.total})}</div>
         ${''/* ---- WHOSE PLAYBOOK, AND WHOSE COUNTERPARTY ----
                D2. "Accept All Non-Risk" sorts by OUR playbook and OUR scan
                signals. Offering it to the other side both hands them a verb
@@ -2888,7 +2888,7 @@ function negoPanesHtml(c, opts = {}){
               : `Accepts every change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.`}"
             >${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
           <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}
-            title="Rejects every pending change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.">${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
+            title="${_ne(i18t('ng_reject_all_who_title',{who:negoOtherSideName(opts)}))}">${side === 'owner' ? i18t('ng_reject_all_cp2') : i18t('ng_reject_all2')}</button>
         </div>` : ''}
         ${negoIndexSendHtml(c, opts)}`}
       </div>
@@ -2899,7 +2899,7 @@ function negoPanesHtml(c, opts = {}){
   </div>
   ${L.idxOff ? `<button class="nego-fold" id="nego-unfold"
       style="position:absolute;right:14px;top:64px;z-index:8"
-      title="${i18t('ng_bring_index_back')}">Show index (${p.pending || p.total})</button>` : ''}`;
+      title="${i18t('ng_bring_index_back')}">${i18t('ng_show_index_n',{n:p.pending || p.total})}</button>` : ''}`;
 }
 
 /* Embedded mode: the panes with the summary strip above and the status strip
@@ -3581,7 +3581,7 @@ async function negoBatchConfirm(c, kind, split){
     const ch = x.ch || x;
     return `<li style="margin:0 0 4px"><code style="font-family:var(--font-mono);font-size:11px">#${e(ch.id)}</code> ${e(ch.clauseLabel || ch.clauseId || '')}${
       x.why ? ` <span style="color:var(--st-ruby-fg)">— ${e(x.why.join('; '))}</span>` : ''}</li>`;
-  }).join('') + (arr.length > 12 ? `<li style="color:var(--color-neutral-600)">…and ${arr.length - 12} more</li>` : '');
+  }).join('') + (arr.length > 12 ? `<li style="color:var(--color-neutral-600)">${i18t('ng_and_more',{n:arr.length - 12})}</li>` : '');
   const body = `
     <div style="font-size:12.5px;line-height:1.6">
       <p style="margin:0 0 8px"><b>${take.length} change${take.length === 1 ? '' : 's'}</b> will be ${kind === 'accept' ? 'accepted and merged into the wording' : 'rejected, reverting those clauses to the baseline'}.</p>
@@ -3817,7 +3817,7 @@ async function negoAiPropose(c, ctx){
   body.innerHTML = (note ? `<p style="font-family:var(--n-font-ui);font-size:12.5px;line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--n-canvas);border-radius:6px">${e(note)}</p>` : '')
     + (canApply
       ? `<div class="nego-redline">${structured || e(proposed)}</div>`
-      : `<p style="font-family:var(--n-font-ui);font-size:12.5px;color:var(--n-ink-soft);margin:0">No wording change was proposed${note ? ' — the note above is the whole answer' : ''}.</p>`);
+      : `<p style="font-family:var(--n-font-ui);font-size:12.5px;color:var(--n-ink-soft);margin:0">${note ? i18t('ng_no_wording_note_is_all') : i18t('ng_no_wording_change')}</p>`);
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
   const foot = document.createElement('footer');
   foot.innerHTML = `
@@ -4377,7 +4377,7 @@ function wireNegotiationTab(c, opts = {}){
     why.className = 'nego-reason hidden';
     why.innerHTML = `<span>${i18t('ng_why_this_change')}</span>`
       + `<textarea data-nego-reason="${_ne(clauseId)}" rows="2" wrap="soft" spellcheck="true"`
-      + ` placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces an out-of-cycle payment."></textarea>`;
+      + ` placeholder="${_nea(i18t('ng_ph_reason_example'))}"></textarea>`;
     holder.after(why);
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
@@ -6376,7 +6376,7 @@ function renderRedline(){
   const prog = (typeof negoProgress === 'function') ? negoProgress(c)
     : { pending: 0, total: 0 };
   const closer = (!prog.pending && prog.total && side === 'owner')
-    ? `<button data-rl-close-round class="rl-btn rl-btn-go" title="Archive this round's decisions and make the agreed wording the new baseline">&#10003; Close Round ${negoRound(c)}</button>` : '';
+    ? `<button data-rl-close-round class="rl-btn rl-btn-go" title="${_nea(i18t('ng_close_round_title'))}">&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -8121,7 +8121,7 @@ function redlineDocHtml(c, opts = {}){
       ${opts.noAi ? '' : `<button type="button" class="rl-tool rl-tool-ai" data-nego-ai-clause="${id}"
         title="${i18t('ng_ai_redraft_title')}">&#10024; Copilot</button>`}
       <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
-        title="Edit this clause's wording directly">&#9998; Direct Edit</button>
+        title="${_nea(i18t('ng_direct_edit_title'))}">&#9998; ${i18t('ng_direct_edit')}</button>
     </div>`;
   };
   /* ---- THE HEADING THE DOCUMENT ACTUALLY CARRIES ----
@@ -8201,7 +8201,7 @@ function redlineDocHtml(c, opts = {}){
     return `<section class="nego-clause rl-clause is-changed rl-clause-new" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
       <div class="rl-clause-top">
         ${label ? `<h4 class="rl-clause-h">${_ne(label)}</h4>` : ''}
-        <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'} &middot; new clause${st}</span>
+        <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? i18t('ng_their_ask') : i18t('ng_your_ask_short')} &middot; ${i18t('ng_new_clause_tag')}${st}</span>
       </div>
       <div class="nego-body">${inner}</div>
     </section>`;
@@ -8464,11 +8464,11 @@ async function rlOpenPlaybookReview(c, again){
     <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:9px" data-pbr-verbs="${i}">
       <button data-pbr-skip="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">${i18t('ng_skip')}</button>
       ${it.fallback ? `<button data-pbr-fb="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px" title="${i18t('ng_file_fallback_title')}">${i18t('ng_file_fallback')}</button>` : ''}
-      <button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px" title="File your opening position — the playbook's preferred wording — as a tracked change">${i18t('ng_file_preferred')}</button>
+      <button data-pbr-go="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px" title="${_nea(i18t('ng_file_preferred_title'))}">${i18t('ng_file_preferred')}</button>
     </div>
   </div>`;
   openModal(`<div style="padding:20px 24px;max-height:calc(100vh - 80px);overflow-y:auto">
-    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">&#10022; Playbook review — ${items.length} proposal${items.length === 1 ? '' : 's'}</h2>
+    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">&#10022; ${i18tn('ng_playbook_review',items.length,{n:items.length})}</h2>
     <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">${aligned} position${aligned === 1 ? '' : 's'} aligned${rev.source === 'ai' ? ' &middot; Copilot-assisted review' : ' &middot; rule-based review'}. A proposal files as an ordinary fingerprinted change only when you press it — nothing applies itself. <b>${i18t('ng_preferred')}</b> ${i18t('ng_opening_position')} <b>fallback</b> ${i18t('ng_concession_allowed')}</p>
     ${items.map(itemHtml).join('')}
     <div style="display:flex;justify-content:flex-end"><button id="pbr-close" class="ui-btn">${i18t('act_close')}</button></div>
@@ -8654,10 +8654,10 @@ function redlineChangeCardsHtml(c, opts = {}){
   if (!changes.length){
     const settled = all.filter(x => x.status === 'accepted' || x.status === 'rejected').length;
     return `<div class="rl-cards-empty">
-      <b>No changes on the table.</b>
+      <b>${i18t('ng_no_changes')}</b>
       <span>${opts.noAi
         ? `Press <b>${i18t('ng_direct_edit')}</b> under any clause to ask for different wording.`
-        : `Under any clause, press <b>${i18t('ng_direct_edit')}</b> to type the wording yourself, or <b>&#10024; Copilot</b> to have it drafted for you.`} Each ask lands here with its own fingerprint, and the other side accepts or rejects them one at a time.</span>
+        : `Under any clause, press <b>${i18t('ng_direct_edit')}</b> to type the wording yourself, or <b>&#10024; Copilot</b> to have it drafted for you.`} ${i18t('ng_each_ask_lands')}</span>
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }
@@ -8681,7 +8681,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     const label = (RL_CARD_FILTERS.find(([k]) => k === filter) || [,'this filter'])[1];
     return `<div class="rl-cards-empty">
       <b>No changes match &ldquo;${_ne(label)}&rdquo;.</b>
-      <span>${changes.length} change${changes.length === 1 ? ' is' : 's are'} on the table under other filters — switch back to <b>${i18t('ng_all_changes')}</b> to see ${changes.length === 1 ? 'it' : 'them'}.</span>
+      <span>${i18tn('ng_on_table_other_filters',changes.length,{n:changes.length,all:i18t('ng_all_changes')})}</span>
     </div>`;
   }
   return shown.map(ch => {
@@ -8760,7 +8760,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        trail and the exports; this is it on the face of the card. */
     const behalfBlock = ch.enteredBy
       ? `<div class="rl-card-behalf" title="${i18t('ng_typed_on_behalf')}">`
-        + `<span aria-hidden="true">&#9998;</span> Entered by ${_ne(ch.enteredBy)} on behalf of ${_ne(ch.author)}</div>`
+        + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_entered_by_on_behalf',{who:_ne(ch.enteredBy),author:_ne(ch.author)})}</div>`
       : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
@@ -8800,9 +8800,9 @@ function redlineChangeCardsHtml(c, opts = {}){
        negoRetractDraft removes the record, so nothing is withdrawn from
        anyone. Once sent, the honest verbs are Withdraw and revise, above. */
     if (editable && mineUnsent) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
-        title="Retract this draft — it hasn't been sent, so nothing is taken back from ${_nea(c.counterparty || 'the counterparty')}">${i18t('ng_retract')}</button>`);
+        title="${_nea(i18t('ng_retract_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_retract')}</button>`);
     if (editable && mineUnsent) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
-        title="Send this and every other unsent draft to ${_nea(c.counterparty || 'the counterparty')}">${i18t('ng_send')}</button>`);
+        title="${_nea(i18t('ng_send_unsent_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_send')}</button>`);
     /* ---- AND WHAT THE SEND BECOMES ----
        Not the button disappearing. A verb that vanishes on success leaves the
        reader wondering whether they pressed it, and on a column of six cards
@@ -8814,7 +8814,7 @@ function redlineChangeCardsHtml(c, opts = {}){
        Drawn from the same reading as the badge above it. Neither is a flag
        anybody sets; both follow from the turn having actually moved. */
     if (editable && mineSent) verbs.push(`<button type="button" class="rl-sent" data-rl-sent="${_nea(ch.id)}" disabled
-        title="Sent to ${_nea(c.counterparty || 'the counterparty')} — waiting on their answer">${i18t('ng_sent')}</button>`);
+        title="${_nea(i18t('ng_sent_waiting_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_sent')}</button>`);
     /* ---- WHOSE ASK THIS IS, SAID ON THE CARD ----
        The status badge answers "where does this stand"; this one answers
        "who put it on the table", which the meta line said only in small
@@ -8859,7 +8859,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     const theirLabel = originName ? `${originName}’s ask` : 'Their ask';
     const origin = theirs
       ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${_ne(theirLabel)}</span>`
-      : `<span class="rl-origin rl-origin-us" title="Proposed by your side${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${i18t('ng_your_ask')}</span>`;
+      : `<span class="rl-origin rl-origin-us" title="${_nea(i18t('ng_proposed_by_your_side'))}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${i18t('ng_your_ask')}</span>`;
     /* Open or a line — see rlCardIsOpen. A collapsed card keeps its head and
        nothing else; the note and the verbs are what unfold. The caret is the
        only affordance saying there is more, so it is drawn on every card that
@@ -8890,7 +8890,7 @@ function redlineChangeCardsHtml(c, opts = {}){
       } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
       <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
-        ch.round ? `<span class="rl-card-round" title="Proposed in round ${_nea(ch.round)}">R${_ne(ch.round)}</span>` : ''}</div>
+        ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}</div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
       ${body}
     </article>`;
@@ -8922,7 +8922,7 @@ function redlineWallHtml(c, opts = {}){
     ? new Set(msgs.filter(m => discussIsInternal(m)).map(m => m.topic || m.id)).size : 0;
   const bits = [];
   if (internal) bits.push(`<b>${internal} internal thread${internal === 1 ? '' : 's'}</b>`);
-  if (unsent) bits.push(`<b>${unsent} unsent draft${unsent === 1 ? '' : 's'}</b>`);
+  if (unsent) bits.push(`<b>${i18tn('ng_unsent_drafts',unsent,{n:unsent})}</b>`);
   /* ---- THE WALL BAR IS GONE FROM THE OWNER'S BENCH ----
      It was reduced once already — it used to draw even when nothing was being
      held back — and it is now removed outright: a full-width band above the
@@ -9200,7 +9200,7 @@ function rlQueueHtml(c, opts = {}){
         _rlChev(min)}</button>
       <p class="rl-q-label">${i18t('ng_this_rounds_queue')}</p>
       <div class="rl-q-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"
-        aria-label="${p.done} of ${p.total} changes decided this round"><span style="width:${pct}%"></span></div>
+        aria-label="${_nea(i18t('ng_decided_round_aria',{done:p.done,total:p.total}))}"><span style="width:${pct}%"></span></div>
       <div class="rl-q-foot"><b>${p.done} of ${p.total}</b> ${i18t('ng_decided_this_round')}</div>
       ${''/* The folded rail's own read-out. Same two numbers, off the same
              progress object, so the rail and the open column can never
@@ -9312,7 +9312,7 @@ function redlinePanesHtml(c, opts = {}){
       <!-- keeps the nego-pane working classes: the engine's clause tools
            (Change, Delete, the fingerprint margin) are styled through them, and
            without them they render as unlabelled empty boxes -->
-      <section id="rl-doc" class="rl-doc nego-pane working" aria-label="The contract, with this round's changes marked">
+      <section id="rl-doc" class="rl-doc nego-pane working" aria-label="${_nea(i18t('ng_doc_aria'))}">
         ${''/* The middle pane had no name, so three columns read as a queue, a
                page and a list of cards rather than as one contract seen three
                ways. A head naming it, and counting the marks on it, is what
@@ -9327,7 +9327,7 @@ function redlinePanesHtml(c, opts = {}){
       </section>
 
       <div id="rl-resizer" class="rl-resizer" role="separator" aria-orientation="vertical"
-        title="Drag to set how wide the contract is · double-click to reset"><span></span></div>
+        title="${_nea(i18t('ng_drag_width'))}"><span></span></div>
 
       <aside class="rl-col rl-side" id="rl-side" aria-label="${i18t('ng_tracked_and_discussion')}">
         <!-- The two faces wear their own colours — emerald for the redlines,
@@ -9346,7 +9346,7 @@ function redlinePanesHtml(c, opts = {}){
         <div class="nego-pane index" id="rl-changes-col" role="tabpanel" aria-label="${i18t('ng_tracked_changes')}">
           <div class="nego-index-head rl-idx-head">
           <select id="rl-card-filter" class="rl-card-filter${rlCardFilter() === 'all' ? '' : ' on'}"
-            aria-label="${i18t('ng_filter_tracked')}" title="Show every change, one side's asks, or one side of the wall">${
+            aria-label="${i18t('ng_filter_tracked')}" title="${_nea(i18t('ng_filter_title'))}">${
             RL_CARD_FILTERS.map(([k, label]) =>
               `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}>${label}</option>`).join('')}</select>
           ${''/* kept for the engine's wiring and the header proxies; the design
@@ -9354,7 +9354,7 @@ function redlinePanesHtml(c, opts = {}){
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
           <button class="nego-fold" id="nego-fold" hidden>${i18t('ng_hide')}</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
-          <div id="nego-progress" hidden>${p.done} of ${p.total} resolved</div>
+          <div id="nego-progress" hidden>${i18t('ng_resolved_short',{done:p.done,total:p.total})}</div>
           ${''/* Owner-only risk verb, and verbs named from the reader's chair —
                  see the note at the room's bulk bar for why. */}
           ${canAct ? `<div class="nego-bulk">
@@ -9448,20 +9448,20 @@ function redlineDiscussionHtml(c, opts = {}){
       </div>`;
     }).join('');
     return `<article class="rl-thread${anyShared ? '' : ' is-internal'}" data-rl-thread="${_ne(ch.id)}" tabindex="0"
-      title="Jump to ${_ne(ch.clauseLabel || ch.clauseId || 'this clause')} in the contract">
+      title="${_nea(i18t('ng_jump_to',{what:ch.clauseLabel || ch.clauseId || i18t('ng_this_clause')}))}">
       <div class="rl-thread-top">
         <span class="rl-vis ${anyShared ? 'sh' : 'int'}">${anyShared ? '&#127760; Shared' : '&#128274; Internal'}</span>
         <span class="rl-thread-state">${decided ? (ch.status === 'accepted' ? 'Accepted' : 'Rejected') : 'Open'}</span>
       </div>
-      <div class="rl-thread-ref">Change ${_ne(ch.id)}${ch.clauseLabel ? ' &middot; ' + _ne(ch.clauseLabel) : ''}</div>
+      <div class="rl-thread-ref">${i18t('ng_change_n',{id:_ne(ch.id)})}${ch.clauseLabel ? ' &middot; ' + _ne(ch.clauseLabel) : ''}</div>
       ${body}
       ${canComment ? `<div class="rl-reply">
         <div class="nego-visswitch" role="group" aria-label="${i18t('ng_who_can_read')}">
           <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">&#128274; Internal</button>
-          <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; Send to them</button>
+          <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; ${i18t('ng_send_to_them')}</button>
         </div>
         <div class="rl-reply-row">
-          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${i18t('ng_reply_ellipsis')}" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${i18t('ng_reply_ellipsis')}" aria-label="${_ne(i18t('ng_reply_on_change_aria',{id:ch.id}))}"></textarea>
           <button data-nego-send="${_ne(ch.id)}" title="${i18t('ng_send_this_reply')}">&uarr;</button>
         </div>
       </div>` : ''}
@@ -9494,7 +9494,7 @@ function redlineDiscussionHtml(c, opts = {}){
         <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="false">&#127760; Shared</button>
       </div>
       <div class="rl-reply-row">
-        <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Start a thread on ${_ne(ch.id)}…" aria-label="Start a thread on change ${_ne(ch.id)}"></textarea>
+        <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${_nea(i18t('ng_ph_start_thread',{id:ch.id}))}" aria-label="${_nea(i18t('ng_start_thread_aria',{id:ch.id}))}"></textarea>
         <button data-nego-send="${_ne(ch.id)}" title="${i18t('ng_start_thread')}">&uarr;</button>
       </div>
     </div>`;
@@ -9503,7 +9503,7 @@ function redlineDiscussionHtml(c, opts = {}){
            as more threads. Without the heading a reader scrolling past the
            conversation meets a run of identical empty boxes and cannot tell
            whether they are looking at threads that failed to load. */}
-    <div class="rl-starter-sep">Not discussed yet &middot; ${silent.length}</div>
+    <div class="rl-starter-sep">${i18t('ng_not_discussed',{n:silent.length})}</div>
     ${silent.map(starterFor).join('')}
     <p class="rl-starter-note">${i18t('ng_internal_default')}</p>` : '';
 

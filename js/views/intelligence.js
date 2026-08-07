@@ -727,7 +727,7 @@ function renderIntel(){
      same line instead of stacking them. */
   const TABROW='display:flex;align-items:stretch;align-self:stretch;flex:none';
   const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12.5px;color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
-  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('friction','Negotiation Friction')}${tabBtn('map','Contract Graph')}</div>`;
+  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
      panel below is all answer and no chrome. */
@@ -738,7 +738,7 @@ function renderIntel(){
   const ffOn=days=>days==null?!(ff&&ff.days):(ff&&ff.days)===days;
   const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:11.5px;color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
   const frictionControls=`
-      <div style="${TABROW};gap:16px">${ffSeg(null,'All time')}${ffSeg(90,'Last 90 days')}</div>
+      <div style="${TABROW};gap:16px">${ffSeg(null,i18t('int_all_time'))}${ffSeg(90,i18t('int_last_90'))}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
   const headerHtml=`
     <!-- No vertical padding: the tab buttons carry it themselves, so their
@@ -966,7 +966,7 @@ function intelFrictionHtml(){
   const pct=v=>Math.round(v*100);
   if(!st.deals) return `<div style="max-width:960px;margin:0 auto">
     <div style="max-width:560px;margin:40px auto;text-align:center;color:var(--color-neutral-600);font-size:13px;line-height:1.6">
-    <b style="color:var(--color-text)">${f?'Nothing matches these filters.':'No negotiations recorded yet.'}</b><br/>${f?'Clear the filters in the header to see everything again.':'Once contracts go through the negotiation bench, this page counts which clauses get contested, what each fight costs, and who moves fast — straight from the tracked changes.'}</div></div>`;
+    <b style="color:var(--color-text)">${f?i18t('int_nothing_matches'):i18t('int_no_negotiations')}</b><br/>${f?i18t('int_clear_filters'):i18t('int_once_contracts')}</div></div>`;
   const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'&lt;1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
   const RULE='border-bottom:1px solid var(--color-divider)';
   const LINK='display:inline-block;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
@@ -1210,7 +1210,7 @@ function igExplainCard(id){
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
     ${row('Value',isMonetary(c)&&c.value?fmtMoneyShort(c.value):'Non-monetary')}
     ${row('Status',statusLabel(c.status))}
-    ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · in ${d}d`:' · lapsed'):'')):'—')}
+    ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · ${i18t('int_in_days',{n:d})}`:` · ${i18t('int_lapsed')}`):'')):'—')}
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
     <div class="mt-2 flex items-center gap-1.5">
       <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">${i18t('int_open_workspace')}</button>
