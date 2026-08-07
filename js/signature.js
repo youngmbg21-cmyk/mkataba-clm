@@ -11,9 +11,9 @@ const SIG_LS_KEY = 'hati_saved_sig';          // adopt-and-reuse store (both mod
 // A few handwriting styles for the Type tab. Web-safe cursive stacks — the
 // rendered PNG bakes whatever the browser has, so no webfont download needed.
 const SIG_FONTS = [
-  { id:'flow',    label:'Flowing',   css:"'Segoe Script','Bradley Hand','Snell Roundhand','Apple Chancery',cursive" },
-  { id:'brush',   label:'Brush',     css:"'Brush Script MT','Segoe Script',cursive" },
-  { id:'formal',  label:'Formal',    css:"'Snell Roundhand','Apple Chancery','Segoe Script',cursive" },
+  { id:'flow',    get label(){ return i18t('si_flowing'); },   css:"'Segoe Script','Bradley Hand','Snell Roundhand','Apple Chancery',cursive" },
+  { id:'brush',   get label(){ return i18t('si_brush'); },     css:"'Brush Script MT','Segoe Script',cursive" },
+  { id:'formal',  get label(){ return i18t('si_formal'); },    css:"'Snell Roundhand','Apple Chancery','Segoe Script',cursive" },
 ];
 
 function getSavedSignature(){ try{ return JSON.parse(localStorage.getItem(SIG_LS_KEY)||'null'); }catch(e){ return null; } }
@@ -66,9 +66,9 @@ function openSignaturePad(opts={}){
         <div style="padding:16px 20px 0">
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="color:${ACC};display:inline-flex">${icon('finger','w-4 h-4')}</span>
-            <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:${TXT};margin:0;">Adopt your signature</h2>
+            <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:${TXT};margin:0;">${i18t('si_adopt')}</h2>
           </div>
-          <p style="font-size:11.5px;color:${N6};margin:6px 0 12px;line-height:1.5;">Draw it, type your name, or upload a scan — your choice. This mark is sealed onto the document.</p>
+          <p style="font-size:11.5px;color:${N6};margin:6px 0 12px;line-height:1.5;">${i18t('si_draw_type_upload')}</p>
           <div id="sig-tabs" style="display:flex;gap:4px;border-bottom:1px solid ${C};">
             ${['draw','type','upload'].map((k,i)=>`<button data-sig-tab="${k}" style="flex:0 0 auto;padding:8px 14px;font:inherit;font-size:12.5px;font-weight:600;font-family:var(--font-mono);letter-spacing:.02em;cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">${k==='draw'?'✎ Draw':k==='type'?'⌨ Type':'⭱ Upload'}</button>`).join('')}
             ${saved?`<button data-sig-tab="saved" style="margin-left:auto;padding:8px 14px;font:inherit;font-size:12.5px;font-weight:600;font-family:var(--font-mono);cursor:pointer;background:none;border:0;border-bottom:2px solid transparent;color:${N6};">★ Saved</button>`:''}
@@ -82,7 +82,7 @@ function openSignaturePad(opts={}){
           </div>
           <!-- TYPE -->
           <div data-sig-pane="type" style="display:none">
-            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="Type your full name" style="width:100%;min-height:38px;border:1px solid ${C};background:var(--color-surface);border-radius:6px;padding:8px 12px;font-size:14px;color:${TXT};outline:none;margin-bottom:10px"/>
+            <input id="sig-typed" type="text" value="${String(opts.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('si_type_full_name')}" style="width:100%;min-height:38px;border:1px solid ${C};background:var(--color-surface);border-radius:6px;padding:8px 12px;font-size:14px;color:${TXT};outline:none;margin-bottom:10px"/>
             <div id="sig-type-preview" style="height:${SIG_H*0.55}px;border:1.5px dashed ${C};border-radius:10px;background:var(--color-bg);display:grid;place-items:center;overflow:hidden"></div>
             <div id="sig-style-pick" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"></div>
           </div>
@@ -90,13 +90,13 @@ function openSignaturePad(opts={}){
           <div data-sig-pane="upload" style="display:none">
             <label style="display:grid;place-items:center;height:${SIG_H}px;border:1.5px dashed ${C};border-radius:10px;background:var(--color-bg);cursor:pointer;text-align:center;padding:12px">
               <input id="sig-file" type="file" accept="image/*" style="display:none"/>
-              <span id="sig-upload-label" style="font-size:12px;color:${N7};line-height:1.6">${icon('upload','w-5 h-5')}<br>Click to upload an image of your signature</span>
+              <span id="sig-upload-label" style="font-size:12px;color:${N7};line-height:1.6">${icon('upload','w-5 h-5')}<br>${i18t('si_click_upload')}</span>
             </label>
           </div>
           <!-- SAVED -->
           ${saved?`<div data-sig-pane="saved" style="display:none">
-            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:10px;background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="Saved signature" style="max-width:90%;max-height:80%"/></div>
-            <div style="font-size:11px;color:${N6};margin-top:8px;font-family:var(--font-mono)">Your adopted signature (${saved.form})</div>
+            <div style="height:${SIG_H}px;border:1.5px solid ${C};border-radius:10px;background:var(--color-bg);display:grid;place-items:center;overflow:hidden"><img src="${saved.image}" alt="${i18t('si_saved_signature')}" style="max-width:90%;max-height:80%"/></div>
+            <div style="font-size:11px;color:${N6};margin-top:8px;font-family:var(--font-mono)">${i18t('si_your_adopted',{form:saved.form})}</div>
           </div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:12px;padding:12px 20px 18px;flex-wrap:wrap;border-top:1px solid ${C};margin-top:8px">
@@ -104,8 +104,8 @@ function openSignaturePad(opts={}){
             <input id="sig-adopt" type="checkbox" ${saved?'checked':''} style="width:15px;height:15px;accent-color:${ACC}"/> Save my signature for next time
           </label>
           <div style="margin-left:auto;display:flex;gap:8px">
-            <button id="sig-cancel" class="ui-btn" style="padding:8px 16px;font-size:13px">Cancel</button>
-            <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:8px 18px;font-size:13px">${icon('finger','w-4 h-4')} Adopt &amp; sign</button>
+            <button id="sig-cancel" class="ui-btn" style="padding:8px 16px;font-size:13px">${i18t('act_cancel')}</button>
+            <button id="sig-adopt-go" class="ui-btn ui-btn-primary" style="padding:8px 18px;font-size:13px">${icon('finger','w-4 h-4')} ${i18t('si_adopt_and_sign')}</button>
           </div>
         </div>
       </div>`;
@@ -183,11 +183,11 @@ function openSignaturePad(opts={}){
     q('#sig-adopt-go').addEventListener('click',async()=>{
       let form=tab, image=null, typedName=null, font=null;
       if(tab==='saved' && saved){ form=saved.form; image=saved.image; typedName=saved.typedName||null; font=saved.font||null; }
-      else if(tab==='draw'){ if(!drawn){ toast('Draw your signature first','err'); return; } image=canvas.toDataURL('image/png'); }
-      else if(tab==='type'){ typedName=(q('#sig-typed').value||'').trim(); if(!typedName){ toast('Type your name first','err'); return; }
+      else if(tab==='draw'){ if(!drawn){ toast(i18t('si_draw_first'),'err'); return; } image=canvas.toDataURL('image/png'); }
+      else if(tab==='type'){ typedName=(q('#sig-typed').value||'').trim(); if(!typedName){ toast(i18t('si_type_first'),'err'); return; }
         font=fontId; image=renderTypedSignature(typedName,currentFont().css); }
-      else if(tab==='upload'){ if(!uploadedDataUrl){ toast('Upload an image first','err'); return; } image=uploadedDataUrl; }
-      if(!image){ toast('Add a signature first','err'); return; }
+      else if(tab==='upload'){ if(!uploadedDataUrl){ toast(i18t('si_upload_first'),'err'); return; } image=uploadedDataUrl; }
+      if(!image){ toast(i18t('si_add_first'),'err'); return; }
       const imageHash=await sha256(image);
       const out={ form, image, imageHash, typedName, font };
       if(q('#sig-adopt').checked) setSavedSignature(out); else if(saved && !q('#sig-adopt').checked) setSavedSignature(null);

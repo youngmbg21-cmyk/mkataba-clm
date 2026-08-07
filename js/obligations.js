@@ -172,10 +172,10 @@ function heuristicObligations(text, c){
 }
 async function extractObligations(c){
   const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.contractPlainText?contractPlainText(c):'');
-  if(!text || text.length<120){ toast('No readable clause text to scan for obligations','err'); return []; }
+  if(!text || text.length<120){ toast(i18t('ob_no_readable'),'err'); return []; }
   if(API_MODE() && state.aiConfigured){
     try{ const r=await api('ai/obligations','POST',{ text:text.slice(0,20000) }); return r.obligations||[]; }
-    catch(e){ toast('Copilot obligation scan unavailable — using a basic scan','err'); }
+    catch(e){ toast(i18t('ob_scan_unavailable'),'err'); }
   }
   return heuristicObligations(text, c);
 }
@@ -219,7 +219,7 @@ function findObligation(cid, obId){
   return i<0 ? null : { c, o:list[i], i };
 }
 function toggleObligation(c, i, opts={}){
-  if(!canEdit()){ toast('Viewers cannot change obligations','err'); return null; }
+  if(!canEdit()){ toast(i18t('ob_viewers_no_change'),'err'); return null; }
   const o=(c&&c.obligations||[])[i]; if(!o) return null;
   o.status = o.status==='done' ? 'open' : 'done';
   logAudit(c,'Obligation',`${o.status==='done'?'Completed':'Reopened'}: ${o.desc}`
@@ -262,7 +262,7 @@ function renderObligationsSection(c){
     <div class="px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
         <span class="text-brand-500">${icon('calendar')}</span>
-        <h3 class="text-sm font-display font-600 text-ink">Obligations</h3>
+        <h3 class="text-sm font-display font-600 text-ink">${i18t('ob_obligations')}</h3>
         <span class="ml-auto text-[10px] font-mono text-ink/60">${obs.length}</span>
       </div>
       ${dd?`<div class="mb-3 rounded-lg border ${daysUntil(dd)<0?'border-rose-200 bg-rose-50':'border-gold-500/25 bg-gold-500/8'} px-3 py-2 text-[11px]">
@@ -288,7 +288,7 @@ function renderObligationsSection(c){
           </div>
           ${o.quote?`<div class="mt-1 text-[10px] text-ink/50 italic border-l-2 border-line pl-2">“${o.quote.replace(/</g,'&lt;')}”</div>`:''}
         </div>`; }).join('')}</div>`
-      :`<p class="text-[11px] text-ink/60 mb-2">No obligations tracked yet.</p>`}
+      :`<p class="text-[11px] text-ink/60 mb-2">${i18t('ob_none_tracked')}</p>`}
       ${editable?`<div class="flex flex-wrap gap-2">
         <button id="ob-add" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('plus','w-3 h-3')} Add obligation</button>
         <button id="ob-find" class="flex items-center gap-1.5 rounded-lg border border-gold-500/30 text-gold-600 px-3 py-1.5 text-[11px] font-600 hover:bg-gold-500/10 transition">${icon('sparkle','w-3 h-3')} Find obligations</button>
@@ -313,30 +313,30 @@ function openObligationForm(c, seed){
   openModal(`
     <div class="p-6">
       <h3 class="font-serif font-600 text-lg text-ink mb-3">${seed._i!=null?'Edit':'Add'} obligation</h3>
-      <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Description</span>
+      <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_description')}</span>
         <input id="of-desc" value="${(seed.desc||'').replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
       <div class="grid grid-cols-2 gap-3 mb-2.5">
-        <label class="block"><span class="text-[11px] font-600 text-ink/70">Due date</span>
+        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_due_date')}</span>
           <input id="of-due" type="date" value="${seed.due||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
-        <label class="block"><span class="text-[11px] font-600 text-ink/70">Recurring</span>
+        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_recurring')}</span>
           <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k,l])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${l}</option>`).join('')}</select></label>
       </div>
       ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE. The two questions are not
               independent — "assign to" only means anything for an obligation
               that is ours — so the field that decides it comes first, and the
               one it governs is hidden when it does not apply. */}
-      <div class="mb-2.5"><span class="text-[11px] font-600 text-ink/70">Whose obligation is this?</span>
+      <div class="mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_whose')}</span>
         <div id="of-party" class="mt-1 grid grid-cols-2 gap-2">
           ${OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
             return `<button type="button" data-of-party="${k}" class="rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
         </div></div>
-      <label id="of-assignee-wrap" class="block mb-4 ${seed.party==='theirs'?'hidden':''}"><span class="text-[11px] font-600 text-ink/70">Assign to</span>
+      <label id="of-assignee-wrap" class="block mb-4 ${seed.party==='theirs'?'hidden':''}"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_assign_to')}</span>
         <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/>
         <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
       <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
-        <button id="of-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-        <button id="of-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save</button>
+        <button id="of-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+        <button id="of-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('act_save')}</button>
       </div>
     </div>`);
   let party=(seed.party==='theirs')?'theirs':'ours';
@@ -370,7 +370,7 @@ function openObligationForm(c, seed){
   });
 }
 async function runFindObligations(c){
-  const btn=document.getElementById('ob-find'); if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Scanning…</span>'; }
+  const btn=document.getElementById('ob-find'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ob_scanning')}</span>`; }
   const found=await extractObligations(c);
   if(btn){ btn.disabled=false; }
   renderObligationsSection(c);
@@ -381,8 +381,8 @@ function openObligationsReview(c, found){
   openModal(`
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">Proposed obligations</h3></div>
-      <p class="text-xs text-ink/60 mb-3">Tick the ones to add. They are filed as <b>ours</b> — open any one afterwards to mark it as the counterparty&rsquo;s, or to set a date and an owner. Nothing is saved until you confirm.</p>
+        <h3 class="font-serif font-600 text-lg text-ink">${i18t('ob_proposed')}</h3></div>
+      <p class="text-xs text-ink/60 mb-3">${i18t('ob_tick_to_add')} <b>ours</b> — open any one afterwards to mark it as the counterparty&rsquo;s, or to set a date and an owner. Nothing is saved until you confirm.</p>
       <div class="space-y-2 max-h-[45vh] overflow-y-auto scroll-thin mb-4">
         ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer">
           <input type="checkbox" data-ob-pick="${i}" checked class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
@@ -390,8 +390,8 @@ function openObligationsReview(c, found){
           ${o.quote?`<span class="block text-[10px] text-ink/50 italic mt-0.5">“${o.quote.replace(/</g,'&lt;')}”</span>`:''}</span></label>`).join('')}
       </div>
       <div class="flex justify-end gap-2">
-        <button id="or-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-        <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Add selected</button>
+        <button id="or-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+        <button id="or-add" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ob_add_selected')}</button>
       </div>
     </div>`);
   document.getElementById('or-cancel').addEventListener('click',closeModal);

@@ -214,9 +214,26 @@ describe('guidance, not legal advice', () => {
   });
 
   test('the limit is stated to the USER too, not only to the model', () => {
-    assert.match(AI, /guidance, not legal advice/,
+    /* The disclaimer is a dictionary key now, because the reader sees it in
+       their own language. That makes this check STRONGER, not weaker: the
+       panel must still carry it, the English must still say it, and every
+       language the app offers must have its own version — a disclaimer that
+       silently falls back to English on a Swedish screen is a disclaimer the
+       reader was not actually given. */
+    assert.match(AI, /i18t\('ai_guidance_not_advice'\)/,
       'a rule the reader cannot see is a rule they cannot rely on');
-    assert.match(AI, /say when something needs your lawyer/);
+    const { STRINGS, LANGUAGES } = require('../js/i18n.js');
+    assert.match(STRINGS.en.ai_guidance_not_advice, /guidance, not legal advice/i,
+      'the English must still say it plainly');
+    for (const { id } of LANGUAGES)
+      assert.ok(String(STRINGS[id].ai_guidance_not_advice || '').trim(),
+        `${id}: every reader is given the limit in their own language`);
+    /* the same sentence, also moved into the dictionary */
+    assert.match(AI, /i18t\('ai_ill_tell_you'\)/);
+    assert.match(STRINGS.en.ai_ill_tell_you, /say when something needs your lawyer/);
+    for (const { id } of LANGUAGES)
+      assert.ok(String(STRINGS[id].ai_ill_tell_you || '').trim(),
+        `${id}: the referral-to-a-lawyer line reaches every reader`);
   });
 
   test('the standing rules that predate this session are still in place', () => {

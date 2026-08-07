@@ -34,7 +34,8 @@ const ROOT = path.join(__dirname, '..');
 
 /* The modules a negotiation actually runs through, in js/app.js order. */
 const MODULES = [
-  'js/jurisdiction.js', // first, as js/app.js loads it: money and law read from it
+  'js/i18n.js',         // first, as js/app.js loads it: every label reads through t()
+  'js/jurisdiction.js', // then this: money and law read from it
   'js/richdoc.js',
   'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
   'js/aichart.js',   // the chart recipes: pure functions of state

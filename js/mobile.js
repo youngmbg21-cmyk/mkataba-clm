@@ -81,14 +81,14 @@ const M_VIEW_FOR_SCREEN = {
    no door is a screen the reader assumes has been taken away; a door onto an
    honest "not here" is a screen they know where to find. */
 const M_DESK = [
-  { view:'intel',      label:'Insights',        note:'Portfolio analysis, negotiation friction and the risk board.' },
-  { view:'reports',    label:'Reports',         note:'The full report set, the portfolio graph and CSV export.' },
-  { view:'calendar',   label:'Calendar',        note:'Renewals, notice windows and obligation dates on a month grid.' },
-  { view:'templates',  label:'Templates',       note:'The template library, its versions and the design step.' },
-  { view:'playbook',   label:'Our standards',   note:'The clause library and the playbook that checks against it.' },
-  { view:'migration',  label:'Import contracts',note:'Bring a whole back-catalogue in one go.' },
-  { view:'team',       label:'Settings & Rules',note:'Members, approval rules, branding and the workspace profile.' },
-  { view:'advice',     label:'Advice Desk',     note:'The advice queue and the counsel thread.' },
+  { view:'intel',      get label(){ return i18t('m_insights'); },        get note(){ return i18t('m_insights_sub'); } },
+  { view:'reports',    get label(){ return i18t('m_reports'); },         get note(){ return i18t('m_reports_sub'); } },
+  { view:'calendar',   get label(){ return i18t('m_calendar'); },        get note(){ return i18t('m_calendar_sub'); } },
+  { view:'templates',  get label(){ return i18t('m_templates'); },       get note(){ return i18t('m_templates_sub'); } },
+  { view:'playbook',   get label(){ return i18t('m_our_standards'); },   get note(){ return i18t('m_standards_sub'); } },
+  { view:'migration',  get label(){ return i18t('m_import_contracts'); },get note(){ return i18t('m_import_sub'); } },
+  { view:'team',       get label(){ return i18t('m_settings_rules'); },get note(){ return i18t('m_settings_sub'); } },
+  { view:'advice',     get label(){ return i18t('m_advice_desk'); },     get note(){ return i18t('m_advice_sub'); } },
 ];
 
 /* ------------------------------------------------------------------ CSS ----
@@ -553,7 +553,7 @@ function mExpiry(c){
   const d = (typeof daysUntil==='function') ? daysUntil(e) : null;
   const when = new Date(e+'T00:00:00');
   const nice = isNaN(when.getTime()) ? String(e)
-    : when.toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'});
+    : when.toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
   if(d==null) return 'Exp '+nice;
   if(d<0) return 'Ended '+nice;
   return 'Exp '+nice;
@@ -584,7 +584,7 @@ function mHeadHtml(){
       <button class="m-head-btn" data-m-act="theme" aria-label="Theme — ${themeLabel}. Tap for the next one">
         <span class="m-theme-sw" style="background:${M_THEME_SWATCH[themeNow]}"></span>
       </button>
-      <button class="m-head-btn" data-m-act="account" aria-label="Account and jurisdiction">
+      <button class="m-head-btn" data-m-act="account" aria-label="${i18t('m_account_and_jx')}">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
       </button>
     </div>`;
@@ -608,11 +608,24 @@ function mAccountSheetHtml(){
     <div class="m-grab"></div>
     <div class="m-sheet-title">${mEsc((u&&u.name)||'Signed in')}</div>
     <div class="m-sheet-note">${mEsc((u&&u.role)||'')}${u&&u.email?' · '+mEsc(u.email):''}</div>
-    <div class="m-capline" style="margin-bottom:6px">Jurisdiction</div>
+    ${''/* LANGUAGE FIRST, and on the phone this is the ONLY place it lives:
+           below 768 the desktop shell is hidden outright and this shell draws
+           the app, so the toggle in the desktop header does not exist here at
+           all. Without this row a phone user could not change language. */}
+    <div class="m-capline" style="margin-bottom:6px">${i18t('m_language')}</div>
+    <div class="m-card m-list">${(typeof langList==='function'?langList():[]).map(l=>{
+      const on = typeof langId==='function' && langId()===l.id;
+      return `<button class="m-row" data-m-lang="${l.id}">
+        <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:${on?600:500}">${mEsc(l.name)}</span></span>
+        ${on?`<span style="flex:none;color:var(--accent-solid)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>`:''}
+      </button>`;}).join('')}</div>
+    <div class="m-note" style="margin-top:8px">${i18t('m_language_sub')}</div>
+
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('m_jurisdiction')}</div>
     <div class="m-card m-list">${rows}</div>
-    <div class="m-note" style="margin-top:8px">The jurisdiction sets the currency on every figure, which governing-law checks run, and what the Copilot is briefed on.</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">Log out</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">Close</button>`;
+    <div class="m-note" style="margin-top:8px">${i18t('m_jx_sub')}</div>
+    <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">${i18t('m_log_out')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
 }
 
 /* -------------------------------------------------------------- TAB BAR ----*/
@@ -624,15 +637,15 @@ function mTabsHtml(){
     <div class="m-tabs">
       <button class="m-tab${on('home')}" data-m-tab="home">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-        <span>Home</span>
+        <span>${i18t('m_home')}</span>
       </button>
       <button class="m-tab${on('contracts')}" data-m-tab="contracts">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        <span>Contracts</span>
+        <span>${i18t('m_contracts')}</span>
       </button>
       <button class="m-tab${on('approvals')}" data-m-tab="approvals">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
-        <span>Approvals</span>
+        <span>${i18t('m_approvals')}</span>
         ${n?`<span class="m-tab-badge">${n>99?'99+':n}</span>`:''}
       </button>
     </div>`;
@@ -648,25 +661,25 @@ function mMoreHtml(){
         <span class="m-row-name" style="font-weight:500">${mEsc(d.label)}</span>
         <span class="m-row-sub">${mEsc(d.note)}</span>
       </span>
-      <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">Computer</span>
+      <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>`).join('');
   return `
     <div class="m-pagehead">
-      <div class="m-title">More</div>
-      <div class="m-sub">The rest of HaTi. These are desk screens — they open on a computer.</div>
+      <div class="m-title">${i18t('m_more')}</div>
+      <div class="m-sub">${i18t('m_rest_of_hati')}</div>
     </div>
     <div class="m-scroll">
       <div class="m-card m-list" style="margin:16px">${rows}</div>
-      <div class="m-note" style="margin:0 16px 24px">Nothing here is missing from your account — it is the same workspace, on a screen with room for it.</div>
+      <div class="m-note" style="margin:0 16px 24px">${i18t('m_nothing_missing')}</div>
     </div>`;
 }
 
 /* THE HANDOFF — one desk screen, named, with the one line that says why. */
 function mHandoffHtml(){
-  const d = M_DESK.find(x=>x.view===mS().deskView) || { label:'This screen', note:'' };
+  const d = M_DESK.find(x=>x.view===mS().deskView) || { get label(){ return i18t('m_this_screen'); }, note:'' };
   return `
     <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
-      <button class="m-head-btn" data-m-act="back" aria-label="Back" style="color:var(--color-accent-700)">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
       <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${mEsc(d.label)}</div>
@@ -676,7 +689,7 @@ function mHandoffHtml(){
         <div class="m-handoff-ic">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
         </div>
-        <div style="font-size:18px;font-weight:600">Open HaTi on a computer</div>
+        <div style="font-size:18px;font-weight:600">${i18t('m_open_on_computer')}</div>
         <div class="m-note" style="margin-top:6px">${mEsc(d.note)}</div>
       </div>
     </div>`;
@@ -699,11 +712,11 @@ function mRender(){
   if(onRedline){
     const c = (state.activeId && typeof getContract==='function') ? getContract(state.activeId) : null;
     root.innerHTML = `<div class="m-backbar">
-      <button class="m-head-btn" data-m-act="leave-redline" aria-label="Back to the contract" style="color:var(--color-accent-700)">
+      <button class="m-head-btn" data-m-act="leave-redline" aria-label="${i18t('m_back_to_contract')}" style="color:var(--color-accent-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
       <span class="m-backbar-name">${mEsc(c ? (c.name||c.id) : 'Negotiation')}</span>
-      <button class="m-head-btn" data-m-act="copilot-open" aria-label="Open HaTi Copilot" style="color:var(--color-accent-700);position:relative">
+      <button class="m-head-btn" data-m-act="copilot-open" aria-label="${i18t('m_open_copilot')}" style="color:var(--color-accent-700);position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.6 4.6 4.6 1.6-4.6 1.6L12 15l-1.6-4.7L5.8 8.7l4.6-1.6L12 2.5z"/></svg>
         <span data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:6px;right:6px;width:10px;height:10px;border-radius:50%;background:var(--st-amber-dot)"></span>
       </button>
@@ -766,7 +779,7 @@ function mSheetHtml(){
   else if(s.sheet==='renumber') inner = mRenumberSheetHtml();
   else if(s.sheet==='kpis')     inner = mKpiSheetHtml();
   else return '';
-  return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="Close"></button><div class="m-sheet">${inner}</div></div>`;
+  return `<div class="m-sheet-wrap"><button class="m-scrim" data-m-act="close-sheet" aria-label="${i18t('act_close')}"></button><div class="m-sheet">${inner}</div></div>`;
 }
 
 function mOpenSheet(k, extra){ Object.assign(mS(), extra||{}, {sheet:k}); mRender(); }
@@ -794,6 +807,14 @@ function mWire(){
   }));
   root.querySelectorAll('[data-m-desk]').forEach(b=>b.addEventListener('click',()=>{
     mGo('handoff',{ deskView:b.getAttribute('data-m-desk') });
+  }));
+  /* The sheet stays OPEN after a language change, unlike the market: you tick a
+     language to see the app in it, and closing the sheet would hide the one
+     thing you just changed. mRender redraws the whole phone shell, so the row
+     you tapped comes back reading in the language you picked. */
+  root.querySelectorAll('[data-m-lang]').forEach(b=>b.addEventListener('click',()=>{
+    if(window.langSet) langSet(b.getAttribute('data-m-lang'),{repaint:false});
+    mRender();
   }));
   root.querySelectorAll('[data-m-region]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-m-region');

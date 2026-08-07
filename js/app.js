@@ -1,5 +1,6 @@
 // HaTi — entry module (E0): imports every module in original
 // execution order, then nav + shell wiring + boot.
+import './i18n.js';        // what language this PERSON reads the app in — theirs, not the company's
 import './components.js';
 import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
@@ -99,32 +100,35 @@ function commandMeta(view){
       // agreements, not files: a master agreement plus six addenda is ONE
       const fam=(window.familyCounts?familyCounts(cs):{agreements:count,documents:count,amendments:0});
       const head=fam.amendments
-        ? `${fam.agreements.toLocaleString('en-KE')} agreements · ${fam.documents.toLocaleString('en-KE')} documents`
-        : `${count.toLocaleString('en-KE')} contracts under management`;
-      return ['Portfolio', `${head} · ${totalV} active value`];
+        ? i18t('pg_dash_agreements',{a:fam.agreements.toLocaleString(jxLocale()),d:fam.documents.toLocaleString(jxLocale())})
+        : i18tn('pg_dash_managed',count,{n:count.toLocaleString(jxLocale())});
+      return [i18t('pg_portfolio'), i18t('pg_dash_sub',{head,value:totalV})];
     }
-    case 'register':  return ['Contracts', 'filter, sort and act in bulk across the working set'];
-    case 'templates': return ['Templates', 'company standard templates, HaTi standard paper and sample documents'];
-    case 'playbook':  return ['Our standards', 'your clause library and negotiation positions — standard wording, playbook and portfolio deviations'];
-    case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
-    case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
+    case 'register':  return [i18t('nav_contracts'), i18t('pg_contracts_sub')];
+    case 'templates': return [i18t('nav_templates'), i18t('pg_templates_sub')];
+    case 'playbook':  return [i18t('nav_our_standards'), i18t('pg_standards_sub')];
+    case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
+    case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
-    case 'intel':     return ['Insights', 'negotiation friction control tower · Copilot contract graph'];
-    case 'calendar':  return ['Renewal Calendar & Obligations', 'expiry, renewal-decision deadlines and obligations — surfaced automatically from every contract'];
-    case 'migration': return ['Import contracts', 'bulk-import an existing portfolio · Copilot extraction with human review'];
-    case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
-    case 'team':      return ['Team & Settings', 'members, roles, approval gate and the Copilot engine'];
+    case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
+    case 'calendar':  return [i18t('pg_calendar'), i18t('pg_calendar_sub')];
+    case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
+    case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
+    case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
     case 'folder': {
-      const f=FOLDERS[state.folderId]; return ['Contracts', f?`filtered to ${f.name}`:'filter, sort and act in bulk'];
+      /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
+         the sentence around it turns. */
+      const f=FOLDERS[state.folderId];
+      return [i18t('nav_contracts'), f?i18t('pg_folder_filtered',{name:f.name}):i18t('pg_contracts_sub_short')];
     }
     case 'workspace': {
       const c=getContract(state.activeId);
-      return ['Contract Workspace', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+      return [i18t('pg_workspace'), c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     case 'redline': {
       const c=getContract(state.activeId);
-      return ['Negotiate', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+      return [i18t('pg_negotiate'), c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     default: return ['HaTi', ''];
   }
@@ -154,9 +158,9 @@ const PAGE_ACTIONS = {
   reports:  ['export'],
 };
 function pageActionHtml(kind){
-  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:12px;padding:6px 12px" title="Export the working set">`+
-    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>`;
-  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
+  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:12px;padding:6px 12px" title="${i18t('ap_export_working_set')}">`+
+    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
+  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">${i18t('pg_new_contract')}</button>`;
   return '';
 }
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
@@ -221,7 +225,7 @@ function onShellResize(){
     // applyRail owns the sidebar's inline column and reads the drawer
     // breakpoint, so crossing 900 in either direction has to re-ask it.
     applyRail();
-    placeRegionSwitch();
+    placeLanguageSwitch();
     // A window dragged back to full width must not leave the drawer stranded
     // open over a sidebar that is already on screen.
     if(!navDrawerActive()) closeNavDrawer();
@@ -251,7 +255,7 @@ function updateSidebarCounts(){
   const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
-    el.textContent=(v==null||v==='')?'':Number(v).toLocaleString('en-KE');
+    el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
@@ -396,7 +400,7 @@ function setView(view){
   updateCommandBar(view);
   updateSidebarCounts();
   applyPanelLayout();
-  placeRegionSwitch();
+  placeLanguageSwitch();
   renderContextPanel();
   if(getOrg()&&!API_MODE()) persist();
   else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
@@ -424,7 +428,7 @@ function keepScroll(fn){
     if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=top; }); }
 }
 function openFolder(fid){
-  if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast('You do not have access to that value stream','err'); setView('register'); return; }
+  if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast(i18t('ap_no_stream_access'),'err'); setView('register'); return; }
   state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder');
 }
 function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspace'); }
@@ -435,7 +439,7 @@ function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspac
    answers become the contract's data get asked exactly once, the same way, in
    both places. Kept because it is window-exported and produces a valid draft. */
 function createFromTemplate(tid){
-  if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
+  if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return; }
   const t=TEMPLATES[tid], u=currentUser();
   const c={ id:nextId(), name:t.name+' (Draft)', counterparty:'', value:0, status:'Draft',
     template:tid, folder:t.folder,
@@ -479,12 +483,12 @@ function renderNewMenu(){
     ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
     ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Import many at once','Bring a whole back-catalogue in one go','id="menu-migrate"')}
     ${libTpls.length?`
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Company standard templates</div>
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_company_standards')}</div>
     ${libTpls.map(t=>item('copy','var(--tile-emerald-bg)','var(--tile-emerald-fg)',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
     ${myTpls.length?`
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Counterparty templates</div>
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_cp_templates')}</div>
     ${myTpls.map(t=>item('copy','var(--tile-steel-bg)','var(--tile-steel-fg)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">HaTi standard templates</div>
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_hati_templates')}</div>
     ${creatable.map(t=>item(t.ic,'var(--color-bg)','var(--color-accent-700)',t.name,'Template '+t.id,`data-new="${t.id}"`)).join('')}`;
   // A built-in template opens the SAME guided fill the Templates page opens.
   // It used to create an empty draft on the spot from here, so the identical
@@ -519,7 +523,7 @@ window.openNewMenu=openNewMenu;
 function exportWorkingSetCsv(){
   const R=(window.regState?regState():null);
   const rows=(window.regFiltered?regFiltered():state.contracts.slice());
-  if(!rows.length){ toast('Nothing to export','err'); return; }
+  if(!rows.length){ toast(i18t('ap_nothing_to_export'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
@@ -539,7 +543,7 @@ function commandPaletteResults(q){
   const folders=Object.values(FOLDERS||{});
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
-      .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,sub:'Value stream',ic:f.ic||'folder'}));
+      .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
   }
   let cs=state.contracts.slice();
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
@@ -558,7 +562,7 @@ function openCommandPalette(){
     <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:8px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
         <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
-        <input id="cp-input" placeholder="Search contracts, counterparties, streams…" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:inherit"/>
+        <input id="cp-input" placeholder="${i18t('ap_search_placeholder')}" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:inherit"/>
         <span style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:3px;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
       </div>
       <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
@@ -689,7 +693,14 @@ function applyRail(){
   const btn=document.getElementById('cmd-rail');
   if(btn){
     btn.setAttribute('aria-pressed',on?'true':'false');
-    btn.title=on?'Show the sidebar labels':'Collapse the sidebar to icons';
+    /* The KEY is written alongside the text, not just the text. This tooltip
+       flips with the rail's state, so a language switch that only rewrote
+       data-i18n-title would leave the wrong half showing; and one that only
+       set .title here would be reverted to English by the next repaint. Both
+       are set together so whichever fires second still agrees. */
+    const railKey=on?'sh_rail_show':'sh_rail_hide';
+    btn.setAttribute('data-i18n-title',railKey);
+    btn.title=i18t(railKey);
     /* THE CHEVRON POINTS THE WAY THE PRESS GOES, not the way the sidebar
        currently is. Pointing at the state rather than the act is how a toggle
        comes to describe the wrong half of itself. */
@@ -764,17 +775,18 @@ function setNavDrawer(open){
   if(btn) btn.setAttribute('aria-expanded', open?'true':'false');
 }
 function closeNavDrawer(){ setNavDrawer(false); }
-/* ---- THE JURISDICTION SWITCHER HAS TO STAY REACHABLE ----
-   It was simply hidden below 1430 (index.html), which was survivable while
-   narrow windows were unusable anyway and is not now: Sweden/Kenya changes
-   money, the governing-law checks and the Copilot's briefing, so it is a
-   control, not decoration. From 900 up it stays in the header as flags only.
-   Below 900 the header has no room at any size, so the switcher MOVES into the
-   nav drawer, above the Copilot launcher. The element is relocated, not
-   rebuilt — same node, same two button ids, so the listeners bound in
-   wireShell keep working exactly as they did. */
-function placeRegionSwitch(){
-  const sw=document.getElementById('region-switch');
+/* ---- THE LANGUAGE TOGGLE HAS TO STAY REACHABLE ----
+   This used to relocate the jurisdiction flags. The market moved to Settings
+   (it is the company's, and admin-only), and the toggle took its place in the
+   header — so the same job now serves the language.
+
+   Hiding a control at a narrow width is not an option: below 900 the header
+   has no room at any size, so the toggle MOVES into the nav drawer, above the
+   Copilot launcher, where its full words fit again. The node is relocated,
+   not rebuilt, so the click listener bound in wireLanguagePicker keeps
+   working exactly as it did. */
+function placeLanguageSwitch(){
+  const sw=document.getElementById('lang-switch');
   const drawerHome=document.querySelector('#side-nav .copilot-wrap');
   const headerHome=document.getElementById('brand-block');
   if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
@@ -799,7 +811,7 @@ function renderContextPanel(){
               <span style="display:block;font-size:11.5px;line-height:1.4;">${a.txt}</span>
               <span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
             </span>
-          </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">No activity recorded yet.</div>`}
+          </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
   body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
 }
@@ -828,9 +840,9 @@ function renderContextPanel(){
    anybody asks. The menu offers three because three is what was asked for and
    three is what is easy to explain. */
 const THEMES = [
-  { k:'green', label:'Green',      note:'The HaTi default',        brand:null,   dark:false },
-  { k:'navy',  label:'Navy',       note:'Same platform, deeper',   brand:'navy', dark:false },
-  { k:'dark',  label:'Dark',       note:'Easier at night',         brand:null,   dark:true  },
+  { k:'green', get label(){ return i18t('ap_theme_green'); },      get note(){ return i18t('ap_theme_green_note'); },        brand:null,   dark:false },
+  { k:'navy',  get label(){ return i18t('ap_theme_navy'); },       get note(){ return i18t('ap_theme_navy_note'); },   brand:'navy', dark:false },
+  { k:'dark',  get label(){ return i18t('ap_theme_dark'); },       get note(){ return i18t('ap_theme_dark_note'); },         brand:null,   dark:true  },
 ];
 const THEME_KEY = 'hati-theme';
 /* 'light' and 'dark' are what the old two-position switch wrote, and they are
@@ -889,7 +901,7 @@ function renderThemeMenu(){
   const btn=document.getElementById('theme-btn');
   if(btn) btn.title='Theme — '+((THEMES.find(t=>t.k===cur)||{}).label||'');
   if(!menu) return;
-  menu.innerHTML=`<div class="mgroup">Theme</div>`+THEMES.map(t=>`
+  menu.innerHTML=`<div class="mgroup">${i18t('ap_theme')}</div>`+THEMES.map(t=>`
     <button type="button" data-theme-pick="${t.k}" role="menuitemradio" aria-checked="${t.k===cur}">
       <span class="tsw" style="background:${THEME_SWATCH[t.k]}"></span>
       <span>${t.label}<span class="tnote">${t.note}</span></span>
@@ -930,9 +942,9 @@ const regionCodeFor = id => Object.keys(REGIONS).find(k=>REGIONS[k].id===id) || 
 function applyRegion(code){
   state.region=code;
   const root=document.documentElement; if(root&&root.setAttribute) root.setAttribute('data-region',code);
-  const se=document.getElementById('region-se'), ke=document.getElementById('region-ke');
-  if(se&&se.classList) se.classList.toggle('active',code==='SE');
-  if(ke&&ke.classList) ke.classList.toggle('active',code==='KE');
+  /* No buttons to paint any more — the market is a select in Settings, which
+     renders its own current value. The data-region attribute stays: stylesheets
+     and the compliance badge read it. */
 }
 function setRegion(code,opts){
   if(!REGIONS[code]) return;
@@ -1052,15 +1064,75 @@ function wireShell(){
   // theme toggle + jurisdiction switcher (top header)
   wireThemeMenu();
   // closeNavDrawer because below 900 this control lives INSIDE the drawer
-  // (placeRegionSwitch), and having answered it there is nothing left to do there.
-  document.getElementById('region-se')?.addEventListener('click',()=>{ setRegion('SE'); closeNavDrawer(); });
-  document.getElementById('region-ke')?.addEventListener('click',()=>{ setRegion('KE'); closeNavDrawer(); });
   /* The stored JURISDICTION is the truth, not this control's own key: a
      workspace that set its market on another device (it rides on the org
      record) must not have it silently reverted by whatever this browser last
      had in localStorage. */
+  /* The stored jurisdiction is the truth. This no longer paints a control —
+     it sets data-region on the root, which the stylesheets and the compliance
+     badge read. Silent, because nothing is being changed here. */
   setRegion(regionCodeFor(window.jxId?jxId():'kenya'),{silent:true});
+  wireLanguagePicker();
 }
+
+/* ---------- THE LANGUAGE TOGGLE ----------
+   Built from js/i18n.js rather than the markup, so adding a language grows the
+   row by itself. Each option is written IN its own language — a control that
+   offers "Swedish" to a Swedish speaker is offering it in English.
+
+   Two labels per button: the full name, and a two-letter code that takes over
+   below 1180px. The words go, the button does not, so the tap target survives
+   a narrow window. */
+function wireLanguagePicker(){
+  const host=document.getElementById('lang-switch');
+  if(!host||typeof langList!=='function') return;
+  const paint=()=>{
+    const now=langId();
+    host.innerHTML=langList().map(l=>
+      `<button type="button" class="lang-btn" data-lang="${l.id}" aria-pressed="${l.id===now}"`
+      + ` title="${l.name}"><span class="lang-long">${l.name}</span>`
+      + `<span class="lang-code">${l.id.toUpperCase()}</span></button>`).join('');
+  };
+  paint();
+  host.addEventListener('click',e=>{
+    const b=e.target.closest('[data-lang]');
+    if(!b) return;
+    if(b.getAttribute('data-lang')===langId()) return;   // already there; do not repaint for nothing
+    langSet(b.getAttribute('data-lang'));
+    closeNavDrawer();   // below 900 this control lives inside the drawer
+  });
+  /* Re-painted on every language change too, so the pressed state follows a
+     switch made from anywhere else — the Settings screen, or a second tab. */
+  window.repaintLanguagePicker=paint;
+  applyLanguage({repaint:false});   // paint the static shell before the first render
+}
+
+/* WHAT REDRAWS WHEN THE LANGUAGE CHANGES. js/i18n.js rewrites the static markup
+   itself and then calls this for everything the app DRAWS — which is most of
+   it. Kept here rather than in i18n.js because it is the router's business
+   which screen is open, and i18n.js has no opinion about screens.
+
+   i18n.js does not call this while something is being edited; see
+   langEditingNow() there for why a language switch must never cost unsaved
+   work. */
+if(typeof window!=='undefined') window.onLanguageChange=function(){
+  try{
+    window.repaintLanguagePicker && repaintLanguagePicker();
+    /* The SIDEBAR'S OWN FURNITURE, which no view redraws: the profile line
+       carries the reader's role, and the folder list its counts. Without this
+       the role under your own name stayed in whatever language you signed in
+       with, on every screen. */
+    window.renderSideUser && renderSideUser();
+    window.renderSideFolders && renderSideFolders();
+    updateSidebarCounts();
+    renderPageHeader&&renderPageHeader();
+    /* Re-entering the SAME view, which setView already treats as a repaint and
+       not a navigation — it puts the scroll position back afterwards, so the
+       reader stays exactly where they were rather than being thrown to the top
+       of the page for changing a setting. */
+    setView(state.view);
+  }catch(e){}
+};
 
 // default panel state — closed on load/refresh; the user opens it with the
 // panel toggle (never auto-summoned by a page load)
@@ -1099,4 +1171,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

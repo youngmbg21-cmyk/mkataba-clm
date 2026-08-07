@@ -112,8 +112,8 @@ function mHomeHtml(){
   const cs = (D && D.cs) || (state.contracts||[]);
   const agreements = (typeof agreementsIn==='function') ? agreementsIn(cs).length : cs.length;
   const value = (D && typeof fmtMoneyShort==='function' && D.money) ? fmtMoneyShort(D.m.totalValue) : '';
-  const subline = `${agreements.toLocaleString('en-KE')} agreement${agreements===1?'':'s'} · `
-    + `${cs.length.toLocaleString('en-KE')} document${cs.length===1?'':'s'}`
+  const subline = `${agreements.toLocaleString(jxLocale())} agreement${agreements===1?'':'s'} · `
+    + `${cs.length.toLocaleString(jxLocale())} document${cs.length===1?'':'s'}`
     + (value?` · ${value} active value`:'');
 
   const needs = mNeedsYou(D);
@@ -137,12 +137,12 @@ function mHomeHtml(){
       <div style="width:44px;height:44px;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);display:grid;place-items:center;margin:0 auto 10px">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
-      <div style="font-size:18px;font-weight:600">Nothing needs you right now</div>
-      <div class="m-note" style="margin-top:4px">Approvals, counterparty replies and renewal decisions will appear here.</div>
+      <div style="font-size:18px;font-weight:600">${i18t('m_nothing_needs_you')}</div>
+      <div class="m-note" style="margin-top:4px">${i18t('m_nothing_needs_sub')}</div>
     </div>`;
 
   const expHtml = expiring.length ? `
-    <div class="m-lbl" style="margin:14px 16px 6px">Expiring next</div>
+    <div class="m-lbl" style="margin:14px 16px 6px">${i18t('m_expiring_next')}</div>
     <div class="m-card m-list" style="margin:0 16px">
       ${expiring.slice(0,6).map(x=>`
         <button class="m-row" data-m-open="${mEsc(x.c.id)}">
@@ -157,13 +157,13 @@ function mHomeHtml(){
   return `
     <div class="m-pagehead">
       <div class="m-eyebrow">${mEsc((org&&org.name)||'Your workspace')}</div>
-      <div class="m-title">Portfolio</div>
+      <div class="m-title">${i18t('m_portfolio')}</div>
       <div class="m-sub">${mEsc(subline)}</div>
     </div>
     <div class="m-scroll">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:16px 16px 6px">
-        <span class="m-lbl">Your metrics</span>
-        <button class="m-kpi-gear" data-m-act="kpis" aria-label="Choose which metrics to show">
+        <span class="m-lbl">${i18t('m_your_metrics')}</span>
+        <button class="m-kpi-gear" data-m-act="kpis" aria-label="${i18t('m_choose_metrics')}">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
         </button>
       </div>
@@ -172,13 +172,13 @@ function mHomeHtml(){
       ${expHtml}
       <div class="m-card m-list" style="margin:14px 16px 24px">
         <button class="m-row" data-m-act="portfolio">
-          <span style="flex:1;font-size:16px;font-weight:500;color:var(--color-accent-700)">Portfolio</span>
-          <span style="font-size:14px;color:var(--color-neutral-600)">Figures &amp; value streams</span>
+          <span style="flex:1;font-size:16px;font-weight:500;color:var(--color-accent-700)">${i18t('m_portfolio')}</span>
+          <span style="font-size:14px;color:var(--color-neutral-600)">${i18t('m_figures_streams')}</span>
           ${M_CHEV}
         </button>
         <button class="m-row" data-m-act="more">
-          <span style="flex:1;font-size:16px;font-weight:500;color:var(--color-accent-700)">More</span>
-          <span style="font-size:14px;color:var(--color-neutral-600)">Insights, reports, settings</span>
+          <span style="flex:1;font-size:16px;font-weight:500;color:var(--color-accent-700)">${i18t('m_more')}</span>
+          <span style="font-size:14px;color:var(--color-neutral-600)">${i18t('m_more_sub')}</span>
           ${M_CHEV}
         </button>
       </div>
@@ -202,11 +202,11 @@ function mKpiSheetHtml(){
   }).join('');
   return `
     <div class="m-grab"></div>
-    <div class="m-sheet-title">Show metrics</div>
-    <div class="m-sheet-note">The same choice as on your computer — change it here and it changes there.</div>
+    <div class="m-sheet-title">${i18t('m_show_metrics')}</div>
+    <div class="m-sheet-note">${i18t('m_same_choice')}</div>
     <div class="m-card m-list">${rows}</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="kpi-reset">Reset to the default four</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">Done</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="kpi-reset">${i18t('m_reset_four')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('m_done')}</button>`;
 }
 
 /* ------------------------------------------------------------- CONTRACTS ---
@@ -221,7 +221,7 @@ function mContractsHtml(){
   catch(e){ rows = state.contracts||[]; }
 
   const STATUS_CHIPS = [
-    { k:'all', label:'All' },
+    { k:'all', get label(){ return i18t('m_all'); } },
     { k:'Draft', label:'Drafting' },
     { k:'Under Review', label:'In Review' },
     { k:'Signed', label:'Executed' },
@@ -259,23 +259,23 @@ function mContractsHtml(){
     <div class="m-card" style="margin:16px;padding:34px 20px;text-align:center">
       <div style="font-size:16px;font-weight:600">${total?'No contracts match these filters':'No contracts yet'}</div>
       <div class="m-note" style="margin-top:4px">${total?'Widen the filters, or clear them to see everything.':'Start one from a company standard template with the + button.'}</div>
-      ${total?`<button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="clear-filters">Clear all filters</button>`:''}
+      ${total?`<button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="clear-filters">${i18t('m_clear_all_filters')}</button>`:''}
     </div>`;
 
   return `
     <div class="m-pagehead" style="padding-bottom:0">
       <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px">
         <div style="flex:1;min-width:0">
-          <div class="m-title" style="margin-top:0">Contracts</div>
-          <div class="m-sub">Filter and act across the working set</div>
+          <div class="m-title" style="margin-top:0">${i18t('m_contracts')}</div>
+          <div class="m-sub">${i18t('m_filter_and_act')}</div>
         </div>
-        <button class="m-new" data-m-act="new" aria-label="New contract">
+        <button class="m-new" data-m-act="new" aria-label="${i18t('m_new_contract')}">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
       <div class="m-search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="m-reg-q" value="${mEsc(R.query||'')}" placeholder="Search contracts or counterparties" autocomplete="off">
+        <input id="m-reg-q" value="${mEsc(R.query||'')}" placeholder="${i18t('m_search_contracts')}" autocomplete="off">
       </div>
       <div class="m-chips" style="margin:0 -16px">${statusChips}${streamChips}</div>
     </div>
@@ -293,39 +293,39 @@ function mNewSheetHtml(){
     <button class="m-row" data-m-newlib="${mEsc(t.id)}">
       <span style="flex:1;min-width:0">
         <span class="m-row-name">${mEsc(t.name)}</span>
-        <span class="m-row-sub">One-click, pre-filled &amp; branded</span>
+        <span class="m-row-sub">${i18t('m_one_click')}</span>
       </span>
       <span class="m-pill" style="background:var(--st-green-bg);color:var(--st-green-fg)">v${mEsc(t.publishedVersion)}</span>
     </button>`).join('');
   const routes = `
     <button class="m-row" data-m-act="new-wizard">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">Draft from a template</span>
-        <span class="m-row-sub">HaTi standard paper — answer a few questions</span>
+        <span class="m-row-name" style="font-weight:500">${i18t('m_draft_from_template')}</span>
+        <span class="m-row-sub">${i18t('m_hati_standard')}</span>
       </span>${M_CHEV}
     </button>
     <button class="m-row" data-m-act="new-upload">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">Upload a received contract</span>
-        <span class="m-row-sub">Their Word or PDF — fields detected, then you confirm</span>
+        <span class="m-row-name" style="font-weight:500">${i18t('m_upload_received')}</span>
+        <span class="m-row-sub">${i18t('m_their_word_pdf')}</span>
       </span>${M_CHEV}
     </button>
     <button class="m-row" data-m-act="new-import">
       <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:500">Import many at once</span>
-        <span class="m-row-sub">Bring a whole back-catalogue in one go</span>
+        <span class="m-row-name" style="font-weight:500">${i18t('m_import_many')}</span>
+        <span class="m-row-sub">${i18t('m_import_many_sub')}</span>
       </span>
-      <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">Computer</span>
+      <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>`;
   return `
     <div class="m-grab"></div>
-    <div class="m-sheet-title" style="margin-bottom:10px">New contract</div>
-    ${lib.length?`<div class="m-capline" style="margin-bottom:6px">Company standard templates</div>
+    <div class="m-sheet-title" style="margin-bottom:10px">${i18t('m_new_contract')}</div>
+    ${lib.length?`<div class="m-capline" style="margin-bottom:6px">${i18t('m_company_standards')}</div>
       <div class="m-card m-list" style="background:var(--color-bg)">${libRows}</div>`:''}
-    <div class="m-capline" style="margin:${lib.length?'14px':'0'} 0 6px">Other ways in</div>
+    <div class="m-capline" style="margin:${lib.length?'14px':'0'} 0 6px">${i18t('m_other_ways_in')}</div>
     <div class="m-card m-list" style="background:var(--color-bg)">${routes}</div>
     ${builtin.length?`<div class="m-note" style="margin-top:10px">${builtin.length} HaTi standard template${builtin.length===1?'':'s'} are open to your role.</div>`:''}
-    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">Cancel</button>`;
+    <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- APPROVALS ---
@@ -359,22 +359,22 @@ function mApprovalsHtml(){
       ${open?`
       <div style="border-top:1px solid var(--color-divider);padding:14px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px">
-          <div><div class="m-note">Counterparty</div><div style="font-size:16px;font-weight:500;margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
-          <div><div class="m-note">Value</div><div style="font-size:16px;font-weight:600;margin-top:1px">${mEsc(mMoney(c))}</div></div>
+          <div><div class="m-note">${i18t('m_counterparty')}</div><div style="font-size:16px;font-weight:500;margin-top:1px">${mEsc((typeof cParty==='function'?cParty(c):c.counterparty)||'—')}</div></div>
+          <div><div class="m-note">${i18t('m_value')}</div><div style="font-size:16px;font-weight:600;margin-top:1px">${mEsc(mMoney(c))}</div></div>
           <div style="grid-column:1 / -1"><div class="m-note">${requested&&requested.user?'Requested by':'Waiting'}</div><div style="font-size:16px;font-weight:500;margin-top:1px">${
             [requested&&requested.user ? mEsc(requested.user) : '',
              x.idle ? `${x.idle} day${x.idle===1?'':'s'} ago` : 'since today'].filter(Boolean).join(' · ')}</div></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px">
-          <button class="m-btn m-btn-primary" style="flex:1.4" data-m-approve="${mEsc(c.id)}">Approve</button>
-          <button class="m-btn" style="flex:1;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" data-m-reject="${mEsc(c.id)}">Reject</button>
+          <button class="m-btn m-btn-primary" style="flex:1.4" data-m-approve="${mEsc(c.id)}">${i18t('m_approve')}</button>
+          <button class="m-btn" style="flex:1;border-color:var(--st-ruby-line);color:var(--st-ruby-fg)" data-m-reject="${mEsc(c.id)}">${i18t('m_reject')}</button>
         </div>
         ${rejecting?`
         <div style="margin-top:12px">
-          <div style="font-size:14px;font-weight:600;margin-bottom:5px">Why are you rejecting this?</div>
-          <textarea class="m-area" id="m-reject-why" rows="3" placeholder="The reason goes back to the requester"${s.apprErr?' style="border-color:var(--danger)"':''}>${mEsc(s.apprWhy||'')}</textarea>
-          ${s.apprErr?`<div class="m-err">Give a reason — it goes back to the requester with the rejection.</div>`:''}
-          <button class="m-btn m-btn-danger" style="margin-top:10px" data-m-reject-send="${mEsc(c.id)}">Reject and send back</button>
+          <div style="font-size:14px;font-weight:600;margin-bottom:5px">${i18t('m_why_rejecting')}</div>
+          <textarea class="m-area" id="m-reject-why" rows="3" placeholder="${i18t('m_reason_goes_back')}"${s.apprErr?' style="border-color:var(--danger)"':''}>${mEsc(s.apprWhy||'')}</textarea>
+          ${s.apprErr?`<div class="m-err">${i18t('m_give_reason')}</div>`:''}
+          <button class="m-btn m-btn-danger" style="margin-top:10px" data-m-reject-send="${mEsc(c.id)}">${i18t('m_reject_send_back')}</button>
         </div>`:''}
       </div>`:''}
     </div>`;
@@ -382,15 +382,15 @@ function mApprovalsHtml(){
 
   return `
     <div class="m-pagehead">
-      <div class="m-title">Approvals</div>
+      <div class="m-title">${i18t('m_approvals')}</div>
       <div class="m-sub">${items.length?`${items.length} contract${items.length===1?'':'s'} waiting on your sign-off`:'All caught up'}</div>
     </div>
     <div class="m-scroll">
       <div style="margin:16px">
         ${items.length?cards:`
         <div class="m-card" style="padding:24px;text-align:center">
-          <div style="font-size:16px;font-weight:600">No approvals waiting</div>
-          <div class="m-note" style="margin-top:3px">New requests appear here and on Home.</div>
+          <div style="font-size:16px;font-weight:600">${i18t('m_no_approvals')}</div>
+          <div class="m-note" style="margin-top:3px">${i18t('m_new_requests_here')}</div>
         </div>`}
       </div>
     </div>`;
@@ -404,18 +404,18 @@ function mPortfolioHtml(){
   const stages = (D && D.stages) || [];
   const money = !!(D && D.money);
   const rows = [];
-  if(money && D) rows.push({ label:'Total contract value', value: fmtMoneyShort(D.m.totalValue) });
-  if(D) rows.push({ label:'Agreements', value: String((typeof agreementsIn==='function'?agreementsIn(D.cs):D.cs).length) });
+  if(money && D) rows.push({ get label(){ return i18t('m_total_value'); }, value: fmtMoneyShort(D.m.totalValue) });
+  if(D) rows.push({ get label(){ return i18t('m_agreements'); }, value: String((typeof agreementsIn==='function'?agreementsIn(D.cs):D.cs).length) });
   stages.forEach(s=>rows.push({ label:s.label, value:String(s.n) }));
-  if(D) rows.push({ label:'Expiring within 90 days', value:String((D.exp90||[]).length) });
-  if(D) rows.push({ label:'High-risk findings', value:String((D.highRisk||[]).length) });
+  if(D) rows.push({ get label(){ return i18t('m_expiring_90'); }, value:String((D.exp90||[]).length) });
+  if(D) rows.push({ get label(){ return i18t('m_high_risk'); }, value:String((D.highRisk||[]).length) });
 
   return `
     <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
-      <button class="m-head-btn" data-m-act="back" aria-label="Back" style="color:var(--color-accent-700)">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
       </button>
-      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">Portfolio</div>
+      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${i18t('m_portfolio')}</div>
     </div>
     <div class="m-scroll">
       <div class="m-card m-list" style="margin:16px">
@@ -424,7 +424,7 @@ function mPortfolioHtml(){
           <span style="font-size:16px;font-weight:600">${mEsc(r.value)}</span>
         </div>`).join('')}
       </div>
-      <div class="m-note" style="margin:0 16px 24px">Full reports, the portfolio graph and CSV export are desk work — open HaTi on a computer to use them.</div>
+      <div class="m-note" style="margin:0 16px 24px">${i18t('m_reports_desk_work')}</div>
     </div>`;
 }
 
@@ -502,7 +502,7 @@ function mWireScreen(root){
     const id = b.getAttribute('data-m-kpi-toggle');
     let cur = currentKpiSel().slice();
     if(cur.includes(id)){
-      if(cur.length<=1){ if(window.toast) toast('Keep at least one metric','err'); return; }
+      if(cur.length<=1){ if(window.toast) toast(i18t('m_keep_one_metric'),'err'); return; }
       cur = cur.filter(x=>x!==id);
     } else cur.push(id);
     setKpiSel(cur);

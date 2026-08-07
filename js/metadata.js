@@ -4,16 +4,16 @@
 /* Canonical metadata field set. Each contract may carry c.metadata with these
    keys and c.metadata.confidence[field] in {high,medium,low}. */
 const META_FIELDS = [
-  { k:'counterparty',     label:'Counterparty',   type:'text' },
-  { k:'contractType',     label:'Contract type',  type:'text' },
-  { k:'effectiveDate',    label:'Effective date', type:'date' },
-  { k:'expiryDate',       label:'Expiry date',    type:'date' },
-  { k:'value',            label:'Value',          type:'num'  },
-  { k:'currency',         label:'Currency',       type:'text' },
-  { k:'renewalType',      label:'Renewal',        type:'select', opts:['auto-renew','fixed','evergreen','unknown'] },
-  { k:'noticePeriodDays', label:'Notice (days)',  type:'num'  },
-  { k:'governingLaw',     label:'Governing law',  type:'text' },
-  { k:'paymentTerms',     label:'Payment terms',  type:'text' },
+  { k:'counterparty',     get label(){ return i18t('me_counterparty'); },   type:'text' },
+  { k:'contractType',     get label(){ return i18t('me_contract_type'); },  type:'text' },
+  { k:'effectiveDate',    get label(){ return i18t('me_effective_date'); }, type:'date' },
+  { k:'expiryDate',       get label(){ return i18t('me_expiry_date'); },    type:'date' },
+  { k:'value',            get label(){ return i18t('me_value'); },          type:'num'  },
+  { k:'currency',         get label(){ return i18t('me_currency'); },       type:'text' },
+  { k:'renewalType',      get label(){ return i18t('fa_renewal'); },        type:'select', opts:['auto-renew','fixed','evergreen','unknown'] },
+  { k:'noticePeriodDays', get label(){ return i18t('me_notice_days'); },  type:'num'  },
+  { k:'governingLaw',     get label(){ return i18t('me_governing_law'); },  type:'text' },
+  { k:'paymentTerms',     get label(){ return i18t('me_payment_terms'); },  type:'text' },
 ];
 const RENEWAL_LABEL = { 'auto-renew':'Auto-renew', fixed:'Fixed term', evergreen:'Evergreen', unknown:'Unknown', '':'—' };
 
@@ -130,12 +130,12 @@ function buildExtractionPayload(text, opts={}){
   const parts=[]; let cursor=0, omitted=0;
   for(const s of accepted){
     if(s.start>cursor){ const gap=s.start-cursor; omitted+=gap;
-      parts.push(`\n\n[... ${gap.toLocaleString('en-KE')} characters omitted ...]\n\n`); }
+      parts.push(`\n\n[... ${gap.toLocaleString(jxLocale())} characters omitted ...]\n\n`); }
     parts.push(t.slice(s.start,s.end));
     cursor=s.end;
   }
   if(cursor<t.length){ const gap=t.length-cursor; omitted+=gap;
-    parts.push(`\n\n[... ${gap.toLocaleString('en-KE')} characters omitted ...]`); }
+    parts.push(`\n\n[... ${gap.toLocaleString(jxLocale())} characters omitted ...]`); }
   return { text:parts.join(''), sections:accepted.length, omitted, dropped, full:false, sourceChars:t.length };
 }
 
@@ -257,8 +257,8 @@ function openMetaReview(meta, onConfirm, opts={}){
   // first eight pages is a materially different claim from over all of it.
   const coverage = !p ? ''
     : p.thorough ? ` · whole document read in ${p.sections} overlapping section${p.sections===1?'':'s'} (thorough mode)`
-    : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString('en-KE')}-character document`
-    : ` · read the whole ${Number(p.chars||0).toLocaleString('en-KE')}-character document`;
+    : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString(jxLocale())}-character document`
+    : ` · read the whole ${Number(p.chars||0).toLocaleString(jxLocale())}-character document`;
   const src = (meta._source==='ai' ? 'Copilot-extracted' : 'Pattern-matched (no Copilot key)') + coverage;
   /* The phrase each value came from, shown under the field. This is what turns
      the confirm step from a leap of faith into a glance — the same
@@ -285,14 +285,14 @@ function openMetaReview(meta, onConfirm, opts={}){
   openModal(`
     <div class="p-6 max-w-lg">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">Review extracted details</h3></div>
-      <p class="text-xs text-ink/60 mb-4">${src}. Check each field — <span class="text-amber font-600">low-confidence</span> fields are highlighted. Nothing is saved until you confirm.</p>
+        <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3></div>
+      <p class="text-xs text-ink/60 mb-4">${src}. Check each field — <span class="text-amber font-600">low-confidence</span> ${i18t('me_fields_highlighted')}</p>
       ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
-        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
         <button id="mr-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);
@@ -322,7 +322,7 @@ function openMetaReview(meta, onConfirm, opts={}){
    each queued for human review before it is written. ---- */
 async function runMetaBackfill(){
   const todo = state.contracts.filter(c=>isUpload(c) && !(c.metadata&&c.metadata.confirmedAt));
-  if(!todo.length){ toast('Every uploaded contract already has confirmed details'); return; }
+  if(!todo.length){ toast(i18t('me_all_confirmed')); return; }
   const lbl=document.getElementById('meta-backfill-lbl');
   let done=0;
   const next=async()=>{

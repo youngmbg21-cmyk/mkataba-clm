@@ -36,7 +36,7 @@ const discussTrim = (s, n) => {
   return t.length > n ? t.slice(0, n - 1) + '…' : t;
 };
 function discussTopics(c, text){
-  const out = [{ value: DISCUSS_GENERAL, label: 'The contract generally' }];
+  const out = [{ value: DISCUSS_GENERAL, get label(){ return i18t('di_contract_generally'); } }];
   const points = (c && c.openPoints) || (window.openPointsFor && c ? openPointsFor(c) : []) || [];
   for (const pt of points)
     out.push({ value: 'point:' + pt.id, kind: 'point',
@@ -190,13 +190,13 @@ function discussPanelHtml(opts){
     <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${e(disabledNote || 'This conversation is closed.')}</div>` : `
     <div style="border-top:1px solid var(--color-divider);padding-top:12px">
       <label style="display:block;margin-bottom:7px">
-        <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:4px">What is this about?</span>
+        <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:4px">${i18t('di_what_about')}</span>
         <select id="${idp}-topic" style="width:100%;font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:7px 9px;color:inherit">${options}</select>
       </label>
-      <textarea id="${idp}-body" rows="2" placeholder="e.g. Would you take Net-45?" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:8px 11px;font:inherit;font-size:12.5px;outline:none;resize:vertical"></textarea>
+      <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:8px 11px;font:inherit;font-size:12.5px;outline:none;resize:vertical"></textarea>
       <div style="display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap">
-        <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-600);line-height:1.45">This sends a message, not a change. To propose new wording, use the redline.</span>
-        <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">Send</button>
+        <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${i18t('di_sends_message')}</span>
+        <button id="${idp}-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">${i18t('di_send')}</button>
       </div>
       <div id="${idp}-out" style="margin-top:9px"></div>
     </div>`;
@@ -241,10 +241,10 @@ function discussPointReplyHtml(topic, messages, opts){
     <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">
       <textarea data-point-body="${e(idp)}" class="chat-field" rows="1" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
         style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"></textarea>
-      <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:11px;padding:6px 12px">Send</button>
+      <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:11px;padding:6px 12px">${i18t('di_send')}</button>
     </div>
     <div data-point-out="${e(idp)}" style="margin-top:6px"></div>
-    ${on.length && !theirTurn ? `<div style="margin-top:5px;font-size:10.5px;color:var(--color-neutral-500)">Sent — waiting on them.</div>` : ''}`;
+    ${on.length && !theirTurn ? `<div style="margin-top:5px;font-size:10.5px;color:var(--color-neutral-500)">${i18t('di_sent_waiting')}</div>` : ''}`;
 }
 /* Wire every point card on the page at once. `send` is the same function the
    general composer uses, so a reply from here and a reply from there are the
@@ -260,7 +260,7 @@ function wireDiscussPoints(opts){
       const input = document.querySelector(`[data-point-body="${idp}"]`);
       const out = document.querySelector(`[data-point-out="${idp}"]`);
       const body = String(input && input.value || '').trim();
-      if (!body){ if (window.toast) toast('Write your reply first', 'err'); return; }
+      if (!body){ if (window.toast) toast(i18t('di_write_reply'), 'err'); return; }
       const restore = btn.innerHTML;
       btn.disabled = true; btn.innerHTML = 'Sending…';
       try {
@@ -269,7 +269,7 @@ function wireDiscussPoints(opts){
         if (input) input.value = '';
         if (onSent) onSent(res);
       } catch (e){
-        if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:7px 10px;font-size:11px;line-height:1.5;color:var(--st-ruby-fg)"><b>Not sent.</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your reply is still in the box.</div>`;
+        if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:7px 10px;font-size:11px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your reply is still in the box.</div>`;
         if (window.toast) toast(e.message || 'Could not send that reply', 'err');
       }
       btn.disabled = false; btn.innerHTML = restore;
@@ -289,7 +289,7 @@ function wireDiscussPanel(opts){
     const ta = document.getElementById(idp + '-body');
     const out = document.getElementById(idp + '-out');
     const body = String(ta && ta.value || '').trim();
-    if (!body){ if (window.toast) toast('Write your message first', 'err'); return; }
+    if (!body){ if (window.toast) toast(i18t('di_write_message'), 'err'); return; }
     const topic = sel ? sel.value : DISCUSS_GENERAL;
     const restore = btn.innerHTML;
     btn.disabled = true; btn.innerHTML = 'Sending…';
@@ -299,7 +299,7 @@ function wireDiscussPanel(opts){
       if (onSent) onSent(res);
     } catch (e){
       // nothing was recorded, so the box keeps what they wrote
-      if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:9px 11px;font-size:11.5px;line-height:1.5;color:var(--st-ruby-fg)"><b>Not sent.</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
+      if (out) out.innerHTML = `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:5px;padding:9px 11px;font-size:11.5px;line-height:1.5;color:var(--st-ruby-fg)"><b>${i18t('di_not_sent')}</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your message is still in the box.</div>`;
       if (window.toast) toast(e.message || 'Could not send that message', 'err');
     }
     btn.disabled = false; btn.innerHTML = restore;
@@ -348,8 +348,8 @@ function discussDiscardBtnHtml(change, opts){
   const e = window.esc || (s => String(s == null ? '' : s));
   const id = e(change.id);
   return `<button type="button" class="discuss-discard ui-btn" data-discuss-discard="${id}"
-    title="Discard ${id} — it has not been sent, so nothing is withdrawn from anyone"
-    aria-label="Discard draft change ${id}"
+    title="${e(i18t('di_discard_title',{id}))}"
+    aria-label="${e(i18t('di_discard_aria',{id}))}"
     style="margin-left:auto;flex:none;font-size:10.5px;padding:3px 8px;line-height:1.4;
       border:1px solid rgba(143,50,43,.28);background:rgba(244,63,94,.08);color:var(--st-ruby-fg);border-radius:5px;cursor:pointer">🗑️ Discard</button>`;
 }
@@ -377,7 +377,7 @@ function wireDiscussDiscard(opts){
       const id = btn.getAttribute('data-discuss-discard');
       const engine = window.Redline;
       if (!engine || typeof engine.removeChange !== 'function'){
-        if (window.toast) toast('The redline engine is not loaded, so nothing was discarded', 'err');
+        if (window.toast) toast(i18t('di_engine_not_loaded'), 'err');
         return;
       }
       if (typeof ask === 'function' && ask(id) === false) return;

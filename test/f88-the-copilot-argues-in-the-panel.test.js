@@ -58,7 +58,7 @@ function loadAi(){
   vm.createContext(sandbox);
   /* js/jurisdiction.js first, the order js/app.js loads it in: ai.js asks it
      what law this workspace is under and what money looks like. */
-  for (const f of ['jurisdiction.js', 'ai.js'])
+  for (const f of ['i18n.js', 'jurisdiction.js', 'ai.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'),
       sandbox, { filename: f });
   return sandbox;
@@ -69,7 +69,10 @@ function loadAi(){
 function loadDiscuss(){
   const win = {};
   const ctx = vm.createContext({ window: win, JSON, Math, console, Int32Array, Uint32Array, document: null });
-  for (const f of ['redline.js', 'discuss.js'])
+  /* i18n.js first: discuss.js reads its labels through i18t like every other
+     renderer, so a stage without the dictionary is a stage where the panel
+     throws rather than one where it renders in English. */
+  for (const f of ['i18n.js', 'redline.js', 'discuss.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx, { filename: f });
   return win;
 }

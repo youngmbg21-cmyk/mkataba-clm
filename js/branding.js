@@ -1,4 +1,9 @@
 // HaTi — document designs (the "company standard template" layer).
+/* This module is require()d directly (the server and the design tests load it
+   without a window), so the translator may not be there. Same guarded shape
+   js/fieldlib.js uses: the reader's language where it is available, the
+   English word where it is not — never a dictionary key on the page. */
+const BR_T = (k, en) => (typeof i18t === 'function' ? i18t(k) : en);
 // ONE module for both sides of the wire (window global in the browser,
 // CommonJS on the server), because the list of designs IS the contract
 // between the Design step, the org_branding storage and every render
@@ -634,7 +639,7 @@ function docStructureBodyHtml(b, bodyHtml) {
   return `<nav data-doc-contents="1" style="page-break-after:always;break-after:page;margin:0 0 1.6em">
     <div style="font-size:.82em;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
       color:var(--doc-design-accent,var(--color-doc-muted,#4a4f54));padding-bottom:.35em;
-      margin-bottom:.7em;border-bottom:1px solid var(--color-doc-rule,#c9ccd1)">Contents</div>
+      margin-bottom:.7em;border-bottom:1px solid var(--color-doc-rule,#c9ccd1)">${BR_T('br_contents', 'Contents')}</div>
     <ol style="list-style:none;margin:0;padding:0">${rows}</ol>
   </nav>${html}`;
 }
@@ -650,13 +655,13 @@ function docDesignCoverPageHtml(b, c) {
   const u = c.upload || {};
   const between = [b.companyName, c.counterparty].filter(Boolean).map(BR_ESC).join(' &amp; ');
   return `<div data-doc-design-cover="1" style="page-break-after:always;font-family:${font};color:${BR_INK};padding-top:60px;text-align:center">
-    <div style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:${BR_SOFT};margin-bottom:18px">Contract record</div>
+    <div style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:${BR_SOFT};margin-bottom:18px">${BR_T('br_contract_record', 'Contract record')}</div>
     <div style="font-size:24px;font-weight:700;line-height:1.3;max-width:540px;margin:0 auto">${BR_ESC(c.name || 'Contract')}</div>
     ${between ? `<div style="font-size:12px;color:${BR_SOFT};margin-top:10px">between ${between}</div>` : ''}
     <div style="width:52px;height:3px;background:${brAccent(b)};margin:26px auto"></div>
     <table style="margin:0 auto;border-collapse:collapse;font-size:11px;text-align:left">
-      ${c.id ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">Reference</td><td style="font-weight:600">${BR_ESC(c.id)}</td></tr>` : ''}
-      ${u.fileName ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">Original file</td><td style="font-weight:600">${BR_ESC(u.fileName)}</td></tr>` : ''}
+      ${c.id ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_reference', 'Reference')}</td><td style="font-weight:600">${BR_ESC(c.id)}</td></tr>` : ''}
+      ${u.fileName ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">${BR_T('br_original_file', 'Original file')}</td><td style="font-weight:600">${BR_ESC(u.fileName)}</td></tr>` : ''}
       ${c.status ? `<tr><td style="padding:3px 14px 3px 0;color:${BR_SOFT}">Status</td><td style="font-weight:600">${BR_ESC(c.status)}</td></tr>` : ''}
     </table>
     <p style="font-size:9.5px;color:${BR_SOFT};margin-top:34px;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.6">This cover page was added by ${BR_ESC(b.companyName || 'the contract owner')}. The document that follows is reproduced from the file as it was received — its own layout and formatting are unchanged.</p>

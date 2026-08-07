@@ -63,9 +63,12 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
   });
 
   test('both tables head the column, and explain what it is', () => {
-    const heads = reg.match(/<th[^>]*>Link<\/th>/g) || [];
+    /* Heading and tooltip are dictionary keys now — the column is read in the
+       reader's language. What this test is about is that BOTH tables carry
+       them, which has not changed. */
+    const heads = reg.match(/<th[^>]*>\$\{i18t\('reg_col_link'\)\}<\/th>/g) || [];
     assert.equal(heads.length, 2);
-    const titled = reg.match(/title="What has happened to the link you sent the counterparty"/g) || [];
+    const titled = reg.match(/title="\$\{i18t\('reg_link_title'\)\}"/g) || [];
     assert.equal(titled.length, 2, 'a column heading of one word earns a sentence');
   });
 
@@ -86,7 +89,7 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
 describe('F97 — what the marks mean, and what they must not do', () => {
   test('not shared is a dash with a reason, not an empty cell', () => {
     assert.match(core, /shareLinkCell = cid => shareDot\(cid\)\s*\|\|/);
-    assert.match(core, /title="Not sent to anyone yet"/);
+    assert.match(core, /title="\$\{i18t\('co_not_sent_anyone'\)\}"/);
     assert.match(core, /&mdash;/);
   });
 
@@ -110,8 +113,10 @@ describe('F97 — what the marks mean, and what they must not do', () => {
   });
 
   test('every other state keeps its meaning colour', () => {
+    /* The label is a getter now — the reader sees the state in their own
+       language. The COLOUR is what this test is about and has not moved. */
     for (const [st, tone] of [['changes','amber'], ['signed','green'], ['declined','ruby'], ['sent','gray']])
-      assert.match(core, new RegExp(`${st}:\\s*\\{label:'[^']+',\\s*dot:'var\\(--st-${tone}-dot\\)`),
+      assert.match(core, new RegExp(`${st}:\\s*\\{\\s*get label\\(\\)\\{[^}]+\\},\\s*dot:'var\\(--st-${tone}-dot\\)`),
         `${st} should stay ${tone}`);
   });
 
@@ -134,7 +139,13 @@ describe('F97 — what the marks mean, and what they must not do', () => {
   });
 
   test('and it says Link, not Share, in its tooltip', () => {
-    assert.match(core, /title="Link: \$\{m\.label\}/,
+    /* Anchored on the key: the tooltip is read in the owner's own language,
+       so "Link:" lives in the dictionary rather than in the template. */
+    assert.match(core, /title="\$\{i18t\('co_link_label',\s*\{label:\s*m\.label\}\)\}/,
+      'the tooltip must still be built from the label');
+    const { STRINGS } = require('../js/i18n.js');
+    assert.match(STRINGS.en.co_link_label, /^Link: \{label\}$/,
       'the column is called Link; the tooltip agreeing with the heading is free');
+    assert.ok(STRINGS.sv.co_link_label, 'in every language the app offers');
   });
 });

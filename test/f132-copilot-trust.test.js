@@ -217,20 +217,39 @@ describe('F-E — answer in the language of the question', () => {
     assert.match(sys, /quotes stay verbatim in their original language/);
   });
 
-  test('no client language → the org locale is the fallback, and the rule still stands', async () => {
+  /* THE LANGUAGE IS THE READER'S, NOT THE WORKSPACE'S. This used to send the
+     market pack's locale (en-KE / sv-SE), which conflated two settings that are
+     now deliberately separate: the market is the COMPANY's and decides what the
+     contracts say, the language is the PERSON's. Under the old rule a Swedish
+     colleague in a Kenyan workspace was answered in English and an
+     English-reading colleague in a Swedish workspace was answered in Swedish —
+     each the opposite of what they asked for. See js/i18n.js. */
+  test('no client language → English is the fallback, and the rule still stands', async () => {
     ai.reset();
     ai.script(deliver({ answer: 'ok', citations: [] }));
     await ask(W.admin, 'what expires this year?');
     const sys = ai.calls[0].body.system;
     assert.match(sys, /Reply in the language the user wrote/);
-    assert.match(sys, /en-KE/, 'the default workspace (Kenya pack) reads en-KE');
+    assert.match(sys, /English \(en\)/, 'the fallback is a language, not the market locale');
+    assert.ok(!/en-KE/.test(sys),
+      'the market locale must not stand in for the reader’s language');
   });
 
-  test('the client sends lang, and local mode teaches the same rule', () => {
-    assert.match(AI_SRC, /lang: \(typeof jxLocale==='function'\?jxLocale\(\):'en'\)/,
-      'aiChatContext must carry the workspace language');
+  test('the client sends the reader’s language, and local mode teaches the same rule', () => {
+    assert.match(AI_SRC, /lang: \(typeof langPromptName==='function'\?langPromptName\(\):'English \(en\)'\)/,
+      'aiChatContext must carry the READER\'s language');
+    assert.ok(!/lang: \(typeof jxLocale/.test(AI_SRC),
+      'and not the market pack\'s locale');
     assert.match(AI_SRC, /Reply in the language the user wrote/,
       'the browser-direct engine gets the same instruction');
+  });
+
+  test('the language is named in a form a model follows', () => {
+    const { langPromptName } = require('../js/i18n.js');
+    /* "Swedish" rather than "sv" or "sv-SE": models follow a language named in
+       English far more reliably than a locale code. */
+    assert.equal(langPromptName('sv'), 'Swedish (sv)');
+    assert.equal(langPromptName('en'), 'English (en)');
   });
 });
 

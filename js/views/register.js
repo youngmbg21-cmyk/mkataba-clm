@@ -15,10 +15,10 @@ function visibleSorts(list){
   return list.filter(s=>s.k!=='value');
 }
 const FOLDER_SORTS=[
-  {k:'updated',label:'Recently updated'},
-  {k:'value',label:'Value (high → low)'},
-  {k:'expiry',label:'Expiring soonest'},
-  {k:'name',label:'Name (A → Z)'},
+  {k:'updated',get label(){ return i18t('reg_sort_recent'); }},
+  {k:'value',get label(){ return i18t('reg_sort_value'); }},
+  {k:'expiry',get label(){ return i18t('reg_sort_expiring'); }},
+  {k:'name',get label(){ return i18t('reg_sort_name'); }},
 ];
 // The filtered + sorted contracts for the current folder (shared by the full
 // render and the search/keystroke body re-render).
@@ -70,27 +70,27 @@ function renderFolder(){
     </style>
     <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;color:var(--color-accent-700);cursor:pointer" title="Back to portfolio">${icon('arrowLeft','w-4 h-4')}</button>
+        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;color:var(--color-accent-700);cursor:pointer" title="${i18t('reg_back_to_portfolio')}">${icon('arrowLeft','w-4 h-4')}</button>
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:4px">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
           <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
         </div>
         <span style="flex:1"></span>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">${i18t('reg_sort')}
           <select id="folder-sort" style="${selStyle}">${sortOpts}</select>
         </label>
         <div style="position:relative">
           <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="Search in this folder…" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="${i18t('reg_search_folder')}" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
         </div>
       </div>
 
       <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:4px;padding:8px 12px">
-        <span id="fold-sel-count" style="font-size:12px;font-weight:600">0 selected</span>
+        <span id="fold-sel-count" style="font-size:12px;font-weight:600">${i18t('reg_n_selected',{n:0})}</span>
         <div style="display:flex;align-items:center;gap:8px">
           <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:4px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
-          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">Clear</button>
+          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${i18t('reg_clear')}</button>
         </div>
       </div>
 
@@ -101,13 +101,13 @@ function renderFolder(){
             <thead>
               <tr>
                 <th style="width:26px;padding-left:12px"><input id="fold-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
-                <th>Contract</th>
-                <th>Type</th>
-                <th style="text-align:right">Value</th>
-                <th>Expires</th>
-                <th>Updated</th>
-                <th style="width:58px;text-align:center" title="What has happened to the link you sent the counterparty">Link</th>
-                <th style="text-align:right;padding-right:12px">Status</th>
+                <th>${i18t('reg_col_contract')}</th>
+                <th>${i18t('reg_col_type')}</th>
+                <th style="text-align:right">${i18t('reg_col_value')}</th>
+                <th>${i18t('reg_col_expires')}</th>
+                <th>${i18t('reg_col_updated')}</th>
+                <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
+                <th style="text-align:right;padding-right:12px">${i18t('reg_col_status')}</th>
               </tr>
             </thead>
             <tbody id="fold-tbody" class="stagger">${folderRowsHtml(cs)}</tbody>
@@ -148,13 +148,13 @@ function folderExpiryCell(c){
   const eff=effectiveExpiry(c);
   if(!eff) return '<span style="color:var(--color-neutral-400)">—</span>';
   const from=window.expirySource?expirySource(c):null;
-  const dt=new Date(eff+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const dt=new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
   let col='var(--color-neutral-700)', hint='', weight=400;
-  if(from) hint=`from ${from.id}`;
+  if(from) hint=i18t('reg_from_id',{id:from.id});
   if(c.status!=='Declined'){ const d=daysUntil(eff);
-    if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${-d}d ago${from?' · from '+from.id:''}`; }
-    else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`in ${d}d${from?' · from '+from.id:''}`; }
-    else if(d<=90){ col='var(--st-amber-fg)'; hint=`in ${d}d${from?' · from '+from.id:''}`; }
+    if(d<0){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_days_ago',{n:-d})}${from?' · '+i18t('reg_from_id',{id:from.id}):''}`; }
+    else if(d<30){ col='var(--st-ruby-fg)'; weight=600; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
+    else if(d<=90){ col='var(--st-amber-fg)'; hint=`${i18t('reg_in_days',{n:d})}${from?' · from '+from.id:''}`; }
   }
   return `<span style="color:${col};font-weight:${weight}">${dt}</span>${hint?`<span style="display:block;font-size:10px;color:${col};opacity:.85">${hint}</span>`:''}`;
 }
@@ -168,19 +168,19 @@ function folderRowsHtml(cs){
   const sel=state.folderSel||{};
   return cs.slice(0,shown).map((c,i)=>{
     const o=(window.openFindings?openFindings(c):[])||[];
-    const scan=o.length?`<span class="badge" style="margin-left:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg)" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
+    const scan=o.length?`<span class="badge" style="margin-left:6px;background:var(--st-ruby-bg);color:var(--st-ruby-fg)" title="${i18t('reg_open_findings')}">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
     return `
     <tr data-open="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td style="padding-left:12px" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
       <td style="max-width:260px"><div style="display:flex;align-items:center;gap:9px;min-width:0">
-        <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:4px;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
+        <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:4px;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
         <span style="min-width:0">
           <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
           <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc(c.id)}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
         </span>
       </div></td>
       <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
       <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       ${''/* Same split as the register: the link mark to its own column, the
@@ -195,7 +195,7 @@ function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).fi
 function renderFolderSelBar(){
   const bar=document.getElementById('fold-selbar'); if(!bar) return; const n=folderSelCount();
   bar.classList.toggle('hidden',n===0);
-  const lbl=document.getElementById('fold-sel-count'); if(lbl) lbl.textContent=n+' selected';
+  const lbl=document.getElementById('fold-sel-count'); if(lbl) lbl.textContent=i18t('reg_n_selected',{n});
 }
 // per-body wiring — safe to call on every tbody re-render (row checkboxes,
 // the row "open" handler and the pager all live inside #fold-tbody).
@@ -210,7 +210,7 @@ function wireFolderRows(){
 function folderExportSelectedCsv(){
   const sel=state.folderSel||{}; const ids=Object.keys(sel).filter(k=>sel[k]);
   const rows=folderContracts(state.folderId).filter(c=>ids.includes(c.id));
-  if(!rows.length){ toast('Nothing selected','err'); return; }
+  if(!rows.length){ toast(i18t('reg_nothing_selected'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Type','Value stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
@@ -241,8 +241,8 @@ Object.assign(window,{FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,fol
    ============================================================ */
 const REG_PAGE=40;
 const REG_STAGES=[
-  {k:'all',label:'All stages'},
-  {k:'awaiting',label:'Awaiting counterparty'},
+  {k:'all',get label(){ return i18t('reg_all_stages'); }},
+  {k:'awaiting',get label(){ return i18t('reg_awaiting_cp'); }},
   {k:'Draft',label:'Drafting'},
   {k:'Under Review',label:'In Review'},
   {k:'Signed',label:'Executed'},
@@ -252,24 +252,24 @@ const REG_STAGES=[
 function regTypes(){
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
   const folders=Object.values(FOLDERS).filter(f=>acc==='*'||acc.includes(f.id));
-  return [{k:'all',label:'All streams'}].concat(
+  return [{k:'all',get label(){ return i18t('reg_all_streams'); }}].concat(
     folders.map(f=>({ k:f.id, label:(typeof STREAM_SHORT!=='undefined'&&STREAM_SHORT[f.id])||f.name }))
   );
 }
 const REG_SORTS=[
-  {k:'updated',label:'Recently updated'},
-  {k:'value',label:'Value (high → low)'},
-  {k:'risk',label:'Risk (high → low)'},
-  {k:'expiry',label:'Expiring soonest'},
-  {k:'name',label:'Name (A → Z)'},
+  {k:'updated',get label(){ return i18t('reg_sort_recent'); }},
+  {k:'value',get label(){ return i18t('reg_sort_value'); }},
+  {k:'risk',get label(){ return i18t('reg_sort_risk'); }},
+  {k:'expiry',get label(){ return i18t('reg_sort_expiring'); }},
+  {k:'name',get label(){ return i18t('reg_sort_name'); }},
 ];
 const REG_VIEWS=[
-  {k:'expiring90', label:'Expiring ≤ 90 days'},
-  {k:'expiring60', label:'Expiring ≤ 60 days'},
-  {k:'expiring30', label:'Expiring ≤ 30 days'},
-  {k:'expired',    label:'Term already ended'},
-  {k:'autosoon',   label:'Auto-renewing soon'},
-  {k:'overdueob',  label:'Overdue obligations'},
+  {k:'expiring90', get label(){ return i18t('reg_exp_90'); }},
+  {k:'expiring60', get label(){ return i18t('reg_exp_60'); }},
+  {k:'expiring30', get label(){ return i18t('reg_exp_30'); }},
+  {k:'expired',    get label(){ return i18t('reg_term_ended'); }},
+  {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
+  {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
 ];
 function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',dir:-1,page:1,sel:{},view:null}; return state.reg; }
 // Ascending-natural comparators; regFiltered() multiplies each by R.dir (1 = asc, -1 = desc)
@@ -305,13 +305,14 @@ function regFooterText(cs){
   const n=regPageCount(cs), p=regCurPage(cs);
   const start=cs.length?(p-1)*REG_PAGE+1:0, end=Math.min(cs.length,p*REG_PAGE);
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
-  const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">(of ${Number(countAll).toLocaleString('en-KE')} total)</span>`:'';
+  const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">${i18t('reg_of_total',{n:Number(countAll).toLocaleString(jxLocale())})}</span>`:'';
   // agreements vs documents — a master plus its amendments is ONE agreement
   const fam=familyCounts(cs);
-  const famNote=fam.amendments?` · <b style="color:var(--color-text)">${fam.agreements.toLocaleString('en-KE')}</b> agreement${fam.agreements===1?'':'s'} · <b style="color:var(--color-text)">${fam.documents.toLocaleString('en-KE')}</b> documents`:'';
+  const B=x=>`<b style="color:var(--color-text)">${x}</b>`;
+  const famNote=fam.amendments?` · ${i18tn('reg_agreements',fam.agreements,{n:B(fam.agreements.toLocaleString(jxLocale()))})} · ${i18t('reg_documents',{n:B(fam.documents.toLocaleString(jxLocale()))})}`:'';
   const R=regState();
-  const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?'group amendments under their agreement':'show a flat list'}</button>`;
-  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtMoneyShort(regAggregate(cs))}</b>`}${flatBtn}`;
+  const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
+  return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${famNote} · ${i18t('reg_page_of',{p,n})}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -390,13 +391,13 @@ function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_P
    than six shouting lines. The two destructive rows keep ruby on BOTH the mark
    and the label: they are the one distinction a menu must never blur. */
 const REG_ROW_ACTIONS=[
-  {k:'open',   ic:'folderOpen',label:'Open workspace'},
-  {k:'share',  ic:'share',     label:'Share with counterparty'},
-  {k:'scan',   ic:'sparkle',   label:'Run Copilot scan'},
-  {k:'pdf',    ic:'printer',   label:'Export PDF'},
-  {k:'decline',ic:'ban',       label:'Decline & close', ruby:true},
+  {k:'open',   ic:'folderOpen',get label(){ return i18t('reg_open_workspace'); }},
+  {k:'share',  ic:'share',     get label(){ return i18t('reg_share_with_cp'); }},
+  {k:'scan',   ic:'sparkle',   get label(){ return i18t('reg_run_scan'); }},
+  {k:'pdf',    ic:'printer',   get label(){ return i18t('reg_export_pdf'); }},
+  {k:'decline',ic:'ban',       get label(){ return i18t('reg_decline_close'); }, ruby:true},
   // permanent delete — only offered while a contract is still a draft or in review
-  {k:'delete', ic:'trash',     label:'Delete permanently', ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
+  {k:'delete', ic:'trash',     get label(){ return i18t('reg_delete_permanently'); }, ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
 /* THE ROW'S PRIMARY VERB.
    Not one generic "Open" down the column — each row offers the thing that
@@ -414,23 +415,23 @@ const REG_ROW_ACTIONS=[
    same company twice on every row. cPrimary is left alone — the Queue board,
    the calendar and the cards are all still party-led and correct. */
 function regTitleOf(c){
-  return esc((c && c.name && c.name.trim()) || cParty(c) || 'Untitled contract');
+  return esc((c && c.name && c.name.trim()) || cParty(c) || i18t('reg_untitled'));
 }
 function regPrimaryAction(c){
   const s = String((c && c.status) || 'Draft');
-  if (s === 'Signed')       return 'View contract';
-  if (s === 'Under Review') return 'Review terms';
-  if (s === 'Declined')     return 'View record';
-  return 'Open draft';
+  if (s === 'Signed')       return i18t('reg_act_view');
+  if (s === 'Under Review') return i18t('reg_act_review');
+  if (s === 'Declined')     return i18t('reg_act_record');
+  return i18t('reg_act_draft');
 }
 function regRowsHtml(cs){
   const R=regState();
   if(!cs.length){
     const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all');
-    const line = filtered ? 'No contracts match the current filters.' : 'No contracts in your register yet.';
-    const sub  = filtered ? 'Try widening the filters, or clear them to see everything.' : 'Create one from a template, or upload a contract you received.';
+    const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
+    const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
-      ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:12px;padding:6px 14px">Clear all filters</button>`
+      ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:12px;padding:6px 14px">${i18t('reg_clear_all_filters')}</button>`
       : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
     return `<tr><td colspan="8" style="padding:48px 12px;text-align:center">
       <div style="max-width:340px;margin:0 auto">
@@ -446,8 +447,8 @@ function regRowsHtml(cs){
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
-    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
-    const renIn=din==null?'':(din<0?Math.abs(din)+'d over':'in '+din+'d');
+    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const renIn=din==null?'':(din<0?i18t('reg_days_over',{n:Math.abs(din)}):i18t('reg_in_days',{n:din}));
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
     const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-500)');
@@ -471,7 +472,7 @@ function regRowsHtml(cs){
       <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
         <button class="reg-actlink" data-act="open" data-id="${c.id}">${regPrimaryAction(c)}</button>
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="More actions">⋯</button>
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:6px;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>
     </tr>`;}).join('');
@@ -528,7 +529,7 @@ function wireRegRows(){
    tick box, so that version could only ever have said "Nothing selected". */
 function regExportCsv(){
   const rows=regFiltered();
-  if(!rows.length){ toast('Nothing to export','err'); return; }
+  if(!rows.length){ toast(i18t('reg_nothing_to_export'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Type','Folder',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
@@ -564,7 +565,7 @@ function renderRegister(){
   const selFilter=(id,opts,active,title)=>`<select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${opts}</select>`;
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
-  const viewOpts=`<option value="" ${R.view?'':'selected'}>Saved views</option>`
+  const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
     +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
   const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all');
   const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
@@ -573,16 +574,16 @@ function renderRegister(){
   const sortCaret=key=>R.sort===key
     ? `<span style="margin-left:4px;font-size:9px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:9px;color:var(--color-neutral-400)">↕</span>`;
-  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="Sort by ${label}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
+  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
   const renewalActive=!!(R.renewal&&R.renewal!=='all');
-  const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
-    <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+  const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">${i18t('reg_renewal')}
+    <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   // Server-mode full-text search + semantic ask live in a secondary strip (the
   // command bar owns the primary search); kept here so FTS wiring stays intact.
   const ftsBlock=API_MODE()?`
     <div style="position:relative;flex:1;min-width:200px;max-width:340px">
       <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
-      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="Full-text: names, parties &amp; clauses…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${esc(i18t('reg_search_ph'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;max-height:320px;overflow-y:auto"></div>
     </div>`:'';
 
@@ -626,12 +627,12 @@ function renderRegister(){
            itself starts above the fold. -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
         ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
-        ${selFilter('reg-type-sel',typeOpts,R.type!=='all','Value stream')}
-        ${selFilter('reg-view-sel',viewOpts,!!R.view,'Saved views — expiry, auto-renewal and obligation presets')}
+        ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
+        ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'))}
         ${renewalSel}
-        ${filtered?`<button id="reg-clear-filters" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">Clear</button>`:''}
+        ${filtered?`<button id="reg-clear-filters" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">Sort
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">${i18t('reg_sort')}
           <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
         </label>
         ${ftsBlock}
@@ -649,13 +650,13 @@ function renderRegister(){
                    a tool, not a decoration. -->
               <tr>
                 <th style="width:96px">MK</th>
-                ${sortableTh('name','Contract Title')}
-                <th>Counterparty</th>
-                ${sortableTh('stage','Status')}
-                <th style="width:58px;text-align:center" title="What has happened to the link you sent the counterparty">Link</th>
-                ${sortableTh('value','Value','text-align:right')}
-                ${sortableTh('expiry','Expiry Date')}
-                <th style="text-align:right">Actions</th>
+                ${sortableTh('name',i18t('reg_col_title'))}
+                <th>${i18t('reg_col_counterparty')}</th>
+                ${sortableTh('stage',i18t('reg_col_status'))}
+                <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
+                ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
+                ${sortableTh('expiry',i18t('reg_col_expiry'))}
+                <th style="text-align:right">${i18t('reg_col_actions')}</th>
               </tr>
             </thead>
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
@@ -668,7 +669,7 @@ function renderRegister(){
                with the table it annotates rather than as a band above it -->
           ${window.shareLegendHtml?shareLegendHtml({style:'font-size:10.5px'}):''}
           ${folderLegendHtml({style:'font-size:10.5px'})}
-          <span>${REG_PAGE} per page</span>
+          <span>${i18t('reg_per_page',{n:REG_PAGE})}</span>
         </div>
       </section>
     </div>
@@ -709,7 +710,7 @@ function ftsSearch(q){
   ftsTimer=setTimeout(async()=>{
     try{
       const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
-      if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--color-neutral-600)">No full-text matches.</div>`; box.classList.remove('hidden'); return; }
+      if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
         <div style="font-size:12.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${h.id}</span></div>
         ${h.snippet?`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:2px;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:11px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}

@@ -128,15 +128,35 @@ describe('F7 — the counterparty portal still works end to end', () => {
 
 describe('F7 — static-mode sharing is labelled', () => {
   test('the share dialog warns that a link-borne document cannot be revoked', () => {
-    const at = CORE.indexOf('Share with counterparty');
+    /* Anchored on the dictionary key, because the heading itself is now read
+       in the sender's own language. */
+    const at = CORE.indexOf("co_share_with_cp");
     const modal = CORE.slice(at - 4000, at + 4000);
-    assert.match(modal, /for demonstrations only/i, 'static mode must say it is demo-only');
-    assert.match(modal, /never expires and cannot be revoked/i,
-      'the dialog must say the link never expires and cannot be revoked');
+    /* Same move as the never-expires line below: the banner is read in the
+       sender's own language now, so the source carries the KEY and the words
+       live in the dictionary. Both halves are checked. */
+    assert.match(modal, /i18t\('co_demo_sharing'\)/, 'the dialog must still carry the demo-only banner');
+    const { STRINGS: S0 } = require('../js/i18n.js');
+    assert.match(S0.en.co_demo_sharing, /for demonstrations only/i, 'static mode must say it is demo-only');
+    assert.ok(S0.sv.co_demo_sharing, 'in every language the app offers');
+    /* The warning's wording lives in the dictionary now, because the sender
+       reads it in their own language. Two halves to check: the dialog still
+       asks for it, and the sentence still says the thing that matters. */
+    assert.match(modal, /i18t\('co_never_expires'\)/,
+      'the dialog must still carry the never-expires warning');
+    const { STRINGS } = require('../js/i18n.js');
+    assert.match(STRINGS.en.co_never_expires, /never expires and cannot be revoked/i,
+      'and the sentence must still say the link cannot be revoked');
+    assert.ok(STRINGS.sv.co_never_expires, 'in every language the app offers');
   });
 
   test('the warning is shown only without a server', () => {
-    const at = CORE.indexOf('Demo sharing');
+    /* Anchored on the KEY, not on the banner's words — indexOf on English
+       returned -1 once the sentence moved into the dictionary, and slicing
+       from -1 quietly handed this the tail of the file instead of failing
+       where the problem was. */
+    const at = CORE.indexOf("i18t('co_demo_sharing')");
+    assert.ok(at > 0, 'the demo-sharing banner is still drawn here');
     const before = CORE.slice(at - 400, at);
     assert.match(before, /\$\{server\?''\:`/, 'the block must be gated on static mode');
   });

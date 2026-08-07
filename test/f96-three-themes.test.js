@@ -55,6 +55,9 @@ function stage(saved){
   win.setView = () => {};
   win.toast = () => {};
   const ctx = vm.createContext(win);
+  /* The theme block's labels read through i18t(), so the dictionary goes in
+     first — the same order js/app.js itself loads them. */
+  vm.runInContext(src('js/i18n.js'), ctx, { filename: 'js/i18n.js' });
   const s = src('js/app.js');
   /* Only the theme block — js/app.js as a whole reaches for the entire shell. */
   const from = s.indexOf('const THEMES = [');

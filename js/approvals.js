@@ -37,7 +37,8 @@ function ruleMatches(rule, c){
     default: return false;
   }
 }
-function approverLabelOf(a){ return a.kind==='member' ? a.name : (a.role==='legal'?'a Legal approver':a.role==='admin'?'an Admin':`a ${a.role}`); }
+function approverLabelOf(a){ return a.kind==='member' ? a.name
+  : (a.role==='legal'?i18t('ap_a_legal_approver'):a.role==='admin'?i18t('ap_an_admin'):i18t('ap_a_role',{role:a.role})); }
 function userCanApprove(a, u){
   if(!u) return false;
   if(a.kind==='member') return a.name===u.name;
@@ -138,7 +139,7 @@ function approvalState(c){
 function approveContract(c, comment){
   const st=approvalState(c);
   if(!st.required){ return; }
-  if(!st.next){ toast('Approval chain already complete'); return; }
+  if(!st.next){ toast(i18t('ap_chain_complete')); return; }
   if(!st.canApproveNext){ toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err'); return; }
   const u=currentUser();
   const stamp=approvalStamp(c);
@@ -163,7 +164,7 @@ function rejectApprovalStep(c, comment){
     +(comment?` — “${String(comment).slice(0,500)}”`:'')
     +' — the contract goes back to its owner to revise and resubmit');
   persist(c); renderSignButton(c); renderAuditSection(c);
-  toast('Approval step rejected');
+  toast(i18t('ap_step_rejected'));
 }
 /* THE WAY OUT OF A REFUSAL.
 
@@ -177,8 +178,8 @@ function resubmitApproval(c, note){
   const st=approvalState(c);
   if(!st.required) return false;
   const back=st.chain.filter(s=>s.status==='rejected'||s.status==='stale');
-  if(!back.length){ toast('Nothing is waiting to be resubmitted'); return false; }
-  if(!canEdit()){ toast('Viewers cannot resubmit for approval','err'); return false; }
+  if(!back.length){ toast(i18t('ap_nothing_resubmit')); return false; }
+  if(!canEdit()){ toast(i18t('ap_viewers_no_resubmit'),'err'); return false; }
   const u=currentUser();
   c.approvalChain=st.chain.map(s=> (s.status==='rejected'||s.status==='stale')
     ? {...s, status:'pending', by:null, at:null, comment:null, stamp:null, drift:undefined} : s);
@@ -318,13 +319,13 @@ function openSignerPlanEditor(c){
   const people=(typeof orgDirectory==='function')?orgDirectory():[];
   const dirList=`<datalist id="sp-dir-names">${people.map(p=>`<option value="${(p.name||p.email||'').replace(/"/g,'&quot;')}">${[p.title,p.email].filter(Boolean).join(' · ').replace(/"/g,'&quot;')}</option>`).join('')}</datalist>`;
   const IN='rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]';
-  const memberOpts=s=>`<option value="">— pick member —</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
+  const memberOpts=s=>`<option value="">${i18t('ap_pick_member')}</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
   const row=(s,i)=>`<div class="rounded-xl border border-line bg-slate-50/60 p-2.5 mb-2" data-sp-row="${i}">
       <div class="flex items-center gap-2 mb-1.5">
         <span class="h-5 w-5 grid place-items-center rounded-full bg-brand-600 text-white text-[10px] font-700">${i+1}</span>
         <select data-sp-party="${i}" class="${IN}">
-          <option value="internal" ${s.party==='internal'?'selected':''}>Internal</option>
-          <option value="counterparty" ${s.party==='counterparty'?'selected':''}>Counterparty</option></select>
+          <option value="internal" ${s.party==='internal'?'selected':''}>${i18t('ap_internal')}</option>
+          <option value="counterparty" ${s.party==='counterparty'?'selected':''}>${i18t('ap_counterparty')}</option></select>
         <span data-sp-member-wrap="${i}" class="${s.party==='counterparty'?'hidden':''}">
           <select data-sp-member="${i}" class="${IN}">${memberOpts(s)}</select></span>
         <div class="ml-auto flex items-center gap-1">
@@ -333,19 +334,19 @@ function openSignerPlanEditor(c){
           <button data-sp-del="${i}" class="text-rose-500 hover:text-rose-700 text-[11px] font-600 ml-1">✕</button></div>
       </div>
       <div class="grid grid-cols-3 gap-2">
-        <input data-sp-name="${i}" list="sp-dir-names" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="Name" class="${IN}"/>
-        <input data-sp-role="${i}" value="${(s.role||'').replace(/"/g,'&quot;')}" placeholder="Title (e.g. CFO)" class="${IN}"/>
-        <input data-sp-email="${i}" value="${(s.email||'').replace(/"/g,'&quot;')}" placeholder="Email" class="${IN}"/>
+        <input data-sp-name="${i}" list="sp-dir-names" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_name')}" class="${IN}"/>
+        <input data-sp-role="${i}" value="${(s.role||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_title_eg')}" class="${IN}"/>
+        <input data-sp-email="${i}" value="${(s.email||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ap_email')}" class="${IN}"/>
       </div></div>`;
   openModal(`<div class="p-6" style="max-width:560px">
-    <h3 class="font-serif font-600 text-lg text-ink mb-1">Signing route</h3>
-    <p class="text-xs text-ink/60 mb-3">Signers execute <b>in order</b>. Internal members sign in-app (bind each to a team member); counterparty signers each get their own secure link, which stays dormant until every internal signature is in. Each signer freely chooses how they sign (draw / type / upload). The seal is applied when the last signature lands.</p>
+    <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
+    <p class="text-xs text-ink/60 mb-3">${i18t('ap_signers_execute')} <b>in order</b>. Internal members sign in-app (bind each to a team member); counterparty signers each get their own secure link, which stays dormant until every internal signature is in. Each signer freely chooses how they sign (draw / type / upload). The seal is applied when the last signature lands.</p>
     ${dirList}
-    <div id="sp-rows">${plan.map(row).join('')||'<div class="text-[12px] text-ink/50 mb-2">No signers yet — add the people who must sign, in order.</div>'}</div>
-    <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-4">+ Add signer</button>
-    ${people.length?`<p class="text-[11px] text-ink/45 mb-3">Tip: start typing a name — titles &amp; emails auto-fill from your directory.</p>`:''}
-    <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-      <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save route</button></div>
+    <div id="sp-rows">${plan.map(row).join('')||`<div class="text-[12px] text-ink/50 mb-2">${i18t('ap_no_signers')}</div>`}</div>
+    <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-4">${i18t('ap_add_signer')}</button>
+    ${people.length?`<p class="text-[11px] text-ink/45 mb-3">${i18t('ap_tip_autofill')}</p>`:''}
+    <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+      <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ap_save_route')}</button></div>
   </div>`);
   const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join('')||''; wire(); };
   const readRow=idx=>{ const g=sel=>document.querySelector(`[data-sp-${sel}="${idx}"]`);
@@ -389,7 +390,7 @@ function openSignerPlanEditor(c){
         email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
         signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
     c.signerPlan=out; logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`); persist(c); closeModal(); renderWorkspace();
-    toast('Signing route saved');
+    toast(i18t('ap_route_saved'));
   });
 }
 
@@ -425,7 +426,7 @@ function approvalChainHtml(c, opts){
     const blocked=(st.rejected||[]).concat(st.stale||[]);
     const owner=canEdit()&&c.status!=='Signed'&&blocked.length;
     html+=`<div class="${bare?'':'rounded-xl border '+(st.rejected&&st.rejected.length?'border-rose-200':'border-line')+' bg-white p-3 mb-2'}">
-      ${bare?'':'<div class="text-[11px] font-600 text-ink mb-1.5">Approval chain</div>'}
+      ${bare?'':`<div class="text-[11px] font-600 text-ink mb-1.5">${i18t('ap_approval_chain')}</div>`}
       ${st.chain.map((s,i)=>`<div class="flex items-center gap-2 text-[11.5px] py-0.5">
         <span class="h-4 w-4 grid place-items-center rounded-full text-[8px] font-700 ${s.status==='approved'?'bg-brand-600 text-white':s.status==='rejected'?'bg-rose-500 text-white':s.status==='stale'?'bg-gold-500 text-white':'bg-slate-200 text-ink/60'}">${i+1}</span>
         <span class="${stepChip(s)}">${esc1(s.name)}</span>
@@ -433,17 +434,17 @@ function approvalChainHtml(c, opts){
       </div>`).join('')}
       ${(st.rejected||[]).map(s=>`<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-[11px] text-rose-700 leading-relaxed">
         <b>${esc1(s.by)||'An approver'} refused “${esc1(s.name)}”.</b>${s.comment?` “${esc1(s.comment)}”`:''}
-        <span class="block text-rose-700/80 mt-0.5">Nothing can be sent for signature until this is settled. Revise the contract, then send it back for approval.</span>
+        <span class="block text-rose-700/80 mt-0.5">${i18t('ap_nothing_until_settled')}</span>
       </div>`).join('')}
       ${(st.stale||[]).map(s=>`<div class="mt-1.5 rounded-lg border border-gold-500/30 bg-gold-500/10 px-2.5 py-2 text-[11px] text-gold-700 leading-relaxed">
         <b>“${esc1(s.name)}” needs approving again.</b> ${esc1(s.by)||'It'} approved it, and since then ${esc1((s.drift||[]).join(' and '))}.
-        <span class="block text-gold-700/80 mt-0.5">A sign-off covers the contract it was given for, not the one it became.</span>
+        <span class="block text-gold-700/80 mt-0.5">${i18t('ap_signoff_covers')}</span>
       </div>`).join('')}
       ${st.next&&st.canApproveNext?`<div class="flex gap-2 mt-2">
         <button id="ap-approve" class="rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-800">${st.next.status==='pending'?'Approve':'Approve again'} “${esc1(st.next.name)}”</button>
-        <button id="ap-reject" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-1.5 text-[11px] font-600 hover:bg-rose-50">Reject</button></div>`
-        :st.next?`<div class="mt-1.5 text-[10px] text-ink/55">Waiting on ${approverLabelOf(st.next.approver)}.</div>`:''}
-      ${owner?`<button id="ap-resubmit" class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50">Revise &amp; send back for approval</button>`:''}
+        <button id="ap-reject" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-1.5 text-[11px] font-600 hover:bg-rose-50">${i18t('ve_reject')}</button></div>`
+        :st.next?`<div class="mt-1.5 text-[10px] text-ink/55">${i18t('ap_waiting_on',{who:approverLabelOf(st.next.approver)})}</div>`:''}
+      ${owner?`<button id="ap-resubmit" class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50">${i18t('ap_revise_send_back')}</button>`:''}
     </div>`;
   }
   return html;
@@ -468,8 +469,8 @@ function signerRouteHtml(c, opts){
       state==='cur'?'bg-white border-gold-500 text-gold-600 ring-4 ring-gold-100':
       'bg-white border-slate-300 text-ink/40'}">${label}</span>`;
     html+=`<div class="${bare?'':'rounded-xl border border-line bg-white p-3 mb-2'}">
-      ${bare?'':`<div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">Signature progress</span>
-        <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${signedCount} of ${sorted.length} signed</span>
+      ${bare?'':`<div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">${i18t('ap_signature_progress')}</span>
+        <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${i18t('ap_n_signed',{done:signedCount,total:sorted.length})}</span>
         ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>`}
       <div class="relative">
         ${sorted.map((s,i)=>{ const isCur=ns&&ns.id===s.id; const st=s.signed?'done':isCur?'cur':'wait';
@@ -531,9 +532,9 @@ function wireApprovalPanel(c){
   document.getElementById('ap-reject')?.addEventListener('click',async()=>{
     let why='';
     if(typeof window.promptDialog==='function'){
-      why=await window.promptDialog({ title:'Reject this approval step?',
+      why=await window.promptDialog({ get title(){ return i18t('ap_reject_step_q'); },
         message:'The contract goes back to its owner. Say what has to change and they can revise it and send it back.',
-        label:'Why are you refusing?', placeholder:'e.g. the liability cap is below our floor', optional:true });
+        get label(){ return i18t('ap_why_refusing'); }, placeholder:'e.g. the liability cap is below our floor', optional:true });
       if(why===null) return;                 // dismissed — nothing was refused
     }
     rejectApprovalStep(c, String(why||'').trim()||null);
@@ -541,9 +542,9 @@ function wireApprovalPanel(c){
   document.getElementById('ap-resubmit')?.addEventListener('click',async()=>{
     let note='';
     if(typeof window.promptDialog==='function'){
-      note=await window.promptDialog({ title:'Send back for approval?',
+      note=await window.promptDialog({ get title(){ return i18t('ap_send_back_q'); },
         message:'This puts the contract back in front of the approver who refused it, with your note.',
-        label:'What changed?', placeholder:`e.g. cap raised to ${jxCurrency()} 10M as asked`, optional:true });
+        get label(){ return i18t('ap_what_changed'); }, placeholder:`e.g. cap raised to ${jxCurrency()} 10M as asked`, optional:true });
       if(note===null) return;
     }
     resubmitApproval(c, String(note||'').trim()||null);
@@ -566,7 +567,7 @@ function wireApprovalPanel(c){
     } else if(out&&out.missingEmails){
       toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it via edit route`,'err');
     } else {
-      toast('Could not issue the signing links — check the route and try again','err');
+      toast(i18t('ap_links_failed'),'err');
     }
     try{
       if(typeof renderSignButton==='function') renderSignButton(c);

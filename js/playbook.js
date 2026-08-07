@@ -140,12 +140,12 @@ function playbookReviewHeuristic(c, text){
 }
 async function runPlaybookReview(c){
   const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.docPlainText?docPlainText(c):'');
-  if(!text || text.length<120){ toast('No readable clause text to review','err'); return null; }
+  if(!text || text.length<120){ toast(i18t('pb_no_readable_clause'),'err'); return null; }
   if(API_MODE() && state.aiConfigured){
     try{ const pb=resolvePlaybook(playbookKeyFor(c));
       const r=await api('ai/playbook','POST',{ text:text.slice(0,20000), playbook:pb, kind:cKind(c) });
       return { key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' };
-    }catch(e){ toast('Copilot playbook review unavailable — using the basic checks','err'); }
+    }catch(e){ toast(i18t('pb_review_unavailable'),'err'); }
   }
   return playbookReviewHeuristic(c, text);
 }
@@ -242,12 +242,12 @@ function renderPlaybookSection(c){
           <span style="display:block;font-size:12.5px;font-weight:600;color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
           <span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>
         </span>
-        ${v.escalate&&v.status!=='aligned'?`<span title="A deviation here needs Legal approval" style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
+        ${v.escalate&&v.status!=='aligned'?`<span title="${i18t('pb_needs_legal')}" style="flex:none;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
       </button>
       ${open&&detail?`<div style="padding:0 2px 10px 28px;display:flex;flex-direction:column;gap:6px">
         ${v.quote?`<div style="font-size:11px;line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
-        ${v.status!=='aligned'&&v.position?`<div style="font-size:11px;line-height:1.6;color:var(--color-neutral-700)"><b>Our standard:</b> ${_pbEsc(v.position)}</div>`:''}
-        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Apply suggested wording as a redline &rarr;</button>`:''}
+        ${v.status!=='aligned'&&v.position?`<div style="font-size:11px;line-height:1.6;color:var(--color-neutral-700)"><b>${i18t('pb_our_standard')}</b> ${_pbEsc(v.position)}</div>`:''}
+        ${editable&&v.redline?`<button data-pb-apply="${i}" style="align-self:flex-start;border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${i18t('pb_apply_suggested')}</button>`:''}
       </div>`:''}
     </div>`;
   }).join('') : '';
@@ -259,10 +259,10 @@ function renderPlaybookSection(c){
         ${pbHeadPill(sm)}
       </div>
       ${!r
-        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.55;margin:0">Check this contract against your preferred and fallback positions for its type.</p>`
+        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_check_contract')}</p>`
         : !r.verdicts.length
-        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.55;margin:0">This review came back with <b>nothing to report</b> — not the same as passing. The <b>${_pbEsc(r.label)}</b> playbook may have no positions behind it yet; set them under <b>Our standards</b>, then re-run.</p>`
-        : `<p style="font-size:10.5px;color:var(--color-neutral-500);margin:0 0 4px">Against the <b>${_pbEsc(r.label)}</b> playbook${r.source==='ai'?'':' &middot; basic checks'}</p>
+        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);line-height:1.55;margin:0">${i18t('pb_came_back_with')} <b>${i18t('pb_nothing_to_report')}</b> ${i18t('pb_not_same_as_passing')} <b>${_pbEsc(r.label)}</b> ${i18t('pb_may_have_no_positions')} <b>${i18t('nav_our_standards')}</b>${i18t('pb_then_rerun')}</p>`
+        : `<p style="font-size:10.5px;color:var(--color-neutral-500);margin:0 0 4px">${i18t('pb_against_the')} <b>${_pbEsc(r.label)}</b> playbook${r.source==='ai'?'':' &middot; basic checks'}</p>
       <div>${rowsHtml}</div>`}
       ${ins.length?`<div style="margin-top:10px;border-top:1px solid var(--color-divider);padding-top:9px">
         ${''/* ---- THEY ARE PROPOSED, NOT INSERTED ----
@@ -275,14 +275,14 @@ function renderPlaybookSection(c){
                which by design does not contain a pending proposal. It could
                never find it, and reported that the clause "may have been
                edited or removed", which was untrue twice over. */}
-        <div style="font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">Clauses proposed for this document</div>
+        <div style="font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">${i18t('pb_clauses_proposed')}</div>
         ${ins.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
           <span style="flex:none;color:var(--color-accent)">${icon('plus','w-3 h-3')}</span>
           <span style="flex:1;min-width:0">
             <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_pbEsc(x.name||'Clause')}</span>
             <span style="display:block;font-size:10px;color:var(--color-neutral-500)">${clauseInsertNote(x.where)}${x.by?' &middot; '+_pbEsc(x.by):''}${x.at?' &middot; '+fmtDT(x.at):''}</span>
           </span>
-          <button data-pb-jump="${i}" class="ui-btn" style="flex:none;font-size:10.5px;padding:3px 9px">Show me</button>
+          <button data-pb-jump="${i}" class="ui-btn" style="flex:none;font-size:10.5px;padding:3px 9px">${i18t('pb_show_me')}</button>
         </div>`).join('')}
       </div>`:''}
       ${editable?`<div style="margin-top:10px">
@@ -315,7 +315,7 @@ function renderPlaybookSection(c){
     toast(`“${x.name}” was proposed but its change can no longer be found — it may have been withdrawn`,'err');
   }));
   document.getElementById('pb-run')?.addEventListener('click',async()=>{
-    const btn=document.getElementById('pb-run'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reviewing…</span>';
+    const btn=document.getElementById('pb-run'); btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('pb_reviewing')}</span>`;
     const res=await runPlaybookReview(c);
     if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
     renderPlaybookSection(c); renderSignButton&&renderSignButton(c);
@@ -383,7 +383,7 @@ async function applyClauseRedline(c, clauseText, label){
     }
     return ch;
   }
-  if(window.toast) toast('The negotiation model is unavailable on this page','err');
+  if(window.toast) toast(i18t('pb_nego_unavailable'),'err');
   return null;
 }
 
@@ -491,19 +491,19 @@ function openClausePicker(c, opts){
   const lib=clauseLibrary();
   openModal(`
     <div class="p-6">
-      <h3 class="font-serif font-600 text-lg text-ink mb-1">Insert clause from library</h3>
-      <p class="text-xs text-ink/60 mb-3">Adds the preferred wording to the document as a redline you can review and seal.</p>
+      <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('pb_insert_from_library')}</h3>
+      <p class="text-xs text-ink/60 mb-3">${i18t('pb_adds_preferred')}</p>
       ${''/* No 50vh cap: the side panel this now opens in scrolls itself, and
              a scroll box inside a scroll box is two bars for one list. */}
       <div class="space-y-2">
         ${lib.map(cl=>`<div class="rounded-lg border border-line bg-white p-3">
           <div class="flex items-center gap-2"><span class="text-[10px] font-mono uppercase tracking-wide text-ink/45">${cl.category}</span>
             <span class="text-[12.5px] font-600 text-ink">${cl.name}</span>
-            <button data-cl-ins="${cl.id}" class="ml-auto rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">Insert</button></div>
+            <button data-cl-ins="${cl.id}" class="ml-auto rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">${i18t('pb_insert')}</button></div>
           <div class="mt-1 text-[11px] text-ink/65">${cl.preferred.slice(0,160)}${cl.preferred.length>160?'…':''}</div>
         </div>`).join('')}
       </div>
-      <div class="flex justify-end mt-4"><button id="cp-close" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Close</button></div>
+      <div class="flex justify-end mt-4"><button id="cp-close" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_close')}</button></div>
     </div>`);
   document.getElementById('cp-close').addEventListener('click',closeModal);
   const onPick=(opts&&typeof opts.onPick==='function')?opts.onPick:(cl=>applyClauseRedline(c, cl.preferred, cl.name));

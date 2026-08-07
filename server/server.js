@@ -10,6 +10,34 @@ const express = require('express');
    here: a second copy would drift from the browser's the first time either
    moved, and the two would then describe different markets to the same model. */
 const { jxPack, JX_DEFAULT, JURISDICTIONS } = require('../js/jurisdiction.js');
+/* One dictionary, two hosts. The server writes email and needs the recipient's
+   own language from the SAME table the screens use — a second copy here would
+   drift from js/i18n.js without anything noticing, which is the fault the
+   jurisdiction module above was written to avoid. */
+const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
+/* Look a string up in a specific language rather than "the current" one: there
+   is no current language on a server writing to five recipients at once. */
+/* WHAT LANGUAGE DOES THIS RECIPIENT READ? A member of the workspace carries
+   their own choice on their user row. Somebody outside it — a counterparty
+   opening a share link — has no account and therefore no stored language, so
+   the sender's own language is used: they know who they are writing to, which
+   is the same answer Oneflow gives by letting the sender pick the message.
+   Falls back to English, never to whichever language the server last saw. */
+const langForEmail = (email, fallback) => {
+  try {
+    const row = db.prepare('SELECT lang FROM users WHERE LOWER(email)=?')
+      .get(String(email || '').trim().toLowerCase());
+    if (row && row.lang && I18N_STRINGS[row.lang]) return row.lang;
+  } catch (e) {}
+  return (fallback && I18N_STRINGS[fallback]) ? fallback : I18N_DEFAULT;
+};
+const tFor = (lang, key, vars) => {
+  const table = I18N_STRINGS[lang] || I18N_STRINGS[I18N_DEFAULT];
+  let s = table[key];
+  if (s == null) s = I18N_STRINGS[I18N_DEFAULT][key];
+  if (s == null) return key;
+  return vars ? String(s).replace(/\{(\w+)\}/g, (m, k) => (vars[k] == null ? m : String(vars[k]))) : s;
+};
 const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org')) || {}).jurisdiction || JX_DEFAULT);
 const crypto = require('crypto');
 const path = require('path');
@@ -168,6 +196,12 @@ const getStore = k => { const r = db.prepare('SELECT json FROM store WHERE key=?
 const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
 const userPrefs = u => { try { return JSON.parse(u.prefs || '{}') || {}; } catch (_) { return {}; } };
 const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, title: u.title || '',
+  /* The language THIS PERSON reads the app in, and the one their email is
+     written in. Null until they choose: the browser then falls back to the
+     language that goes with the workspace's market, and an email falls back to
+     the default — see js/i18n.js for why this lives on the user and not the
+     org. */
+  lang: u.lang || null,
   createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u) });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
@@ -313,6 +347,7 @@ function addColumnIfMissing(table, col, decl) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
   if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
 }
+addColumnIfMissing('users', 'lang', 'TEXT');   // per-person UI + email language (js/i18n.js)
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -1933,6 +1968,23 @@ app.put('/api/org/jurisdiction', auth, admin, (req, res) => {
   res.json({ ok: true, jurisdiction: id });
 });
 
+/* WHICH LANGUAGE THIS PERSON READS, stored per user rather than per workspace.
+   Note the middleware: `auth` and not `admin`, and it writes req.user.id and
+   never an id from the body — changing your own language is every member's
+   business, and changing somebody else's is nobody's. The market above is the
+   opposite (admin-only, one answer for the whole workspace) because it decides
+   what the contracts SAY; this only decides what the reader sees.
+
+   The server needs it at all because it writes email — a signature request or
+   a reminder goes out while nobody is looking at a browser, so the recipient's
+   language has to be a stored fact rather than a page state. */
+app.put('/api/me/lang', auth, (req, res) => {
+  const lang = String((req.body || {}).lang || '').trim();
+  if (!I18N_STRINGS[lang]) return res.status(400).json({ error: 'Unknown language' });
+  db.prepare('UPDATE users SET lang=? WHERE id=?').run(lang, req.user.id);
+  res.json({ ok: true, lang });
+});
+
 app.put('/api/settings', auth, admin, (req, res) => {
   /* H-3: folderAccess is an access-control map, and it used to ride inside this
      one big blob that is overwritten wholesale on EVERY settings change. A
@@ -2983,7 +3035,7 @@ HOW TO WORK:
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
 - If a contract's "textTruncated" is true, the document was longer than the excerpt you received — say so plainly, and do not claim to have reviewed the whole document. A truncated record is not a reason to refuse an edit: when the request itself quotes the passage to work on, that quoted passage is the authoritative text — draft from it, and note the truncation in your reasoning rather than asking for the document again.
 - QUESTIONS ABOUT WHETHER A CONTRACT MATCHES OUR STANDARDS, POSITIONS OR PLAYBOOK: call check_against_playbook with the contract id and answer from its verdicts. If it returns noPlaybook, say plainly that no playbook is set up for this contract type — do not improvise one.
-- Reply in the language the user wrote their question in. This workspace's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : orgJx().locale}. Contract quotes stay verbatim in their original language; your own words follow the user's.
+- Reply in the language the user wrote their question in. This reader's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : 'English (en)'}. Contract quotes stay verbatim in their original language; your own words follow the user's.
 - Contract ids look like MK-103. Money is in ${orgJx().currency}.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
 - Always finish by calling deliver_answer exactly once. Cite the contracts you used. When you compared 2+ contracts, fill in the compare table.
@@ -4174,9 +4226,12 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
   const appUrl = `${req.protocol}://${req.get('host')}/`;
-  await sendEmail(String(email), `Your signature is requested — "${cName}"`,
-    `Hello${name ? ' ' + name : ''},\n\nIt's your turn to sign "${cName}"${order ? ` (signer ${order})` : ''}. ` +
-    `Sign in to HaTi to review and add your signature:\n${appUrl}\n\nThis is an automated notice from HaTi CLM.`,
+  const L = langForEmail(email, req.user && req.user.lang);
+  await sendEmail(String(email), tFor(L, 'mail_sig_requested_subject', { name: cName }),
+    `${tFor(L, 'mail_hello')}${name ? ' ' + name : ''},\n\n`
+    + tFor(L, 'mail_your_turn_body', { name: cName,
+        order: order ? tFor(L, 'mail_signer_n', { n: order }) : '' })
+    + `\n${appUrl}\n\n${tFor(L, 'mail_automated_notice')}`,
     `sign turn: ${req.params.id}`);
   res.json({ ok: true });
 });
@@ -4463,21 +4518,24 @@ function signerTurn(contractId, signerId) {
    account is needed — following the purpose-aware wording precedent of the
    share email itself, where the invitation must match the screen the link
    actually opens. */
-function signerTurnEmail({ signer, plan, payload, link, expiresAt }) {
+function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang }) {
   const cName = (payload && payload.contract && payload.contract.name) || 'a contract';
   const org = (payload && payload.org) || 'the sender';
   const total = (plan || []).length;
-  const pos = signer.order && total ? ` (signer ${signer.order} of ${total} on the agreed order)` : '';
+  /* The counterparty has no account, so no stored language of their own: this
+     falls back to the sender's, which is the honest answer — they know who
+     they are writing to. */
+  const L = langForEmail(signer.email, senderLang);
+  const posText = signer.order && total
+    ? tFor(L, 'mail_turn_pos', { n: signer.order, total }) : '';
   return {
-    subject: `Your turn to sign — "${cName}"`,
-    body: `Hello${signer.name ? ' ' + signer.name : ''},\n\n` +
-      `It's your turn to sign "${cName}" with ${org}${pos}. ` +
-      `Every signer before you has signed; the agreement now waits on you.\n\n` +
-      `Open your personal signing link — no account is needed:\n${link}\n\n` +
-      `A one-time code will be emailed to this address to confirm it's you before your signature is recorded. ` +
-      `This link was issued to you personally and should not be forwarded — a forwarded copy cannot be used to sign.` +
-      (expiresAt ? `\n\nThis link expires on ${String(expiresAt).slice(0, 10)}.` : '') +
-      `\n\nThis is an automated notice from HaTi CLM.`,
+    subject: tFor(L, 'mail_turn_subject', { name: cName }),
+    body: `${tFor(L, 'mail_hello')}${signer.name ? ' ' + signer.name : ''},\n\n`
+      + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
+      + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
+      + tFor(L, 'mail_code_note')
+      + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`,
   };
 }
 

@@ -11,26 +11,26 @@
 // with no separate data-entry step.
 
 const TPL_FIELD_TYPES = [
-  { k:'text',   label:'Text' },
-  { k:'party',  label:'Party (company name)' },
-  { k:'num',    label:'Number' },
-  { k:'date',   label:'Date' },
-  { k:'select', label:'Choice list' },
+  { k:'text',   get label(){ return i18t('tf_text'); } },
+  { k:'party',  get label(){ return i18t('tf_party'); } },
+  { k:'num',    get label(){ return i18t('tf_number'); } },
+  { k:'date',   get label(){ return i18t('tf_date'); } },
+  { k:'select', get label(){ return i18t('tf_choice_list'); } },
 ];
 /* Which standard contract field a blank feeds. `maps` is what turns a blank
    into data rather than decoration. */
 const TPL_MAPS = [
-  { k:'',                 label:'— nothing (extra detail only)' },
-  { k:'counterparty',     label:'Counterparty' },
-  { k:'value',            label:'Contract value' },
-  { k:'expiry',           label:'Expiry date' },
-  { k:'effDate',          label:'Effective / start date' },
-  { k:'contractType',     label:'Contract type' },
-  { k:'currency',         label:'Currency' },
-  { k:'noticePeriodDays', label:'Notice period (days)' },
-  { k:'paymentTerms',     label:'Payment terms' },
-  { k:'governingLaw',     label:'Governing law' },
-  { k:'folder',           label:'Value stream (filing)' },
+  { k:'',                 get label(){ return i18t('tf_nothing_extra'); } },
+  { k:'counterparty',     get label(){ return i18t('me_counterparty'); } },
+  { k:'value',            get label(){ return i18t('tf_contract_value'); } },
+  { k:'expiry',           get label(){ return i18t('me_expiry_date'); } },
+  { k:'effDate',          get label(){ return i18t('tf_effective_start'); } },
+  { k:'contractType',     get label(){ return i18t('me_contract_type'); } },
+  { k:'currency',         get label(){ return i18t('me_currency'); } },
+  { k:'noticePeriodDays', get label(){ return i18t('tf_notice_days'); } },
+  { k:'paymentTerms',     get label(){ return i18t('me_payment_terms'); } },
+  { k:'governingLaw',     get label(){ return i18t('me_governing_law'); } },
+  { k:'folder',           get label(){ return i18t('tf_value_stream_filing'); } },
 ];
 const tplMapLabel = k => (TPL_MAPS.find(m=>m.k===k)||{}).label || '';
 
@@ -344,11 +344,11 @@ Object.assign(window,{TPL_FIELD_TYPES,TPL_MAPS,TPL_BLANK,TPL_BULK_MAX,tplMapLabe
    The fields carry `maps`, so applyTemplateValues (above) puts them on the
    contract — no second mapping to drift from the first. */
 const CONTRACT_ESSENTIALS = [
-  { key:'counterparty', label:'Counterparty', type:'text', maps:'counterparty',
+  { key:'counterparty', get label(){ return i18t('me_counterparty'); }, type:'text', maps:'counterparty',
     ph:'Full registered name' },
   { key:'cpemail',      label:'Their email',  type:'email', maps:null,
-    ph:'them@company.co.ke', hint:'so you can send it to them' },
-  { key:'value',        label:'Contract value', type:'num', maps:'value',
+    get ph(){ return (typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'; }, hint:'so you can send it to them' },
+  { key:'value',        get label(){ return i18t('tf_contract_value'); }, type:'num', maps:'value',
     ph:'0', hint:'if known' },
   { key:'effDate',      label:'Start date',   type:'date', maps:'effDate' },
   { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry' },
@@ -383,9 +383,9 @@ function openContractEssentials(opts){
     <div class="ce-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(input).join('')}</div>
     <div id="ce-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-top:8px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
-      <button id="ce-cancel" class="ui-btn">Cancel</button>
+      <button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
-      <button id="ce-skip" class="ui-btn" title="Create the draft now and fill these in on the contract page">Skip for now</button>
+      <button id="ce-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('wz_skip_for_now')}</button>
       <button id="ce-create" class="ui-btn ui-btn-primary">${esc(o.createLabel||'Create draft')}</button>
     </div></div>`, { maxWidth:'620px' });
 

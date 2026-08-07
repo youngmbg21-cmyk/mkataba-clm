@@ -76,6 +76,50 @@ const JURISDICTIONS = {
     standardsBody: 'KEBS',
     playbookLabel: 'Kenyan-practice',
     sampleLabel: 'Kenyan FMCG',
+    /* ---- what the built-in templates need to say a market's name for ----
+       Same discipline as the fields above: a pack states what is true where it
+       operates, and where a market has no equivalent the field is null and the
+       sentence around it drops that half rather than naming something invented.
+       Every one of these used to be a hard-coded Kenyan noun inside a template
+       clause, which is how a Swedish workspace ended up with KRA in its lease. */
+    incorporatedIn: 'the Republic of Kenya',
+    taxAuthority: 'KRA',
+    /* The regulator whose licence a food producer holds. Named where the market
+       has one name for it; null where the answer is "several bodies, depending",
+       and the clause then asks for the licences without naming an issuer. */
+    foodSafetyRegulator: 'Public Health',
+    /* Bodies whose rules bind a regulated professional adviser. */
+    professionalBodies: 'ICPAK / LSK',
+    /* Land is the most jurisdiction-bound of these, so both halves are optional:
+       the statute a commercial lease sits under, and the court that hears a
+       dispute about one. Null in a market where a lease dispute goes to the
+       ordinary courts, and the clause then points at the general forum. */
+    landStatute: 'the Land Act (2012)',
+    landForum: 'the Environment and Land Court at Nairobi',
+    /* Placeholder examples shown greyed inside empty template blanks. Not law —
+       just the difference between "e.g. Nyanza" reading as helpful or as foreign. */
+    egTerritory: 'e.g. Nyanza',
+    egRegion: 'e.g. Nairobi to Coast',
+    /* The richer form the freight scanner suggests, which names two lanes. */
+    egLanes: '“Nairobi – Mombasa primary + coastal secondary”',
+    egSite: 'e.g. Industrial Area, Nairobi',
+    egPremises: 'e.g. Westlands, Nairobi',
+    /* Placeholder shapes in the field catalogue. A Swedish user typing into a
+       box hinted "name@company.co.ke" is being shown someone else's country. */
+    egEmail: 'name@company.co.ke',
+    egPhone: '+254 700 000000',
+    egAddress: 'Street, town, county',
+    /* The counterparty's address, and a warehouse site: the same placeholder is
+       drawn by the wizard, the template form and the library dialog. */
+    egTheirEmail: 'them@company.co.ke',
+    egWarehouse: 'e.g. Nairobi DC',
+    /* Who the DEMO portfolio is signed and commented by. Sample data only —
+       a real workspace replaces both the moment it has its own people. */
+    egSignatory: 'A. Otieno, Director',
+    egReviewer: 'Wanjiku Kamau',
+    /* Which entry in the field catalogue asks for this market's company tax
+       number. Both types exist in FIELD_LIB; this names the one that belongs. */
+    taxIdField: 'kenya_tax_id',
   },
   sweden: {
     id: 'sweden',
@@ -97,7 +141,35 @@ const JURISDICTIONS = {
     stampDuty: null,
     standardsBody: null,
     playbookLabel: 'Swedish-practice',
-    sampleLabel: 'sample',
+    sampleLabel: 'Swedish FMCG',
+    incorporatedIn: 'Sweden',
+    taxAuthority: 'Skatteverket',
+    /* Food licensing here is split between the national agency and the municipal
+       food-control office, so there is no single name the clause could use the
+       way "Public Health" works in Kenya. Null, and the clause asks for the
+       licences without naming who issues them — true in both markets. */
+    foodSafetyRegulator: null,
+    professionalBodies: 'FAR / the Swedish Bar Association',
+    /* Deliberately null, both halves. Sweden does have a land code and does have
+       land-and-environment courts, but an ordinary commercial lease dispute goes
+       to the general courts, so naming either here would put a real statute in
+       the wrong clause — the failure this pack exists to prevent. The lease
+       clause falls back to the general governing-law sentence. */
+    landStatute: null,
+    landForum: null,
+    egTerritory: 'e.g. Skåne',
+    egRegion: 'e.g. Stockholm to Malmö',
+    egLanes: '“Stockholm – Malmö primary + southern secondary”',
+    egSite: 'e.g. Årsta, Stockholm',
+    egPremises: 'e.g. Södermalm, Stockholm',
+    egEmail: 'namn@foretag.se',
+    egPhone: '+46 70 000 00 00',
+    egAddress: 'Street, postcode, town',
+    egTheirEmail: 'dem@foretag.se',
+    egWarehouse: 'e.g. Stockholm DC',
+    egSignatory: 'A. Lindqvist, Director',
+    egReviewer: 'Anna Lindqvist',
+    taxIdField: 'sweden_tax_id',
   },
 };
 const JX_DEFAULT = 'kenya';
@@ -167,6 +239,39 @@ const jxPreferredLaw = () => `This Agreement is governed by the laws of ${jx().n
 const jxFallbackLaw = () => `This Agreement is governed by the laws of ${jx().name}; disputes may be `
   + `referred to ${jx().arbitration}.`;
 
+/* ---------- what the built-in templates ask the pack for ----------
+   Plain readers, so a template clause reads as a sentence with a hole in it
+   rather than as a lookup. Each returns null where the pack has nothing to say,
+   and it is the CALLER's job to drop that half of the sentence — see the lease
+   and food-safety clauses in the template builder for the two shapes of that. */
+const jxIncorporatedIn = () => jx().incorporatedIn || jx().name;
+const jxTaxAuthority = () => jx().taxAuthority || null;
+const jxFoodSafetyRegulator = () => jx().foodSafetyRegulator || null;
+const jxProfessionalBodies = () => jx().professionalBodies || null;
+const jxLandStatute = () => jx().landStatute || null;
+const jxLandForum = () => jx().landForum || null;
+/* Placeholder example for an empty template blank, by field name. Falls back to
+   an empty string so a pack that has not named one shows a plain blank rather
+   than another market's town. */
+const jxEg = key => jx()['eg' + key.charAt(0).toUpperCase() + key.slice(1)] || '';
+/* Which FIELD_LIB entry asks for this market's company tax number. */
+const jxTaxIdField = () => jx().taxIdField || null;
+
+/* The short governing-law sentence a template clause ends on. Kept separate from
+   jxPreferredLaw (which is the PLAYBOOK's position, and states a preference)
+   because a template is drafting the clause, not arguing for it. */
+const jxGovernedBy = () => `This Agreement is governed by the laws of ${jx().name}.`;
+const jxGovernedByArb = () => `This Agreement is governed by the laws of ${jx().name}, `
+  + `with disputes referred to ${jx().arbitration}.`;
+/* A lease sits under a named statute and a named court in some markets and under
+   neither in others, so this assembles whichever halves the pack actually has. */
+const jxLeaseLaw = () => {
+  const statute = jxLandStatute(), forum = jxLandForum();
+  return `This Lease is governed by the laws of ${jx().name}`
+    + (statute ? `, including ${statute}` : '')
+    + `, with disputes referred to ${forum || jx().forum}.`;
+};
+
 /* Every place-name that means SOMEWHERE ELSE from where this workspace sits.
    The home pack's own markers are excluded, which is the whole point: switch
    the setting and "laws of Kenya" moves from expected to foreign without a
@@ -202,6 +307,8 @@ const JX_API = { JURISDICTIONS, JX_DEFAULT, JX_LS, JX_OTHER_SEATS,
   jx, jxId, jxIs, jxSet, jxList, jxPack, jxLaw, jxAdjective, jxName, jxCurrency, jxLocale,
   jxEsignature, jxEsignatureShort, jxStampDuty, jxDataProtection, jxStandardsBody,
   jxPlaybookLabel, jxPreferredLaw, jxFallbackLaw, jxForeignMarkers, jxNamesHome,
+  jxIncorporatedIn, jxTaxAuthority, jxFoodSafetyRegulator, jxProfessionalBodies,
+  jxLandStatute, jxLandForum, jxEg, jxTaxIdField, jxGovernedBy, jxGovernedByArb, jxLeaseLaw,
   fmtMoney, fmtMoneyShort };
 /* Two hosts, one table. The browser gets globals like every other module here;
    server/server.js is a plain Node process with no window, and requires it. */

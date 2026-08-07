@@ -130,6 +130,9 @@ function shell(renderers = {}) {
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     state: { contracts: [], settings: {}, view: 'dashboard' },
     LS: { session: 's', ui: 'u' }, lsSet() {},
+    /* setView's neighbours read labels through the dictionary; this stage only
+       needs the accessor to exist, not the whole language layer. */
+    i18t: k => k, i18tn: k => k,
     hydrate() {}, getOrg: () => ({ name: 'Highland Corporate Ltd' }), getSession: () => null,
     currentUser: () => null, renderAuth() {}, startApp() {},
     API_MODE: () => true, persist() {}, api: () => Promise.reject(new Error('offline')),

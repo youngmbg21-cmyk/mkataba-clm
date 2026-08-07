@@ -31,7 +31,7 @@ function adviceCard(r){
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${r.id}</span>
         <span style="display:flex;align-items:center;gap:4px;flex:none">
-          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px">Priority</span>`:''}
+          ${r.urgency==='priority'?`<span style="background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px">${i18t('adv_priority')}</span>`:''}
           <span style="font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,${etaCol} 12%,#fff);color:${etaCol}">${etaTxt}</span>
         </span>
       </div>
@@ -66,7 +66,7 @@ function renderAdviceDesk(){
         <span style="font-size:10.5px;background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px 8px;border-radius:999px;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
       </div>
       <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
-        ${g.list.map(adviceCard).join('')||`<div style="border:1px dashed var(--color-divider);border-radius:4px;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">Nothing here</div>`}
+        ${g.list.map(adviceCard).join('')||`<div style="border:1px dashed var(--color-divider);border-radius:4px;padding:22px 10px;text-align:center;font-size:11px;color:var(--color-neutral-500)">${i18t('adv_nothing_here')}</div>`}
       </div>
     </div>`).join('');
 
@@ -77,16 +77,16 @@ function renderAdviceDesk(){
       .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>
     <div style="display:flex;align-items:stretch;gap:10px;flex:none;flex-wrap:wrap">
-      ${kpi('Active requests',active.length)}
-      ${kpi('Due in 48h',dueSoon,dueSoon?'var(--st-amber-fg)':undefined)}
+      ${kpi(i18t('adv_active_requests'),active.length)}
+      ${kpi(i18t('adv_due_48h'),dueSoon,dueSoon?'var(--st-amber-fg)':undefined)}
       ${kpi('Overdue',overdue,overdue?'var(--st-ruby-dot)':undefined)}
       ${kpi('Delivered · 30d',delivered30,'var(--st-green-fg)')}
-      ${kpi('Projected fees · active',fmtMoneyShort(projected))}
+      ${kpi(i18t('adv_projected_fees'),fmtMoneyShort(projected))}
       <span style="flex:1"></span>
       <div style="display:flex;align-items:center;gap:8px;flex:none">
         <button id="adv-rates" class="ui-btn">${icon('coins','w-3.5 h-3.5')} Rate card</button>
-        <button id="adv-link" class="ui-btn">${icon('share','w-3.5 h-3.5')} Intake link</button>
-        ${canEdit()?`<button id="adv-new" class="ui-btn ui-btn-primary">${icon('plus','w-3.5 h-3.5')} New request</button>`:''}
+        <button id="adv-link" class="ui-btn">${icon('share','w-3.5 h-3.5')} ${i18t('adv_intake_link')}</button>
+        ${canEdit()?`<button id="adv-new" class="ui-btn ui-btn-primary">${icon('plus','w-3.5 h-3.5')} ${i18t('adv_new_request')}</button>`:''}
       </div>
     </div>
     <div class="board-cols board-5" style="flex:1;min-height:0;display:grid;gap:12px">${columnsHtml}</div>
@@ -113,7 +113,7 @@ async function refreshAdviceBoard(){
 
 async function adviceMove(id, target){
   const r=getAdviceRequest(id); if(!r) return;
-  if(!canEdit()){ toast('Viewers cannot move requests','err'); return; }
+  if(!canEdit()){ toast(i18t('adv_viewers_no_move'),'err'); return; }
   if(r.status===target) return;
   if(target==='Closed' && !await confirmDialog({title:`Close ${r.id}?`, message:'This closes the request without delivering — the customer’s tracking page will show it as closed.', confirmLabel:'Close request', danger:true})) return;
   try{
@@ -138,8 +138,8 @@ function wireAdviceBoard(){
   document.getElementById('adv-new')?.addEventListener('click',openAdviceIntakeModal);
   document.getElementById('adv-link')?.addEventListener('click',async()=>{
     const link=adviceIntakeLink();
-    try{ await navigator.clipboard.writeText(link); toast('Public intake link copied — share it with customers'); }
-    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">Public intake link</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:10px;font-size:11px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">Close</button></div></div>`); }
+    try{ await navigator.clipboard.writeText(link); toast(i18t('adv_intake_copied')); }
+    catch(e){ openModal(`<div style="padding:22px 24px"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 8px">${i18t('adv_public_intake')}</h2><textarea readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:10px;font-size:11px;font-family:var(--font-mono);word-break:break-all">${link}</textarea><div style="margin-top:12px;text-align:right"><button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button></div></div>`); }
   });
 }
 
@@ -159,7 +159,7 @@ function openAdviceModal(id){
     <div style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:8px 10px;margin-bottom:6px">
       <div style="font-size:11.5px;line-height:1.5">${esc(n.text)}</div>
       <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${esc(n.by)} · ${fmtDT(n.at)}</div>
-    </div>`).join('')||`<div style="font-size:11px;color:var(--color-neutral-500)">No internal notes yet.</div>`;
+    </div>`).join('')||`<div style="font-size:11px;color:var(--color-neutral-500)">${i18t('adv_no_notes')}</div>`;
   const members=getUsers().filter(u=>u.role!=='viewer');
   const selStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none';
   openModal(`
@@ -184,33 +184,33 @@ function openAdviceModal(id){
       ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:9px 11px;font-size:12px;line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
         <div>
-          <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">Pipeline history</h6>
+          <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">${i18t('adv_pipeline_history')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${hist}</div>
         </div>
         <div>
-          <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">Internal notes</h6>
+          <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase">${i18t('adv_internal_notes')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${notes}</div>
         </div>
       </div>
       ${canEdit()?`
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
-        <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Assigned counsel</span>
-          <select id="adv-assignee" style="${selStyle}"><option value="">Unassigned</option>
-            ${members.map(u=>`<option value="${esc(u.name)}" ${r.assignee===u.name?'selected':''}>${esc(u.name)} (${ROLE_LABEL[u.role]})</option>`).join('')}</select></label>
-        <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Stage</span>
+        <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_assigned_counsel')}</span>
+          <select id="adv-assignee" style="${selStyle}"><option value="">${i18t('adv_unassigned')}</option>
+            ${members.map(u=>`<option value="${esc(u.name)}" ${r.assignee===u.name?'selected':''}>${esc(u.name)} (${roleName(u.role)})</option>`).join('')}</select></label>
+        <label style="display:block"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_stage')}</span>
           <select id="adv-status" style="${selStyle}">${ADVICE_STAGES.map(s=>`<option value="${s.k}" ${r.status===s.k?'selected':''}>${s.label}</option>`).join('')}</select></label>
       </div>
-      <label style="display:block;margin-top:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Add internal note</span>
+      <label style="display:block;margin-top:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_add_note')}</span>
         <textarea id="adv-note" rows="2" placeholder="Scope confirmed with customer…" style="${selStyle}"></textarea></label>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
         <button id="adv-copy-track" class="ui-btn">${icon('copy','w-3.5 h-3.5')} Customer tracking link</button>
         <span style="flex:1"></span>
-        <button class="ui-btn" onclick="closeModal()">Close</button>
-        ${canEdit()?`<button id="adv-save" class="ui-btn ui-btn-primary">Save</button>`:''}
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_close')}</button>
+        ${canEdit()?`<button id="adv-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>`:''}
       </div>
     </div>`,{maxWidth:'40rem'});
   document.getElementById('adv-copy-track').addEventListener('click',async()=>{
-    try{ await navigator.clipboard.writeText(adviceTrackLink(r)); toast('Tracking link copied — send it to '+r.name); }catch(e){ toast('Could not copy','err'); }
+    try{ await navigator.clipboard.writeText(adviceTrackLink(r)); toast('Tracking link copied — send it to '+r.name); }catch(e){ toast(i18t('adv_could_not_copy'),'err'); }
   });
   document.getElementById('adv-save')?.addEventListener('click',async()=>{
     const patch={};
@@ -245,18 +245,18 @@ function openRateCardModal(){
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="display:inline-flex;color:var(--color-accent)">${icon('coins')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Published rate card</h2></div>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">${i18t('adv_published_rates')}</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
       <div class="table-scroll"><table style="width:100%;border-collapse:collapse">
         <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase">
-          <th style="padding:6px 10px 6px 0;font-weight:600">Service</th><th style="padding:6px;font-weight:600">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:600">Hrs min</th><th style="padding:6px;font-weight:600">Hrs max</th><th style="padding:6px 0 6px 6px;font-weight:600">Days</th>
+          <th style="padding:6px 10px 6px 0;font-weight:600">${i18t('adv_service')}</th><th style="padding:6px;font-weight:600">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:600">${i18t('adv_hrs_min')}</th><th style="padding:6px;font-weight:600">${i18t('adv_hrs_max')}</th><th style="padding:6px 0 6px 6px;font-weight:600">${i18t('adv_days')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
-      <p style="font-size:10.5px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.5">Priority requests are quoted at +25% with the turnaround halved. "Days" is business days to feedback before queue load.</p>
+      <p style="font-size:10.5px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.5">${i18t('adv_rate_note')}</p>
       <div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px">
         <button class="ui-btn" onclick="closeModal()">${editable?'Cancel':'Close'}</button>
-        ${editable?`<button id="rt-save" class="ui-btn ui-btn-primary">Publish rates</button>`:''}
+        ${editable?`<button id="rt-save" class="ui-btn ui-btn-primary">${i18t('adv_publish_rates')}</button>`:''}
       </div>
     </div>`,{maxWidth:'36rem'});
   document.getElementById('rt-save')?.addEventListener('click',async()=>{
@@ -264,13 +264,13 @@ function openRateCardModal(){
     for(const s of Object.values(ADVICE_SERVICES)){
       const g=f=>Number(document.getElementById('rt-'+f+'-'+s.id).value);
       const o={ rate:g('rate'), hoursMin:g('min'), hoursMax:g('max'), days:g('days') };
-      if(Object.values(o).some(v=>!Number.isFinite(v)||v<1)){ toast('Every value must be a positive number','err'); return; }
+      if(Object.values(o).some(v=>!Number.isFinite(v)||v<1)){ toast(i18t('adv_positive_number'),'err'); return; }
       if(o.hoursMax<o.hoursMin){ toast(`${s.name}: max hours must be ≥ min hours`,'err'); return; }
       out[s.id]=o;
     }
     state.settings.adviceRates=out;
     await saveSettings();
-    closeModal(); toast('Rate card published');
+    closeModal(); toast(i18t('adv_rates_published'));
     if(state.view==='advice') renderAdviceDesk();
   });
 }
@@ -281,9 +281,9 @@ function openAdviceIntakeModal(){
   const field=(id,label,ph,type='text')=>`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" style="${inputStyle}"/></label>`;
   openModal(`
     <div style="padding:22px 24px">
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">Log an advice request</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">For requests that arrive by phone or email — the customer still gets a tracking link.</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Service</span>
+      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${i18t('adv_log_request')}</h2>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">${i18t('adv_log_sub')}</p>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_service')}</span>
         <select id="ai-service" style="${inputStyle}">${Object.values(ADVICE_SERVICES).map(s=>{const r=adviceRateFor(s.id);return `<option value="${s.id}">${s.name} — ${fmtMoney(r.rate)}/hr</option>`;}).join('')}</select></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         ${field('ai-name','Customer name *','e.g. Grace Njeri')}
@@ -293,12 +293,12 @@ function openAdviceIntakeModal(){
         ${field('ai-company','Company','e.g. Tamu Beverages Ltd')}
         ${field('ai-contract','Contract concerned','e.g. Distribution Agreement')}
       </div>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">What do they need? *</span>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">${i18t('adv_what_need')}</span>
         <textarea id="ai-desc" rows="3" style="${inputStyle}"></textarea></label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-700);margin-bottom:4px"><input id="ai-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent)"/> Priority (+25% rate, half turnaround)</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-neutral-700);margin-bottom:4px"><input id="ai-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent)"/> ${i18t('adv_priority_option')}</label>
       <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
-        <button class="ui-btn" onclick="closeModal()">Cancel</button>
-        <button id="ai-go" class="ui-btn ui-btn-primary">Create request</button>
+        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+        <button id="ai-go" class="ui-btn ui-btn-primary">${i18t('adv_create_request')}</button>
       </div>
     </div>`,{maxWidth:'34rem'});
   document.getElementById('ai-go').addEventListener('click',async()=>{
@@ -306,7 +306,7 @@ function openAdviceIntakeModal(){
       urgency:document.getElementById('ai-priority').checked?'priority':'standard',
       name:fval('ai-name'), email:fval('ai-email'), company:fval('ai-company'),
       contractName:fval('ai-contract'), description:fval('ai-desc') };
-    if(!p.name||!p.email||!p.description){ toast('Name, email and a description are required','err'); return; }
+    if(!p.name||!p.email||!p.description){ toast(i18t('adv_name_email_required'),'err'); return; }
     try{
       const r=await createAdviceRequest(p);
       closeModal(); renderAdviceDesk(); updateSidebarCounts();

@@ -252,6 +252,10 @@ describe('F31 — the owner’s half of the same conversation', () => {
       toast: m => toasts.push(String(m)), console,
     });
     win.window = win;
+    /* js/i18n.js first, as js/app.js loads it: discuss.js's labels read
+       through i18t(). */
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/i18n.js'), 'utf8'),
+      dom.getInternalVMContext(), { filename: 'js/i18n.js' });
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js/discuss.js'), 'utf8'),
       dom.getInternalVMContext(), { filename: 'js/discuss.js' });
     return { win, toasts, doc: win.document };

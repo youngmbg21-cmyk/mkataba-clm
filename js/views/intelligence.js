@@ -86,7 +86,7 @@ window.intelUI = { scanning:false, scannedAt:null };
 
 function scanPortfolio(){
   state.contracts.forEach(c=>runScan(c));
-  intelUI.scannedAt = new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+  intelUI.scannedAt = new Date().toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'});
 }
 
 /* ============================================================
@@ -424,7 +424,7 @@ async function intelComplianceScan(q){
   rows.sort((a,b)=> (RANK[b.worst]||0)-(RANK[a.worst]||0) || b.findings.length-a.findings.length);
 
   if(!rows.length){
-    intel.history.push({role:'assistant', text:`Good news — a first-pass review of your ${cs.length} live contract${cs.length===1?'':'s'} surfaced no clauses flagged as potentially risky, unlawful or missing. Open any contract and run <b>Copilot review</b> for a deeper per-contract check.`});
+    intel.history.push({role:'assistant', text:`Good news — a first-pass review of your ${cs.length} live contract${cs.length===1?'':'s'} surfaced no clauses flagged as potentially risky, unlawful or missing. Open any contract and run <b>${i18t('int_copilot_review')}</b> for a deeper per-contract check.`});
     return;
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
@@ -432,7 +432,7 @@ async function intelComplianceScan(q){
     return `<span style="display:inline-flex;align-items:center;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:999px;background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
   const top=rows.slice(0,8);
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
-  let html=`<b>Contract compliance review.</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
+  let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
   html+=top.map(r=>{
     const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
     const more=r.findings.length>3?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
@@ -445,7 +445,7 @@ async function intelComplianceScan(q){
       <ul style="margin:0;padding-left:16px;font-size:11.5px;color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
   }).join('');
-  if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">…and ${rows.length-top.length} more flagged contract${rows.length-top.length===1?'':'s'}. Ask me about any one by name or id for the detail, or open it and run <b>Copilot review</b>.</div>`;
+  if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">…and ${rows.length-top.length} more flagged contract${rows.length-top.length===1?'':'s'}. Ask me about any one by name or id for the detail, or open it and run <b>${i18t('int_copilot_review')}</b>.</div>`;
 
   intel.history.push({role:'assistant', text:html});
   igPaintIds(top.map(r=>r.c.id));
@@ -477,7 +477,7 @@ function intelToggleCompare(id){
 // it still delivers the deterministic local table, so Compare ALWAYS works.
 async function intelRunCompare(){
   const ids=intel.compareSel.slice();
-  if(ids.length<2){ if(typeof toast==='function') toast('Stage at least 2 contracts — tap "+ Compare" on another node','err'); return; }
+  if(ids.length<2){ if(typeof toast==='function') toast(i18t('int_stage_two'),'err'); return; }
   const names=ids.map(id=>getContract(id)?.name||id);
   intel.history.push({role:'user', text:'Compare '+names.join(', ')});
   intel.compareSel=[]; intel.busy=true; renderIntelDock();
@@ -491,7 +491,7 @@ async function intelRunCompare(){
       const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' });
       intelPushChatResult(res);
     } else {
-      localFallback('Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">Add an Copilot key in Team &amp; Settings for a clause-level comparison.</span>');
+      localFallback(`Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">${i18t('int_add_key')}</span>`);
     }
   }catch(e){ localFallback('The Copilot engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
   intel.busy=false; rebuildIntelGraph(); renderIntelDock(); igPaintIds(ids);
@@ -686,14 +686,14 @@ function updateIntelNote(){
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
   const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
-  el.innerHTML = intel.busy ? `<span class="text-brand-700">Thinking…</span>`
-    : `<span class="text-ink/60">Grouped by <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
-      + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">Clear all ✕</button>`:'');
+  el.innerHTML = intel.busy ? `<span class="text-brand-700">${i18t('int_thinking')}</span>`
+    : `<span class="text-ink/60">${i18t('int_grouped_by')} <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
+      + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">${i18t('int_clear_all_x')}</button>`:'');
   document.getElementById('ig-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
 }
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
-  el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">Status — click to filter</div>`+
+  el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${i18t('int_status_click')}</div>`+
     [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
       `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
   el.querySelectorAll('[data-igstatus]').forEach(b=>b.addEventListener('click',()=>{ const s=b.getAttribute('data-igstatus');
@@ -727,7 +727,7 @@ function renderIntel(){
      same line instead of stacking them. */
   const TABROW='display:flex;align-items:stretch;align-self:stretch;flex:none';
   const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12.5px;color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
-  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('friction','Negotiation Friction')}${tabBtn('map','Contract Graph')}</div>`;
+  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
      panel below is all answer and no chrome. */
@@ -738,7 +738,7 @@ function renderIntel(){
   const ffOn=days=>days==null?!(ff&&ff.days):(ff&&ff.days)===days;
   const ffSeg=(days,label)=>`<button data-igf-days="${days==null?'':days}" style="${UNDERTAB};border-bottom:2px solid ${ffOn(days)?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:11.5px;color:${ffOn(days)?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
   const frictionControls=`
-      <div style="${TABROW};gap:16px">${ffSeg(null,'All time')}${ffSeg(90,'Last 90 days')}</div>
+      <div style="${TABROW};gap:16px">${ffSeg(null,i18t('int_all_time'))}${ffSeg(90,i18t('int_last_90'))}</div>
       ${ff&&(ff.counterparty||ff.days||ff.clause)?`<button id="ig-friction-clear" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent);flex:none">✕ Clear</button>`:''}`;
   const headerHtml=`
     <!-- No vertical padding: the tab buttons carry it themselves, so their
@@ -755,7 +755,7 @@ function renderIntel(){
          it is trimmed with a "…" or not shown. Friction has no caption. -->
     <header style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
-      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
+      ${intel.tab==='map'?`<span class="ig-hd-sub" style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0">${state.contracts.length.toLocaleString(jxLocale())} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>`:''}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
@@ -814,7 +814,7 @@ function renderIntel(){
           <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--color-accent)"></path></marker>
         </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
         <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
-        <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
+        <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">${i18t('int_drag_nodes')}</div>
       </div>
       <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
     </div>
@@ -966,7 +966,7 @@ function intelFrictionHtml(){
   const pct=v=>Math.round(v*100);
   if(!st.deals) return `<div style="max-width:960px;margin:0 auto">
     <div style="max-width:560px;margin:40px auto;text-align:center;color:var(--color-neutral-600);font-size:13px;line-height:1.6">
-    <b style="color:var(--color-text)">${f?'Nothing matches these filters.':'No negotiations recorded yet.'}</b><br/>${f?'Clear the filters in the header to see everything again.':'Once contracts go through the negotiation bench, this page counts which clauses get contested, what each fight costs, and who moves fast — straight from the tracked changes.'}</div></div>`;
+    <b style="color:var(--color-text)">${f?i18t('int_nothing_matches'):i18t('int_no_negotiations')}</b><br/>${f?i18t('int_clear_filters'):i18t('int_once_contracts')}</div></div>`;
   const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'&lt;1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
   const RULE='border-bottom:1px solid var(--color-divider)';
   const LINK='display:inline-block;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
@@ -981,12 +981,12 @@ function intelFrictionHtml(){
     `of negotiations get stuck on <b>${igEsc(top.label)}</b>${top.extra!=null&&top.extra>0
       ?` — and when they do, the deal takes <b>${top.extra.toFixed(1)} more round${top.extra>=1.95?'s':''}</b>. It is the single change worth making to your standard paper.`
       :` — contested more than any other clause${top.extra!=null&&top.extra<0?', though the fights there tend to settle quickly':''}.`}
-    <br><button data-igf-standards style="${LINK}">Open the clause in Our standards →</button>`):'';
+    <br><button data-igf-standards style="${LINK}">${i18t('int_open_clause_std')}</button>`):'';
   const dl=st.deadlockList;
   const dealCount=new Set(dl.map(x=>x.id)).size;
   const deadHero=hero(String(st.deadlocks), st.deadlocks?'var(--st-amber-fg,#b45309)':'var(--color-text)',
     st.deadlocks
-      ?`change${st.deadlocks===1?' is':'s are'} <b>refused and still open</b> — nobody withdrew ${st.deadlocks===1?'it':'them'}, so ${dealCount===1?'one deal is':dealCount+' deals are'} waiting on a decision somebody has to make.
+      ?`change${st.deadlocks===1?' is':'s are'} <b>${i18t('int_refused_open')}</b> — nobody withdrew ${st.deadlocks===1?'it':'them'}, so ${dealCount===1?'one deal is':dealCount+' deals are'} waiting on a decision somebody has to make.
         <br><button data-igf-deadlocks style="${LINK}">See the ${st.deadlocks<=12?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][st.deadlocks]:st.deadlocks} →</button>
         <div id="igf-deadlist" class="hidden" style="margin-top:8px">${dl.map(x=>`<button data-igf-open="${igEsc(x.id)}" style="display:flex;gap:8px;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;padding:4px 0;color:var(--color-neutral-700)"><b style="color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${igEsc(x.name)}</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.clause)}</span><span style="margin-left:auto;color:var(--color-accent-700);font-weight:700;white-space:nowrap">open →</span></button>`).join('')}</div>`
       :`changes are refused and still open — every refusal on the book has been answered or withdrawn. Nothing is deadlocked.`);
@@ -1002,7 +1002,7 @@ function intelFrictionHtml(){
     ${st.round1Share!=null?mini(pct(st.round1Share)+'%','signed within round 1'):''}
   </div>`;
   const left=`<div style="padding:12px 18px;min-width:0">
-    <div style="font-size:16px;font-weight:700;letter-spacing:-.01em">What is slowing you down</div>
+    <div style="font-size:16px;font-weight:700;letter-spacing:-.01em">${i18t('int_what_slowing')}</div>
     <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${st.deals} negotiation${st.deals===1?'':'s'}${st.openedThisMonth?` · ${st.openedThisMonth} opened this month`:''} · ${st.avgRounds.toFixed(1)} rounds each on average</div>
     ${clauseHero}${deadHero}${slowHero}
     ${minis}
@@ -1030,11 +1030,11 @@ function intelFrictionHtml(){
   }).join('');
   const th=t=>`<th style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px 8px;${RULE}">${t}</th>`;
   const right=`<div style="padding:12px 18px;border-left:1px solid var(--color-divider);min-width:0">
-    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">Most-contested clauses</span>
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">${i18t('int_most_contested')}</span>
       <span style="font-size:10px;color:var(--color-neutral-500);margin-left:auto;white-space:nowrap">% of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds</span></div>
-    <div role="img" aria-label="Bar chart of most-contested clauses" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:5px 9px;align-items:center;margin:8px 0 12px">${bars}</div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">Friction by counterparty</span>
-      <span style="font-size:10px;color:var(--color-accent-700);margin-left:auto;white-space:nowrap">click a row to filter the page</span></div>
+    <div role="img" aria-label="${i18t('int_bar_chart_aria')}" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:5px 9px;align-items:center;margin:8px 0 12px">${bars}</div>
+    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:13px;font-weight:700">${i18t('int_friction_by_cp')}</span>
+      <span style="font-size:10px;color:var(--color-accent-700);margin-left:auto;white-space:nowrap">${i18t('int_click_row_filter')}</span></div>
     <div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table></div>
     <div style="font-size:10.5px;color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
   </div>`;
@@ -1085,24 +1085,24 @@ function intelFrictionCopilotHtml(st){
   const on=(typeof copilotAvailable==='function')&&copilotAvailable();
   const head=`<div style="display:flex;align-items:center;gap:8px">
     <span style="width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:6px;background:var(--color-accent-100);color:var(--color-accent-700)">${icon('sparkle','w-3 h-3',2)}</span>
-    <span style="font-size:12.5px;font-weight:700">Copilot's read</span>
-    <span style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--color-accent-100);color:var(--color-accent-700)">Optional · AI</span>
+    <span style="font-size:12.5px;font-weight:700">${i18t('int_copilots_read')}</span>
+    <span style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--color-accent-100);color:var(--color-accent-700)">${i18t('int_optional_ai')}</span>
   </div>`;
   let body;
   if(ai&&ai.busy&&ai.key===key){
     body=`<div style="display:flex;align-items:center;gap:9px;font-size:12px;color:var(--color-neutral-600);padding:2px 0">
-      <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>Reading the counted figures below…</div>`;
+      <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:var(--accent-solid,var(--color-accent));flex:none"></span>${i18t('int_reading_figures')}</div>`;
   }else if(ai&&ai.html&&ai.key===key){
     body=`<div class="igf-ai-read" style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-800)">${ai.html}</div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--color-divider);font-size:10px;color:var(--color-neutral-500)">
-        <span style="flex:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg)">AI commentary</span>
+        <span style="flex:none;font-size:9px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('int_ai_commentary')}</span>
         <span style="min-width:0">Generated at ${igEsc(ai.at||'')} from the counted figures below — the numbers are the app's, the interpretation is Copilot's.</span>
         <button id="igf-ai-regen" style="margin-left:auto;border:0;background:none;cursor:pointer;font:inherit;font-size:11px;font-weight:700;color:var(--color-accent-700);flex:none;white-space:nowrap">↻ Regenerate</button>
       </div>`;
   }else if(ai&&ai.err&&ai.key===key){
     body=`<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--st-ruby-fg)">${igEsc(ai.err)}</span>
-      <button id="igf-ai-ask" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">Try again →</button>
+      <button id="igf-ai-ask" style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:700;color:var(--color-accent-700)">${i18t('int_try_again')}</button>
     </div>`;
   }else{
     const stale=!!(ai&&ai.html);
@@ -1160,7 +1160,7 @@ async function intelFrictionAsk(){
     const res=await copilotAsk([{role:'user',content:prompt}],{view:'intel'});
     const rich=igFmtRich(res.answer||'');
     intel.frictionAI={busy:false,key,html:rich.html,
-      at:new Date().toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'})};
+      at:new Date().toLocaleTimeString(jxLocale(),{hour:'2-digit',minute:'2-digit'})};
   }catch(e){
     intel.frictionAI={busy:false,key,
       err:(e&&e.needsKey)?'No Copilot key configured — add one in Team & Settings → Copilot engine.':'Copilot was unavailable — '+(e&&e.message?e.message:String(e))};
@@ -1210,11 +1210,11 @@ function igExplainCard(id){
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
     ${row('Value',isMonetary(c)&&c.value?fmtMoneyShort(c.value):'Non-monetary')}
     ${row('Status',statusLabel(c.status))}
-    ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · in ${d}d`:' · lapsed'):'')):'—')}
+    ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · ${i18t('int_in_days',{n:d})}`:` · ${i18t('int_lapsed')}`):'')):'—')}
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
     <div class="mt-2 flex items-center gap-1.5">
-      <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">Open workspace →</button>
-      <button data-ig-cmp="${c.id}" class="rounded-lg border ${intel.compareSel.includes(c.id)?'border-brand-500 bg-brand-50 text-brand-700':'border-brand-200 text-brand-700 hover:border-brand-400'} px-2.5 py-1.5 text-[11.5px] font-600 transition" title="Stage this contract for a side-by-side comparison">${intel.compareSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button>
+      <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">${i18t('int_open_workspace')}</button>
+      <button data-ig-cmp="${c.id}" class="rounded-lg border ${intel.compareSel.includes(c.id)?'border-brand-500 bg-brand-50 text-brand-700':'border-brand-200 text-brand-700 hover:border-brand-400'} px-2.5 py-1.5 text-[11.5px] font-600 transition" title="${i18t('int_stage_for_compare')}">${intel.compareSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button>
     </div>
   </div>`;
 }
@@ -1238,8 +1238,8 @@ function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   if(!intel.dockOpen){
     dock.innerHTML=`
-      <button id="igd-expand" title="Open the intelligence panel" class="h-full w-full flex flex-col items-center pt-3 gap-2 text-gold-500 hover:bg-brand-50/60 transition">
-        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">Copilot panel</span>
+      <button id="igd-expand" title="${i18t('int_open_panel')}" class="h-full w-full flex flex-col items-center pt-3 gap-2 text-gold-500 hover:bg-brand-50/60 transition">
+        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">${i18t('int_copilot_panel')}</span>
       </button>`;
     document.getElementById('igd-expand').addEventListener('click',()=>{ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
     return;
@@ -1253,25 +1253,25 @@ function renderIntelDock(){
   dock.innerHTML=`
     <div class="flex items-center gap-2 px-3.5 py-3 border-b border-hair shrink-0">
       <span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
-      <span class="font-display font-700 text-[13px] text-ink flex-1">Intelligence panel</span>
-      ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:false,label:'Basic mode',hint:''};
+      <span class="font-display font-700 text-[13px] text-ink flex-1">${i18t('int_intelligence_panel')}</span>
+      ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:false,get label(){ return i18t('int_basic_mode'); },hint:''};
         return b.live
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
           :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ Basic mode</span>`; })()}
-      ${intel.history.length?`<button id="igd-history-clear" title="Clear conversation" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      ${intel.history.length?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition">${intel.dockWide
         ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
         :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>'}</button>
-      <button id="igd-collapse" title="Collapse panel" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
+      <button id="igd-collapse" title="${i18t('int_collapse_panel')}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
     </div>
     ${intel.lenses.length?`
     <div class="px-3.5 py-2 border-b border-hair shrink-0 flex flex-wrap items-center gap-1.5">
       ${intel.lenses.map(l=>`
         <span data-lens-hover="${l.id}" class="ig-lens inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-mono cursor-pointer ${l.on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/40'}">
           <button data-lens-toggle="${l.id}" title="${l.on?'Lens on — click to ignore':'Lens off — click to apply'}">${igEsc(l.label)} · ${l.ids.length}</button>
-          <button data-lens-x="${l.id}" title="Remove lens" class="hover:text-rose-600">✕</button>
+          <button data-lens-x="${l.id}" title="${i18t('int_remove_lens')}" class="hover:text-rose-600">✕</button>
         </span>`).join('')}
-      <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">Clear all</button>
+      <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${i18t('int_clear_all')}</button>
     </div>`:''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
       ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.</div>`}
@@ -1283,13 +1283,13 @@ function renderIntelDock(){
     </div>`:''}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
-      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">Comparing <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')}</span>
-      <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">Clear</button>
+      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">${i18t('int_comparing')} <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')}</span>
+      <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${i18t('int_clear')}</button>
       <button id="igd-cmp-run" class="rounded-lg px-2.5 py-1 text-[11px] font-600 transition ${intel.compareSel.length<2?'bg-brand-100 text-brand-500':'bg-brand-600 text-white hover:bg-brand-700'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
     <div class="p-3 border-t border-hair shrink-0 relative">
-      <input id="igd-input" placeholder="Ask about the portfolio…" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
-      <button id="igd-go" class="absolute right-[18px] top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-700 transition">Ask</button>
+      <input id="igd-input" placeholder="${i18t('int_ask_portfolio')}" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
+      <button id="igd-go" class="absolute right-[18px] top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-700 transition">${i18t('int_ask')}</button>
     </div>`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   // charts in dock answers come back to life after every repaint
@@ -1341,7 +1341,7 @@ function renderIntelDock(){
   document.getElementById('igd-history-clear')?.addEventListener('click',()=>{
     // cleared immediately — no confirm prompt (lenses are separate and survive)
     intel.history=[]; intel.compareSel=[]; igPaintIds(null); renderIntelDock();
-    if(typeof toast==='function') toast('Conversation deleted');
+    if(typeof toast==='function') toast(i18t('int_conversation_deleted'));
   });
 }
 
@@ -1405,7 +1405,7 @@ function openPartyModal(name){
       </g>`).join('')}
     </svg>
     <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/65 flex items-center justify-between">
-      <span>Click a contract node to open its workspace</span>
+      <span>${i18t('int_click_node')}</span>
       <span class="font-mono">${nodes.length} nodes \u00b7 bounded neighborhood</span>
     </div>
   </div>`;

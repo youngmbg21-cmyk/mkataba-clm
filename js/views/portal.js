@@ -101,7 +101,7 @@ function portalWireRevisedBanner(p){
   document.getElementById('pt-revised-dismiss')?.addEventListener('click',()=>{
     ptSetRevisionRead(portalChangedText(), true);
     portalHideRevisedBanner();
-    if(window.toast) toast('Marked as read — reopen "See what changed" to mark it unread');
+    if(window.toast) toast(i18t('po_marked_read_reopen'));
   });
 }
 
@@ -125,9 +125,9 @@ function portalRevisedBanner(){
         <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-amber-fg)">${headline}</span>
         <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
       </span>
-      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:12.5px;font-weight:600;border:0;border-radius:5px;padding:9px 16px;cursor:pointer;background:var(--st-amber-dot);color:#fff">See what changed</button>
-      <button id="pt-revised-dismiss" title="Mark as read — this notice will not come back for this revision"
-        aria-label="Mark as read and dismiss this notice"
+      <button id="pt-see-changes" style="flex:none;font:inherit;font-size:12.5px;font-weight:600;border:0;border-radius:5px;padding:9px 16px;cursor:pointer;background:var(--st-amber-dot);color:#fff">${i18t('po_see_what_changed')}</button>
+      <button id="pt-revised-dismiss" title="${i18t('po_mark_read_wont_come_back')}"
+        aria-label="${i18t('po_mark_read_dismiss')}"
         style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--st-amber-line);background:transparent;color:var(--st-amber-fg);border-radius:6px;cursor:pointer;font:inherit;font-size:15px;line-height:1">&times;</button>
     </div>
     <style>
@@ -150,7 +150,7 @@ function openPortalCompare(p){
         <div style="${COL}">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">What ${esc(p.org||'the sender')} changed</h3>
-            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:3px 9px">Since your copy of ${fmtDT(ch.openedAt||ch.at)}</span>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:999px;padding:3px 9px">${i18t('po_since_your_copy',{when:fmtDT(ch.openedAt||ch.at)})}</span>
           </div>
           <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
             <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:2px">added</span>
@@ -161,7 +161,7 @@ function openPortalCompare(p){
         <div style="${COL}">
           <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(ch.before,ch.after)}</div>
           ${msg?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px 16px">
-            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Note from ${esc(p.sharedBy||'the sender')}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('po_note_from',{who:esc(p.sharedBy||i18t('po_the_sender'))})}</div>
             <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${esc(msg)}</div></div>`:''}
         </div>
       </div>
@@ -181,9 +181,9 @@ function openPortalCompare(p){
                  put the notice down, and a way to pick it back up if they were
                  not finished. Nothing here is sent to the sender and nothing is
                  written to the record. */}
-          <span style="font-size:11.5px;color:var(--color-neutral-600);min-width:150px;flex:1">Marking as read only clears the notice on your screen. It does not accept, decline or sign anything.</span>
-          <button id="pc-unread" class="ui-btn">Mark as unread</button>
-          <button id="pc-read" class="ui-btn ui-btn-primary">Mark as read</button>
+          <span style="font-size:11.5px;color:var(--color-neutral-600);min-width:150px;flex:1">${i18t('po_marking_read_only')}</span>
+          <button id="pc-unread" class="ui-btn">${i18t('po_mark_unread')}</button>
+          <button id="pc-read" class="ui-btn ui-btn-primary">${i18t('po_mark_read')}</button>
         </div>
       </div>
     </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
@@ -191,7 +191,7 @@ function openPortalCompare(p){
     ptSetRevisionRead(ch, true);
     closeModal();
     portalHideRevisedBanner();
-    if(window.toast) toast('Marked as read');
+    if(window.toast) toast(i18t('po_marked_read'));
   });
   document.getElementById('pc-unread').addEventListener('click',()=>{
     ptSetRevisionRead(ch, false);
@@ -200,7 +200,7 @@ function openPortalCompare(p){
        by accident, or ran out of time half way down, must be able to leave it
        standing. */
     portalShowRevisedBanner(p);
-    if(window.toast) toast('Marked as unread — the notice stays up');
+    if(window.toast) toast(i18t('po_marked_unread'));
   });
 }
 /* The counterparty's Compare — the mirror of the owner's toolbar button, and
@@ -266,10 +266,10 @@ function portalCompareBar(){
       <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
       <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">${line}</span>
       ${hist?`<button id="pt-hist" class="ui-btn pt-verb" style="flex:none;font-size:12.5px;padding:8px 14px"
-        title="Every change on this contract, oldest first, with who asked and what was decided">${
+        title="${i18t('po_every_change_oldest')}">${
         icon('history','w-3.5 h-3.5',2)}Negotiation history</button>`:''}
       ${cmp?`<button id="pt-compare" class="ui-btn pt-verb" style="flex:none;font-size:12.5px;padding:8px 14px"
-        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">${
+        title="${i18t('po_two_versions_side')}">${
         icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
     </div>`;
 }
@@ -350,10 +350,10 @@ function portalReadingBtnsHtml(){
   return `
     <span class="pw-id-read">
       ${hist?`<button id="pt-hist" class="ui-btn pt-verb pw-id-verb"
-        title="Every change on this contract, oldest first, with who asked and what was decided">${
+        title="${i18t('po_every_change_oldest')}">${
         icon('history','w-3.5 h-3.5',2)}Negotiation history</button>`:''}
       ${cmp?`<button id="pt-compare" class="ui-btn pt-verb pw-id-verb"
-        title="Put two versions of the wording side by side — the original against what you are reading now, or any two versions">${
+        title="${i18t('po_two_versions_side')}">${
         icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
     </span>
     <span class="pw-id-rule" aria-hidden="true"></span>`;
@@ -381,7 +381,7 @@ function portalReadingBtnsHtml(){
    itself could not. */
 function openPortalHistory(p){
   if(typeof window.openHistoryTimeline!=='function'){
-    toast('The history is not available on this page','err'); return;
+    toast(i18t('po_history_unavailable2'),'err'); return;
   }
   openHistoryTimeline(portalNegoContract(p));
 }
@@ -406,7 +406,7 @@ function openPortalVersionCompare(p){
   const orig=portalOriginalText();
   if(orig && normText(orig)!==normText(now||'') && !vs.some(v=>normText(v.text)===normText(orig))
      && normText(orig)!==normText(filed||''))
-    items.push({ label:'The original — before anything was proposed', text:orig });
+    items.push({ get label(){ return i18t('po_original_before'); }, text:orig });
   // Same caption on both sides of the deal — "v2 · Edited by Young Mbagaya"
   // reads identically here and in HaTi, so a version can be named out loud.
   const cap=v=>{
@@ -416,10 +416,10 @@ function openPortalVersionCompare(p){
     return `v${v.n} · ${v.label}${named?` · ${v.by}`:''}`;
   };
   if(filed.trim() && !vs.some(v=>normText(v.text)===normText(filed)))
-    items.push({ label:'The paper you sent, as it arrived', text:filed });
+    items.push({ get label(){ return i18t('po_paper_as_arrived'); }, text:filed });
   items.push(...vs.map(v=>({ label:cap(v), text:v.text })));
   const last=vs[vs.length-1];
-  if(now&&(!last||normText(last.text)!==normText(now))) items.push({ label:'Current — the copy you are reading', text:now });
+  if(now&&(!last||normText(last.text)!==normText(now))) items.push({ get label(){ return i18t('po_current_reading'); }, text:now });
   /* ---- WHAT THE DOCUMENT WOULD SAY IF EVERY LIVE ASK WERE ACCEPTED ----
      The owner has had this since js/versioning.js:496 and the counterparty had
      not, which is why Compare read as broken on their side exactly when it was
@@ -450,23 +450,23 @@ function openPortalVersionCompare(p){
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
         <div style="${COL}">
-          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 10px">Compare versions</h3>
+          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 10px">${i18t('po_compare_versions')}</h3>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <select id="pv-a" style="${SEL}">${opts}</select>
             <span style="color:var(--color-neutral-500);flex:none">→</span>
             <select id="pv-b" style="${SEL}">${opts}</select>
-            <button id="pv-go" class="ui-btn ui-btn-primary" style="flex:none">Compare</button>
+            <button id="pv-go" class="ui-btn ui-btn-primary" style="flex:none">${i18t('po_compare')}</button>
           </div>
           <p id="pv-legend" style="font-size:11.5px;color:var(--color-neutral-600);margin:9px 0 0"></p>
         </div>
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
-        <div id="pv-out" style="${COL};font-size:12.5px;color:var(--color-neutral-600)">Pick two versions and press <b>Compare</b>.</div>
+        <div id="pv-out" style="${COL};font-size:12.5px;color:var(--color-neutral-600)">${i18t('po_pick_two_press')} <b>${i18t('po_compare')}</b>.</div>
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px">
-          <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1">Nothing here sends anything — close when you are done.</span>
-          <button id="pv-close" class="ui-btn">Close</button>
+          <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1">${i18t('po_nothing_sends')}</span>
+          <button id="pv-close" class="ui-btn">${i18t('act_close')}</button>
         </div>
       </div>
     </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
@@ -475,7 +475,7 @@ function openPortalVersionCompare(p){
   const run=()=>{
     const a=items[Number(A.value)], b=items[Number(B.value)];
     if(!a||!b) return;
-    if(a===b){ document.getElementById('pv-out').innerHTML='<div style="font-size:12.5px;color:var(--color-neutral-600)">Those are the same version — pick two different ones.</div>'; return; }
+    if(a===b){ document.getElementById('pv-out').innerHTML=`<div style="font-size:12.5px;color:var(--color-neutral-600)">${i18t('po_same_version')}</div>`; return; }
     const st=(window.diffStats?diffStats(a.text,b.text):{add:0,del:0});
     document.getElementById('pv-legend').innerHTML=`+${st.add} added · −${st.del} removed ·
       <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 4px;border-radius:2px">added</span>
@@ -544,7 +544,7 @@ function portalMarkSigned(p, info){
   band.innerHTML=`
     <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
     <span style="flex:1;min-width:220px;line-height:1.5">
-      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${who} signed this contract</span>
+      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${i18t('po_signed_this',{who})}</span>
       <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${fmtDT(nowISO())} · sent to ${esc((p&&p.sharedBy)||'the sender')} at ${esc((p&&p.org)||'their organisation')}. There is nothing further for you to do here — keep this link to read the contract.</span>
     </span>`;
 }
@@ -578,7 +578,7 @@ function portalClosedBanner(){
     <div id="pt-executed" style="display:flex;align-items:flex-start;gap:12px;border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:4px solid var(--st-green-fg);border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:12px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-green-fg)">This contract is executed and sealed</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-green-fg)">${i18t('po_executed_sealed')}</span>
         <span style="display:block;font-size:12px;color:var(--st-green-fg);margin-top:2px">The wording is final and read-only${done.at?` — signed ${fmtDT(done.at)}`:''}. You can still read this copy and keep this link. Nothing further can be proposed, decided or signed here; if something has to change, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to record an amendment.</span>
       </span>
     </div>`;
@@ -588,7 +588,7 @@ function portalClosedBanner(){
     <div id="pt-superseded" style="display:flex;align-items:flex-start;gap:12px;border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-left:4px solid var(--st-ruby-dot);border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;margin-top:1px;color:var(--st-ruby-fg);display:inline-flex">${icon('alert','w-4 h-4')}</span>
       <span style="flex:1;min-width:0;line-height:1.5">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-ruby-fg)">This is an older copy — it can no longer be answered</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-ruby-fg)">${i18t('po_older_copy')}</span>
         <span style="display:block;font-size:12px;color:var(--st-ruby-fg);margin-top:2px">A newer version of this contract was sent to you on ${fmtDT(sup.at)}. You can still read this copy and compare it, but signing or responding has to happen on the most recent link. If you cannot find it, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to send it again.</span>
       </span>
     </div>`;
@@ -608,9 +608,9 @@ function portalRoundBanner(c, p){
       <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-amber-dot);color:#fff;font-size:14px;font-weight:700">!</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
         <span style="display:block;font-size:13.5px;font-weight:600;color:var(--st-amber-fg)">${org} ${verb}</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">Round ${latest.n} · ${tally} · ${fmtDT(latest.resolution.at||latest.at)}</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${i18t('po_round_tally',{n:latest.n,tally,when:fmtDT(latest.resolution.at||latest.at)})}</span>
       </span>
-      ${latest.resolution.decision==='accepted'?`<span style="flex:none;font-size:11.5px;color:var(--st-amber-fg)">The wording below already reflects them.</span>`:''}
+      ${latest.resolution.decision==='accepted'?`<span style="flex:none;font-size:11.5px;color:var(--st-amber-fg)">${i18t('po_wording_reflects')}</span>`:''}
     </div>
     <style>
       @keyframes pt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
@@ -652,7 +652,7 @@ function portalThreadHtml(c, p){
           ${b.after?`<span style="color:var(--st-green-fg)">${esc(String(b.after).trim())}</span>`:''}
           <span style="font-size:10px;font-weight:700;margin-left:6px;color:${b.decision==='accept'?'var(--st-green-fg)':'var(--st-ruby-fg)'}">${b.decision==='accept'?'ADOPTED':'NOT ADOPTED'}</span>
         </div>
-        ${b.note?`<div style="margin-top:4px;font-size:11px;color:var(--color-neutral-700)"><b>You said:</b> ${esc(b.note)}</div>`:''}
+        ${b.note?`<div style="margin-top:4px;font-size:11px;color:var(--color-neutral-700)"><b>${i18t('po_you_said')}</b> ${esc(b.note)}</div>`:''}
         ${b.reply?`<div style="margin-top:3px;font-size:11px;color:var(--color-neutral-700)"><b>${esc(orgName)}:</b> ${esc(b.reply)}</div>`:''}
       </div>`).join('')}</div>`;
   };
@@ -665,13 +665,13 @@ function portalThreadHtml(c, p){
     <div id="pt-thread" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
         <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('history','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600">The discussion so far</span>
+        <span style="font-size:13px;font-weight:600">${i18t('po_discussion_so_far')}</span>
         <span style="margin-left:auto;font-size:10.5px;color:var(--color-neutral-500);font-family:var(--font-mono)">${said.length} round${said.length===1?'':'s'}</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
         ${said.map(r=>`
           <div style="display:flex;flex-direction:column;gap:6px;border-left:2px solid var(--color-divider);padding-left:11px">
-            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">Round ${esc(String(r.n))}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_round_n',{n:esc(String(r.n))})}</div>
             ${r.comment?bubble(r.by||'You', r.at, r.comment, true):''}
             ${r.resolution&&r.resolution.comment?bubble(org, r.resolution.at, r.resolution.comment, false):''}
             ${clauseExchanges(r, org)}
@@ -704,19 +704,19 @@ function portalOpenPointsHtml(c, p){
     <div id="pt-openpoints" style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
         <span style="flex:none;color:var(--st-amber-dot);display:inline-flex">${icon('alert','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">Still open between us</span>
+        <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">${i18t('po_still_open_between')}</span>
         <span style="margin-left:auto;font-size:10.5px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
-      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${canReply?`Answer ${pts.length===1?'it':'them'} right here — that changes nothing in the contract — or press <b>Propose edits</b> when you have new wording to put forward.`:`Press <b>Propose edits</b> if you want to come back on ${pts.length===1?'it':'them'}.`}</p>
+      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${canReply?`Answer ${pts.length===1?'it':'them'} right here — that changes nothing in the contract — or press <b>${i18t('po_propose_edits')}</b> when you have new wording to put forward.`:`Press <b>${i18t('po_propose_edits')}</b> if you want to come back on ${pts.length===1?'it':'them'}.`}</p>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid var(--st-amber-line);background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
-            ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Contract says</span>
+            ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">You asked for</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_you_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${esc(pt.after)}</div></div>`:''}
-            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>You said:</b> ${esc(pt.ask)}</div>`:''}
-            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>Their reply:</b> ${esc(pt.reason)}</div>`:''}
+            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>${i18t('po_you_said')}</b> ${esc(pt.ask)}</div>`:''}
+            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>${i18t('po_their_reply')}</b> ${esc(pt.reason)}</div>`:''}
             ${canReply?discussPointReplyHtml('point:'+pt.id, PORTAL_OPTS.messages||[], {
               idp:'pt-op-'+i, mine:'counterparty',
               label:'Still open — '+discussTrim(pt.after||pt.before,60),
@@ -744,7 +744,7 @@ function portalDiscussHtml(c, p){
     topics: portalDiscussTopics(c),
     mine: 'counterparty',
     idp: 'pt-discuss',
-    title: 'Ask or reply — no formal round needed',
+    get title(){ return i18t('po_ask_or_reply'); },
     blurb: `Put a question to ${(p && p.org) || 'the sender'}, or answer one, without proposing new wording. Nothing here changes the contract; when you do want to change it, use Propose edits.`,
     disabled: !live,
     disabledNote: 'This copy was shared as a self-contained link, so there is no channel back for messages. Reply to the email you received.',
@@ -767,7 +767,7 @@ function wirePortalDiscuss(c, p){
     if (panel) panel.outerHTML = portalDiscussHtml(c, p);
     const points = document.getElementById('pt-openpoints');
     if (points) points.outerHTML = portalOpenPointsHtml(c, p);
-      if (window.toast) toast('Sent — the contract is unchanged');
+      if (window.toast) toast(i18t('po_sent_unchanged'));
   };
   wireDiscussPanel({ idp: 'pt-discuss', topics, send: post, onSent: repaint });
   if (window.wireDiscussPoints) wireDiscussPoints({ send: post, onSent: repaint });
@@ -818,15 +818,15 @@ function portalClauseEditorHtml(c){
           <button data-cl-edit="${u.i}" class="ui-btn" style="flex:none;font-size:11px;padding:4px 10px">${edited?'Edit again':'Change'}</button>
         </div>
         ${edited?`<div style="margin-top:6px;font-size:10.5px;color:var(--st-amber-fg);display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-          <span>You changed this.</span>
+          <span>${i18t('po_you_changed_this')}</span>
           ${PORTAL_CLAUSE_NOTES[u.i]?`<span style="color:var(--color-neutral-700);font-size:11px">“${esc(PORTAL_CLAUSE_NOTES[u.i])}”</span>`:''}
-          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline">Undo</button></div>`:''}
+          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline">${i18t('po_undo')}</button></div>`:''}
       </div>`;
   }).join('');
   const n=Object.keys(PORTAL_CLAUSE_EDITS).length;
   return `
     <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
-      <span style="font-size:12px;color:var(--color-neutral-700)">Press <b>Change</b> on any clause you want to alter. Everything else stays exactly as it is.</span>
+      <span style="font-size:12px;color:var(--color-neutral-700)">${i18t('po_press')} <b>${i18t('po_change')}</b> ${i18t('po_on_any_clause')}</span>
       <span style="flex:1"></span>
       <span id="pt-cl-count" style="font-size:11.5px;font-weight:600;color:${n?'var(--st-amber-fg)':'var(--color-neutral-500)'}">${n?`${n} change${n===1?'':'s'}`:'No changes yet'}</span>
     </div>
@@ -844,12 +844,12 @@ function wirePortalClauseEditor(c, p){
       row.innerHTML=`
         <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:1px solid var(--color-accent);border-radius:5px;padding:9px 11px;font:inherit;font-size:13px;line-height:1.7;color:var(--color-doc-text);background:var(--color-surface);outline:none;resize:vertical">${esc(cur)}</textarea>
         <label style="display:block;margin-top:7px">
-          <span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);margin-bottom:3px">Why? (optional — shown next to this change)</span>
+          <span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);margin-bottom:3px">${i18t('po_why_optional')}</span>
           <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
-          <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Cancel</button>
-          <button data-cl-save="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px">Keep this change</button>
+          <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">${i18t('act_cancel')}</button>
+          <button data-cl-save="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px">${i18t('po_keep_this_change')}</button>
         </div>`;
       const ta=row.querySelector(`[data-cl-input="${i}"]`); if(ta){ ta.focus(); }
       row.querySelector(`[data-cl-cancel="${i}"]`).addEventListener('click',repaint);
@@ -1030,7 +1030,7 @@ function portalChangeSummaryHtml(p){
   const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
   if(!lines.length) return '';
   return `<div id="pt-change-summary" style="margin-bottom:12px;border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);border-radius:4px;background:var(--color-surface);padding:10px 12px;">
-    <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-accent-800);font-family:var(--font-mono);margin-bottom:5px;">What changed</span>
+    <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-accent-800);font-family:var(--font-mono);margin-bottom:5px;">${i18t('po_what_changed')}</span>
     ${lines.map(l=>{
       const bullet=/^[•\-*]\s*/.test(l);
       return `<div style="font-size:11.5px;line-height:1.55;color:var(--color-neutral-800);${bullet?'padding-left:10px;':'font-weight:600;margin-bottom:3px;'}">${esc(l.replace(/^[•\-*]\s*/,bullet?'• ':''))}</div>`;
@@ -1341,8 +1341,8 @@ function portalNegoHtml(p){
     <div id="pt-nego-wrap" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;
       box-shadow:var(--shadow-sm);overflow:hidden;margin:0 0 18px">
       <div style="padding:14px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg)">
-        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">The same workbench ${esc((p&&p.org)||'the sender')} works on — the contract with every change marked, the tracked changes beside it, and the discussion beside those. Accept or reject what they have proposed, press <b>Direct Edit</b> under a clause to counter-propose, or discuss without changing anything.</span>
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">${i18t('po_the_negotiation')}</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">The same workbench ${esc((p&&p.org)||'the sender')} works on — the contract with every change marked, the tracked changes beside it, and the discussion beside those. Accept or reject what they have proposed, press <b>${i18t('po_direct_edit')}</b> ${i18t('po_under_clause_counter')}</span>
       </div>
       <div id="pt-nego" style="padding:12px"></div>
       <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
@@ -1353,7 +1353,7 @@ function portalNegoHtml(p){
       box-shadow:var(--shadow-sm);overflow:hidden;margin:0 0 18px">
       <div style="padding:14px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:flex-start;gap:11px;flex-wrap:wrap">
         <span style="flex:1;min-width:200px">
-          <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
+          <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">${i18t('po_the_negotiation')}</span>
           <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
         </span>
         ${''/* the workbench mounts below, already visible — there is no room and no door */}
@@ -1387,10 +1387,10 @@ function portalAgreedHtml(p){
       padding:14px 18px;margin:0 0 18px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:220px;line-height:1.5">
-        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">Ready to sign</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} Read the wording below, then sign or respond on the right.</span>
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${i18t('po_ready_to_sign')}</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} ${i18t('po_read_then_act')}</span>
       </span>
-      ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Review what changed</button>`:''}
+      ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">${i18t('po_review_what_changed')}</button>`:''}
     </div>
     ${''/* The hosts exist only so the room has somewhere to render when they
            press "Review what changed". A contract nobody proposed anything on
@@ -1434,9 +1434,9 @@ function portalNegoFootHtml(p){
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
       title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
       style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
-    <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">Decline</button>
+    <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">${i18t('po_decline')}</button>
     ${portalCanDerive()?`<button id="pt-derive" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px"
-      title="Mint a read-only link for an adviser — they can read this contract and nothing else. It cannot answer, and it dies when your link does.">Share a read-only copy</button>`:''}
+      title="${i18t('po_mint_readonly')}">${i18t('po_share_readonly')}</button>`:''}
     ${portalDerivedHtml()}`;
 }
 /* ---- WHAT THEY MINTED, KEPT ON THE PAGE ----
@@ -1449,12 +1449,12 @@ function portalNegoFootHtml(p){
 function portalDerivedHtml(){
   if(!PORTAL_DERIVED.length) return '';
   return `<div id="pt-derive-out" style="flex-basis:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:10px 12px;margin-top:2px">
-    <div style="font-size:11.5px;font-weight:600;color:var(--color-text);margin-bottom:6px">Read-only ${PORTAL_DERIVED.length===1?'copy':'copies'} you have shared</div>
+    <div style="font-size:11.5px;font-weight:600;color:var(--color-text);margin-bottom:6px">${i18tn('po_readonly_copy',PORTAL_DERIVED.length)}</div>
     ${PORTAL_DERIVED.map((d,i)=>`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
       <span style="font-size:11px;color:var(--color-neutral-700);flex:none">${esc(d.name||'Unnamed')}</span>
       <input readonly value="${esc(d.link)}" data-pt-derived="${i}"
         style="flex:1;min-width:180px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 7px;font-size:10px;font-family:var(--font-mono);color:var(--color-text);outline:none">
-      <button class="ui-btn" data-pt-derive-copy="${i}" style="flex:none;font-size:11px;padding:5px 10px">Copy</button>
+      <button class="ui-btn" data-pt-derive-copy="${i}" style="flex:none;font-size:11px;padding:5px 10px">${i18t('po_copy')}</button>
     </div>`).join('')}
     <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">
       Anyone with ${PORTAL_DERIVED.length===1?'this link':'these links'} can read the contract. They cannot accept, reject, propose wording or sign.
@@ -1475,10 +1475,10 @@ function portalDerivedHtml(){
    reported "comment posted" and posted it nowhere, onto a record thrown away on
    the next repaint. */
 const portalNegoComment = p => async (_c, ch, msg) => {
-  if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
+  if(!PORTAL_OPTS.token){ toast(i18t('po_no_channel_back'),'err'); return; }
   const author=portalResponderName();
   if(!author){
-    toast('Enter your full name — the box is at the top of this page','err');
+    toast(i18t('po_enter_full_name'),'err');
     try{ document.getElementById('nego-cp-name')?.focus(); }catch(_){}
     return;
   }
@@ -1538,7 +1538,7 @@ function wirePortalNego(c, p){
   const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
   const facts=`Round ${window.negoRound?negoRound(c):1} &middot; Resolved: ${prog.done} of ${prog.total}`;
   const banner = live
-    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>Your table:</b> ${
+    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>${i18t('po_your_table')}</b> ${
         held?`<b>${held} answer${held===1?'':'s'}</b> held here — nothing has reached ${esc(org)} yet. `:''
       }Decisions and counter-proposals stay on this page until you press Send. A reply travels only if marked shared. <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
     : `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span>${esc(
@@ -1634,7 +1634,7 @@ async function portalDeriveView(c, p){
   if(!portalCanDerive()) return;
   const btn=document.getElementById('pt-derive');
   const name=await (window.promptDialog?promptDialog({
-    title:'Share a read-only copy',
+    get title(){ return i18t('po_share_readonly'); },
     message:`Who is this for? They will be able to READ this contract and nothing else — no accepting, rejecting, proposing wording or signing. ${esc((p&&p.org)||'The sender')} can see the copy and can withdraw it.`,
     placeholder:'e.g. our insurers, or outside counsel' }):Promise.resolve(''));
   /* Cancelled is not "unnamed" — promptDialog answers null for the first and
@@ -1647,7 +1647,7 @@ async function portalDeriveView(c, p){
     if(!r||!r.link) throw new Error('The link could not be created');
     PORTAL_DERIVED.push({ link:r.link, name:String(name||'').trim(), expiresAt:r.expiresAt||null });
     portalSaveHeld();
-    toast('Read-only link created — copy it below');
+    toast(i18t('po_readonly_created'));
   }catch(e){
     toast(e.message||'Could not create a read-only link','err');
   }
@@ -1671,16 +1671,16 @@ function wirePortalNegoFoot(c, p){
     const box=document.querySelector(`[data-pt-derived="${i}"]`); if(!box) return;
     box.select?.();
     try{ await navigator.clipboard.writeText(box.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} }
-    toast('Read-only link copied');
+    toast(i18t('po_readonly_copied'));
   }));
   document.getElementById('pt-nego-decline')?.addEventListener('click',async()=>{
     /* A refusal the other side cannot understand is a refusal they will argue
        with — the reason is required, exactly as the room required it. */
-    const reason=await (window.promptDialog?promptDialog({title:'Decline this contract?',
+    const reason=await (window.promptDialog?promptDialog({get title(){ return i18t('po_decline_contract_q'); },
       message:'This ends the negotiation on this link. Say why — they will be told, and it goes on the record.',
       placeholder:'e.g. The liability cap is below our board minimum.'}):Promise.resolve(''));
     if(reason==null) return;
-    if(!String(reason).trim()){ toast('A reason is required to decline','err'); return; }
+    if(!String(reason).trim()){ toast(i18t('po_reason_required'),'err'); return; }
     portalRespond(p,'decline',{ comment:String(reason).trim() });
   });
 }
@@ -1801,9 +1801,9 @@ function portalUpdatedNoticeHtml(){
   return `<div id="pt-updated" role="status" style="position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
       border-bottom:1px solid var(--st-amber-line);background:var(--st-amber-bg);padding:10px 24px;font-size:12.5px;color:var(--st-amber-fg);box-shadow:var(--shadow-sm)">
     <span style="flex:none;display:inline-flex">${icon('alert','w-4 h-4')}</span>
-    <span style="flex:1;min-width:0;line-height:1.5"><b>This contract has been updated.</b>
+    <span style="flex:1;min-width:0;line-height:1.5"><b>${i18t('po_contract_updated')}</b>
       Your unsent work is still here — send it or set it aside, then refresh to see the new copy.</span>
-    <button id="pt-updated-go" class="ui-btn" style="flex:none;font-size:12px;padding:6px 13px">Refresh now</button>
+    <button id="pt-updated-go" class="ui-btn" style="flex:none;font-size:12px;padding:6px 13px">${i18t('po_refresh_now')}</button>
   </div>`;
 }
 function portalShowUpdatedNotice(){
@@ -1939,8 +1939,8 @@ function portalViewerRedlineHtml(c){
         <span class="pv-chg-state">${chip}</span></div>
       <div class="pv-chg-body">${marks}</div></li>`;
   }).join('');
-  return `<section class="pv-changes" aria-label="Proposed changes">
-    <h2>Proposed changes</h2>
+  return `<section class="pv-changes" aria-label="${i18t('po_proposed_changes')}">
+    <h2>${i18t('po_proposed_changes')}</h2>
     <p class="pv-note">Struck-through text is proposed for removal; underlined text is proposed
       to be added. Whether each one was agreed is shown beside it.</p>
     <ol class="pv-list">${rows}</ol></section>`;
@@ -2142,7 +2142,7 @@ function renderShareWorkbench(p, opts={}){
   const org=(p&&p.org)||'the sender';
   const msg=(opts.share&&opts.share.message)
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#9993;</span><span>
-        <b>Message from ${esc(p.sharedBy||org)}:</b> ${esc(opts.share.message)}</span></div>` : '';
+        <b>${i18t('po_message_from',{who:esc(p.sharedBy||org)})}</b> ${esc(opts.share.message)}</span></div>` : '';
   root.innerHTML=`
   <div class="pw-page" id="pw-page">
     <section class="pw-id">
@@ -2178,7 +2178,7 @@ function renderShareWorkbench(p, opts={}){
              the document, exiting through the same button. */}
       ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
       <button type="button" id="pt-focus" class="pt-focus-btn" aria-pressed="false"
-        title="Focus — hide the banners and give the room to the document">
+        title="${i18t('po_focus_hide_banners')}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
       </button>
       ${window.negoNameFieldHtml
@@ -2240,7 +2240,7 @@ function renderShareDormant(d, opts={}){
   root.innerHTML=`<div id="pt-dormant" style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
     <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:32px;text-align:center;max-width:26rem;">
       <div style="color:var(--st-amber-dot);margin-bottom:12px;display:flex;justify-content:center;">${icon('clock','w-8 h-8')}</div>
-      <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0;">Not your turn to sign yet</h1>
+      <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0;">${i18t('po_not_your_turn')}</h1>
       <p style="font-size:13px;color:var(--color-neutral-700);margin-top:8px;line-height:1.6;">This is your personal signing link${d.contractName?` for <strong>“${esc(d.contractName)}”</strong>`:''}${d.org?` from ${esc(d.org)}`:''}${d.order&&d.total?` — you are signer ${d.order} of ${d.total}`:''}. ${who}.</p>
       <p style="font-size:12px;color:var(--color-neutral-600);margin-top:10px;line-height:1.6;">Keep this link. This page checks automatically and will come alive the moment it is your turn — nothing is needed from you until then.${d.expiresAt?` The link expires on ${esc(String(d.expiresAt).slice(0,10))}.`:''}</p>
     </div></div>`;
@@ -2291,7 +2291,7 @@ function renderShareHistory(p, opts={}){
                  contract on it. A record with no document is a surprise worth
                  spending two lines on. */}
           <div class="rl-wall" role="status"><span class="rl-wall-ic">&#128220;</span><span>
-            <b>The record, not the contract.</b> Every change proposed on
+            <b>${i18t('po_record_not_contract')}</b> Every change proposed on
             ${esc(c.id||'this contract')}, in the order it happened, with what was decided. This link
             is read-only and the agreement itself does not travel with it &mdash; there is nothing
             here to answer or sign.</span></div>
@@ -2299,7 +2299,7 @@ function renderShareHistory(p, opts={}){
             border-radius:8px;box-shadow:var(--shadow-sm);overflow:hidden;">
             <div id="pt-hist-mount">${window.negoTimelineScreenHtml
               ? negoTimelineScreenHtml(c, f)
-              : '<div style="padding:20px;font-size:12.5px;color:var(--color-neutral-600)">The history is not available on this page.</div>'}</div>
+              : `<div style="padding:20px;font-size:12.5px;color:var(--color-neutral-600)">${i18t('po_history_unavailable')}</div>`}</div>
           </div>
         </div>
       </div>`;
@@ -2314,7 +2314,7 @@ function renderShareHistory(p, opts={}){
     document.getElementById('ht-verify')?.addEventListener('click',async()=>{
       const box=document.getElementById('ht-verify-result'); if(!box) return;
       if(typeof window.negoIntegrityReport!=='function'){
-        box.innerHTML='<div style="font-size:12px;color:var(--color-neutral-600);padding:8px 0">Verification is not available on this page.</div>';
+        box.innerHTML=`<div style="font-size:12px;color:var(--color-neutral-600);padding:8px 0">${i18t('po_verification_unavailable')}</div>`;
         return; }
       const r=await negoIntegrityReport(c);
       box.innerHTML=window.negoVerifyResultHtml?negoVerifyResultHtml(r):'';
@@ -2419,7 +2419,7 @@ function renderSharePortal(p, opts={}){
       <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;">
         <div style="width:34px;height:34px;background:var(--color-accent);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:15px;letter-spacing:.02em;border-radius:4px;flex:none;">HT</div>
         <div style="line-height:1.25;min-width:0;">
-          <div style="font-family:var(--font-mono);font-weight:600;font-size:15px;">${esc(p.org)} shared a contract for your review</div>
+          <div style="font-family:var(--font-mono);font-weight:600;font-size:15px;">${i18t('po_shared_for_review',{org:esc(p.org)})}</div>
           <div style="font-size:11px;color:var(--color-accent-200);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.contract.id)} · shared by ${esc(p.sharedBy)} · ${fmtDT(p.at)}${opts.share&&opts.share.expiresAt?` · link expires ${String(opts.share.expiresAt).slice(0,10)}`:''} · via HaTi</div>
         </div>
       </div>
@@ -2456,26 +2456,26 @@ function renderSharePortal(p, opts={}){
         <div id="portal-redline" class="hidden" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-md);overflow:hidden">
           <div style="padding:16px 22px;border-bottom:1px solid var(--color-divider);display:flex;align-items:flex-start;gap:12px;background:var(--color-bg)">
             <span style="flex:1;min-width:0">
-              <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;">Propose your edits</span>
+              <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;">${i18t('po_propose_your_edits')}</span>
               <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change the clauses you want to change. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each one on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
             </span>
-            <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Cancel</button>
+            <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">${i18t('act_cancel')}</button>
           </div>
           <div id="pt-clause-editor" class="scroll-thin" style="padding:18px 22px;max-height:min(62vh,620px);overflow-y:auto;background:var(--color-doc-surface)"></div>
           <div id="portal-plain" class="hidden">
             <textarea id="pt-redline-text" class="scroll-thin" spellcheck="false" style="display:block;width:100%;height:min(62vh,620px);border:0;outline:none;resize:vertical;padding:26px 32px;font:inherit;font-size:15px;line-height:1.95;color:var(--color-doc-text);background:var(--color-doc-surface);"></textarea>
           </div>
           <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
-            <span id="pt-redline-count" style="font-size:11.5px;color:var(--color-neutral-600)">Your name is taken from the panel on the right.</span>
-            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:11.5px;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">Edit the whole document instead</button>
+            <span id="pt-redline-count" style="font-size:11.5px;color:var(--color-neutral-600)">${i18t('po_name_from_panel')}</span>
+            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:11.5px;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('po_edit_whole_doc')}</button>
             <span style="flex:1"></span>
-            <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:13px;padding:10px 20px">Submit proposed edits</button>
+            <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:13px;padding:10px 20px">${i18t('po_submit_edits')}</button>
           </div>
         </div>
         `}
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px;" class="portal-aside">
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px;">Respond to ${esc(p.org)}</h2>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px;">${i18t('po_respond_to',{org:esc(p.org)})}</h2>
         ${opts.share&&opts.share.message?`<div style="margin-bottom:12px;border-left:3px solid var(--color-accent);border-radius:4px;background:var(--color-accent-100);padding:9px 11px;font-size:11.5px;color:var(--color-neutral-800);line-height:1.5;"><span style="display:block;font-size:10px;font-weight:600;color:var(--color-accent-800);font-family:var(--font-mono);margin-bottom:2px;">Message from ${esc(p.sharedBy)}</span>${esc(opts.share.message)}</div>`:''}
         ${portalChangeSummaryHtml(p)}
         ${opts.responded?`<div style="margin-bottom:14px;border-radius:4px;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:9px 11px;font-size:11px;color:var(--color-accent-800);display:flex;align-items:center;gap:6px;">${icon('check2','w-3.5 h-3.5')} A response was already submitted for this link.</div>`:''}
@@ -2483,9 +2483,9 @@ function renderSharePortal(p, opts={}){
         ${input('pt-name','Full name *','e.g. Grace Njeri')}
         ${input('pt-title','Title / role','e.g. Legal Counsel')}
         ${input('pt-email','Work email','you@company.co.ke')}
-        <label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Comment</span>
-        <textarea id="pt-comment" rows="3" placeholder="Optional for signing; required for changes or decline…" style="${TA}"></textarea></label>
-        ${isMonetary(c)?`<label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Propose a different value (optional, for change requests)</span>
+        <label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('po_comment')}</span>
+        <textarea id="pt-comment" rows="3" placeholder="${i18t('po_optional_for_signing')}" style="${TA}"></textarea></label>
+        ${isMonetary(c)?`<label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('po_propose_value')}</span>
         <input id="pt-proposed" type="number" placeholder="e.g. ${c.value||'2500000'}" style="${TA}min-height:36px;"/></label>`:''}
         ${''/* ONE ACT, THEN THE OTHERS BEHIND A DOOR.
 
@@ -2506,9 +2506,9 @@ function renderSharePortal(p, opts={}){
                plain English, and each is relabelled to describe the act rather
                than the mechanism. */}
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:13.5px;">${icon('finger','w-4 h-4')} Sign this contract</button>
+          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:13.5px;">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
           <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
-            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:12px;color:var(--color-accent-700);cursor:pointer;text-align:center;text-decoration:underline">Not ready to sign?</button>
+            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:12px;color:var(--color-accent-700);cursor:pointer;text-align:center;text-decoration:underline">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
             ${[['pt-redline','history','Change the wording yourself','Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.'],
                ['pt-changes','alert','Tell them what you want changed','Describe it in the comment box above. The wording stays as it is for now.'],
@@ -2518,8 +2518,8 @@ function renderSharePortal(p, opts={}){
                 <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">${why}</span>
               </div>`).join('')}
             <div style="border-top:1px solid var(--color-divider);padding-top:9px">
-              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);">Decline this contract</button>
-              <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">Ends the deal. You will be asked why, and they will be told.</span>
+              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent);">${i18t('po_decline_contract')}</button>
+              <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">${i18t('po_ends_the_deal')}</span>
             </div>
           </div>
         </div>
@@ -2644,7 +2644,7 @@ async function portalRespond(p, action, extra){
        name" without pointing at a field is an instruction with no object — and
        putting the cursor in it is faster than describing it. */
     const inRoom=document.getElementById('nego-cp-name');
-    toast('Enter your full name — the box is at the top of this page','err');
+    toast(i18t('po_enter_full_name'),'err');
     try{ (inRoom||document.getElementById('pt-name'))?.focus(); }catch(_){}
     return;
   }
@@ -2677,7 +2677,7 @@ async function portalRespond(p, action, extra){
         clauseLabel:x.clauseLabel||null, why:x.why||null, note:x.note||null };
     });
     if(action==='decisions' && !decisions.length && !withdrawn.length && !proposed.length){
-      toast('Nothing to send — ask for a change or decide one first','err'); return; }
+      toast(i18t('po_nothing_to_send'),'err'); return; }
     /* READINESS AND THE DECISIONS TRAVEL TOGETHER, in one request.
 
        They used to be two: answer the changes, press Send, then separately say
@@ -2690,7 +2690,7 @@ async function portalRespond(p, action, extra){
       name, title, email, comment, negoDecisions:decisions,
       negoWithdrawn:withdrawn.length?withdrawn:undefined,
       negoProposed:proposed.length?proposed:undefined, at:nowISO() };
-    if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
+    if(!PORTAL_OPTS.token){ toast(i18t('po_no_channel_back'),'err'); return; }
     /* Whichever control was actually pressed reports back on itself. The send
        lives in the change index on a negotiation link and in the foot of the
        card on a signing link, so both are offered and the one on the page
@@ -2740,7 +2740,7 @@ async function portalRespond(p, action, extra){
     }
     return;
   }
-  if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
+  if(action==='sign' && !email){ toast(i18t('po_work_email_required'),'err'); return; }
   /* A template contract signs only over a complete, valid form — the same
      gate the owner's screen applies, refused here before the signature pad
      opens rather than after the server bounces it. */
@@ -2751,8 +2751,8 @@ async function portalRespond(p, action, extra){
       return;
     }
   }
-  if(action==='changes' && !comment){ toast('Add a comment explaining your response','err'); return; }
-  if(action==='decline' && !comment){ toast('Add a comment explaining your response','err'); return; }
+  if(action==='changes' && !comment){ toast(i18t('po_add_comment_explaining'),'err'); return; }
+  if(action==='decline' && !comment){ toast(i18t('po_add_comment_explaining'),'err'); return; }
   // Capture the counterparty's signature mark (free choice: draw / type / upload).
   let sig=null;
   if(action==='sign' && typeof openSignaturePad==='function'){
@@ -2773,9 +2773,9 @@ async function portalRespond(p, action, extra){
     // whichever surface they used — clause by clause, or the whole document
     const cRec=migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'});
     proposedText=String(portalProposedText(cRec)||'').trim();
-    if(!proposedText){ toast('Edit the text before submitting','err'); return; }
+    if(!proposedText){ toast(i18t('po_edit_before_submit'),'err'); return; }
     const beforeText=String(portalCurrentText()||docPlainText(cRec)||'').trim();
-    if(proposedText===beforeText){ toast('Nothing has been changed yet — press Change on a clause first','err'); return; }
+    if(proposedText===beforeText){ toast(i18t('po_press_change_first'),'err'); return; }
     // the base must be the same TEXT the counterparty edited, not the markup
     // behind it, or the returned redline diffs against tags
     baseText=p.contract.redlineText
@@ -2812,7 +2812,7 @@ async function portalRespond(p, action, extra){
       document.getElementById('portal-result').innerHTML=`
         <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:16px;text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
-          <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">${esc(p.sharedBy)} at ${esc(p.org)} has been notified — you're all done.</p>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">${i18t('po_notified_done',{who:esc(p.sharedBy),org:esc(p.org)})}</p>
         </div>`;
     }catch(e){
       // Nothing was recorded, so the controls come back — a spent-looking
@@ -2820,7 +2820,7 @@ async function portalRespond(p, action, extra){
       portalSetIdle();
       toast(e.message,'err');
       const box=document.getElementById('portal-result');
-      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:var(--st-ruby-fg)"><b>Not sent.</b> ${esc(e.message||'Something went wrong.')}</div>`;
+      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_not_sent')}</b> ${esc(e.message||'Something went wrong.')}</div>`;
     }
     return;
   }
@@ -2828,7 +2828,7 @@ async function portalRespond(p, action, extra){
   const code=b64e(response);
   document.getElementById('portal-result').innerHTML=`
     <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;">
-      <div style="display:flex;align-items:center;gap:6px;color:var(--color-accent-800);font-size:12px;font-weight:600;margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} Your ${label} is ready</div>
+      <div style="display:flex;align-items:center;gap:6px;color:var(--color-accent-800);font-size:12px;font-weight:600;margin-bottom:6px;">${icon('check2','w-3.5 h-3.5')} ${i18t('po_your_x_ready',{what:label})}</div>
       <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5;">Copy this response code and send it back to ${esc(p.sharedBy)} at ${esc(p.org)} (email or WhatsApp). They import it in HaTi to record it on the contract.</p>
       <textarea id="pt-code" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:10px;font-size:10px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${code}</textarea>
       <button id="pt-copy" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:8px;font-size:12px;">${icon('copy','w-3 h-3')} Copy response code</button>
@@ -2836,7 +2836,7 @@ async function portalRespond(p, action, extra){
   document.getElementById('pt-copy').addEventListener('click',async()=>{
     const ta=document.getElementById('pt-code'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
-    toast('Response code copied');
+    toast(i18t('po_response_code_copied'));
   });
 }
 /* Signing where no verification code can be sent. The signature is real and
@@ -2871,7 +2871,7 @@ function portalTemplateFormHtml(c,p){
     const v=values[f.fieldKey]==null?'':String(values[f.fieldKey]);
     if(f.control==='guided'||f.fieldType==='select'){
       const opts=(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('');
-      return `<select data-ptf="${idx}" style="${INP}" ${editable?'':'disabled'}><option value="">Choose…</option>${opts}</select>`;
+      return `<select data-ptf="${idx}" style="${INP}" ${editable?'':'disabled'}><option value="">${i18t('po_choose')}</option>${opts}</select>`;
     }
     if(lib.input==='textarea') return `<textarea data-ptf="${idx}" style="${INP};min-height:48px;resize:vertical" placeholder="${esc(lib.hint)}" ${editable?'':'disabled'}>${esc(v)}</textarea>`;
     if(lib.input==='file'||lib.input==='image')
@@ -2889,7 +2889,7 @@ function portalTemplateFormHtml(c,p){
   return `
   <div id="pt-tplform" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);margin-bottom:18px;overflow:hidden">
     <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
-      <span style="font-family:var(--font-heading);font-weight:600;font-size:13px;flex:1">Fill in your details</span>
+      <span style="font-family:var(--font-heading);font-weight:600;font-size:13px;flex:1">${i18t('po_fill_details')}</span>
       <span style="font-size:10.5px;color:${filled.length===required.length?'var(--st-green-fg)':'var(--st-amber-fg)'};font-weight:600">${filled.length}/${required.length} required</span>
       <span id="pt-tplform-state" style="font-size:10px;color:var(--color-neutral-500)"></span>
     </div>
@@ -2944,7 +2944,7 @@ function wirePortalTemplateForm(p){
   box.querySelectorAll('[data-ptf-file]').forEach(el=>
     el.addEventListener('change',()=>{
       const file=el.files&&el.files[0]; if(!file) return;
-      if(file.size>500*1024){ toast('Keep attachments under 500 KB','err'); return; }
+      if(file.size>500*1024){ toast(i18t('po_attachments_500kb'),'err'); return; }
       const r=new FileReader();
       r.onload=()=>commit(Number(el.getAttribute('data-ptf-file')),String(r.result));
       r.readAsDataURL(file);
@@ -2973,7 +2973,7 @@ function wirePortalTemplateForm(p){
         try{ input.focus(); }catch(_){}
       };
       if(f.fieldType==='signature_name_title'||f.fieldType==='stamp_image'){
-        toast('Signatures and stamps are captured when you press Sign — fill in the other details first');
+        toast(i18t('po_sigs_on_press_sign'));
         return;
       }
       const lib=(window.FIELD_LIB||{})[f.fieldType]||{input:'text',hint:''};
@@ -2987,7 +2987,7 @@ function wirePortalTemplateForm(p){
       const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
       const v=(form.values||{})[f.fieldKey]==null?'':String(form.values[f.fieldKey]);
       const inputHtml=(f.control==='guided'||f.fieldType==='select')
-        ? `<select data-ptf-pop style="${INP}"><option value="">Choose…</option>${(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`
+        ? `<select data-ptf-pop style="${INP}"><option value="">${i18t('po_choose')}</option>${(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`
         : lib.input==='textarea'
           ? `<textarea data-ptf-pop style="${INP};min-height:52px">${esc(v)}</textarea>`
           : `<input type="${({email:'email',tel:'tel',date:'date'})[lib.input]||'text'}" data-ptf-pop value="${esc(v)}" placeholder="${esc(lib.hint||'')}" style="${INP}">`;
@@ -3028,9 +3028,9 @@ async function portalSignUnverified(p, info){
   box.innerHTML=`
     <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:6px;padding:13px;">
       <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--st-amber-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
-      <p style="font-size:11.5px;color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">This sender's HaTi cannot send verification codes, so we cannot confirm that <strong>${esc(info.email)}</strong> is yours. Your signature is still binding, and the contract's record will show that it was <strong>not independently verified</strong>.</p>
-      <button id="pt-unver-go" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Sign anyway</button>
-      <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Cancel</button>
+      <p style="font-size:11.5px;color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">${i18t('po_cannot_verify',{email:esc(info.email),how:i18t('po_not_independently_verified')})}</p>
+      <button id="pt-unver-go" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} ${i18t('po_sign_anyway')}</button>
+      <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('act_cancel')}</button>
     </div>`;
   document.getElementById('pt-unver-cancel').addEventListener('click',()=>{ box.innerHTML=''; portalSetIdle(); });
   document.getElementById('pt-unver-go').addEventListener('click',async()=>{
@@ -3067,7 +3067,7 @@ async function portalStartOtp(p, info){
   const box=document.getElementById('portal-result');
   _ptLastOtpSend=Date.now();
   const invited=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
-  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
+  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">${i18t('po_sending_code_to')} <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
   let emailSent=true, sentTo=invited;
   try{
     const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{});
@@ -3077,19 +3077,19 @@ async function portalStartOtp(p, info){
     /* The one refusal with no way forward on this page: the link records no
        address to verify against. Said in full, with the way out, rather than
        as a toast that scrolls away. */
-    box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:var(--st-ruby-fg)"><b>Cannot send a signing code.</b> ${esc(e.message||'')}</div>`;
+    box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_cannot_send_code')}</b> ${esc(e.message||'')}</div>`;
     portalSetIdle();
     return;
   }
   box.innerHTML=`
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:13px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} Verify it's you to sign</div>
-      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to <strong>${esc(sentTo)}</strong> — the address this link was issued to. Enter it to complete your signature.</p>
-      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">The code goes only to <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} ${i18t('po_verify_to_sign')}</div>
+      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">${i18t('po_sent_code_to',{email:esc(sentTo)})}</p>
+      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">${i18t('po_code_goes_only_to')} <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
       ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border:1px solid color-mix(in srgb,var(--st-amber-dot) 30%,transparent);color:var(--st-amber-fg);padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
-      <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
-      <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Resend code</button>
+      <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} ${i18t('po_verify_and_sign')}</button>
+      <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">${i18t('po_resend_code')}</button>
     </div>`;
   document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
   /* L1: a 30-second cooldown on Resend, with a live countdown, so rapid taps do
@@ -3113,7 +3113,7 @@ async function portalStartOtp(p, info){
 }
 async function portalVerifyAndSign(p, info){
   const codeVal=fval('pt-otp');
-  if(!/^\d{6}$/.test(codeVal)){ toast('Enter the 6-digit code','err'); return; }
+  if(!/^\d{6}$/.test(codeVal)){ toast(i18t('po_enter_6_digit'),'err'); return; }
   let verify;
   // no email in the body: the server verified the address IT chose (W8), and
   // possession of the code is the whole proof
@@ -3139,14 +3139,14 @@ async function portalVerifyAndSign(p, info){
       document.getElementById('portal-result').innerHTML=`
         <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:16px;text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
-          <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your email-verified signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. You're all done.</p>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">${i18t('po_verified_delivered',{who:esc(p.sharedBy),org:esc(p.org)})}</p>
         </div>`;
     }catch(e){
       const out=document.getElementById('portal-result');
       if(out){
         out.innerHTML=`
           <div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:14px;">
-            <div style="display:flex;align-items:center;gap:6px;color:var(--st-ruby-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('alert','w-4 h-4')} Your signature didn’t go through</div>
+            <div style="display:flex;align-items:center;gap:6px;color:var(--st-ruby-fg);font-size:13px;font-weight:600;margin-bottom:4px;">${icon('alert','w-4 h-4')} ${i18t('po_signature_failed')}</div>
             <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(e.message||'The connection dropped before your signature was recorded.')} You’re already verified — you can try again without a new code.</p>
             <button id="pt-sign-retry" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Try signing again</button>
           </div>`;
@@ -3182,7 +3182,7 @@ function uploadedTextForPrint(c){
         Contract text${c.redlineText?' (working text)':''}
       </div>
       ${body}
-      <p class="doc-muted" style="font-size:9px;margin-top:10px;line-height:1.5;">Text extracted from <strong>${u.fileName||'the uploaded file'}</strong>${c.redlineText?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document.</p>
+      <p class="doc-muted" style="font-size:9px;margin-top:10px;line-height:1.5;">${i18t('po_text_extracted_from')} <strong>${u.fileName||'the uploaded file'}</strong>${c.redlineText?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document.</p>
     </div>`;
 }
 /* THE EXECUTION BLOCK, FOR PRINT.
@@ -3253,11 +3253,11 @@ function printExecutionBlock(c){
         <td style="vertical-align:top;">
           <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
           <div style="font-size:10.5px;color:#666;margin-top:2px;line-height:1.5;">${external
-            ? 'Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.'
+            ? `Signed before it was migrated into HaTi. <strong>${i18t('po_no_esig_here')}</strong> — the signatures are on the original document.`
             : ((c.execution&&c.execution.esignature)||jxEsignatureShort())}</div>
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:8px;padding:9px 11px;">
-            <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">Sealed text fingerprint (SHA-256)</div>
+            <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${i18t('po_sealed_fingerprint')}</div>
             <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
           </div>`:''}
           <div style="margin-top:10px;border-radius:8px;padding:10px 12px;background:#1d1f20;color:#f4f5f6;">
@@ -3307,12 +3307,12 @@ function exportPDF(c, opts){
     bodyHtml=`
       <div style="border:1px solid var(--color-divider);border-radius:10px;padding:16px;margin-bottom:16px;">
         <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${esc(c.name)}</div>
-        <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
+        <div style="font-size:11px;color:#666;margin-bottom:10px;">${i18t('po_external_received',{who:c.counterparty||'—',folder:FOLDERS[c.folder].name})}</div>
         <table style="font-size:11px;border-collapse:collapse;">
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">Original file</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">Value</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value):'—')}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_original_file')}</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_value')}</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value):'—')}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">${i18t('po_file_fingerprint')}</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
         </table>
       </div>
       <p style="font-size:11px;color:#444;line-height:1.6;">${isExternallyExecuted(c)
@@ -3373,7 +3373,7 @@ function exportPDF(c, opts){
   document.getElementById('print-root').innerHTML=`
     <div${printDesign&&window.docDesignPaperAttr?docDesignPaperAttr(printDesign):''} style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;${printDesign&&window.docDesignPaperStyle?docDesignPaperStyle(printDesign):''}">
       ${record?`<div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--color-accent);padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">${i18t('po_contract_lifecycle')}</span></div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>`:''}
       ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,record?{}:{bleedX:24,bleedY:32}):''}
@@ -3382,7 +3382,7 @@ function exportPDF(c, opts){
       ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
       ${execBlock}
       ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid var(--color-divider);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
-      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid var(--color-divider);padding-bottom:6px;margin-bottom:8px;">${i18t('po_audit_trail')}</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       ${record?`<div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>`:''}
     </div>`;
   logAudit(c,'Exported',record?'Full record exported (seal and audit trail)':'PDF export generated');

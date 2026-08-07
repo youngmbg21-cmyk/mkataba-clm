@@ -54,7 +54,7 @@ const advicePortalShell = inner => `
         <div style="width:34px;height:34px;background:var(--color-accent);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:15px;letter-spacing:.02em;border-radius:4px;flex:none;">HT</div>
         <div style="line-height:1.25;min-width:0;">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:15px;">${pesc(ADVICE_PORTAL.org)} · Legal Advice Desk</div>
-          <div style="font-size:11px;color:var(--color-accent-200);font-family:var(--font-mono);">Contract advice, review &amp; drafting · transparent turnaround &amp; published rates · via HaTi</div>
+          <div style="font-size:11px;color:var(--color-accent-200);font-family:var(--font-mono);">${i18t('apo_tagline')}</div>
         </div>
       </div>
     </header>
@@ -91,21 +91,21 @@ function renderAdviceIntake(){
   root.innerHTML=advicePortalShell(`
     <div style="display:grid;gap:22px;align-items:start" class="portal-grid">
       <div>
-        <h1 style="font-family:var(--font-heading);font-weight:600;font-size:22px;margin:0 0 4px;color:var(--color-text)">What do you need help with?</h1>
+        <h1 style="font-family:var(--font-heading);font-weight:600;font-size:22px;margin:0 0 4px;color:var(--color-text)">${i18t('apo_what_help')}</h1>
         <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55">Pick a service — the hourly rate, typical effort and turnaround are published up front. After you submit, you get a tracking link that shows exactly where your request sits in the pipeline.</p>
-        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-accent-100);padding:10px 13px;font-size:11.5px;color:var(--color-accent-800);line-height:1.5;display:flex;align-items:center;gap:8px">${icon('clock','w-4 h-4')}<span id="adv-queue-text">Select a service to see your estimated feedback date.</span></div>
+        <div id="adv-queue-note" style="margin-bottom:14px;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-accent-100);padding:10px 13px;font-size:11.5px;color:var(--color-accent-800);line-height:1.5;display:flex;align-items:center;gap:8px">${icon('clock','w-4 h-4')}<span id="adv-queue-text">${i18t('apo_select_service')}</span></div>
         <div style="display:grid;grid-template-columns:1fr;gap:10px" class="adv-svc-grid">${Object.values(ADVICE_SERVICES).map(svcCard).join('')}</div>
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px">Submit your request</h2>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px">${i18t('apo_submit_request')}</h2>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">${ADVICE_PORTAL.remote?'Your request goes straight to the legal team — no account needed.':'Demo mode — this request is stored in this browser only.'}</p>
         ${field('ap-name','Full name *','e.g. Grace Njeri')}
         ${field('ap-email','Work email *','you@company.co.ke','email')}
         ${field('ap-company','Company','e.g. Tamu Beverages Ltd')}
         ${field('ap-contract','Contract concerned','e.g. Distribution Agreement — Coast Region')}
-        <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em">Describe what you need *</span>
-          <textarea id="ap-desc" rows="4" placeholder="e.g. We received this distribution agreement and need to know the termination and exclusivity risks before we sign…" style="${inputStyle}min-height:0"></textarea></label>
-        <label style="display:flex;align-items:flex-start;gap:9px;font-size:11.5px;color:var(--color-neutral-700);margin-bottom:14px;line-height:1.45"><input id="ap-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent);margin-top:1px"/><span><strong>Priority</strong> — +25% on the hourly rate, turnaround halved.</span></label>
+        <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em">${i18t('apo_describe')}</span>
+          <textarea id="ap-desc" rows="4" placeholder="${esc(i18t('po_ph_advice_example'))}" style="${inputStyle}min-height:0"></textarea></label>
+        <label style="display:flex;align-items:flex-start;gap:9px;font-size:11.5px;color:var(--color-neutral-700);margin-bottom:14px;line-height:1.45"><input id="ap-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent);margin-top:1px"/><span><strong>${i18t('apo_priority')}</strong> ${i18t('apo_priority_note')}</span></label>
         <button id="ap-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:13px">${icon('send','w-4 h-4')} Submit request</button>
         <div id="ap-result" style="margin-top:14px"></div>
       </aside>
@@ -136,7 +136,7 @@ function renderAdviceIntake(){
   document.getElementById('ap-priority').addEventListener('change',queueText);
   document.getElementById('ap-go').addEventListener('click',async()=>{
     const sid=document.querySelector('input[name="adv-svc"]:checked')?.value;
-    if(!sid){ toast('Pick a service first','err'); return; }
+    if(!sid){ toast(i18t('apo_pick_service_first'),'err'); return; }
     const p={ service:sid, urgency:document.getElementById('ap-priority').checked?'priority':'standard',
       name:fval('ap-name'), email:fval('ap-email'), company:fval('ap-company'),
       contractName:fval('ap-contract'), description:fval('ap-desc') };
@@ -154,14 +154,14 @@ function renderAdviceIntake(){
     document.getElementById('ap-result').innerHTML=`
       <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:14px">
         <div style="display:flex;align-items:center;gap:6px;color:var(--st-green-fg);font-size:13px;font-weight:600;margin-bottom:4px">${icon('check2','w-4 h-4')} Request ${pesc(req.id)} submitted</div>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Estimated feedback by <strong>${fmtDay(req.eta)}</strong>. Follow every stage on your tracking page:</p>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(req.eta)}</strong>${i18t('apo_follow_stage')}</p>
         <textarea id="ap-link" readonly rows="2" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${link}</textarea>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <button id="ap-copy" class="ui-btn" style="padding:8px;font-size:12px">${icon('copy','w-3 h-3')} Copy link</button>
-          <button id="ap-open" class="ui-btn ui-btn-primary" style="padding:8px;font-size:12px">Open tracking</button>
+          <button id="ap-copy" class="ui-btn" style="padding:8px;font-size:12px">${icon('copy','w-3 h-3')} ${i18t('po_copy_link')}</button>
+          <button id="ap-open" class="ui-btn ui-btn-primary" style="padding:8px;font-size:12px">${i18t('apo_open_tracking')}</button>
         </div>
       </div>`;
-    document.getElementById('ap-copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(link); }catch(e){ document.getElementById('ap-link').select(); document.execCommand('copy'); } toast('Tracking link copied — keep it safe'); });
+    document.getElementById('ap-copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(link); }catch(e){ document.getElementById('ap-link').select(); document.execCommand('copy'); } toast(i18t('apo_tracking_copied')); });
     document.getElementById('ap-open').addEventListener('click',()=>{ location.hash='#advice='+(ADVICE_PORTAL.remote?'t:':'')+req.token; location.reload(); });
     document.getElementById('ap-go').disabled=true;
   });
@@ -175,8 +175,8 @@ function renderAdviceTracking(r){
       <div style="display:grid;place-items:center;padding:40px 0">
         <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:32px;text-align:center;max-width:24rem">
           <div style="color:var(--st-ruby-dot);margin-bottom:12px;display:flex;justify-content:center">${icon('ban','w-8 h-8')}</div>
-          <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0">Request not found</h1>
-          <p style="font-size:13px;color:var(--color-neutral-700);margin-top:6px;line-height:1.5">This tracking link is invalid or the request was removed. Check the link, or contact the legal team.</p>
+          <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0">${i18t('apo_not_found')}</h1>
+          <p style="font-size:13px;color:var(--color-neutral-700);margin-top:6px;line-height:1.5">${i18t('apo_invalid_link')}</p>
         </div>
       </div>`);
     return;
@@ -200,7 +200,7 @@ function renderAdviceTracking(r){
           ${i<path.length-1?`<span style="width:2px;flex:1;min-height:26px;background:${reached(path[i+1])?adviceStage(path[i+1]).color:'var(--color-divider)'}"></span>`:''}
         </div>
         <div style="padding-bottom:${i<path.length-1?'18px':'0'};min-width:0">
-          <div style="font-size:13px;font-weight:600;color:${state_==='todo'?'var(--color-neutral-500)':'var(--color-text)'}">${s.label}${state_==='now'?` <span style="font-size:10px;font-weight:600;color:${s.color}">· current stage</span>`:''}</div>
+          <div style="font-size:13px;font-weight:600;color:${state_==='todo'?'var(--color-neutral-500)':'var(--color-text)'}">${s.label}${state_==='now'?` <span style="font-size:10px;font-weight:600;color:${s.color}">${i18t('apo_current_stage')}</span>`:''}</div>
           <div style="font-size:11px;color:var(--color-neutral-600);line-height:1.45">${s.desc}</div>
           ${hit?`<div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);margin-top:2px">${fmtDT(hit.at)}</div>`:''}
         </div>
@@ -210,8 +210,8 @@ function renderAdviceTracking(r){
   const etaBanner = closed
     ? `<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--st-ruby-fg);line-height:1.5">This request was closed without delivery${reached('Closed')?` on ${fmtDay(reached('Closed').at)}`:''}. Contact the legal team if that's unexpected.</div>`
     : r.status==='Delivered'
-    ? `<div style="border:1px solid var(--st-green-line);background:var(--st-green-bg);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--st-green-fg);line-height:1.5"><strong>Delivered${reached('Delivered')?' '+fmtDay(reached('Delivered').at):''}.</strong> Your feedback is with you — reply to the team if anything needs a follow-up.</div>`
-    : `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--color-accent-800);line-height:1.5">Estimated feedback by <strong>${fmtDay(r.eta)}</strong>${left!=null?(left<0?` — running ${-left} day${-left===1?'':'s'} over, the team is on it`:left===0?' — that’s today':` — ${left} day${left===1?'':'s'} away`):''}.</div>`;
+    ? `<div style="border:1px solid var(--st-green-line);background:var(--st-green-bg);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--st-green-fg);line-height:1.5"><strong>Delivered${reached('Delivered')?' '+fmtDay(reached('Delivered').at):''}.</strong> ${i18t('apo_feedback_with_you')}</div>`
+    : `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:12px 14px;font-size:12px;color:var(--color-accent-800);line-height:1.5">${i18t('apo_estimated_by')} <strong>${fmtDay(r.eta)}</strong>${left!=null?(left<0?` — running ${-left} day${-left===1?'':'s'} over, the team is on it`:left===0?' — that’s today':` — ${left} day${left===1?'':'s'} away`):''}.</div>`;
   root.innerHTML=advicePortalShell(`
     <div style="display:grid;gap:22px;align-items:start" class="portal-grid">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:7px;box-shadow:var(--shadow-sm);padding:22px 24px">
@@ -224,11 +224,11 @@ function renderAdviceTracking(r){
           <span style="margin-left:auto;flex:none">${adviceStageChip(r.status)}</span>
         </div>
         ${etaBanner}
-        <h3 style="font-size:10px;color:var(--color-neutral-600);letter-spacing:.1em;text-transform:uppercase;margin:18px 0 12px">Where your request is</h3>
+        <h3 style="font-size:10px;color:var(--color-neutral-600);letter-spacing:.1em;text-transform:uppercase;margin:18px 0 12px">${i18t('apo_where_request')}</h3>
         ${steps}
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text);margin:0 0 8px">Your fee estimate</h2>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text);margin:0 0 8px">${i18t('apo_fee_estimate')}</h2>
         ${row('Hourly rate', q.rate?fmtMoney(q.rate)+' / hr':'—')}
         ${row('Typical effort', q.rate?`${q.hoursMin}–${q.hoursMax} hrs`:'—')}
         ${row('Estimate range', q.rate?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—')}

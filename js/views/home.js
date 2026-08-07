@@ -9,19 +9,21 @@
    cards show, drags them to reorder, and the grid adapts to the count. The
    chosen subset + order is stored PER USER in localStorage so it survives
    reloads and stays independent of other teammates on the same server. */
-const KPI_META={
-  under_mgmt:  'Active contracts',
-  active_value:'Active value',
-  awaiting:    'Awaiting counterparty',
-  approvals:   'Pending approvals',
-  compliance:  'Compliance rating',
-  expiring30:  'Expiring < 30 days',
-  expiring60:  'Expiring < 60 days',
-  expiring90:  'Expiring < 90 days',
-  expired:     'Term already ended',
-  highrisk:    'High-risk findings',
-  avgcycle:    'Avg turnaround time',
-};
+/* Read as KPI_META[id] by the dashboard tiles AND by the phone's figures list,
+   so these are getters: every existing call site keeps working unchanged and
+   picks up the reader's language, where a plain string would have frozen the
+   label at load. */
+const KPI_EN={
+  under_mgmt:'Active contracts', active_value:'Active value', awaiting:'Awaiting counterparty',
+  approvals:'Pending approvals', compliance:'Compliance rating', expiring30:'Expiring < 30 days',
+  expiring60:'Expiring < 60 days', expiring90:'Expiring < 90 days', expired:'Term already ended',
+  highrisk:'High-risk findings', avgcycle:'Avg turnaround time' };
+/* Falls back to the English WORD, never the dictionary key — a tile reading
+   `kpi_avgcycle` looks like broken software, one reading "Avg turnaround time"
+   on a Swedish screen looks only untranslated. */
+const KPI_META=Object.keys(KPI_EN)
+  .reduce((o,k)=>(Object.defineProperty(o,k,{enumerable:true,
+    get(){ return typeof t==='function' ? i18t('kpi_'+k) : KPI_EN[k]; }}),o),{});
 const KPI_ALL_ORDER=['under_mgmt','active_value','avgcycle','approvals','compliance','awaiting','expiring30','expiring60','expiring90','expired','highrisk'];
 /* The four the design leads on: how much paper is live, how fast it moves,
    what is stuck on a person, and how much of it is clean. Everything else in
@@ -59,11 +61,11 @@ function openKpiCustomizer(anchor){
       <span style="flex:1;">${KPI_META[id]}</span>
     </label>`;
   pop.innerHTML=`
-    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">Show metrics</div>
+    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">${i18t('home_show_metrics')}</div>
     ${kpiCatalogOrder().map(row).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
-      <span style="font-size:10.5px;color:var(--color-neutral-500);">Drag cards to reorder</span>
-      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">Reset</button>
+      <span style="font-size:10.5px;color:var(--color-neutral-500);">${i18t('home_drag_reorder')}</span>
+      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">${i18t('home_reset')}</button>
     </div>`;
   anchor.parentElement.style.position='relative';
   anchor.parentElement.appendChild(pop);
@@ -71,7 +73,7 @@ function openKpiCustomizer(anchor){
     const id=cb.getAttribute('data-kpi-toggle');
     let cur=currentKpiSel();
     if(cb.checked){ if(!cur.includes(id)) cur.push(id); }
-    else { if(cur.length<=1){ cb.checked=true; toast('Keep at least one metric','err'); return; } cur=cur.filter(x=>x!==id); }
+    else { if(cur.length<=1){ cb.checked=true; toast(i18t('home_keep_one_metric'),'err'); return; } cur=cur.filter(x=>x!==id); }
     setKpiSel(cur); renderDashboard();
   }));
   pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ setKpiSel(DEFAULT_KPI_SEL.slice()); renderDashboard(); });
@@ -111,7 +113,7 @@ function readyToSignRowsHtml(items){
   if(!items||!items.length) return '';
   return `
     <div style="margin-bottom:10px" id="dd-ready-rows">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--st-green-fg);margin-bottom:5px">Ready to sign — issue a signing link</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--st-green-fg);margin-bottom:5px">${i18t('home_ready_to_sign')}</div>
       ${items.slice(0,6).map(r=>`
         <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
@@ -197,7 +199,7 @@ function gettingStartedHtml(){
         <span style="display:block;font-size:12.5px;font-weight:600;color:${tone};${s.done?'text-decoration:line-through;text-decoration-color:var(--color-neutral-400);':''}">${s.t}</span>
         ${isCur?`<span style="display:block;font-size:11px;color:var(--color-neutral-600);line-height:1.45">${s.d}</span>`:''}
       </span>
-      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:11.5px;font-weight:600;color:var(--color-accent-700)">Go &rarr;</span>`:''}`;
+      ${isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))?`<span style="flex:none;font-size:11.5px;font-weight:600;color:var(--color-accent-700)">${i18t('home_go')}</span>`:''}`;
     /* The whole current row is the button — a target the size of the step,
        not a link the size of an arrow. */
     return isCur&&(s.k!=='sign'||gsGoTargetExists(s.k))
@@ -210,7 +212,7 @@ function gettingStartedHtml(){
         <h2 style="margin:0;font-family:var(--font-heading);font-weight:700;font-size:14.5px;color:var(--color-text)">${all?'You’re set up — first contract signed ⚡':'Getting started'}</h2>
         <span style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done} of ${steps.length} done</span>
         <span style="flex:1"></span>
-        <button id="gs-dismiss" class="ui-btn" title="Hide this checklist — it will not come back" style="font-size:11px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
+        <button id="gs-dismiss" class="ui-btn" title="${i18t('home_hide_checklist')}" style="font-size:11px;padding:3px 10px">${all?'Done — hide this':'Hide'}</button>
       </div>
       <div style="height:6px;border-radius:4px;background:var(--color-neutral-100);margin-bottom:10px"><i style="display:block;height:100%;border-radius:4px;background:var(--color-accent);width:${Math.round(done/steps.length*100)}%"></i></div>
       ${all?`<p style="margin:0;font-size:12px;color:var(--color-neutral-600);line-height:1.55">Your workspace has done the whole journey — a contract in, scanned, sent and signed. Everything from here is more of the same.</p>`:rows}
@@ -250,13 +252,19 @@ function hmDashSlices(){
   const idleOf=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:Math.max(0,Math.floor((Date.now()-t)/86400000)); };
 
   // ---- slices ----
+  /* GETTERS, not fixed strings. This table is built once per render but read
+     again by callers that outlive the render, and a plain string would freeze
+     whatever language was current when the array was made. */
   const STAGE_DEF=[
-    {k:'Draft',        label:'Drafting',  color:'var(--st-gray-dot)'},
-    {k:'Under Review', label:'In Review', color:'var(--st-amber-dot)'},
-    {k:'Signed',       label:'Executed',  color:'var(--st-green-dot)'},
-    {k:'Declined',     label:'Closed',    color:'var(--st-ruby-dot)'},
+    {k:'Draft',        get label(){ return i18t('home_stage_drafting'); },  color:'var(--st-gray-dot)'},
+    {k:'Under Review', get label(){ return i18t('home_stage_in_review'); }, color:'var(--st-amber-dot)'},
+    {k:'Signed',       get label(){ return i18t('home_stage_executed'); },  color:'var(--st-green-dot)'},
+    {k:'Declined',     get label(){ return i18t('home_stage_closed'); },    color:'var(--st-ruby-dot)'},
   ];
-  const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
+  /* Spread would COPY the getter's current value and freeze it, so label is
+     re-declared as a getter on the new object rather than carried across. */
+  const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k);
+    return { k:s.k, color:s.color, get label(){ return s.label; }, n:list.length, val:valOf(list) }; });
 
   // family-aware: a master agreement's real end date is whatever the latest
   // amendment says, and an amendment is not itself an expiring agreement
@@ -268,7 +276,7 @@ function hmDashSlices(){
   /* Paper that has sat in review, longest first — the other half of what a
      person has to decide about, alongside the renewals. */
   const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
-  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
+  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
   // yet signed — a live share in 'sent' or 'opened', so the ball is in their
@@ -333,7 +341,7 @@ function hmDashSlices(){
   const G={steel:'var(--grad-steel)',green:'var(--grad-emerald)',amber:'var(--grad-amber)',ruby:'var(--grad-ruby)'};
   /* Third line on every card, per the design: the figure's composition, so the
      number can be read without opening the register. */
-  const stageSub=stages.filter(s=>s.n).map(s=>`${s.n} ${s.label.toLowerCase()}`).join(' · ')||'nothing filed yet';
+  const stageSub=stages.filter(s=>s.n).map(s=>`${s.n} ${s.label.toLowerCase()}`).join(' · ')||i18t('home_nothing_filed');
   /* Compliance rating — a measured share, not a badge: how many live agreements
      carry NO high-risk finding. The delta names the regulatory profile in force
      (the header's jurisdiction switcher), because that is what the rating is
@@ -344,20 +352,20 @@ function hmDashSlices(){
   const REG_PROFILE={SE:'EU / GDPR', KE:'KICA / ODPC'};
   const apprMineN=myApprovals.filter(x=>x.mine).length;
   const KPI_CATALOG={
-    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString('en-KE'),        delta:`+${newThisWeek} this week`,                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
-    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       sub:`across ${agreementsIn(cs).length.toLocaleString('en-KE')} agreements`, grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
-    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString('en-KE'),    delta:`${stalled} stalled > 14d`,                                     sub:API_MODE()?'out with counterparties':'shares need server mode', grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
-    approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString('en-KE'), delta:myApprovals.length?'Action required':'All clear',            sub:myApprovals.length?`${apprMineN} waiting on you · ${myApprovals.length-apprMineN} on others`:'no approval chain is open', grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
-    compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:`${clean} of ${live.length} live with no high-risk finding`, grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},
-    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),  sub:expSub(exp30),                           grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
-    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),  sub:expSub(exp60),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
-    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),  sub:expSub(exp90),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
+    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:i18t('home_new_this_week',{n:newThisWeek}),                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
+    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:i18t('home_executed',{n:Number(m.signed||0).toLocaleString(jxLocale())}),       sub:i18t('home_across_agreements',{n:agreementsIn(cs).length.toLocaleString(jxLocale())}), grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
+    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString(jxLocale()),    delta:i18t('home_stalled',{n:stalled}),                                     sub:API_MODE()?i18t('home_out_with_cp'):i18t('home_shares_need_server'), grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
+    approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString(jxLocale()), delta:myApprovals.length?i18t('home_action_required'):i18t('home_all_clear'),            sub:myApprovals.length?i18t('home_waiting_split',{mine:apprMineN,others:myApprovals.length-apprMineN}):i18t('home_no_chain_open'), grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
+    compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:i18t('home_clean_of_live',{clean,live:live.length}), grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},
+    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString(jxLocale()),     delta:expDelta(exp30),  sub:expSub(exp30),                           grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
+    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString(jxLocale()),     delta:expDelta(exp60),  sub:expSub(exp60),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
+    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString(jxLocale()),     delta:expDelta(exp90),  sub:expSub(exp90),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
     /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
        `days >= 0`, so a contract dropped out of all three on the morning its
        term ended — the one day it most needed somebody to look at it. */
-    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtMoneyShort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
-    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`, sub:'risk score 60 or above', grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
-    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', sub:'draft to signed, from the audit trail', grad:G.green, ic:'clock',    go:{stage:'Signed'}},
+    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString(jxLocale()),    delta:money?i18t('home_no_longer_active',{v:fmtMoneyShort(valOf(lapsed))}):(lapsed.length?i18t('home_longest_ago',{n:Math.abs(dU(effectiveExpiry(lapsed[0])||''))}):i18t('home_none')), sub:i18t('home_past_end_date',{n:lapsed.length}), grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
+    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(jxLocale()),  delta:i18t('home_on_executed',{n:onExecuted}), get sub(){ return i18t('home_risk_60'); }, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
+    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?i18t('home_signed_sampled',{n:cycles.length}):'—', get sub(){ return i18t('home_draft_to_signed'); }, grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
   return { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -378,8 +386,8 @@ function emailSetupLineHtml(){
   return `
     <div id="email-setup-banner" style="display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:10px;font-size:11.5px;color:var(--st-amber-fg);line-height:1.45;">
       <span style="flex:none;display:inline-flex;color:var(--st-amber-dot);">${icon('alert','w-3.5 h-3.5')}</span>
-      <span style="flex:1;min-width:0;">Email isn’t set up — review links and signing codes have to be copied out by hand.</span>
-      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">Set it up</button>`:''}
+      <span style="flex:1;min-width:0;">${i18t('home_email_not_setup')}</span>
+      ${admin?`<button id="email-setup-go" style="flex:none;border:0;background:none;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:var(--st-amber-fg);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">${i18t('home_set_it_up')}</button>`:''}
     </div>`;
 }
 
@@ -431,14 +439,15 @@ function renderDashboard(){
   /* The band greets the person and states the shape of their portfolio, rather
      than naming the product back at them. Same slot, same one button — the
      words changed, not the furniture. */
-  const firstName=(((me&&me.name)||'').trim().split(/\s+/)[0])||'there';
+  /* The PERSON'S OWN NAME is never translated — only the greeting around it. */
+  const firstName=(((me&&me.name)||'').trim().split(/\s+/)[0])||i18t('home_greet_there');
   const hourNow=new Date().getHours();
-  const greeting=hourNow<12?'Good morning':hourNow<17?'Good afternoon':'Good evening';
+  const greeting=hourNow<12?i18t('home_greet_morning'):hourNow<17?i18t('home_greet_afternoon'):i18t('home_greet_evening');
   const activeVal=(money&&typeof fmtMoneyShort==='function')?fmtMoneyShort(valOf(live)):'';
   const heroLine=[
-    `${Number(countAll).toLocaleString('en-KE')} contract${countAll===1?'':'s'} under management`,
-    activeVal?`${activeVal} active value`:'',
-    apprMineN?`${apprMineN} need${apprMineN===1?'s':''} you today`:'',
+    i18tn('home_hero_managed',countAll,{n:Number(countAll).toLocaleString(jxLocale())}),
+    activeVal?i18t('home_hero_value',{v:activeVal}):'',
+    apprMineN?i18tn('home_hero_need',apprMineN,{n:apprMineN}):'',
   ].filter(Boolean).join(' · ');
   const heroSection=`
     <section class="hm-hero" style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px;border-radius:20px;background:var(--brand-hero);box-shadow:var(--shadow-md);color:#fff;">
@@ -449,7 +458,7 @@ function renderDashboard(){
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
         <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:#fff;color:var(--color-accent-700);font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -8px rgba(3,25,25,.5);transition:filter .15s;" onmouseover="this.style.filter='brightness(.95)'" onmouseout="this.style.filter='none'">
-          ${icon('plus','w-3.5 h-3.5',2)} Draft new agreement
+          ${icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}
         </button>
       </div>
     </section>`;
@@ -461,19 +470,19 @@ function renderDashboard(){
      still works. "Closed" is not a lifecycle stage you work in, so it keeps its
      place on the bar below rather than taking a fourth column. */
   const PIPE_DEF=[
-    {k:'Draft',        n:1, title:'Draft & Template',  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)',                              chip:'var(--color-neutral-100)'},
-    {k:'Under Review', n:2, title:'Review & Redline',  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
-    {k:'Signed',       n:3, title:'Sign & Executed',   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
+    {k:'Draft',        n:1, get title(){ return i18t('home_stage_draft'); },  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)',                              chip:'var(--color-neutral-100)'},
+    {k:'Under Review', n:2, get title(){ return i18t('home_stage_review'); },  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
+    {k:'Signed',       n:3, get title(){ return i18t('home_stage_sign'); },   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
   ];
   const pipeDocCard=(c,st)=>{
     const risky=st.k==='Under Review'&&contractRisk(c)>=60;
     const sub=st.k==='Signed'
-      ? `<span style="color:var(--st-green-fg);font-weight:600;display:inline-flex;align-items:center;gap:4px;">${icon('check2','w-3 h-3',2)}${c.signedAt?'Executed':'Signed'}</span>`
-      : `<span style="color:var(--color-neutral-500);">${esc(c.counterparty||'No counterparty yet')}</span>`;
+      ? `<span style="color:var(--st-green-fg);font-weight:600;display:inline-flex;align-items:center;gap:4px;">${icon('check2','w-3 h-3',2)}${c.signedAt?i18t('home_stage_executed'):i18t('home_signed')}</span>`
+      : `<span style="color:var(--color-neutral-500);">${esc(c.counterparty||i18t('home_no_counterparty_yet'))}</span>`;
     return `<button data-sel="${c.id}" style="display:block;width:100%;text-align:left;padding:9px 10px;border-radius:10px;background:var(--color-surface);border:1px solid ${st.bd};font:inherit;color:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='${st.bd}'">
       <span style="display:flex;align-items:flex-start;justify-content:space-between;gap:7px;">
         <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${esc(c.name)}</span>
-        ${risky?`<span style="flex:none;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--st-amber-bg);color:var(--st-amber-fg);">Action</span>`:''}
+        ${risky?`<span style="flex:none;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${i18t('home_action')}</span>`:''}
       </span>
       <span style="display:block;margin-top:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</span>
     </button>`;
@@ -493,19 +502,19 @@ function renderDashboard(){
     return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-surface);border:1px solid ${st.bd};min-width:0;min-height:0;">
       <button data-stage="${st.k}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:inherit;">
         <span style="font-size:11.5px;font-weight:700;color:${st.fg};">${st.n}. ${st.title}</span>
-        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${list.length} doc${list.length===1?'':'s'}</span>
+        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${i18tn('home_docs',list.length,{n:list.length})}</span>
       </button>
       <div class="hm-pipe-list scroll-thin" style="display:flex;flex-direction:column;gap:7px;">
-        ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">Nothing at this stage.</div>`}
+        ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">${i18t('home_nothing_at_stage')}</div>`}
       </div>
-      ${list.length>shown.length?`<button data-stage="${st.k}" style="flex:none;border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">+ ${list.length-shown.length} more →</button>`:''}
+      ${list.length>shown.length?`<button data-stage="${st.k}" style="flex:none;border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${i18t('home_more_arrow',{n:list.length-shown.length})}</button>`:''}
     </div>`;
   }).join('');
   const lifecycleSection=`
     <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
       <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">Active contract lifecycle pipeline</h4>
-        <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">View full register →</button>
+        <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
+        <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">${i18t('home_view_register')}</button>
       </div>
       <div class="hm-pipe-cols" style="display:grid;gap:11px;">${pipeCols}</div>
     </section>`;
@@ -520,15 +529,15 @@ function renderDashboard(){
   const decisionItems=[
     ...decisions.map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',
-      txt:`Renew or exit — <strong style="font-weight:600">${esc(x.c.name)}</strong>`,
-      meta:`${esc(x.c.counterparty||'no counterparty')} · decide by ${fmtDDay(x.dd)}`,
-      tag:x.d===0?'today':`in ${x.d}d`,
+      txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:600">${esc(x.c.name)}</strong>`}),
+      meta:i18t('home_decide_by',{who:esc(x.c.counterparty||i18t('home_no_counterparty')),when:fmtDDay(x.dd)}),
+      tag:x.d===0?i18t('home_today'):i18t('home_in_days',{n:x.d}),
     })),
     ...waitingLongest.map(x=>({
       cid:x.c.id, urgent:x.idle>=30, ic:'clock',
-      txt:`Waiting on review — <strong style="font-weight:600">${esc(x.c.name)}</strong>`,
-      meta:`${esc(x.c.counterparty||'no counterparty')} · ${esc(x.c.id)}`,
-      tag:`${x.idle}d idle`,
+      txt:i18t('home_waiting_on_review',{name:`<strong style="font-weight:600">${esc(x.c.name)}</strong>`}),
+      meta:`${esc(x.c.counterparty||i18t('home_no_counterparty'))} · ${esc(x.c.id)}`,
+      tag:i18t('home_idle_days',{n:x.idle}),
     })),
   ];
   const decisionRows=decisionItems.slice(0,8).map(it=>{
@@ -544,7 +553,7 @@ function renderDashboard(){
         <span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
       </span>
     </button>`; }).join('')
-    || `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>Nothing to decide — you're all caught up.</div>`;
+    || `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>${i18t('home_nothing_to_decide')}</div>`;
   /* The footer link has to lead where the rows actually live, and this card
      holds two different kinds of item. A renewal decision is a date, so the
      calendar is its home; a contract sitting in review is not on any calendar —
@@ -556,7 +565,7 @@ function renderDashboard(){
   const renewalN=decisions.length, reviewN=waitingLongest.length;
   const footerLinks=[
     renewalN?lnk('data-open-decisions',`${renewalN} renewal decision${renewalN===1?'':'s'} in the calendar →`):'',
-    reviewN?lnk('data-open-review',`${reviewN} waiting in review →`):'',
+    reviewN?lnk('data-open-review',i18t('home_waiting_in_review',{n:reviewN})):'',
   ].filter(Boolean);
   const decisionFooter=(decisionItems.length>8||footerLinks.length>1)&&footerLinks.length
     ? `<div style="flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
@@ -564,7 +573,7 @@ function renderDashboard(){
   const activitySection=`
     <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">Decisions due</h4>
+        <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_decisions_due')}</h4>
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'#f59e0b':'#10b981'};flex:none;"></span>
         ${decisionItems.length?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
@@ -579,20 +588,20 @@ function renderDashboard(){
      additive, so nothing that already renders disappears. */
   const firstRunBanner = countAll===0 ? `
     <section style="border:1px solid var(--color-divider);border-radius:14px;background:var(--color-surface);padding:22px 22px 20px;">
-      <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">Welcome — let's put your first contract in.</h2>
-      <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">Your workspace is ready. Start one of three ways — you can always do the others later.</p>
+      <h2 style="margin:0 0 4px;font-family:var(--font-heading);font-weight:700;font-size:19px;color:var(--color-text);">${i18t('home_welcome')}</h2>
+      <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:64ch;line-height:1.55;">${i18t('home_welcome_sub')}</p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
         <button id="fr-draft" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Draft a contract</div>
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_draft_contract')}</div>
           <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Fill in the blanks on a ${regionNow} template — the register, filters and reminders populate as you type.</div>
         </button>
         <button id="fr-import" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Import your existing contracts</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">Drop a back-catalogue of PDFs or scans — HaTi extracts the terms and files them for you.</div>
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_import_existing')}</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_import_sub')}</div>
         </button>
         <button id="fr-explore" style="text-align:left;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-bg);padding:15px;cursor:pointer;font:inherit;">
-          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">Explore the register</div>
-          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">See where contracts live once they're in — search, filters, stages and export.</div>
+          <div style="font-weight:700;font-size:13px;color:var(--color-text);margin-bottom:3px;">${i18t('home_explore_register')}</div>
+          <div style="font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;">${i18t('home_explore_sub')}</div>
         </button>
       </div>
     </section>` : '';
@@ -612,10 +621,10 @@ function renderDashboard(){
     <!-- KPI ribbon — customizable gradient hero cards (pick, drag to reorder) -->
     <section>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">Key metrics</span>
-        <button id="kpi-customize" class="ui-btn" title="Choose which metrics to show" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_key_metrics')}</span>
+        <button id="kpi-customize" class="ui-btn" title="${i18t('home_choose_metrics')}" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-          Customize
+          ${i18t('home_customize')}
         </button>
       </div>
       <!-- The chosen count is what the row wants; minmax gives it a floor, so

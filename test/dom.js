@@ -104,10 +104,11 @@ function loadViews(files, overrides = {}) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  /* js/jurisdiction.js first, as js/app.js loads it: the money formatters and
-     every governing-law sentence read from it, so a view evaluated without it
-     throws on the first thing it renders. */
-  for (const f of ['js/jurisdiction.js'].concat(files)) {
+  /* js/i18n.js then js/jurisdiction.js first, in js/app.js's own order: every
+     visible label reads through t() and every money formatter and governing-law
+     sentence reads from the market pack, so a view evaluated without the pair
+     throws — or worse, renders dictionary keys — on the first thing it draws. */
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js'].concat(files)) {
     const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     vm.runInContext(src, sandbox, { filename: f });
   }
