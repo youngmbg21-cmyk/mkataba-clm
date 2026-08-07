@@ -241,7 +241,26 @@ function renderTeam(){
               <option value="admin">${i18t('set_role_admin')}</option>
             </select>
             <input id="tm-pass" type="password" placeholder="${esc(i18t('set_ph_temp_pass'))}" style="${inputStyle}"/>
+            ${''/* ACCESS IS PART OF ADDING SOMEBODY, NOT A LATER ERRAND. The form
+                   used to create a member with no answer to "what may they see",
+                   and the absent answer means EVERY stream — so the quietest
+                   possible path through this form was also the widest grant. The
+                   placeholder option carries no value, so the add button refuses
+                   until an admin has actually chosen. */}
+            <select id="tm-access" style="${inputStyle}">
+              <option value="">${i18t('set_choose_access')}</option>
+              <option value="*">${i18t('set_access_all')}</option>
+              <option value="pick">${i18t('set_access_pick')}</option>
+            </select>
           </div>
+          <div id="tm-access-list" style="display:none;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:6px;margin-top:8px">
+            ${Object.values(FOLDERS).map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:11.5px">
+              <input type="checkbox" data-tm-folder="${PB_ATTR(f.id)}" style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+              <span style="width:8px;height:8px;border-radius:2px;background:${f.color};flex:none"></span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
+          </div>
+          <div id="tm-access-note" style="display:none;margin-top:6px;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">${i18t('set_access_admin_note')}</div>
+          <div style="margin-top:8px;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">${i18t('set_role_help')}</div>
           <button id="tm-add" style="margin-top:10px;${primaryBtn}">${i18t('set_add_member')}</button>
         </div>
         <div style="padding:12px 14px;border-top:1px solid var(--color-divider)">
@@ -696,6 +715,23 @@ function renderTeam(){
     });
   }
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
+  /* The access picker follows the role: an admin always holds every stream
+     (userFolderAccess short-circuits on role), so asking is meaningless there —
+     the row is disabled and says so rather than collecting an answer that would
+     be ignored. */
+  const tmSyncAccess=()=>{
+    const roleSel=document.getElementById('tm-role'), accSel=document.getElementById('tm-access');
+    const list=document.getElementById('tm-access-list'), note=document.getElementById('tm-access-note');
+    if(!roleSel||!accSel||!list||!note) return;
+    const isAdminRole=roleSel.value==='admin';
+    accSel.disabled=isAdminRole;
+    accSel.style.opacity=isAdminRole?'.55':'';
+    note.style.display=isAdminRole?'block':'none';
+    list.style.display=(!isAdminRole && accSel.value==='pick')?'grid':'none';
+  };
+  document.getElementById('tm-role')?.addEventListener('change',tmSyncAccess);
+  document.getElementById('tm-access')?.addEventListener('change',tmSyncAccess);
+  tmSyncAccess();
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name').trim(), email=fval('tm-email').trim().toLowerCase(), role=document.getElementById('tm-role').value;
     const title=fval('tm-title'), pass=document.getElementById('tm-pass').value;
@@ -703,13 +739,37 @@ function renderTeam(){
     if(!validEmail(email)){ toast(i18t('set_enter_valid_email'),'err'); return; }
     if(pass.length<8){ toast(i18t('set_temp_password_min'),'err'); return; }
     if(getUsers().some(x=>x.email===email)){ toast(i18t('set_member_exists'),'err'); return; }
+    /* Folder access is decided BEFORE the account exists. `null` means every
+       stream — the same "no entry in the map" the editor writes — and it is
+       reached only by picking it, never by saying nothing. */
+    let folderIds=null;
+    if(role!=='admin'){
+      const choice=document.getElementById('tm-access')?.value||'';
+      if(!choice){ toast(i18t('set_choose_access_err'),'err'); document.getElementById('tm-access')?.focus(); return; }
+      if(choice==='pick'){
+        folderIds=[...document.querySelectorAll('[data-tm-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-tm-folder'));
+        if(!folderIds.length){ toast(i18t('set_pick_one_stream'),'err'); return; }
+      }
+    }
+    let newId=null;
     if(API_MODE()){
       try{ const r=await api('users','POST',{ name, email, role, title, password:pass });
-        REMOTE.users=[...REMOTE.users, r.user];
+        REMOTE.users=[...REMOTE.users, r.user]; newId=r.user&&r.user.id;
       }catch(e){ toast(e.message,'err'); return; }
     } else {
       const salt=newSalt();
-      saveUsers([...getUsers(),{ id:'u'+(Date.now().toString(36)), name, email, role, title, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
+      newId='u'+(Date.now().toString(36));
+      saveUsers([...getUsers(),{ id:newId, name, email, role, title, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
+    }
+    // Restriction goes through the same atomic route the access editor uses, so
+    // an unrelated settings save cannot clobber it (see H-3 above).
+    if(folderIds && newId){
+      state.settings=state.settings||{}; state.settings.folderAccess=state.settings.folderAccess||{};
+      state.settings.folderAccess[newId]=folderIds;
+      try{
+        if(window.API_MODE && window.API_MODE()) await api('settings/folder-access','PUT',{ userId:newId, folders:folderIds });
+        else await saveSettings();
+      }catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); }
     }
     // Mirror the member into the directory (with their title) so signer fields auto-fill.
     state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
