@@ -583,11 +583,11 @@ function renderAIStyleToggle(){
   const on=aiStyle();
   const btn=(k,label,hint)=>`<button data-ai-style="${k}" title="${hint}"
     class="px-2.5 py-1 text-[11px] font-600 transition" style="border-radius:3px;border:1px solid ${on===k?'transparent':'var(--color-divider)'};background:${on===k?'var(--color-accent)':'transparent'};color:${on===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
-  host.innerHTML = btn('plain','Plain','Everyday language, short answers, no legal jargon')
-    + btn('legal','Legal','Full professional depth — clause names, dates, amounts, assumptions stated');
+  host.innerHTML = btn('plain',i18t('ai_style_plain'),i18t('ai_style_plain_hint'))
+    + btn('legal',i18t('ai_style_legal'),i18t('ai_style_legal_hint'));
   host.querySelectorAll('[data-ai-style]').forEach(b=>b.addEventListener('click',()=>{
     aiSetStyle(b.getAttribute('data-ai-style'));
-    toast(aiStyle()==='legal'?'Answers will be in full legal depth':'Answers will be in plain language');
+    toast(aiStyle()==='legal'?i18t('ai_style_legal_toast'):i18t('ai_style_plain_toast'));
   }));
 }
 const AI_SUGGESTIONS = [
@@ -683,7 +683,7 @@ function openAI(prefill,opts){
   try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   aiSyncDock();
   if(!ai.history.length){
-    aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">${i18t('ai_i_give')} <b>${i18t('ai_guidance_not_advice')}</b> ${i18t('ai_ill_tell_you')}</div>`});
+    aiPush('assistant',{text:aiWelcomeHtml()});
   }
   renderAIFeed(); renderAISuggest();
   const inp=document.getElementById('ai-input');
@@ -726,9 +726,9 @@ function clearAIHistory(){
   if(typeof aiProposals!=='undefined') aiProposals.clear();
   ai.activeProposal=null;
   if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
-  aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">${i18t('ai_i_give')} <b>${i18t('ai_guidance_not_advice')}</b> ${i18t('ai_ill_tell_you')}</div>`});
+  aiPush('assistant',{text:aiWelcomeHtml()});
   renderAIFeed();
-  toast('Conversation deleted');
+  toast(i18t('ai_conversation_deleted'));
 }
 /* Launcher badge: solid dot when minimized, pulsing when an unread answer waits.
    Every Copilot entry point (sidebar #ai-badge, top-bar #cmd-ai, document-page
@@ -741,6 +741,16 @@ function updateAIBadge(){
     b.classList.toggle('hidden', !show);
     b.classList.toggle('pulse', pulse);
   });
+}
+/* ONE WELCOME, NOT TWO. It was written out in full both where the panel opens
+   for the first time and where the conversation is deleted, so the two could
+   drift — and while it was hardcoded English they were both wrong together on
+   a Swedish screen. The greeting word travels with the language: "Habari" is
+   the product's own voice in English, and a Swedish reader is met in Swedish.
+   The disclaimer under it was already translated; only the sentence above it
+   was not. */
+function aiWelcomeHtml(){
+  return `${i18t('ai_welcome')}<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">${i18t('ai_i_give')} <b>${i18t('ai_guidance_not_advice')}</b> ${i18t('ai_ill_tell_you')}</div>`;
 }
 function aiPush(role,payload){
   /* Charts extracted while formatting this message ride along with it, so a

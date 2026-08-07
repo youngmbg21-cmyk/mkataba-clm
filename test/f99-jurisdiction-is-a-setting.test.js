@@ -80,7 +80,7 @@ function loadAi(){
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  for (const f of ['js/jurisdiction.js', 'js/ai.js'])
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/ai.js'])
     vm.runInContext(read(f), sandbox, { filename: f });
   return sandbox;
 }

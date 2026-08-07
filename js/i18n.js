@@ -1850,6 +1850,21 @@ const STRINGS = {
     empty_nothing_here: 'Nothing here yet.',
     loading: 'Loading…',
 
+    // ---- the Copilot panel's own controls ----
+    ai_answers_caption: 'Answers',
+    ai_style_plain: 'Plain',
+    ai_style_plain_hint: 'Everyday language, short answers, no legal jargon',
+    ai_style_legal: 'Legal',
+    ai_style_legal_hint: 'Full professional depth — clause names, dates, amounts, assumptions stated',
+    ai_style_legal_toast: 'Answers will be in full legal depth',
+    ai_style_plain_toast: 'Answers will be in plain language',
+    ai_input_ph: 'Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)',
+
+    // ---- the Copilot's welcome ----
+    ai_welcome: 'Habari! I\'m <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what\'s on your screen.',
+    ai_conversation_deleted: 'Conversation deleted',
+    int_notebook_welcome: 'Habari! I\'m <b class="text-brand-700">HaTi Copilot</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.',
+
     // ---- the phone's contract list ----
     m_chip_drafting: 'Drafting',
     m_chip_in_review: 'In Review',
@@ -4387,6 +4402,21 @@ const STRINGS = {
     err_offline: 'Du verkar vara offline.',
     empty_nothing_here: 'Inget här ännu.',
     loading: 'Laddar…',
+
+    // ---- the Copilot panel's own controls ----
+    ai_answers_caption: 'Svar',
+    ai_style_plain: 'Enkelt',
+    ai_style_plain_hint: 'Vardagligt språk, korta svar, ingen juridisk jargong',
+    ai_style_legal: 'Juridiskt',
+    ai_style_legal_hint: 'Fullt fackmässigt djup — klausulnamn, datum, belopp och angivna antaganden',
+    ai_style_legal_toast: 'Svaren kommer att ges med fullt juridiskt djup',
+    ai_style_plain_toast: 'Svaren kommer att ges på enkelt språk',
+    ai_input_ph: 'Sök, sammanfatta eller fråga om dina avtal…  (Skift+Enter för ny rad)',
+
+    // ---- the Copilot's welcome ----
+    ai_welcome: 'Hej! Jag är <b>HaTi Copilot</b>. Fråga mig vad du vill om dina avtal — jag kan söka i dem, sammanfatta och jämföra dem, läsa vad som ändrats i en förhandling och vem som bad om det, och jag ser vad du har på skärmen.',
+    ai_conversation_deleted: 'Konversationen raderad',
+    int_notebook_welcome: 'Hej! Jag är <b class="text-brand-700">HaTi Copilot</b> — ett anteckningsblock över hela ditt avtalsbestånd. Be mig <b>sammanfatta</b> eller <b>citera</b> vilket avtal som helst ordagrant, <b>peka ut vilka avtal som kan ha riskfyllda eller otillåtna klausuler</b>, eller jämföra affärer sida vid sida. Jag kan också filtrera, markera och gruppera om kartan. Svaren anger vilka avtal de bygger på.',
 
     // ---- the phone's contract list ----
     m_chip_drafting: 'Upprättas',

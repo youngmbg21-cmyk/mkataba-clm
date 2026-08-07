@@ -1274,7 +1274,7 @@ function renderIntelDock(){
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${i18t('int_clear_all')}</button>
     </div>`:''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
-      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.</div>`}
+      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`}
       ${typing}
     </div>
     ${!intel.history.length?`

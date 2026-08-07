@@ -64,7 +64,10 @@ function loadAi(){
   };
   sandbox.window = sandbox;
   vm.createContext(sandbox);
-  for (const f of ['js/jurisdiction.js', 'js/ai.js'])
+  /* i18n.js first, in js/app.js's own order: the Copilot panel reads its
+     labels through i18t like every other renderer, so a stage without the
+     dictionary throws on the first control it draws. */
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/ai.js'])
     vm.runInContext(read(f), sandbox, { filename: f });
   return sandbox;
 }
@@ -277,7 +280,7 @@ describe('F107e — it reaches the model, and it is not frozen at load', () => {
        strict one: outside its own declaration and the export list, a mention
        must be a call. */
     const NAMES = ['AI_PROPOSAL_FORMAT', 'AI_EDIT_FORMAT', 'AI_ADVICE_FIELD'];
-    for (const f of ['js/ai.js', 'js/views/negotiation.js']){
+    for (const f of ['js/i18n.js', 'js/ai.js', 'js/views/negotiation.js']){
       const src = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       for (const name of NAMES){
         for (let i = src.indexOf(name); i !== -1; i = src.indexOf(name, i + 1)){
