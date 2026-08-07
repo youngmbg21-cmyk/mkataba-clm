@@ -73,14 +73,20 @@ worse than translating none of it.
 
 ## Still outstanding
 
-**The Swedish legal vocabulary has not been reviewed by a Swedish speaker.**
-That was your answer to question 4, and it is the one gap I cannot close on my
-own. SWEDISH-TERMS-TO-REVIEW.md separates the terms I am confident about from
-the ~11 I am not. *Klausul* for "Clause" matters most — it appears more than
-any other word in the product.
+**Nothing blocking.** The Swedish wording is decided and live.
+
+The legal-vocabulary risk turned out much smaller than first reported. Seven of
+the words flagged for review reached no screen at all — they belonged to a
+glossary written before the screens were, and never called from anywhere. It has
+been deleted (35 dead keys). What remained was four live words; each is now
+chosen and recorded in SWEDISH-TERMS-TO-REVIEW.md, with *Klausul* for "Clause"
+being the one that carries the most weight.
+
+Two of those choices are cheap to reverse if a Swedish customer prefers
+otherwise: *Förhandlingsguide* could revert to "Playbook", and
+*Ändringsmarkering* to "Redline". One line each.
 
 Swedish-law contract templates remain parked, as you asked.
-
 
 ---
 

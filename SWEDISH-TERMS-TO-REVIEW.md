@@ -1,103 +1,81 @@
-# Swedish legal terms — the ones I am not sure about
+# Swedish legal terms — the short list
 
-Written 2026-08-06, as the Swedish interface was built.
+Updated 2026-08-06, after checking which words actually reach a screen.
 
-**Why this file exists.** Most of HaTi's interface is ordinary words — Save,
-Close, No contracts yet — and I have no concerns about those. But around thirty
-of its labels are *terms of art*, where the everyday Swedish translation is
-wrong. You told me there is no Swedish speaker to check them. I cannot remove
-that risk on my own, so this file makes it visible instead of burying it.
+**This list got much shorter, and here is the honest reason.** The first version
+of it had fourteen words on it. When I checked which of them the app actually
+renders, seven turned out to reach no screen at all: they were part of a legal
+glossary I wrote early on, before I knew what each screen needed, and then every
+screen grew its own words instead. The glossary was never called from anywhere.
+It has been deleted — 35 unused entries — so those seven words no longer exist
+in the product and there is nothing to review about them.
 
-Everything below is **live in the app right now**. This is not a list of things
-left undone — it is a list of choices I made that someone should confirm.
-
----
-
-## How to use this
-
-Show it to the first Swedish customer, or anyone Swedish who has read a
-commercial contract. It should take about half an hour. They do not need to know
-anything about HaTi — the question is only ever "is this the word a Swedish
-lawyer would expect on this button?"
-
-The words are in `js/i18n.js` under the `term_` prefix. Changing one is a
-one-line edit and the test suite will confirm nothing else broke.
+What is left is the words the app really shows. All of them are live in the app
+right now, and I have picked what I believe is the most standard Swedish for
+each. **You do not need to do anything.** This is a record of the judgement
+calls, so somebody Swedish can confirm them if the chance comes up.
 
 ---
 
-## Confident — I would be surprised to be wrong
+## The one that matters
 
-| English | Swedish used | Why I am confident |
-|---|---|---|
-| Counterparty | Motpart | The standard word, no real alternative |
-| Governing law | Tillämplig lag | Standard heading in Swedish contracts |
-| Execution *(signing)* | Undertecknande | See the warning below — this one matters |
-| Schedule *(appendix)* | Bilaga | See the warning below |
-| Termination | Uppsägning | Standard |
-| Liability | Ansvar | Standard |
-| Recital | Ingress | Standard for the opening paragraphs |
-| Breach | Avtalsbrott | Standard |
-| Assignment | Överlåtelse | Standard |
-| Signatory | Undertecknare | Standard |
-| Witness | Vittne | Standard |
-| Force majeure | Force majeure | Same in both languages |
-| Effective date | Ikraftträdandedatum | Long but correct |
-| Renewal | Förnyelse | Standard |
-| Party / Parties | Part / Parter | Standard |
+**Clause → Klausul**
 
-### Two traps I deliberately avoided
+This is the word the product leans on hardest — every screen that lists what a
+contract is made of. Swedish has three candidates:
 
-**Execution.** Translated as an ordinary word, Swedish gives either "carrying
-out a task" (*utförande*) or — genuinely — execution as a death sentence
-(*avrättning*). In HaTi it means signing, so it is **Undertecknande**.
+| | |
+|---|---|
+| **Klausul** ← chosen | The word in *skiljeklausul*, *sekretessklausul*, *force majeure-klausul*. Recognisable to a non-lawyer, and it makes the compound *klausulbibliotek* read naturally. |
+| Bestämmelse | "Provision". More formal, and what a Swedish lawyer might write in the contract itself — but it does not compound as well and reads heavier on a button. |
+| Punkt | "Item". Used for numbered references (*enligt punkt 4*), not for the thing itself. |
 
-**Schedule.** In a contract this means an appendix at the back. The everyday
-Swedish word (*schema*) means a timetable. It is **Bilaga**.
+I went with **Klausul** because HaTi's clause is an *object you act on* — you
+open it, propose a change to it, file it in a library. That is what *klausul*
+means to a Swedish reader, and it is the only one of the three that survives
+being made into a compound.
 
 ---
 
-## Uncertain — please check these
+## The other three
 
-| English | Swedish used | My doubt |
-|---|---|---|
-| **Clause** | Klausul | *Klausul*, *bestämmelse* and *punkt* are all used. I picked the one most recognisable to a non-lawyer, but a Swedish lawyer may expect *bestämmelse*. This word appears more than any other in the app, so it is the most worth getting right. |
-| **Consideration** | Vederlag | Swedish contract law has no consideration doctrine, so there is no exact word. *Vederlag* means the payment or value given. If the concept does not belong on a Swedish screen at all, the honest fix may be to drop the label rather than translate it. |
-| **Indemnity** | Skadeslöshetsåtagande | Correct but very long — it will likely overflow narrow columns. *Skadeslöshet* alone may be enough. |
-| **Waiver** | Eftergift | *Eftergift* leans towards forgiving a debt. *Avstående* (giving up a right) may fit a contract clause better. |
-| **Covenant** | Förbindelse | Overlaps heavily with *Åtagande* (Undertaking) and *Skyldighet* (Obligation). Swedish may not distinguish these three the way English does — possibly two of the three should collapse into one word. |
-| **Undertaking** | Åtagande | Same overlap as above. |
-| **Obligation** | Skyldighet | Same overlap as above. |
-| **Remedy** | Påföljd | *Påföljd* carries a criminal-law flavour in Swedish. *Rättsmedel* is more contractual but less common. |
-| **Amendment** vs **Addendum** | Tillägg / Tilläggsavtal | I split them this way to keep them distinct. Swedish practice may use one word for both, or use *ändringsavtal* for Amendment. |
-| **Notice** | Meddelande / Uppsägningstid | Two different meanings sharing one English word: a notification, and a notice period. I gave them separate keys (`term_notice`, `term_notice_period`). Worth confirming both read correctly in place. |
-| **Expiry** | Slutdatum | Literally "end date". *Utgång* is closer to "expiry" but reads oddly on a column heading. |
+**Obligations → Åtaganden.** The tracked-commitments feature. *Åtagande* is the
+standard word for something you have committed to do under a contract, and it is
+what a Swedish commercial team would say. Confident.
 
----
+**Playbook → Förhandlingsguide.** Literally "negotiation guide". Swedish firms
+often just say "playbook" in English; I chose the Swedish because it explains
+itself to a reader who has never met the term. Revert it to *Playbook* if your
+customers use the English — one line.
 
-## No good Swedish equivalent — I kept a coined term
-
-| English | Swedish used | Note |
-|---|---|---|
-| **Redline** | Ändringsmarkering | Industry jargon from tracked-change markup. Swedish lawyers often just say "redline" in English. If your customers do, this should revert to *Redline*. |
-| **Playbook** | Förhandlingsguide | Literally "negotiation guide". Swedish lawyers often keep the English "playbook". Same question as above. |
-| **Clause library** | Klausulbibliotek | A compound I built from *klausul*; reads naturally but is not an established term. Depends on the Clause decision above. |
+**Amendment / Addendum → Ändringsavtal / Tillägg.** These were the wrong way
+round in the first version and are now fixed. In Swedish practice an
+*ändringsavtal* changes existing terms and a *tillägg* adds new ones, which is
+exactly the distinction HaTi draws between the two. The neighbouring types read
+coherently with them: *Ändring* (variation), *Förnyelse* (renewal), *Bilaga*
+(annex), *Uppdragsbeskrivning* (statement of work), *Sidobrev* (side letter).
 
 ---
 
-## One thing to watch that is not a translation question
+## The two traps that were avoided
 
-Swedish runs roughly 10–15% longer than English, and some of these are much
-longer than that — *Skadeslöshetsåtagande* is 23 characters against Indemnity's
-9. HaTi's screens are dense with narrow columns and small buttons. Expect some
-layout to need adjusting once these are on screen at real widths, independently
-of whether the words themselves are right.
+Worth recording, because both would have been embarrassing and neither is
+obvious unless you already know:
+
+**Execution** means *signing* here, not carrying out a task. Translated as an
+ordinary word, Swedish gives either "performing" or — genuinely — execution as a
+death sentence. It is **Undertecknande**.
+
+**Schedule** in a contract means an appendix at the back, not a timetable. It is
+**Bilaga**.
 
 ---
 
-## What I did *not* translate, deliberately
+## What is still not translated, on purpose
 
-Contract wording. Clause text. Tracked changes and their fingerprints. Anything
-signed, and anything already exported. Those are legal instruments — a signed
-document whose words shift is not a bug, it is a liability. The rule the whole
-language layer follows is: **buttons and labels translate, contract wording
-never does.**
+Contract wording, in every form: the built-in template titles and their clauses,
+the phrases the branding prints into the agreement, the playbook's negotiating
+positions, the Copilot's ~60 risk findings, and anything signed or exported.
+Those are legal instruments or generated legal advice. The scan already records
+which language each finding was written in, so they can be localised later
+without breaking anything already saved.

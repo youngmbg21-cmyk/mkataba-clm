@@ -35,7 +35,6 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
-  'term_force_majeure',   // borrowed from French into both
   'nav_administration',   // identical spelling in Swedish
   'reg_col_status',       // ditto
   'set_usd_per',          // "USD per" — the currency code carries it
@@ -259,7 +258,7 @@ describe('f148 — t() and tn() never show a user nothing', () => {
     /* Proven through the accessor rather than by deleting a key: every real key
        exists in both (asserted above), so the English table is the fallback
        path any future gap would take. */
-    assert.equal(win.t('term_force_majeure'), STRINGS.sv.term_force_majeure);
+    assert.equal(win.t('nav_contracts'), STRINGS.sv.nav_contracts);
     assert.equal(win.t('a_key_only_english_would_have'), 'a_key_only_english_would_have');
   });
 
