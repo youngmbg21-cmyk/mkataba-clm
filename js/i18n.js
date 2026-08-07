@@ -1850,6 +1850,32 @@ const STRINGS = {
     empty_nothing_here: 'Nothing here yet.',
     loading: 'Loading…',
 
+    // ---- the phone's contract list ----
+    m_chip_drafting: 'Drafting',
+    m_chip_in_review: 'In Review',
+    m_chip_executed: 'Executed',
+    m_chip_closed: 'Closed',
+    m_showing_all: 'Showing all {n}',
+    m_n_of_total_match: '{n} of {total} match',
+    m_exp_on: 'Exp {when}',
+    m_ended_on: 'Ended {when}',
+
+    // ---- the phone's dashboard ----
+    m_sub_agreements_one: '{n} agreement',
+    m_sub_agreements_other: '{n} agreements',
+    m_sub_documents_one: '{n} document',
+    m_sub_documents_other: '{n} documents',
+    m_sub_active_value: ' · {v} active value',
+    m_needs_you: 'Needs you · {n}',
+    m_waiting_your_approval: 'Waiting on your approval',
+    m_requested_by: ' — requested by {who}',
+    m_declined_read_reason: 'Declined — read their reason',
+    m_renewal_due_today: 'Renewal decision due today',
+    m_renewal_due_in_one: 'Renewal decision due in {n} day',
+    m_renewal_due_in_other: 'Renewal decision due in {n} days',
+    m_in_review_no_movement_one: 'In review for {n} day with no movement',
+    m_in_review_no_movement_other: 'In review for {n} days with no movement',
+
     // ---- the workbench's own view toggle ----
     ng_internal_view: 'Internal View',
     ng_counterparty_view: 'Counterparty View',
@@ -4361,6 +4387,32 @@ const STRINGS = {
     err_offline: 'Du verkar vara offline.',
     empty_nothing_here: 'Inget här ännu.',
     loading: 'Laddar…',
+
+    // ---- the phone's contract list ----
+    m_chip_drafting: 'Upprättas',
+    m_chip_in_review: 'Under granskning',
+    m_chip_executed: 'Undertecknat',
+    m_chip_closed: 'Avslutat',
+    m_showing_all: 'Visar alla {n}',
+    m_n_of_total_match: '{n} av {total} matchar',
+    m_exp_on: 'Utgår {when}',
+    m_ended_on: 'Avslutat {when}',
+
+    // ---- the phone's dashboard ----
+    m_sub_agreements_one: '{n} avtal',
+    m_sub_agreements_other: '{n} avtal',
+    m_sub_documents_one: '{n} dokument',
+    m_sub_documents_other: '{n} dokument',
+    m_sub_active_value: ' · {v} i aktivt värde',
+    m_needs_you: 'Behöver dig · {n}',
+    m_waiting_your_approval: 'Väntar på ditt godkännande',
+    m_requested_by: ' — begärt av {who}',
+    m_declined_read_reason: 'Avböjt — läs deras skäl',
+    m_renewal_due_today: 'Förnyelsebeslut ska fattas i dag',
+    m_renewal_due_in_one: 'Förnyelsebeslut ska fattas om {n} dag',
+    m_renewal_due_in_other: 'Förnyelsebeslut ska fattas om {n} dagar',
+    m_in_review_no_movement_one: 'Under granskning i {n} dag utan att något hänt',
+    m_in_review_no_movement_other: 'Under granskning i {n} dagar utan att något hänt',
 
     // ---- the workbench's own view toggle ----
     ng_internal_view: 'Intern vy',

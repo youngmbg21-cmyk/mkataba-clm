@@ -49,7 +49,7 @@ function mNeedsYou(D){
   (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>{
     const who = (x.c.audit||[]).find(a=>/creat/i.test(a.action||''));
     push(x.c, 'var(--st-amber-dot)',
-      'Waiting on your approval' + (who&&who.user?' — requested by '+who.user:''), 'var(--st-amber-fg)');
+      i18t('m_waiting_your_approval') + (who&&who.user?i18t('m_requested_by',{who:who.user}):''), 'var(--st-amber-fg)');
   });
 
   /* The counterparty is waiting on an answer. wsNextAction is the authority on
@@ -64,16 +64,16 @@ function mNeedsYou(D){
   });
 
   (D.cs||[]).filter(c=>c.status==='Declined').forEach(c=>{
-    push(c,'var(--st-ruby-dot)','Declined — read their reason','var(--st-ruby-fg)');
+    push(c,'var(--st-ruby-dot)',i18t('m_declined_read_reason'),'var(--st-ruby-fg)');
   });
 
   (D.decisions||[]).forEach(x=>{
     push(x.c,'var(--st-green-dot)',
-      'Renewal decision due '+(x.d===0?'today':'in '+x.d+' day'+(x.d===1?'':'s')), 'var(--color-neutral-600)');
+      x.d===0?i18t('m_renewal_due_today'):i18tn('m_renewal_due_in',x.d,{n:x.d}), 'var(--color-neutral-600)');
   });
 
   (D.waitingLongest||[]).filter(x=>x.idle>14).forEach(x=>{
-    push(x.c,'var(--st-amber-dot)','In review for '+x.idle+' days with no movement','var(--color-neutral-600)');
+    push(x.c,'var(--st-amber-dot)',i18tn('m_in_review_no_movement',x.idle,{n:x.idle}),'var(--color-neutral-600)');
   });
 
   return out;
@@ -112,15 +112,15 @@ function mHomeHtml(){
   const cs = (D && D.cs) || (state.contracts||[]);
   const agreements = (typeof agreementsIn==='function') ? agreementsIn(cs).length : cs.length;
   const value = (D && typeof fmtMoneyShort==='function' && D.money) ? fmtMoneyShort(D.m.totalValue) : '';
-  const subline = `${agreements.toLocaleString(jxLocale())} agreement${agreements===1?'':'s'} · `
-    + `${cs.length.toLocaleString(jxLocale())} document${cs.length===1?'':'s'}`
-    + (value?` · ${value} active value`:'');
+  const subline = i18tn('m_sub_agreements',agreements,{n:agreements.toLocaleString(jxLocale())})
+    + ' · ' + i18tn('m_sub_documents',cs.length,{n:cs.length.toLocaleString(jxLocale())})
+    + (value?i18t('m_sub_active_value',{v:value}):'');
 
   const needs = mNeedsYou(D);
   const expiring = (D && D.expiring) || [];
 
   const needsHtml = needs.length ? `
-    <div class="m-lbl" style="margin:0 16px 6px">Needs you · ${needs.length}</div>
+    <div class="m-lbl" style="margin:0 16px 6px">${i18t('m_needs_you',{n:needs.length})}</div>
     <div class="m-card m-list" style="margin:0 16px">
       ${needs.map(n=>`
         <button class="m-row" data-m-open="${mEsc(n.c.id)}" style="align-items:flex-start">
@@ -222,10 +222,13 @@ function mContractsHtml(){
 
   const STATUS_CHIPS = [
     { k:'all', get label(){ return i18t('m_all'); } },
-    { k:'Draft', label:'Drafting' },
-    { k:'Under Review', label:'In Review' },
-    { k:'Signed', label:'Executed' },
-    { k:'Declined', label:'Closed' },
+    /* Getters like the 'all' chip above it: this table is rebuilt on every
+       paint, but a plain string would still freeze the language of whichever
+       paint happened to run first after a switch. */
+    { k:'Draft', get label(){ return i18t('m_chip_drafting'); } },
+    { k:'Under Review', get label(){ return i18t('m_chip_in_review'); } },
+    { k:'Signed', get label(){ return i18t('m_chip_executed'); } },
+    { k:'Declined', get label(){ return i18t('m_chip_closed'); } },
   ];
   const streams = Object.keys((typeof FOLDERS==='object'&&FOLDERS)||{});
   const statusChips = STATUS_CHIPS.map(c=>`
@@ -253,7 +256,7 @@ function mContractsHtml(){
         </button>`).join('')}
     </div>
     <div style="padding:0 16px 24px;text-align:center;font-size:14px;color:var(--color-neutral-600)">
-      ${rows.length===total ? `Showing all ${total}` : `${rows.length} of ${total} match`}
+      ${rows.length===total ? i18t('m_showing_all',{n:total}) : i18t('m_n_of_total_match',{n:rows.length,total})}
     </div>`
   : `
     <div class="m-card" style="margin:16px;padding:34px 20px;text-align:center">

@@ -58,9 +58,9 @@ function mContractHeadHtml(c){
         </button>
       </div>
       <div style="display:flex">
-        ${tab('doc')}Document</button>
-        ${tab('terms')}Key terms</button>
-        ${tab('hist')}History</button>
+        ${tab('doc')}${i18t('tab_document')}</button>
+        ${tab('terms')}${i18t('tab_key_terms')}</button>
+        ${tab('hist')}${i18t('tab_history')}</button>
       </div>
     </div>`;
 }

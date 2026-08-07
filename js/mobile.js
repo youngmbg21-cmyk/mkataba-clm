@@ -554,9 +554,9 @@ function mExpiry(c){
   const when = new Date(e+'T00:00:00');
   const nice = isNaN(when.getTime()) ? String(e)
     : when.toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
-  if(d==null) return 'Exp '+nice;
-  if(d<0) return 'Ended '+nice;
-  return 'Exp '+nice;
+  if(d==null) return i18t('m_exp_on',{when:nice});
+  if(d<0) return i18t('m_ended_on',{when:nice});
+  return i18t('m_exp_on',{when:nice});
 }
 
 /* -------------------------------------------------------------- THE HEAD ---*/
@@ -595,19 +595,30 @@ function mHeadHtml(){
 function mAccountSheetHtml(){
   const u = (typeof currentUser==='function' && currentUser()) || null;
   const code = (state && state.region) || 'KE';
-  const rows = Object.keys((typeof REGIONS==='object' && REGIONS) || {}).map(k=>{
-    const on = k===code;
-    return `<button class="m-row" data-m-region="${k}">
-      <span style="flex:1;min-width:0">
-        <span class="m-row-name" style="font-weight:${on?600:500}">${mEsc(REGIONS[k].label)}</span>
-      </span>
-      ${on?`<span style="flex:none;color:var(--accent-solid)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>`:''}
-    </button>`;
-  }).join('');
+  /* THE MARKET IS THE COMPANY'S, AND ONLY AN ADMIN MOVES IT — the same rule the
+     Settings screen enforces on a laptop, and the same rule the server already
+     enforces on PUT /api/org/jurisdiction. It was missed here when the market
+     moved off the top bar: for a while a member who could not change the
+     currency, the governing law or the risk checks from a desktop could change
+     all three from a phone. A non-admin is SHOWN which market is in force,
+     because that is worth knowing; they simply cannot press it. */
+  const maySetMarket = (typeof isAdmin!=='function') || isAdmin();
+  const tick = `<span style="flex:none;color:var(--accent-solid)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>`;
+  const rows = Object.keys((typeof REGIONS==='object' && REGIONS) || {})
+    .filter(k=>maySetMarket||k===code)
+    .map(k=>{
+      const on = k===code;
+      const name = `<span class="m-row-name" style="font-weight:${on?600:500}">${mEsc(REGIONS[k].label)}</span>`;
+      if(!maySetMarket) return `<div class="m-row"><span style="flex:1;min-width:0">${name}</span>${tick}</div>`;
+      return `<button class="m-row" data-m-region="${k}">
+        <span style="flex:1;min-width:0">${name}</span>
+        ${on?tick:''}
+      </button>`;
+    }).join('');
   return `
     <div class="m-grab"></div>
     <div class="m-sheet-title">${mEsc((u&&u.name)||'Signed in')}</div>
-    <div class="m-sheet-note">${mEsc((u&&u.role)||'')}${u&&u.email?' · '+mEsc(u.email):''}</div>
+    <div class="m-sheet-note">${mEsc((typeof roleName==='function'&&u?roleName(u.role):(u&&u.role))||'')}${u&&u.email?' · '+mEsc(u.email):''}</div>
     ${''/* LANGUAGE FIRST, and on the phone this is the ONLY place it lives:
            below 768 the desktop shell is hidden outright and this shell draws
            the app, so the toggle in the desktop header does not exist here at
@@ -623,7 +634,7 @@ function mAccountSheetHtml(){
 
     <div class="m-capline" style="margin:14px 0 6px">${i18t('m_jurisdiction')}</div>
     <div class="m-card m-list">${rows}</div>
-    <div class="m-note" style="margin-top:8px">${i18t('m_jx_sub')}</div>
+    <div class="m-note" style="margin-top:8px">${maySetMarket?i18t('m_jx_sub'):i18t('set_market_admin_only')}</div>
     <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">${i18t('m_log_out')}</button>
     <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
 }
@@ -816,7 +827,12 @@ function mWire(){
     if(window.langSet) langSet(b.getAttribute('data-m-lang'),{repaint:false});
     mRender();
   }));
+  /* Gated here too, not only in the markup. A non-admin's sheet draws no
+     pressable row at all, but a handler that trusts the markup is a handler
+     that stops being true the next time the markup changes — and the thing on
+     the other side of it moves the whole company's currency and governing law. */
   root.querySelectorAll('[data-m-region]').forEach(b=>b.addEventListener('click',()=>{
+    if(typeof isAdmin==='function' && !isAdmin()) return;
     const k=b.getAttribute('data-m-region');
     mCloseSheet();
     if(window.setRegion) setRegion(k);
