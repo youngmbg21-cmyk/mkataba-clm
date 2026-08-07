@@ -5107,9 +5107,16 @@ function redlineLayoutCss(){
      stays a strip at any width the three-column grid itself supports. */
   /* ONE quiet line. It wears .room-quiet's clothes (index.html) so this strip
      and the contract page's status line are visibly the same object. */
-  .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
-    margin:0 2px;flex:none}
-  .redline-page .rl-headline{font-size:12px;color:var(--color-neutral-700);flex:1;min-width:min(100%,240px)}
+  /* ---- ONE HEIGHT, ALWAYS ----
+     This row wrapped: the round sentence in it grew and shrank as the counts
+     changed, taking the strip from one line to two and back, and every pane
+     below it moved. The sentence is gone, and the row is now told never to
+     wrap and given a floor, so it is the same height with a presence chip and
+     without one, with two round verbs and with none. Nothing left in it can
+     wrap — the chip is capped and ellipsised, the rest are single-line
+     buttons — so nowrap costs no content. */
+  .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:8px 12px;
+    margin:0 2px;flex:none;min-height:38px}
   /* The middle pane's name and its count of marks. */
   .redline-page .rl-doc-head{display:flex;align-items:center;gap:8px;flex:none;
     padding:9px 14px;border-bottom:1px solid var(--color-divider);font-size:12.5px}
@@ -5123,7 +5130,7 @@ function redlineLayoutCss(){
      over-subscribe one row, and nowrap answered that by clipping the jump
      mid-word and printing the pill over it. A second line is the honest
      shape. The pill may shrink to ellipsis but never to nothing. */
-  .redline-page .rl-head-id{display:flex;align-items:center;gap:9px 8px;min-width:0;flex:1;flex-wrap:wrap}
+  .redline-page .rl-head-id{display:flex;align-items:center;gap:9px 8px;min-width:0;flex:1;flex-wrap:nowrap}
   .redline-page .rl-presence{min-width:0;max-width:260px;overflow:hidden;text-overflow:ellipsis}
   /* ---- THE SHELL'S OWN STYLES HAVE GONE WITH THE SHELL ----
      This page used to draw its own title card — back arrow, name, status,
@@ -5199,7 +5206,6 @@ function redlineLayoutCss(){
   @media (prefers-reduced-motion:reduce){ .redline-page .rl-btn-blast{animation:none} }
 
   .redline-page .rl-root{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
-  .redline-page .rl-head{flex-wrap:nowrap}
   /* The contract jump, dressed like the toolbar it sits in. It may shrink on
      a narrow window but never to nothing — a switch you cannot see is a
      contract you cannot reach. */
@@ -6269,28 +6275,11 @@ function rlRestoreScroll(el, top){
   el.style.scrollBehavior = prev;
 }
 
-/* ---- WHERE THE ROUND STANDS, IN ONE SENTENCE ----
-   "Round 3 · 2 waiting on you, 1 waiting on Siginon. Nothing new travels until
-   you press Publish Round." Every number is counted off the change records at
-   render time — nothing here is a stored summary that could disagree with the
-   cards underneath it. Waiting-on-you is what is pending from the other side;
-   waiting-on-them is what this side has sent and not had answered. */
-function redlineRoundLine(c, side){
-  const round = (typeof negoRound === 'function') ? negoRound(c) : 1;
-  const them = String(c.counterparty || 'the counterparty').split(/[\s,]+/)[0] || 'them';
-  const all = (typeof negoChanges === 'function' ? negoChanges(c) : [])
-    .filter(x => x && x.status !== 'superseded' && !x.withdrawn);
-  const mineSeat = side === 'counterparty' ? 'counterparty' : 'owner';
-  const pending = all.filter(x => x.status === 'pending');
-  const onMe = pending.filter(x => x.authorSide !== mineSeat).length;
-  const onThem = pending.length - onMe;
-  if (!all.length) return `Round ${round} · nothing on the table yet. Ask for different wording on any clause and it lands here.`;
-  const bits = [];
-  if (onMe) bits.push(`${onMe} waiting on you`);
-  if (onThem) bits.push(`${onThem} waiting on ${them}`);
-  if (!bits.length) bits.push('every change answered');
-  return `Round ${round} · ${bits.join(', ')}. Nothing new travels until you press Publish Round.`;
-}
+/* redlineRoundLine lived here: the strip's one-sentence summary of the round.
+   It is gone with the line it built — see the note on .rl-head. Every fact it
+   stated is still on screen (the round chip on the tab row, the two counts on
+   the sidebar pills), and a builder nothing calls is how a removed feature
+   comes back the next time somebody needs a sentence. */
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
@@ -6423,8 +6412,20 @@ function renderRedline(){
              negotiation. The send moved up beside the contract's name, where
              the primary act belongs. What is left is one line saying where the
              round stands and offering the one pass a reader starts from. */}
+      ${''/* ---- THE ROUND SENTENCE IS GONE, AND THE ROW HAS A FIXED HEIGHT ----
+             It read "Round 1 · 2 waiting on you, 1 waiting on Siginon. Nothing
+             new travels until you press Publish Round." — a paragraph in a
+             toolbar. It wrapped to two lines when the counts grew or the
+             window narrowed and to one when they shrank, so the strip changed
+             height as the negotiation moved and the panes below it jumped.
+             Nothing in it was unique: the round is a chip on the tab row, the
+             counts are the two pills on the sidebar, and Publish Round is a
+             foot from here saying what it does.
+             The presence chip takes the space instead — it is the one thing on
+             this row that is genuinely news, it cannot wrap (nowrap, capped,
+             ellipsis), and it disappears when nobody is there. */}
       <section class="rl-head room-quiet">
-        <span class="rl-headline">${_ne(redlineRoundLine(c, side))}</span>
+        <span id="rl-presence" class="rl-presence" hidden></span>
         <div class="rl-head-id">
           ${rlTypeStepHtml()}
           ${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
@@ -6432,19 +6433,21 @@ function renderRedline(){
           <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="${i18t('ng_focus_mode')}" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
-          <span id="rl-presence" class="rl-presence" hidden></span>
         </div>
         ${''/* The send stays on THIS page rather than moving into the shared
                head. The head is built by js/views/contract.js and a workbench
                rendered without that file — which some test stages do — would
                lose its Publish Round entirely. A page's own primary act must
                not depend on another page's module being present. */}
+        ${''/* The round's verbs lead, the view toggle follows. Publish and Close
+               are what this row is FOR; the toggle is a way of looking, and a
+               way of looking should not sit in front of the act. */}
         <div class="rl-actions">
-          <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
           ${side === 'counterparty' ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             ${_ne(sendLabel)}</button>`}
           ${side === 'counterparty' ? '' : closer}
+          <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
         </div>
       </section>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
@@ -9597,7 +9600,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineCardIds, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,
-  redlineRoundLine, rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
+  rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlRestoreScroll,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
