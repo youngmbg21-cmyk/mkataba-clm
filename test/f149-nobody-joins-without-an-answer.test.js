@@ -69,7 +69,7 @@ function stage() {
     getUsers: () => sb.REMOTE.users,
     saveUsers: u => { sb.REMOTE.users = u; },
     canViewValues: () => true,
-    roleName: r => ({ admin: 'Admin', legal: 'Legal', viewer: 'Viewer' }[r] || ''),
+    roleName: r => ({ admin: 'Admin', legal: 'Editor', viewer: 'Viewer' }[r] || ''),
     saveSettings: async () => {},
     openModal() {}, closeModal() {}, setActiveNav() {},
     confirmDialog: async () => false, promptDialog: async () => null,

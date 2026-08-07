@@ -41,7 +41,7 @@ function render(user, { money = true, contracts = CONTRACTS } = {}) {
   const sb = loadViews(['js/approvals.js', 'js/views/home.js'], {
     currentUser: () => user,
     canViewValues: () => money,
-    ROLE_LABEL: { admin: 'Admin', legal: 'Legal', viewer: 'Viewer' },
+    ROLE_LABEL: { admin: 'Admin', legal: 'Editor', viewer: 'Viewer' },
     cKind: () => 'Contract',
     deviationSummary: () => null,
     openFindings: () => [],

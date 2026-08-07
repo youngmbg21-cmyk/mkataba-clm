@@ -73,7 +73,7 @@ function loadViews(files, overrides = {}) {
       const t = String(s.title || '').trim();
       if (t) return t;
       const r = String(s.role || '').trim();
-      return (!r || ['Admin', 'Legal', 'Viewer'].includes(r)) ? '' : r;
+      return (!r || ['Admin', 'Legal', 'Editor', 'Viewer'].includes(r)) ? '' : r;
     },
     signerTitle: u => String((u && u.title) || '').trim(),
     getApprovalCfg: () => ({ threshold: 5000000, approverRole: 'admin' }),

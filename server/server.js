@@ -2021,15 +2021,16 @@ app.put('/api/settings/folder-access', auth, admin, (req, res) => {
   setSetting('appSettings', s);
   res.json({ ok: true, folderAccess: id in s.folderAccess ? s.folderAccess[id] : null });
 });
-// Templates are managed by Admin AND Legal (tplCanManage() === canEdit() on the
-// client), but the settings blob they live in is admin-only — so a Legal user
+// Templates are managed by Admin AND Editor (tplCanManage() === canEdit() on
+// the client), but the settings blob they live in is admin-only — so an Editor
 // editing a template got a 403 and a "Settings save failed" toast, with the
 // change lost. Template writes get their own endpoint at the right authority,
 // and it writes ONLY the customTemplates key so it cannot be used to reach the
-// rest of the settings blob.
+// rest of the settings blob. (`legal` is the stored id of the Editor role; it
+// was renamed on screen only, so the permission key is unchanged.)
 const templateManager = (req, res, next) => {
   if (req.user.role !== 'admin' && req.user.role !== 'legal')
-    return res.status(403).json({ error: 'Admin or Legal access required' });
+    return res.status(403).json({ error: 'Admin or Editor access required' });
   next();
 };
 app.put('/api/settings/templates', auth, templateManager, (req, res) => {

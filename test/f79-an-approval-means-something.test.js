@@ -57,7 +57,7 @@ function world(user = ADMIN, over = {}) {
   return loadViews(['js/approvals.js'], {
     currentUser: () => user,
     canEdit: () => user.role !== 'viewer',
-    ROLE_LABEL: { admin: 'Admin', legal: 'Legal', viewer: 'Viewer' },
+    ROLE_LABEL: { admin: 'Admin', legal: 'Editor', viewer: 'Viewer' },
     cKind: () => 'Contract',
     deviationSummary: () => null,
     nowISO: () => '2026-07-28T09:00:00.000Z',

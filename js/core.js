@@ -11,7 +11,7 @@ Object.assign(window,{FIRST_PARTY,PORTAL_MODE});
 window.uid = 100;
 const nextId = () => 'MK-' + (++uid);
 const seedComments = () => ([
-  { author:(typeof jxEg==='function'&&jxEg('reviewer'))||'Wanjiku Kamau', role:'Legal (Internal)', side:'internal',
+  { author:(typeof jxEg==='function'&&jxEg('reviewer'))||'Wanjiku Kamau', role:'Editor (Internal)', side:'internal',
     text:`Flagged clause 4 — please confirm the governing-law reference stays ${(typeof jxAdjective==='function'?jxAdjective():'Kenyan')}.`, ts:'2d ago' },
   { author:'Counterparty', role:'Reviewer', side:'external', text:'Agreed on scope. We will need the value confirmed before counsel signs off.', ts:'1d ago' },
 ]);
@@ -522,7 +522,9 @@ function approvalLabel(c){
   if(c && c.status!=='Signed' && st.required){
     if(st.ok) return 'Approved';
     const a=st.next && st.next.approver;
-    return 'Pending '+(a ? (a.kind==='member' ? a.name : (a.role==='legal'?'Legal':'Admin')) : 'approval');
+    // the role's word comes from roleName() so this label follows the rename
+    // (and the reader's language) instead of hard-coding one of the three
+    return 'Pending '+(a ? (a.kind==='member' ? a.name : (roleName(a.role)||'Admin')) : 'approval');
   }
   return '—';
 }
@@ -849,10 +851,18 @@ const isAdmin = () => currentUser()?.role==='admin';
    against when it decides whether an old signature has a permission level
    sitting in its capacity field.
 
+   THE MIDDLE ROLE USED TO BE CALLED "Legal" AND IS NOW "Editor". The stored
+   role id is still `legal` — it is a database CHECK constraint and a
+   permission key, and renaming it would be a migration for no gain. Only the
+   words changed, here and in the dictionary. Records already written keep the
+   word they were written with, which is the whole point of this table being
+   separate from roleName(); ROLE_LABEL_SET therefore still recognises "Legal"
+   as well as "Editor".
+
    roleName() is the SCREEN's word — what the reader is shown right now, in
    their own language. Anything a person reads off a table, a menu or a badge
    goes through this; anything written into a record does not. */
-const ROLE_LABEL = { admin:'Admin', legal:'Legal', viewer:'Viewer' };
+const ROLE_LABEL = { admin:'Admin', legal:'Editor', viewer:'Viewer' };
 const roleName = r => ({ admin:i18t('role_admin'), legal:i18t('role_legal'), viewer:i18t('role_viewer') })[r]
   || ROLE_LABEL[r] || '';
 
@@ -917,7 +927,9 @@ function signerTitle(u){
    displayed as a capacity. Display-only: it reads existing records more
    honestly without altering one, which matters because a signature on an
    executed contract is immutable by design. */
-const ROLE_LABEL_SET = new Set(['Admin','Legal','Viewer']);
+// "Legal" is the name the middle role carried before it was renamed Editor;
+// signatures taken then still hold that word, so both are recognised.
+const ROLE_LABEL_SET = new Set(['Admin','Legal','Editor','Viewer']);
 function signatureCapacity(s){
   if(!s) return '';
   const t=String(s.title||'').trim();

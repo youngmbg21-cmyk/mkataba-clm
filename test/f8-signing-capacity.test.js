@@ -32,7 +32,9 @@ describe('capacity — the rule', () => {
 
   test('a permission level is NOT a capacity, and is suppressed', () => {
     const { signatureCapacity } = loadCore();
-    for (const r of ['Admin', 'Legal', 'Viewer'])
+    // 'Legal' is the name the Editor role carried before the rename; a
+    // signature taken then still holds it, and it is still not a capacity
+    for (const r of ['Admin', 'Legal', 'Editor', 'Viewer'])
       assert.equal(signatureCapacity(sig({ role: r })), '',
         `"${r}" is a permission level and must never be shown as a signing capacity`);
   });
