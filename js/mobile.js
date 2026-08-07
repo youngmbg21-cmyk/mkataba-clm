@@ -608,7 +608,20 @@ function mAccountSheetHtml(){
     <div class="m-grab"></div>
     <div class="m-sheet-title">${mEsc((u&&u.name)||'Signed in')}</div>
     <div class="m-sheet-note">${mEsc((u&&u.role)||'')}${u&&u.email?' · '+mEsc(u.email):''}</div>
-    <div class="m-capline" style="margin-bottom:6px">${i18t('m_jurisdiction')}</div>
+    ${''/* LANGUAGE FIRST, and on the phone this is the ONLY place it lives:
+           below 768 the desktop shell is hidden outright and this shell draws
+           the app, so the toggle in the desktop header does not exist here at
+           all. Without this row a phone user could not change language. */}
+    <div class="m-capline" style="margin-bottom:6px">${i18t('m_language')}</div>
+    <div class="m-card m-list">${(typeof langList==='function'?langList():[]).map(l=>{
+      const on = typeof langId==='function' && langId()===l.id;
+      return `<button class="m-row" data-m-lang="${l.id}">
+        <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:${on?600:500}">${mEsc(l.name)}</span></span>
+        ${on?`<span style="flex:none;color:var(--accent-solid)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>`:''}
+      </button>`;}).join('')}</div>
+    <div class="m-note" style="margin-top:8px">${i18t('m_language_sub')}</div>
+
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('m_jurisdiction')}</div>
     <div class="m-card m-list">${rows}</div>
     <div class="m-note" style="margin-top:8px">${i18t('m_jx_sub')}</div>
     <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">${i18t('m_log_out')}</button>
@@ -794,6 +807,14 @@ function mWire(){
   }));
   root.querySelectorAll('[data-m-desk]').forEach(b=>b.addEventListener('click',()=>{
     mGo('handoff',{ deskView:b.getAttribute('data-m-desk') });
+  }));
+  /* The sheet stays OPEN after a language change, unlike the market: you tick a
+     language to see the app in it, and closing the sheet would hide the one
+     thing you just changed. mRender redraws the whole phone shell, so the row
+     you tapped comes back reading in the language you picked. */
+  root.querySelectorAll('[data-m-lang]').forEach(b=>b.addEventListener('click',()=>{
+    if(window.langSet) langSet(b.getAttribute('data-m-lang'),{repaint:false});
+    mRender();
   }));
   root.querySelectorAll('[data-m-region]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-m-region');

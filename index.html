@@ -1054,15 +1054,26 @@
   .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:10px;color:var(--color-neutral-500);cursor:pointer;transition:background .15s,color .15s;}
   .hdr-icon-btn:hover{background:var(--color-neutral-100);color:var(--color-text);}
 
-  /* jurisdiction switcher (Sweden / Kenya) */
-  .region-btn{display:flex;align-items:center;gap:6px;border:0;background:none;font:inherit;font-family:var(--font-body);font-size:11px;font-weight:600;padding:4px 10px;border-radius:9px;cursor:pointer;color:var(--color-neutral-500);transition:background .15s,color .15s;white-space:nowrap;}
-  .region-btn:hover{color:var(--color-text);}
-  .region-btn.active{background:var(--accent-solid);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
-  .region-flag{display:inline-flex;flex:none;line-height:0;border-radius:2px;overflow:hidden;box-shadow:0 0 0 1px rgba(15,23,42,.12);}
-  /* The letters ride with the flag only once the words are dropped — with the
-     full label showing they would read as a stutter ("SE Sweden"). */
-  .region-abbr{display:none;font-weight:700;letter-spacing:.03em;}
-  @media (max-width:1430px){ .region-abbr{display:inline;} }
+  /* THE LANGUAGE TOGGLE. It took the top-bar space the jurisdiction flags used
+     to hold — the market is a workspace setting an admin picks once and it
+     lives in Settings now, while this is a personal one somebody flips
+     whenever they like, which is what earns a place in the strip your eye
+     crosses all day.
+
+     A segmented pair rather than a dropdown: with two languages the choice and
+     its current state are the same glance, and a <select> hides the second
+     option behind a click. It degrades by dropping the words, not the control,
+     so the tap target survives a narrow window. */
+  .lang-toggle{display:inline-flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:12px;padding:3px;gap:2px;flex:none;}
+  .lang-btn{border:0;background:none;font:inherit;font-family:var(--font-body);font-size:11px;font-weight:600;padding:4px 11px;border-radius:9px;cursor:pointer;color:var(--color-neutral-500);transition:background .15s,color .15s;white-space:nowrap;}
+  .lang-btn:hover{color:var(--color-text);}
+  .lang-btn[aria-pressed="true"]{background:var(--accent-solid);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
+  .lang-btn:focus-visible{outline:2px solid var(--color-accent-500);outline-offset:1px;}
+  /* Below 1180 the words go and the two-letter codes carry it; the button
+     itself never shrinks below something a thumb can hit. */
+  .lang-btn .lang-long{display:inline;}
+  .lang-btn .lang-code{display:none;font-weight:700;letter-spacing:.04em;}
+  @media (max-width:1180px){ .lang-btn .lang-long{display:none;} .lang-btn .lang-code{display:inline;} }
 
   /* theme toggle: both glyphs live in the button; html.dark picks which shows */
   /* The theme control. Its face is a swatch of the theme you are wearing —
@@ -1084,24 +1095,16 @@
   #theme-menu .ttick{ margin-left:auto; flex:none; color:var(--color-accent-700); font-weight:700; }
   html.dark #theme-menu .ttick{ color:var(--color-accent-300); }
   #side-copilot:hover{filter:brightness(1.07);}
-  /* narrow shells: shed the "Jurisdiction:" caption first, then the switcher,
-     then the global search and the profile text */
-  @media (max-width:1620px){ #region-switch>span:first-child{display:none;} }
-  /* Flags only, not gone. Hiding it outright removed a control that changes
-     money, the governing-law checks and the Copilot's briefing — survivable
-     while narrow windows were unusable, not survivable now they are not. */
-  @media (max-width:1430px){ #region-switch .region-btn{font-size:0;gap:5px;padding:4px 8px;} #region-switch .region-btn>span{font-size:10.5px;} }
-  /* Below 900 it moves into the nav drawer instead (placeRegionSwitch,
-     js/app.js), where there is room for its full labels again. */
+  /* narrow shells: shed the language words first, then the global search and
+     the profile text. Below 900 the toggle itself moves into the nav drawer
+     (placeLanguageSwitch, js/app.js), where the full words fit again. */
   @media (max-width:899px){
-    /* Stacked, not side by side: the two labels ("Sweden (EU/GDPR)",
-       "Kenya (KICA/ODPC)") need 251px between them and the drawer is 240px
-       wide, so in a row they were clipped. A column fits both at full width
-       and reads as the pair of choices it is. */
-    #side-nav #region-switch{margin:0 12px 4px;flex-direction:column;align-items:stretch!important;gap:2px;}
-    #side-nav #region-switch>span:first-child{display:none;}
-    #side-nav #region-switch .region-btn{font-size:11px;gap:6px;padding:6px 9px;justify-content:flex-start;}
-    #side-nav #region-switch .region-btn>span{font-size:13px;}
+    #side-nav #lang-switch{margin:0 12px 4px;align-self:stretch;justify-content:center;}
+    /* The drawer has room the header did not, so the words come back even
+       though the window is narrow — the 1180 rule is about the header's
+       crowding, not about the size of the screen. */
+    #side-nav #lang-switch .lang-long{display:inline;}
+    #side-nav #lang-switch .lang-code{display:none;}
   }
   /* Retuned. The old single step at 1000 fired too late: at 1024 the right-hand
      actions were still 504px wide, which left the brand block 117px of the
@@ -1943,34 +1946,21 @@
         </div>
       </div>
 
-      <!-- Jurisdiction / compliance switcher (SE / KE) — presentation profile
-           only; wired in js/app.js (setRegion), persisted as 'hati-region' -->
-      <div id="region-switch" style="display:flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);padding:3px;border-radius:12px;flex:none;">
-        <span style="font-size:11px;color:var(--color-neutral-500);padding:0 8px;font-weight:500;">Jurisdiction:</span>
-        <!-- THE FLAGS ARE DRAWN, NOT TYPED. Windows ships no regional-indicator
-             glyphs, so the flag emoji fell back to the bare letter pairs "SE"
-             and "KE" in boxes — on every Windows customer's header, on every
-             screen. Two 3-bar SVGs cost nothing and render identically
-             everywhere. The letters stay as the compact label the narrow-window
-             rule keeps when the words are dropped. -->
-        <button id="region-se" class="region-btn" title="Swedish workspace — EU/GDPR compliance profile"><span class="region-flag" aria-hidden="true"><svg viewBox="0 0 16 11" width="16" height="11"><rect width="16" height="11" rx="1.5" fill="#005293"/><rect x="4.5" width="2.6" height="11" fill="#fecb00"/><rect y="4.2" width="16" height="2.6" fill="#fecb00"/></svg></span><span class="region-abbr">SE</span> Sweden (EU/GDPR)</button>
-        <button id="region-ke" class="region-btn" title="Kenyan workspace — KICA/ODPC compliance profile"><span class="region-flag" aria-hidden="true"><svg viewBox="0 0 16 11" width="16" height="11"><rect width="16" height="11" rx="1.5" fill="#fff"/><rect width="16" height="3.2" fill="#000"/><rect y="3.9" width="16" height="3.2" fill="#bb0000"/><rect y="7.8" width="16" height="3.2" fill="#006600"/><ellipse cx="8" cy="5.5" rx="1.5" ry="3.4" fill="#bb0000" stroke="#fff" stroke-width=".7"/></svg></span><span class="region-abbr">KE</span> Kenya (KICA/ODPC)</button>
-      </div>
 
-      <!-- WHICH LANGUAGE YOU READ THE APP IN. Deliberately its own control
-           beside the jurisdiction switch and not part of it: the market is the
-           COMPANY's (one answer for everyone, it decides what the contracts
-           say) and the language is the PERSON's. A Swedish company's legal team
-           may work in English; an international firm in Kenya wants English
-           throughout while a colleague in Stockholm wants Swedish.
 
-           A SELECT, NOT A TWO-WAY TOGGLE. Norwegian, Danish and Finnish are the
-           obvious next ones, and the difference now is a list instead of a
-           switch — options are filled from js/i18n.js in wireShell. -->
-      <label id="lang-switch" style="display:flex;align-items:center;gap:6px;flex:none;">
-        <span data-i18n="lang_label" style="font-size:11px;color:var(--color-neutral-500);font-weight:500;">Language</span>
-        <select id="lang-select" style="border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:10px;padding:4px 8px;font:inherit;font-size:11.5px;color:inherit;outline:none;cursor:pointer;"></select>
-      </label>
+      <!-- WHICH LANGUAGE YOU READ THE APP IN. This has the space the
+           jurisdiction flags used to occupy, and that swap is the point: the
+           market is the COMPANY's, an admin sets it once, and it lives in
+           Settings. The language is the PERSON's — two people in the same
+           workspace can differ — so it belongs where it can be flipped without
+           going looking for it.
+
+           Buttons, not a <select>: with two languages a segmented pair shows
+           the choice AND the current state in one glance, where a dropdown
+           hides the alternative behind a click. Options are still built from
+           js/i18n.js in wireLanguagePicker, so a third language grows the row
+           rather than needing new markup. -->
+      <div id="lang-switch" class="lang-toggle" role="group" aria-label="Language"></div>
     </div>
 
     <!-- central global search (filters the register; ⌘K opens the jump palette) -->

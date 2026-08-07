@@ -222,7 +222,7 @@ function onShellResize(){
     // applyRail owns the sidebar's inline column and reads the drawer
     // breakpoint, so crossing 900 in either direction has to re-ask it.
     applyRail();
-    placeRegionSwitch();
+    placeLanguageSwitch();
     // A window dragged back to full width must not leave the drawer stranded
     // open over a sidebar that is already on screen.
     if(!navDrawerActive()) closeNavDrawer();
@@ -397,7 +397,7 @@ function setView(view){
   updateCommandBar(view);
   updateSidebarCounts();
   applyPanelLayout();
-  placeRegionSwitch();
+  placeLanguageSwitch();
   renderContextPanel();
   if(getOrg()&&!API_MODE()) persist();
   else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
@@ -765,17 +765,18 @@ function setNavDrawer(open){
   if(btn) btn.setAttribute('aria-expanded', open?'true':'false');
 }
 function closeNavDrawer(){ setNavDrawer(false); }
-/* ---- THE JURISDICTION SWITCHER HAS TO STAY REACHABLE ----
-   It was simply hidden below 1430 (index.html), which was survivable while
-   narrow windows were unusable anyway and is not now: Sweden/Kenya changes
-   money, the governing-law checks and the Copilot's briefing, so it is a
-   control, not decoration. From 900 up it stays in the header as flags only.
-   Below 900 the header has no room at any size, so the switcher MOVES into the
-   nav drawer, above the Copilot launcher. The element is relocated, not
-   rebuilt — same node, same two button ids, so the listeners bound in
-   wireShell keep working exactly as they did. */
-function placeRegionSwitch(){
-  const sw=document.getElementById('region-switch');
+/* ---- THE LANGUAGE TOGGLE HAS TO STAY REACHABLE ----
+   This used to relocate the jurisdiction flags. The market moved to Settings
+   (it is the company's, and admin-only), and the toggle took its place in the
+   header — so the same job now serves the language.
+
+   Hiding a control at a narrow width is not an option: below 900 the header
+   has no room at any size, so the toggle MOVES into the nav drawer, above the
+   Copilot launcher, where its full words fit again. The node is relocated,
+   not rebuilt, so the click listener bound in wireLanguagePicker keeps
+   working exactly as it did. */
+function placeLanguageSwitch(){
+  const sw=document.getElementById('lang-switch');
   const drawerHome=document.querySelector('#side-nav .copilot-wrap');
   const headerHome=document.getElementById('brand-block');
   if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
@@ -931,9 +932,9 @@ const regionCodeFor = id => Object.keys(REGIONS).find(k=>REGIONS[k].id===id) || 
 function applyRegion(code){
   state.region=code;
   const root=document.documentElement; if(root&&root.setAttribute) root.setAttribute('data-region',code);
-  const se=document.getElementById('region-se'), ke=document.getElementById('region-ke');
-  if(se&&se.classList) se.classList.toggle('active',code==='SE');
-  if(ke&&ke.classList) ke.classList.toggle('active',code==='KE');
+  /* No buttons to paint any more — the market is a select in Settings, which
+     renders its own current value. The data-region attribute stays: stylesheets
+     and the compliance badge read it. */
 }
 function setRegion(code,opts){
   if(!REGIONS[code]) return;
@@ -1053,31 +1054,46 @@ function wireShell(){
   // theme toggle + jurisdiction switcher (top header)
   wireThemeMenu();
   // closeNavDrawer because below 900 this control lives INSIDE the drawer
-  // (placeRegionSwitch), and having answered it there is nothing left to do there.
-  document.getElementById('region-se')?.addEventListener('click',()=>{ setRegion('SE'); closeNavDrawer(); });
-  document.getElementById('region-ke')?.addEventListener('click',()=>{ setRegion('KE'); closeNavDrawer(); });
   /* The stored JURISDICTION is the truth, not this control's own key: a
      workspace that set its market on another device (it rides on the org
      record) must not have it silently reverted by whatever this browser last
      had in localStorage. */
+  /* The stored jurisdiction is the truth. This no longer paints a control —
+     it sets data-region on the root, which the stylesheets and the compliance
+     badge read. Silent, because nothing is being changed here. */
   setRegion(regionCodeFor(window.jxId?jxId():'kenya'),{silent:true});
   wireLanguagePicker();
 }
 
-/* ---------- THE LANGUAGE PICKER ----------
-   Options come from js/i18n.js rather than the markup, so adding a language is
-   one entry in that file and this control grows by itself. Each option is
-   written IN its own language: a picker offering "Swedish" to a Swedish speaker
-   is offering it in English. */
+/* ---------- THE LANGUAGE TOGGLE ----------
+   Built from js/i18n.js rather than the markup, so adding a language grows the
+   row by itself. Each option is written IN its own language — a control that
+   offers "Swedish" to a Swedish speaker is offering it in English.
+
+   Two labels per button: the full name, and a two-letter code that takes over
+   below 1180px. The words go, the button does not, so the tap target survives
+   a narrow window. */
 function wireLanguagePicker(){
-  const sel=document.getElementById('lang-select');
-  if(!sel||typeof langList!=='function') return;
-  sel.innerHTML=langList().map(l=>
-    `<option value="${l.id}"${l.id===langId()?' selected':''}>${l.name}</option>`).join('');
-  sel.addEventListener('change',e=>{
-    langSet(e.target.value);
+  const host=document.getElementById('lang-switch');
+  if(!host||typeof langList!=='function') return;
+  const paint=()=>{
+    const now=langId();
+    host.innerHTML=langList().map(l=>
+      `<button type="button" class="lang-btn" data-lang="${l.id}" aria-pressed="${l.id===now}"`
+      + ` title="${l.name}"><span class="lang-long">${l.name}</span>`
+      + `<span class="lang-code">${l.id.toUpperCase()}</span></button>`).join('');
+  };
+  paint();
+  host.addEventListener('click',e=>{
+    const b=e.target.closest('[data-lang]');
+    if(!b) return;
+    if(b.getAttribute('data-lang')===langId()) return;   // already there; do not repaint for nothing
+    langSet(b.getAttribute('data-lang'));
     closeNavDrawer();   // below 900 this control lives inside the drawer
   });
+  /* Re-painted on every language change too, so the pressed state follows a
+     switch made from anywhere else — the Settings screen, or a second tab. */
+  window.repaintLanguagePicker=paint;
   applyLanguage({repaint:false});   // paint the static shell before the first render
 }
 
@@ -1091,8 +1107,7 @@ function wireLanguagePicker(){
    work. */
 if(typeof window!=='undefined') window.onLanguageChange=function(){
   try{
-    const sel=document.getElementById('lang-select');
-    if(sel && sel.value!==langId()) sel.value=langId();
+    window.repaintLanguagePicker && repaintLanguagePicker();
     updateSidebarCounts();
     renderPageHeader&&renderPageHeader();
     /* Re-entering the SAME view, which setView already treats as a repaint and
@@ -1140,4 +1155,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeRegionSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

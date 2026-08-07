@@ -368,6 +368,29 @@ function renderTeam(){
           :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_key')}</p>`}
         </section>
 
+      ${''/* WHERE THE WORKSPACE OPERATES. This lived only in the top bar, as a
+             pair of flag buttons beside the search box — a workspace-level,
+             admin-only setting sitting in the one strip a person's eye crosses
+             a hundred times a day, while the setting they actually change
+             often (their language) had nowhere to go. The market moved here,
+             which is also where the server already puts the authority:
+             PUT /api/org/jurisdiction is admin-gated. */}
+      <section style="${cardStyle}">
+        <h4 style="${h4Style}">${i18t('set_market')}</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_market_sub')}</p>
+        ${isAdmin()?`
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <select id="set-market" style="min-width:190px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:7px 10px;font:inherit;font-size:13px;color:inherit;outline:none">
+            ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${esc(p.name)}</option>`).join('')}
+          </select>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">
+            <div>${i18t('set_market_currency')}: <b>${jxCurrency()}</b> · ${i18t('set_market_law')}: <b>${esc(jxLaw())}</b></div>
+            <div>${i18t('set_market_esig')}: ${esc(jxEsignatureShort())}</div>
+          </div>
+        </div>`
+        :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_market_admin_only')}</p>`}
+      </section>
+
       <section style="${cardStyle}">
         <h4 style="${h4Style}">${i18t('set_company_design')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The standard look every contract wears when it is published, shared or exported — a <b>structure</b> (how the page is laid out) and a <b>style</b> (how it is dressed), plus your logo and your colour. The wording and the clause numbers of a contract never change; only the presentation does. Signed contracts keep the look they were sealed with.</p>
@@ -509,6 +532,16 @@ function renderTeam(){
   document.getElementById('tm-invite')?.addEventListener('click',()=>{ const n=document.getElementById('tm-name'); if(n){ n.scrollIntoView({block:'nearest'}); n.focus(); } });
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
   document.getElementById('brand-edit')?.addEventListener('click',()=>openDesignStep({ mode:'settings', onBack:()=>renderTeam() }));
+  /* THE MARKET. jxSet writes the local key, the org record and the server, so
+     the whole screen is re-rendered afterwards rather than patched: the money,
+     the governing law and the e-signature line on this very card all read from
+     the pack that just changed. */
+  document.getElementById('set-market')?.addEventListener('change',e=>{
+    if(!window.jxSet || !jxSet(e.target.value)) return;
+    if(window.setRegion && window.regionCodeFor) setRegion(regionCodeFor(jxId()),{silent:true});
+    toast(i18t('set_market_saved'));
+    renderTeam();
+  });
   renderClauseLibrary();
   if(API_MODE()) loadSessions();
   // Copilot engine config

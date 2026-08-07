@@ -1831,6 +1831,19 @@ const STRINGS = {
     ne_only_asker_withdraw: 'Only the side that asked for this can withdraw it',
     ne_only_drafter_retract: 'Only the side that drafted this can retract it',
 
+    // ---- the market, in Settings ----
+    set_market: "Where you operate",
+    set_market_sub: "The market this workspace runs in. It sets your currency, the governing law your templates propose, which risk checks apply and the statute your signatures cite. It does not change any contract that already exists.",
+    set_market_admin_only: "Only an admin can change the market.",
+    set_market_saved: "Market updated — money, governing law and the risk checks follow it",
+    set_market_currency: "Currency",
+    set_market_law: "Governing law",
+    set_market_esig: "Signatures rest on",
+
+    // ---- the phone's account sheet ----
+    m_language: "Language",
+    m_language_sub: "Yours alone — colleagues keep their own.",
+
     // ---- common empty / error states ----
     err_generic: 'Something went wrong.',
     err_offline: 'You appear to be offline.',
@@ -3592,6 +3605,19 @@ const STRINGS = {
     ne_only_refused_withdraw: 'Endast en avslagen begäran kan dras tillbaka',
     ne_only_asker_withdraw: 'Endast parten som begärde detta kan dra tillbaka det',
     ne_only_drafter_retract: 'Endast parten som skrev detta kan återkalla det',
+
+    // ---- marknaden, under Inställningar ----
+    set_market: "Var ni är verksamma",
+    set_market_sub: "Marknaden den här arbetsytan verkar på. Den styr valuta, vilken lag era mallar föreslår, vilka riskkontroller som gäller och vilken lag era underskrifter hänvisar till. Den ändrar inget befintligt avtal.",
+    set_market_admin_only: "Endast en administratör kan ändra marknaden.",
+    set_market_saved: "Marknaden uppdaterad — valuta, tillämplig lag och riskkontrollerna följer med",
+    set_market_currency: "Valuta",
+    set_market_law: "Tillämplig lag",
+    set_market_esig: "Underskrifter vilar på",
+
+    // ---- telefonens kontovy ----
+    m_language: "Språk",
+    m_language_sub: "Bara ditt — kollegor behåller sitt eget.",
 
     // ---- tomma lägen och fel ----
     err_generic: 'Något gick fel.',

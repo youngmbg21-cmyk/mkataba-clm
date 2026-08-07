@@ -29,6 +29,12 @@ const EXEC = process.env.CHROMIUM_BIN
 const SIZES = [
   { name: '1080p @150% (ThinkPad)', w: 1280, h: 590, dpr: 1.5 },
   { name: '1366x768',               w: 1366, h: 638, dpr: 1 },
+  /* THE GAP BETWEEN THE TWO SHELLS. Above 900 the toggle is in the header;
+     below 768 the phone shell draws instead and carries its own rows. Between
+     them the desktop shell survives with a header too cramped to hold the
+     toggle, so it relocates into the nav drawer — a third arrangement, with
+     its own CSS, that neither of the other sizes touches. */
+  { name: 'narrow desktop 800 (drawer)', w: 800, h: 700, dpr: 2 },
   { name: 'phone 390',              w: 390,  h: 780, dpr: 3 },
 ];
 const VIEWS = ['dashboard', 'register', 'calendar', 'intel', 'templates', 'team',
@@ -88,9 +94,108 @@ const PROBE = () => {
     // ---- the market before we touch anything ----
     const marketBefore = await page.evaluate(() => window.jxId());
 
-    // ---- switch to Swedish ----
-    await page.evaluate(() => window.langSet('sv'));
-    await page.waitForTimeout(700);
+    /* ---- SWITCH TO SWEDISH BY CLICKING THE CONTROL ----
+       Not window.langSet(). Every earlier version of this test called the
+       function directly, which is why it stayed green while the picker itself
+       was invisible: the search bar was painted on top of it, so the switch
+       worked and nobody could reach it. A test that drives the app through
+       JavaScript proves the engine, not the button. */
+    /* TWO SHELLS, TWO CONTROLS. Below 768 the desktop shell is hidden outright
+       and js/mobile*.js draws the app, so the header toggle does not exist
+       there at all — the phone carries its own language rows in the account
+       sheet. Between 768 and 900 the desktop shell survives but its header has
+       no room, and the toggle relocates into the nav drawer.
+
+       Every one of these paths is CLICKED. Reaching in with window.langSet is
+       what let an invisible control pass for a working one. */
+    const onPhone = await page.evaluate(() =>
+      getComputedStyle(document.getElementById('app-shell')).display === 'none');
+
+    const pick = async lang => {
+      if (onPhone) {
+        /* Close anything already open first. A second sheet opened over a
+           closing one leaves two in the DOM, and the older one takes the tap —
+           which is a real fault worth failing on, so it is asserted rather
+           than worked around. */
+        const stale = await page.$('.m-btn[data-m-act="close-sheet"]');
+        const staleBox = stale ? await stale.boundingBox() : null;   // null once detached
+        if (staleBox) {
+          await page.mouse.click(staleBox.x + staleBox.width / 2, staleBox.y + staleBox.height / 2);
+          await page.waitForTimeout(450);
+        }
+        await page.click('[data-m-act="account"]');
+        await page.waitForTimeout(650);          // the sheet slides in
+        const sheets = await page.evaluate(() => document.querySelectorAll('.m-sheet').length);
+        check(`${S.name}: one sheet at a time`, sheets === 1, `${sheets} open`);
+        /* A REAL POINTER PRESS AT REAL COORDINATES. Playwright's element click
+           refuses when any other node covers the centre point, and inside a
+           sheet that is still settling that is a fight about hit-testing
+           rather than about the product. Pressing the row's own centre is what
+           a thumb does: whatever is topmost there receives it and it bubbles
+           to the row's handler. It still proves reachability — a control that
+           is off-screen or covered has no centre to press. */
+        const box = await (await page.$(`[data-m-lang="${lang}"]`)).boundingBox();
+        if (!box) throw new Error(`the ${lang} row has no box — it is not on screen`);
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        await page.waitForTimeout(700);
+        const closer = await page.$('.m-btn[data-m-act="close-sheet"]');
+        const cb = closer ? await closer.boundingBox() : null;
+        if (cb) { await page.mouse.click(cb.x + cb.width / 2, cb.y + cb.height / 2); await page.waitForTimeout(350); }
+        return;
+      }
+      if (!await pressable()) { await page.click('#nav-toggle'); await page.waitForTimeout(450); }
+      const box = await (await page.$(`#lang-switch [data-lang="${lang}"]`)).boundingBox();
+      if (!box) throw new Error(`the ${lang} button has no box — it is not on screen`);
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await page.waitForTimeout(600);
+      await closeNav();
+    };
+
+    /* REACHABLE MEANS A THUMB LANDS ON IT — not that a selector finds it.
+       Two ways this has already lied. The picker the whole rewrite was
+       prompted by existed in the DOM the entire time while the search bar was
+       painted on top of it. Then this very check passed at 800px on a button
+       parked at x = -240: it sits in the CLOSED nav drawer, so it has a real
+       box and real size and is off the side of the window, and both
+       "width > 0" and Playwright's own visibility test call that visible.
+
+       So the question asked is the only one that matters: is the centre of
+       the button inside the window, and is the button what is painted there? */
+    const pressable = () => page.evaluate(() => {
+      const b = document.querySelector('#lang-switch [data-lang="sv"]');
+      if (!b) return false;
+      const r = b.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return false;
+      const x = r.x + r.width / 2, y = r.y + r.height / 2;
+      if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return false;   // parked off-screen
+      const hit = document.elementFromPoint(x, y);
+      return !!hit && b.contains(hit);                                          // or covered over
+    });
+    const closeNav = async () => {
+      if (await page.evaluate(() => window.navDrawerActive && navDrawerActive()
+          && document.getElementById('side-nav')?.classList.contains('open'))) {
+        await page.evaluate(() => window.closeNavDrawer && closeNavDrawer());
+        await page.waitForTimeout(350);
+      }
+    };
+
+    /* WHERE it is allowed to be depends on the width, and each place has to be
+       reachable on its own terms: in the header outright, or one press of the
+       nav toggle away, or the phone's account sheet. */
+    let where = null;
+    if (onPhone) {
+      where = await page.$('[data-m-act="account"]') ? 'phone: account sheet' : null;
+    } else if (await pressable()) {
+      where = 'desktop: header toggle';
+    } else if (await page.$('#nav-toggle')) {
+      await page.click('#nav-toggle');
+      await page.waitForTimeout(450);
+      where = await pressable() ? 'desktop: nav drawer, one press away' : null;
+      await closeNav();
+    }
+    check(`${S.name}: there is a language control a user can actually reach`,
+      !!where, where || 'nothing a person could press');
+    await pick('sv');
 
     const sv = await page.evaluate(() => ({
       lang: document.documentElement.lang,
@@ -132,8 +237,7 @@ const PROBE = () => {
       [...room.cut.map(c => `${c.el} cut ${c.over}px`), ...room.spill.map(p => `page +${p}px`)].slice(0, 3).join(' | '));
 
     // ---- switching BACK, from a screen that is not the dashboard ----
-    await page.evaluate(() => window.langSet('en'));
-    await page.waitForTimeout(600);
+    await pick('en');
     const back = await page.evaluate(() => ({
       lang: document.documentElement.lang,
       nav: (document.querySelector('[data-i18n="nav_home"]') || {}).textContent || '',
@@ -142,8 +246,7 @@ const PROBE = () => {
       back.lang === 'en' && back.nav === 'Home', `lang=${back.lang} nav=${back.nav}`);
 
     // ---- and the choice survives a reload ----
-    await page.evaluate(() => window.langSet('sv'));
-    await page.waitForTimeout(400);
+    await pick('sv');
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
     const afterReload = await page.evaluate(() => ({

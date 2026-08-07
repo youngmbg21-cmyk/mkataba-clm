@@ -36,9 +36,27 @@ const SCREENS = [
     '*,*::before,*::after{animation:none!important;transition:none!important}' });
 
   const shots = [];
-  for (const lang of ['en', 'sv']) {
-    await page.evaluate(l => window.langSet(l), lang);
+
+  /* CLICKED, NOT CALLED. These shots exist to show the owner the control, so
+     the shots have to be taken the way a person would take them — press the
+     button. Calling window.langSet would photograph an app in Swedish without
+     ever proving the button that got it there is on the screen. */
+  const press = async lang => {
+    await page.click(`#lang-switch [data-lang="${lang}"]`);
     await page.waitForTimeout(700);
+  };
+
+  /* The toggle on its own, big, so it is legible in a message. */
+  for (const lang of ['en', 'sv']) {
+    if (lang !== 'en') await press(lang);
+    const f = path.join(OUT, `toggle--${lang}.png`);
+    await page.locator('#lang-switch').screenshot({ path: f });
+    shots.push(f);
+  }
+  await press('en');
+
+  for (const lang of ['en', 'sv']) {
+    if (lang !== 'en') await press(lang);
 
     for (const s of SCREENS) {
       await page.evaluate(v => window.setView(v), s.view);
@@ -46,6 +64,22 @@ const SCREENS = [
       const f = path.join(OUT, `${s.id}--${lang}.png`);
       await page.screenshot({ path: f });
       shots.push(f);
+
+      /* The market card, which is where the thing the flags used to do now
+         lives. It is admin-only and sits down the Settings page, so it needs
+         scrolling to and is worth a shot of its own — the whole point of
+         moving it was that it stops being a header ornament and starts being
+         a company setting with a sentence explaining it. */
+      if (s.view === 'team') {
+        const card = page.locator('#set-market').locator('xpath=ancestor::section[1]');
+        if (await card.count()) {
+          await card.first().scrollIntoViewIfNeeded();
+          await page.waitForTimeout(250);
+          const m = path.join(OUT, `market-card--${lang}.png`);
+          await card.first().screenshot({ path: m });
+          shots.push(m);
+        }
+      }
     }
 
     // and a contract open, which is where most of the words live
