@@ -73,7 +73,10 @@ describe('a change is anchored on a clause, not on a position', () => {
       assert.equal(ch.changeType, 'modify');
       assert.equal(ch.status, 'pending');
       assert.equal(ch.authorSide, 'counterparty');
-      assert.equal(ch.hashV, 2, 'and stamped with the hash format it was written under');
+      /* v3 since the formatting-only work: the canonical string now carries
+         the stored rich body, so two asks with the same words and different
+         formatting hash differently. v2 records keep verifying under v2. */
+      assert.equal(ch.hashV, 3, 'and stamped with the hash format it was written under');
     }
     assert.deepEqual(own(filed.map(x => x.clauseLabel)),
       ['Clause 4 · Payment Terms', 'Clause 5 · Storage Conditions and Duration',

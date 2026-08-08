@@ -629,6 +629,15 @@ function negoStyleHtml(){
     border-radius:5px;padding:1px 7px;margin-left:8px;vertical-align:1px;letter-spacing:.3px}
   .nego-note.ok{background:var(--n-ins-bg);color:var(--n-ins-fg)}
   .nego-note.no{background:var(--n-del-bg);color:var(--n-del-fg)}
+  /* A formatting-only ask has no strike/insert marks to wear, so the chip is
+     the whole signal — slate, not red or green, because it is information
+     rather than a verdict. */
+  .nego-note.fmt{background:var(--n-badge-bg);color:var(--n-slate-soft);border:1px solid var(--n-slate-soft)}
+  /* The refusal that stays after formatting-only edits became fileable: a save
+     where truly nothing changed. Inline beside the button that was pressed —
+     a corner toast made the button read as dead. */
+  .nego-edit-bar .nego-nofile{font-family:var(--n-font-ui);font-size:11.5px;font-weight:600;
+    color:var(--n-del-fg);align-self:center;margin-left:6px}
 
   /* ---- the change index ---- */
   .nego-pane.index{background:var(--color-neutral-100)}
@@ -1683,6 +1692,14 @@ function negoDocHtml(c, opts){
         ${tools(cl)}${head(cl) ? `<h2 data-nego-chrome>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
 
     let body, badgeCls = '', badgeSuffix = '', note = '';
+    /* A FORMATTING-ONLY change has all-keep ops — rendered from them it would
+       show the baseline with no marks at all, a proposal invisible on the page
+       it is proposed on. So it renders the proposed rich body itself (the new
+       formatting, visible), and the chip in the notes row says what kind of
+       ask it is. No rich-diff marks are invented — the words are unchanged by
+       definition, and the summary and chip say so. */
+    const fmtBody = (ch.formattingOnly && ch.bodyHtml && window.sanitizeRich)
+      ? `<div class="nego-redline nego-fmt-only">${sanitizeRich(ch.bodyHtml)}</div>` : null;
     if (ch.status === 'pending'){
       /* A proposed DELETION strikes the clause through whole and leaves every
          word of it on the page. The text is not removed until the deletion is
@@ -1690,11 +1707,11 @@ function negoDocHtml(c, opts){
          still deciding about it is the failure this rule exists to prevent. */
       body = ch.changeType === 'deleteClause'
         ? `<div class="nego-redline">${_negoStruckBlocks(cl.text)}</div>`
-        : `<div class="nego-redline">${redline(ch)}</div>`;
+        : (fmtBody || `<div class="nego-redline">${redline(ch)}</div>`);
     } else if (ch.status === 'accepted'){
       body = ch.changeType === 'deleteClause'
         ? `<div class="nego-redline">${_negoStruckBlocks(cl.text)}</div>`
-        : `<div class="nego-redline">${resolvedHtml(ch)}</div>`;
+        : (fmtBody || `<div class="nego-redline">${resolvedHtml(ch)}</div>`);
       badgeCls = 'is-accepted'; badgeSuffix = ' ✓';
       /* THE LABEL NAMES THE CHANGE, and it has to.
 
@@ -1724,7 +1741,12 @@ function negoDocHtml(c, opts){
     const active = _negoActive === ch.id;
     const flag = ch.needsReview
       ? `<span class="nego-note no" title="${_ne(ch.needsReviewWhy || '')}">${i18t('ng_needs_review',{id:_ne(ch.id)})}</span>` : '';
-    const notes = note + flag;
+    /* Said while the ask is live or adopted; a rejected one reads as the
+       baseline, where the chip would be a claim about wording no longer on
+       the table. */
+    const fmtFlag = (ch.formattingOnly && ch.status !== 'rejected')
+      ? `<span class="nego-note fmt">${i18t('ng_formatting_only')}</span>` : '';
+    const notes = note + fmtFlag + flag;
     /* Emitted ONCE: in the tools row where there is one, in the heading where
        there is not. Rendering it in both places is the thing this change exists
        to stop. */
@@ -2738,20 +2760,11 @@ function negoIndexSendHtml(c, opts = {}){
     </div>`;
   }
   if (me !== 'counterparty') return '';
-  /* ---- THE PREVIEW SEAT SAYS WHAT IT IS, ALWAYS ----
-     Above the pending-count check on purpose. This line is not a status about
-     unsent work — it is the answer to "where is the send?", and that question
-     is asked hardest when the column looks ready to send and offers nothing.
-     Below the check it only rendered when something was pending, which is the
-     one case it did not need to explain. */
-  if (opts.preview){
-    const org = _ne(String(opts.org || window.FIRST_PARTY || 'the other side'));
-    return `<div class="nego-index-send">
-      <span class="why">This is a PREVIEW of their seat, not their seat. Anything entered here is
-      stamped as entered by you on their behalf, and only they can send — from their own link.
-      Nothing on this view reaches ${org} or moves whose turn it is.</span>
-    </div>`;
-  }
+  /* No preview branch here any more: Counterparty View mounts read-only, so
+     this builder returns '' for it at the top, and the column's explanation is
+     the readonlyWhy line — one voice, not two. The old text here claimed the
+     preview could enter changes on their behalf, which stopped being true when
+     the view became a window (see renderRedline's mount). */
   const n = opts.pendingDecisions || 0;
   /* WORDING THEY HAVE ASKED FOR COUNTS TOO, and leaving it out was a dead end
      with no bottom. This postbox counted decisions only — answers to the
@@ -4056,7 +4069,19 @@ function wireNegotiationTab(c, opts = {}){
      negoDocHtml): the baseline is a reference, and a reader with no right to
      propose must not be offered a menu that ends in a proposal. */
   const editableRoom = !opts.readonly && opts.canEdit !== false;
+  /* ---- THE LOCK, NOT ONLY THE SIGN ----
+     A read-only mount (Counterparty View, an executed contract, a signing
+     link) renders no verbs — but hiding buttons is the sign on the door, and
+     the executed-contract work taught that the lock has to exist separately:
+     a stray handler, a keyboard path or next year's wiring must find a
+     refusal here, not a live engine. */
+  const lockedOut = () => {
+    if (!opts.readonly) return false;
+    if (window.toast) toast(i18t('ng_view_only_no_actions'), 'err');
+    return true;
+  };
   const decide = (id, status, extra) => {
+    if (lockedOut()) return;
     const ch = negoResolve(c, id, status, { side, by: opts.by, ...(extra || {}) });
     if (!ch) return;
     delete _negoRedeciding[id];   // answered again — the card settles again
@@ -4080,9 +4105,18 @@ function wireNegotiationTab(c, opts = {}){
      repaints. Nothing here writes to the document: a proposal is a proposal
      until the other side decides it, on this surface exactly as on every
      other. */
-  const fileAndRepaint = async (fn, msg) => {
+  const fileAndRepaint = async (fn, msg, onNothing) => {
+    if (lockedOut()) return;
     const ch = await fn();
-    if (!ch){ if (window.toast) toast(i18t('ng_nothing_changed_no_fp')); return; }
+    /* A refusal must land where the press happened. The corner toast remains
+       the fallback, but a caller with a bar to write on says it there —
+       "nothing filed" delivered off-screen is how a live button reads as a
+       dead one (the fault that opened the formatting-only work order). */
+    if (!ch){
+      if (typeof onNothing === 'function') onNothing();
+      else if (window.toast) toast(i18t('ng_nothing_changed_no_fp'));
+      return;
+    }
     _negoActive = ch.id;
     if (window.negoInvalidateVerification) negoInvalidateVerification(c);
     if (opts.persist !== false && window.persist) persist(c);
@@ -4394,7 +4428,16 @@ function wireNegotiationTab(c, opts = {}){
       const note = String((why.querySelector('textarea') || {}).value || '').trim();
       fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML,
         { side, author: opts.by, why: note || undefined }),
-        ch => `#${ch.id} filed — ${ch.summary}`);
+        ch => `#${ch.id} filed — ${ch.summary}`,
+        /* Nothing changed — neither words nor formatting. Said IN the bar,
+           beside the button that was pressed: the toast alone made File
+           change read as broken (formatting-only work order, FO-5). */
+        () => {
+          let n = bar.querySelector('.nego-nofile');
+          if (!n){ n = document.createElement('span'); n.className = 'nego-nofile'; bar.appendChild(n); }
+          n.textContent = i18t('ng_nothing_changed_inline');
+          if (window.toast) toast(i18t('ng_nothing_changed_no_fp'));
+        });
     };
     const wire = () => {
       bar.querySelector('[data-nego-cancel]')?.addEventListener('click', ev => { ev.stopPropagation(); again(); });
@@ -6428,7 +6471,10 @@ function renderRedline(){
         <span id="rl-presence" class="rl-presence" hidden></span>
         <div class="rl-head-id">
           ${rlTypeStepHtml()}
-          ${(typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
+          ${''/* Not in Counterparty View: the playbook pass can FILE proposals,
+                 and that view is a window, not a chair (see the mount below).
+                 The counterparty never sees the playbook either way. */}
+          ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
             title="${i18t('ng_review_every_clause')}">${i18t('ng_review_vs_playbook')}</button>` : ''}
           <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="${i18t('ng_focus_mode')}" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
@@ -6529,16 +6575,25 @@ function renderRedline(){
      layout exactly as it binds to its own. */
   const mount = document.getElementById('redline-host');
   negoEnsureStyle();
-  /* ---- THIS IS A PREVIEW OF THEIR SEAT, NOT THEIR SEAT ----
-     Counterparty View exists so the owner can check what crosses the wall
-     before it does. It is the same component with the side flag flipped, so it
-     also came with their SEND — which on this page is negoHandOver, a turn
-     move recorded as made BY the counterparty. Pressing it produced a record
-     of the other side handing the table back when they had done nothing at
-     all. Nothing needs to travel from here in any case: both sides of this
-     toggle read the same record, so an ask entered on their behalf is already
-     on it. The send is theirs alone, on their own link. */
-  const opts = { hostId: 'redline-host', side, preview: side === 'counterparty',
+  /* ---- COUNTERPARTY VIEW IS A WINDOW, NOT A CHAIR ----
+     It exists so the owner can check what crosses the wall before it does,
+     and it is now READ-ONLY outright (Young, 08 Aug 2026 — the counterparty-
+     view work order). It used to be their live seat with the side flag
+     flipped: Direct Edit filed real changes in their name (stamped enteredBy),
+     Accept all decided their asks, the hand-back moved the turn as them, and
+     the Copilot was a drag away. Every one of those is an act the preview must
+     not offer — checking what they see and acting as them are different
+     things, and the second now has no route from here. The owner's own edits
+     belong in Internal View; the counterparty's answers arrive from their own
+     link, where filing in their name remains fully supported (the enteredBy
+     machinery in negoFileChange is untouched for the routes that still
+     legitimately use it — inbound links and the Word round-trip).
+
+     The lock is layered like the executed-contract lock directly below: this
+     flag is the sign on the door, and wireNegotiationTab refuses decide/file
+     under readonly even if a stray path reaches them. */
+  const previewing = side === 'counterparty';
+  const opts = { hostId: 'redline-host', side, preview: previewing,
     /* ---------- A SEALED CONTRACT SHOWS NO VERBS ----------
        The closed banner at negoBannerHtml has fired on 'Signed' for a long
        time, and the panes underneath it went on rendering Direct Edit, Propose
@@ -6556,17 +6611,26 @@ function renderRedline(){
        refuses the write even if a caller reaches it another way; both ship,
        because a lock with no sign is a button that errors at a reader who
        should never have been offered it. */
-    readonly: (typeof negoExecuted === 'function') ? negoExecuted(c) : false,
+    readonly: previewing || ((typeof negoExecuted === 'function') ? negoExecuted(c) : false),
+    /* The more specific reason wins, same rule as the portal: "executed" tells
+       the reader what to do next; the preview line only explains the absence
+       of verbs. */
     readonlyWhy: ((typeof negoExecuted === 'function') && negoExecuted(c))
-      ? 'This contract is executed — its wording is sealed. Record an amendment instead.' : null,
+      ? 'This contract is executed — its wording is sealed. Record an amendment instead.'
+      : previewing ? i18t('ng_preview_window_why', { who: c.counterparty || i18t('ng_the_counterparty') })
+      : null,
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
     /* Highlighting wording on this page drives the SIDE PANEL, never a
        standalone popover with a dialog behind it. rlSelMenu is the only floating
        layer left here, and it is a three-item menu that dismisses itself the
        moment one is chosen — everything it hands off to lands either in the
-       Copilot column or in the Discussion column. */
-    selMenu: ctx => rlSelMenu({ ...ctx, c, opts, again: () => renderRedline() }),
+       Copilot column or in the Discussion column.
+
+       In Counterparty View, selecting text is just reading — the same stub the
+       portal mounts, so no menu and no Copilot route opens from the preview. */
+    noAi: previewing || undefined,
+    selMenu: previewing ? (() => {}) : ctx => rlSelMenu({ ...ctx, c, opts, again: () => renderRedline() }),
     /* ---- ONE CLICK, NO DIALOG, WHEN WE KNOW WHERE IT GOES ----
        #nego-send has always taken the direct route when the mount supplied a
        contact and an onSendDirect — that is how the contract room sends
@@ -6623,42 +6687,19 @@ function renderRedline(){
       }
       renderRedline();
     },
-    /* ---- ACTING AS THE COUNTERPARTY, THE TABLE STILL TURNS ----
-       The engine's index renders #nego-send-decisions for the counterparty
-       side only when told what is waiting (their new asks, their undecided
-       answers) — this page told it nothing, so Counterparty View had no way
-       to hand the contract back and the six-round loop stalled at round two.
-       Both counts come off the record: asks from negoUnsentAsks, decisions
-       from resolvedAt landing after the last hand-over. */
-    pendingProposals: side === 'counterparty'
-      ? (window.negoUnsentAsks ? negoUnsentAsks(c, 'counterparty') : []).length : 0,
-    pendingDecisions: side === 'counterparty'
-      ? negoChanges(c).filter(x => (x.status === 'accepted' || x.status === 'rejected')
-          && x.authorSide === 'owner'
-          && String(x.resolvedAt || '') > String((c.negotiation && c.negotiation.turnAt) || '')).length : 0,
+    /* Counterparty View no longer acts, so it has nothing waiting to send —
+       the counts that used to render their postbox here (and, before that,
+       stalled the six-round loop when they were missing) are gone with the
+       verbs. The real counterparty's postbox lives on their own page, where
+       the portal supplies these from its held state. */
+    pendingProposals: 0,
+    pendingDecisions: 0,
     org: window.FIRST_PARTY || 'the owner',
-    /* Handing back FROM the table is a turn move, not a share: both sides of
-       this toggle read the same record, so the decisions and counter-asks are
-       already on it — what travels is whose turn it is. The real counterparty
-       page (the portal) keeps its own send, which posts a response payload;
-       this one exists for the negotiation table the workbench is. */
-    onSendDecisions(){
-      const who = window.FIRST_PARTY || 'the owner';
-      const out = negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });
-      if (!out){
-        /* Genuinely nothing to do now: the turn is theirs AND nothing of ours
-           is waiting to go. The old message said only the first half, and said
-           it over a column of unsent drafts — see negoHandOver for the dead end
-           that produced. */
-        if (window.toast) toast(`Nothing to send — it is already ${who}'s turn and every ask of yours has gone`, 'err');
-        return;
-      }
-      if (window.persist) persist(c);
-      if (window.toast) toast(out.moved === false
-        ? `Sent to ${who} — it was already their turn, so the table has not moved`
-        : `Handed back to ${who} — it is now their turn`);
-      renderRedline();
-    },
+    /* No onSendDecisions here any more. It was negoHandOver recorded as made
+       BY the counterparty — a record of the other side handing the table back
+       when they had done nothing at all — and a read-only preview has nothing
+       to hand back anyway. The portal supplies its own; this mount supplies
+       none, so even a stray #nego-send-decisions could wire to nothing. */
     /* ---- A SHARED REPLY HAS TO LEAVE THE BUILDING ----
        negoPostComment writes it onto our record, which is what this page's
        thread reads — and on this page that was the whole of it, so an answer
@@ -6703,16 +6744,9 @@ function renderRedline(){
   mount.innerHTML = redlinePanesHtml(c, opts);
   wireNegotiationTab(c, opts);
   negoAfterPaint(c, opts, mount);
-  /* #nego-send-decisions is wired by the ROOM's action bar, which this page
-     does not mount — so the counterparty postbox is bound here, to the same
-     hook the room would call. */
-  if (side === 'counterparty'){
-    const back = document.getElementById('nego-send-decisions');
-    if (back && !back.dataset.rlWired){
-      back.dataset.rlWired = '1';
-      back.addEventListener('click', () => opts.onSendDecisions());
-    }
-  }
+  /* The counterparty postbox (#nego-send-decisions) is no longer bound here:
+     Counterparty View is read-only, supplies no onSendDecisions, and renders
+     no postbox to bind. The portal's own mount keeps its binding. */
   /* Closing the round — the naming dialog first, because it is irreversible:
      the decided changes fold into the round history and the agreed wording
      becomes the baseline the next round is measured against. */
@@ -8177,6 +8211,14 @@ function redlineDocHtml(c, opts = {}){
     const who = String((ch && (ch.author || ch.by)) || '').trim();
     const when = (ch && (ch.updatedAt || ch.createdAt)) ? negoWhen(ch.updatedAt || ch.createdAt) : '';
     const tip = who ? `Last updated by ${who}${when ? ` at ${when}` : ''}` : '';
+    /* A FORMATTING-ONLY ask has all-keep ops — drawn from them this clause
+       would show the baseline with no marks, a proposal invisible on the page
+       it is proposed on. The proposed rich body is the redline: the new
+       formatting, visible, and the ask tag says what kind of ask it is. Same
+       rule as negoDocHtml's fmtBody — both renderers, one behaviour, or the
+       portal and the room disagree about what is being asked. */
+    if (ch.formattingOnly && ch.bodyHtml && window.sanitizeRich)
+      return `<div class="nego-body nego-fmt-only"${tip ? ` title="${_nea(tip)}"` : ''}>${sanitizeRich(ch.bodyHtml)}</div>`;
     if (window.redlineOpsBlocksHtml && Array.isArray(ch.ops) && ch.ops.length)
       return `<div class="nego-body">${redlineOpsBlocksHtml(ch.ops, { title: tip })}</div>`;
     if (window.redlineOpsHtml && ch.ops)
@@ -8221,10 +8263,14 @@ function redlineDocHtml(c, opts = {}){
       const st = ch.status === 'accepted' ? ' &middot; &#10003; adopted'
         : ch.status === 'rejected' ? ' &middot; &#10007; refused' : '';
       const tagTip = ch.status === 'rejected' && ch.reply ? ` title="${_nea(ch.reply)}"` : '';
+      /* Named on the tag, because this clause shows no strike/insert marks —
+         the chip is the only thing saying the words did not move. */
+      const fmtChip = ch.formattingOnly
+        ? `<span class="nego-note fmt">${i18t('ng_formatting_only')}</span>` : '';
       return `<section class="nego-clause rl-clause is-changed" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
         <div class="rl-clause-top">
           ${heading(cl)}
-          <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}${st}</span>
+          <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}${st}</span>${fmtChip}
         </div>
         ${redlineBody(ch)}
         ${tools(cl, ch)}

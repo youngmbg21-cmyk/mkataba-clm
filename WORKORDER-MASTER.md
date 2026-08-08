@@ -29,6 +29,27 @@
    branch `feature/pdf-upload`, own fixtures, own stop conditions) and does not
    interact with Stages 0–9.
 
+5. `WORKORDER-formatting-only-changes.md` — **formatting-only edits (bold,
+   italic, underline, lists) must be fileable as tracked changes** (items
+   **FO-1 … FO-5**). Raised 8 Aug 2026 from the counterparty page. **CLOSED —
+   built 8 Aug 2026**: funnel detection, hashV 3 with v2 back-verification,
+   both renderers, transport dedupe, inline refusal. Proof in f151, f35,
+   live-verify (36/36).
+
+6. `WORKORDER-counterparty-view-readonly.md` — **the owner's Counterparty View
+   becomes view-only** (items **CV-1 … CV-4**): no edits, no decisions, no
+   hand-back, no Copilot from the preview seat. Raised 8 Aug 2026. **CLOSED —
+   built 8 Aug 2026**: readonly mount + engine-level lock; the
+   type-it-in-on-their-behalf route is gone (CV-4, accepted). Proof in f152;
+   f84/f92 updated to the new contract.
+
+7. `WORKORDER-monthly-report-email.md` — **set up the scheduled monthly report
+   email** (items **MR-1 … MR-4**). Raised 8 Aug 2026. **CLOSED — built 8 Aug
+   2026** on the order's own D1–D5 recommendations (admins by default,
+   digest, month-close send, fixed English + market currency, admin-controlled
+   audience). Proof in f153. The D1–D5 answers are settings, changeable any
+   time.
+
 ---
 
 ## What this document is
