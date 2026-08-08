@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HaTi Analyst — prototype</title>
+<!-- The real HaTi typefaces, already inlined as data URIs in the repo.
+     Nothing is fetched from the internet. -->
+<link rel="stylesheet" href="../fonts/fonts.css" />
+<style>
+/* ============================================================================
+   HaTi Analyst — a LOOKS-ONLY prototype.
+
+   Nothing here is wired to the app. It is a picture of what the analyst
+   screens would look like if they were built into HaTi, drawn with HaTi's own
+   tokens (teal on slate, Plus Jakarta Sans / Inter, 12px radii, the amber /
+   emerald / rose status model) so it reads as the same product rather than as
+   a mockup from somewhere else.
+
+   Every figure on these screens is INVENTED sample data for one imaginary
+   Kenyan company. None of it comes from a real customer.
+   ========================================================================= */
+
+:root{
+  --color-bg:#f8fafc;
+  --color-surface:#ffffff;
+  --color-surface-2:#f1f5f9;
+  --color-text:#1e293b;
+  --color-divider:#e2e8f0;
+
+  --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
+  --color-neutral-400:#94a3b8; --color-neutral-500:#64748b; --color-neutral-600:#475569;
+  --color-neutral-700:#334155; --color-neutral-800:#1e293b; --color-neutral-900:#0f172a;
+
+  --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4; --color-accent-300:#5eead4;
+  --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6; --color-accent-600:#0d9488;
+  --color-accent-700:#0f766e; --color-accent-800:#115e59; --color-accent-900:#134e4a;
+  --color-accent:var(--color-accent-600);
+  --accent-solid:var(--color-accent-600);
+  --accent-ink:var(--color-accent-800);
+  --brand-cyan:#06b6d4; --brand-cyan-700:#0aa2b8;
+  --brand-grad:linear-gradient(135deg,var(--color-accent-600),var(--brand-cyan));
+  --brand-hero-deep:#0b3d3a;
+  --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
+  --brand-hero-sub:#bde7e1;
+
+  /* the sidebar is dark in every theme — that is HaTi's rule, not a dark-mode
+     side effect */
+  --nav-bg:#0b3d3a; --nav-line:#0a3532; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
+
+  --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
+  --font-body:Inter,system-ui,sans-serif;
+
+  --radius-sm:8px; --radius-md:12px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+  --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+  --focus:0 0 0 2px color-mix(in srgb,var(--color-accent) 45%,transparent);
+
+  --danger:#dc2626;
+  --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;  --st-gray-line:#cbd5e1;
+  --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b; --st-amber-line:#e0c48a;
+  --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981; --st-green-line:#a8cbb8;
+  --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;  --st-ruby-line:#e6c9c1;
+  --st-steel-bg:var(--color-accent-100); --st-steel-fg:var(--color-accent-800);
+  --st-steel-dot:var(--color-accent-500); --st-steel-line:var(--color-accent-200);
+
+  /* THE CHART RAMP. The stage bar is a SEQUENCE (a deal moves through these in
+     order), so it is one hue getting darker — not five unrelated colours.
+     Every segment is directly labelled, which is what earns the pale steps
+     their place against a white card. */
+  --ch-1:#5eead4; --ch-2:#2dd4bf; --ch-3:#14b8a6; --ch-4:#0f766e; --ch-5:#115e59;
+  --ch-grid:#e2e8f0;
+  --ch-ref:#94a3b8;          /* the benchmark line — an annotation, not a series */
+}
+
+/* Dark: the viewer's own theme decides. The un-stamped state (OS preference,
+   no explicit choice) is the common one, so it gets its own block; the
+   explicit stamp wins in both directions. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --color-bg:#020617;
+    --color-surface:#0f172a;
+    --color-surface-2:#111f36;
+    --color-text:#e2e8f0;
+    --color-divider:#1e293b;
+    --color-neutral-100:#1e293b; --color-neutral-200:#243244; --color-neutral-300:#334155;
+    --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1;
+    --color-neutral-700:#e2e8f0; --color-neutral-800:#f1f5f9; --color-neutral-900:#f8fafc;
+    --accent-ink:var(--color-accent-400);
+    --nav-bg:#0b1220; --nav-line:#1e293b; --nav-ink:#94a3b8; --nav-ink-strong:#f1f5f9;
+    --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+    --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+    --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+    --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+    --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+    --ch-grid:#1e293b;
+    --ch-ref:#64748b;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --color-bg:#020617;
+  --color-surface:#0f172a;
+  --color-surface-2:#111f36;
+  --color-text:#e2e8f0;
+  --color-divider:#1e293b;
+  --color-neutral-100:#1e293b; --color-neutral-200:#243244; --color-neutral-300:#334155;
+  --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1;
+  --color-neutral-700:#e2e8f0; --color-neutral-800:#f1f5f9; --color-neutral-900:#f8fafc;
+  --accent-ink:var(--color-accent-400);
+  --nav-bg:#0b1220; --nav-line:#1e293b; --nav-ink:#94a3b8; --nav-ink-strong:#f1f5f9;
+  --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+  --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+  --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+  --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+  --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+  --ch-grid:#1e293b;
+  --ch-ref:#64748b;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+  --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--color-bg);
+  color:var(--color-text);
+  font-family:var(--font-body);
+  font-size:13px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-heading);margin:0;text-wrap:balance;}
+button{font:inherit;font-family:var(--font-body);cursor:pointer;}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+/* ---------- the prototype's own frame (not part of HaTi) ---------- */
+.proto-note{
+  max-width:1320px;margin:0 auto;padding:18px 20px 0;
+}
+.proto-note p{
+  margin:0;padding:11px 14px;border-radius:var(--radius-md);
+  background:var(--st-amber-bg);border:1px solid var(--st-amber-line);
+  color:var(--st-amber-fg);font-size:12px;font-weight:500;
+}
+.proto-note b{font-weight:700;}
+
+/* ---------- app shell ---------- */
+.shell{
+  max-width:1320px;margin:14px auto 34px;background:var(--color-surface);
+  border:1px solid var(--color-divider);border-radius:16px;overflow:hidden;
+  box-shadow:var(--shadow-md);
+  display:grid;grid-template-columns:236px 1fr;grid-template-rows:auto 1fr;
+  grid-template-areas:"brand top" "nav main";
+  min-height:760px;
+}
+.brandbar{
+  grid-area:brand;background:var(--nav-bg);border-right:1px solid var(--nav-line);
+  padding:14px 16px;display:flex;align-items:center;gap:9px;
+}
+.brandbar .wm{font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.02em;color:#fff;}
+.brandbar .tag{
+  font-size:9.5px;padding:1px 7px;border-radius:999px;font-weight:700;
+  background:rgba(255,255,255,.14);color:var(--brand-hero-sub);
+}
+.topbar{
+  grid-area:top;background:var(--color-surface);border-bottom:1px solid var(--color-divider);
+  padding:10px 18px;display:flex;align-items:center;gap:14px;
+}
+.searchbox{
+  flex:1;max-width:420px;display:flex;align-items:center;gap:8px;
+  border:1px solid var(--color-divider);border-radius:10px;padding:7px 11px;
+  background:var(--color-bg);color:var(--color-neutral-500);font-size:12px;
+}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.mkt-chip{
+  display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  border:1px solid var(--color-divider);border-radius:999px;padding:5px 11px;
+  color:var(--color-neutral-600);background:var(--color-surface);
+}
+.copilot-btn{
+  display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:10px;
+  background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent-solid) 30%,transparent);
+  color:var(--accent-ink);font-size:11.5px;font-weight:600;
+}
+.avatar{
+  width:30px;height:30px;border-radius:50%;background:var(--brand-grad);color:#fff;
+  display:grid;place-items:center;font-size:10.5px;font-weight:700;font-family:var(--font-heading);
+}
+
+/* ---------- sidebar ---------- */
+.sidenav{
+  grid-area:nav;background:var(--nav-bg);border-right:1px solid var(--nav-line);
+  padding:12px;display:flex;flex-direction:column;gap:2px;
+}
+.nav-head{
+  font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:color-mix(in srgb,var(--nav-ink) 78%,transparent);padding:14px 12px 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;width:100%;border:1px solid transparent;
+  background:none;color:var(--nav-ink);font-size:12px;font-weight:600;
+  padding:9px 12px;text-align:left;border-radius:12px;
+  transition:background .12s,color .12s;
+}
+.nav-item svg{flex:none;opacity:.9;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:var(--nav-ink-strong);}
+.nav-item.active{background:rgba(255,255,255,.15);color:var(--nav-ink-strong);}
+.nav-item .lbl{flex:1;}
+.nav-count{
+  font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;
+  background:rgba(255,255,255,.14);color:var(--nav-ink);
+  font-variant-numeric:tabular-nums;
+}
+.nav-item.active .nav-count{background:rgba(255,255,255,.24);color:#fff;}
+.nav-new{
+  font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;
+  background:var(--color-accent-500);color:#04241f;
+}
+
+/* ---------- main ---------- */
+.main{grid-area:main;background:var(--color-bg);padding:20px 22px 30px;overflow:auto;}
+.page-head{margin-bottom:18px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.page-head h1{font-size:21px;font-weight:800;letter-spacing:-.02em;}
+.page-head .sub{color:var(--color-neutral-500);font-size:12.5px;margin-top:3px;max-width:66ch;}
+.page-head .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+.btn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-700);border-radius:10px;padding:7px 12px;
+  font-size:11.5px;font-weight:600;
+}
+.btn:hover{background:var(--color-surface-2);}
+.btn-primary{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
+.btn-primary:hover{background:var(--color-accent-700);}
+.btn-sm{padding:4px 9px;font-size:11px;border-radius:8px;}
+
+.screen{display:none;}
+.screen.on{display:block;}
+
+/* ---------- cards ---------- */
+.card{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);
+}
+.card-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.card-h h3{font-size:13.5px;font-weight:700;letter-spacing:-.01em;}
+.card-h .hint{font-size:11.5px;color:var(--color-neutral-500);margin-top:2px;max-width:62ch;}
+.card-h .side{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.grid{display:grid;gap:14px;}
+.g4{grid-template-columns:repeat(4,1fr);}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g2{grid-template-columns:repeat(2,1fr);}
+.g-2-1{grid-template-columns:1.55fr 1fr;}
+.g-1-2{grid-template-columns:1fr 1.55fr;}
+@media (max-width:1080px){
+  .g4{grid-template-columns:repeat(2,1fr);}
+  .g3,.g2,.g-2-1,.g-1-2{grid-template-columns:1fr;}
+}
+
+/* ---------- stat tiles ---------- */
+.tile{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius-md);padding:14px 15px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;gap:4px;
+}
+.tile .k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);}
+.tile .v{font-family:var(--font-heading);font-size:25px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1;}
+.tile .v small{font-size:14px;font-weight:700;color:var(--color-neutral-500);margin-left:3px;}
+.tile .d{font-size:11.5px;color:var(--color-neutral-500);}
+.delta{font-weight:700;font-variant-numeric:tabular-nums;}
+.delta.up{color:var(--st-green-fg);}
+.delta.down{color:var(--st-ruby-fg);}
+.tile.hero{background:var(--brand-hero);border-color:transparent;color:#fff;}
+.tile.hero .k{color:var(--brand-hero-sub);}
+.tile.hero .d{color:var(--brand-hero-sub);}
+
+/* ---------- pills ---------- */
+.pill{
+  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+  padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;
+}
+.pill .dot{width:6px;height:6px;border-radius:50%;flex:none;}
+.pill.gray{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+.pill.gray .dot{background:var(--st-gray-dot);}
+.pill.amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+.pill.amber .dot{background:var(--st-amber-dot);}
+.pill.green{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line);}
+.pill.green .dot{background:var(--st-green-dot);}
+.pill.ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+.pill.ruby .dot{background:var(--st-ruby-dot);}
+.pill.steel{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
+.pill.steel .dot{background:var(--st-steel-dot);}
+
+/* ---------- tables ---------- */
+.tblwrap{overflow-x:auto;margin:0 -16px -16px;padding:0 16px 16px;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:620px;}
+thead th{
+  text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding:8px 10px;border-bottom:1px solid var(--color-divider);
+  white-space:nowrap;
+}
+tbody td{padding:10px;border-bottom:1px solid var(--color-divider);vertical-align:top;}
+tbody tr:last-child td{border-bottom:0;}
+tbody tr:hover{background:var(--color-surface-2);}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.t-strong{font-weight:600;color:var(--color-text);}
+.t-mut{color:var(--color-neutral-500);font-size:11.5px;}
+.t-src{
+  font-size:10.5px;color:var(--accent-ink);font-weight:600;white-space:nowrap;
+  border-bottom:1px dotted color-mix(in srgb,var(--accent-solid) 45%,transparent);
+}
+
+/* ---------- filter row ---------- */
+.filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:13px;}
+.fbtn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 12px;
+  font-size:11.5px;font-weight:600;
+}
+.fbtn:hover{background:var(--color-surface-2);}
+.fbtn.on{
+  background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
+  border-color:color-mix(in srgb,var(--accent-solid) 32%,transparent);
+  color:var(--accent-ink);
+}
+.fsep{width:1px;height:20px;background:var(--color-divider);margin:0 4px;}
+
+/* ---------- charts ---------- */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--color-neutral-600);}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block;}
+
+/* stacked stage bar */
+.stagebar{display:flex;gap:2px;height:34px;margin-top:4px;}
+.stagebar div{
+  position:relative;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:#04241f;font-variant-numeric:tabular-nums;
+}
+.stagebar div:first-child{border-radius:7px 3px 3px 7px;}
+.stagebar div:last-child{border-radius:3px 7px 7px 3px;}
+.stagebar div.dk{color:#e6fffb;}
+.stage-x{display:flex;gap:2px;margin-top:7px;font-size:10.5px;color:var(--color-neutral-500);}
+.stage-x div{text-align:center;line-height:1.25;}
+
+/* ranked bars */
+.rank{display:flex;flex-direction:column;gap:9px;}
+.rank .row{display:grid;grid-template-columns:1fr 168px 46px;gap:10px;align-items:center;}
+.rank .nm{font-size:12px;font-weight:600;}
+.rank .nm em{display:block;font-style:normal;font-size:10.5px;color:var(--color-neutral-500);font-weight:500;}
+/* display:block on BOTH. The track is a grid item so the grid blockifies it,
+   but the fill inside is a plain span — left inline, its width is ignored and
+   every bar draws empty. Caught by photographing the screen, not by reading
+   the CSS. */
+.rank .track{display:block;height:9px;background:var(--color-surface-2);border-radius:5px;overflow:hidden;}
+.rank .fill{display:block;height:100%;background:var(--color-accent-600);border-radius:5px;}
+.rank .fill.warn{background:var(--st-amber-dot);}
+.rank .val{text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;}
+
+/* ---------- misc blocks ---------- */
+.attn{display:flex;flex-direction:column;gap:0;}
+.attn .it{
+  display:flex;gap:12px;align-items:flex-start;padding:12px 2px;
+  border-bottom:1px solid var(--color-divider);
+}
+.attn .it:last-child{border-bottom:0;}
+.attn .ic{
+  width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
+}
+.attn .bd{flex:1;min-width:0;}
+.attn .bd b{display:block;font-size:12.5px;font-weight:700;margin-bottom:2px;}
+.attn .bd p{margin:0;font-size:11.5px;color:var(--color-neutral-500);}
+.attn .go{margin-left:auto;flex:none;align-self:center;}
+
+.money{font-variant-numeric:tabular-nums;font-weight:700;}
+.money.big{font-family:var(--font-heading);font-size:16px;letter-spacing:-.02em;}
+
+.leak-row{
+  display:grid;grid-template-columns:1fr 128px 120px 92px;gap:12px;align-items:center;
+  padding:13px 2px;border-bottom:1px solid var(--color-divider);
+}
+.leak-row:last-child{border-bottom:0;}
+.leak-row .why{font-size:11.5px;color:var(--color-neutral-500);margin-top:3px;}
+.leak-row b{font-size:12.5px;font-weight:700;}
+@media (max-width:820px){
+  .leak-row{grid-template-columns:1fr;gap:6px;}
+  .rank .row{grid-template-columns:1fr 90px 44px;}
+}
+
+.timeline{position:relative;padding-left:22px;}
+.timeline:before{
+  content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;
+  background:var(--color-divider);border-radius:2px;
+}
+.tl-it{position:relative;padding:0 0 18px;}
+.tl-it:last-child{padding-bottom:0;}
+.tl-it:before{
+  content:"";position:absolute;left:-20px;top:5px;width:10px;height:10px;border-radius:50%;
+  background:var(--color-accent-500);border:2px solid var(--color-surface);
+}
+.tl-it.bad:before{background:var(--st-ruby-dot);}
+.tl-it .dt{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-500);}
+.tl-it .hd{font-size:12.5px;font-weight:700;margin:2px 0 5px;}
+.tl-it .gv,.tl-it .wn{font-size:11.5px;display:flex;gap:7px;margin-bottom:3px;}
+.tl-it .gv b,.tl-it .wn b{flex:none;font-weight:700;}
+.tl-it .gv b{color:var(--st-ruby-fg);}
+.tl-it .wn b{color:var(--st-green-fg);}
+
+.callout{
+  border-left:3px solid var(--accent-solid);background:var(--st-steel-bg);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:11px 13px;font-size:12px;
+}
+.callout b{font-weight:700;}
+
+.clause-src{
+  background:var(--color-surface-2);border:1px solid var(--color-divider);
+  border-radius:var(--radius-sm);padding:13px 15px;font-size:12.5px;line-height:1.75;
+}
+.clause-src .no{font-weight:700;}
+mark{
+  background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
+  color:inherit;border-radius:3px;padding:1px 3px;font-weight:600;
+}
+
+/* the deliberately-not-built card */
+.ghost{
+  border:1px dashed color-mix(in srgb,var(--color-neutral-400) 60%,transparent);
+  background:transparent;box-shadow:none;
+}
+.ghost h3{color:var(--color-neutral-500);}
+.ghost .hint{color:var(--color-neutral-500);}
+
+.cal-mo{margin-bottom:16px;}
+.cal-mo h4{
+  font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding-bottom:7px;border-bottom:1px solid var(--color-divider);
+  margin-bottom:4px;
+}
+.cal-it{display:flex;gap:12px;align-items:baseline;padding:9px 2px;border-bottom:1px solid var(--color-divider);}
+.cal-it:last-child{border-bottom:0;}
+.cal-it .d{
+  font-size:11px;font-weight:700;color:var(--color-neutral-500);width:52px;flex:none;
+  font-variant-numeric:tabular-nums;
+}
+.cal-it .t{flex:1;font-size:12px;}
+.cal-it .t em{display:block;font-style:normal;font-size:11px;color:var(--color-neutral-500);}
+</style>
+</head>
+<body>
+
+<div class="proto-note">
+  <p><b>Prototype — pictures only.</b> Nothing here is connected to HaTi. Every number, company
+  and contract below is invented sample data for one imaginary Kenyan food business, so the
+  screens have something realistic to show. Click the doors under <b>ANALYST</b> in the left
+  menu to move between the six new screens.</p>
+</div>
+
+<div class="shell">
+
+  <!-- ============ brand corner ============ -->
+  <div class="brandbar">
+    <span class="wm">HaTi</span><span class="tag">CLM</span>
+  </div>
+
+  <!-- ============ top bar ============ -->
+  <div class="topbar">
+    <div class="searchbox">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="opacity:.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      Search contracts, clauses, counterparties…
+    </div>
+    <div class="top-right">
+      <span class="mkt-chip">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
+        Kenya · KES
+      </span>
+      <button class="copilot-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
+        Ask Copilot
+      </button>
+      <span class="avatar">AM</span>
+    </div>
+  </div>
+
+  <!-- ============ sidebar ============ -->
+  <nav class="sidenav">
+    <button class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
+      <span class="lbl">Home</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
+      <span class="lbl">Contracts</span><span class="nav-count">148</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
+      <span class="lbl">Calendar</span><span class="nav-count">9</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
+      <span class="lbl">Insights</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
+      <span class="lbl">Templates</span><span class="nav-count">24</span>
+    </button>
+
+    <div class="nav-head">Analyst <span class="nav-new">New</span></div>
+
+    <button class="nav-item active" data-go="s-home">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 15 3.5-4.5 3 2.5L20 6"/></svg>
+      <span class="lbl">Analyst home</span>
+    </button>
+    <button class="nav-item" data-go="s-oblig">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h9a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1"/><rect x="8" y="2.5" width="8" height="4" rx="1.2"/><path d="m8.5 12 1.8 1.8 3.6-3.8"/><path d="M8.5 17.2h7"/></svg>
+      <span class="lbl">Obligations</span><span class="nav-count">1284</span>
+    </button>
+    <button class="nav-item" data-go="s-renew">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.7 4.4v4.4h-4.4"/></svg>
+      <span class="lbl">Renewals</span><span class="nav-count">6</span>
+    </button>
+    <button class="nav-item" data-go="s-leak">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.2c-.7-.9-1.8-1.4-3-1.4-1.8 0-2.9.9-2.9 2.1 0 3 6 1.6 6 4.5 0 1.3-1.2 2.2-3.1 2.2-1.3 0-2.5-.5-3.2-1.5"/><path d="M12 6v12"/></svg>
+      <span class="lbl">Value leakage</span><span class="nav-count">6</span>
+    </button>
+    <button class="nav-item" data-go="s-deals">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 7v5l3.4 2"/><path d="M3 16.5 5 21l4.5-2"/></svg>
+      <span class="lbl">Deal analytics</span>
+    </button>
+    <button class="nav-item" data-go="s-supply">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 16V9.4l5-2.9 5 2.9V16l-5 2.9L2.5 16Z"/><path d="M12.5 12.6V7l4.5-2.6L21.5 7v5.6L17 15.2l-4.5-2.6Z"/></svg>
+      <span class="lbl">Suppliers &amp; risk</span>
+    </button>
+  </nav>
+
+  <!-- ============ main ============ -->
+  <main class="main">
+
+  <!-- ==================================================================
+       1 · ANALYST HOME
+       =================================================================== -->
+  <section class="screen on" id="s-home">
+    <div class="page-head">
+      <div>
+        <h1>Analyst</h1>
+        <div class="sub">What your 148 contracts are telling you this week. Read from the agreements
+          themselves — no one has to type anything in for this page to work.</div>
+      </div>
+      <div class="acts">
+        <button class="btn">Email me this weekly</button>
+        <button class="btn btn-primary">Open health report</button>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile hero">
+        <span class="k">Contract health</span>
+        <span class="v">72<small>/100</small></span>
+        <span class="d">Up 4 points on July. See the workings →</span>
+      </div>
+      <div class="tile">
+        <span class="k">Money on the table · KES</span>
+        <span class="v">14.8<small>M</small></span>
+        <span class="d"><span class="delta up">3.1M recovered</span> since last month</span>
+      </div>
+      <div class="tile">
+        <span class="k">Decisions due · 30 days</span>
+        <span class="v">9</span>
+        <span class="d">3 of them are notice deadlines you cannot miss</span>
+      </div>
+      <div class="tile">
+        <span class="k">Median time to sign</span>
+        <span class="v">18<small> days</small></span>
+        <span class="d"><span class="delta up">5 days faster</span> than last quarter</span>
+      </div>
+    </div>
+
+    <div class="grid g-2-1">
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Needs you this week</h3>
+            <div class="hint">Ranked by what it costs to ignore, not by date.</div>
+          </div>
+        </div>
+        <div class="attn">
+          <div class="it">
+            <span class="ic" style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
+            </span>
+            <div class="bd">
+              <b>Rift Valley Logistics — decide by 2 September</b>
+              <p>The haulage framework renews 31 October. You must give notice 60 days ahead, so the
+                real deadline is 25 days away. Their price has risen 24.2% in three years against
+                inflation of 17.2%.</p>
+            </div>
+            <span class="go"><button class="btn btn-sm" data-go="s-renew">Open briefing</button></span>
+          </div>
+          <div class="it">
+            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/></svg>
+            </span>
+            <div class="bd">
+              <b>Three contracts auto-renewed without a decision</b>
+              <p>They passed their notice dates in July while nobody was watching, committing
+                KES 4.2 million for another year. Two are still inside a short cancellation window.</p>
+            </div>
+            <span class="go"><button class="btn btn-sm" data-go="s-leak">See the money</button></span>
+          </div>
+          <div class="it">
+            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9m5 11V4m5 16v-8m5 8V7"/></svg>
+            </span>
+            <div class="bd">
+              <b>Your liability clause is costing you six days a deal</b>
+              <p>It gets rewritten in 78% of negotiations. The wording counterparties actually accept
+                is already in your library — three sales deals are stuck on it right now.</p>
+            </div>
+            <span class="go"><button class="btn btn-sm" data-go="s-deals">See clause friction</button></span>
+          </div>
+          <div class="it">
+            <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 8h9.5a3 3 0 0 1 0 6H5"/></svg>
+            </span>
+            <div class="bd">
+              <b>Eleven customer contracts let you raise your prices — you never have</b>
+              <p>They carry an annual indexation right that has gone unused since signing. Worth
+                about KES 5.8 million a year at current inflation.</p>
+            </div>
+            <span class="go"><button class="btn btn-sm" data-go="s-leak">Review</button></span>
+          </div>
+          <div class="it">
+            <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="m9 12 2.2 2.2L20 5.5"/></svg>
+            </span>
+            <div class="bd">
+              <b>147 new obligations are waiting for a human look</b>
+              <p>HaTi pulled them out of contracts imported last week. Confirm or correct them and
+                they start feeding the calendar.</p>
+            </div>
+            <span class="go"><button class="btn btn-sm" data-go="s-oblig">Review</button></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>Where the score comes from</h3>
+              <div class="hint">Six things, each worth a share. No AI opinion — it is arithmetic.</div>
+            </div>
+          </div>
+          <div class="rank">
+            <div class="row"><span class="nm">Renewals under control<em>9 of 12 decided in time</em></span>
+              <span class="track"><span class="fill" style="width:75%"></span></span><span class="val">75%</span></div>
+            <div class="row"><span class="nm">Obligations confirmed<em>1,137 of 1,284 checked</em></span>
+              <span class="track"><span class="fill" style="width:89%"></span></span><span class="val">89%</span></div>
+            <div class="row"><span class="nm">Standard paper used<em>62% of new deals</em></span>
+              <span class="track"><span class="fill" style="width:62%"></span></span><span class="val">62%</span></div>
+            <div class="row"><span class="nm">Price protection in place<em>7 contracts have no ceiling</em></span>
+              <span class="track"><span class="fill warn" style="width:48%"></span></span><span class="val">48%</span></div>
+            <div class="row"><span class="nm">Exit rights held<em>8 contracts you cannot leave early</em></span>
+              <span class="track"><span class="fill" style="width:71%"></span></span><span class="val">71%</span></div>
+            <div class="row"><span class="nm">Concentration<em>Top customer is 24% of revenue</em></span>
+              <span class="track"><span class="fill warn" style="width:55%"></span></span><span class="val">55%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>Ask the analyst</h3>
+              <div class="hint">Copilot answers from these same numbers, not from guesswork.</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <button class="btn" style="text-align:left;">“Which suppliers raised prices above the cap?”</button>
+            <button class="btn" style="text-align:left;">“What did we concede to Rift Valley last time?”</button>
+            <button class="btn" style="text-align:left;">“Which contracts expire in Q4?”</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       2 · OBLIGATIONS REGISTER
+       =================================================================== -->
+  <section class="screen" id="s-oblig">
+    <div class="page-head">
+      <div>
+        <h1>Obligations</h1>
+        <div class="sub">Every promise inside every contract, pulled out and put in one list — who
+          owes what, by when, and which clause it came from. This is the foundation the renewal
+          briefings, the calendar and the leakage report are all built on.</div>
+      </div>
+      <div class="acts">
+        <button class="btn" id="ob-view-list">List</button>
+        <button class="btn" id="ob-view-cal">Calendar</button>
+        <button class="btn btn-primary">Export</button>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile"><span class="k">Obligations found</span><span class="v">1,284</span><span class="d">across 148 contracts</span></div>
+      <div class="tile"><span class="k">Confirmed by a person</span><span class="v">1,137</span><span class="d">89% — the rest are waiting</span></div>
+      <div class="tile"><span class="k">Owed by us</span><span class="v">421</span><span class="d">33% of everything tracked</span></div>
+      <div class="tile"><span class="k">Falling due in 30 days</span><span class="v">27</span><span class="d">6 need a person to act</span></div>
+    </div>
+
+    <!-- ---- LIST VIEW ---- -->
+    <div id="ob-list">
+        <div class="card" style="margin-bottom:14px;">
+          <div class="filters">
+            <button class="fbtn on">All 1,284</button>
+            <button class="fbtn">Owed by them</button>
+            <button class="fbtn">Owed by us</button>
+            <span class="fsep"></span>
+            <button class="fbtn">Service levels</button>
+            <button class="fbtn">Payment</button>
+            <button class="fbtn">Delivery</button>
+            <button class="fbtn">Notice</button>
+            <button class="fbtn">Insurance</button>
+            <button class="fbtn">Reporting</button>
+            <span class="fsep"></span>
+            <button class="fbtn">Needs review <span class="pill amber" style="margin-left:5px">147</span></button>
+          </div>
+          <div class="tblwrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>The promise</th><th>Counterparty</th><th>Owed by</th><th>Type</th>
+                  <th>When</th><th>From</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="t-strong">Keep the service available 99.5% of each month</span>
+                      <div class="t-mut">IT Support &amp; Hosting Agreement</div></td>
+                  <td>Cloudpoint Systems</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Service level</td>
+                  <td>Every month</td>
+                  <td><span class="t-src">Clause 7.1</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Respond to a critical incident within 4 hours</span>
+                      <div class="t-mut">IT Support &amp; Hosting Agreement</div></td>
+                  <td>Cloudpoint Systems</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Service level</td>
+                  <td>Per incident</td>
+                  <td><span class="t-src">Clause 7.1</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Deliver within 48 hours of order confirmation</span>
+                      <div class="t-mut">Haulage Framework Agreement</div></td>
+                  <td>Rift Valley Logistics</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Delivery</td>
+                  <td>Per order</td>
+                  <td><span class="t-src">Clause 4.1</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Hold cold store at −18 °C and log it daily</span>
+                      <div class="t-mut">Cold Storage Agreement</div></td>
+                  <td>Nairobi Cold Chain Ltd</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Performance</td>
+                  <td>Daily</td>
+                  <td><span class="t-src">Clause 5.4</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Pay invoices within 30 days of receipt</span>
+                      <div class="t-mut">Cold Storage Agreement</div></td>
+                  <td>Nairobi Cold Chain Ltd</td>
+                  <td><span class="pill amber"><span class="dot"></span>Us</span></td>
+                  <td>Payment</td>
+                  <td>Per invoice</td>
+                  <td><span class="t-src">Clause 9.3</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Give 90 days notice to end the contract</span>
+                      <div class="t-mut">Facilities Services Agreement</div></td>
+                  <td>Equity Facilities Services</td>
+                  <td><span class="pill gray"><span class="dot"></span>Both</span></td>
+                  <td>Notice</td>
+                  <td><span class="t-strong">By 4 Nov 2026</span></td>
+                  <td><span class="t-src">Clause 14.1</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Carry product liability cover of KES 50,000,000</span>
+                      <div class="t-mut">Produce Supply Agreement</div></td>
+                  <td>Kilifi Farms Cooperative</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Insurance</td>
+                  <td><span class="t-strong">Certificate due 12 Sep</span></td>
+                  <td><span class="t-src">Clause 11.2</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Send a HACCP audit certificate every year</span>
+                      <div class="t-mut">Produce Supply Agreement</div></td>
+                  <td>Kilifi Farms Cooperative</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Compliance</td>
+                  <td><span class="t-strong">Due 20 Aug — 12 days</span></td>
+                  <td><span class="t-src">Clause 8.6</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Raise prices no more than CPI + 2%, once a year</span>
+                      <div class="t-mut">Packaging Supply Agreement</div></td>
+                  <td>Mombasa Packaging Co</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Price</td>
+                  <td>Review 1 Oct</td>
+                  <td><span class="t-src">Clause 6.3</span></td>
+                </tr>
+                <tr>
+                  <td><span class="t-strong">Give a quarterly service report</span>
+                      <div class="t-mut">IT Support &amp; Hosting Agreement</div></td>
+                  <td>Cloudpoint Systems</td>
+                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
+                  <td>Reporting</td>
+                  <td>Next 30 Sep</td>
+                  <td><span class="t-src">Clause 7.5</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid g3">
+          <div class="card">
+            <div class="card-h">
+              <div>
+                <h3>Where this one came from</h3>
+                <div class="hint">Every obligation shows the exact sentence it was read out of, so a
+                  person can check it in one glance.</div>
+              </div>
+            </div>
+            <div class="clause-src">
+              <span class="no">7.1</span> The Supplier shall ensure that the Services achieve a minimum
+              availability of <mark>99.5% measured monthly</mark>, and shall respond to any Critical
+              Incident <mark>within four (4) hours</mark> of notification.
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span class="pill green"><span class="dot"></span>2 obligations read from this clause</span>
+              <span class="pill gray"><span class="dot"></span>Confirmed by Amina · 14 Jul</span>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;">
+              <button class="btn btn-sm btn-primary">Confirm</button>
+              <button class="btn btn-sm">Edit</button>
+              <button class="btn btn-sm">Not an obligation</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-h">
+              <div><h3>What kind of promises they are</h3></div>
+            </div>
+            <div class="rank">
+              <div class="row"><span class="nm">Payment terms</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">312</span></div>
+              <div class="row"><span class="nm">Service levels</span><span class="track"><span class="fill" style="width:76%"></span></span><span class="val">238</span></div>
+              <div class="row"><span class="nm">Delivery &amp; performance</span><span class="track"><span class="fill" style="width:64%"></span></span><span class="val">201</span></div>
+              <div class="row"><span class="nm">Reporting</span><span class="track"><span class="fill" style="width:50%"></span></span><span class="val">157</span></div>
+              <div class="row"><span class="nm">Notice &amp; renewal</span><span class="track"><span class="fill" style="width:44%"></span></span><span class="val">139</span></div>
+              <div class="row"><span class="nm">Insurance &amp; compliance</span><span class="track"><span class="fill" style="width:39%"></span></span><span class="val">122</span></div>
+              <div class="row"><span class="nm">Price &amp; indexation</span><span class="track"><span class="fill" style="width:37%"></span></span><span class="val">115</span></div>
+            </div>
+          </div>
+
+          <div class="card ghost">
+            <div class="card-h">
+              <div>
+                <h3>Did they actually do it?</h3>
+                <div class="hint">Not in this prototype. Checking a promise was kept needs someone to
+                  log what happened in the real world — a late delivery, a missed response. That is a
+                  later step; everything else on these screens works without it.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <!-- ---- CALENDAR VIEW ---- -->
+    <div id="ob-cal" style="display:none;">
+      <div class="grid g2">
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>The next 90 days</h3>
+              <div class="hint">Renewals, notice deadlines, certificates, reports and reviews — all
+                from the obligations register, in date order.</div>
+            </div>
+          </div>
+
+          <div class="cal-mo">
+            <h4>August 2026</h4>
+            <div class="cal-it"><span class="d">20 Aug</span><span class="t">HACCP audit certificate due from Kilifi Farms<em>Produce Supply Agreement · Clause 8.6</em></span><span class="pill amber"><span class="dot"></span>12 days</span></div>
+            <div class="cal-it"><span class="d">25 Aug</span><span class="t">Quarterly volume reconciliation with Rift Valley<em>Haulage Framework · Clause 5.2</em></span><span class="pill gray"><span class="dot"></span>17 days</span></div>
+            <div class="cal-it"><span class="d">31 Aug</span><span class="t">Monthly availability report due from Cloudpoint<em>IT Support Agreement · Clause 7.5</em></span><span class="pill gray"><span class="dot"></span>23 days</span></div>
+          </div>
+
+          <div class="cal-mo">
+            <h4>September 2026</h4>
+            <div class="cal-it"><span class="d">2 Sep</span><span class="t"><b>Last day to give notice — Rift Valley Logistics</b><em>Renews 31 Oct if you say nothing · KES 24.6M a year</em></span><span class="pill ruby"><span class="dot"></span>Decide</span></div>
+            <div class="cal-it"><span class="d">12 Sep</span><span class="t">Insurance certificate due from Kilifi Farms<em>Cover must be at least KES 50,000,000</em></span><span class="pill amber"><span class="dot"></span>Chase</span></div>
+            <div class="cal-it"><span class="d">15 Sep</span><span class="t">Naivas Supermarkets — annual price indexation window opens<em>You may raise prices by CPI · Clause 6.1</em></span><span class="pill steel"><span class="dot"></span>Your right</span></div>
+            <div class="cal-it"><span class="d">30 Sep</span><span class="t">Quarterly service report due from Cloudpoint<em>IT Support Agreement · Clause 7.5</em></span><span class="pill gray"><span class="dot"></span>—</span></div>
+          </div>
+
+          <div class="cal-mo" style="margin-bottom:0;">
+            <h4>October 2026</h4>
+            <div class="cal-it"><span class="d">1 Oct</span><span class="t">Mombasa Packaging annual price review<em>Capped at CPI + 2% — check what they ask for</em></span><span class="pill steel"><span class="dot"></span>Cap applies</span></div>
+            <div class="cal-it"><span class="d">15 Oct</span><span class="t">Java House Group supply agreement expires<em>No auto-renewal — it simply ends</em></span><span class="pill amber"><span class="dot"></span>Act</span></div>
+            <div class="cal-it"><span class="d">31 Oct</span><span class="t">Rift Valley Logistics renews automatically<em>Unless notice was given by 2 September</em></span><span class="pill ruby"><span class="dot"></span>Locked by then</span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card">
+            <div class="card-h">
+              <div>
+                <h3>How you hear about it</h3>
+                <div class="hint">The point of the calendar is that you never have to open it.</div>
+              </div>
+            </div>
+            <div class="attn">
+              <div class="it">
+                <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 6.5 9 6 9-6"/></svg>
+                </span>
+                <div class="bd"><b>Email, 90 / 60 / 30 days before</b>
+                  <p>To the contract owner and their manager. It says the date, the money and the one
+                    thing to decide.</p></div>
+              </div>
+              <div class="it">
+                <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+                </span>
+                <div class="bd"><b>On the phone shell too</b>
+                  <p>The same list already reads through HaTi's mobile screens, so it needs no second
+                    version building.</p></div>
+              </div>
+              <div class="it">
+                <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4"/></svg>
+                </span>
+                <div class="bd"><b>Copilot can be asked</b>
+                  <p>“What's due next month?” is answered from this list, so the answer is the same one
+                    the email sent.</p></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-h"><div><h3>What's coming, by kind</h3></div></div>
+            <div class="rank">
+              <div class="row"><span class="nm">Reports &amp; certificates due<em>next 90 days</em></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">31</span></div>
+              <div class="row"><span class="nm">Price reviews<em>where a cap applies</em></span><span class="track"><span class="fill" style="width:39%"></span></span><span class="val">12</span></div>
+              <div class="row"><span class="nm">Renewals &amp; expiries</span><span class="track"><span class="fill warn" style="width:29%"></span></span><span class="val">9</span></div>
+              <div class="row"><span class="nm">Notice deadlines<em>miss one and you are locked in</em></span><span class="track"><span class="fill warn" style="width:19%"></span></span><span class="val">6</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       3 · RENEWAL LEVERAGE BRIEFING
+       =================================================================== -->
+  <section class="screen" id="s-renew">
+    <div class="page-head">
+      <div>
+        <h1>Renewal briefing — Rift Valley Logistics</h1>
+        <div class="sub">Haulage Framework Agreement · KES 24.6M a year · renews 31 October 2026.
+          One page, prepared automatically before every renewal, so nobody walks into the meeting
+          without the history.</div>
+      </div>
+      <div class="acts">
+        <button class="btn">Download PDF</button>
+        <button class="btn btn-primary">Start the renewal</button>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile" style="border-color:var(--st-ruby-line);">
+        <span class="k" style="color:var(--st-ruby-fg);">Decide by</span>
+        <span class="v">2 Sep</span>
+        <span class="d">25 days away · 60 days notice required</span>
+      </div>
+      <div class="tile"><span class="k">Price rise, 3 years</span><span class="v">+24.2<small>%</small></span><span class="d">Inflation over the same period: 17.2%</span></div>
+      <div class="tile"><span class="k">Paying above trend · KES</span><span class="v">1.4<small>M</small></span><span class="d">a year, versus an inflation-only path</span></div>
+      <div class="tile"><span class="k">Rebate never claimed · KES</span><span class="v">820<small>K</small></span><span class="d">You passed the 5,000-tonne tier in March</span></div>
+    </div>
+
+    <div class="grid g-2-1">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>What you have paid, and what the contract said you should</h3>
+              <div class="hint">Their clause caps increases at CPI + 2%. They have taken the very top
+                of that cap every single year.</div>
+            </div>
+          </div>
+          <!-- ONE series (what you paid). The dashed line is a benchmark
+               annotation, not a second series — so it needs no legend box,
+               just its own label. -->
+          <svg viewBox="0 0 640 210" width="100%" height="210" role="img"
+               aria-label="Annual haulage cost rose from 19.8 million shillings in 2023 to 24.6 million in 2026. An inflation-only path would have reached 23.2 million.">
+            <defs>
+              <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--color-accent-500)" stop-opacity=".28"/>
+                <stop offset="100%" stop-color="var(--color-accent-500)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- recessive grid -->
+            <g stroke="var(--ch-grid)" stroke-width="1">
+              <line x1="52" y1="20"  x2="622" y2="20"/>
+              <line x1="52" y1="65"  x2="622" y2="65"/>
+              <line x1="52" y1="110" x2="622" y2="110"/>
+              <line x1="52" y1="155" x2="622" y2="155"/>
+            </g>
+            <g fill="var(--color-neutral-500)" font-size="10.5" font-family="Inter, system-ui, sans-serif" text-anchor="end">
+              <text x="45" y="24">26M</text>
+              <text x="45" y="69">24M</text>
+              <text x="45" y="114">22M</text>
+              <text x="45" y="159">20M</text>
+            </g>
+            <!-- Points are placed off the SAME scale as the axis labels above:
+                 20M sits on y=155, 26M on y=20, so 2M of shillings is 45px.
+                 19.8 → 159.5 · 21.4 → 123.5 · 23.0 → 87.5 · 24.6 → 51.5 -->
+            <!-- inflation-only benchmark: an annotation, not a second series -->
+            <polyline points="90,159.5 267,135.2 444,109.8 621,82.8"
+                      fill="none" stroke="var(--ch-ref)" stroke-width="2"
+                      stroke-dasharray="6 5" stroke-linecap="round"/>
+            <!-- what was actually paid -->
+            <path d="M90,159.5 L267,123.5 L444,87.5 L621,51.5 L621,178 L90,178 Z" fill="url(#areaFill)"/>
+            <polyline points="90,159.5 267,123.5 444,87.5 621,51.5"
+                      fill="none" stroke="var(--color-accent-600)" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+            <g fill="var(--color-accent-600)" stroke="var(--color-surface)" stroke-width="2">
+              <circle cx="90" cy="159.5" r="4.5"/><circle cx="267" cy="123.5" r="4.5"/>
+              <circle cx="444" cy="87.5" r="4.5"/><circle cx="621" cy="51.5" r="5.5"/>
+            </g>
+            <g font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="var(--color-neutral-500)" text-anchor="middle">
+              <text x="90" y="197">2023</text><text x="267" y="197">2024</text>
+              <text x="444" y="197">2025</text><text x="621" y="197">2026</text>
+            </g>
+            <g font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700">
+              <text x="612" y="39" fill="var(--color-text)" text-anchor="end">24.6M paid</text>
+              <text x="612" y="116" fill="var(--color-neutral-500)" text-anchor="end">23.2M if inflation-only</text>
+            </g>
+          </svg>
+          <div class="callout" style="margin-top:14px;">
+            <b>The gap is KES 1.4 million a year.</b> Every increase used the full CPI + 2% the clause
+            allows, in a period when inflation alone would have justified less. That is not a breach —
+            it is a cap they have learned to treat as a target.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>What you gave and what you got, every time you negotiated</h3>
+              <div class="hint">Taken straight from the tracked changes HaTi already stores. Nobody has
+                to remember this.</div>
+            </div>
+          </div>
+          <div class="timeline">
+            <div class="tl-it">
+              <div class="dt">March 2023 · first agreement</div>
+              <div class="hd">Haulage Framework signed</div>
+              <div class="gv"><b>Gave</b><span>60-day payment terms — you had opened at 30.</span></div>
+              <div class="wn"><b>Won</b><span>Fuel surcharge capped at 3% of the base rate.</span></div>
+            </div>
+            <div class="tl-it">
+              <div class="dt">April 2024 · renewal</div>
+              <div class="hd">First price increase, +8.1%</div>
+              <div class="gv"><b>Gave</b><span>Accepted 8.1% when the clause capped it at 7.2%.</span></div>
+              <div class="wn"><b>Won</b><span>48-hour delivery commitment written in for the first time.</span></div>
+            </div>
+            <div class="tl-it">
+              <div class="dt">May 2025 · renewal</div>
+              <div class="hd">Second increase, +7.5%</div>
+              <div class="gv"><b>Gave</b><span>Benchmarking right weakened from yearly to every two years.</span></div>
+              <div class="wn"><b>Won</b><span>Volume rebate tier added at 5,000 tonnes.</span></div>
+            </div>
+            <div class="tl-it bad">
+              <div class="dt">June 2026 · variation</div>
+              <div class="hd">Route exclusivity extended</div>
+              <div class="gv"><b>Gave</b><span>Exclusivity on the Nairobi–Mombasa route to 2028.</span></div>
+              <div class="wn"><b>Won</b><span style="color:var(--st-ruby-fg);font-weight:600;">Nothing recorded — this round was one-sided.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>Rights you hold and have not used</h3>
+              <div class="hint">All of these are already in the signed contract.</div>
+            </div>
+          </div>
+          <div class="attn">
+            <div class="it">
+              <span class="ic" style="background:var(--st-green-bg);color:var(--st-green-fg);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
+              </span>
+              <div class="bd"><b>Volume rebate — never claimed</b>
+                <p>You shipped 5,410 tonnes against a 5,000-tonne tier. Worth KES 820,000 for the year
+                  just ended. Clause 6.5.</p></div>
+            </div>
+            <div class="it">
+              <span class="ic" style="background:var(--st-green-bg);color:var(--st-green-fg);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
+              </span>
+              <div class="bd"><b>Benchmarking right — never used</b>
+                <p>You may test their rates against the market every two years and require a
+                  reduction if they are out of line. Clause 12.4.</p></div>
+            </div>
+            <div class="it">
+              <span class="ic" style="background:var(--st-green-bg);color:var(--st-green-fg);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
+              </span>
+              <div class="bd"><b>You can leave on 60 days notice</b>
+                <p>Termination for convenience, no penalty. Clause 13.2. They cannot do the same —
+                  they need 180 days.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h3>What your other haulage contracts say</h3>
+              <div class="hint">Same service, your own paper, side by side.</div>
+            </div>
+          </div>
+          <div class="tblwrap">
+            <table style="min-width:0;">
+              <thead><tr><th>Supplier</th><th class="num">KES / tonne</th><th class="num">Terms</th></tr></thead>
+              <tbody>
+                <tr><td class="t-strong">Rift Valley Logistics</td><td class="num" style="color:var(--st-ruby-fg);font-weight:700;">4,550</td><td class="num">60 days</td></tr>
+                <tr><td>Coast Freight Ltd</td><td class="num">3,980</td><td class="num">45 days</td></tr>
+                <tr><td>Highland Transporters</td><td class="num">4,120</td><td class="num">30 days</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout" style="margin-top:12px;">
+            You are paying <b>11% more per tonne</b> than your next haulier, on the longest payment
+            terms of the three.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><div><h3>Suggested opening position</h3>
+            <div class="hint">A starting point drafted from the facts above. A person edits it before
+              it goes anywhere.</div></div></div>
+          <ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.75;">
+            <li>Claim the KES 820,000 rebate now, separately from the renewal.</li>
+            <li>Trigger the benchmarking clause before agreeing any new rate.</li>
+            <li>Hold the increase to CPI, not CPI + 2 — the three-year gap is the argument.</li>
+            <li>Trade the Nairobi–Mombasa exclusivity back for shorter payment terms.</li>
+            <li>Give notice by 2 September regardless, to keep the option open.</li>
+          </ol>
+        </div>
+
+        <div class="card ghost">
+          <div class="card-h">
+            <div><h3>How they actually performed</h3>
+              <div class="hint">Not in this prototype. Late deliveries and missed service levels would
+                sit here and strengthen every point above — but that needs someone logging what
+                happened, which is a later step.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       4 · VALUE LEAKAGE REPORT
+       =================================================================== -->
+  <section class="screen" id="s-leak">
+    <div class="page-head">
+      <div>
+        <h1>Value leakage — August 2026</h1>
+        <div class="sub">Money your contracts entitle you to, or commit you to, that nobody is acting
+          on. Every line names the clause it comes from, so it can be checked and then chased.</div>
+      </div>
+      <div class="acts">
+        <button class="btn">Compare with July</button>
+        <button class="btn">Email to finance</button>
+        <button class="btn btn-primary">Download PDF</button>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile hero"><span class="k">Identified this month · KES</span><span class="v">14.8<small>M</small></span><span class="d">across six findings</span></div>
+      <div class="tile"><span class="k">Recovered since July</span><span class="v">3.1<small>M</small></span><span class="d"><span class="delta up">↑</span> two rebates and one discount</span></div>
+      <div class="tile"><span class="k">Confirmed, ready to chase</span><span class="v">7.1<small>M</small></span><span class="d">Clause is clear, figures are checked</span></div>
+      <div class="tile"><span class="k">Needs a person to look</span><span class="v">7.7<small>M</small></span><span class="d">Wording is arguable either way</span></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-h">
+        <div>
+          <h3>Where the money is going</h3>
+          <div class="hint">Largest first. “Confirmed” means the clause says so plainly; “Needs check”
+            means a human should read it before anyone sends an email.</div>
+        </div>
+      </div>
+
+      <div class="leak-row">
+        <div>
+          <b>Price rises you never exercised on your own customers</b>
+          <div class="why">Eleven customer contracts carry an annual indexation right. None has been
+            used since signing. Naivas, Java House and nine others.</div>
+        </div>
+        <div><span class="money big">5.80M</span><div class="t-mut">a year</div></div>
+        <div><span class="pill amber"><span class="dot"></span>Needs check</span></div>
+        <div><button class="btn btn-sm">Review 11</button></div>
+      </div>
+
+      <div class="leak-row">
+        <div>
+          <b>Three contracts auto-renewed with nobody deciding</b>
+          <div class="why">Notice dates passed in July. Committed for another twelve months. Two are
+            still inside a short cancellation window.</div>
+        </div>
+        <div><span class="money big">4.20M</span><div class="t-mut">committed</div></div>
+        <div><span class="pill ruby"><span class="dot"></span>Confirmed</span></div>
+        <div><button class="btn btn-sm">See which</button></div>
+      </div>
+
+      <div class="leak-row">
+        <div>
+          <b>Two suppliers now cost more than a comparable vendor</b>
+          <div class="why">Facilities services bought from two vendors with overlapping scope in the
+            same three buildings.</div>
+        </div>
+        <div><span class="money big">1.90M</span><div class="t-mut">a year</div></div>
+        <div><span class="pill amber"><span class="dot"></span>Needs check</span></div>
+        <div><button class="btn btn-sm">Compare</button></div>
+      </div>
+
+      <div class="leak-row">
+        <div>
+          <b>Price increases taken at the very top of the cap</b>
+          <div class="why">Two supplier contracts allow CPI + 2%. Both have taken the full amount three
+            years running, when inflation alone justified less.</div>
+        </div>
+        <div><span class="money big">1.40M</span><div class="t-mut">a year</div></div>
+        <div><span class="pill green"><span class="dot"></span>Confirmed</span></div>
+        <div><button class="btn btn-sm">Open briefing</button></div>
+      </div>
+
+      <div class="leak-row">
+        <div>
+          <b>Volume rebate never claimed</b>
+          <div class="why">Rift Valley Logistics — 5,410 tonnes shipped against a 5,000-tonne rebate
+            tier. Clause 6.5.</div>
+        </div>
+        <div><span class="money big">0.82M</span><div class="t-mut">one-off</div></div>
+        <div><span class="pill green"><span class="dot"></span>Confirmed</span></div>
+        <div><button class="btn btn-sm">Draft the claim</button></div>
+      </div>
+
+      <div class="leak-row">
+        <div>
+          <b>Early-payment discounts available and missed</b>
+          <div class="why">Four suppliers offer 2% off if paid within 10 days. Your average payment
+            run is day 26.</div>
+        </div>
+        <div><span class="money big">0.64M</span><div class="t-mut">a year</div></div>
+        <div><span class="pill green"><span class="dot"></span>Confirmed</span></div>
+        <div><button class="btn btn-sm">Send to finance</button></div>
+      </div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>How this month compares</h3>
+            <div class="hint">The total falls as things get chased and rises as new contracts come in.
+              Falling is the point.</div>
+          </div>
+        </div>
+        <div class="rank">
+          <div class="row"><span class="nm">June<em>KES identified</em></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">17.9M</span></div>
+          <div class="row"><span class="nm">July<em>KES identified</em></span><span class="track"><span class="fill" style="width:91%"></span></span><span class="val">16.3M</span></div>
+          <div class="row"><span class="nm">August<em>KES identified</em></span><span class="track"><span class="fill" style="width:83%"></span></span><span class="val">14.8M</span></div>
+          <div class="row"><span class="nm">Recovered so far<em>three months running total</em></span><span class="track"><span class="fill" style="width:35%"></span></span><span class="val">6.2M</span></div>
+        </div>
+        <div class="callout" style="margin-top:14px;">
+          At KES 6.2 million recovered in three months, this report has paid for the platform many
+          times over — which is exactly the sentence a customer repeats to their finance director.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>What HaTi checked to build this</h3>
+            <div class="hint">Nine tests, run over every contract, every month. No AI writes a word of
+              this report — it is arithmetic over the obligations register.</div>
+          </div>
+        </div>
+        <div class="tblwrap">
+          <table style="min-width:0;">
+            <thead><tr><th>Test</th><th class="num">Contracts</th><th class="num">Hits</th></tr></thead>
+            <tbody>
+              <tr><td>Renewal passed with no decision recorded</td><td class="num">148</td><td class="num">3</td></tr>
+              <tr><td>Indexation right unused for 12 months</td><td class="num">63</td><td class="num">11</td></tr>
+              <tr><td>Increase taken at the cap ceiling</td><td class="num">41</td><td class="num">2</td></tr>
+              <tr><td>Rebate tier passed, no claim filed</td><td class="num">19</td><td class="num">1</td></tr>
+              <tr><td>Early-payment discount available</td><td class="num">41</td><td class="num">4</td></tr>
+              <tr><td>Overlapping scope between vendors</td><td class="num">41</td><td class="num">2</td></tr>
+              <tr><td>Fee charged with no matching clause</td><td class="num">148</td><td class="num">0</td></tr>
+              <tr><td>Term extended without a signed variation</td><td class="num">148</td><td class="num">0</td></tr>
+              <tr><td>Currency clause exposed to FX movement</td><td class="num">148</td><td class="num">0</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       5 · DEAL ANALYTICS (customer acquisition)
+       =================================================================== -->
+  <section class="screen" id="s-deals">
+    <div class="page-head">
+      <div>
+        <h1>Deal analytics</h1>
+        <div class="sub">How fast your contracts get signed, what slows them down, and which clauses
+          cost you the most days. This is the half of HaTi that helps win customers rather than manage
+          suppliers.</div>
+      </div>
+      <div class="acts">
+        <button class="btn">Last 12 months</button>
+        <button class="btn btn-primary">Share with sales</button>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile"><span class="k">Median time to sign</span><span class="v">18<small> days</small></span><span class="d"><span class="delta up">5 days faster</span> than last quarter</span></div>
+      <div class="tile"><span class="k">On your standard paper</span><span class="v">9<small> days</small></span><span class="d">Used in 62% of deals</span></div>
+      <div class="tile"><span class="k">On their paper</span><span class="v">31<small> days</small></span><span class="d">More than three times as long</span></div>
+      <div class="tile"><span class="k">Signed untouched</span><span class="v">62<small>%</small></span><span class="d">84% on deals under KES 2M</span></div>
+    </div>
+
+    <div class="grid g-2-1" style="margin-bottom:14px;">
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Where the 18 days actually go</h3>
+            <div class="hint">A deal moves through these in order. Counterparty review is the widest
+              step by some distance — and it is the one nobody was measuring.</div>
+          </div>
+        </div>
+        <div class="stagebar" aria-label="Drafting 2 days, internal review 3 days, counterparty review 8 days, negotiation 4 days, signing 1 day.">
+          <div style="flex:2;background:var(--ch-1);">2d</div>
+          <div style="flex:3;background:var(--ch-2);">3d</div>
+          <div style="flex:8;background:var(--ch-3);">8 days</div>
+          <div style="flex:4;background:var(--ch-4);" class="dk">4d</div>
+          <div style="flex:1;background:var(--ch-5);" class="dk">1</div>
+        </div>
+        <div class="stage-x">
+          <div style="flex:2;">Drafting</div>
+          <div style="flex:3;">Internal<br/>review</div>
+          <div style="flex:8;">Sitting with the counterparty</div>
+          <div style="flex:4;">Negotiating</div>
+          <div style="flex:1;">Sign</div>
+        </div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--color-divider);">
+          <div style="font-size:12px;font-weight:700;margin-bottom:2px;">The same journey on their paper — 31 days</div>
+          <div class="hint" style="font-size:11.5px;color:var(--color-neutral-500);margin-bottom:8px;">
+            Each bar fills its own width — what differs is the total. Almost all the extra time is
+            spent waiting on them and arguing.</div>
+          <div class="stagebar" style="height:26px;"
+               aria-label="On counterparty paper: drafting 1 day, internal review 5 days, counterparty review 13 days, negotiation 10 days, signing 2 days.">
+            <div style="flex:1;background:var(--ch-1);"></div>
+            <div style="flex:5;background:var(--ch-2);">5d</div>
+            <div style="flex:13;background:var(--ch-3);">13 days</div>
+            <div style="flex:10;background:var(--ch-4);" class="dk">10 days</div>
+            <div style="flex:2;background:var(--ch-5);" class="dk"></div>
+          </div>
+        </div>
+        <div class="callout" style="margin-top:16px;">
+          <b>Nearly half the wait is the other side reading.</b> Chasing earlier is worth more than
+          drafting faster — and the pipeline below already shows which deals have gone quiet.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>How often your standard terms are simply signed</h3>
+            <div class="hint">Where acceptance is high, small deals could skip legal review entirely.</div>
+          </div>
+        </div>
+        <div class="rank">
+          <div class="row"><span class="nm">Under KES 2M<em>44 deals</em></span><span class="track"><span class="fill" style="width:84%"></span></span><span class="val">84%</span></div>
+          <div class="row"><span class="nm">KES 2M – 10M<em>27 deals</em></span><span class="track"><span class="fill" style="width:51%"></span></span><span class="val">51%</span></div>
+          <div class="row"><span class="nm">Over KES 10M<em>12 deals</em></span><span class="track"><span class="fill warn" style="width:34%"></span></span><span class="val">34%</span></div>
+        </div>
+        <div class="callout" style="margin-top:16px;">
+          Five out of six small deals go through untouched. Letting sales send those without a legal
+          pass would free roughly <b>three days a week</b> of review time.
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-2-1">
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Which clauses cause the arguments</h3>
+            <div class="hint">Read from the tracked changes on every negotiation you have run. The
+              accepted wording is already sitting in your clause library.</div>
+          </div>
+        </div>
+        <div class="tblwrap">
+          <table>
+            <thead>
+              <tr><th>Clause</th><th class="num">Redlined</th><th class="num">Days added</th><th>What they usually ask for</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="t-strong">Limitation of liability</td>
+                <td class="num" style="color:var(--st-ruby-fg);font-weight:700;">78%</td>
+                <td class="num">+6.2</td>
+                <td class="t-mut">A cap at 12 months of fees instead of unlimited</td>
+              </tr>
+              <tr>
+                <td class="t-strong">Payment terms</td>
+                <td class="num">54%</td><td class="num">+2.1</td>
+                <td class="t-mut">45 or 60 days instead of your 30</td>
+              </tr>
+              <tr>
+                <td class="t-strong">Indemnity</td>
+                <td class="num">44%</td><td class="num">+4.8</td>
+                <td class="t-mut">Mutual rather than one-way</td>
+              </tr>
+              <tr>
+                <td class="t-strong">Termination for convenience</td>
+                <td class="num">37%</td><td class="num">+3.3</td>
+                <td class="t-mut">The same right for both sides</td>
+              </tr>
+              <tr>
+                <td class="t-strong">Governing law</td>
+                <td class="num">31%</td><td class="num">+1.4</td>
+                <td class="t-mut">Their home jurisdiction</td>
+              </tr>
+              <tr>
+                <td class="t-strong">Data protection</td>
+                <td class="num">22%</td><td class="num">+0.9</td>
+                <td class="t-mut">Rarely contested — your wording holds</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout" style="margin-top:14px;">
+          <b>One clause is costing you six days a deal.</b> In 71% of the negotiations where liability
+          was challenged, you ended up agreeing a 12-month cap anyway. Opening with that wording would
+          remove the argument before it starts.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Live negotiations</h3>
+            <div class="hint">Whose turn it is, and who has gone quiet.</div>
+          </div>
+        </div>
+        <div class="tblwrap">
+          <table style="min-width:0;">
+            <thead><tr><th>Deal</th><th class="num">Open</th><th>Waiting on</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="t-strong">Serena Hotels<div class="t-mut">Distribution Agreement</div></td>
+                <td class="num">21d</td>
+                <td><span class="pill ruby"><span class="dot"></span>Quiet 11 days</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Java House Group<div class="t-mut">Supply Agreement</div></td>
+                <td class="num">12d</td>
+                <td><span class="pill amber"><span class="dot"></span>Quiet 6 days</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Carrefour Kenya<div class="t-mut">Master Services</div></td>
+                <td class="num">4d</td>
+                <td><span class="pill steel"><span class="dot"></span>Us</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Cloudpoint Systems<div class="t-mut">Renewal NDA</div></td>
+                <td class="num">2d</td>
+                <td><span class="pill gray"><span class="dot"></span>Signing</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Naivas Supermarkets<div class="t-mut">Annual renewal</div></td>
+                <td class="num">1d</td>
+                <td><span class="pill steel"><span class="dot"></span>Us</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout" style="margin-top:14px;">
+          Two deals worth <b>KES 31M</b> have had no movement for over a week. Neither has an owner
+          chasing them.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================
+       6 · SUPPLIERS & RISK
+       =================================================================== -->
+  <section class="screen" id="s-supply">
+    <div class="page-head">
+      <div>
+        <h1>Suppliers &amp; risk</h1>
+        <div class="sub">Your whole portfolio read side by side — where your own contracts disagree
+          with each other, what your payment terms are doing to cash, and how much sits with too few
+          counterparties.</div>
+      </div>
+      <div class="acts">
+        <button class="btn">Suppliers</button>
+        <button class="btn">Customers</button>
+        <button class="btn btn-primary">Board pack</button>
+      </div>
+    </div>
+
+    <div class="grid g4" style="margin-bottom:14px;">
+      <div class="tile"><span class="k">Contracted spend · KES</span><span class="v">186<small>M</small></span><span class="d">41 suppliers, next 12 months</span></div>
+      <div class="tile"><span class="k">Contracted revenue · KES</span><span class="v">340<small>M</small></span><span class="d">63 customers, next 12 months</span></div>
+      <div class="tile"><span class="k">Biggest single customer</span><span class="v">24<small>%</small></span><span class="d">Naivas Supermarkets, of all revenue</span></div>
+      <div class="tile"><span class="k">Expiring in Q4</span><span class="v">31<small>%</small></span><span class="d">of supplier contracts, all at once</span></div>
+    </div>
+
+    <div class="grid g2" style="margin-bottom:14px;">
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Where your own contracts disagree with each other</h3>
+            <div class="hint">Nobody reads 148 agreements side by side. HaTi holds them all, so it can.</div>
+          </div>
+        </div>
+        <div class="attn">
+          <div class="it">
+            <span class="ic" style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
+            </span>
+            <div class="bd"><b>Seven supplier contracts have no ceiling on price rises</b>
+              <p>They can increase whatever they like at renewal. Together they are worth KES 44M a
+                year of your spend.</p></div>
+            <span class="go"><button class="btn btn-sm">List</button></span>
+          </div>
+          <div class="it">
+            <span class="ic" style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
+            </span>
+            <div class="bd"><b>Four customer contracts cap nothing you owe</b>
+              <p>Your liability under them is unlimited. Every other customer contract you hold caps
+                it at twelve months of fees.</p></div>
+            <span class="go"><button class="btn btn-sm">List</button></span>
+          </div>
+          <div class="it">
+            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></svg>
+            </span>
+            <div class="bd"><b>The same supplier, two contracts, two notice periods</b>
+              <p>Equity Facilities: 30 days on one agreement, 90 on the other. Whoever signed the
+                second did not see the first.</p></div>
+            <span class="go"><button class="btn btn-sm">Compare</button></span>
+          </div>
+          <div class="it">
+            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/></svg>
+            </span>
+            <div class="bd"><b>Three contracts are governed by English law</b>
+              <p>With arbitration seated in London. A dispute under any of them would cost far more to
+                run than one under Kenyan law.</p></div>
+            <span class="go"><button class="btn btn-sm">List</button></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Payment terms, and what they cost you</h3>
+            <div class="hint">How long you have to pay each supplier, counted across your 41 supplier
+              agreements.</div>
+          </div>
+        </div>
+        <div class="rank">
+          <div class="row"><span class="nm">30 days<em>you pay fastest here</em></span><span class="track"><span class="fill warn" style="width:100%"></span></span><span class="val">18</span></div>
+          <div class="row"><span class="nm">45 days</span><span class="track"><span class="fill" style="width:50%"></span></span><span class="val">9</span></div>
+          <div class="row"><span class="nm">60 days</span><span class="track"><span class="fill" style="width:61%"></span></span><span class="val">11</span></div>
+          <div class="row"><span class="nm">90 days</span><span class="track"><span class="fill" style="width:17%"></span></span><span class="val">3</span></div>
+        </div>
+        <div class="callout" style="margin-top:16px;">
+          <b>You pay in 38 days on average and get paid in 45.</b> You are financing the gap. Moving
+          the eighteen 30-day suppliers to 45 days at their next renewal would free roughly
+          <b>KES 8.4 million</b> of working capital — without renegotiating a single price.
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-1-2">
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>How concentrated you are</h3>
+            <div class="hint">Share of contracted revenue.</div>
+          </div>
+        </div>
+        <div class="rank">
+          <div class="row"><span class="nm">Naivas Supermarkets</span><span class="track"><span class="fill warn" style="width:60%"></span></span><span class="val">24%</span></div>
+          <div class="row"><span class="nm">Carrefour Kenya</span><span class="track"><span class="fill" style="width:37%"></span></span><span class="val">15%</span></div>
+          <div class="row"><span class="nm">Java House Group</span><span class="track"><span class="fill" style="width:30%"></span></span><span class="val">12%</span></div>
+          <div class="row"><span class="nm">Serena Hotels</span><span class="track"><span class="fill" style="width:22%"></span></span><span class="val">9%</span></div>
+          <div class="row"><span class="nm">Everyone else<em>59 customers</em></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">40%</span></div>
+        </div>
+        <div class="callout" style="margin-top:16px;">
+          Your top three customers are <b>51% of contracted revenue</b>, and the largest renews in
+          March. That is the single number a lender or an investor will ask for.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <div>
+            <h3>Concession memory — what you give away, and to whom</h3>
+            <div class="hint">Counted from the tracked changes on every negotiation. Institutional
+              memory that survives people leaving.</div>
+          </div>
+        </div>
+        <div class="tblwrap">
+          <table>
+            <thead>
+              <tr><th>Counterparty</th><th class="num">Rounds</th><th class="num">You gave</th><th class="num">You won</th><th>Reads as</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="t-strong">Rift Valley Logistics</td>
+                <td class="num">4</td><td class="num">7</td><td class="num">3</td>
+                <td><span class="pill ruby"><span class="dot"></span>One-sided</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Equity Facilities Services</td>
+                <td class="num">3</td><td class="num">5</td><td class="num">3</td>
+                <td><span class="pill amber"><span class="dot"></span>Drifting</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Nairobi Cold Chain Ltd</td>
+                <td class="num">3</td><td class="num">4</td><td class="num">4</td>
+                <td><span class="pill green"><span class="dot"></span>Balanced</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Mombasa Packaging Co</td>
+                <td class="num">2</td><td class="num">2</td><td class="num">4</td>
+                <td><span class="pill green"><span class="dot"></span>In your favour</span></td>
+              </tr>
+              <tr>
+                <td class="t-strong">Cloudpoint Systems</td>
+                <td class="num">5</td><td class="num">6</td><td class="num">5</td>
+                <td><span class="pill green"><span class="dot"></span>Balanced</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout" style="margin-top:14px;">
+          Over four negotiations with Rift Valley you have conceded seven points and won three. No
+          single round looked unreasonable at the time — the pattern is only visible when they are
+          counted together, which is the whole argument for a platform holding the history.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+/* Screen switching. A prototype needs exactly this much behaviour and no more:
+   click a door, show a screen, mark the door. */
+(function(){
+  var doors  = Array.prototype.slice.call(document.querySelectorAll('[data-go]'));
+  var navs   = Array.prototype.slice.call(document.querySelectorAll('.nav-item[data-go]'));
+  var screens= Array.prototype.slice.call(document.querySelectorAll('.screen'));
+
+  function go(id){
+    screens.forEach(function(s){ s.classList.toggle('on', s.id === id); });
+    navs.forEach(function(n){ n.classList.toggle('active', n.dataset.go === id); });
+    document.querySelector('.main').scrollTop = 0;
+  }
+  doors.forEach(function(b){
+    b.addEventListener('click', function(){ go(b.dataset.go); });
+  });
+
+  /* The obligations screen has two faces — a list and a calendar — because the
+     same data answers two different questions. */
+  var list = document.getElementById('ob-list');
+  var cal  = document.getElementById('ob-cal');
+  var bL   = document.getElementById('ob-view-list');
+  var bC   = document.getElementById('ob-view-cal');
+  function obView(showCal){
+    list.style.display = showCal ? 'none' : '';
+    cal.style.display  = showCal ? '' : 'none';
+    bL.classList.toggle('btn-primary', !showCal);
+    bC.classList.toggle('btn-primary', showCal);
+  }
+  bL.addEventListener('click', function(){ obView(false); });
+  bC.addEventListener('click', function(){ obView(true); });
+  obView(false);
+
+  /* The filter chips are decoration in a prototype, but a chip that cannot be
+     pressed reads as broken — so they toggle. */
+  document.querySelectorAll('.filters').forEach(function(row){
+    row.querySelectorAll('.fbtn').forEach(function(b){
+      b.addEventListener('click', function(){
+        row.querySelectorAll('.fbtn').forEach(function(o){ o.classList.remove('on'); });
+        b.classList.add('on');
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
