@@ -9,16 +9,26 @@
 <link rel="stylesheet" href="../fonts/fonts.css" />
 <style>
 /* ============================================================================
-   HaTi Analyst — a LOOKS-ONLY prototype.
+   HaTi Analyst — a LOOKS-ONLY prototype, second cut.
 
-   Nothing here is wired to the app. It is a picture of what the analyst
-   screens would look like if they were built into HaTi, drawn with HaTi's own
-   tokens (teal on slate, Plus Jakarta Sans / Inter, 12px radii, the amber /
-   emerald / rose status model) so it reads as the same product rather than as
-   a mockup from somewhere else.
+   The first cut was built around one imaginary food company, so every figure
+   came out as tonnes, rebates and working capital, and CASH was the only unit
+   of value. This version is built the other way round:
 
-   Every figure on these screens is INVENTED sample data for one imaginary
-   Kenyan company. None of it comes from a real customer.
+     · every contract carries a CATEGORY, and the category decides what is
+       measured — not the company's industry, because one company holds many
+       categories at once;
+     · value has FIVE currencies, of which cash is only one;
+     · the shelf you land on follows the PERSON'S JOB;
+     · statistics are withheld where there are too few contracts to mean
+       anything, and the checks are shown instead.
+
+   Three example organisations share one engine. Switch between them in the
+   top bar — that switch is a demo device, not a HaTi feature.
+
+   Drawn with HaTi's own tokens (teal on slate, Plus Jakarta Sans / Inter,
+   12px radii, the amber / emerald / rose status model) so it reads as the
+   same product. Every figure is invented.
    ========================================================================= */
 
 :root{
@@ -44,8 +54,7 @@
   --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
   --brand-hero-sub:#bde7e1;
 
-  /* the sidebar is dark in every theme — that is HaTi's rule, not a dark-mode
-     side effect */
+  /* the sidebar is dark in every theme — HaTi's rule, not a dark-mode effect */
   --nav-bg:#0b3d3a; --nav-line:#0a3532; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
 
   --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
@@ -66,8 +75,9 @@
 
   /* THE CHART RAMP. The stage bar is a SEQUENCE (a deal moves through these in
      order), so it is one hue getting darker — not five unrelated colours.
-     Every segment is directly labelled, which is what earns the pale steps
-     their place against a white card. */
+     CATEGORIES are deliberately NOT colour-coded: nine of them would be a
+     rainbow, and a rainbow is how a reader stops trusting colour to mean
+     anything. They wear outlined chips instead. */
   --ch-1:#5eead4; --ch-2:#2dd4bf; --ch-3:#14b8a6; --ch-4:#0f766e; --ch-5:#115e59;
   --ch-grid:#e2e8f0;
   --ch-ref:#94a3b8;          /* the benchmark line — an annotation, not a series */
@@ -124,11 +134,8 @@
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
-  background:var(--color-bg);
-  color:var(--color-text);
-  font-family:var(--font-body);
-  font-size:13px;
-  line-height:1.5;
+  background:var(--color-bg);color:var(--color-text);
+  font-family:var(--font-body);font-size:13px;line-height:1.5;
   -webkit-font-smoothing:antialiased;
 }
 h1,h2,h3,h4{font-family:var(--font-heading);margin:0;text-wrap:balance;}
@@ -137,9 +144,7 @@ button{font:inherit;font-family:var(--font-body);cursor:pointer;}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 
 /* ---------- the prototype's own frame (not part of HaTi) ---------- */
-.proto-note{
-  max-width:1320px;margin:0 auto;padding:18px 20px 0;
-}
+.proto-note{max-width:1320px;margin:0 auto;padding:18px 20px 0;}
 .proto-note p{
   margin:0;padding:11px 14px;border-radius:var(--radius-md);
   background:var(--st-amber-bg);border:1px solid var(--st-amber-line);
@@ -153,27 +158,31 @@ button{font:inherit;font-family:var(--font-body);cursor:pointer;}
   border:1px solid var(--color-divider);border-radius:16px;overflow:hidden;
   box-shadow:var(--shadow-md);
   display:grid;grid-template-columns:236px 1fr;grid-template-rows:auto 1fr;
-  grid-template-areas:"brand top" "nav main";
-  min-height:760px;
+  grid-template-areas:"brand top" "nav main";min-height:760px;
 }
 .brandbar{
   grid-area:brand;background:var(--nav-bg);border-right:1px solid var(--nav-line);
   padding:14px 16px;display:flex;align-items:center;gap:9px;
 }
 .brandbar .wm{font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.02em;color:#fff;}
-.brandbar .tag{
-  font-size:9.5px;padding:1px 7px;border-radius:999px;font-weight:700;
-  background:rgba(255,255,255,.14);color:var(--brand-hero-sub);
-}
+.brandbar .tag{font-size:9.5px;padding:1px 7px;border-radius:999px;font-weight:700;
+  background:rgba(255,255,255,.14);color:var(--brand-hero-sub);}
 .topbar{
   grid-area:top;background:var(--color-surface);border-bottom:1px solid var(--color-divider);
-  padding:10px 18px;display:flex;align-items:center;gap:14px;
+  padding:10px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
 }
-.searchbox{
-  flex:1;max-width:420px;display:flex;align-items:center;gap:8px;
-  border:1px solid var(--color-divider);border-radius:10px;padding:7px 11px;
-  background:var(--color-bg);color:var(--color-neutral-500);font-size:12px;
+.orgswitch{display:flex;align-items:center;gap:7px;}
+.orgswitch .cap{
+  font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);
 }
+.obtn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 11px;
+  font-size:11.5px;font-weight:600;
+}
+.obtn:hover{background:var(--color-surface-2);}
+.obtn.on{background:var(--brand-hero);border-color:transparent;color:#fff;}
 .top-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
 .mkt-chip{
   display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
@@ -203,8 +212,7 @@ button{font:inherit;font-family:var(--font-body);cursor:pointer;}
 .nav-item{
   display:flex;align-items:center;gap:10px;width:100%;border:1px solid transparent;
   background:none;color:var(--nav-ink);font-size:12px;font-weight:600;
-  padding:9px 12px;text-align:left;border-radius:12px;
-  transition:background .12s,color .12s;
+  padding:9px 12px;text-align:left;border-radius:12px;transition:background .12s,color .12s;
 }
 .nav-item svg{flex:none;opacity:.9;}
 .nav-item:hover{background:rgba(255,255,255,.08);color:var(--nav-ink-strong);}
@@ -212,18 +220,15 @@ button{font:inherit;font-family:var(--font-body);cursor:pointer;}
 .nav-item .lbl{flex:1;}
 .nav-count{
   font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;
-  background:rgba(255,255,255,.14);color:var(--nav-ink);
-  font-variant-numeric:tabular-nums;
+  background:rgba(255,255,255,.14);color:var(--nav-ink);font-variant-numeric:tabular-nums;
 }
 .nav-item.active .nav-count{background:rgba(255,255,255,.24);color:#fff;}
-.nav-new{
-  font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;
-  background:var(--color-accent-500);color:#04241f;
-}
+.nav-new{font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;
+  background:var(--color-accent-500);color:#04241f;}
 
 /* ---------- main ---------- */
 .main{grid-area:main;background:var(--color-bg);padding:20px 22px 30px;overflow:auto;}
-.page-head{margin-bottom:18px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.page-head{margin-bottom:16px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
 .page-head h1{font-size:21px;font-weight:800;letter-spacing:-.02em;}
 .page-head .sub{color:var(--color-neutral-500);font-size:12.5px;margin-top:3px;max-width:66ch;}
 .page-head .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
@@ -250,15 +255,18 @@ button{font:inherit;font-family:var(--font-body);cursor:pointer;}
 .card-h .hint{font-size:11.5px;color:var(--color-neutral-500);margin-top:2px;max-width:62ch;}
 .card-h .side{margin-left:auto;display:flex;gap:6px;align-items:center;}
 .grid{display:grid;gap:14px;}
+.g5{grid-template-columns:repeat(5,1fr);}
 .g4{grid-template-columns:repeat(4,1fr);}
 .g3{grid-template-columns:repeat(3,1fr);}
 .g2{grid-template-columns:repeat(2,1fr);}
 .g-2-1{grid-template-columns:1.55fr 1fr;}
 .g-1-2{grid-template-columns:1fr 1.55fr;}
+@media (max-width:1180px){ .g5{grid-template-columns:repeat(3,1fr);} }
 @media (max-width:1080px){
   .g4{grid-template-columns:repeat(2,1fr);}
   .g3,.g2,.g-2-1,.g-1-2{grid-template-columns:1fr;}
 }
+@media (max-width:760px){ .g5,.g4{grid-template-columns:repeat(2,1fr);} }
 
 /* ---------- stat tiles ---------- */
 .tile{
@@ -274,10 +282,10 @@ button{font:inherit;font-family:var(--font-body);cursor:pointer;}
 .delta.up{color:var(--st-green-fg);}
 .delta.down{color:var(--st-ruby-fg);}
 .tile.hero{background:var(--brand-hero);border-color:transparent;color:#fff;}
-.tile.hero .k{color:var(--brand-hero-sub);}
-.tile.hero .d{color:var(--brand-hero-sub);}
+.tile.hero .k,.tile.hero .d{color:var(--brand-hero-sub);}
+.tile.hero .v small{color:var(--brand-hero-sub);}
 
-/* ---------- pills ---------- */
+/* ---------- pills & category chips ---------- */
 .pill{
   display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
   padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;
@@ -294,13 +302,31 @@ button{font:inherit;font-family:var(--font-body);cursor:pointer;}
 .pill.steel{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
 .pill.steel .dot{background:var(--st-steel-dot);}
 
+/* A CATEGORY IS NOT A STATUS, so it does not borrow the status colours, and
+   nine of them would be a rainbow. One quiet outlined chip, the name doing
+   the work. */
+.cat{
+  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;
+  padding:2px 8px;border-radius:6px;white-space:nowrap;
+  border:1px solid var(--color-neutral-300);color:var(--color-neutral-600);
+  background:var(--color-surface);
+}
+.cat:before{
+  content:"";width:5px;height:5px;border-radius:1px;flex:none;
+  background:var(--color-neutral-400);transform:rotate(45deg);
+}
+/* WHAT IS AT STAKE IS NOT A CATEGORY, and wearing the same chip made the two
+   unreadable next to each other — "Donor funding · Compliance · Continuity"
+   looked like three categories. Stakes are set as quiet text instead. */
+.stakes{font-size:10.5px;color:var(--color-neutral-500);display:inline-flex;align-items:center;gap:4px;}
+.stakes b{font-weight:600;color:var(--color-neutral-600);}
+
 /* ---------- tables ---------- */
 .tblwrap{overflow-x:auto;margin:0 -16px -16px;padding:0 16px 16px;}
 table{width:100%;border-collapse:collapse;font-size:12px;min-width:620px;}
 thead th{
   text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
-  color:var(--color-neutral-500);padding:8px 10px;border-bottom:1px solid var(--color-divider);
-  white-space:nowrap;
+  color:var(--color-neutral-500);padding:8px 10px;border-bottom:1px solid var(--color-divider);white-space:nowrap;
 }
 tbody td{padding:10px;border-bottom:1px solid var(--color-divider);vertical-align:top;}
 tbody tr:last-child td{border-bottom:0;}
@@ -313,7 +339,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   border-bottom:1px dotted color-mix(in srgb,var(--accent-solid) 45%,transparent);
 }
 
-/* ---------- filter row ---------- */
+/* ---------- filter / switch rows ---------- */
 .filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:13px;}
 .fbtn{
   border:1px solid var(--color-divider);background:var(--color-surface);
@@ -327,25 +353,26 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
   color:var(--accent-ink);
 }
 .fsep{width:1px;height:20px;background:var(--color-divider);margin:0 4px;}
+.shelf{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;
+  padding:10px 12px;border-radius:var(--radius-md);
+  background:var(--color-surface);border:1px solid var(--color-divider);
+}
+.shelf .cap{
+  font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);margin-right:2px;
+}
 
 /* ---------- charts ---------- */
-.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--color-neutral-600);}
-.legend span{display:inline-flex;align-items:center;gap:6px;}
-.legend i{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block;}
-
-/* stacked stage bar */
 .stagebar{display:flex;gap:2px;height:34px;margin-top:4px;}
-.stagebar div{
-  position:relative;display:grid;place-items:center;
-  font-size:11px;font-weight:700;color:#04241f;font-variant-numeric:tabular-nums;
-}
+.stagebar div{position:relative;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:#04241f;font-variant-numeric:tabular-nums;}
 .stagebar div:first-child{border-radius:7px 3px 3px 7px;}
 .stagebar div:last-child{border-radius:3px 7px 7px 3px;}
 .stagebar div.dk{color:#e6fffb;}
 .stage-x{display:flex;gap:2px;margin-top:7px;font-size:10.5px;color:var(--color-neutral-500);}
 .stage-x div{text-align:center;line-height:1.25;}
 
-/* ranked bars */
 .rank{display:flex;flex-direction:column;gap:9px;}
 .rank .row{display:grid;grid-template-columns:1fr 168px 46px;gap:10px;align-items:center;}
 .rank .nm{font-size:12px;font-weight:600;}
@@ -358,48 +385,65 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
 .rank .fill{display:block;height:100%;background:var(--color-accent-600);border-radius:5px;}
 .rank .fill.warn{background:var(--st-amber-dot);}
 .rank .val{text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;}
+@media (max-width:820px){ .rank .row{grid-template-columns:1fr 90px 44px;} }
 
-/* ---------- misc blocks ---------- */
-.attn{display:flex;flex-direction:column;gap:0;}
-.attn .it{
-  display:flex;gap:12px;align-items:flex-start;padding:12px 2px;
-  border-bottom:1px solid var(--color-divider);
-}
+/* ---------- attention list ---------- */
+.attn{display:flex;flex-direction:column;}
+.attn .it{display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--color-divider);}
 .attn .it:last-child{border-bottom:0;}
-.attn .ic{
-  width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
-}
+.attn .ic{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;}
 .attn .bd{flex:1;min-width:0;}
 .attn .bd b{display:block;font-size:12.5px;font-weight:700;margin-bottom:2px;}
 .attn .bd p{margin:0;font-size:11.5px;color:var(--color-neutral-500);}
+.attn .bd .tags{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
 .attn .go{margin-left:auto;flex:none;align-self:center;}
 
-.money{font-variant-numeric:tabular-nums;font-weight:700;}
-.money.big{font-family:var(--font-heading);font-size:16px;letter-spacing:-.02em;}
+/* ---------- exposure currencies ---------- */
+.cur{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius-md);padding:13px 14px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;gap:5px;text-align:left;width:100%;
+  transition:border-color .12s,background .12s;
+}
+.cur:hover{background:var(--color-surface-2);}
+.cur.on{
+  border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);
+  background:color-mix(in srgb,var(--accent-solid) 7%,transparent);
+}
+.cur .top{display:flex;align-items:center;gap:7px;}
+.cur .top svg{color:var(--accent-ink);flex:none;}
+.cur .nm{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-500);}
+.cur .v{font-family:var(--font-heading);font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--color-text);}
+.cur .d{font-size:11px;color:var(--color-neutral-500);}
 
-.leak-row{
-  display:grid;grid-template-columns:1fr 128px 120px 92px;gap:12px;align-items:center;
-  padding:13px 2px;border-bottom:1px solid var(--color-divider);
+/* ---------- misc ---------- */
+.callout{
+  border-left:3px solid var(--accent-solid);background:var(--st-steel-bg);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:11px 13px;font-size:12px;
 }
-.leak-row:last-child{border-bottom:0;}
-.leak-row .why{font-size:11.5px;color:var(--color-neutral-500);margin-top:3px;}
-.leak-row b{font-size:12.5px;font-weight:700;}
-@media (max-width:820px){
-  .leak-row{grid-template-columns:1fr;gap:6px;}
-  .rank .row{grid-template-columns:1fr 90px 44px;}
+.callout b{font-weight:700;}
+.callout.warn{border-left-color:var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg);}
+
+.clause-src{
+  background:var(--color-surface-2);border:1px solid var(--color-divider);
+  border-radius:var(--radius-sm);padding:13px 15px;font-size:12.5px;line-height:1.75;
 }
+.clause-src .no{font-weight:700;}
+mark{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
+  color:inherit;border-radius:3px;padding:1px 3px;font-weight:600;}
+
+.ghost{border:1px dashed color-mix(in srgb,var(--color-neutral-400) 60%,transparent);
+  background:transparent;box-shadow:none;}
+.ghost h3{color:var(--color-neutral-500);}
+.ghost .hint{color:var(--color-neutral-500);}
 
 .timeline{position:relative;padding-left:22px;}
-.timeline:before{
-  content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;
-  background:var(--color-divider);border-radius:2px;
-}
+.timeline:before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;
+  background:var(--color-divider);border-radius:2px;}
 .tl-it{position:relative;padding:0 0 18px;}
 .tl-it:last-child{padding-bottom:0;}
-.tl-it:before{
-  content:"";position:absolute;left:-20px;top:5px;width:10px;height:10px;border-radius:50%;
-  background:var(--color-accent-500);border:2px solid var(--color-surface);
-}
+.tl-it:before{content:"";position:absolute;left:-20px;top:5px;width:10px;height:10px;border-radius:50%;
+  background:var(--color-accent-500);border:2px solid var(--color-surface);}
 .tl-it.bad:before{background:var(--st-ruby-dot);}
 .tl-it .dt{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-500);}
 .tl-it .hd{font-size:12.5px;font-weight:700;margin:2px 0 5px;}
@@ -408,82 +452,69 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
 .tl-it .gv b{color:var(--st-ruby-fg);}
 .tl-it .wn b{color:var(--st-green-fg);}
 
-.callout{
-  border-left:3px solid var(--accent-solid);background:var(--st-steel-bg);
-  border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:11px 13px;font-size:12px;
-}
-.callout b{font-weight:700;}
-
-.clause-src{
-  background:var(--color-surface-2);border:1px solid var(--color-divider);
-  border-radius:var(--radius-sm);padding:13px 15px;font-size:12.5px;line-height:1.75;
-}
-.clause-src .no{font-weight:700;}
-mark{
-  background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
-  color:inherit;border-radius:3px;padding:1px 3px;font-weight:600;
-}
-
-/* the deliberately-not-built card */
-.ghost{
-  border:1px dashed color-mix(in srgb,var(--color-neutral-400) 60%,transparent);
-  background:transparent;box-shadow:none;
-}
-.ghost h3{color:var(--color-neutral-500);}
-.ghost .hint{color:var(--color-neutral-500);}
-
 .cal-mo{margin-bottom:16px;}
-.cal-mo h4{
-  font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--color-neutral-500);padding-bottom:7px;border-bottom:1px solid var(--color-divider);
-  margin-bottom:4px;
-}
+.cal-mo h4{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding-bottom:7px;border-bottom:1px solid var(--color-divider);margin-bottom:4px;}
 .cal-it{display:flex;gap:12px;align-items:baseline;padding:9px 2px;border-bottom:1px solid var(--color-divider);}
 .cal-it:last-child{border-bottom:0;}
-.cal-it .d{
-  font-size:11px;font-weight:700;color:var(--color-neutral-500);width:52px;flex:none;
-  font-variant-numeric:tabular-nums;
-}
+.cal-it .d{font-size:11px;font-weight:700;color:var(--color-neutral-500);width:52px;flex:none;font-variant-numeric:tabular-nums;}
 .cal-it .t{flex:1;font-size:12px;}
 .cal-it .t em{display:block;font-style:normal;font-size:11px;color:var(--color-neutral-500);}
+
+.finding{display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--color-divider);}
+.finding:last-child{border-bottom:0;}
+.finding .bd{flex:1;min-width:0;}
+.finding .bd b{display:block;font-size:12.5px;font-weight:700;margin-bottom:2px;}
+.finding .bd p{margin:0 0 6px;font-size:11.5px;color:var(--color-neutral-500);}
+.finding .amt{flex:none;text-align:right;min-width:104px;}
+.finding .amt .m{font-family:var(--font-heading);font-size:15px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.finding .amt .u{font-size:10.5px;color:var(--color-neutral-500);}
+@media (max-width:700px){ .finding{flex-direction:column;} .finding .amt{text-align:left;} }
+
+.packhd{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.packhd h4{font-size:13px;font-weight:700;}
+.checklist{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+.checklist div{display:flex;gap:8px;font-size:11.5px;align-items:flex-start;}
+.checklist div:before{
+  content:"";width:5px;height:5px;border-radius:50%;flex:none;margin-top:6px;
+  background:var(--color-accent-500);
+}
+.thin{border-top:1px solid var(--color-divider);margin-top:12px;padding-top:11px;}
 </style>
 </head>
 <body>
 
 <div class="proto-note">
-  <p><b>Prototype — pictures only.</b> Nothing here is connected to HaTi. Every number, company
-  and contract below is invented sample data for one imaginary Kenyan food business, so the
-  screens have something realistic to show. Click the doors under <b>ANALYST</b> in the left
-  menu to move between the six new screens.</p>
+  <p><b>Prototype — pictures only.</b> Nothing is connected to HaTi and every figure is invented.
+  Three example organisations share one engine — switch between them in the top bar to see how
+  differently the same product reads for a manufacturer, a health charity and a Swedish law firm.
+  Then switch <b>shelf</b> to see it change again by the reader's job.</p>
 </div>
 
 <div class="shell">
 
-  <!-- ============ brand corner ============ -->
-  <div class="brandbar">
-    <span class="wm">HaTi</span><span class="tag">CLM</span>
-  </div>
+  <div class="brandbar"><span class="wm">HaTi</span><span class="tag">CLM</span></div>
 
-  <!-- ============ top bar ============ -->
   <div class="topbar">
-    <div class="searchbox">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="opacity:.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      Search contracts, clauses, counterparties…
+    <div class="orgswitch">
+      <span class="cap">Example organisation</span>
+      <button class="obtn on" data-org="savanna">Savanna Foods</button>
+      <button class="obtn" data-org="ubuntu">Ubuntu Health Trust</button>
+      <button class="obtn" data-org="nordlund">Nordlund Advokatbyrå</button>
     </div>
     <div class="top-right">
-      <span class="mkt-chip">
+      <span class="mkt-chip" id="mkt-chip">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
-        Kenya · KES
+        <span id="mkt-text">Kenya · KES</span>
       </span>
       <button class="copilot-btn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
         Ask Copilot
       </button>
-      <span class="avatar">AM</span>
+      <span class="avatar" id="avatar">AM</span>
     </div>
   </div>
 
-  <!-- ============ sidebar ============ -->
   <nav class="sidenav">
     <button class="nav-item">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
@@ -491,11 +522,11 @@ mark{
     </button>
     <button class="nav-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
-      <span class="lbl">Contracts</span><span class="nav-count">148</span>
+      <span class="lbl">Contracts</span><span class="nav-count" id="nav-contracts">148</span>
     </button>
     <button class="nav-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
-      <span class="lbl">Calendar</span><span class="nav-count">9</span>
+      <span class="lbl">Calendar</span>
     </button>
     <button class="nav-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
@@ -503,7 +534,7 @@ mark{
     </button>
     <button class="nav-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
-      <span class="lbl">Templates</span><span class="nav-count">24</span>
+      <span class="lbl">Templates</span>
     </button>
 
     <div class="nav-head">Analyst <span class="nav-new">New</span></div>
@@ -512,1231 +543,1090 @@ mark{
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 15 3.5-4.5 3 2.5L20 6"/></svg>
       <span class="lbl">Analyst home</span>
     </button>
+    <button class="nav-item" data-go="s-mix">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg>
+      <span class="lbl">Categories &amp; packs</span><span class="nav-count" id="nav-packs">6</span>
+    </button>
     <button class="nav-item" data-go="s-oblig">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h9a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1"/><rect x="8" y="2.5" width="8" height="4" rx="1.2"/><path d="m8.5 12 1.8 1.8 3.6-3.8"/><path d="M8.5 17.2h7"/></svg>
-      <span class="lbl">Obligations</span><span class="nav-count">1284</span>
+      <span class="lbl">Obligations</span><span class="nav-count" id="nav-oblig">1284</span>
     </button>
-    <button class="nav-item" data-go="s-renew">
+    <button class="nav-item" data-go="s-brief">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.7 4.4v4.4h-4.4"/></svg>
-      <span class="lbl">Renewals</span><span class="nav-count">6</span>
+      <span class="lbl">Briefings</span>
     </button>
-    <button class="nav-item" data-go="s-leak">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9.2c-.7-.9-1.8-1.4-3-1.4-1.8 0-2.9.9-2.9 2.1 0 3 6 1.6 6 4.5 0 1.3-1.2 2.2-3.1 2.2-1.3 0-2.5-.5-3.2-1.5"/><path d="M12 6v12"/></svg>
-      <span class="lbl">Value leakage</span><span class="nav-count">6</span>
+    <button class="nav-item" data-go="s-exp">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3.5 6.6v5.2c0 4.8 3.4 8.6 8.5 10.2 5.1-1.6 8.5-5.4 8.5-10.2V6.6L12 3Z"/><path d="M12 8.6v4.2"/><circle cx="12" cy="16.2" r=".9" fill="currentColor"/></svg>
+      <span class="lbl">Exposure</span><span class="nav-count" id="nav-exp">34</span>
     </button>
     <button class="nav-item" data-go="s-deals">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 7v5l3.4 2"/><path d="M3 16.5 5 21l4.5-2"/></svg>
-      <span class="lbl">Deal analytics</span>
-    </button>
-    <button class="nav-item" data-go="s-supply">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 16V9.4l5-2.9 5 2.9V16l-5 2.9L2.5 16Z"/><path d="M12.5 12.6V7l4.5-2.6L21.5 7v5.6L17 15.2l-4.5-2.6Z"/></svg>
-      <span class="lbl">Suppliers &amp; risk</span>
+      <span class="lbl">Negotiation stats</span>
     </button>
   </nav>
 
-  <!-- ============ main ============ -->
   <main class="main">
-
-  <!-- ==================================================================
-       1 · ANALYST HOME
-       =================================================================== -->
-  <section class="screen on" id="s-home">
-    <div class="page-head">
-      <div>
-        <h1>Analyst</h1>
-        <div class="sub">What your 148 contracts are telling you this week. Read from the agreements
-          themselves — no one has to type anything in for this page to work.</div>
-      </div>
-      <div class="acts">
-        <button class="btn">Email me this weekly</button>
-        <button class="btn btn-primary">Open health report</button>
-      </div>
-    </div>
-
-    <div class="grid g4" style="margin-bottom:14px;">
-      <div class="tile hero">
-        <span class="k">Contract health</span>
-        <span class="v">72<small>/100</small></span>
-        <span class="d">Up 4 points on July. See the workings →</span>
-      </div>
-      <div class="tile">
-        <span class="k">Money on the table · KES</span>
-        <span class="v">14.8<small>M</small></span>
-        <span class="d"><span class="delta up">3.1M recovered</span> since last month</span>
-      </div>
-      <div class="tile">
-        <span class="k">Decisions due · 30 days</span>
-        <span class="v">9</span>
-        <span class="d">3 of them are notice deadlines you cannot miss</span>
-      </div>
-      <div class="tile">
-        <span class="k">Median time to sign</span>
-        <span class="v">18<small> days</small></span>
-        <span class="d"><span class="delta up">5 days faster</span> than last quarter</span>
-      </div>
-    </div>
-
-    <div class="grid g-2-1">
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>Needs you this week</h3>
-            <div class="hint">Ranked by what it costs to ignore, not by date.</div>
-          </div>
-        </div>
-        <div class="attn">
-          <div class="it">
-            <span class="ic" style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
-            </span>
-            <div class="bd">
-              <b>Rift Valley Logistics — decide by 2 September</b>
-              <p>The haulage framework renews 31 October. You must give notice 60 days ahead, so the
-                real deadline is 25 days away. Their price has risen 24.2% in three years against
-                inflation of 17.2%.</p>
-            </div>
-            <span class="go"><button class="btn btn-sm" data-go="s-renew">Open briefing</button></span>
-          </div>
-          <div class="it">
-            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/></svg>
-            </span>
-            <div class="bd">
-              <b>Three contracts auto-renewed without a decision</b>
-              <p>They passed their notice dates in July while nobody was watching, committing
-                KES 4.2 million for another year. Two are still inside a short cancellation window.</p>
-            </div>
-            <span class="go"><button class="btn btn-sm" data-go="s-leak">See the money</button></span>
-          </div>
-          <div class="it">
-            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V9m5 11V4m5 16v-8m5 8V7"/></svg>
-            </span>
-            <div class="bd">
-              <b>Your liability clause is costing you six days a deal</b>
-              <p>It gets rewritten in 78% of negotiations. The wording counterparties actually accept
-                is already in your library — three sales deals are stuck on it right now.</p>
-            </div>
-            <span class="go"><button class="btn btn-sm" data-go="s-deals">See clause friction</button></span>
-          </div>
-          <div class="it">
-            <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 8h9.5a3 3 0 0 1 0 6H5"/></svg>
-            </span>
-            <div class="bd">
-              <b>Eleven customer contracts let you raise your prices — you never have</b>
-              <p>They carry an annual indexation right that has gone unused since signing. Worth
-                about KES 5.8 million a year at current inflation.</p>
-            </div>
-            <span class="go"><button class="btn btn-sm" data-go="s-leak">Review</button></span>
-          </div>
-          <div class="it">
-            <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="m9 12 2.2 2.2L20 5.5"/></svg>
-            </span>
-            <div class="bd">
-              <b>147 new obligations are waiting for a human look</b>
-              <p>HaTi pulled them out of contracts imported last week. Confirm or correct them and
-                they start feeding the calendar.</p>
-            </div>
-            <span class="go"><button class="btn btn-sm" data-go="s-oblig">Review</button></span>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h3>Where the score comes from</h3>
-              <div class="hint">Six things, each worth a share. No AI opinion — it is arithmetic.</div>
-            </div>
-          </div>
-          <div class="rank">
-            <div class="row"><span class="nm">Renewals under control<em>9 of 12 decided in time</em></span>
-              <span class="track"><span class="fill" style="width:75%"></span></span><span class="val">75%</span></div>
-            <div class="row"><span class="nm">Obligations confirmed<em>1,137 of 1,284 checked</em></span>
-              <span class="track"><span class="fill" style="width:89%"></span></span><span class="val">89%</span></div>
-            <div class="row"><span class="nm">Standard paper used<em>62% of new deals</em></span>
-              <span class="track"><span class="fill" style="width:62%"></span></span><span class="val">62%</span></div>
-            <div class="row"><span class="nm">Price protection in place<em>7 contracts have no ceiling</em></span>
-              <span class="track"><span class="fill warn" style="width:48%"></span></span><span class="val">48%</span></div>
-            <div class="row"><span class="nm">Exit rights held<em>8 contracts you cannot leave early</em></span>
-              <span class="track"><span class="fill" style="width:71%"></span></span><span class="val">71%</span></div>
-            <div class="row"><span class="nm">Concentration<em>Top customer is 24% of revenue</em></span>
-              <span class="track"><span class="fill warn" style="width:55%"></span></span><span class="val">55%</span></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h3>Ask the analyst</h3>
-              <div class="hint">Copilot answers from these same numbers, not from guesswork.</div>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:7px;">
-            <button class="btn" style="text-align:left;">“Which suppliers raised prices above the cap?”</button>
-            <button class="btn" style="text-align:left;">“What did we concede to Rift Valley last time?”</button>
-            <button class="btn" style="text-align:left;">“Which contracts expire in Q4?”</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       2 · OBLIGATIONS REGISTER
-       =================================================================== -->
-  <section class="screen" id="s-oblig">
-    <div class="page-head">
-      <div>
-        <h1>Obligations</h1>
-        <div class="sub">Every promise inside every contract, pulled out and put in one list — who
-          owes what, by when, and which clause it came from. This is the foundation the renewal
-          briefings, the calendar and the leakage report are all built on.</div>
-      </div>
-      <div class="acts">
-        <button class="btn" id="ob-view-list">List</button>
-        <button class="btn" id="ob-view-cal">Calendar</button>
-        <button class="btn btn-primary">Export</button>
-      </div>
-    </div>
-
-    <div class="grid g4" style="margin-bottom:14px;">
-      <div class="tile"><span class="k">Obligations found</span><span class="v">1,284</span><span class="d">across 148 contracts</span></div>
-      <div class="tile"><span class="k">Confirmed by a person</span><span class="v">1,137</span><span class="d">89% — the rest are waiting</span></div>
-      <div class="tile"><span class="k">Owed by us</span><span class="v">421</span><span class="d">33% of everything tracked</span></div>
-      <div class="tile"><span class="k">Falling due in 30 days</span><span class="v">27</span><span class="d">6 need a person to act</span></div>
-    </div>
-
-    <!-- ---- LIST VIEW ---- -->
-    <div id="ob-list">
-        <div class="card" style="margin-bottom:14px;">
-          <div class="filters">
-            <button class="fbtn on">All 1,284</button>
-            <button class="fbtn">Owed by them</button>
-            <button class="fbtn">Owed by us</button>
-            <span class="fsep"></span>
-            <button class="fbtn">Service levels</button>
-            <button class="fbtn">Payment</button>
-            <button class="fbtn">Delivery</button>
-            <button class="fbtn">Notice</button>
-            <button class="fbtn">Insurance</button>
-            <button class="fbtn">Reporting</button>
-            <span class="fsep"></span>
-            <button class="fbtn">Needs review <span class="pill amber" style="margin-left:5px">147</span></button>
-          </div>
-          <div class="tblwrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>The promise</th><th>Counterparty</th><th>Owed by</th><th>Type</th>
-                  <th>When</th><th>From</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><span class="t-strong">Keep the service available 99.5% of each month</span>
-                      <div class="t-mut">IT Support &amp; Hosting Agreement</div></td>
-                  <td>Cloudpoint Systems</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Service level</td>
-                  <td>Every month</td>
-                  <td><span class="t-src">Clause 7.1</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Respond to a critical incident within 4 hours</span>
-                      <div class="t-mut">IT Support &amp; Hosting Agreement</div></td>
-                  <td>Cloudpoint Systems</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Service level</td>
-                  <td>Per incident</td>
-                  <td><span class="t-src">Clause 7.1</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Deliver within 48 hours of order confirmation</span>
-                      <div class="t-mut">Haulage Framework Agreement</div></td>
-                  <td>Rift Valley Logistics</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Delivery</td>
-                  <td>Per order</td>
-                  <td><span class="t-src">Clause 4.1</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Hold cold store at −18 °C and log it daily</span>
-                      <div class="t-mut">Cold Storage Agreement</div></td>
-                  <td>Nairobi Cold Chain Ltd</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Performance</td>
-                  <td>Daily</td>
-                  <td><span class="t-src">Clause 5.4</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Pay invoices within 30 days of receipt</span>
-                      <div class="t-mut">Cold Storage Agreement</div></td>
-                  <td>Nairobi Cold Chain Ltd</td>
-                  <td><span class="pill amber"><span class="dot"></span>Us</span></td>
-                  <td>Payment</td>
-                  <td>Per invoice</td>
-                  <td><span class="t-src">Clause 9.3</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Give 90 days notice to end the contract</span>
-                      <div class="t-mut">Facilities Services Agreement</div></td>
-                  <td>Equity Facilities Services</td>
-                  <td><span class="pill gray"><span class="dot"></span>Both</span></td>
-                  <td>Notice</td>
-                  <td><span class="t-strong">By 4 Nov 2026</span></td>
-                  <td><span class="t-src">Clause 14.1</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Carry product liability cover of KES 50,000,000</span>
-                      <div class="t-mut">Produce Supply Agreement</div></td>
-                  <td>Kilifi Farms Cooperative</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Insurance</td>
-                  <td><span class="t-strong">Certificate due 12 Sep</span></td>
-                  <td><span class="t-src">Clause 11.2</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Send a HACCP audit certificate every year</span>
-                      <div class="t-mut">Produce Supply Agreement</div></td>
-                  <td>Kilifi Farms Cooperative</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Compliance</td>
-                  <td><span class="t-strong">Due 20 Aug — 12 days</span></td>
-                  <td><span class="t-src">Clause 8.6</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Raise prices no more than CPI + 2%, once a year</span>
-                      <div class="t-mut">Packaging Supply Agreement</div></td>
-                  <td>Mombasa Packaging Co</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Price</td>
-                  <td>Review 1 Oct</td>
-                  <td><span class="t-src">Clause 6.3</span></td>
-                </tr>
-                <tr>
-                  <td><span class="t-strong">Give a quarterly service report</span>
-                      <div class="t-mut">IT Support &amp; Hosting Agreement</div></td>
-                  <td>Cloudpoint Systems</td>
-                  <td><span class="pill steel"><span class="dot"></span>Them</span></td>
-                  <td>Reporting</td>
-                  <td>Next 30 Sep</td>
-                  <td><span class="t-src">Clause 7.5</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="grid g3">
-          <div class="card">
-            <div class="card-h">
-              <div>
-                <h3>Where this one came from</h3>
-                <div class="hint">Every obligation shows the exact sentence it was read out of, so a
-                  person can check it in one glance.</div>
-              </div>
-            </div>
-            <div class="clause-src">
-              <span class="no">7.1</span> The Supplier shall ensure that the Services achieve a minimum
-              availability of <mark>99.5% measured monthly</mark>, and shall respond to any Critical
-              Incident <mark>within four (4) hours</mark> of notification.
-            </div>
-            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <span class="pill green"><span class="dot"></span>2 obligations read from this clause</span>
-              <span class="pill gray"><span class="dot"></span>Confirmed by Amina · 14 Jul</span>
-            </div>
-            <div style="margin-top:12px;display:flex;gap:8px;">
-              <button class="btn btn-sm btn-primary">Confirm</button>
-              <button class="btn btn-sm">Edit</button>
-              <button class="btn btn-sm">Not an obligation</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-h">
-              <div><h3>What kind of promises they are</h3></div>
-            </div>
-            <div class="rank">
-              <div class="row"><span class="nm">Payment terms</span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">312</span></div>
-              <div class="row"><span class="nm">Service levels</span><span class="track"><span class="fill" style="width:76%"></span></span><span class="val">238</span></div>
-              <div class="row"><span class="nm">Delivery &amp; performance</span><span class="track"><span class="fill" style="width:64%"></span></span><span class="val">201</span></div>
-              <div class="row"><span class="nm">Reporting</span><span class="track"><span class="fill" style="width:50%"></span></span><span class="val">157</span></div>
-              <div class="row"><span class="nm">Notice &amp; renewal</span><span class="track"><span class="fill" style="width:44%"></span></span><span class="val">139</span></div>
-              <div class="row"><span class="nm">Insurance &amp; compliance</span><span class="track"><span class="fill" style="width:39%"></span></span><span class="val">122</span></div>
-              <div class="row"><span class="nm">Price &amp; indexation</span><span class="track"><span class="fill" style="width:37%"></span></span><span class="val">115</span></div>
-            </div>
-          </div>
-
-          <div class="card ghost">
-            <div class="card-h">
-              <div>
-                <h3>Did they actually do it?</h3>
-                <div class="hint">Not in this prototype. Checking a promise was kept needs someone to
-                  log what happened in the real world — a late delivery, a missed response. That is a
-                  later step; everything else on these screens works without it.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-    </div>
-
-    <!-- ---- CALENDAR VIEW ---- -->
-    <div id="ob-cal" style="display:none;">
-      <div class="grid g2">
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h3>The next 90 days</h3>
-              <div class="hint">Renewals, notice deadlines, certificates, reports and reviews — all
-                from the obligations register, in date order.</div>
-            </div>
-          </div>
-
-          <div class="cal-mo">
-            <h4>August 2026</h4>
-            <div class="cal-it"><span class="d">20 Aug</span><span class="t">HACCP audit certificate due from Kilifi Farms<em>Produce Supply Agreement · Clause 8.6</em></span><span class="pill amber"><span class="dot"></span>12 days</span></div>
-            <div class="cal-it"><span class="d">25 Aug</span><span class="t">Quarterly volume reconciliation with Rift Valley<em>Haulage Framework · Clause 5.2</em></span><span class="pill gray"><span class="dot"></span>17 days</span></div>
-            <div class="cal-it"><span class="d">31 Aug</span><span class="t">Monthly availability report due from Cloudpoint<em>IT Support Agreement · Clause 7.5</em></span><span class="pill gray"><span class="dot"></span>23 days</span></div>
-          </div>
-
-          <div class="cal-mo">
-            <h4>September 2026</h4>
-            <div class="cal-it"><span class="d">2 Sep</span><span class="t"><b>Last day to give notice — Rift Valley Logistics</b><em>Renews 31 Oct if you say nothing · KES 24.6M a year</em></span><span class="pill ruby"><span class="dot"></span>Decide</span></div>
-            <div class="cal-it"><span class="d">12 Sep</span><span class="t">Insurance certificate due from Kilifi Farms<em>Cover must be at least KES 50,000,000</em></span><span class="pill amber"><span class="dot"></span>Chase</span></div>
-            <div class="cal-it"><span class="d">15 Sep</span><span class="t">Naivas Supermarkets — annual price indexation window opens<em>You may raise prices by CPI · Clause 6.1</em></span><span class="pill steel"><span class="dot"></span>Your right</span></div>
-            <div class="cal-it"><span class="d">30 Sep</span><span class="t">Quarterly service report due from Cloudpoint<em>IT Support Agreement · Clause 7.5</em></span><span class="pill gray"><span class="dot"></span>—</span></div>
-          </div>
-
-          <div class="cal-mo" style="margin-bottom:0;">
-            <h4>October 2026</h4>
-            <div class="cal-it"><span class="d">1 Oct</span><span class="t">Mombasa Packaging annual price review<em>Capped at CPI + 2% — check what they ask for</em></span><span class="pill steel"><span class="dot"></span>Cap applies</span></div>
-            <div class="cal-it"><span class="d">15 Oct</span><span class="t">Java House Group supply agreement expires<em>No auto-renewal — it simply ends</em></span><span class="pill amber"><span class="dot"></span>Act</span></div>
-            <div class="cal-it"><span class="d">31 Oct</span><span class="t">Rift Valley Logistics renews automatically<em>Unless notice was given by 2 September</em></span><span class="pill ruby"><span class="dot"></span>Locked by then</span></div>
-          </div>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:14px;">
-          <div class="card">
-            <div class="card-h">
-              <div>
-                <h3>How you hear about it</h3>
-                <div class="hint">The point of the calendar is that you never have to open it.</div>
-              </div>
-            </div>
-            <div class="attn">
-              <div class="it">
-                <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 6.5 9 6 9-6"/></svg>
-                </span>
-                <div class="bd"><b>Email, 90 / 60 / 30 days before</b>
-                  <p>To the contract owner and their manager. It says the date, the money and the one
-                    thing to decide.</p></div>
-              </div>
-              <div class="it">
-                <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
-                </span>
-                <div class="bd"><b>On the phone shell too</b>
-                  <p>The same list already reads through HaTi's mobile screens, so it needs no second
-                    version building.</p></div>
-              </div>
-              <div class="it">
-                <span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4"/></svg>
-                </span>
-                <div class="bd"><b>Copilot can be asked</b>
-                  <p>“What's due next month?” is answered from this list, so the answer is the same one
-                    the email sent.</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-h"><div><h3>What's coming, by kind</h3></div></div>
-            <div class="rank">
-              <div class="row"><span class="nm">Reports &amp; certificates due<em>next 90 days</em></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">31</span></div>
-              <div class="row"><span class="nm">Price reviews<em>where a cap applies</em></span><span class="track"><span class="fill" style="width:39%"></span></span><span class="val">12</span></div>
-              <div class="row"><span class="nm">Renewals &amp; expiries</span><span class="track"><span class="fill warn" style="width:29%"></span></span><span class="val">9</span></div>
-              <div class="row"><span class="nm">Notice deadlines<em>miss one and you are locked in</em></span><span class="track"><span class="fill warn" style="width:19%"></span></span><span class="val">6</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       3 · RENEWAL LEVERAGE BRIEFING
-       =================================================================== -->
-  <section class="screen" id="s-renew">
-    <div class="page-head">
-      <div>
-        <h1>Renewal briefing — Rift Valley Logistics</h1>
-        <div class="sub">Haulage Framework Agreement · KES 24.6M a year · renews 31 October 2026.
-          One page, prepared automatically before every renewal, so nobody walks into the meeting
-          without the history.</div>
-      </div>
-      <div class="acts">
-        <button class="btn">Download PDF</button>
-        <button class="btn btn-primary">Start the renewal</button>
-      </div>
-    </div>
-
-    <div class="grid g4" style="margin-bottom:14px;">
-      <div class="tile" style="border-color:var(--st-ruby-line);">
-        <span class="k" style="color:var(--st-ruby-fg);">Decide by</span>
-        <span class="v">2 Sep</span>
-        <span class="d">25 days away · 60 days notice required</span>
-      </div>
-      <div class="tile"><span class="k">Price rise, 3 years</span><span class="v">+24.2<small>%</small></span><span class="d">Inflation over the same period: 17.2%</span></div>
-      <div class="tile"><span class="k">Paying above trend · KES</span><span class="v">1.4<small>M</small></span><span class="d">a year, versus an inflation-only path</span></div>
-      <div class="tile"><span class="k">Rebate never claimed · KES</span><span class="v">820<small>K</small></span><span class="d">You passed the 5,000-tonne tier in March</span></div>
-    </div>
-
-    <div class="grid g-2-1">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h3>What you have paid, and what the contract said you should</h3>
-              <div class="hint">Their clause caps increases at CPI + 2%. They have taken the very top
-                of that cap every single year.</div>
-            </div>
-          </div>
-          <!-- ONE series (what you paid). The dashed line is a benchmark
-               annotation, not a second series — so it needs no legend box,
-               just its own label. -->
-          <svg viewBox="0 0 640 210" width="100%" height="210" role="img"
-               aria-label="Annual haulage cost rose from 19.8 million shillings in 2023 to 24.6 million in 2026. An inflation-only path would have reached 23.2 million.">
-            <defs>
-              <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--color-accent-500)" stop-opacity=".28"/>
-                <stop offset="100%" stop-color="var(--color-accent-500)" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <!-- recessive grid -->
-            <g stroke="var(--ch-grid)" stroke-width="1">
-              <line x1="52" y1="20"  x2="622" y2="20"/>
-              <line x1="52" y1="65"  x2="622" y2="65"/>
-              <line x1="52" y1="110" x2="622" y2="110"/>
-              <line x1="52" y1="155" x2="622" y2="155"/>
-            </g>
-            <g fill="var(--color-neutral-500)" font-size="10.5" font-family="Inter, system-ui, sans-serif" text-anchor="end">
-              <text x="45" y="24">26M</text>
-              <text x="45" y="69">24M</text>
-              <text x="45" y="114">22M</text>
-              <text x="45" y="159">20M</text>
-            </g>
-            <!-- Points are placed off the SAME scale as the axis labels above:
-                 20M sits on y=155, 26M on y=20, so 2M of shillings is 45px.
-                 19.8 → 159.5 · 21.4 → 123.5 · 23.0 → 87.5 · 24.6 → 51.5 -->
-            <!-- inflation-only benchmark: an annotation, not a second series -->
-            <polyline points="90,159.5 267,135.2 444,109.8 621,82.8"
-                      fill="none" stroke="var(--ch-ref)" stroke-width="2"
-                      stroke-dasharray="6 5" stroke-linecap="round"/>
-            <!-- what was actually paid -->
-            <path d="M90,159.5 L267,123.5 L444,87.5 L621,51.5 L621,178 L90,178 Z" fill="url(#areaFill)"/>
-            <polyline points="90,159.5 267,123.5 444,87.5 621,51.5"
-                      fill="none" stroke="var(--color-accent-600)" stroke-width="2.5"
-                      stroke-linecap="round" stroke-linejoin="round"/>
-            <g fill="var(--color-accent-600)" stroke="var(--color-surface)" stroke-width="2">
-              <circle cx="90" cy="159.5" r="4.5"/><circle cx="267" cy="123.5" r="4.5"/>
-              <circle cx="444" cy="87.5" r="4.5"/><circle cx="621" cy="51.5" r="5.5"/>
-            </g>
-            <g font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="var(--color-neutral-500)" text-anchor="middle">
-              <text x="90" y="197">2023</text><text x="267" y="197">2024</text>
-              <text x="444" y="197">2025</text><text x="621" y="197">2026</text>
-            </g>
-            <g font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700">
-              <text x="612" y="39" fill="var(--color-text)" text-anchor="end">24.6M paid</text>
-              <text x="612" y="116" fill="var(--color-neutral-500)" text-anchor="end">23.2M if inflation-only</text>
-            </g>
-          </svg>
-          <div class="callout" style="margin-top:14px;">
-            <b>The gap is KES 1.4 million a year.</b> Every increase used the full CPI + 2% the clause
-            allows, in a period when inflation alone would have justified less. That is not a breach —
-            it is a cap they have learned to treat as a target.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h3>What you gave and what you got, every time you negotiated</h3>
-              <div class="hint">Taken straight from the tracked changes HaTi already stores. Nobody has
-                to remember this.</div>
-            </div>
-          </div>
-          <div class="timeline">
-            <div class="tl-it">
-              <div class="dt">March 2023 · first agreement</div>
-              <div class="hd">Haulage Framework signed</div>
-              <div class="gv"><b>Gave</b><span>60-day payment terms — you had opened at 30.</span></div>
-              <div class="wn"><b>Won</b><span>Fuel surcharge capped at 3% of the base rate.</span></div>
-            </div>
-            <div class="tl-it">
-              <div class="dt">April 2024 · renewal</div>
-              <div class="hd">First price increase, +8.1%</div>
-              <div class="gv"><b>Gave</b><span>Accepted 8.1% when the clause capped it at 7.2%.</span></div>
-              <div class="wn"><b>Won</b><span>48-hour delivery commitment written in for the first time.</span></div>
-            </div>
-            <div class="tl-it">
-              <div class="dt">May 2025 · renewal</div>
-              <div class="hd">Second increase, +7.5%</div>
-              <div class="gv"><b>Gave</b><span>Benchmarking right weakened from yearly to every two years.</span></div>
-              <div class="wn"><b>Won</b><span>Volume rebate tier added at 5,000 tonnes.</span></div>
-            </div>
-            <div class="tl-it bad">
-              <div class="dt">June 2026 · variation</div>
-              <div class="hd">Route exclusivity extended</div>
-              <div class="gv"><b>Gave</b><span>Exclusivity on the Nairobi–Mombasa route to 2028.</span></div>
-              <div class="wn"><b>Won</b><span style="color:var(--st-ruby-fg);font-weight:600;">Nothing recorded — this round was one-sided.</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h3>Rights you hold and have not used</h3>
-              <div class="hint">All of these are already in the signed contract.</div>
-            </div>
-          </div>
-          <div class="attn">
-            <div class="it">
-              <span class="ic" style="background:var(--st-green-bg);color:var(--st-green-fg);">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
-              </span>
-              <div class="bd"><b>Volume rebate — never claimed</b>
-                <p>You shipped 5,410 tonnes against a 5,000-tonne tier. Worth KES 820,000 for the year
-                  just ended. Clause 6.5.</p></div>
-            </div>
-            <div class="it">
-              <span class="ic" style="background:var(--st-green-bg);color:var(--st-green-fg);">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
-              </span>
-              <div class="bd"><b>Benchmarking right — never used</b>
-                <p>You may test their rates against the market every two years and require a
-                  reduction if they are out of line. Clause 12.4.</p></div>
-            </div>
-            <div class="it">
-              <span class="ic" style="background:var(--st-green-bg);color:var(--st-green-fg);">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>
-              </span>
-              <div class="bd"><b>You can leave on 60 days notice</b>
-                <p>Termination for convenience, no penalty. Clause 13.2. They cannot do the same —
-                  they need 180 days.</p></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h3>What your other haulage contracts say</h3>
-              <div class="hint">Same service, your own paper, side by side.</div>
-            </div>
-          </div>
-          <div class="tblwrap">
-            <table style="min-width:0;">
-              <thead><tr><th>Supplier</th><th class="num">KES / tonne</th><th class="num">Terms</th></tr></thead>
-              <tbody>
-                <tr><td class="t-strong">Rift Valley Logistics</td><td class="num" style="color:var(--st-ruby-fg);font-weight:700;">4,550</td><td class="num">60 days</td></tr>
-                <tr><td>Coast Freight Ltd</td><td class="num">3,980</td><td class="num">45 days</td></tr>
-                <tr><td>Highland Transporters</td><td class="num">4,120</td><td class="num">30 days</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="callout" style="margin-top:12px;">
-            You are paying <b>11% more per tonne</b> than your next haulier, on the longest payment
-            terms of the three.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h"><div><h3>Suggested opening position</h3>
-            <div class="hint">A starting point drafted from the facts above. A person edits it before
-              it goes anywhere.</div></div></div>
-          <ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.75;">
-            <li>Claim the KES 820,000 rebate now, separately from the renewal.</li>
-            <li>Trigger the benchmarking clause before agreeing any new rate.</li>
-            <li>Hold the increase to CPI, not CPI + 2 — the three-year gap is the argument.</li>
-            <li>Trade the Nairobi–Mombasa exclusivity back for shorter payment terms.</li>
-            <li>Give notice by 2 September regardless, to keep the option open.</li>
-          </ol>
-        </div>
-
-        <div class="card ghost">
-          <div class="card-h">
-            <div><h3>How they actually performed</h3>
-              <div class="hint">Not in this prototype. Late deliveries and missed service levels would
-                sit here and strengthen every point above — but that needs someone logging what
-                happened, which is a later step.</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       4 · VALUE LEAKAGE REPORT
-       =================================================================== -->
-  <section class="screen" id="s-leak">
-    <div class="page-head">
-      <div>
-        <h1>Value leakage — August 2026</h1>
-        <div class="sub">Money your contracts entitle you to, or commit you to, that nobody is acting
-          on. Every line names the clause it comes from, so it can be checked and then chased.</div>
-      </div>
-      <div class="acts">
-        <button class="btn">Compare with July</button>
-        <button class="btn">Email to finance</button>
-        <button class="btn btn-primary">Download PDF</button>
-      </div>
-    </div>
-
-    <div class="grid g4" style="margin-bottom:14px;">
-      <div class="tile hero"><span class="k">Identified this month · KES</span><span class="v">14.8<small>M</small></span><span class="d">across six findings</span></div>
-      <div class="tile"><span class="k">Recovered since July</span><span class="v">3.1<small>M</small></span><span class="d"><span class="delta up">↑</span> two rebates and one discount</span></div>
-      <div class="tile"><span class="k">Confirmed, ready to chase</span><span class="v">7.1<small>M</small></span><span class="d">Clause is clear, figures are checked</span></div>
-      <div class="tile"><span class="k">Needs a person to look</span><span class="v">7.7<small>M</small></span><span class="d">Wording is arguable either way</span></div>
-    </div>
-
-    <div class="card" style="margin-bottom:14px;">
-      <div class="card-h">
-        <div>
-          <h3>Where the money is going</h3>
-          <div class="hint">Largest first. “Confirmed” means the clause says so plainly; “Needs check”
-            means a human should read it before anyone sends an email.</div>
-        </div>
-      </div>
-
-      <div class="leak-row">
-        <div>
-          <b>Price rises you never exercised on your own customers</b>
-          <div class="why">Eleven customer contracts carry an annual indexation right. None has been
-            used since signing. Naivas, Java House and nine others.</div>
-        </div>
-        <div><span class="money big">5.80M</span><div class="t-mut">a year</div></div>
-        <div><span class="pill amber"><span class="dot"></span>Needs check</span></div>
-        <div><button class="btn btn-sm">Review 11</button></div>
-      </div>
-
-      <div class="leak-row">
-        <div>
-          <b>Three contracts auto-renewed with nobody deciding</b>
-          <div class="why">Notice dates passed in July. Committed for another twelve months. Two are
-            still inside a short cancellation window.</div>
-        </div>
-        <div><span class="money big">4.20M</span><div class="t-mut">committed</div></div>
-        <div><span class="pill ruby"><span class="dot"></span>Confirmed</span></div>
-        <div><button class="btn btn-sm">See which</button></div>
-      </div>
-
-      <div class="leak-row">
-        <div>
-          <b>Two suppliers now cost more than a comparable vendor</b>
-          <div class="why">Facilities services bought from two vendors with overlapping scope in the
-            same three buildings.</div>
-        </div>
-        <div><span class="money big">1.90M</span><div class="t-mut">a year</div></div>
-        <div><span class="pill amber"><span class="dot"></span>Needs check</span></div>
-        <div><button class="btn btn-sm">Compare</button></div>
-      </div>
-
-      <div class="leak-row">
-        <div>
-          <b>Price increases taken at the very top of the cap</b>
-          <div class="why">Two supplier contracts allow CPI + 2%. Both have taken the full amount three
-            years running, when inflation alone justified less.</div>
-        </div>
-        <div><span class="money big">1.40M</span><div class="t-mut">a year</div></div>
-        <div><span class="pill green"><span class="dot"></span>Confirmed</span></div>
-        <div><button class="btn btn-sm">Open briefing</button></div>
-      </div>
-
-      <div class="leak-row">
-        <div>
-          <b>Volume rebate never claimed</b>
-          <div class="why">Rift Valley Logistics — 5,410 tonnes shipped against a 5,000-tonne rebate
-            tier. Clause 6.5.</div>
-        </div>
-        <div><span class="money big">0.82M</span><div class="t-mut">one-off</div></div>
-        <div><span class="pill green"><span class="dot"></span>Confirmed</span></div>
-        <div><button class="btn btn-sm">Draft the claim</button></div>
-      </div>
-
-      <div class="leak-row">
-        <div>
-          <b>Early-payment discounts available and missed</b>
-          <div class="why">Four suppliers offer 2% off if paid within 10 days. Your average payment
-            run is day 26.</div>
-        </div>
-        <div><span class="money big">0.64M</span><div class="t-mut">a year</div></div>
-        <div><span class="pill green"><span class="dot"></span>Confirmed</span></div>
-        <div><button class="btn btn-sm">Send to finance</button></div>
-      </div>
-    </div>
-
-    <div class="grid g2">
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>How this month compares</h3>
-            <div class="hint">The total falls as things get chased and rises as new contracts come in.
-              Falling is the point.</div>
-          </div>
-        </div>
-        <div class="rank">
-          <div class="row"><span class="nm">June<em>KES identified</em></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">17.9M</span></div>
-          <div class="row"><span class="nm">July<em>KES identified</em></span><span class="track"><span class="fill" style="width:91%"></span></span><span class="val">16.3M</span></div>
-          <div class="row"><span class="nm">August<em>KES identified</em></span><span class="track"><span class="fill" style="width:83%"></span></span><span class="val">14.8M</span></div>
-          <div class="row"><span class="nm">Recovered so far<em>three months running total</em></span><span class="track"><span class="fill" style="width:35%"></span></span><span class="val">6.2M</span></div>
-        </div>
-        <div class="callout" style="margin-top:14px;">
-          At KES 6.2 million recovered in three months, this report has paid for the platform many
-          times over — which is exactly the sentence a customer repeats to their finance director.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>What HaTi checked to build this</h3>
-            <div class="hint">Nine tests, run over every contract, every month. No AI writes a word of
-              this report — it is arithmetic over the obligations register.</div>
-          </div>
-        </div>
-        <div class="tblwrap">
-          <table style="min-width:0;">
-            <thead><tr><th>Test</th><th class="num">Contracts</th><th class="num">Hits</th></tr></thead>
-            <tbody>
-              <tr><td>Renewal passed with no decision recorded</td><td class="num">148</td><td class="num">3</td></tr>
-              <tr><td>Indexation right unused for 12 months</td><td class="num">63</td><td class="num">11</td></tr>
-              <tr><td>Increase taken at the cap ceiling</td><td class="num">41</td><td class="num">2</td></tr>
-              <tr><td>Rebate tier passed, no claim filed</td><td class="num">19</td><td class="num">1</td></tr>
-              <tr><td>Early-payment discount available</td><td class="num">41</td><td class="num">4</td></tr>
-              <tr><td>Overlapping scope between vendors</td><td class="num">41</td><td class="num">2</td></tr>
-              <tr><td>Fee charged with no matching clause</td><td class="num">148</td><td class="num">0</td></tr>
-              <tr><td>Term extended without a signed variation</td><td class="num">148</td><td class="num">0</td></tr>
-              <tr><td>Currency clause exposed to FX movement</td><td class="num">148</td><td class="num">0</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       5 · DEAL ANALYTICS (customer acquisition)
-       =================================================================== -->
-  <section class="screen" id="s-deals">
-    <div class="page-head">
-      <div>
-        <h1>Deal analytics</h1>
-        <div class="sub">How fast your contracts get signed, what slows them down, and which clauses
-          cost you the most days. This is the half of HaTi that helps win customers rather than manage
-          suppliers.</div>
-      </div>
-      <div class="acts">
-        <button class="btn">Last 12 months</button>
-        <button class="btn btn-primary">Share with sales</button>
-      </div>
-    </div>
-
-    <div class="grid g4" style="margin-bottom:14px;">
-      <div class="tile"><span class="k">Median time to sign</span><span class="v">18<small> days</small></span><span class="d"><span class="delta up">5 days faster</span> than last quarter</span></div>
-      <div class="tile"><span class="k">On your standard paper</span><span class="v">9<small> days</small></span><span class="d">Used in 62% of deals</span></div>
-      <div class="tile"><span class="k">On their paper</span><span class="v">31<small> days</small></span><span class="d">More than three times as long</span></div>
-      <div class="tile"><span class="k">Signed untouched</span><span class="v">62<small>%</small></span><span class="d">84% on deals under KES 2M</span></div>
-    </div>
-
-    <div class="grid g-2-1" style="margin-bottom:14px;">
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>Where the 18 days actually go</h3>
-            <div class="hint">A deal moves through these in order. Counterparty review is the widest
-              step by some distance — and it is the one nobody was measuring.</div>
-          </div>
-        </div>
-        <div class="stagebar" aria-label="Drafting 2 days, internal review 3 days, counterparty review 8 days, negotiation 4 days, signing 1 day.">
-          <div style="flex:2;background:var(--ch-1);">2d</div>
-          <div style="flex:3;background:var(--ch-2);">3d</div>
-          <div style="flex:8;background:var(--ch-3);">8 days</div>
-          <div style="flex:4;background:var(--ch-4);" class="dk">4d</div>
-          <div style="flex:1;background:var(--ch-5);" class="dk">1</div>
-        </div>
-        <div class="stage-x">
-          <div style="flex:2;">Drafting</div>
-          <div style="flex:3;">Internal<br/>review</div>
-          <div style="flex:8;">Sitting with the counterparty</div>
-          <div style="flex:4;">Negotiating</div>
-          <div style="flex:1;">Sign</div>
-        </div>
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--color-divider);">
-          <div style="font-size:12px;font-weight:700;margin-bottom:2px;">The same journey on their paper — 31 days</div>
-          <div class="hint" style="font-size:11.5px;color:var(--color-neutral-500);margin-bottom:8px;">
-            Each bar fills its own width — what differs is the total. Almost all the extra time is
-            spent waiting on them and arguing.</div>
-          <div class="stagebar" style="height:26px;"
-               aria-label="On counterparty paper: drafting 1 day, internal review 5 days, counterparty review 13 days, negotiation 10 days, signing 2 days.">
-            <div style="flex:1;background:var(--ch-1);"></div>
-            <div style="flex:5;background:var(--ch-2);">5d</div>
-            <div style="flex:13;background:var(--ch-3);">13 days</div>
-            <div style="flex:10;background:var(--ch-4);" class="dk">10 days</div>
-            <div style="flex:2;background:var(--ch-5);" class="dk"></div>
-          </div>
-        </div>
-        <div class="callout" style="margin-top:16px;">
-          <b>Nearly half the wait is the other side reading.</b> Chasing earlier is worth more than
-          drafting faster — and the pipeline below already shows which deals have gone quiet.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>How often your standard terms are simply signed</h3>
-            <div class="hint">Where acceptance is high, small deals could skip legal review entirely.</div>
-          </div>
-        </div>
-        <div class="rank">
-          <div class="row"><span class="nm">Under KES 2M<em>44 deals</em></span><span class="track"><span class="fill" style="width:84%"></span></span><span class="val">84%</span></div>
-          <div class="row"><span class="nm">KES 2M – 10M<em>27 deals</em></span><span class="track"><span class="fill" style="width:51%"></span></span><span class="val">51%</span></div>
-          <div class="row"><span class="nm">Over KES 10M<em>12 deals</em></span><span class="track"><span class="fill warn" style="width:34%"></span></span><span class="val">34%</span></div>
-        </div>
-        <div class="callout" style="margin-top:16px;">
-          Five out of six small deals go through untouched. Letting sales send those without a legal
-          pass would free roughly <b>three days a week</b> of review time.
-        </div>
-      </div>
-    </div>
-
-    <div class="grid g-2-1">
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>Which clauses cause the arguments</h3>
-            <div class="hint">Read from the tracked changes on every negotiation you have run. The
-              accepted wording is already sitting in your clause library.</div>
-          </div>
-        </div>
-        <div class="tblwrap">
-          <table>
-            <thead>
-              <tr><th>Clause</th><th class="num">Redlined</th><th class="num">Days added</th><th>What they usually ask for</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="t-strong">Limitation of liability</td>
-                <td class="num" style="color:var(--st-ruby-fg);font-weight:700;">78%</td>
-                <td class="num">+6.2</td>
-                <td class="t-mut">A cap at 12 months of fees instead of unlimited</td>
-              </tr>
-              <tr>
-                <td class="t-strong">Payment terms</td>
-                <td class="num">54%</td><td class="num">+2.1</td>
-                <td class="t-mut">45 or 60 days instead of your 30</td>
-              </tr>
-              <tr>
-                <td class="t-strong">Indemnity</td>
-                <td class="num">44%</td><td class="num">+4.8</td>
-                <td class="t-mut">Mutual rather than one-way</td>
-              </tr>
-              <tr>
-                <td class="t-strong">Termination for convenience</td>
-                <td class="num">37%</td><td class="num">+3.3</td>
-                <td class="t-mut">The same right for both sides</td>
-              </tr>
-              <tr>
-                <td class="t-strong">Governing law</td>
-                <td class="num">31%</td><td class="num">+1.4</td>
-                <td class="t-mut">Their home jurisdiction</td>
-              </tr>
-              <tr>
-                <td class="t-strong">Data protection</td>
-                <td class="num">22%</td><td class="num">+0.9</td>
-                <td class="t-mut">Rarely contested — your wording holds</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="callout" style="margin-top:14px;">
-          <b>One clause is costing you six days a deal.</b> In 71% of the negotiations where liability
-          was challenged, you ended up agreeing a 12-month cap anyway. Opening with that wording would
-          remove the argument before it starts.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>Live negotiations</h3>
-            <div class="hint">Whose turn it is, and who has gone quiet.</div>
-          </div>
-        </div>
-        <div class="tblwrap">
-          <table style="min-width:0;">
-            <thead><tr><th>Deal</th><th class="num">Open</th><th>Waiting on</th></tr></thead>
-            <tbody>
-              <tr>
-                <td class="t-strong">Serena Hotels<div class="t-mut">Distribution Agreement</div></td>
-                <td class="num">21d</td>
-                <td><span class="pill ruby"><span class="dot"></span>Quiet 11 days</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Java House Group<div class="t-mut">Supply Agreement</div></td>
-                <td class="num">12d</td>
-                <td><span class="pill amber"><span class="dot"></span>Quiet 6 days</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Carrefour Kenya<div class="t-mut">Master Services</div></td>
-                <td class="num">4d</td>
-                <td><span class="pill steel"><span class="dot"></span>Us</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Cloudpoint Systems<div class="t-mut">Renewal NDA</div></td>
-                <td class="num">2d</td>
-                <td><span class="pill gray"><span class="dot"></span>Signing</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Naivas Supermarkets<div class="t-mut">Annual renewal</div></td>
-                <td class="num">1d</td>
-                <td><span class="pill steel"><span class="dot"></span>Us</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="callout" style="margin-top:14px;">
-          Two deals worth <b>KES 31M</b> have had no movement for over a week. Neither has an owner
-          chasing them.
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================================================================
-       6 · SUPPLIERS & RISK
-       =================================================================== -->
-  <section class="screen" id="s-supply">
-    <div class="page-head">
-      <div>
-        <h1>Suppliers &amp; risk</h1>
-        <div class="sub">Your whole portfolio read side by side — where your own contracts disagree
-          with each other, what your payment terms are doing to cash, and how much sits with too few
-          counterparties.</div>
-      </div>
-      <div class="acts">
-        <button class="btn">Suppliers</button>
-        <button class="btn">Customers</button>
-        <button class="btn btn-primary">Board pack</button>
-      </div>
-    </div>
-
-    <div class="grid g4" style="margin-bottom:14px;">
-      <div class="tile"><span class="k">Contracted spend · KES</span><span class="v">186<small>M</small></span><span class="d">41 suppliers, next 12 months</span></div>
-      <div class="tile"><span class="k">Contracted revenue · KES</span><span class="v">340<small>M</small></span><span class="d">63 customers, next 12 months</span></div>
-      <div class="tile"><span class="k">Biggest single customer</span><span class="v">24<small>%</small></span><span class="d">Naivas Supermarkets, of all revenue</span></div>
-      <div class="tile"><span class="k">Expiring in Q4</span><span class="v">31<small>%</small></span><span class="d">of supplier contracts, all at once</span></div>
-    </div>
-
-    <div class="grid g2" style="margin-bottom:14px;">
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>Where your own contracts disagree with each other</h3>
-            <div class="hint">Nobody reads 148 agreements side by side. HaTi holds them all, so it can.</div>
-          </div>
-        </div>
-        <div class="attn">
-          <div class="it">
-            <span class="ic" style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
-            </span>
-            <div class="bd"><b>Seven supplier contracts have no ceiling on price rises</b>
-              <p>They can increase whatever they like at renewal. Together they are worth KES 44M a
-                year of your spend.</p></div>
-            <span class="go"><button class="btn btn-sm">List</button></span>
-          </div>
-          <div class="it">
-            <span class="ic" style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/></svg>
-            </span>
-            <div class="bd"><b>Four customer contracts cap nothing you owe</b>
-              <p>Your liability under them is unlimited. Every other customer contract you hold caps
-                it at twelve months of fees.</p></div>
-            <span class="go"><button class="btn btn-sm">List</button></span>
-          </div>
-          <div class="it">
-            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></svg>
-            </span>
-            <div class="bd"><b>The same supplier, two contracts, two notice periods</b>
-              <p>Equity Facilities: 30 days on one agreement, 90 on the other. Whoever signed the
-                second did not see the first.</p></div>
-            <span class="go"><button class="btn btn-sm">Compare</button></span>
-          </div>
-          <div class="it">
-            <span class="ic" style="background:var(--st-amber-bg);color:var(--st-amber-fg);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/></svg>
-            </span>
-            <div class="bd"><b>Three contracts are governed by English law</b>
-              <p>With arbitration seated in London. A dispute under any of them would cost far more to
-                run than one under Kenyan law.</p></div>
-            <span class="go"><button class="btn btn-sm">List</button></span>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>Payment terms, and what they cost you</h3>
-            <div class="hint">How long you have to pay each supplier, counted across your 41 supplier
-              agreements.</div>
-          </div>
-        </div>
-        <div class="rank">
-          <div class="row"><span class="nm">30 days<em>you pay fastest here</em></span><span class="track"><span class="fill warn" style="width:100%"></span></span><span class="val">18</span></div>
-          <div class="row"><span class="nm">45 days</span><span class="track"><span class="fill" style="width:50%"></span></span><span class="val">9</span></div>
-          <div class="row"><span class="nm">60 days</span><span class="track"><span class="fill" style="width:61%"></span></span><span class="val">11</span></div>
-          <div class="row"><span class="nm">90 days</span><span class="track"><span class="fill" style="width:17%"></span></span><span class="val">3</span></div>
-        </div>
-        <div class="callout" style="margin-top:16px;">
-          <b>You pay in 38 days on average and get paid in 45.</b> You are financing the gap. Moving
-          the eighteen 30-day suppliers to 45 days at their next renewal would free roughly
-          <b>KES 8.4 million</b> of working capital — without renegotiating a single price.
-        </div>
-      </div>
-    </div>
-
-    <div class="grid g-1-2">
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>How concentrated you are</h3>
-            <div class="hint">Share of contracted revenue.</div>
-          </div>
-        </div>
-        <div class="rank">
-          <div class="row"><span class="nm">Naivas Supermarkets</span><span class="track"><span class="fill warn" style="width:60%"></span></span><span class="val">24%</span></div>
-          <div class="row"><span class="nm">Carrefour Kenya</span><span class="track"><span class="fill" style="width:37%"></span></span><span class="val">15%</span></div>
-          <div class="row"><span class="nm">Java House Group</span><span class="track"><span class="fill" style="width:30%"></span></span><span class="val">12%</span></div>
-          <div class="row"><span class="nm">Serena Hotels</span><span class="track"><span class="fill" style="width:22%"></span></span><span class="val">9%</span></div>
-          <div class="row"><span class="nm">Everyone else<em>59 customers</em></span><span class="track"><span class="fill" style="width:100%"></span></span><span class="val">40%</span></div>
-        </div>
-        <div class="callout" style="margin-top:16px;">
-          Your top three customers are <b>51% of contracted revenue</b>, and the largest renews in
-          March. That is the single number a lender or an investor will ask for.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-h">
-          <div>
-            <h3>Concession memory — what you give away, and to whom</h3>
-            <div class="hint">Counted from the tracked changes on every negotiation. Institutional
-              memory that survives people leaving.</div>
-          </div>
-        </div>
-        <div class="tblwrap">
-          <table>
-            <thead>
-              <tr><th>Counterparty</th><th class="num">Rounds</th><th class="num">You gave</th><th class="num">You won</th><th>Reads as</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="t-strong">Rift Valley Logistics</td>
-                <td class="num">4</td><td class="num">7</td><td class="num">3</td>
-                <td><span class="pill ruby"><span class="dot"></span>One-sided</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Equity Facilities Services</td>
-                <td class="num">3</td><td class="num">5</td><td class="num">3</td>
-                <td><span class="pill amber"><span class="dot"></span>Drifting</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Nairobi Cold Chain Ltd</td>
-                <td class="num">3</td><td class="num">4</td><td class="num">4</td>
-                <td><span class="pill green"><span class="dot"></span>Balanced</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Mombasa Packaging Co</td>
-                <td class="num">2</td><td class="num">2</td><td class="num">4</td>
-                <td><span class="pill green"><span class="dot"></span>In your favour</span></td>
-              </tr>
-              <tr>
-                <td class="t-strong">Cloudpoint Systems</td>
-                <td class="num">5</td><td class="num">6</td><td class="num">5</td>
-                <td><span class="pill green"><span class="dot"></span>Balanced</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="callout" style="margin-top:14px;">
-          Over four negotiations with Rift Valley you have conceded seven points and won three. No
-          single round looked unreasonable at the time — the pattern is only visible when they are
-          counted together, which is the whole argument for a platform holding the history.
-        </div>
-      </div>
-    </div>
-  </section>
-
+    <section class="screen on" id="s-home"></section>
+    <section class="screen" id="s-mix"></section>
+    <section class="screen" id="s-oblig"></section>
+    <section class="screen" id="s-brief"></section>
+    <section class="screen" id="s-exp"></section>
+    <section class="screen" id="s-deals"></section>
   </main>
 </div>
 
 <script>
-/* Screen switching. A prototype needs exactly this much behaviour and no more:
-   click a door, show a screen, mark the door. */
-(function(){
-  var doors  = Array.prototype.slice.call(document.querySelectorAll('[data-go]'));
-  var navs   = Array.prototype.slice.call(document.querySelectorAll('.nav-item[data-go]'));
-  var screens= Array.prototype.slice.call(document.querySelectorAll('.screen'));
+/* ============================================================================
+   THE DATA. Three organisations, one engine.
 
-  function go(id){
-    screens.forEach(function(s){ s.classList.toggle('on', s.id === id); });
-    navs.forEach(function(n){ n.classList.toggle('active', n.dataset.go === id); });
-    document.querySelector('.main').scrollTop = 0;
+   The whole point of this cut is that the SHAPE below is identical for all
+   three — same fields, same renderers — and yet the screens read completely
+   differently, because what fills them comes from the categories each
+   organisation actually holds. If a fourth organisation were added it would
+   need no new screens.
+   ========================================================================= */
+
+/* ---- THE CATEGORY LIBRARY ----------------------------------------------
+   A category is a property of the CONTRACT, not of the company. Every
+   organisation below holds several. Each category brings its own obligation
+   types, its own checks and its own idea of what is at stake. */
+const CATS = {
+  supplier:{ label:'Supplier & services', short:'Supplier',
+    watches:'Service levels promised to you, price-change rights and their ceilings, exit rights, how dependent you are',
+    stakes:['Cash','Continuity'],
+    checks:['Price rise taken above the contractual ceiling','Increase clause with no ceiling at all',
+            'Notice deadline approaching before auto-renewal','Rebate or discount tier passed but never claimed',
+            'Sole-source supplier with no alternative named'] },
+  customer:{ label:'Customer & revenue', short:'Customer',
+    watches:'What you promised, what your liability is, your own right to raise prices, how concentrated revenue is',
+    stakes:['Cash','Risk'],
+    checks:['Your liability is uncapped','Indexation right unused for twelve months',
+            'Penalty or service credit you owe','One customer above a fifth of revenue'] },
+  employment:{ label:'Employment & people', short:'Employment',
+    watches:'Fixed-term expiries, probation ends, notice obligations, restrictive covenants, review dates',
+    stakes:['People','Risk'],
+    checks:['Probation ending — confirm before it lapses','Fixed term approaching its legal limit',
+            'Notice period below the statutory minimum','Restrictive covenant longer than is enforceable',
+            'Contract references a policy that no longer exists'] },
+  lease:{ label:'Property & lease', short:'Lease',
+    watches:'Rent review dates, break options, service-charge ceilings, reinstatement duties, term remaining',
+    stakes:['Cash','Continuity'],
+    checks:['Break option about to lapse','Rent review with no ceiling',
+            'Reinstatement liability at the end of the term','Service charge uncapped'] },
+  licence:{ label:'Software & licences', short:'Licence',
+    watches:'Seat and usage limits, audit rights, territory, automatic uplifts at renewal',
+    stakes:['Compliance','Cash'],
+    checks:['Usage above the licensed limit','Automatic uplift above inflation',
+            'Audit right with no notice requirement','Renews automatically with no decision point'] },
+  grant:{ label:'Donor funding', short:'Donor funding',
+    watches:'Reporting deadlines, spend restrictions, matching conditions, clawback triggers, extension deadlines',
+    stakes:['Compliance','Continuity'],
+    checks:['Narrative or financial report falling due','Spend outside approved budget lines',
+            'Budget line moved beyond the permitted margin','Matching-fund condition unmet',
+            'No-cost extension deadline approaching','Audit certificate due'] },
+  partner:{ label:'Sub-grants & partners', short:'Partner',
+    watches:'Donor conditions flowed down to partners, partner reporting, audit rights over them',
+    stakes:['Compliance','Risk'],
+    checks:['Donor condition not flowed down to the partner','Partner report overdue',
+            'No audit right over a partner who holds donor money'] },
+  client:{ label:'Client engagement', short:'Client',
+    watches:'Scope, fee basis and uplift rights, conflicts, liability caps, how the engagement ends',
+    stakes:['Cash','Risk'],
+    checks:['Engagement letter with no cap on your liability','Fee uplift right never exercised',
+            'Work running beyond the scope in the letter','No written engagement letter at all'] },
+  nda:{ label:'Confidentiality', short:'Confidentiality',
+    watches:'When confidentiality expires, the permitted purpose, return-or-destroy duties',
+    stakes:['Risk'],
+    checks:['Confidentiality about to lapse','Return-or-destroy obligation triggered'] }
+};
+
+/* ---- THE FIVE CURRENCIES ----------------------------------------------
+   The first cut priced everything in shillings. Most organisations do not
+   experience their contract risk as cash at all. */
+const CURR = {
+  cash:      { label:'Cash',       icon:'M15 9.2c-.7-.9-1.8-1.4-3-1.4-1.8 0-2.9.9-2.9 2.1 0 3 6 1.6 6 4.5 0 1.3-1.2 2.2-3.1 2.2-1.3 0-2.5-.5-3.2-1.5M12 6v12' },
+  risk:      { label:'Risk',       icon:'M12 3 3.5 6.6v5.2c0 4.8 3.4 8.6 8.5 10.2 5.1-1.6 8.5-5.4 8.5-10.2V6.6L12 3Z' },
+  compliance:{ label:'Compliance', icon:'M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2Z' },
+  continuity:{ label:'Continuity', icon:'M4 18V9m5 9V4m5 14v-8m5 8V7' },
+  people:    { label:'People',     icon:'M9 11.6a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4Zm0 1.4c-3.6 0-6.6 2-6.6 4.6v2.3h13.2v-2.3c0-2.6-3-4.6-6.6-4.6Z' }
+};
+
+const ORGS = {
+
+/* ======================= 1 · A FOOD MANUFACTURER ======================== */
+savanna:{
+  name:'Savanna Foods Ltd', kind:'Food manufacturer', market:'Kenya · KES', cur:'KES',
+  initials:'AM', contracts:148, obligations:1284,
+  types:[['Payment terms',312],['Service levels',238],['Delivery & performance',201],['Reporting',157],
+         ['Notice & renewal',139],['Probation & fixed term',122],['Insurance & compliance',115]],
+  asks:['Which suppliers raised prices above the ceiling?',
+        'What did we concede to Rift Valley last time?',
+        'Whose probation ends before the end of the month?'],
+  mix:[ {c:'customer',n:63},{c:'supplier',n:41},{c:'employment',n:28},
+        {c:'licence',n:7},{c:'lease',n:6},{c:'nda',n:3} ],
+  tiles:[
+    {k:'Contract health',v:'72',u:'/100',d:'Up 4 points on July'},
+    {k:'Open findings',v:'34',d:'across five kinds of exposure'},
+    {k:'Decisions due · 30 days',v:'9',d:'3 are notice deadlines you cannot miss'},
+    {k:'Largest category',v:'63',d:'customer contracts, 43% of the book'}
+  ],
+  score:[
+    {nm:'Renewals decided in time',sub:'every category',pct:75},
+    {nm:'Obligations confirmed',sub:'1,137 of 1,284 checked',pct:89},
+    {nm:'Liability capped',sub:'weighted by 63 customer contracts',pct:66},
+    {nm:'Price protection in place',sub:'weighted by 41 supplier contracts',pct:48,warn:true},
+    {nm:'Employment terms compliant',sub:'weighted by 28 employment contracts',pct:82},
+    {nm:'Revenue concentration',sub:'top customer is 24%',pct:55,warn:true}
+  ],
+  roles:[
+    {id:'proc',label:'Procurement',items:[
+      {t:'ruby',h:'Rift Valley Logistics — decide by 2 September',p:'Renews 31 October and needs 60 days notice, so the real deadline is 25 days away. Their price has risen 24.2% in three years against inflation of 17.2%.',cat:'supplier',go:'s-brief'},
+      {t:'ruby',h:'Seven supplier contracts have no ceiling on price rises',p:'They can increase whatever they like at renewal. Together they carry KES 44M a year of your spend.',cat:'supplier',go:'s-exp'},
+      {t:'amber',h:'Volume rebate passed but never claimed',p:'5,410 tonnes shipped against a 5,000-tonne tier. Worth KES 820,000 for the year just ended.',cat:'supplier',go:'s-exp'}
+    ]},
+    {id:'sales',label:'Sales',items:[
+      {t:'amber',h:'Your liability clause is costing six days a deal',p:'Rewritten in 78% of negotiations. The wording counterparties actually accept is already in your library.',cat:'customer',go:'s-deals'},
+      {t:'ruby',h:'Two deals worth KES 31M have gone quiet',p:'Serena Hotels has not moved for 11 days, Java House for 6. Neither has an owner chasing it.',cat:'customer',go:'s-deals'},
+      {t:'steel',h:'Eleven customer contracts let you raise prices — you never have',p:'An annual indexation right, unused since signing. About KES 5.8M a year at current inflation.',cat:'customer',go:'s-exp'}
+    ]},
+    {id:'people',label:'People',items:[
+      {t:'ruby',h:'Four probation periods end this month',p:'Confirm or extend before they lapse. In Kenya silence converts the employment automatically.',cat:'employment',go:'s-oblig'},
+      {t:'amber',h:'Two fixed terms pass 24 months in October',p:'Renewing them again risks the arrangement being treated as permanent.',cat:'employment',go:'s-oblig'},
+      {t:'amber',h:'Nine contracts have no written notice period',p:'The statutory minimum applies by default, which is shorter than the one your handbook promises.',cat:'employment',go:'s-exp'}
+    ]},
+    {id:'fin',label:'Finance',items:[
+      {t:'ruby',h:'Three contracts auto-renewed with nobody deciding',p:'Notice dates passed in July, committing KES 4.2M for another year. Two are still inside a short cancellation window.',cat:'supplier',go:'s-exp'},
+      {t:'amber',h:'You pay in 38 days and get paid in 45',p:'You are financing the gap. Moving eighteen 30-day suppliers to 45 would free about KES 8.4M of working capital.',cat:'supplier',go:'s-exp'},
+      {t:'steel',h:'Early-payment discounts available and missed',p:'Four suppliers offer 2% for payment within 10 days. Your average payment run is day 26.',cat:'supplier',go:'s-exp'}
+    ]}
+  ],
+  exposure:{
+    cash:{v:'14.8M',u:'KES a year',n:11,note:'Six findings above KES 500,000',
+      f:[{h:'Price rises you never exercised on your own customers',p:'Eleven customer contracts carry an annual indexation right. None used since signing.',m:'5.80M',u:'a year',s:'amber',sl:'Needs check',c:'customer'},
+         {h:'Three contracts auto-renewed with nobody deciding',p:'Notice dates passed in July. Committed for another twelve months.',m:'4.20M',u:'committed',s:'ruby',sl:'Confirmed',c:'supplier'},
+         {h:'Price increases taken at the very top of the ceiling',p:'Two supplier contracts allow CPI + 2%. Both have taken the full amount three years running.',m:'1.40M',u:'a year',s:'green',sl:'Confirmed',c:'supplier'}]},
+    risk:{v:'9',u:'findings',n:9,note:'Four of them uncapped',
+      f:[{h:'Four customer contracts cap nothing you owe',p:'Your liability under them is unlimited. Every other customer contract you hold caps it at twelve months of fees.',m:'4',u:'contracts',s:'ruby',sl:'Confirmed',c:'customer'},
+         {h:'Three contracts are governed by English law',p:'With arbitration seated in London. A dispute under any would cost far more to run than one under Kenyan law.',m:'3',u:'contracts',s:'amber',sl:'Needs check',c:'customer'}]},
+    compliance:{v:'5',u:'findings',n:5,note:'Two licences over their seat count',
+      f:[{h:'Seat count exceeded on two software licences',p:'You are using 62 seats against 50 licensed. The audit clause gives them no notice period.',m:'2',u:'licences',s:'ruby',sl:'Confirmed',c:'licence'},
+         {h:'HACCP audit certificate due from a produce supplier',p:'Annual obligation under the supply agreement. Twelve days away and not yet received.',m:'20 Aug',u:'due',s:'amber',sl:'Chase',c:'supplier'}]},
+    continuity:{v:'4',u:'findings',n:4,note:'Top customer is a quarter of revenue',
+      f:[{h:'One customer is 24% of contracted revenue',p:'Naivas Supermarkets. The top three together are 51%, and the largest renews in March.',m:'24%',u:'of revenue',s:'amber',sl:'Watch',c:'customer'},
+         {h:'One sole-source supplier with no alternative named',p:'Cold storage. If they stop, there is no second site written into any agreement you hold.',m:'1',u:'supplier',s:'ruby',sl:'Confirmed',c:'supplier'}]},
+    people:{v:'10',u:'findings',n:10,note:'Four probations ending this month',
+      f:[{h:'Four probation periods end this month',p:'Confirm or extend before they lapse — silence converts the employment automatically.',m:'4',u:'people',s:'ruby',sl:'Act now',c:'employment'},
+         {h:'Two fixed terms approach the two-year mark',p:'Renewing again risks the arrangement being treated as permanent employment.',m:'2',u:'people',s:'amber',sl:'Decide',c:'employment'}]}
+  },
+  oblig:[
+    {t:'Keep the service available 99.5% of each month',d:'IT Support & Hosting Agreement',cp:'Cloudpoint Systems',c:'licence',by:'Them',ty:'Service level',w:'Every month',src:'Clause 7.1'},
+    {t:'Deliver within 48 hours of order confirmation',d:'Haulage Framework Agreement',cp:'Rift Valley Logistics',c:'supplier',by:'Them',ty:'Delivery',w:'Per order',src:'Clause 4.1'},
+    {t:'Confirm the probation outcome before it lapses',d:'Employment contract — production supervisor',cp:'J. Wanjiru',c:'employment',by:'Us',ty:'Probation',w:'By 31 Aug — 23 days',src:'Clause 3.2'},
+    {t:'Cap your liability at 12 months of fees',d:'Supply Agreement',cp:'Naivas Supermarkets',c:'customer',by:'Us',ty:'Liability',w:'Ongoing',src:'Clause 15.2'},
+    {t:'Pay invoices within 30 days of receipt',d:'Cold Storage Agreement',cp:'Nairobi Cold Chain Ltd',c:'supplier',by:'Us',ty:'Payment',w:'Per invoice',src:'Clause 9.3'},
+    {t:'Reinstate the warehouse to its original state',d:'Industrial Area lease',cp:'Kenway Properties',c:'lease',by:'Us',ty:'Reinstatement',w:'At term end, 2028',src:'Clause 22.4'},
+    {t:'Raise prices no more than CPI + 2%, once a year',d:'Packaging Supply Agreement',cp:'Mombasa Packaging Co',c:'supplier',by:'Them',ty:'Price',w:'Review 1 Oct',src:'Clause 6.3'},
+    {t:'Stay within 50 licensed seats',d:'Software Licence',cp:'Cloudpoint Systems',c:'licence',by:'Us',ty:'Usage limit',w:'Ongoing',src:'Clause 3.5'}
+  ],
+  cal:[
+    {mo:'August 2026',it:[
+      {d:'20 Aug',t:'HACCP audit certificate due from Kilifi Farms',e:'Produce Supply Agreement · Clause 8.6',p:'amber',l:'12 days'},
+      {d:'31 Aug',t:'Four probation periods end',e:'Confirm or extend — silence converts the employment',p:'ruby',l:'Act'}
+    ]},
+    {mo:'September 2026',it:[
+      {d:'2 Sep',t:'Last day to give notice — Rift Valley Logistics',e:'Renews 31 Oct if you say nothing · KES 24.6M a year',p:'ruby',l:'Decide'},
+      {d:'15 Sep',t:'Naivas — annual price indexation window opens',e:'You may raise prices by CPI · Clause 6.1',p:'steel',l:'Your right'}
+    ]},
+    {mo:'October 2026',it:[
+      {d:'1 Oct',t:'Mombasa Packaging annual price review',e:'Capped at CPI + 2% — check what they ask for',p:'steel',l:'Ceiling applies'},
+      {d:'14 Oct',t:'Two fixed-term contracts pass 24 months',e:'Renewing again risks permanent status',p:'amber',l:'Decide'}
+    ]}
+  ],
+  clause:{no:'7.1',text:'The Supplier shall ensure that the Services achieve a minimum availability of <mark>99.5% measured monthly</mark>, and shall respond to any Critical Incident <mark>within four (4) hours</mark> of notification.',cat:'licence',who:'Amina · 14 Jul',n:2},
+  deals:{
+    enough:[{c:'customer',n:63,med:18,std:9,their:31,untouched:62}],
+    thin:[{c:'lease',n:6},{c:'licence',n:7}],
+    stages:[2,3,8,4,1], stagesTheir:[1,5,13,10,2],
+    friction:[
+      {cl:'Limitation of liability',r:78,d:'+6.2',a:'A cap at 12 months of fees instead of unlimited',hot:true},
+      {cl:'Payment terms',r:54,d:'+2.1',a:'45 or 60 days instead of your 30'},
+      {cl:'Indemnity',r:44,d:'+4.8',a:'Mutual rather than one-way'},
+      {cl:'Termination for convenience',r:37,d:'+3.3',a:'The same right for both sides'},
+      {cl:'Governing law',r:31,d:'+1.4',a:'Their home jurisdiction'}
+    ],
+    accept:[{nm:'Under KES 2M',sub:'44 deals',pct:84},{nm:'KES 2M – 10M',sub:'27 deals',pct:51},{nm:'Over KES 10M',sub:'12 deals',pct:34,warn:true}],
+    live:[{nm:'Serena Hotels',d:'Distribution Agreement',o:'21d',s:'ruby',l:'Quiet 11 days'},
+          {nm:'Java House Group',d:'Supply Agreement',o:'12d',s:'amber',l:'Quiet 6 days'},
+          {nm:'Carrefour Kenya',d:'Master Services',o:'4d',s:'steel',l:'Us'},
+          {nm:'Naivas Supermarkets',d:'Annual renewal',o:'1d',s:'steel',l:'Us'}]
   }
-  doors.forEach(function(b){
-    b.addEventListener('click', function(){ go(b.dataset.go); });
+},
+
+/* ======================= 2 · A HEALTH CHARITY ========================== */
+ubuntu:{
+  name:'Ubuntu Health Trust', kind:'Health charity', market:'Kenya · KES', cur:'KES',
+  initials:'GO', contracts:96, obligations:874,
+  types:[['Reporting & assurance',246],['Spend restrictions',158],['Probation & fixed term',141],
+         ['Notice & renewal',112],['Flow-down & audit',87],['Insurance & compliance',76],['Payment terms',54]],
+  asks:['Which donor reports fall due before October?',
+        'Which partners never agreed to the audit clause?',
+        'Which posts end when their funding ends?'],
+  mix:[ {c:'employment',n:41},{c:'grant',n:22},{c:'supplier',n:18},
+        {c:'lease',n:9},{c:'partner',n:4},{c:'nda',n:2} ],
+  tiles:[
+    {k:'Contract health',v:'64',u:'/100',d:'Down 2 points on July'},
+    {k:'Open findings',v:'41',d:'across five kinds of exposure'},
+    {k:'Decisions due · 30 days',v:'14',d:'6 are donor reporting deadlines'},
+    {k:'Largest category',v:'41',d:'employment contracts, 43% of the book'}
+  ],
+  score:[
+    {nm:'Donor reports filed on time',sub:'weighted by 22 funding agreements',pct:82},
+    {nm:'Spend inside approved budget lines',sub:'across all live grants',pct:91},
+    {nm:'Obligations confirmed',sub:'620 of 874 checked',pct:71,warn:true},
+    {nm:'Conditions flowed down to partners',sub:'weighted by 4 sub-grants',pct:50,warn:true},
+    {nm:'Employment terms compliant',sub:'weighted by 41 employment contracts',pct:78},
+    {nm:'Funding concentration',sub:'one donor is 61% of funding',pct:34,warn:true}
+  ],
+  roles:[
+    {id:'grants',label:'Grants',items:[
+      {t:'ruby',h:'Global Health Fund narrative report due 14 September',p:'Quarterly, with a financial annex. The last one went in four days late and was noted in their letter.',cat:'grant',go:'s-brief'},
+      {t:'ruby',h:'Spend outside approved budget lines on two grants',p:'KES 1.9M has moved between lines beyond the 10% margin the agreements allow without written approval.',cat:'grant',go:'s-exp'},
+      {t:'amber',h:'No-cost extension deadline for the WASH programme is 30 September',p:'Ask after that date and the unspent balance returns to the donor.',cat:'grant',go:'s-oblig'}
+    ]},
+    {id:'people',label:'People',items:[
+      {t:'ruby',h:'Nine fixed-term contracts end when the grant funding them ends',p:'31 December. If that grant is extended and the contracts are not, you lose the team that delivers it.',cat:'employment',go:'s-oblig'},
+      {t:'amber',h:'Six probation periods end this month',p:'Confirm or extend before they lapse.',cat:'employment',go:'s-oblig'},
+      {t:'amber',h:'Field staff contracts reference a policy that no longer exists',p:'Fourteen contracts point to a travel policy withdrawn in 2024. What applies now is unclear.',cat:'employment',go:'s-exp'}
+    ]},
+    {id:'ops',label:'Operations',items:[
+      {t:'ruby',h:'Two partner sub-grants do not carry the donor’s audit clause',p:'Your funder can audit any organisation holding its money. Two of your four partners never agreed to that.',cat:'partner',go:'s-exp'},
+      {t:'amber',h:'Westlands office lease break option lapses 12 October',p:'Three months notice. Miss it and you are committed to a further three years.',cat:'lease',go:'s-oblig'},
+      {t:'steel',h:'Vehicle supply contract renews automatically on 1 November',p:'No decision point in the agreement. Nobody has reviewed it since 2023.',cat:'supplier',go:'s-oblig'}
+    ]},
+    {id:'fin',label:'Finance',items:[
+      {t:'ruby',h:'KES 38M of funding carries a clawback condition',p:'Across four agreements. Any spend the donor later disallows is repayable from unrestricted reserves.',cat:'grant',go:'s-exp'},
+      {t:'amber',h:'Matching-fund condition unmet on one grant',p:'You committed to raise 15% alongside. You are at 9% with four months to run.',cat:'grant',go:'s-exp'},
+      {t:'amber',h:'Audit certificates due to two donors in October',p:'Both require an audited statement within ten months of the period end.',cat:'grant',go:'s-oblig'}
+    ]}
+  ],
+  exposure:{
+    cash:{v:'2.1M',u:'KES a year',n:3,note:'Small — this is not where your risk lives',
+      f:[{h:'Vehicle contract renews automatically with an uplift',p:'A 7% annual increase written in, with no ceiling and no decision point.',m:'0.9M',u:'a year',s:'amber',sl:'Needs check',c:'supplier'},
+         {h:'Office service charge has no ceiling',p:'It has risen 22% over two years against a rent that is fixed.',m:'1.2M',u:'a year',s:'green',sl:'Confirmed',c:'lease'}]},
+    risk:{v:'6',u:'findings',n:6,note:'Mostly flow-down gaps',
+      f:[{h:'Two partners hold donor money without an audit clause',p:'Your funder can audit anyone holding its money. If a partner refuses, the exposure lands on you.',m:'2',u:'partners',s:'ruby',sl:'Confirmed',c:'partner'},
+         {h:'One supplier agreement has no liability cap in your favour',p:'Medical equipment maintenance. A failure in the field would be argued entirely on general law.',m:'1',u:'contract',s:'amber',sl:'Needs check',c:'supplier'}]},
+    compliance:{v:'14',u:'findings',n:14,note:'KES 38M of funding carries clawback',
+      f:[{h:'KES 38M of funding is repayable if spend is disallowed',p:'Four agreements carry a clawback condition. Disallowed spend comes out of unrestricted reserves.',m:'38.0M',u:'at risk',s:'ruby',sl:'Confirmed',c:'grant'},
+         {h:'Spend outside approved budget lines on two grants',p:'KES 1.9M moved beyond the 10% margin allowed without written approval.',m:'1.9M',u:'exposed',s:'ruby',sl:'Confirmed',c:'grant'},
+         {h:'Six donor reports fall due in the next 30 days',p:'Two are narrative, four are financial. One donor already noted a late submission this year.',m:'6',u:'reports',s:'amber',sl:'Act now',c:'grant'}]},
+    continuity:{v:'5',u:'findings',n:5,note:'One donor is 61% of funding',
+      f:[{h:'One donor is 61% of all funding',p:'Global Health Fund. The agreement ends 31 December 2027 with no renewal right — only an invitation to reapply.',m:'61%',u:'of funding',s:'ruby',sl:'Watch',c:'grant'},
+         {h:'Nine posts are funded by a grant that ends first',p:'The employment contracts and the funding do not end on the same day.',m:'9',u:'posts',s:'amber',sl:'Plan',c:'employment'}]},
+    people:{v:'13',u:'findings',n:13,note:'Nine fixed terms tied to grant end dates',
+      f:[{h:'Nine fixed terms end when their grant ends',p:'31 December. Extend the grant without extending them and you lose the delivery team.',m:'9',u:'people',s:'ruby',sl:'Plan now',c:'employment'},
+         {h:'Fourteen contracts point to a withdrawn policy',p:'A travel policy retired in 2024. What governs those staff now is genuinely unclear.',m:'14',u:'people',s:'amber',sl:'Fix wording',c:'employment'}]}
+  },
+  oblig:[
+    {t:'File a narrative and financial report each quarter',d:'Programme Funding Agreement',cp:'Global Health Fund',c:'grant',by:'Us',ty:'Reporting',w:'Due 14 Sep — 37 days',src:'Clause 8.3'},
+    {t:'Spend only within the approved budget lines',d:'Programme Funding Agreement',cp:'Global Health Fund',c:'grant',by:'Us',ty:'Spend restriction',w:'Ongoing',src:'Clause 5.1'},
+    {t:'Flow the audit right down to every sub-grantee',d:'Programme Funding Agreement',cp:'Global Health Fund',c:'grant',by:'Us',ty:'Flow-down',w:'Ongoing',src:'Clause 11.4'},
+    {t:'Get written approval before moving over 10% between lines',d:'WASH Programme Grant',cp:'Nordic Development Agency',c:'grant',by:'Us',ty:'Budget change',w:'Per change',src:'Clause 6.2'},
+    {t:'End the fixed term when the funding ends',d:'Employment contracts — 9 field officers',cp:'Field team',c:'employment',by:'Us',ty:'Fixed term',w:'31 Dec 2026',src:'Clause 2.1'},
+    {t:'Give three months notice to break the office lease',d:'Westlands office lease',cp:'Westlands Property Ltd',c:'lease',by:'Both',ty:'Break option',w:'By 12 Oct — 65 days',src:'Clause 13.1'},
+    {t:'Submit an audited financial statement each year',d:'WASH Programme Grant',cp:'Nordic Development Agency',c:'grant',by:'Us',ty:'Assurance',w:'Due 31 Oct',src:'Clause 9.5'},
+    {t:'Keep vehicles insured to at least KES 20,000,000',d:'Fleet Supply Agreement',cp:'Rift Motors Ltd',c:'supplier',by:'Them',ty:'Insurance',w:'Annual certificate',src:'Clause 7.7'}
+  ],
+  cal:[
+    {mo:'August 2026',it:[
+      {d:'31 Aug',t:'Six probation periods end',e:'Confirm or extend before they lapse',p:'amber',l:'Act'}
+    ]},
+    {mo:'September 2026',it:[
+      {d:'14 Sep',t:'Global Health Fund quarterly report due',e:'Narrative plus financial annex · Clause 8.3',p:'ruby',l:'Act'},
+      {d:'30 Sep',t:'No-cost extension deadline — WASH programme',e:'Ask after this and the unspent balance returns',p:'ruby',l:'Decide'}
+    ]},
+    {mo:'October 2026',it:[
+      {d:'12 Oct',t:'Westlands lease break option lapses',e:'Miss it and you are committed for three more years',p:'ruby',l:'Decide'},
+      {d:'31 Oct',t:'Audited statement due to Nordic Development Agency',e:'Within ten months of the period end · Clause 9.5',p:'amber',l:'Prepare'}
+    ]}
+  ],
+  clause:{no:'8.3',text:'The Recipient shall submit to the Fund <mark>within forty-five (45) days of the end of each quarter</mark> a narrative report and a financial report in the approved format, and shall <mark>not reallocate more than ten per cent (10%)</mark> between approved budget lines without prior written approval.',cat:'grant',who:'Grace · 2 Aug',n:3},
+  deals:{
+    enough:[{c:'grant',n:22,med:34,std:12,their:41,untouched:9}],
+    thin:[{c:'supplier',n:18},{c:'lease',n:9},{c:'partner',n:4}],
+    stages:[4,6,15,7,2], stagesTheir:[2,7,20,9,3],
+    friction:[
+      {cl:'Indirect cost recovery',r:41,d:'+5.2',a:'A lower percentage than you asked for',hot:true},
+      {cl:'Budget reallocation margin',r:32,d:'+2.4',a:'A tighter margin than you asked for'},
+      {cl:'Ownership of programme outputs',r:23,d:'+1.8',a:'Donor ownership rather than shared'},
+      {cl:'Audit and flow-down rights',r:18,d:'+1.1',a:'Rarely conceded — the donor’s wording stands'}
+    ],
+    accept:[{nm:'Your own MoU template',sub:'2 agreements',pct:100},
+            {nm:'The donor’s standard paper',sub:'20 agreements',pct:9,warn:true}],
+    live:[{nm:'Nordic Development Agency',d:'WASH extension',o:'16d',s:'amber',l:'Them'},
+          {nm:'Kilifi County Health',d:'Partnership MoU',o:'8d',s:'steel',l:'Us'},
+          {nm:'Rift Motors Ltd',d:'Fleet renewal',o:'3d',s:'steel',l:'Us'}]
+  }
+},
+
+/* ======================= 3 · A SWEDISH LAW FIRM ======================== */
+nordlund:{
+  name:'Nordlund Advokatbyrå', kind:'Law firm', market:'Sverige · SEK', cur:'SEK',
+  initials:'EN', contracts:74, obligations:512,
+  types:[['Probation & fixed term',148],['Fee & billing',96],['Liability & scope',78],
+         ['Consultation & notice',64],['Usage limits',52],['Return of material',41],['Property & lease',33]],
+  asks:['Which engagement letters have no liability cap?',
+        'Which fixed terms pass two years this autumn?',
+        'Which licences are we over the seat count on?'],
+  mix:[ {c:'employment',n:34},{c:'client',n:21},{c:'licence',n:9},
+        {c:'lease',n:5},{c:'supplier',n:4},{c:'nda',n:1} ],
+  tiles:[
+    {k:'Contract health',v:'81',u:'/100',d:'Up 3 points on July'},
+    {k:'Open findings',v:'19',d:'across five kinds of exposure'},
+    {k:'Decisions due · 30 days',v:'5',d:'3 are employment deadlines'},
+    {k:'Largest category',v:'34',d:'employment contracts, 46% of the book'}
+  ],
+  score:[
+    {nm:'Obligations confirmed',sub:'481 of 512 checked',pct:94},
+    {nm:'Employment terms compliant',sub:'weighted by 34 employment contracts',pct:88},
+    {nm:'Engagement letters with a liability cap',sub:'weighted by 21 client engagements',pct:62,warn:true},
+    {nm:'Licences within their limits',sub:'weighted by 9 software licences',pct:55,warn:true},
+    {nm:'Fee uplift rights exercised',sub:'21 engagements carry one',pct:41,warn:true},
+    {nm:'Client concentration',sub:'largest client is 18% of fees',pct:77}
+  ],
+  roles:[
+    {id:'people',label:'People',items:[
+      {t:'ruby',h:'Three fixed terms pass the two-year limit in November',p:'Under Swedish rules a general fixed-term arrangement converts to permanent employment once it passes the limit.',cat:'employment',go:'s-oblig'},
+      {t:'amber',h:'Two probation periods end this month',p:'A probationary appointment ends automatically unless notice is given before it expires.',cat:'employment',go:'s-oblig'},
+      {t:'amber',h:'Parental-leave cover contracts end before the leave does',p:'Two cover appointments expire six weeks before the person they cover returns.',cat:'employment',go:'s-exp'}
+    ]},
+    {id:'clients',label:'Clients',items:[
+      {t:'ruby',h:'Eight engagement letters have no cap on your liability',p:'Every other engagement you hold caps it at the fee paid for the matter.',cat:'client',go:'s-exp'},
+      {t:'amber',h:'Fee uplift right unused on twelve engagements since 2024',p:'The letters allow an annual index adjustment each January. It has never been applied.',cat:'client',go:'s-exp'},
+      {t:'amber',h:'Two matters have run well beyond the agreed scope',p:'Both are billed hourly against a letter describing a fixed piece of work.',cat:'client',go:'s-oblig'}
+    ]},
+    {id:'office',label:'Office',items:[
+      {t:'ruby',h:'Office lease break option lapses 30 November',p:'Six months notice. Miss it and the term runs to 2031.',cat:'lease',go:'s-brief'},
+      {t:'amber',h:'Reinstatement obligation at lease end — no estimate taken',p:'You must return the premises to their original layout. Nobody has priced it.',cat:'lease',go:'s-exp'},
+      {t:'steel',h:'Cleaning contract renews automatically in December',p:'No decision point written in. Last reviewed in 2022.',cat:'supplier',go:'s-oblig'}
+    ]},
+    {id:'fin',label:'Finance',items:[
+      {t:'amber',h:'Seat count exceeded on two software licences',p:'You are using 46 seats against 40 licensed. The audit clause carries no notice requirement.',cat:'licence',go:'s-exp'},
+      {t:'amber',h:'Licences renew with automatic uplifts above inflation',p:'Three carry a fixed 8% annual increase against inflation nearer 3%.',cat:'licence',go:'s-exp'},
+      {t:'steel',h:'Fee uplift rights worth SEK 640,000 unused',p:'Across twelve engagements, compounding since 2024.',cat:'client',go:'s-exp'}
+    ]}
+  ],
+  exposure:{
+    cash:{v:'640k',u:'SEK a year',n:4,note:'Mostly fee rights never exercised',
+      f:[{h:'Fee uplift rights never exercised',p:'Twelve engagement letters allow an annual index adjustment each January. None applied since 2024.',m:'640k',u:'a year',s:'green',sl:'Confirmed',c:'client'},
+         {h:'Software licences uplift 8% a year automatically',p:'Three licences carry a fixed increase well above inflation, with no ceiling and no decision point.',m:'190k',u:'a year',s:'amber',sl:'Needs check',c:'licence'}]},
+    risk:{v:'8',u:'findings',n:8,note:'Eight engagements with no liability cap',
+      f:[{h:'Eight engagement letters have no cap on your liability',p:'Every other engagement caps it at the fee paid for the matter. These eight say nothing.',m:'8',u:'engagements',s:'ruby',sl:'Confirmed',c:'client'},
+         {h:'Two matters have run beyond the scope in the letter',p:'Billed hourly against a letter describing a fixed piece of work. The basis for the extra fees is arguable.',m:'2',u:'matters',s:'amber',sl:'Needs check',c:'client'}]},
+    compliance:{v:'3',u:'findings',n:3,note:'Seat counts exceeded',
+      f:[{h:'Seat count exceeded on two licences',p:'46 seats in use against 40 licensed. The audit clause carries no notice requirement, so a request could arrive with none.',m:'2',u:'licences',s:'ruby',sl:'Confirmed',c:'licence'},
+         {h:'Client material return obligation not tracked at matter close',p:'Every engagement requires return or destruction when the matter ends. No closing step records it.',m:'21',u:'engagements',s:'amber',sl:'Process gap',c:'nda'}]},
+    continuity:{v:'1',u:'finding',n:1,note:'Healthily spread',
+      f:[{h:'Largest client is 18% of fees',p:'Below the level that usually causes concern, and no single engagement renews on its own.',m:'18%',u:'of fees',s:'green',sl:'Comfortable',c:'client'}]},
+    people:{v:'3',u:'findings',n:3,note:'Three fixed terms near the limit',
+      f:[{h:'Three fixed terms pass the two-year limit in November',p:'Once past it, a general fixed-term arrangement converts to permanent employment.',m:'3',u:'people',s:'ruby',sl:'Decide',c:'employment'},
+         {h:'Parental-leave cover ends before the leave does',p:'Two cover appointments expire six weeks before the person they cover returns.',m:'2',u:'people',s:'amber',sl:'Extend',c:'employment'}]}
+  },
+  oblig:[
+    {t:'Confirm employment before the probation period ends',d:'Employment contract — associate',cp:'A. Lindqvist',c:'employment',by:'Us',ty:'Probation',w:'By 30 Sep — 53 days',src:'Clause 2.4'},
+    {t:'End the fixed term before it passes two years',d:'Employment contracts — 3 associates',cp:'Associate group',c:'employment',by:'Us',ty:'Fixed term',w:'By 14 Nov — 98 days',src:'Clause 2.7'},
+    {t:'Cap liability at the fee paid for the matter',d:'Engagement letter',cp:'Hedberg AB',c:'client',by:'Us',ty:'Liability',w:'Ongoing',src:'Clause 9.1'},
+    {t:'Review fees annually against the index',d:'Engagement letters — 12 clients',cp:'Client group',c:'client',by:'Us',ty:'Fee uplift',w:'Each January',src:'Clause 4.3'},
+    {t:'Stay within 40 licensed seats',d:'Juridik Pro licence',cp:'Juridik Pro AB',c:'licence',by:'Us',ty:'Usage limit',w:'Ongoing',src:'Clause 3.5'},
+    {t:'Give six months notice to break the office lease',d:'Stockholm office lease',cp:'Fastighets AB Vasa',c:'lease',by:'Us',ty:'Break option',w:'By 30 Nov — 114 days',src:'Clause 16.2'},
+    {t:'Return or destroy client material when a matter ends',d:'All engagement letters',cp:'Client group',c:'nda',by:'Us',ty:'Return of material',w:'At matter end',src:'Clause 12.6'},
+    {t:'Consult under the collective agreement before changes',d:'Collective agreement',cp:'Staff',c:'employment',by:'Us',ty:'Consultation',w:'Per change',src:'Clause 5.9'}
+  ],
+  cal:[
+    {mo:'September 2026',it:[
+      {d:'30 Sep',t:'Probation ends — A. Lindqvist',e:'Notice must be given before it expires, or the appointment stands',p:'amber',l:'Decide'}
+    ]},
+    {mo:'November 2026',it:[
+      {d:'14 Nov',t:'Three fixed terms pass the two-year limit',e:'Past the limit they convert to permanent employment',p:'ruby',l:'Decide'},
+      {d:'30 Nov',t:'Office lease break option lapses',e:'Six months notice · miss it and the term runs to 2031',p:'ruby',l:'Decide'}
+    ]},
+    {mo:'December 2026',it:[
+      {d:'1 Dec',t:'Cleaning contract renews automatically',e:'No decision point written in · last reviewed 2022',p:'steel',l:'Review'}
+    ]}
+  ],
+  clause:{no:'2.7',text:'Anställningen är tidsbegränsad. The appointment is fixed-term and <mark>expires on 14 November 2026</mark> unless notice is given. Where fixed-term appointments with the same employer <mark>exceed twenty-four (24) months</mark> in total, the appointment converts to permanent employment.',cat:'employment',who:'Erik · 21 Jul',n:2},
+  deals:{
+    enough:[{c:'client',n:21,med:11,std:6,their:24,untouched:71}],
+    thin:[{c:'licence',n:9},{c:'lease',n:5},{c:'supplier',n:4}],
+    stages:[1,2,5,2,1], stagesTheir:[1,4,11,6,2],
+    friction:[
+      {cl:'Limitation of liability',r:52,d:'+3.1',a:'A cap at the fee paid for the matter',hot:true},
+      {cl:'Scope of the engagement',r:38,d:'+1.9',a:'A wider definition than the letter offers'},
+      {cl:'Fee basis and uplift',r:29,d:'+1.2',a:'A fixed fee instead of hourly'},
+      {cl:'Conflicts and confidentiality',r:14,d:'+0.6',a:'Rarely contested — your wording holds'}
+    ],
+    accept:[{nm:'Standard engagement letter',sub:'15 matters',pct:80},{nm:'Client’s own terms',sub:'6 matters',pct:33,warn:true}],
+    live:[{nm:'Hedberg AB',d:'Framework engagement',o:'9d',s:'amber',l:'Them'},
+          {nm:'Sundqvist Industri',d:'New matter',o:'2d',s:'steel',l:'Us'}]
+  }
+}
+};
+
+/* ============================================================================
+   RENDERING. One set of functions, three organisations.
+   ========================================================================= */
+/* THE ONE THRESHOLD. Below this many contracts in a category, a percentage
+   is noise wearing the clothes of insight, so the packs screen and the
+   negotiation screen both withhold statistics and show checks instead.
+   It was written as 12 in one place and described as 20 in the prose of
+   the other — the two screens disagreed in public. One constant now. */
+var STAT_MIN = 20;
+
+var org='savanna', role=0, curKey='cash', briefKey='supplier', obView='list', obCat='all', dealCat=null;
+
+var $ = function(s){ return document.querySelector(s); };
+var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+function O(){ return ORGS[org]; }
+function findingCount(o){ return Object.keys(o.exposure).reduce(function(a,k){ return a+o.exposure[k].n; },0); }
+function catLabel(k){ return CATS[k] ? CATS[k].short : k; }
+function catChip(k){ return '<span class="cat">'+esc(catLabel(k))+'</span>'; }
+function plural(n,word){ return n+' '+word+(n===1?'':'s'); }
+function pill(tone,label){ return '<span class="pill '+tone+'"><span class="dot"></span>'+esc(label)+'</span>'; }
+
+/* the little coloured square beside an attention row */
+var TONE_BG={ruby:'var(--st-ruby-bg)',amber:'var(--st-amber-bg)',steel:'var(--st-steel-bg)',green:'var(--st-green-bg)'};
+var TONE_FG={ruby:'var(--st-ruby-fg)',amber:'var(--st-amber-fg)',steel:'var(--st-steel-fg)',green:'var(--st-green-fg)'};
+var ICON_WARN='<path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/>';
+var ICON_CLOCK='<circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/>';
+var ICON_STAR='<path d="M12 3.5 14.6 9l6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8 9.4 9Z"/>';
+function toneIcon(t){ return t==='ruby'?ICON_WARN : t==='amber'?ICON_CLOCK : ICON_STAR; }
+
+function tiles(list){
+  return '<div class="grid g4" style="margin-bottom:14px;">'+list.map(function(t,i){
+    return '<div class="tile'+(i===0?' hero':'')+'">'+
+      '<span class="k">'+esc(t.k)+'</span>'+
+      '<span class="v">'+esc(t.v)+(t.u?'<small>'+esc(t.u)+'</small>':'')+'</span>'+
+      '<span class="d">'+t.d+'</span></div>';
+  }).join('')+'</div>';
+}
+function rank(rows,max){
+  var m = max || Math.max.apply(null, rows.map(function(r){return r.pct!==undefined?r.pct:r.n;}));
+  return '<div class="rank">'+rows.map(function(r){
+    var val = r.pct!==undefined ? r.pct : r.n;
+    var pct = Math.round(val/m*100);
+    return '<div class="row"><span class="nm">'+r.nm+(r.sub?'<em>'+r.sub+'</em>':'')+'</span>'+
+      '<span class="track"><span class="fill'+(r.warn?' warn':'')+'" style="width:'+pct+'%"></span></span>'+
+      '<span class="val">'+(r.pct!==undefined?val+'%':val)+'</span></div>';
+  }).join('')+'</div>';
+}
+
+/* ---------------------------- 1 · ANALYST HOME ------------------------- */
+function renderHome(){
+  var o=O(), r=o.roles[role];
+  var shelf='<div class="shelf"><span class="cap">Your shelf</span>'+
+    o.roles.map(function(x,i){ return '<button class="fbtn'+(i===role?' on':'')+'" data-role="'+i+'">'+esc(x.label)+'</button>'; }).join('')+
+    '<span style="font-size:11.5px;color:var(--color-neutral-500);margin-left:6px;">'+
+    'The same '+o.contracts+' contracts. What comes first depends on whose job it is.</span></div>';
+
+  var items = r.items.map(function(it){
+    return '<div class="it"><span class="ic" style="background:'+TONE_BG[it.t]+';color:'+TONE_FG[it.t]+';">'+
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+toneIcon(it.t)+'</svg></span>'+
+      '<div class="bd"><b>'+it.h+'</b><p>'+it.p+'</p><div class="tags">'+catChip(it.cat)+
+      '<span class="stakes">at stake: <b>'+CATS[it.cat].stakes.join(' · ')+'</b></span></div></div>'+
+      '<span class="go"><button class="btn btn-sm" data-go="'+it.go+'">Open</button></span></div>';
+  }).join('');
+
+  /* what the OTHER shelves are showing right now — the same contracts, sorted
+     by a different job. It is the clearest way to make the point that the
+     shelf is the person's, not the company's. */
+  var others = o.roles.map(function(x,i){ return i===role ? null : x; }).filter(Boolean);
+  var otherLine = '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
+    'Also waiting, on other shelves: '+
+    others.map(function(x){ return '<b style="color:var(--color-neutral-600);">'+esc(x.label)+'</b> ('+x.items.length+')'; }).join(', ')+
+    '. Same contracts, different first question.</div>';
+
+  var mixTop = o.mix.slice(0,3).map(function(m){ return m.n+' '+catLabel(m.c).toLowerCase(); }).join(', ');
+
+  /* Typed once, computed elsewhere, and the two disagreed on screen — the
+     tile said 34 while the sidebar badge said 39. Both read the data now. */
+  var tl = o.tiles.map(function(t){
+    return t.k==='Open findings' ? {k:t.k,v:String(findingCount(o)),d:t.d} : t;
   });
 
-  /* The obligations screen has two faces — a list and a calendar — because the
-     same data answers two different questions. */
-  var list = document.getElementById('ob-list');
-  var cal  = document.getElementById('ob-cal');
-  var bL   = document.getElementById('ob-view-list');
-  var bC   = document.getElementById('ob-view-cal');
-  function obView(showCal){
-    list.style.display = showCal ? 'none' : '';
-    cal.style.display  = showCal ? '' : 'none';
-    bL.classList.toggle('btn-primary', !showCal);
-    bC.classList.toggle('btn-primary', showCal);
-  }
-  bL.addEventListener('click', function(){ obView(false); });
-  bC.addEventListener('click', function(){ obView(true); });
-  obView(false);
+  $('#s-home').innerHTML =
+    '<div class="page-head"><div><h1>Analyst</h1>'+
+    '<div class="sub">'+esc(o.name)+' — '+esc(o.kind)+', '+esc(o.market)+'. '+o.contracts+
+    ' contracts in '+o.mix.length+' categories: '+esc(mixTop)+' and more. What is measured follows the category, '+
+    'not the industry.</div></div>'+
+    '<div class="acts"><button class="btn">Email me this weekly</button>'+
+    '<button class="btn btn-primary" data-go="s-exp">Open exposure report</button></div></div>'+
+    shelf + tiles(tl) +
+    '<div class="grid g-2-1"><div class="card">'+
+      '<div class="card-h"><div><h3>Needs you this week — '+esc(r.label)+'</h3>'+
+      '<div class="hint">Ranked by what it costs to ignore. Every row says which category it came from and what kind of exposure it is.</div></div></div>'+
+      '<div class="attn">'+items+'</div>'+otherLine+'</div>'+
+    '<div style="display:flex;flex-direction:column;gap:14px;">'+
+      '<div class="card"><div class="card-h"><div><h3>Where the score comes from</h3>'+
+      '<div class="hint">Each part is weighted by how many contracts of that category you actually hold, so nobody is scored on something they do not have.</div></div></div>'+
+      rank(o.score)+'</div>'+
+      '<div class="card"><div class="card-h"><div><h3>Ask the analyst</h3>'+
+      '<div class="hint">Copilot answers from these same numbers. The suggestions follow the categories you hold — it would never offer a rent-review question to someone with no leases.</div></div></div>'+
+      '<div style="display:flex;flex-direction:column;gap:7px;">'+
+      o.asks.map(function(q){ return '<button class="btn" style="text-align:left;">“'+esc(q)+'”</button>'; }).join('')+
+      '</div></div>'+
+    '</div></div>';
+}
 
-  /* The filter chips are decoration in a prototype, but a chip that cannot be
-     pressed reads as broken — so they toggle. */
-  document.querySelectorAll('.filters').forEach(function(row){
-    row.querySelectorAll('.fbtn').forEach(function(b){
-      b.addEventListener('click', function(){
-        row.querySelectorAll('.fbtn').forEach(function(o){ o.classList.remove('on'); });
-        b.classList.add('on');
-      });
-    });
-  });
-})();
+/* ------------------------ 2 · CATEGORIES & PACKS ----------------------- */
+function renderMix(){
+  var o=O();
+  var mixRows = o.mix.map(function(m){ return {nm:CATS[m.c].label, sub:CATS[m.c].stakes.join(' · '), n:m.n}; });
+
+  var packs = o.mix.map(function(m){
+    var c=CATS[m.c];
+    var thin = m.n < STAT_MIN;
+    return '<div class="card">'+
+      '<div class="packhd">'+catChip(m.c)+'<h4>'+esc(c.label)+'</h4>'+
+      '<span style="margin-left:auto;">'+pill(thin?'amber':'green', plural(m.n,'contract'))+'</span></div>'+
+      '<div class="hint" style="font-size:11.5px;color:var(--color-neutral-500);">'+esc(c.watches)+'</div>'+
+      '<div class="checklist">'+c.checks.map(function(k){ return '<div>'+esc(k)+'</div>'; }).join('')+'</div>'+
+      '<div class="thin" style="font-size:11.5px;">'+
+        (thin
+          ? '<span style="color:var(--st-amber-fg);font-weight:600;">Checks only.</span> '+
+            'With '+plural(m.n,'contract')+' here, a percentage would be noise dressed up as '+
+            'insight. Statistics unlock at '+STAT_MIN+'.'
+          : '<span style="color:var(--st-green-fg);font-weight:600;">Checks and statistics.</span> '+
+            plural(m.n,'contract')+' is enough for a rate to mean something.')+
+      '</div></div>';
+  }).join('');
+
+  var off = Object.keys(CATS).filter(function(k){ return !o.mix.some(function(m){return m.c===k;}); });
+
+  $('#s-mix').innerHTML =
+    '<div class="page-head"><div><h1>Categories &amp; packs</h1>'+
+    '<div class="sub">A category belongs to the CONTRACT, not the company — which is why '+esc(o.name)+
+    ' holds '+o.mix.length+' of them at once. Each one brings its own checks and its own idea of what is at stake. '+
+    'HaTi guesses the category at import; a person confirms it.</div></div>'+
+    '<div class="acts"><button class="btn">Recheck categories</button><button class="btn btn-primary">Add a pack</button></div></div>'+
+
+    '<div class="grid g-2-1" style="margin-bottom:14px;">'+
+      '<div class="card"><div class="card-h"><div><h3>What kind of organisation this is</h3>'+
+      '<div class="hint">Nobody has to answer a questionnaire. Once the contracts are in, the mix says it — and the mix decides which packs switch on.</div></div></div>'+
+      rank(mixRows)+
+      '<div class="callout" style="margin-top:16px;">'+
+        'The biggest category here is <b>'+esc(CATS[o.mix[0].c].label.toLowerCase())+'</b>, at '+o.mix[0].n+' of '+o.contracts+
+        ' contracts. That single fact is why this organisation’s home screen looks nothing like the other two.'+
+      '</div></div>'+
+      '<div class="card"><div class="card-h"><div><h3>Packs not switched on</h3>'+
+      '<div class="hint">Available, but '+esc(o.name)+' holds no contracts of these kinds. They appear the moment one is imported.</div></div></div>'+
+      '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+
+        (off.length ? off.map(function(k){ return '<span class="cat" style="opacity:.65;">'+esc(CATS[k].label)+'</span>'; }).join('')
+                    : '<span class="t-mut">All nine packs are in use here.</span>')+
+      '</div>'+
+      '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
+      'A pack is small on purpose — a handful of obligation types and a handful of checks. That is what makes it '+
+      'reasonable to add one per market or per sector rather than building a separate product each time.</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="grid g3">'+packs+'</div>';
+}
+
+/* --------------------------- 3 · OBLIGATIONS --------------------------- */
+function renderOblig(){
+  var o=O();
+  var cats=['all'].concat(o.mix.map(function(m){return m.c;}));
+  var chips = cats.map(function(k){
+    var n = k==='all' ? o.obligations.toLocaleString('en-GB')
+                      : o.oblig.filter(function(r){return r.c===k;}).length;
+    return '<button class="fbtn'+(obCat===k?' on':'')+'" data-obcat="'+k+'">'+
+      (k==='all'?'All '+n:esc(catLabel(k))) + '</button>';
+  }).join('');
+
+  var rows = o.oblig.filter(function(r){ return obCat==='all' || r.c===obCat; });
+  var body = rows.length ? rows.map(function(r){
+    var byTone = r.by==='Them'?'steel' : r.by==='Us'?'amber':'gray';
+    return '<tr><td><span class="t-strong">'+esc(r.t)+'</span><div class="t-mut">'+esc(r.d)+'</div></td>'+
+      '<td>'+catChip(r.c)+'</td><td>'+esc(r.cp)+'</td>'+
+      '<td>'+pill(byTone,r.by)+'</td><td>'+esc(r.ty)+'</td>'+
+      '<td'+(/\d+ days|Due|By /.test(r.w)?' class="t-strong"':'')+'>'+esc(r.w)+'</td>'+
+      '<td><span class="t-src">'+esc(r.src)+'</span></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="t-mut" style="padding:22px 10px;">No obligations of this category in the sample.</td></tr>';
+
+
+  var cal = o.cal.map(function(m){
+    return '<div class="cal-mo"><h4>'+esc(m.mo)+'</h4>'+m.it.map(function(i){
+      return '<div class="cal-it"><span class="d">'+esc(i.d)+'</span>'+
+        '<span class="t"><b>'+esc(i.t)+'</b><em>'+esc(i.e)+'</em></span>'+pill(i.p,i.l)+'</div>';
+    }).join('')+'</div>';
+  }).join('');
+
+  $('#s-oblig').innerHTML =
+    '<div class="page-head"><div><h1>Obligations</h1>'+
+    '<div class="sub">Every promise inside every contract, in one list, each tagged with the category it came from. '+
+    'The register itself is category-neutral — a rent review, a probation end and a donor report are all just '+
+    'a promise with a date and an owner. The category decides what is done with it.</div></div>'+
+    '<div class="acts"><button class="btn'+(obView==='list'?' btn-primary':'')+'" data-obview="list">List</button>'+
+    '<button class="btn'+(obView==='cal'?' btn-primary':'')+'" data-obview="cal">Calendar</button>'+
+    '<button class="btn">Export</button></div></div>'+
+
+    (obView==='list' ?
+      '<div class="card" style="margin-bottom:14px;">'+
+        '<div class="filters">'+chips+'<span class="fsep"></span>'+
+        '<button class="fbtn">Owed by them</button><button class="fbtn">Owed by us</button>'+
+        '<button class="fbtn">Needs review <span class="pill amber" style="margin-left:5px">'+
+        Math.round(o.obligations*0.12)+'</span></button></div>'+
+        '<div class="tblwrap"><table><thead><tr>'+
+        '<th>The promise</th><th>Category</th><th>Counterparty</th><th>Owed by</th>'+
+        '<th>Type</th><th>When</th><th>From</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+      '</div>'+
+      '<div class="grid g3">'+
+        '<div class="card"><div class="card-h"><div><h3>Where this one came from</h3>'+
+        '<div class="hint">Every obligation shows the sentence it was read out of, so a person can check it in one glance.</div></div></div>'+
+        '<div class="clause-src"><span class="no">'+esc(o.clause.no)+'</span> '+o.clause.text+'</div>'+
+        '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
+        pill('green',o.clause.n+' obligations read from this clause')+catChip(o.clause.cat)+
+        pill('gray','Confirmed by '+o.clause.who)+'</div>'+
+        '<div style="margin-top:12px;display:flex;gap:8px;"><button class="btn btn-sm btn-primary">Confirm</button>'+
+        '<button class="btn btn-sm">Edit</button><button class="btn btn-sm">Not an obligation</button></div></div>'+
+
+        '<div class="card"><div class="card-h"><div><h3>What kind of promises they are</h3>'+
+        '<div class="hint">Counted across all '+o.obligations.toLocaleString('en-GB')+', not the sample above. The types on offer come from the categories this organisation holds — no two of the three look alike.</div></div></div>'+
+        rank(o.types.map(function(t){ return {nm:t[0],n:t[1]}; }))+
+        '</div>'+
+
+        '<div class="card ghost"><div class="card-h"><div><h3>Did they actually do it?</h3>'+
+        '<div class="hint">Not in this prototype. Checking a promise was kept needs someone to log what happened in the '+
+        'real world — a late delivery, a missed response. That is a later step; everything else here works without it.</div></div></div></div>'+
+      '</div>'
+    :
+      '<div class="grid g2">'+
+        '<div class="card"><div class="card-h"><div><h3>What is coming</h3>'+
+        '<div class="hint">Renewals, notice deadlines, probation ends, donor reports, break options — every category '+
+        'feeds the same calendar.</div></div></div>'+cal+'</div>'+
+        '<div class="card"><div class="card-h"><div><h3>How you hear about it</h3>'+
+        '<div class="hint">The point of the calendar is that you never have to open it.</div></div></div>'+
+        '<div class="attn">'+
+        '<div class="it"><span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">'+
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 6.5 9 6 9-6"/></svg></span>'+
+        '<div class="bd"><b>Email, 90 / 60 / 30 days before</b><p>To whoever owns that category — procurement for a supplier notice, '+
+        'the people lead for a probation end. Not everything to everyone.</p></div></div>'+
+        '<div class="it"><span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">'+
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>'+
+        '<div class="bd"><b>On the phone shell too</b><p>The same list already reads through HaTi’s mobile screens, '+
+        'so it needs no second version building.</p></div></div>'+
+        '<div class="it"><span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">'+
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4"/></svg></span>'+
+        '<div class="bd"><b>Copilot can be asked</b><p>“What’s due next month?” is answered from this list, '+
+        'so the answer matches the email.</p></div></div>'+
+        '</div></div>'+
+      '</div>');
+}
+
+/* ---------------------------- 4 · BRIEFINGS ---------------------------- */
+/* Three briefings of three DIFFERENT categories, deliberately drawn from
+   three different organisations. The sections are not the same on any two —
+   that is the whole point of the screen. */
+var BRIEFS = {
+  supplier:{
+    who:'Savanna Foods Ltd', cat:'supplier',
+    title:'Rift Valley Logistics',
+    sub:'Haulage Framework Agreement · KES 24.6M a year · renews 31 October 2026',
+    tiles:[{k:'Decide by',v:'2 Sep',d:'25 days away · 60 days notice required',ruby:true},
+           {k:'Price rise, 3 years',v:'+24.2',u:'%',d:'Inflation over the same period: 17.2%'},
+           {k:'Paying above trend · KES',v:'1.4',u:'M',d:'a year, versus an inflation-only path'},
+           {k:'Rebate never claimed · KES',v:'820',u:'K',d:'You passed the 5,000-tonne tier in March'}],
+    chart:true,
+    sections:[
+      {h:'Rights you hold and have not used',icon:'tick',hint:'All of these are already in the signed contract.',
+       list:[['Volume rebate — never claimed','5,410 tonnes shipped against a 5,000-tonne tier. Worth KES 820,000 for the year just ended. Clause 6.5.'],
+             ['Benchmarking right — never used','You may test their rates against the market every two years and require a reduction. Clause 12.4.'],
+             ['You can leave on 60 days notice','Termination for convenience, no penalty. Clause 13.2. They need 180 days.']]},
+      {h:'What your other haulage contracts say',hint:'Same category, same service, side by side. A lease would never appear in this comparison.',
+       table:{head:['Supplier','KES / tonne','Terms'],
+              rows:[['Rift Valley Logistics','4,550','60 days',true],['Coast Freight Ltd','3,980','45 days'],['Highland Transporters','4,120','30 days']]},
+       callout:'You are paying <b>11% more per tonne</b> than your next haulier, on the longest payment terms of the three.'}
+    ],
+    timeline:[
+      {dt:'March 2023 · first agreement',hd:'Haulage Framework signed',gv:'60-day payment terms — you had opened at 30.',wn:'Fuel surcharge capped at 3% of the base rate.'},
+      {dt:'April 2024 · renewal',hd:'First price increase, +8.1%',gv:'Accepted 8.1% when the clause capped it at 7.2%.',wn:'48-hour delivery commitment written in for the first time.'},
+      {dt:'May 2025 · renewal',hd:'Second increase, +7.5%',gv:'Benchmarking right weakened from yearly to every two years.',wn:'Volume rebate tier added at 5,000 tonnes.'},
+      {dt:'June 2026 · variation',hd:'Route exclusivity extended',gv:'Exclusivity on the Nairobi–Mombasa route to 2028.',wn:'Nothing recorded — this round was one-sided.',bad:true}
+    ],
+    open:['Claim the KES 820,000 rebate now, separately from the renewal.',
+          'Trigger the benchmarking clause before agreeing any new rate.',
+          'Hold the increase to CPI, not CPI + 2 — the three-year gap is the argument.',
+          'Trade the Nairobi–Mombasa exclusivity back for shorter payment terms.',
+          'Give notice by 2 September regardless, to keep the option open.'],
+    ghost:'Late deliveries and missed service levels would sit here and strengthen every point above — but that needs someone logging what happened, which is a later step.'
+  },
+  grant:{
+    who:'Ubuntu Health Trust', cat:'grant',
+    title:'Global Health Fund',
+    sub:'Programme Funding Agreement · KES 118M over three years · ends 31 December 2027',
+    tiles:[{k:'Next report due',v:'14 Sep',d:'Narrative and financial · 37 days',ruby:true},
+           {k:'Share of all funding',v:'61',u:'%',d:'Your single largest source by far'},
+           {k:'Repayable if disallowed · KES',v:'38',u:'M',d:'Clawback condition, Clause 14.2'},
+           {k:'Spend outside approved lines · KES',v:'1.9',u:'M',d:'Beyond the 10% margin allowed'}],
+    sections:[
+      {h:'Conditions you are carrying',icon:'bind',hint:'These are what a funding agreement has instead of a price. None of them is about cash you might save.',
+       list:[['Report every quarter, within 45 days','Narrative and financial, in the approved format. Clause 8.3. One submission was late this year and was noted in writing.'],
+             ['Spend only within approved budget lines','Moving more than 10% between lines needs prior written approval. Clause 5.1. You are KES 1.9M beyond that.'],
+             ['Flow the audit right down to every partner','The Fund may audit anyone holding its money. Clause 11.4. Two of your four partners never agreed to it.'],
+             ['Unspent balance returns unless extended','A no-cost extension must be requested by 30 September. After that the balance goes back.']]},
+      {h:'What the other funding agreements ask for',hint:'Compared only against other donor agreements — the only fair comparison.',
+       table:{head:['Donor','Report cycle','Budget margin'],
+              rows:[['Global Health Fund','Quarterly, 45 days','10%',true],['Nordic Development Agency','Six-monthly, 60 days','15%'],['County Health Partnership','Annually','No limit stated']]},
+       callout:'This funder is the strictest of the three on every axis, and it is also <b>61% of your funding</b>. The reporting burden and the concentration risk are the same fact.'}
+    ],
+    timeline:[
+      {dt:'January 2024 · award',hd:'Three-year programme agreed',gv:'Accepted quarterly reporting where you asked for six-monthly.',wn:'Indirect cost recovery raised from 7% to 12%.'},
+      {dt:'August 2025 · variation',hd:'Budget reallocation approved',gv:'Accepted a tighter 10% margin between lines.',wn:'Approval for the reallocation granted in full.'},
+      {dt:'March 2026 · variation',hd:'Scope widened to two more counties',gv:'Delivery targets raised with no increase in indirect recovery.',wn:'Nothing recorded — this round was one-sided.',bad:true}
+    ],
+    open:['Request the no-cost extension before 30 September, whether or not you think you need it.',
+          'Regularise the KES 1.9M reallocation in writing before the September report, not after.',
+          'Get the audit clause into both outstanding partner agreements this quarter.',
+          'Open the indirect cost recovery rate at the next variation — it has been static through two scope increases.',
+          'Start a second funder conversation now; 61% from one source is the finding that matters most.'],
+    ghost:'Whether each report actually went in on time — and whether partners filed theirs — would sit here. That needs someone logging what happened.'
+  },
+  lease:{
+    who:'Nordlund Advokatbyrå', cat:'lease',
+    title:'Fastighets AB Vasa',
+    sub:'Stockholm office lease · SEK 3.4M a year · term to 2031, break option 2027',
+    tiles:[{k:'Break option lapses',v:'30 Nov',d:'114 days · six months notice required',ruby:true},
+           {k:'Rent, per square metre · SEK',v:'4,250',d:'Against a district median of 3,900'},
+           {k:'Service charge rise, 2 years',v:'+22',u:'%',d:'On a rent that is fixed — there is no ceiling'},
+           {k:'Reinstatement cost',v:'—',d:'Obligation exists, nobody has priced it'}],
+    sections:[
+      {h:'What this lease commits you to',icon:'bind',hint:'A property agreement has none of the things a supplier briefing shows, and several it never would.',
+       list:[['Break option, exercisable once','Six months notice, expiring 30 November. Miss it and the term runs to 2031. Clause 16.2.'],
+             ['Reinstatement at the end of the term','Return the premises to their original open-plan layout. Clause 19.4. No estimate has ever been taken.'],
+             ['Service charge with no ceiling','Rent is fixed; the service charge is not. It has risen 22% in two years. Clause 11.6.'],
+             ['No right to sublet without consent','Consent not to be unreasonably withheld, but there is no deemed-approval period. Clause 21.2.']]},
+      {h:'What comparable space costs',hint:'Compared against other leases only.',
+       table:{head:['Property','SEK / m²','Term left'],
+              rows:[['Vasagatan (this lease)','4,250','5 years',true],['District median','3,900','—'],['Sublet offer received','4,050','3 years']]},
+       callout:'You are <b>9% above the district median</b> on a term with five years left. The break option is the only moment that fact becomes usable.'}
+    ],
+    timeline:[
+      {dt:'June 2021 · original lease',hd:'Ten-year term agreed',gv:'Accepted an uncapped service charge.',wn:'Rent fixed for the full term with no review.'},
+      {dt:'September 2023 · variation',hd:'Additional floor taken',gv:'Reinstatement obligation extended to the new floor.',wn:'Break option preserved across both floors.'},
+      {dt:'February 2026 · consent',hd:'Fit-out approved',gv:'Agreed to remove the fit-out at the end of the term.',wn:'Nothing recorded — this round was one-sided.',bad:true}
+    ],
+    open:['Take a reinstatement estimate now — it is the number that decides whether breaking is cheaper than staying.',
+          'Serve the break notice by 30 November to keep the option alive, even if you expect to stay.',
+          'Ask for a service-charge ceiling as the price of not breaking.',
+          'Put the sublet offer on the table as evidence of the market rate.',
+          'Fix a deemed-approval period into the sublet consent clause while you have leverage.'],
+    ghost:'Whether the landlord met its own service obligations — heating, cleaning, repairs — would sit here and would argue down the service charge.'
+  }
+};
+
+function renderBrief(){
+  var b=BRIEFS[briefKey];
+  var picker='<div class="shelf"><span class="cap">Example briefing</span>'+
+    Object.keys(BRIEFS).map(function(k){
+      return '<button class="fbtn'+(briefKey===k?' on':'')+'" data-brief="'+k+'">'+
+        esc(CATS[BRIEFS[k].cat].short)+' — '+esc(BRIEFS[k].who)+'</button>';
+    }).join('')+
+    '<span style="font-size:11.5px;color:var(--color-neutral-500);margin-left:6px;">'+
+    'Same builder, same page furniture. The <b>sections</b> come from the category.</span></div>';
+
+  var tls='<div class="grid g4" style="margin-bottom:14px;">'+b.tiles.map(function(t){
+    return '<div class="tile"'+(t.ruby?' style="border-color:var(--st-ruby-line);"':'')+'>'+
+      '<span class="k"'+(t.ruby?' style="color:var(--st-ruby-fg);"':'')+'>'+esc(t.k)+'</span>'+
+      '<span class="v">'+esc(t.v)+(t.u?'<small>'+esc(t.u)+'</small>':'')+'</span>'+
+      '<span class="d">'+esc(t.d)+'</span></div>';
+  }).join('')+'</div>';
+
+  var chart = b.chart ?
+    '<div class="card" style="margin-bottom:14px;"><div class="card-h"><div>'+
+    '<h3>What you have paid, and what the contract said you should</h3>'+
+    '<div class="hint">Their clause caps increases at CPI + 2%. They have taken the very top of that cap every year.</div></div></div>'+
+    '<svg viewBox="0 0 640 205" width="100%" height="205" role="img" aria-label="Annual haulage cost rose from 19.8 million shillings in 2023 to 24.6 million in 2026. An inflation-only path would have reached 23.2 million.">'+
+    '<defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">'+
+    '<stop offset="0%" stop-color="var(--color-accent-500)" stop-opacity=".28"/>'+
+    '<stop offset="100%" stop-color="var(--color-accent-500)" stop-opacity="0"/></linearGradient></defs>'+
+    '<g stroke="var(--ch-grid)" stroke-width="1">'+
+    '<line x1="52" y1="20" x2="622" y2="20"/><line x1="52" y1="65" x2="622" y2="65"/>'+
+    '<line x1="52" y1="110" x2="622" y2="110"/><line x1="52" y1="155" x2="622" y2="155"/></g>'+
+    '<g fill="var(--color-neutral-500)" font-size="10.5" font-family="Inter, system-ui, sans-serif" text-anchor="end">'+
+    '<text x="45" y="24">26M</text><text x="45" y="69">24M</text><text x="45" y="114">22M</text><text x="45" y="159">20M</text></g>'+
+    '<polyline points="90,159.5 267,135.2 444,109.8 621,82.8" fill="none" stroke="var(--ch-ref)" stroke-width="2" stroke-dasharray="6 5" stroke-linecap="round"/>'+
+    '<path d="M90,159.5 L267,123.5 L444,87.5 L621,51.5 L621,178 L90,178 Z" fill="url(#areaFill)"/>'+
+    '<polyline points="90,159.5 267,123.5 444,87.5 621,51.5" fill="none" stroke="var(--color-accent-600)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<g fill="var(--color-accent-600)" stroke="var(--color-surface)" stroke-width="2">'+
+    '<circle cx="90" cy="159.5" r="4.5"/><circle cx="267" cy="123.5" r="4.5"/><circle cx="444" cy="87.5" r="4.5"/><circle cx="621" cy="51.5" r="5.5"/></g>'+
+    '<g font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="var(--color-neutral-500)" text-anchor="middle">'+
+    '<text x="90" y="197">2023</text><text x="267" y="197">2024</text><text x="444" y="197">2025</text><text x="621" y="197">2026</text></g>'+
+    '<g font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700">'+
+    '<text x="612" y="39" fill="var(--color-text)" text-anchor="end">24.6M paid</text>'+
+    '<text x="612" y="116" fill="var(--color-neutral-500)" text-anchor="end">23.2M if inflation-only</text></g></svg>'+
+    '<div class="callout" style="margin-top:14px;"><b>The gap is KES 1.4 million a year.</b> Every increase used the full '+
+    'CPI + 2% the clause allows, in a period when inflation alone would have justified less. That is not a breach — '+
+    'it is a ceiling they have learned to treat as a target.</div></div>' : '';
+
+  var secs = b.sections.map(function(s){
+    var inner='';
+    if (s.list) {
+      /* A TICK MEANS GOOD NEWS YOU ALREADY HAVE. Rights you hold earn one; a
+         condition you are CARRYING does not — one of the grant's four is
+         actively being breached, and a green tick beside it said the opposite. */
+      var tick = s.icon !== 'bind';
+      var glyph = tick ? '<path d="m5 12.5 4.5 4.5L19 7"/>'
+                       : '<path d="M12 3v7.5"/><path d="M8.5 7 12 3.5 15.5 7"/><path d="M4.5 12h15v7a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2Z"/>';
+      inner = '<div class="attn">'+s.list.map(function(l){
+        return '<div class="it"><span class="ic" style="background:'+(tick?'var(--st-green-bg)':'var(--st-steel-bg)')+
+          ';color:'+(tick?'var(--st-green-fg)':'var(--st-steel-fg)')+';">'+
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+glyph+'</svg></span>'+
+          '<div class="bd"><b>'+esc(l[0])+'</b><p>'+esc(l[1])+'</p></div></div>';
+      }).join('')+'</div>';
+    }
+    if (s.table) inner = '<div class="tblwrap"><table style="min-width:0;"><thead><tr>'+
+      s.table.head.map(function(h,i){ return '<th'+(i?' class="num"':'')+'>'+esc(h)+'</th>'; }).join('')+
+      '</tr></thead><tbody>'+s.table.rows.map(function(r){
+        return '<tr>'+r.slice(0,3).map(function(c,i){
+          return '<td'+(i?' class="num"':'')+(r[3]&&i===1?' style="color:var(--st-ruby-fg);font-weight:700;"':'')+'>'+
+            (i===0?'<span class="t-strong">'+esc(c)+'</span>':esc(c))+'</td>';
+        }).join('')+'</tr>';
+      }).join('')+'</tbody></table></div>'+
+      (s.callout?'<div class="callout" style="margin-top:12px;">'+s.callout+'</div>':'');
+    return '<div class="card"><div class="card-h"><div><h3>'+esc(s.h)+'</h3>'+
+      '<div class="hint">'+esc(s.hint)+'</div></div></div>'+inner+'</div>';
+  }).join('');
+
+  var tl = '<div class="card"><div class="card-h"><div><h3>What you gave and what you got, every time you negotiated</h3>'+
+    '<div class="hint">Read from the tracked changes HaTi already stores. This section is the same in every category — '+
+    'concession memory does not care what kind of contract it is.</div></div></div><div class="timeline">'+
+    b.timeline.map(function(t){
+      return '<div class="tl-it'+(t.bad?' bad':'')+'"><div class="dt">'+esc(t.dt)+'</div><div class="hd">'+esc(t.hd)+'</div>'+
+        '<div class="gv"><b>Gave</b><span>'+esc(t.gv)+'</span></div>'+
+        '<div class="wn"><b>Won</b><span'+(t.bad?' style="color:var(--st-ruby-fg);font-weight:600;"':'')+'>'+esc(t.wn)+'</span></div></div>';
+    }).join('')+'</div></div>';
+
+  var open='<div class="card"><div class="card-h"><div><h3>Suggested opening position</h3>'+
+    '<div class="hint">Drafted from the facts above. A person edits it before it goes anywhere.</div></div></div>'+
+    '<ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.75;">'+
+    b.open.map(function(x){ return '<li>'+x+'</li>'; }).join('')+'</ol></div>';
+
+  var ghost='<div class="card ghost"><div class="card-h"><div><h3>How they actually performed</h3>'+
+    '<div class="hint">Not in this prototype. '+esc(b.ghost)+'</div></div></div></div>';
+
+  /* Two columns, assembled explicitly so each side keeps its own order:
+     the category's own sections and the concession history on the left,
+     the actions and the not-built-yet note on the right. */
+  $('#s-brief').innerHTML =
+    '<div class="page-head"><div><h1>Briefing — '+esc(b.title)+'</h1>'+
+    '<div class="sub">'+esc(b.who)+' · '+esc(b.sub)+'. Prepared automatically before every renewal, '+
+    'review or break date, so nobody walks in without the history.</div></div>'+
+    '<div class="acts"><button class="btn">Download PDF</button><button class="btn btn-primary">Start the review</button></div></div>'+
+    picker + tls + chart +
+    '<div class="grid g-2-1">'+
+      '<div style="display:flex;flex-direction:column;gap:14px;">'+ secs + tl + '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:14px;">'+ open + ghost + '</div>'+
+    '</div>';
+}
+
+/* ----------------------------- 5 · EXPOSURE ---------------------------- */
+function renderExp(){
+  var o=O(), e=o.exposure;
+  var keys=Object.keys(CURR);
+  var cards = keys.map(function(k){
+    var c=e[k];
+    return '<button class="cur'+(curKey===k?' on':'')+'" data-cur="'+k+'">'+
+      '<span class="top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
+      '<path d="'+CURR[k].icon+'"/></svg><span class="nm">'+CURR[k].label+'</span></span>'+
+      '<span class="v">'+esc(c.v)+'</span><span class="d">'+esc(c.u)+'</span></button>';
+  }).join('');
+
+  var cur=e[curKey];
+  var findings = cur.f.map(function(f){
+    return '<div class="finding"><div class="bd"><b>'+esc(f.h)+'</b><p>'+esc(f.p)+'</p>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+catChip(f.c)+pill(f.s,f.sl)+'</div></div>'+
+      '<div class="amt"><div class="m">'+esc(f.m)+'</div><div class="u">'+esc(f.u)+'</div>'+
+      '<button class="btn btn-sm" style="margin-top:6px;">Review</button></div></div>';
+  }).join('');
+
+  /* which checks produced this currency's findings — drawn from the packs in
+     use, so the list is different for each organisation */
+  var relevant = o.mix.filter(function(m){ return CATS[m.c].stakes.indexOf(CURR[curKey].label)>=0; });
+  var tests = relevant.length
+    ? relevant.map(function(m){
+        return '<tr><td>'+catChip(m.c)+'</td><td><span class="t-strong">'+esc(CATS[m.c].checks[0])+'</span>'+
+          '<div class="t-mut">and '+(CATS[m.c].checks.length-1)+' more checks in this pack</div></td>'+
+          '<td class="num">'+m.n+'</td></tr>';
+      }).join('')
+    : '<tr><td colspan="3" class="t-mut" style="padding:18px 10px;">No category '+esc(o.name)+
+      ' holds counts this as its main exposure — which is itself worth knowing.</td></tr>';
+
+  var biggest = Object.keys(e).reduce(function(a,b){ return e[b].n>e[a].n?b:a; });
+
+  $('#s-exp').innerHTML =
+    '<div class="page-head"><div><h1>Exposure — August 2026</h1>'+
+    '<div class="sub">The first version of this report priced everything in shillings. Most organisations do not '+
+    'experience contract risk as cash at all, so value has five currencies here and cash is only one. '+
+    'For '+esc(o.name)+' the heaviest is <b>'+CURR[biggest].label.toLowerCase()+'</b>.</div></div>'+
+    '<div class="acts"><button class="btn">Compare with July</button><button class="btn">Email to the board</button>'+
+    '<button class="btn btn-primary">Download PDF</button></div></div>'+
+
+    '<div class="grid g5" style="margin-bottom:14px;">'+cards+'</div>'+
+
+    '<div class="grid g-2-1">'+
+      '<div class="card"><div class="card-h"><div><h3>'+CURR[curKey].label+' — what is at stake</h3>'+
+      '<div class="hint">'+esc(cur.note)+'. Showing '+cur.f.length+' of '+cur.n+
+      '. Every finding names the category it came from and how sure HaTi is.</div></div></div>'+
+      findings+'</div>'+
+      '<div class="card"><div class="card-h"><div><h3>Which packs produced these</h3>'+
+      '<div class="hint">Only categories that count '+CURR[curKey].label.toLowerCase()+
+      ' as one of their stakes are searched. Nothing is computed across categories that cannot be compared.</div></div></div>'+
+      '<div class="tblwrap"><table style="min-width:0;"><thead><tr><th>Category</th><th>Leading check</th><th class="num">Contracts</th></tr></thead>'+
+      '<tbody>'+tests+'</tbody></table></div>'+
+      '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
+      'No AI writes a word of this report. It is arithmetic over the obligations register, and the '+
+      'tests it runs are chosen by the categories in use.</div></div>'+
+    '</div>';
+}
+
+/* ------------------------ 6 · NEGOTIATION STATS ------------------------ */
+function renderDeals(){
+  var o=O(), d=o.deals;
+  var cats = d.enough.concat(d.thin);
+  if (dealCat===null) dealCat = cats.length ? cats[0].c : null;
+  var sel = cats.filter(function(c){ return c.c===dealCat; })[0] || cats[0];
+  var isEnough = sel && d.enough.some(function(x){ return x.c===sel.c; });
+
+  var chips='<div class="shelf"><span class="cap">Category</span>'+
+    cats.map(function(c){
+      return '<button class="fbtn'+(dealCat===c.c?' on':'')+'" data-dealcat="'+c.c+'">'+
+        esc(catLabel(c.c))+' · '+c.n+'</button>';
+    }).join('')+
+    '<span style="font-size:11.5px;color:var(--color-neutral-500);margin-left:6px;">'+
+    'Statistics unlock at '+STAT_MIN+' contracts. Below that you get the checks instead.</span></div>';
+
+  var body;
+  if (!sel){
+    body='<div class="card"><div class="card-h"><div><h3>Nothing to measure yet</h3>'+
+      '<div class="hint">No category here has been negotiated enough to say anything.</div></div></div></div>';
+  } else if (isEnough){
+    var s=sel, st=d.stages, sT=d.stagesTheir, tot=st.reduce(function(a,b){return a+b;},0);
+    var stageNames=['Drafting','Internal<br/>review','Sitting with the counterparty','Negotiating','Sign'];
+    var ramp=['var(--ch-1)','var(--ch-2)','var(--ch-3)','var(--ch-4)','var(--ch-5)'];
+    body=
+      '<div class="grid g4" style="margin-bottom:14px;">'+
+      '<div class="tile"><span class="k">Median time to sign</span><span class="v">'+s.med+'<small> days</small></span><span class="d">across '+s.n+' '+catLabel(s.c).toLowerCase()+' contracts</span></div>'+
+      '<div class="tile"><span class="k">On your standard paper</span><span class="v">'+s.std+'<small> days</small></span><span class="d">Used in '+s.untouched+'% of these</span></div>'+
+      '<div class="tile"><span class="k">On their paper</span><span class="v">'+s.their+'<small> days</small></span><span class="d">'+(s.their/s.std).toFixed(1)+'× as long</span></div>'+
+      '<div class="tile"><span class="k">Signed untouched</span><span class="v">'+s.untouched+'<small>%</small></span><span class="d">of '+catLabel(s.c).toLowerCase()+' contracts</span></div>'+
+      '</div>'+
+      '<div class="grid g-2-1" style="margin-bottom:14px;">'+
+        '<div class="card"><div class="card-h"><div><h3>Where the '+tot+' days actually go</h3>'+
+        '<div class="hint">A deal moves through these in order, so the bar is one hue getting darker rather than five unrelated colours.</div></div></div>'+
+        '<div class="stagebar">'+st.map(function(v,i){
+          return '<div style="flex:'+v+';background:'+ramp[i]+';"'+(i>2?' class="dk"':'')+'>'+(v>1?v+'d':'')+'</div>';
+        }).join('')+'</div>'+
+        '<div class="stage-x">'+st.map(function(v,i){ return '<div style="flex:'+v+';">'+stageNames[i]+'</div>'; }).join('')+'</div>'+
+        '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--color-divider);">'+
+        '<div style="font-size:12px;font-weight:700;margin-bottom:2px;">The same journey on their paper — '+sT.reduce(function(a,b){return a+b;},0)+' days</div>'+
+        '<div style="font-size:11.5px;color:var(--color-neutral-500);margin-bottom:8px;">Each bar fills its own width — what differs is the total.</div>'+
+        '<div class="stagebar" style="height:26px;">'+sT.map(function(v,i){
+          return '<div style="flex:'+v+';background:'+ramp[i]+';"'+(i>2?' class="dk"':'')+'>'+(v>3?v+'d':'')+'</div>';
+        }).join('')+'</div></div>'+
+        '<div class="callout" style="margin-top:16px;"><b>Nearly half the wait is the other side reading.</b> '+
+        'Chasing earlier is worth more than drafting faster.</div></div>'+
+        '<div class="card"><div class="card-h"><div><h3>How often your standard terms are simply signed</h3>'+
+        '<div class="hint">Where acceptance is high, small matters could skip legal review entirely.</div></div></div>'+
+        rank(d.accept.map(function(a){ return {nm:a.nm,sub:a.sub,pct:a.pct,warn:a.warn}; }),100)+
+        '</div>'+
+      '</div>'+
+      '<div class="grid g-2-1">'+
+        '<div class="card"><div class="card-h"><div><h3>Which clauses cause the arguments</h3>'+
+        '<div class="hint">Counted within '+esc(catLabel(s.c).toLowerCase())+' contracts only. Comparing a lease redline '+
+        'to a supply redline would be arithmetic without meaning.</div></div></div>'+
+        '<div class="tblwrap"><table><thead><tr><th>Clause</th><th class="num">Redlined</th><th class="num">Days added</th><th>What they usually ask for</th></tr></thead><tbody>'+
+        d.friction.map(function(f){
+          return '<tr><td class="t-strong">'+esc(f.cl)+'</td>'+
+            '<td class="num"'+(f.hot?' style="color:var(--st-ruby-fg);font-weight:700;"':'')+'>'+f.r+'%</td>'+
+            '<td class="num">'+esc(f.d)+'</td><td class="t-mut">'+esc(f.a)+'</td></tr>';
+        }).join('')+'</tbody></table></div></div>'+
+        '<div class="card"><div class="card-h"><div><h3>Live negotiations</h3>'+
+        '<div class="hint">Whose turn it is, and who has gone quiet.</div></div></div>'+
+        '<div class="tblwrap"><table style="min-width:0;"><thead><tr><th>Deal</th><th class="num">Open</th><th>Waiting on</th></tr></thead><tbody>'+
+        d.live.map(function(l){
+          return '<tr><td class="t-strong">'+esc(l.nm)+'<div class="t-mut">'+esc(l.d)+'</div></td>'+
+            '<td class="num">'+esc(l.o)+'</td><td>'+pill(l.s,l.l)+'</td></tr>';
+        }).join('')+'</tbody></table></div></div>'+
+      '</div>';
+  } else {
+    var c=CATS[sel.c];
+    body=
+      '<div class="grid g-1-2">'+
+        '<div class="card" style="border-color:var(--st-amber-line);">'+
+        '<div class="card-h"><div><h3>Not enough to say anything</h3>'+
+        '<div class="hint">This is deliberate, and it is the honest half of a categorised analyst.</div></div></div>'+
+        '<div class="callout warn">You hold <b>'+plural(sel.n,esc(catLabel(sel.c).toLowerCase())+' contract')+'</b>. '+
+        'A sentence like “78% of these get redlined” computed from '+sel.n+' documents is noise wearing the '+
+        'clothes of insight — and noise that looks like insight is worse than nothing, because people act on it.</div>'+
+        '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
+        'Statistics unlock at '+STAT_MIN+' contracts in a category. Until then the pack still runs every one of its checks, '+
+        'because a check works perfectly well on a single document.</div></div>'+
+        '<div class="card"><div class="card-h"><div><h3>What runs instead — the '+esc(c.short.toLowerCase())+' checks</h3>'+
+        '<div class="hint">Each of these answers on one contract, so it needs no volume at all.</div></div></div>'+
+        '<div class="checklist" style="gap:9px;">'+c.checks.map(function(k){
+          return '<div>'+esc(k)+'</div>';
+        }).join('')+'</div>'+
+        '<div class="thin"><div style="font-size:11.5px;color:var(--color-neutral-500);">Watching: '+esc(c.watches)+'.</div></div>'+
+        '</div>'+
+      '</div>';
+  }
+
+  $('#s-deals').innerHTML =
+    '<div class="page-head"><div><h1>Negotiation stats</h1>'+
+    '<div class="sub">How your contracts get agreed — but counted <b>inside a category</b>, never across. '+
+    'Where there are too few contracts to be meaningful, HaTi says so and shows the checks instead of a number.</div></div>'+
+    '<div class="acts"><button class="btn">Last 12 months</button><button class="btn btn-primary">Share</button></div></div>'+
+    chips + body;
+}
+
+/* ------------------------------ PLUMBING ------------------------------- */
+function renderAll(){
+  var o=O();
+  $('#mkt-text').textContent=o.market;
+  $('#avatar').textContent=o.initials;
+  $('#nav-contracts').textContent=o.contracts;
+  $('#nav-oblig').textContent=o.obligations.toLocaleString('en-GB');
+  $('#nav-packs').textContent=o.mix.length;
+  $('#nav-exp').textContent=findingCount(o);
+  renderHome(); renderMix(); renderOblig(); renderBrief(); renderExp(); renderDeals();
+}
+function go(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('on', s.id===id); });
+  document.querySelectorAll('.nav-item[data-go]').forEach(function(n){ n.classList.toggle('active', n.dataset.go===id); });
+  $('.main').scrollTop=0;
+}
+
+/* ONE delegated listener. Every screen is redrawn from data on each change, so
+   handlers bound to individual buttons would be lost the moment their screen
+   re-rendered — this catches clicks at the document instead. */
+document.addEventListener('click', function(ev){
+  var t=ev.target.closest('[data-go],[data-org],[data-role],[data-cur],[data-brief],[data-obview],[data-obcat],[data-dealcat]');
+  if(!t) return;
+  if(t.dataset.go){ go(t.dataset.go); return; }
+  if(t.dataset.org){
+    org=t.dataset.org; role=0; curKey='cash'; obCat='all'; dealCat=null;
+    document.querySelectorAll('.obtn').forEach(function(b){ b.classList.toggle('on', b.dataset.org===org); });
+    renderAll(); return;
+  }
+  if(t.dataset.role!==undefined){ role=+t.dataset.role; renderHome(); return; }
+  if(t.dataset.cur){ curKey=t.dataset.cur; renderExp(); return; }
+  if(t.dataset.brief){ briefKey=t.dataset.brief; renderBrief(); return; }
+  if(t.dataset.obview){ obView=t.dataset.obview; renderOblig(); return; }
+  if(t.dataset.obcat){ obCat=t.dataset.obcat; renderOblig(); return; }
+  if(t.dataset.dealcat){ dealCat=t.dataset.dealcat; renderDeals(); return; }
+});
+
+renderAll();
 </script>
 
 </body>
