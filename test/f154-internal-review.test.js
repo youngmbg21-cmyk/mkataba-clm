@@ -1,5 +1,5 @@
 /* ============================================================
-   f152 — the internal review: a redline is looked at before it is sent
+   f154 — the internal review: a redline is looked at before it is sent
    ============================================================
    Three features, one idea, and the tests are grouped by the idea rather than
    by the feature, because the failure that matters is always the same one:
@@ -78,7 +78,7 @@ const theirs = (win, c, num, body, over = {}) => {
 /* ============================================================
    1 — THE REQUEST
    ============================================================ */
-describe('f152 · asking a colleague to look', () => {
+describe('f154 · asking a colleague to look', () => {
   test('the request names the person, the note and what they were shown', async () => {
     const { win } = world();
     const c = contract(); win.negoInit(c);
@@ -144,7 +144,7 @@ describe('f152 · asking a colleague to look', () => {
 /* ============================================================
    2 — THE VERDICT
    ============================================================ */
-describe('f152 · the verdict, per change', () => {
+describe('f154 · the verdict, per change', () => {
   test('only the named reviewer may rule', async () => {
     const { win, log } = world();                       // sitting as Wanjiru, who asked
     const c = contract(); win.negoInit(c);
@@ -249,7 +249,7 @@ describe('f152 · the verdict, per change', () => {
 /* ============================================================
    3 — THE GATE, AND WHAT ACTUALLY TRAVELS
    ============================================================ */
-describe('f152 · the gate on sending', () => {
+describe('f154 · the gate on sending', () => {
   const GATE_ON = { reviewGate: { on: true, when: 'always', value: 0 } };
 
   test('off by default — an existing workspace sends exactly as it did', async () => {
@@ -343,7 +343,7 @@ describe('f152 · the gate on sending', () => {
 /* ============================================================
    4 — THE WALL: what the counterparty is told, which is nothing
    ============================================================ */
-describe('f152 · a held change does not travel, and neither does the review', () => {
+describe('f154 · a held change does not travel, and neither does the review', () => {
   /* buildSharePayload lives in js/core.js, which this stage does not load — it
      is the whole application. The claim under test is narrower and is the one
      that matters: the id set core.js excludes is the id set the model says is
@@ -417,7 +417,7 @@ describe('f152 · a held change does not travel, and neither does the review', (
    The project's own duplication rule, held by a test rather than by memory:
    two components draw a change card, and a fact that reaches one of them is a
    fact the other screen is missing. */
-describe('f152 · the verdict shows on both change cards', () => {
+describe('f154 · the verdict shows on both change cards', () => {
   test('the workbench card and the contract-tab card both show the verdict', async () => {
     const { win } = world({ user: BOSS, negotiationView: true });
     const c = contract(); win.negoInit(c);
@@ -497,7 +497,7 @@ function payloadWorld(){
   return s;
 }
 
-describe('f152 · the real share payload', () => {
+describe('f154 · the real share payload', () => {
   const clause = (s, c, n) => s.negoClauseList(c).find(x => x.num === n);
 
   test('a held change is absent from the payload — with no options passed', async () => {

@@ -65,7 +65,7 @@ TWO TRAPS THIS FEATURE HIT IN ANGER, both worth remembering:
 - js/core.js declares its shell as `const` (currentUser, getUsers, userById, canEdit, state). A `const` is a LEXICAL binding, not a property of window, so a bare call from another module reaches core.js's copy and cannot be substituted. review.js therefore calls window.currentUser() and friends — but reads `state` BARE, because there is no window.state at all and `window.state && …` read as "no settings" forever, silently disabling the gate.
 - READING MUST NOT WRITE. reviewInit creates c.review; every read went through it at first, so merely painting a screen stamped an empty review onto the contract. f59 caught it. Only reviewAsk and reviewMark initialise now.
 
-Tests: f152 (the model, the gate, the wall, both renderers, the real payload) and f153 (the notification route).
+Tests: f154 (the model, the gate, the wall, both renderers, the real payload) and f155 (the notification route). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
 
 REMAINING SIDE DOORS — check on every change-related fix
 
