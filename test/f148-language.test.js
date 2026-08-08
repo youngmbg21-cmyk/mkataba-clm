@@ -40,6 +40,7 @@ const SAME_IN_BOTH = new Set([
   'set_usd_per',          // "USD per" — the currency code carries it
   'm_copilot',            // the product name
   'ct_risk',              // 'Risk' is the same word in Swedish
+  'hr_col_risk',          // ditto — the health report's risk column
   'kind_risk',            // ditto
   'tf_text',              // 'Text' is the same word in Swedish
   'ct_system',            // 'System' is the same word in Swedish

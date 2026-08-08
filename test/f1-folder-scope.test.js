@@ -223,8 +223,11 @@ describe('F1 — AI prompts are assembled from scoped data only', () => {
       messages: [{ role: 'user', content: 'what is in the portfolio?' }] } });
     const sent = h.ai.lastPayloadText();
     assert.deepEqual(mentionsFolderB(sent), [], 'the Copilot system prompt named folder-B data');
-    // the workspace summary must count 2, not 4
-    assert.ok(/WORKSPACE: 2 contracts/.test(JSON.parse(h.ai.calls[0].raw).system),
+    // the workspace summary must count 2, not 4 — the system prompt is an
+    // array of blocks now (cached rulebook + live snapshot), so flatten first
+    const sysBlocks = JSON.parse(h.ai.calls[0].raw).system;
+    const sysStr = Array.isArray(sysBlocks) ? sysBlocks.map(b => (b && b.text) || '').join('\n') : String(sysBlocks);
+    assert.ok(/WORKSPACE: 2 contracts/.test(sysStr),
       'Copilot workspace summary should count only the caller\'s scope');
   });
 

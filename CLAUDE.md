@@ -113,6 +113,18 @@ THREE THINGS THAT BREAK QUIETLY WHEN A STRING BECOMES TRANSLATABLE, all of which
 
 index.html IS PLAIN HTML. `${...}` there is printed, not evaluated — the trick only works in the view files, which build their markup as template strings. Twice now that has put JavaScript on screen across the top of the platform. f148 fails on it.
 
+THE CHARTS, AND THE HEALTH REPORT (added 2026-08-08)
+
+Every chart in the product is built by ONE box of recipes: js/aichart.js. The Copilot's in-chat charts, the Intelligence dock, the four Reports cards (js/views/reports.js — the old CSS bar strips are kept as the no-internet fallback) and the Portfolio Health Report's embedded pictures (js/views/healthreport.js) all draw through it. The AI never supplies chart data — it names a KIND, the recipes read live state. Every canvas card carries copy-image / download-PNG / download-CSV buttons, served by ONE delegated click listener registered in aichart.js — add a new chart surface and the buttons come with it for free.
+
+The Portfolio Health Report is a DETERMINISTIC document — the AI never writes a word of it. openHealthReport() opens the tab synchronously (popup rules), then fills it: score with its workings, seven fixed sections, charts as embedded PNGs always drawn on the LIGHT palette (the dark class steps aside during the build). Copilot merely opens it, when a question pairs a report word with portfolio/health/overview (aiWantsHealthReport in js/ai.js) — which is why it works with no AI key at all. Reached from the Reports screen button too: SAME document, one builder.
+
+The month-on-month comparison reads hati.v1.monthlySnaps in the BROWSER's localStorage, recorded once per month by renderReports/openHealthReport. There is NO server copy yet — a different computer has no history, and the report says which snapshot it compared against.
+
+The Copilot brief travels in TWO parts now: ctx.guideRules (the rulebook — style, grounding, disambiguation, tone, chart rules) and ctx.guideLive (the portfolio snapshot). buildCopilotSystem (server/server.js) stacks them into two system blocks with cache_control on the first, so the rulebook is cached by the provider between turns. Failure bubbles in the panel carry err:true and are EXCLUDED from the history sent back to the model (aiChatMessages) — an error stored as an answer poisons every later turn.
+
+f151 is the drift test: the snapshot, the health report and the chart recipes must count the same things as arithmetic over state.contracts. A new figure in the prompt wants a row there.
+
 Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points — re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.

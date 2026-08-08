@@ -25,6 +25,7 @@ import './signature.js';
 import './wizard.js';
 import './views/calendar.js';
 import './views/reports.js';
+import './views/healthreport.js'; // the Portfolio Health Report: deterministic document, opened by button or by Copilot
 import './views/portal.js';
 import './views/home.js';
 import './views/register.js';
