@@ -127,6 +127,7 @@
   .card.ours{border-left-color:var(--accent-line)}
   .card.theirs{border-left-color:var(--ink-faint)}
   .card.is-held{border-left-color:var(--hold)}
+  .card.is-waiting{border-left-color:var(--warn)}
   .card.is-cleared{border-left-color:var(--clear)}
   .card-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
   .cid{font-family:var(--mono);font-size:10.5px;font-weight:650;color:var(--accent);border:1.5px solid var(--accent-line);border-radius:99px;padding:1px 8px}
@@ -134,6 +135,7 @@
   .origin.them{background:var(--surface-3);color:var(--ink-soft)}
   .chip{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:5px;padding:2px 7px;border:1px solid currentColor}
   .chip.held{background:var(--hold-soft);color:var(--hold)}
+  .chip.waiting{background:var(--warn-soft);color:var(--warn)}
   .chip.cleared{background:var(--clear-soft);color:var(--clear)}
   .chip.advice{background:var(--surface-2);color:var(--ink-soft)}
   .chip.draft{background:var(--surface-2);color:var(--ink-faint)}
@@ -233,6 +235,10 @@
   #m-who-list li.more{position:sticky;bottom:0;background:var(--surface-2);color:var(--ink-faint);
     font-size:11px;cursor:default;border-top:1px solid var(--rule)}
   #m-who-list li.more:hover{background:var(--surface-2)}
+  .pickrow{display:flex;gap:9px;align-items:flex-start;cursor:pointer;padding:3px 0}
+  .pickrow input{margin-top:3px;flex:none;accent-color:var(--accent)}
+  .linkish{border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;
+    color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
   .pick-say{font-size:11.5px;line-height:1.45;margin-top:5px;color:var(--ink-faint)}
   .pick-say.ok{color:var(--clear)}
   .pick-say.no{color:var(--warn)}
@@ -409,7 +415,14 @@
   function held(c){ return !!(c.review && c.review.verdict === 'held'); }          // sticky: survives an edit
   function cleared(c){ return !!(c.review && c.review.verdict === 'cleared' && !stale(c)); }
   function heldIds(){ return unsent().filter(held).map(function(c){ return c.id; }); }
-  function sendable(){ return unsent().filter(function(c){ return !held(c); }); }
+  /* OUT WITH A COLLEAGUE and not yet answered. Different from held: held is a
+     refusal (ruby), this is in flight (amber). Both stay behind when you send —
+     wording read by the counterparty while your reviewer is midway through it
+     makes their verdict worthless. */
+  function inOpen(c){ return !!(S.review && S.review.ids.indexOf(c.id) >= 0); }
+  function outFor(c){ return (inOpen(c) && !c.review) ? S.review.reviewer : null; }
+  function waiting(){ return unsent().filter(function(c){ return !!outFor(c); }); }
+  function sendable(){ return unsent().filter(function(c){ return !held(c) && !outFor(c); }); }
 
   /* The gate, in the same order of questions the real one asks. */
   function gate(){
@@ -419,7 +432,7 @@
     var s = sendable(), unreviewed = s.filter(function(c){ return !cleared(c); });
     if (!required) return { required:false, ok:true, reason:'not-required', held:heldIds() };
     if (!s.length) return { required:true, ok:false, reason:'all-held' };
-    if (S.review)  return { required:true, ok:false, reason:'with-reviewer' };
+    if (S.review && s.some(outFor)) return { required:true, ok:false, reason:'with-reviewer' };
     if (unreviewed.length) return { required:true, ok:false,
       reason: S.history.length ? 'not-cleared' : 'never-requested', n:unreviewed.length };
     return { required:true, ok:true, reason:'cleared' };
@@ -456,11 +469,12 @@
   /* ==========================================================
      THE ACTS
      ========================================================== */
-  function askReview(note, due, who){
+  function askReview(note, due, who, ids){
     if (S.review){ toast('This contract is already with a reviewer.', 'err'); return; }
     if (!scope().length){ toast('There is nothing to review.', 'err'); return; }
+    var want = (ids && ids.length) ? ids : scope().map(function(c){ return c.id; });
     S.review = { by:PEOPLE.you, reviewer:who || PEOPLE.boss, note:note || null, due:due || null,
-                 ids:scope().map(function(c){ return c.id; }) };
+                 ids:want };
     record(PEOPLE.you, 'Internal review requested from ' + S.review.reviewer + ' — ' + unsent().length
       + ' of our unsent change(s) and ' + theirsOpen().length + ' of theirs in scope'
       + (due ? ', due ' + due : '') + (note ? '; “' + note + '”' : ''));
@@ -474,6 +488,7 @@
     if (!S.review){ toast('No internal review is open on this contract.', 'err'); return; }
     var c = S.changes.filter(function(x){ return x.id === id; })[0];
     if (!c) return;
+    if (!inOpen(c)){ toast('Change ' + id + ' was not part of this review.', 'err'); return; }
     c.review = { verdict:verdict, by:PEOPLE.boss, hash:c.hash, note:(c.review && c.review.note) || null };
     var word = { cleared:'cleared to send', held:'held back',
       'advise-accept':'advises accepting', 'advise-reject':'advises rejecting',
@@ -493,14 +508,15 @@
   }
 
   function handBack(){
-    var unmarked = unsent().filter(function(c){ return !c.review; });
+    var unmarked = unsent().filter(function(c){ return inOpen(c) && !c.review; });
     if (unmarked.length){
       toast(unmarked.length + ' change' + (unmarked.length === 1 ? ' of yours has' : 's of yours have')
         + ' no verdict yet. Clear or hold each one before handing the review back.', 'err');
       return;
     }
-    var t = { cleared:unsent().filter(cleared).length, held:unsent().filter(held).length,
-              advised:theirsOpen().filter(function(c){ return !!c.review; }).length };
+    var inRv = unsent().filter(inOpen);
+    var t = { cleared:inRv.filter(cleared).length, held:inRv.filter(held).length,
+              advised:theirsOpen().filter(function(c){ return inOpen(c) && !!c.review; }).length };
     S.history.push({ by:PEOPLE.boss, to:S.review.by, tally:t });
     S.review = null;
     record(PEOPLE.boss, 'Internal review returned to ' + PEOPLE.you + ' — ' + t.cleared
@@ -531,9 +547,11 @@
     render();
   }
 
-  function publish(){
+  function publish(force){
     var msg = gateMessage();
     if (msg){ toast(msg, 'err'); S.done.blocked = true; render(); return; }
+    var w = waiting();
+    if (w.length && !force){ warnModal(w); return; }
     var going = sendable();
     if (!going.length){ toast('There is nothing waiting to send.', 'err'); return; }
     going.forEach(function(c){ c.sent = true; });
@@ -557,6 +575,7 @@
     S.changes.forEach(function(c){
       if (c.side === 'ours' && !c.sent) return;                    // not sent yet
       if (c.side === 'ours' && heldIds().indexOf(c.id) >= 0) return; // held: never travels
+      if (c.side === 'ours' && outFor(c)) return;                    // still being read
       out.contract.changes.push({ id:c.id, clause:c.clause, summary:c.summary,
         was:c.was, now:c.now, from:(c.side === 'ours' ? 'Wanjiru Catering Ltd' : 'Nordfrakt Logistik AB') });
     });
@@ -572,6 +591,11 @@
 
   function chipFor(c){
     var out = [];
+    /* WAITING IS NOT REFUSED. Ruby means "your reviewer stopped this"; amber
+       means "they have not answered yet". Painting both red would hide the one
+       that matters among the ones that do not. */
+    if (S.seat !== 'cp' && outFor(c))
+      out.push('<span class="chip waiting">&#8987; With ' + esc(outFor(c)) + '</span>');
     if (S.seat !== 'cp' && c.review){
       var v = c.review.verdict;
       var label = { cleared:'✓ Cleared to send', held:'⏹ Held back',
@@ -583,7 +607,7 @@
     }
     if (c.side === 'ours') out.push(c.sent
       ? '<span class="chip sent">sent</span>'
-      : (S.seat !== 'cp' && held(c) ? '' : '<span class="chip draft">🔒 draft</span>'));
+      : (S.seat !== 'cp' && (held(c) || outFor(c)) ? '' : '<span class="chip draft">🔒 draft</span>'));
     return out.join('');
   }
 
@@ -591,6 +615,7 @@
     var mine = c.side === 'ours';
     var cls = 'card ' + (mine ? 'ours' : 'theirs')
       + (S.seat !== 'cp' && held(c) ? ' is-held' : '')
+      + (S.seat !== 'cp' && outFor(c) ? ' is-waiting' : '')
       + (S.seat !== 'cp' && cleared(c) ? ' is-cleared' : '');
     var bits = [];
     bits.push('<div class="' + cls + '">');
@@ -611,7 +636,7 @@
       bits.push('<div class="said"><b>' + esc(c.review.by) + ' said</b>' + esc(c.review.note) + '</div>');
 
     var verbs = [];
-    if (S.seat === 'boss' && S.review && scope().some(function(x){ return x.id === c.id; })){
+    if (S.seat === 'boss' && S.review && inOpen(c)){
       verbs.push('<span class="verbs-k">Your verdict</span>');
       if (mine){
         verbs.push(vb(c, 'cleared', 'Cleared to send', 'clear'));
@@ -626,6 +651,7 @@
       verbs.push('<span class="verbs-k">Your ask</span>');
       verbs.push('<button class="vbtn" data-revise="' + esc(c.id) + '" type="button">Rewrite the wording</button>');
       if (held(c)) verbs.push('<span style="font-size:11.5px;color:var(--hold)">Held by ' + esc(c.review.by) + ' — it will not be sent.</span>');
+      else if (outFor(c)) verbs.push('<span style="font-size:11.5px;color:var(--warn)">With ' + esc(outFor(c)) + ' — it will not be sent until they answer.</span>');
     }
     if (verbs.length) bits.push('<div class="verbs">' + verbs.join('') + '</div>');
     bits.push('</div>');
@@ -642,10 +668,10 @@
     if (S.seat === 'cp') return '';
     if (S.review){
       if (S.seat === 'boss'){
-        var left = scope().filter(function(c){ return !c.review; }).length;
+        var left = scope().filter(function(c){ return inOpen(c) && !c.review; }).length;
         return '<div class="banner"><span class="g"><b>' + esc(S.review.by) + ' asked you to review this.</b> '
           + (S.review.note ? '“' + esc(S.review.note) + '” ' : '')
-          + left + ' of ' + scope().length + ' still need' + (left === 1 ? 's' : '') + ' your verdict.'
+          + left + ' of ' + S.review.ids.length + ' still need' + (left === 1 ? 's' : '') + ' your verdict.'
           + (S.review.due ? ' <b>Due ' + esc(S.review.due) + '.</b>' : '')
           + '</span><button class="btn" data-act="handback" type="button">Hand it back</button></div>';
       }
@@ -669,7 +695,7 @@
   }
 
   function ownerView(){
-    var g = gate(), h = heldIds().length, n = sendable().length;
+    var g = gate(), h = heldIds().length, n = sendable().length, w = waiting().length;
     var out = [];
     out.push('<div class="apphead"><span class="nm">Cane Supply Agreement</span>'
       + '<span class="id">MK-R1 · Nordfrakt Logistik AB</span>'
@@ -686,10 +712,11 @@
     if (S.seat === 'you'){
       out.push('<div class="sendbar">'
         + '<button class="btn btn-send" data-act="publish" type="button">Publish Round'
-        + (n ? ' · ' + n + ' unsent' : '') + (h ? ' · ' + h + ' held' : '') + '</button>'
+        + (n ? ' · ' + n + ' unsent' : '') + (h ? ' · ' + h + ' held' : '')
+        + (w ? ' · ' + w + ' in review' : '') + '</button>'
         + '<span class="why">'
-        + (h ? h + ' change' + (h === 1 ? '' : 's') + ' held back by ' + esc(PEOPLE.boss) + ' will not travel. '
-             : '')
+        + (h ? h + ' held back by ' + esc(PEOPLE.boss) + ' will not travel. ' : '')
+        + (w ? w + ' still being read and will not travel yet. ' : '')
         + (g.required && !g.ok ? 'The rule is on, so this is locked.' : 'Nothing reaches ' + esc(PEOPLE.cp) + ' until you press this.')
         + '</span></div>');
     }
@@ -711,9 +738,10 @@
     out.push(shown.length
       ? '<div class="cards">' + shown.map(cardHtml).join('') + '</div>'
       : '<div class="cp-note">Nothing has been sent to them yet. Go back to Wanjiru’s seat and press <b>Publish Round</b>.</div>');
-    var hid = heldIds().length, undone = unsent().filter(function(c){ return heldIds().indexOf(c.id) < 0; }).length;
+    var hid = heldIds().length + waiting().length,
+        undone = sendable().length;
     out.push('<div class="cp-note">'
-      + (hid ? '<b>' + hid + ' change' + (hid === 1 ? ' is' : 's are') + ' being held back internally, and nothing on this page says so.</b> '
+      + (hid ? '<b>' + hid + ' change' + (hid === 1 ? ' is' : 's are') + ' being kept back internally — held, or still being read — and nothing on this page says so.</b> '
              : '')
       + (undone ? undone + ' more ' + (undone === 1 ? 'is' : 'are') + ' written but not yet sent. ' : '')
       + 'No verdict, no reviewer’s name, and no hint that a review happened at all — not even that one exists.</div>');
@@ -769,10 +797,15 @@
   /* ---- modals ---- */
   function closeModal(){ document.getElementById('modal-root').innerHTML = ''; }
   function askModal(){
+    /* ONE TICK PER CHANGE, all on to start with: "all of it" is the common case
+       and a dialog that opens empty makes you work to get back to the default.
+       What matters is that unticking is possible — you are uneasy about the
+       indemnity, not about all five redlines. */
     var rows = scope().map(function(c){
-      return '<div class="r"><span class="cid">' + esc(c.id) + '</span><span><b>' + esc(c.summary)
+      return '<label class="r pickrow"><input type="checkbox" class="pickch" data-ch="' + esc(c.id) + '" checked/>'
+        + '<span class="cid">' + esc(c.id) + '</span><span><b>' + esc(c.summary)
         + '</b><br><span style="color:var(--ink-faint)">' + esc(c.clause)
-        + (c.side === 'theirs' ? ' — from the counterparty, undecided' : '') + '</span></span></div>';
+        + (c.side === 'theirs' ? ' — from the counterparty, undecided' : '') + '</span></span></label>';
     }).join('');
     document.getElementById('modal-root').innerHTML =
       '<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Ask a colleague to review this">'
@@ -787,11 +820,32 @@
       + '<div class="fld"><label for="m-note">What do you want them to look at?</label>'
       + '<textarea id="m-note">I am not comfortable with the liability cap — is this defensible?</textarea></div>'
       + '<div class="fld"><label for="m-due">Needed by</label><input id="m-due" type="date" value="2026-08-12"/></div>'
-      + '<div class="scope"><span class="k">What they will be looking at</span>' + rows + '</div>'
+      + '<div class="scope"><span class="k" style="display:flex;align-items:center;gap:8px">'
+      + '<span style="flex:1">What they will be looking at</span>'
+      + '<button type="button" id="m-pick-all" class="linkish">Select none</button></span>' + rows + '</div>'
       + '<div class="acts"><button class="btn" data-close type="button">Cancel</button>'
       + '<button class="btn btn-accent" id="m-send" type="button">Send for review</button></div>'
       + '</div></div>';
     wirePicker();
+    var boxes = function(){ return [].slice.call(document.querySelectorAll('.pickch')); };
+    var chosen = function(){ return boxes().filter(function(b){ return b.checked; })
+      .map(function(b){ return b.getAttribute('data-ch'); }); };
+    var recount = function(){
+      var n = chosen().length, all = boxes().length;
+      var btn = document.getElementById('m-send');
+      if (btn){ btn.textContent = (n && n < all) ? ('Send ' + n + ' for review') : 'Send for review';
+                btn.disabled = !n; }
+      var a = document.getElementById('m-pick-all');
+      if (a) a.textContent = (n === all) ? 'Select none' : 'Select all';
+    };
+    boxes().forEach(function(b){ b.addEventListener('change', recount); });
+    document.getElementById('m-pick-all')?.addEventListener('click', function(){
+      var on = chosen().length !== boxes().length;
+      boxes().forEach(function(b){ b.checked = on; });
+      recount();
+    });
+    window.__chosen = chosen;
+    recount();
     document.getElementById('m-who').focus();
   }
 
@@ -843,6 +897,25 @@
     box.addEventListener('keydown', function(ev){ if (ev.key === 'Escape' && open){ ev.stopPropagation(); open = false; paint(); } });
     tell(); paint();
   }
+  /* Three answers, because there are three sensible things to do. */
+  function warnModal(w){
+    var rest = sendable().length;
+    document.getElementById('modal-root').innerHTML =
+      '<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true">'
+      + '<h3>Some of this is still being looked at</h3>'
+      + '<p class="sub">' + w.length + ' change' + (w.length === 1 ? ' is' : 's are') + ' with '
+      + esc(S.review ? S.review.reviewer : 'a colleague')
+      + ' and ' + (w.length === 1 ? 'has' : 'have') + ' not been answered yet. Sending now makes the review '
+      + 'pointless — the verdict would arrive about wording ' + esc(PEOPLE.cp) + ' has already read.</p>'
+      + '<div class="scope">' + w.map(function(c){
+          return '<div class="r"><span class="cid">' + esc(c.id) + '</span><span>' + esc(c.summary) + '</span></div>';
+        }).join('') + '</div>'
+      + '<div class="acts"><button class="btn" data-close type="button">Wait for the review</button>'
+      + '<button class="btn btn-accent" id="m-warn-rest" type="button"' + (rest ? '' : ' disabled') + '>'
+      + 'Send the other ' + rest + ' now</button></div>'
+      + '</div></div>';
+  }
+
   function noteModal(id){
     var c = S.changes.filter(function(x){ return x.id === id; })[0];
     document.getElementById('modal-root').innerHTML =
@@ -870,13 +943,15 @@
       var note = (document.getElementById('m-note') || {}).value || '';
       var due = (document.getElementById('m-due') || {}).value || '';
       var who = picked.name;
-      closeModal(); askReview(note.trim(), due, who); return;
+      var ids = window.__chosen ? window.__chosen() : null;
+      closeModal(); askReview(note.trim(), due, who, ids); return;
     }
     if (t.id === 'm-cok'){
       var forId = t.getAttribute('data-for');
       var txt = (document.getElementById('m-cnote') || {}).value || '';
       closeModal(); noteOn(forId, txt); return;
     }
+    if (t.id === 'm-warn-rest'){ closeModal(); publish(true); return; }
     if (t.id === 'reset'){ S = seed(); closeModal(); toast('Back to the beginning.'); render(); return; }
 
     var act = t.closest('[data-act]');

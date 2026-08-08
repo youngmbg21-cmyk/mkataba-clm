@@ -164,6 +164,35 @@ function reviewScope(c){
 }
 const reviewSideOf = ch => (ch && ch.authorSide === 'counterparty') ? 'theirs' : 'ours';
 
+/* ---------- IS THIS ONE ACTUALLY OUT ----------
+   Since a review is a chosen subset, "a review is open" and "this change is in
+   it" stopped being the same question. Everything that used to ask the first
+   and mean the second asks this instead: the verdict buttons, the hand-back,
+   the card's badge and the send warning.
+
+   reviewOutFor returns the reviewer's NAME rather than a boolean, because every
+   caller wants to say who — "with Achieng" is the useful sentence and "under
+   review" is not. */
+function reviewInOpen(c, ch){
+  const rv = reviewOpenOf(c);
+  if (!rv || !ch) return false;
+  return (rv.changeIds || []).some(id => String(id) === String(ch.id));
+}
+/* Out, and not yet answered. A change the reviewer has already ruled on is not
+   waiting on them any more, so it stops wearing the badge the moment they
+   decide — the hold or the clearance says where it stands from then on. */
+function reviewOutFor(c, ch){
+  if (!reviewInOpen(c, ch) || reviewOn(ch)) return null;
+  const rv = reviewOpenOf(c);
+  return (rv && rv.reviewer && rv.reviewer.name) || null;
+}
+/* Our own unsent asks currently sitting with somebody. What the send warning
+   counts, and what the card's amber edge is drawn from. */
+function reviewAwaiting(c){
+  return (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
+    .filter(x => !!reviewOutFor(c, x));
+}
+
 /* ---------- reading a verdict ----------
    STALENESS IS THE WHOLE SAFETY ARGUMENT. An approver's yes is given to
    particular wording, and js/approvals.js already learned this the hard way:
@@ -207,10 +236,26 @@ function reviewHeldIds(c){
     if (reviewHeld(x)) out.add(x.id);
   return out;
 }
-/* What a send would actually carry: our unsent asks, minus what is held. */
+/* ---------- EVERYTHING THAT STAYS BEHIND ----------
+   TWO REASONS, ONE ANSWER. A change is kept out of a send either because the
+   reviewer held it, or because it is still sitting with them unanswered — and
+   the payload cannot tell those apart, nor should it have to. Sending wording
+   while a colleague is midway through reading it makes the review pointless:
+   their verdict arrives the next morning about something the counterparty has
+   already seen.
+
+   This is what buildSharePayload subtracts. reviewHeldIds stays separate
+   because the SCREENS do need to tell the two apart — held is a refusal and
+   wears ruby, waiting is in flight and wears amber. */
+function reviewWithheldIds(c){
+  const out = reviewHeldIds(c);
+  for (const x of reviewAwaiting(c)) out.add(x.id);
+  return out;
+}
+/* What a send would actually carry. */
 function reviewSendable(c){
-  const held = reviewHeldIds(c);
-  return (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : []).filter(x => !held.has(x.id));
+  const back = reviewWithheldIds(c);
+  return (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : []).filter(x => !back.has(x.id));
 }
 
 /* ---------- who may act ----------
@@ -320,6 +365,19 @@ function reviewAsk(c, o = {}){
   if (!name){ _rvSay(i18t('rv_pick_someone'), 'err'); return null; }
   const scope = reviewScope(c);
   if (!scope.all.length){ _rvSay(i18t('rv_nothing_to_review'), 'err'); return null; }
+  /* ---- WHICH CHANGES, NOT ALL OF THEM ----
+     A review used to sweep in everything outstanding, which is wrong about how
+     people actually escalate: you are uneasy about the indemnity, not about all
+     five redlines, and sending the other four with it stops the rest of the
+     round for no reason. So the caller names the ids; the default stays
+     everything, because that IS the common case and a dialog that starts with
+     nothing ticked makes you do work to get back to it.
+
+     Filtered against the live scope rather than trusted: an id that is not
+     outstanding cannot be reviewed, whatever the caller believes. */
+  const want = Array.isArray(o.ids) && o.ids.length ? new Set(o.ids.map(String)) : null;
+  const chosen = want ? scope.all.filter(x => want.has(String(x.id))) : scope.all;
+  if (!chosen.length){ _rvSay(i18t('rv_pick_changes'), 'err'); return null; }
   const me = _rvMe();
   const rv = {
     id: 'REV-' + (c.review.requests.length + 1),
@@ -335,14 +393,17 @@ function reviewAsk(c, o = {}){
        slip wording past an open review by writing it a minute late. The gate
        reads the LIVE set and requires a verdict on all of it, so a late arrival
        shows up as unreviewed rather than as cleared. */
-    changeIds: scope.all.map(x => x.id),
+    changeIds: chosen.map(x => x.id),
     status: 'open',
     returnedAt: null, returnedBy: null, returnedNote: null,
   };
   c.review.requests.push(rv);
+  const chOurs = chosen.filter(x => reviewSideOf(x) === 'ours').length;
   _rvAudit(c, 'Internal review',
-    `Internal review requested from ${rv.reviewer.name} by ${rv.by} — ${scope.ours.length} of our unsent change(s)`
-    + ` and ${scope.theirs.length} of theirs in scope${rv.due ? `, due ${rv.due}` : ''}`
+    `Internal review requested from ${rv.reviewer.name} by ${rv.by} — ${chOurs} of our unsent change(s)`
+    + ` and ${chosen.length - chOurs} of theirs in scope`
+    + `${chosen.length < scope.all.length ? ` (${scope.all.length - chosen.length} outstanding change(s) deliberately left out)` : ''}`
+    + `${rv.due ? `, due ${rv.due}` : ''}`
     + `${rv.note ? `; “${rv.note}”` : ''}`);
   return rv;
 }
@@ -373,6 +434,13 @@ function reviewMark(c, changeId, verdict, o = {}){
   const ch = (window.negoChangeById ? window.negoChangeById(c, changeId) : null)
     || (window.negoAllChanges ? window.negoAllChanges(c).find(x => x.id === changeId) : null);
   if (!ch) return null;
+  /* Not in this review, not yours to rule on. Without this a reviewer asked
+     about the indemnity could clear the payment terms nobody showed them —
+     which is the same wrong as clearing your own wording, one step removed. */
+  if (!o.force && !reviewInOpen(c, ch)){
+    _rvSay(i18t('rv_not_in_review', { id: ch.id }), 'err');
+    return null;
+  }
   const side = reviewSideOf(ch);
   const allowed = side === 'ours' ? REVIEW_VERDICTS_OURS : REVIEW_VERDICTS_THEIRS;
   if (!allowed.includes(String(verdict))){
@@ -420,8 +488,13 @@ function reviewReturn(c, o = {}){
     _rvSay(i18t('rv_only_reviewer', { who: rv.reviewer.name }), 'err');
     return null;
   }
-  const scope = reviewScope(c);
-  const unmarked = scope.ours.filter(x => !reviewOn(x));
+  /* THE REVIEW'S OWN SET, not everything outstanding. A change filed after the
+     request, or one deliberately left out of it, was never in front of this
+     reviewer — refusing to let them finish because of it would be asking them
+     to rule on wording nobody showed them. */
+  const inRv = reviewScope(c).all.filter(x => reviewInOpen(c, x));
+  const ourIn = inRv.filter(x => reviewSideOf(x) === 'ours');
+  const unmarked = ourIn.filter(x => !reviewOn(x));
   if (unmarked.length){
     _rvSay(i18tn('rv_mark_all_first', unmarked.length, { n: unmarked.length }), 'err');
     return null;
@@ -430,9 +503,9 @@ function reviewReturn(c, o = {}){
   rv.returnedAt = _rvNow();
   rv.returnedBy = String((actor && actor.name) || 'System');
   rv.returnedNote = String(o.note || '').trim() || null;
-  const cleared = scope.ours.filter(reviewCleared).length;
-  const held = scope.ours.filter(reviewHeld).length;
-  const advised = scope.theirs.filter(x => reviewOn(x)).length;
+  const cleared = ourIn.filter(reviewCleared).length;
+  const held = ourIn.filter(reviewHeld).length;
+  const advised = inRv.filter(x => reviewSideOf(x) === 'theirs' && reviewOn(x)).length;
   rv.tally = { cleared, held, advised };
   _rvAudit(c, 'Internal review',
     `Internal review ${rv.id} returned by ${rv.returnedBy} to ${rv.by}`
@@ -494,11 +567,48 @@ function reviewGate(c){
   const unreviewed = sendable.filter(x => !reviewCleared(x));
   if (!required) return { ...base, unreviewed, required: false, ok: true, reason: 'not-required' };
   if (!sendable.length) return { ...base, unreviewed, required: true, ok: false, reason: 'all-held' };
-  if (open) return { ...base, unreviewed, required: true, ok: false, reason: 'with-reviewer' };
+  /* "With a reviewer" now means THESE changes are with one, not merely that
+     some review is open somewhere on the contract. With a chosen subset the two
+     came apart: a review of the indemnity alone would otherwise have locked the
+     payment terms nobody had asked about, which is exactly the over-reach the
+     subset exists to end. */
+  if (open && sendable.some(x => reviewOutFor(c, x)))
+    return { ...base, unreviewed, required: true, ok: false, reason: 'with-reviewer' };
   if (unreviewed.length) return { ...base, unreviewed, required: true, ok: false,
     reason: reviewRequests(c).length ? 'not-cleared' : 'never-requested' };
   return { ...base, unreviewed, required: true, ok: true, reason: 'cleared' };
 }
+/* ---------- A WARNING IS NOT A REFUSAL ----------
+   With the rule switched OFF, sending wording that is sitting with a colleague
+   is allowed — it is your contract and your call. It is also almost always a
+   mistake, and one nobody notices: the review comes back the next morning with
+   a verdict on wording the counterparty has already read.
+
+   So the send asks. It says how many and who, and it offers the useful third
+   option rather than only yes and no — send the rest and leave the ones being
+   looked at behind. Where the rule is ON this never runs, because the gate has
+   already refused; two different mechanisms for one fact would be two mechanisms
+   to keep in step.
+
+   Returns null when there is nothing to warn about. */
+function reviewSendWarning(c){
+  const waiting = reviewAwaiting(c);
+  if (!waiting.length) return null;
+  const rv = reviewOpenOf(c);
+  const held = reviewHeldIds(c);
+  const rest = (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
+    .filter(x => !held.has(x.id) && !reviewOutFor(c, x));
+  return {
+    n: waiting.length,
+    who: (rv && rv.reviewer && rv.reviewer.name) || i18t('rv_your_reviewer'),
+    ids: waiting.map(x => x.id),
+    restIds: rest.map(x => x.id),
+    text: i18tn('rv_warn_waiting', waiting.length,
+      { n: waiting.length, who: (rv && rv.reviewer && rv.reviewer.name) || i18t('rv_your_reviewer'),
+        rest: rest.length }),
+  };
+}
+
 /* The refusal in one sentence, or null when there is nothing to refuse. Every
    send door calls this and prints exactly what it returns, so the workbench,
    the share dialog and the readiness panel cannot each invent their own account
@@ -587,8 +697,28 @@ function reviewSeatShowsReview(opts){
 
 /* The badge a change wears once somebody has ruled on it. Tone carries the
    meaning for a glance; the words carry it for everyone else. */
-function reviewChipHtml(ch, opts){
+/* ---------- WAITING IS NOT REFUSED ----------
+   Asked for as "turn it red". Red is the wrong colour, and the reason is worth
+   writing down: everywhere else in this product ruby means REFUSED — a rejected
+   ask, a contested clause, a change your reviewer HELD. A change merely sitting
+   with somebody is not a refusal; it is in flight, and it may well come back
+   cleared.
+
+   Paint both states red and the one that matters disappears into the one that
+   does not: the card your boss actually stopped looks identical to the four
+   they have not opened yet. So waiting takes amber — the colour this app
+   already uses for "something is pending on this", and the colour the review
+   banner above it is already wearing — and ruby stays reserved for a hold.
+   Two states, two colours, and the difference is the whole point. */
+function reviewChipHtml(ch, opts, c){
   if (!reviewSeatShowsReview(opts)) return '';
+  const out = c ? reviewOutFor(c, ch) : null;
+  if (out) return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="waiting"
+    title="${_rvE(i18t('rv_waiting_title', { who: out }))}"
+    style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;border-radius:4px;padding:2px 6px;background:var(--st-amber-bg);
+    color:var(--st-amber-fg);border:1px solid currentColor">
+    <span aria-hidden="true">&#8987;</span> ${_rvE(i18t('rv_with_who', { who: out }))}</span>`;
   const v = reviewOn(ch);
   if (!v) return '';
   const stale = reviewStale(ch);
@@ -614,9 +744,7 @@ function reviewVerbsHtml(c, ch, opts = {}){
   if (!reviewSeatShowsReview(opts)) return '';
   const st = reviewState(c);
   if (!st.rv || st.phase !== 'yours') return '';
-  const scope = reviewScope(c);
-  const inScope = scope.all.some(x => x.id === ch.id);
-  if (!inScope) return '';
+  if (!reviewInOpen(c, ch)) return '';
   const cur = reviewOn(ch);
   const on = v => cur && cur.verdict === v;
   const btn = (v, cls, label, title) => `<button type="button" class="rv-btn ${cls}"
@@ -757,7 +885,15 @@ function reviewAskModalHtml(c){
   const people = reviewCandidates();
   const today = new Date(); today.setDate(today.getDate() + 2);
   const due = today.toISOString().slice(0, 10);
-  const row = ch => `<li style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--color-divider)">
+  /* ---- ONE TICK PER CHANGE ----
+     Everything starts ticked, because "all of it" is the common case and a
+     dialog that opens empty makes you work to get back to the default. What
+     matters is that unticking is possible at all: you are uneasy about the
+     indemnity, not about all five redlines, and a review that dragged the other
+     four along stops the rest of the round for no reason. */
+  const row = ch => `<li style="display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--color-divider)">
+    <input type="checkbox" class="rv-pickch" data-rv-ch="${_rvE(ch.id)}" checked
+      aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}" style="margin-top:3px;flex:none"/>
     <span style="flex:none;font-family:var(--font-mono);font-size:9.5px;font-weight:700;border:1.5px solid var(--color-accent);
       color:var(--color-accent);border-radius:99px;padding:1px 6px;margin-top:1px">#${_rvE(ch.id)}</span>
     <span style="flex:1;min-width:0">
@@ -803,7 +939,12 @@ function reviewAskModalHtml(c){
       <span>${_rvE(i18t('rv_email_them'))}</span></label>` : ''}
 
     <div style="border:1px solid var(--color-divider);border-radius:8px;padding:11px 13px;background:var(--color-bg);margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">${_rvE(i18t('rv_in_scope'))}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="flex:1;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
+        ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all"
+          style="border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;
+          color:var(--color-accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px">${_rvE(i18t('rv_pick_none'))}</button>` : ''}
+      </div>
       ${scope.ours.length ? `<div style="font-size:11px;font-weight:700;color:var(--color-text);margin:4px 0 2px">${_rvE(i18tn('rv_scope_ours', scope.ours.length, { n: scope.ours.length }))}</div>
         <ul style="list-style:none;margin:0;padding:0">${scope.ours.map(row).join('')}</ul>` : ''}
       ${scope.theirs.length ? `<div style="font-size:11px;font-weight:700;color:var(--color-text);margin:9px 0 2px">${_rvE(i18tn('rv_scope_theirs', scope.theirs.length, { n: scope.theirs.length }))}</div>
@@ -918,6 +1059,29 @@ function openReviewAskModal(c, opts = {}){
   window.openModal(reviewAskModalHtml(c), { maxWidth: '34rem' });
   const done = () => { if (typeof opts.after === 'function') opts.after(); };
   const picker = reviewWirePicker();
+  /* The chosen ids, and the button that says how many. Recounted on every tick
+     so the verb always names what pressing it will actually do. */
+  const boxes = () => [...document.querySelectorAll('.rv-pickch')];
+  const chosen = () => boxes().filter(b => b.checked).map(b => b.getAttribute('data-rv-ch'));
+  const sendBtn = document.getElementById('rv-send');
+  const allBtn = document.getElementById('rv-pick-all');
+  const recount = () => {
+    const n = chosen().length, all = boxes().length;
+    if (sendBtn){
+      sendBtn.textContent = n && n < all
+        ? i18tn('rv_send_n_btn', n, { n })
+        : i18t('rv_send_btn');
+      sendBtn.disabled = !n || !all;
+    }
+    if (allBtn) allBtn.textContent = n === all ? i18t('rv_pick_none') : i18t('rv_pick_all');
+  };
+  boxes().forEach(b => b.addEventListener('change', recount));
+  allBtn?.addEventListener('click', () => {
+    const on = chosen().length !== boxes().length;
+    boxes().forEach(b => { b.checked = on; });
+    recount();
+  });
+  recount();
   document.getElementById('rv-cancel-modal')?.addEventListener('click', () => window.closeModal());
   document.getElementById('rv-send')?.addEventListener('click', async () => {
     const box = document.getElementById('rv-who');
@@ -933,7 +1097,7 @@ function openReviewAskModal(c, opts = {}){
     }
     const note = (document.getElementById('rv-note') || {}).value || '';
     const dueV = (document.getElementById('rv-due') || {}).value || '';
-    const rv = reviewAsk(c, { reviewer: u || {}, note, due: dueV });
+    const rv = reviewAsk(c, { reviewer: u || {}, note, due: dueV, ids: chosen() });
     if (!rv) return;
     _rvSave(c);
     window.closeModal();
@@ -1063,6 +1227,7 @@ Object.assign(window, {
   reviewInit, reviewRequests, reviewOpenOf, reviewLastOf, reviewScope, reviewSideOf,
   reviewOn, reviewStale, reviewCurrent, reviewHeld, reviewCleared, reviewHeldIds, reviewSendable,
   reviewIsReviewer, reviewIsRequester, reviewCandidates,
+  reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
   reviewState, reviewInboxFor, reviewWhen,
