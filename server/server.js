@@ -4270,6 +4270,48 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
   res.json({ ok: true });
 });
 
+/* "Please look at this before it goes out" — the internal review request.
+
+   THE RECORD IS THE BROWSER'S; THIS IS ONLY THE KNOCK ON THE DOOR. The request
+   itself lives on the contract (c.review, js/review.js) and is saved through
+   the ordinary contract save, so a mail provider that is down, misconfigured or
+   absent loses a notification and never a review. Everything below is therefore
+   best-effort by construction and reports what happened rather than failing.
+
+   THE RECIPIENT IS RESOLVED FROM THE USERS TABLE, never taken from the body.
+   A route that emailed whatever address the client sent would be an open relay
+   with this workspace's name on the envelope; the client names a colleague, the
+   server decides where a colleague's post goes. */
+app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const u = b.reviewerId ? db.prepare('SELECT * FROM users WHERE id=?').get(String(b.reviewerId))
+    : (b.reviewerEmail ? db.prepare('SELECT * FROM users WHERE email=?').get(cleanEmail(b.reviewerEmail)) : null);
+  if (!u) return res.status(404).json({ error: 'That colleague is not a member of this workspace' });
+  if (u.role === 'viewer') return res.status(400).json({ error: 'A viewer cannot rule on a review' });
+  const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
+  const appUrl = `${req.protocol}://${req.get('host')}/`;
+  const note = clean(b.note).slice(0, 1000);
+  const due = clean(b.due).slice(0, 40);
+  const sent = await sendEmail(u.email,
+    `${req.user.name} asked you to review "${cName}"`,
+    `Hello ${u.name},\n\n`
+    + `${req.user.name} has proposed changes on "${cName}" and would like you to look at them `
+    + `before they go to the counterparty.\n`
+    + (note ? `\nWhat they want you to look at:\n"${note}"\n` : '')
+    + (due ? `\nNeeded by: ${due}\n` : '')
+    + `\nOpen the contract in HaTi, go to Negotiate, and clear or hold each change:\n${appUrl}\n\n`
+    + `Nothing you hold back will reach the counterparty.\n\nThis is an automated message from HaTi.`,
+    `review request: ${req.params.id} -> ${u.email}`);
+  /* `sent` is sendEmail's own verdict — 1 only when a provider actually took
+     it. Reported honestly rather than as "ok", because the dialog's toast tells
+     the requester whether their colleague will get a mail or has to be told,
+     and a cheerful lie there is how the review sits unopened for two days. */
+  res.json({ ok: true, emailSent: !!(sent && sent.sent),
+    emailConfigured: EMAIL_ON(), reviewer: { id: u.id, name: u.name } });
+});
+
 /* ---------- team management ---------- */
 app.post('/api/users', auth, admin, (req, res) => {
   const b = req.body || {};

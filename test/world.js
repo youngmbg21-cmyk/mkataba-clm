@@ -46,6 +46,13 @@ const MODULES = [
   'js/versioning.js',
   'js/discuss.js',
   'js/negotiation.js',
+  /* The internal review sits directly on top of the change model and is read by
+     it nowhere — it annotates changes, it never rewrites them — so it loads
+     straight after and needs nothing else. approvals.js is NOT pulled in with
+     it: reviewGateApplies asks contractHasDeviation through `window` and reads
+     "no deviation" when the playbook module is absent, which is the right
+     answer on a stage that has no playbook. */
+  'js/review.js',
   'js/wordflow.js',
 ];
 /* js/views/contract.js is loaded ONLY on request (buildWorld({contractView:true})).

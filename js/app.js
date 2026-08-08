@@ -21,6 +21,7 @@ import './negotiation.js'; // the fingerprinted change model every intake path c
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';
+import './review.js';       // internal review: the step between writing a redline and sending it
 import './signature.js';
 import './wizard.js';
 import './views/calendar.js';

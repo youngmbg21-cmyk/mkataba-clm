@@ -1892,6 +1892,17 @@ function contractReadiness(c){
         `Internal approval is outstanding: “${ap.next?ap.next.name:'approval'}” is waiting on ${ap.approverLabel||'an approver'}. This contract cannot go out for signature until it clears.`);
     }
   }catch(_){ /* a readiness list that cannot be built is not a reason to block */ }
+  /* AND THE OTHER GATE, THE EARLIER ONE. Approval above governs SIGNING; this
+     governs the redlines going out at all. It is a block rather than a warning
+     for the reason the refusal case above is: the workspace has said in its own
+     settings that wording of this kind does not leave without being looked at,
+     and a warning is something a sender ticks past. */
+  try{
+    if(window.reviewGateMessage){
+      const rm=reviewGateMessage(c);
+      if(rm) add('block','review',rm);
+    }
+  }catch(_){ /* same: an unreadable gate must not take the panel down with it */ }
   if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
   const sig=(c.signatories||c.signers||[]).filter(s=>s&&(s.name||s.email));
   if(window.SIGN_ROUTE_ON && !sig.length) add('warn','signatory','No named signatory is set on the signature block.');
@@ -2326,6 +2337,21 @@ function buildSharePayload(c, docHash, who, opts){
      holdUnsent note at the quiet-refresh call site. */
   const heldBack = (opts && opts.holdUnsent && window.negoUnsentAsks)
     ? new Set(negoUnsentAsks(c, 'owner').map(x => x.id)) : new Set();
+  /* AND WHAT AN INTERNAL REVIEWER HELD BACK, on every route, unconditionally.
+
+     Not behind an opts flag like holdUnsent above: this payload is built by
+     three callers and only one of them passes options. reshareToLastRecipient —
+     the round-send that every negotiation after the first travels on — passes
+     none at all, so a flag-gated filter would have let a change the reviewer
+     refused reach the counterparty on the ordinary path while blocking it on
+     the rare one. The whole worth of a hold is that it is not conditional.
+
+     reviewHeldIds is itself limited to UNSENT asks (see its own note): wording
+     the other side already holds cannot be recalled, and a payload that quietly
+     dropped it would read to them as us editing what we had already said. */
+  if (window.reviewHeldIds){
+    try{ for (const id of reviewHeldIds(c)) heldBack.add(id); }catch(_){}
+  }
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
     .filter(x => x.status !== 'superseded' && !heldBack.has(x.id))
     .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,
@@ -2609,8 +2635,42 @@ function shareRememberRecipient(c, info){
   if (name && !String(c.counterpartyName || '').trim()) c.counterpartyName = name;
   return true;
 }
+/* ---- ONE DOOR-CHECK FOR THE INTERNAL REVIEW GATE ----
+
+   Written once and called from every send, for the reason the view-only guard
+   on the server is written once: the route this has to survive is the FOURTH
+   one, added later by someone who never read this comment. Today the doors are
+   the share dialog, the round-send onto a standing link, and the workbench's
+   own button — and all three land here.
+
+   IT DOES NOT BRANCH ON PURPOSE. A negotiation link carries our unsent asks; so
+   does a signing link, so does a read-only adviser link, and so does the
+   history. Every one of them puts wording in front of somebody outside this
+   company, which is the thing the gate exists to hold. Where nothing of ours is
+   unsent the gate is satisfied by definition, so a link on a settled contract
+   is untouched whatever it is for.
+
+   Returns TRUE when the send must not proceed, having already said why. */
+function reviewSendBlock(c){
+  if(!window.reviewGateMessage) return false;
+  let msg=null;
+  try{ msg=reviewGateMessage(c); }catch(_){ return false; }
+  if(!msg) return false;
+  toast(msg,'err');
+  return true;
+}
 async function reshareToLastRecipient(c, opts={}){
   if(!canEdit()) throw new Error('Viewers cannot share contracts');
+  /* THE ROUND-SEND IS A SEND. This is the route every negotiation after the
+     first travels on — it refreshes the copy behind the counterparty's standing
+     link — and it never opens the share dialog, so the check there would never
+     have run. Thrown rather than toasted: the callers await this and report
+     what comes back, and a silent false would have them announce a send that
+     did not happen. */
+  if(window.reviewGateMessage){
+    let msg=null; try{ msg=reviewGateMessage(c); }catch(_){ msg=null; }
+    if(msg) throw new Error(msg);
+  }
   const shares=opts.shares||await contractShares(c);
   const last=counterpartyContact(c, shares);
   if(!last) throw new Error('This contract has not been shared with anyone yet');
@@ -3065,6 +3125,16 @@ async function openShareModal(c, opts={}){
         return false;
       }
     }
+    /* AND THE REDLINES' OWN GATE, WHICH BITES EARLIER AND ON THE OTHER PURPOSE.
+
+       The block above deliberately lets a negotiation link past an outstanding
+       approval, because sending a draft out for comment is what happens BEFORE
+       approval. That reasoning is right about approval and says nothing about
+       review: the whole point of an internal review is that it happens before
+       the wording travels, so the link it governs is exactly the one approval
+       waves through. Not acknowledgeable, for the same reason — a redline
+       cannot be recalled either. */
+    if(reviewSendBlock(c)) return false;
     // A share cannot be recalled, so an incomplete contract needs an explicit
     // acknowledgement rather than a toast that scrolls away.
     const ack=document.getElementById('sh-ack');
@@ -4179,4 +4249,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
