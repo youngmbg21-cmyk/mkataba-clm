@@ -108,6 +108,25 @@ function _acRefreshPalette(){
    picked up by every chart without a single recipe knowing it happened. */
 function _acConfig(type, data, opts = {}){
   const money = opts.unit === 'money';
+  /* A doughnut is parts-of-a-whole: no axes, the legend IS the labelling, and
+     ctx.parsed is the raw value rather than an {x,y} pair. */
+  if (type === 'doughnut' || type === 'pie'){
+    return { type, data, options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 220 },
+      cutout: type === 'doughnut' ? '58%' : 0,
+      plugins: {
+        legend: { display: opts.legend !== false, position: 'right',
+          labels: { boxWidth: 10, font: { size: 10 }, color: AC_INK } },
+        tooltip: { callbacks: { label: ctx => {
+          const v = ctx.parsed;
+          const total = (ctx.dataset.data || []).reduce((s, n) => s + (Number(n) || 0), 0);
+          const pct = total ? Math.round(v / total * 100) : 0;
+          return `${ctx.label}: ${money ? _acMoney(v) : v} (${pct}%)`;
+        } } },
+      },
+    } };
+  }
   return { type, data, options: {
     responsive: true, maintainAspectRatio: false,
     animation: { duration: 220 },
@@ -134,15 +153,36 @@ function _acConfig(type, data, opts = {}){
    the caller turns into a plain sentence rather than an empty axis — an empty
    chart looks like a broken chart. */
 const AI_CHART_RECIPES = {
+  /* A DOUGHNUT, because "where does the portfolio stand" is parts of one
+     whole. The labels/data shape is unchanged from the bar it used to be —
+     f53 pins that shape, and the CSV/copy toolbar reads it. */
   statusBreakdown(){
     const order = ['Draft', 'Under Review', 'Signed', 'Declined'];
     const cs = _acAll();
     if (!cs.length) return null;
     const counts = order.map(s => cs.filter(c => c.status === s).length);
     if (!counts.some(Boolean)) return null;
-    return _acConfig('bar', { labels: order, datasets: [{ label: 'Contracts', data: counts,
-      backgroundColor: [ AC_MUTED, AC_WARN, AC_GOOD, AC_BAD ], borderRadius: 4 }] },
-      { legend: false });
+    return _acConfig('doughnut', { labels: order, datasets: [{ label: 'Contracts', data: counts,
+      backgroundColor: [ AC_MUTED, AC_WARN, AC_GOOD, AC_BAD ], borderWidth: 0 }] });
+  },
+
+  /* Risk bands as a doughnut — Low / Medium / High share of the live
+     portfolio, counted through the same contractRisk() the register and the
+     dashboard use. No contractRisk on this stage (a cut-down test page, a
+     stripped build) means no chart, never a guess. */
+  riskBands(){
+    if (typeof window.contractRisk !== 'function') return null;
+    const cs = _acContracts();
+    if (!cs.length) return null;
+    const bands = { Low: 0, Medium: 0, High: 0 };
+    for (const c of cs){
+      const r = Number(contractRisk(c)) || 0;
+      bands[r >= 70 ? 'High' : r >= 40 ? 'Medium' : 'Low']++;
+    }
+    if (!bands.Low && !bands.Medium && !bands.High) return null;
+    return _acConfig('doughnut', { labels: Object.keys(bands),
+      datasets: [{ label: 'Contracts', data: Object.values(bands),
+        backgroundColor: [ AC_GOOD, AC_WARN, AC_BAD ], borderWidth: 0 }] });
   },
 
   expiryTimeline(){
@@ -344,18 +384,49 @@ function aiSeriesCatalogText(){
 /* ---------- pulling blocks out of an answer ----------
    Runs BEFORE the markdown renderer. A fenced block that reached mdParse would
    be faithfully rendered as a code block full of JSON — the model's plumbing
-   shown to the reader as if it were the answer. */
+   shown to the reader as if it were the answer.
+
+   THREE PASSES, because the failure mode of each is the reader seeing raw
+   JSON. Pass one is the contract (a ```hati-chart fence). Pass two rescues a
+   spec the model wrapped in the wrong fence (```json is the common slip).
+   Pass three rescues a bare, unfenced spec object. Both rescues fire ONLY on
+   a body naming a kind this file actually knows — an ordinary JSON example in
+   an answer stays exactly what it is. */
 const AI_CHART_FENCE = /```+\s*hati-chart\s*\n([\s\S]*?)```+/gi;
+const _acKindRe = () => new RegExp('"kind"\\s*:\\s*"(' +
+  Object.keys(AI_CHART_RECIPES).concat(['quoted', 'custom']).join('|') + ')"');
 function aiExtractCharts(src, msgIdx){
   const blocks = [];
-  const text = String(src == null ? '' : src).replace(AI_CHART_FENCE, (m, body) => {
+  const take = body => {
     const key = `aichart-${msgIdx}-${blocks.length}`;
     let spec = null, error = null;
     try{ spec = JSON.parse(String(body).trim()); }
     catch(e){ error = 'That chart block was not readable.'; }
     blocks.push({ key, spec, error });
     return `\n\n<!--${key}-->\n\n`;
-  });
+  };
+  let text = String(src == null ? '' : src).replace(AI_CHART_FENCE, (m, body) => take(body));
+  const kindRe = _acKindRe();
+  // PASS 2 — the right spec in the wrong fence (```json / ```js / bare ```).
+  text = text.replace(/```+[ \t]*(?:json|js|javascript)?[ \t]*\n(\{[\s\S]*?\})\s*```+/gi,
+    (m, body) => kindRe.test(body) ? take(body) : m);
+  // PASS 3 — no fence at all: a balanced-brace object around a known kind.
+  for (let i = 0; i < 4; i++){
+    const at = text.search(kindRe);
+    if (at < 0) break;
+    const open = text.lastIndexOf('{', at);
+    if (open < 0) break;
+    let depth = 0, end = -1, inStr = false, escp = false;
+    for (let j = open; j < text.length; j++){
+      const ch = text[j];
+      if (inStr){ if (escp) escp = false; else if (ch === '\\') escp = true; else if (ch === '"') inStr = false; continue; }
+      if (ch === '"') inStr = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}'){ depth--; if (!depth){ end = j; break; } }
+    }
+    if (end < 0) break;   // unbalanced — leave it; the sanitizer escapes it
+    text = text.slice(0, open) + take(text.slice(open, end + 1)) + text.slice(end + 1);
+  }
   return { text, blocks };
 }
 /* The placeholder survives markdown rendering as an HTML comment, which mdParse
@@ -375,12 +446,134 @@ function aiPlaceCharts(html, blocks){
 }
 
 /* ---------- building one chart ---------- */
-function aiChartCard(title, inner){
+const _acT = (k, fb) => (typeof window !== 'undefined' && typeof window.i18t === 'function') ? i18t(k) : fb;
+/* THE WAY OUT OF THE SCREEN. Every canvas card carries three small buttons —
+   copy as image (for pasting straight into a slide), download as PNG, and
+   download the numbers behind it as CSV so anyone can check a figure rather
+   than take the picture on trust. One delegated listener serves every chart
+   surface: the Copilot feed, the Intel dock, the Reports cards. */
+function aiChartActionsHtml(key){
+  const btn = (act, title, svg) =>
+    `<button type="button" class="ai-chart-btn" data-ac-act="${act}" data-ac-key="${key}" title="${title}" aria-label="${title}">${svg}</button>`;
+  const sw = 'width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  return `<div class="ai-chart-actions">`
+    + btn('copy', _acT('ch_copy_img', 'Copy as image'),
+        `<svg ${sw}><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`)
+    + btn('png', _acT('ch_dl_png', 'Download as PNG'),
+        `<svg ${sw}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>`)
+    + btn('csv', _acT('ch_dl_csv', 'Download the data (CSV)'),
+        `<svg ${sw}><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>`)
+    + `</div>`;
+}
+function aiChartCard(title, inner, key){
   const t = title ? `<div class="ai-chart-title">${(window._mdEsc ? _mdEsc(title) : title)}</div>` : '';
-  return `<div class="ai-chart">${t}${inner}</div>`;
+  const acts = key ? aiChartActionsHtml(key) : '';
+  return `<div class="ai-chart">${acts}${t}${inner}</div>`;
 }
 const aiChartNote = msg => aiChartCard(null,
   `<div class="ai-chart-note">${(window._mdEsc ? _mdEsc(msg) : msg)}</div>`);
+
+/* The live canvas re-drawn onto an opaque surface with a little padding — a
+   transparent canvas pasted into a slide turns black on some backgrounds. */
+function aiChartExportCanvas(key){
+  const ch = AI_CHARTS.get(key);
+  const src = ch && ch.canvas;
+  if (!src || !src.width || !src.height) return null;
+  const pad = 16;
+  const out = document.createElement('canvas');
+  out.width = src.width + pad * 2; out.height = src.height + pad * 2;
+  const g = out.getContext('2d');
+  g.fillStyle = _acVar('--color-surface', '#ffffff');
+  g.fillRect(0, 0, out.width, out.height);
+  g.drawImage(src, pad, pad);
+  return out;
+}
+/* The numbers exactly as the chart holds them — labels down the side, one
+   column per series. Raw values, no formatting: this file is for checking. */
+function aiChartCsv(key){
+  const ch = AI_CHARTS.get(key);
+  if (!ch || !ch.data) return null;
+  const escCsv = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const labels = ch.data.labels || [];
+  const ds = ch.data.datasets || [];
+  if (!labels.length || !ds.length) return null;
+  const lines = [['Label'].concat(ds.map((d, i) => d.label || ('Series ' + (i + 1)))).map(escCsv).join(',')];
+  labels.forEach((lb, i) => lines.push([lb].concat(ds.map(d => {
+    const v = (d.data || [])[i];
+    return (v && typeof v === 'object') ? (v.y != null ? v.y : v.x) : v;
+  })).map(escCsv).join(',')));
+  return lines.join('\n');
+}
+const _acDownloadCanvas = (cv, name) => cv.toBlob(blob => {
+  if (!blob) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  URL.revokeObjectURL(a.href);
+}, 'image/png');
+let _acActionsWired = false;
+function aiChartWireActions(){
+  if (_acActionsWired) return;
+  if (typeof document === 'undefined' || !document.addEventListener) return;
+  _acActionsWired = true;
+  document.addEventListener('click', async e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-ac-act]') : null;
+    if (!b) return;
+    const act = b.getAttribute('data-ac-act'), key = b.getAttribute('data-ac-key');
+    const say = (m, k) => { if (typeof toast === 'function') toast(m, k); };
+    if (act === 'csv'){
+      const csv = aiChartCsv(key);
+      if (!csv) return say(_acT('ch_not_ready', 'That chart has not finished drawing yet.'), 'err');
+      if (typeof downloadFile === 'function') downloadFile(`hati-chart-${key}.csv`, csv, 'text/csv');
+      return;
+    }
+    const cv = aiChartExportCanvas(key);
+    if (!cv) return say(_acT('ch_not_ready', 'That chart has not finished drawing yet.'), 'err');
+    if (act === 'png') return _acDownloadCanvas(cv, `hati-chart-${key}.png`);
+    if (act === 'copy'){
+      try{
+        if (typeof ClipboardItem === 'undefined' || !navigator.clipboard || !navigator.clipboard.write)
+          throw new Error('image clipboard unsupported');
+        const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+        if (!blob) throw new Error('no image');
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        say(_acT('ch_copied', 'Chart copied — paste it into your slide or document.'));
+      }catch(_){
+        // Not every browser lets a page write an image to the clipboard
+        // (Firefox behind a flag, older Safari). The nearest thing: a PNG.
+        _acDownloadCanvas(cv, `hati-chart-${key}.png`);
+        say(_acT('ch_copy_fell_back', 'This browser cannot copy images, so the chart downloaded as a PNG instead.'));
+      }
+    }
+  });
+}
+aiChartWireActions();
+
+/* One labelled series, house-styled, from ANY caller's own aggregates — the
+   Reports cards and the health report draw through this so a chart is one
+   look everywhere. kind: 'bar' | 'hbar' | 'line' | 'doughnut'. */
+function aiSimpleChart(kind, labels, values, opts = {}){
+  if (!Array.isArray(labels) || !labels.length) return null;
+  _acRefreshPalette();
+  const money = opts.unit === 'money';
+  const color = opts.color || AC_ACCENT;
+  if (kind === 'doughnut')
+    return _acConfig('doughnut', { labels, datasets: [{ label: opts.label || '', data: values,
+      backgroundColor: opts.colors || [AC_ACCENT, AC_GOOD, AC_WARN, AC_BAD, AC_MUTED, _acVar('--st-amber-fg', '#b45309')],
+      borderWidth: 0 }] }, { unit: opts.unit });
+  const cfg = _acConfig(kind === 'line' ? 'line' : 'bar',
+    { labels, datasets: [{ label: opts.label || '', data: values,
+      backgroundColor: opts.colors || color, borderColor: color, tension: .3, borderRadius: 4,
+      _unit: money ? 'money' : '' }] },
+    { legend: false, unit: opts.unit });
+  if (kind === 'hbar'){
+    cfg.options.indexAxis = 'y';
+    cfg.options.scales = {
+      x: { beginAtZero: true, grid: _acGrid, ticks: { font: { size: 10 }, color: AC_INK, callback: v => money ? _acMoney(v) : v } },
+      y: { grid: { display: false }, ticks: { font: { size: 10 }, color: AC_INK } },
+    };
+  }
+  return cfg;
+}
 
 /* `quoted` — the ONE kind carrying the model's own numbers. Bounded hard: 2–12
    plain numbers, no expressions, no strings that happen to look numeric. It is
@@ -442,14 +635,14 @@ function aiChartHtml(block){
     if (!cfg) return aiChartNote('The figures for that chart were not usable.');
     block.config = cfg;
     return aiChartCard(title || spec.label || 'Figures stated above',
-      `<div class="ai-chart-canvas"><canvas></canvas></div><div class="ai-chart-src">Figures as stated in this answer, not read from your records.</div>`);
+      `<div class="ai-chart-canvas"><canvas></canvas></div><div class="ai-chart-src">Figures as stated in this answer, not read from your records.</div>`, block.key);
   }
   if (kind === 'custom'){
     const r = aiCustomConfig(spec);
     if (r.error) return aiChartNote(r.error);
     if (r.empty) return aiChartNote('There is no data in your portfolio for that chart yet.');
     block.config = r.config;
-    return aiChartCard(title, `<div class="ai-chart-canvas"><canvas></canvas></div>`);
+    return aiChartCard(title, `<div class="ai-chart-canvas"><canvas></canvas></div>`, block.key);
   }
   const recipe = AI_CHART_RECIPES[kind];
   if (!recipe) return aiChartNote(`“${kind}” is not a chart HaTi knows how to draw.`);
@@ -457,7 +650,7 @@ function aiChartHtml(block){
   try{ cfg = recipe(); }catch(e){ cfg = null; }
   if (!cfg) return aiChartNote('There is no data in your portfolio for that chart yet.');
   block.config = cfg;
-  return aiChartCard(title, `<div class="ai-chart-canvas"><canvas></canvas></div>`);
+  return aiChartCard(title, `<div class="ai-chart-canvas"><canvas></canvas></div>`, block.key);
 }
 
 /* Hydrate every placeholder that has a config. Called after the feed paints. */
@@ -496,7 +689,8 @@ never disagree with the rest of the screen. Never put numbers, labels or arrays
 in the block — "quoted" below is the sole exception.
 
 Kinds:
-  statusBreakdown    — contracts by lifecycle status
+  statusBreakdown    — contracts by lifecycle status (a donut: parts of the whole)
+  riskBands          — live contracts by risk band, Low/Medium/High (a donut)
   expiryTimeline     — contracts expiring per month, next 12 months
   valueByCounterparty— total contract value per counterparty, top 10
   renewalPipeline    — renewal decisions due per month, with value
@@ -518,11 +712,14 @@ Kinds:
 ${aiSeriesCatalogText()}
 
 Rules:
-  · At most ONE chart per reply. Pick the single most useful one.
+  · A narrow question gets at most ONE chart — the single most useful one.
+  · A BROAD portfolio question ("how is my portfolio doing", "give me an
+    overview/report") may use up to FOUR charts, each a different kind, each
+    placed next to the text it illustrates.
   · No chart for small talk, definitions, or advice-only answers.
   · Only the kinds listed above are valid. Anything else shows an error card.
-  · Refer to the chart in your text ("see the expiry chart below — six contracts
-    lapse in the next quarter"), so the reader knows why it is there.
+  · Refer to each chart in your text ("see the expiry chart below — six
+    contracts lapse in the next quarter"), so the reader knows why it is there.
 
 Examples:
   "How many contracts are sitting in review?" →
@@ -567,5 +764,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   AI_CHART_RECIPES, AI_SERIES, AI_CHARTS, AI_CHART_CDN,
   aiChartLib, aiChartDestroy, aiChartDestroyAll, aiChartSweep,
   aiExtractCharts, aiPlaceCharts, aiChartHtml, aiHydrateCharts, aiChartCard, aiChartNote,
+  aiChartActionsHtml, aiChartExportCanvas, aiChartCsv, aiChartWireActions, aiSimpleChart, _acRefreshPalette,
   aiQuotedConfig, aiCustomConfig, aiAllSeries, aiDynamicSeries, aiSeriesCatalogText, aiSeriesSlug,
   AI_CHART_RULES, AI_TONE_RULES });

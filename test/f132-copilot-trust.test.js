@@ -33,6 +33,9 @@ const { startHati, startScriptedAi, seedWorkspace, fixtureContract, FIXTURES, FO
 const SERVER_SRC = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 const AI_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
 
+/* The system prompt travels as an ARRAY of blocks now (the cacheable
+   rulebook + the live snapshot) — flatten it back to one string to assert on. */
+const sysText = s => Array.isArray(s) ? s.map(b => (b && b.text) || '').join('\n') : String(s || '');
 const deliver = input => [{ type: 'tool_use', id: 'tu_d', name: 'deliver_answer', input }];
 const toolCall = (name, input) => [{ type: 'tool_use', id: 'tu_t', name, input }];
 
@@ -180,7 +183,7 @@ describe('F-B / F-D — the 50k read cap, and honesty past it', () => {
   });
 
   test('the system prompt teaches the disclosure, alongside the changesOmitted rule', async () => {
-    const sys = ai.calls[0].body.system;
+    const sys = sysText(ai.calls[0].body.system);
     assert.match(sys, /textTruncated/, 'the rule names the flag');
     assert.match(sys, /do not claim to have reviewed the whole document/);
     assert.match(sys, /changesOmitted/, 'the sibling rule this one mirrors is still there');
@@ -211,7 +214,7 @@ describe('F-E — answer in the language of the question', () => {
     ai.reset();
     ai.script(deliver({ answer: 'Tre avtal löper ut i år.', citations: [] }));
     await ask(W.admin, 'vilka avtal löper ut i år?', { lang: 'sv-SE' });
-    const sys = ai.calls[0].body.system;
+    const sys = sysText(ai.calls[0].body.system);
     assert.match(sys, /Reply in the language the user wrote/);
     assert.match(sys, /sv-SE/, 'the client-sent language must arrive, not a hardcoded default');
     assert.match(sys, /quotes stay verbatim in their original language/);
@@ -228,7 +231,7 @@ describe('F-E — answer in the language of the question', () => {
     ai.reset();
     ai.script(deliver({ answer: 'ok', citations: [] }));
     await ask(W.admin, 'what expires this year?');
-    const sys = ai.calls[0].body.system;
+    const sys = sysText(ai.calls[0].body.system);
     assert.match(sys, /Reply in the language the user wrote/);
     assert.match(sys, /English \(en\)/, 'the fallback is a language, not the market locale');
     assert.ok(!/en-KE/.test(sys),

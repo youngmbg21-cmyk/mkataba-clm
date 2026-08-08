@@ -2367,6 +2367,11 @@
 #ai-feed .ai-target-body{font-family:var(--font-doc);font-size:12.5px;line-height:1.6;
   color:var(--color-neutral-800);max-height:9.6em;overflow:auto;white-space:pre-wrap}
 #ai-feed .ai-target-ask{font-size:13px;line-height:1.55}
+/* Suggested-question chips: shown on an empty panel only (js/ai.js). */
+.ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
+  font-size:11px;font-weight:500;border-radius:999px;padding:4px 10px;cursor:pointer;
+  transition:border-color .12s,color .12s,background .12s}
+.ai-chip:hover{border-color:var(--color-accent);color:var(--color-accent-800);border-style:solid;background:var(--color-surface)}
 .ai-tone{font-weight:600;border-radius:3px;padding:0 3px}
 .ai-tone-pos{color:var(--st-green-fg);background:var(--st-green-bg)}
 .ai-tone-neg{color:var(--st-ruby-fg);background:var(--st-ruby-bg)}
@@ -2379,8 +2384,13 @@
 .igf-ai-read .ai-p:last-child{margin-bottom:0}
 .igf-ai-read .ai-p>strong:first-child{color:var(--color-accent-700)}
 .ai-chart{border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;
-  padding:10px 12px;margin:.5em 0}
-.ai-chart-title{font-family:var(--font-heading);font-weight:600;font-size:12px;margin-bottom:6px}
+  padding:10px 12px;margin:.5em 0;position:relative}
+/* The way out of the screen: copy image / PNG / CSV, on every chart card. */
+.ai-chart-actions{position:absolute;top:6px;right:6px;display:flex;gap:2px;z-index:2}
+.ai-chart-btn{display:grid;place-items:center;height:22px;width:22px;border:0;cursor:pointer;
+  border-radius:4px;background:transparent;color:var(--color-neutral-500);transition:background .12s,color .12s}
+.ai-chart-btn:hover{background:var(--color-bg);color:var(--color-accent-700)}
+.ai-chart-title{font-family:var(--font-heading);font-weight:600;font-size:12px;margin-bottom:6px;padding-right:76px}
 .ai-chart-canvas{position:relative;height:200px}
 .ai-chart-src{font-size:10px;color:var(--color-neutral-600);margin-top:6px;line-height:1.45}
 .ai-chart-note{font-size:11.5px;color:var(--color-neutral-700);line-height:1.5}

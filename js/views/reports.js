@@ -172,8 +172,67 @@ function wireReportDropdowns(){
   // one global outside-click closer, registered once so renders don't stack it
   if(!window.__rdWired){ window.__rdWired=true; document.addEventListener('click',()=>document.querySelectorAll('[data-rd-menu]').forEach(m=>m.style.display='none')); }
 }
+/* ---- E7 charts, drawn for real ----
+   The eight selectable cards used to be hand-drawn CSS strips. They now build
+   a genuine chart (through aiSimpleChart / the shared Copilot recipes, so a
+   chart is ONE look everywhere) and keep the strip HTML as the fallback for a
+   workspace with no outbound network — Chart.js arrives from a CDN. */
+function repChartConfig(k, r){
+  if(typeof aiSimpleChart!=='function') return null;
+  const mLbl=m=>new Date(m+'-01').toLocaleDateString(jxLocale(),{month:'short',year:'2-digit'});
+  if(k==='streamValue'){
+    const e=Object.entries(r.byFolder).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    return e.length?aiSimpleChart('hbar',e.map(x=>x[0]),e.map(x=>x[1]),{unit:'money'}):null;
+  }
+  if(k==='partyValue'){
+    const e=r.topParty.filter(([,v])=>v>0);
+    return e.length?aiSimpleChart('hbar',e.map(x=>x[0]),e.map(x=>x[1]),{unit:'money'}):null;
+  }
+  if(k==='renewalPipe'){
+    const months=Object.keys(r.pipeline).sort();
+    return months.length?aiSimpleChart('bar',months.map(mLbl),months.map(m=>r.pipeline[m]),{unit:'money'}):null;
+  }
+  if(k==='roundsType'){
+    const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
+    return e.length?aiSimpleChart('hbar',e.map(([kk,v])=>`${kk} (${v.n})`),e.map(([,v])=>Math.round(v.rounds/v.n*10)/10)):null;
+  }
+  // parts-of-a-whole cards ride the Copilot's own recipes, colours and all
+  if(k==='stageCount') return (typeof AI_CHART_RECIPES==='object'&&AI_CHART_RECIPES.statusBreakdown)?AI_CHART_RECIPES.statusBreakdown():null;
+  if(k==='riskBand')   return (typeof AI_CHART_RECIPES==='object'&&AI_CHART_RECIPES.riskBands)?AI_CHART_RECIPES.riskBands():null;
+  if(k==='streamCount'){
+    const e=Object.entries(r.countByFolder).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    return e.length?aiSimpleChart('hbar',e.map(x=>x[0]),e.map(x=>x[1])):null;
+  }
+  if(k==='obState'){
+    const e=Object.entries(r.obByState).filter(([,v])=>v>0);
+    return e.length?aiSimpleChart('doughnut',e.map(x=>x[0]),e.map(x=>x[1])):null;
+  }
+  return null;
+}
+/* Hydrate the four cards after the view paints; every failure path lands on
+   the CSS-strip fallback, never on an empty box. Instances live in the shared
+   AI_CHARTS registry so the copy / PNG / CSV toolbar works here unchanged. */
+async function repHydrateCharts(items){
+  const bars=it=>{ const host=document.getElementById(it.key); if(host) host.innerHTML=it.fallback; };
+  if(typeof aiChartLib!=='function'||typeof AI_CHARTS==='undefined'){ items.forEach(bars); return; }
+  let Chart;
+  try{ Chart=await aiChartLib(); }catch(_){ items.forEach(bars); return; }
+  for(const it of items){
+    const host=document.getElementById(it.key); if(!host) continue;
+    const canvas=host.querySelector('canvas');
+    if(!canvas||!it.cfg){ bars(it); continue; }
+    if(typeof aiChartDestroy==='function') aiChartDestroy(it.key);
+    try{ AI_CHARTS.set(it.key, new Chart(canvas.getContext('2d'), it.cfg)); }
+    catch(_){ bars(it); }
+  }
+}
 function renderReports(){
   const r=computeReports();
+  // this month's portfolio figures, banked for "what changed since last month"
+  if(typeof hatiRecordMonthlySnapshot==='function') try{ hatiRecordMonthlySnapshot(); }catch(_){}
+  // a repaint replaces the canvases wholesale — destroy the old instances first
+  if(typeof AI_CHARTS!=='undefined'&&typeof aiChartDestroy==='function')
+    for(const k of Array.from(AI_CHARTS.keys())) if(String(k).startsWith('repchart-')) aiChartDestroy(k);
 
   // TOP — gradient hero stat cards. Each card's metric is user-selectable via
   // the dropdown built into its label, so revenue/value is never forced.
@@ -194,14 +253,25 @@ function renderReports(){
   const stats=[statSlot(0),statSlot(1),statSlot(2),statSlot(3)].join('');
 
   // BELOW — 2×2 chart cards. Each card follows a KPI the user picks via the
-  // dropdown built into its title, so no chart is forced.
+  // dropdown built into its title, so no chart is forced. Real charts, with
+  // the old CSS strips as the no-network fallback — see repHydrateCharts.
   const csel=reportChartSel();
+  const chartItems=[];
   const chartSlot=(idx)=>{
     const ch=REPORT_CHARTS.find(x=>x.k===csel[idx])||REPORT_CHARTS[idx];
+    const key=`repchart-${idx}`;
+    let cfg=null; try{ cfg=repChartConfig(ch.k, r); }catch(_){ cfg=null; }
+    const fallback=ch.render(r);
+    chartItems.push({ key, cfg, fallback });
+    const acts=(cfg&&typeof aiChartActionsHtml==='function')
+      ?`<div style="position:relative;flex:none;width:76px;height:24px">${aiChartActionsHtml(key)}</div>`:'';
     return `
     <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px">
-      ${reportDropdown('card','chart',idx,REPORT_CHARTS,csel[idx])}
-      ${ch.render(r)}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        ${reportDropdown('card','chart',idx,REPORT_CHARTS,csel[idx])}
+        ${acts}
+      </div>
+      <div id="${key}">${cfg?`<div class="ai-chart-canvas" style="height:220px"><canvas></canvas></div>`:fallback}</div>
     </section>`;
   };
 
@@ -218,6 +288,10 @@ function renderReports(){
       @keyframes rdIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
+        <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
+        <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--color-accent);color:#fff;font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
+      </div>
       <section class="rp-stats" style="display:grid;gap:14px">
         ${stats}
       </section>
@@ -230,6 +304,13 @@ function renderReports(){
     </div>
   </div>`;
   wireReportDropdowns();
+  /* The CSV export existed for a year with no way to reach it — the button IS
+     the fix. The health report is the same document Copilot builds on request. */
+  const ex=document.getElementById('rep-export');
+  if(ex) ex.addEventListener('click',()=>exportReportsCsv(r));
+  const hb=document.getElementById('rep-health');
+  if(hb) hb.addEventListener('click',()=>{ if(typeof openHealthReport==='function') openHealthReport(); });
+  repHydrateCharts(chartItems.filter(it=>it.cfg));
   setActiveNav('reports');
 }
 function exportReportsCsv(r){
@@ -253,4 +334,4 @@ function exportReportsCsv(r){
   toast(i18t('rep_exported_csv'));
 }
 
-Object.assign(window,{lifecycleEvents,firstAuditAt,computeReports,renderReports,exportReportsCsv});
+Object.assign(window,{lifecycleEvents,firstAuditAt,computeReports,renderReports,exportReportsCsv,repChartConfig,repHydrateCharts});

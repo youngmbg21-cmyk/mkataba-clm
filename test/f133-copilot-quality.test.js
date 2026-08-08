@@ -33,6 +33,9 @@ const PLAYBOOK_SRC = fs.readFileSync(path.join(__dirname, '..', 'js', 'playbook.
 const FAST_MODEL = 'claude-haiku-4-5-20251001';
 const DEEP_MODEL = 'claude-sonnet-5';
 
+/* The system prompt travels as an ARRAY of blocks now (the cacheable
+   rulebook + the live snapshot) — flatten it back to one string to assert on. */
+const sysText = s => Array.isArray(s) ? s.map(b => (b && b.text) || '').join('\n') : String(s || '');
 const deliver = input => [{ type: 'tool_use', id: 'tu_d', name: 'deliver_answer', input }];
 const toolCall = (name, input) => [{ type: 'tool_use', id: 'tu_t', name, input }];
 const reviewResult = verdicts => [{ type: 'tool_use', id: 'tu_pb', name: 'playbook_review', input: { verdicts } }];
@@ -92,7 +95,7 @@ describe('F-B first, unconfigured — no playbook means saying so, not improvisi
   });
 
   test('the system prompt teaches both the tool and the honesty rule', () => {
-    const sys = ai.calls[0].body.system;
+    const sys = sysText(ai.calls[0].body.system);
     assert.match(sys, /check_against_playbook/, 'the model is told when to reach for the tool');
     assert.match(sys, /matches our standards, positions or playbook/i);
     assert.match(sys, /no playbook is set up for this contract type/);
