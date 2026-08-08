@@ -1211,14 +1211,14 @@ function renderReviewGatePanel(){
     </label>
     <div id="rv-gate-more"${cfg.on?'':' hidden'}>
       <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_when')}</label>
-      <select id="rv-gate-when" class="ui-input"${dis} style="width:100%;margin-bottom:9px">
+      <select id="rv-gate-when"${dis} style="${window.RV_FLD||''}margin-bottom:9px">
         <option value="always"${cfg.when==='always'?' selected':''}>${i18t('rv_set_when_always')}</option>
         <option value="deviation"${cfg.when==='deviation'?' selected':''}>${i18t('rv_set_when_deviation')}</option>
         <option value="value"${cfg.when==='value'?' selected':''}>${i18t('rv_set_when_value')}</option>
       </select>
       <div id="rv-gate-valwrap"${cfg.when==='value'?'':' hidden'}>
         <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_value')}${money?` (${money})`:''}</label>
-        <input id="rv-gate-value" type="number" min="0" step="1000" class="ui-input"${dis} value="${Number(cfg.value||0)}" style="width:100%"/>
+        <input id="rv-gate-value" type="number" min="0" step="1000"${dis} value="${Number(cfg.value||0)}" style="${window.RV_FLD||''}"/>
       </div>
     </div>`;
   if(!admin) return;

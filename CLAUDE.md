@@ -65,7 +65,11 @@ TWO TRAPS THIS FEATURE HIT IN ANGER, both worth remembering:
 - js/core.js declares its shell as `const` (currentUser, getUsers, userById, canEdit, state). A `const` is a LEXICAL binding, not a property of window, so a bare call from another module reaches core.js's copy and cannot be substituted. review.js therefore calls window.currentUser() and friends — but reads `state` BARE, because there is no window.state at all and `window.state && …` read as "no settings" forever, silently disabling the gate.
 - READING MUST NOT WRITE. reviewInit creates c.review; every read went through it at first, so merely painting a screen stamped an empty review onto the contract. f59 caught it. Only reviewAsk and reviewMark initialise now.
 
-Tests: f154 (the model, the gate, the wall, both renderers, the real payload) and f155 (the notification route). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
+CHOOSING THE REVIEWER is a combobox, not a dropdown: a scrolling list stops working at about thirty people, and a real workspace has hundreds. It matches on name AND email, resolves a pasted address without the list being opened, and refuses four different ways with four different sentences (not a member / a viewer / yourself / no match). A reviewer must have a seat — they alone can lift a hold, so posting a review to an address with no account behind it would deadlock the send. The server refuses the same things.
+
+DO NOT WRITE class="ui-input" — the application does not define it anywhere. It was used throughout this feature and every field rendered unstyled; the reviewer picker in particular read as stray text. RV_FLD / RV_LBL in js/review.js quote core.js's own FLD/LBL.
+
+Tests: f154 (the model, the gate, the wall, both renderers, the real payload), f155 (the notification route) and f156 (the picker, and a guard against broken encoding). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
 
 REMAINING SIDE DOORS — check on every change-related fix
 

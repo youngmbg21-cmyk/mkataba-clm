@@ -240,6 +240,77 @@ function reviewCandidates(){
     .filter(u => u && u.role !== 'viewer' && !(me && String(u.id) === String(me.id)));
 }
 
+/* ---------- FINDING A COLLEAGUE IN A COMPANY OF HUNDREDS ----------
+
+   A dropdown is a list you scroll, and a list you scroll stops working at about
+   thirty people. It shipped as one, and on a real workspace that is a control
+   you cannot use: the person you want is somewhere in the middle of four
+   hundred names, and the field gives you no way to say who.
+
+   So the field TAKES TYPING, and typing is matched against the name AND the
+   address — because half the time what you have in your hand is an email
+   somebody sent you, not a spelling of their name.
+
+   WHY THE ANSWER MUST STILL BE A COLLEAGUE, and not simply whatever address was
+   typed. A review is not a message; it is a person who can clear or hold each
+   change, and a hold that only they can lift. Post it to somebody with no seat
+   in this workspace and the wording sits behind a wall nobody can open, with
+   the send gate holding it there — a deadlock created by a typo. The server
+   refuses the same thing for the same reason, so the two agree.
+
+   The refusals are therefore specific: an address nobody here holds, a viewer
+   who could not rule if they wanted to, and your own name are three different
+   mistakes and each one says which it is. */
+const _rvEmail = s => String(s || '').trim().toLowerCase();
+const _rvIsEmailish = s => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(s || '').trim());
+
+/* The list under the field: everyone who matches, best first. Capped by the
+   caller, which also says how many were left out — a silent truncation reads as
+   "that is everybody" when it is not. */
+function reviewSearchPeople(q, limit){
+  const all = reviewCandidates();
+  const s = String(q || '').trim().toLowerCase();
+  if (!s) return { hits: all.slice(0, limit || 8), total: all.length };
+  const score = u => {
+    const n = String(u.name || '').toLowerCase(), e = _rvEmail(u.email);
+    if (e === s || n === s) return 0;                       // exact
+    if (n.startsWith(s) || e.startsWith(s)) return 1;       // begins with
+    if (n.indexOf(s) >= 0 || e.indexOf(s) >= 0) return 2;   // contains
+    return 9;
+  };
+  const hits = all.map(u => ({ u, r: score(u) })).filter(x => x.r < 9)
+    .sort((a, b) => a.r - b.r || String(a.u.name).localeCompare(String(b.u.name)))
+    .map(x => x.u);
+  return { hits: hits.slice(0, limit || 8), total: hits.length };
+}
+
+/* What a typed string resolves to. Returns { ok, user } or { ok:false, why },
+   where `why` is a sentence rather than a code — it is printed as-is. */
+function reviewResolvePerson(q){
+  const raw = String(q || '').trim();
+  if (!raw) return { ok: false, why: i18t('rv_pick_someone') };
+  /* Accept what the list itself puts in the box ("Name — address"), so a value
+     that was chosen and then re-read still resolves. */
+  const typed = raw.indexOf('<') >= 0 ? raw.slice(raw.indexOf('<') + 1).replace('>', '').trim() : raw;
+  const s = typed.toLowerCase();
+  const all = (window.getUsers ? window.getUsers() : []);
+  const me = _rvMe();
+  let hit = all.find(u => u && _rvEmail(u.email) === s)
+    || all.find(u => u && String(u.name || '').trim().toLowerCase() === s);
+  if (!hit){
+    /* One unambiguous partial match is a match. Two are a question. */
+    const near = all.filter(u => u && (String(u.name || '').toLowerCase().indexOf(s) >= 0
+      || _rvEmail(u.email).indexOf(s) >= 0));
+    if (near.length === 1) hit = near[0];
+    else if (near.length > 1) return { ok: false, why: i18t('rv_who_ambiguous', { n: near.length }) };
+  }
+  if (!hit) return { ok: false,
+    why: _rvIsEmailish(typed) ? i18t('rv_who_not_a_member', { email: typed }) : i18t('rv_who_no_match') };
+  if (me && String(hit.id) === String(me.id)) return { ok: false, why: i18t('rv_who_is_you') };
+  if (hit.role === 'viewer') return { ok: false, why: i18t('rv_who_is_viewer', { who: hit.name }) };
+  return { ok: true, user: hit };
+}
+
 /* ---------- asking ---------- */
 function reviewAsk(c, o = {}){
   reviewInit(c);
@@ -629,6 +700,58 @@ function reviewWhen(at){
    THE SCREENS' OWN ACTS — one modal, one wiring, called from everywhere
    ============================================================ */
 
+/* ---- THE FIELDS LOOK LIKE FIELDS ----
+   These carried `class="ui-input"`, which is not a class this application
+   defines anywhere — so every input and select in this feature rendered with
+   the browser's own bare styling, and the reviewer picker in particular read as
+   a line of text somebody had left lying on the dialog rather than the one
+   control the whole dialog exists to set. Reported from the field as "the field
+   to choose who to send it to is too hidden", which is exactly what it was.
+
+   The real styles are core.js's own FLD/LBL, quoted here rather than imported:
+   they are two string constants declared inside openShareModal and not exported,
+   and a copy that says where it came from is better than a shared token nobody
+   can find. If the share dialog's fields are restyled, restyle these. */
+const RV_FLD = 'width:100%;min-height:34px;border:1px solid var(--color-divider);'
+  + 'background:var(--color-surface);border-radius:4px;padding:8px 10px;font-size:12.5px;'
+  + 'font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
+const RV_LBL = 'display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);'
+  + 'margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
+
+/* One row of the picker's list. Name, address and role — the address because it
+   is what disambiguates two people with one name, and because it is what the
+   person searching usually has in front of them. */
+function reviewPersonRowHtml(u, active){
+  return `<li role="option" id="rv-opt-${_rvE(u.id)}" aria-selected="${active ? 'true' : 'false'}"
+    data-rv-pick="${_rvE(u.id)}"
+    style="display:flex;gap:9px;align-items:baseline;padding:7px 11px;cursor:pointer;
+    background:${active ? 'var(--color-accent-100)' : 'transparent'}">
+    <span style="flex:none;font-size:12.5px;font-weight:600;color:var(--color-text)">${_rvE(u.name)}</span>
+    <span style="flex:1;min-width:0;font-size:11px;font-family:var(--font-mono);color:var(--color-neutral-600);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_rvE(u.email || '')}</span>
+    <span style="flex:none;font-size:10px;color:var(--color-neutral-500)">${
+      _rvE(u.role ? (window.roleName ? window.roleName(u.role) : u.role) : '')}</span>
+  </li>`;
+}
+
+/* The list panel, rebuilt on every keystroke. Capped, and it SAYS it is capped:
+   a list silently cut at eight reads as "those are all the matches". */
+function reviewPickerListHtml(q, activeId){
+  const r = reviewSearchPeople(q, 8);
+  if (!r.hits.length)
+    return `<li style="padding:9px 11px;font-size:11.5px;color:var(--color-neutral-600)">${
+      _rvE(_rvIsEmailish(q) ? i18t('rv_who_not_a_member', { email: String(q).trim() }) : i18t('rv_who_no_match'))}</li>`;
+  const more = r.total - r.hits.length;
+  return r.hits.map(u => reviewPersonRowHtml(u, String(u.id) === String(activeId))).join('')
+    /* STICKY, because it is a promise about the list rather than a row in it.
+       Left in the normal flow it sat below eight rows in a scrolling box — so
+       the one line telling you there are three hundred more people required
+       scrolling to find, which is the exact failure it exists to prevent. */
+    + (more > 0 ? `<li style="position:sticky;bottom:0;padding:7px 11px;font-size:11px;
+        color:var(--color-neutral-600);background:var(--color-bg);
+        border-top:1px solid var(--color-divider)">${_rvE(i18tn('rv_who_more', more, { n: more }))}</li>` : '');
+}
+
 function reviewAskModalHtml(c){
   const scope = reviewScope(c);
   const people = reviewCandidates();
@@ -646,18 +769,34 @@ function reviewAskModalHtml(c){
     <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_modal_title'))}</h2>
     <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.55">${_rvE(i18t('rv_modal_sub'))}</p>
 
-    <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_rvE(i18t('rv_who'))}</label>
-    ${people.length ? `<select id="rv-who" class="ui-input" style="width:100%;margin-bottom:12px">
-      ${people.map(u => `<option value="${_rvE(u.id)}">${_rvE(u.name)}${u.role ? ' — ' + _rvE((window.roleName ? window.roleName(u.role) : u.role)) : ''}</option>`).join('')}
-    </select>` : `<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);
+    ${people.length ? `
+    <div style="margin-bottom:12px">
+      <label for="rv-who" style="${RV_LBL}">${_rvE(i18t('rv_who'))}</label>
+      <div style="position:relative">
+        <input id="rv-who" type="text" role="combobox" autocomplete="off" spellcheck="false"
+          aria-expanded="false" aria-controls="rv-who-list" aria-autocomplete="list"
+          placeholder="${_rvE(i18t('rv_who_ph'))}"
+          style="${RV_FLD}padding-right:30px"/>
+        <button type="button" id="rv-who-caret" tabindex="-1" aria-label="${_rvE(i18t('rv_who_show_all'))}"
+          style="position:absolute;right:1px;top:1px;bottom:1px;width:28px;border:0;background:transparent;
+          cursor:pointer;color:var(--color-neutral-600);font-size:10px;line-height:1">&#9662;</button>
+        <ul id="rv-who-list" role="listbox" hidden
+          style="list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
+          max-height:212px;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);
+          border-radius:6px;box-shadow:var(--shadow-lg)"></ul>
+      </div>
+      <div id="rv-who-say" style="font-size:11.5px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${
+        _rvE(i18t('rv_who_hint'))}</div>
+      <input type="hidden" id="rv-who-id" value=""/>
+    </div>` : `<div style="font-size:11.5px;color:var(--st-amber-fg);background:var(--st-amber-bg);
       border:1px solid var(--st-amber-line);border-radius:7px;padding:9px 11px;margin-bottom:12px;line-height:1.5">${_rvE(i18t('rv_no_colleagues'))}</div>`}
 
-    <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_rvE(i18t('rv_note_label'))}</label>
-    <textarea id="rv-note" rows="3" class="ui-input" style="width:100%;margin-bottom:12px"
+    <label for="rv-note" style="${RV_LBL}">${_rvE(i18t('rv_note_label'))}</label>
+    <textarea id="rv-note" rows="3" style="${RV_FLD}margin-bottom:12px;resize:vertical"
       placeholder="${_rvE(i18t('rv_note_ph'))}"></textarea>
 
-    <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_rvE(i18t('rv_due_label'))}</label>
-    <input id="rv-due" type="date" class="ui-input" value="${_rvE(due)}" style="width:100%;margin-bottom:12px"/>
+    <label for="rv-due" style="${RV_LBL}">${_rvE(i18t('rv_due_label'))}</label>
+    <input id="rv-due" type="date" value="${_rvE(due)}" style="${RV_FLD}margin-bottom:12px"/>
 
     ${(window.API_MODE && window.API_MODE()) ? `<label style="display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--color-neutral-700);margin-bottom:14px;cursor:pointer">
       <input id="rv-email" type="checkbox" checked style="margin-top:2px"/>
@@ -679,14 +818,119 @@ function reviewAskModalHtml(c){
   </div>`;
 }
 
+/* ---- WIRING THE PICKER ----
+   A combobox rather than a <select>, for the reason above: a list you scroll is
+   a list that stops working at about thirty people. Everything here is in
+   service of one sentence — you can type, and what you type is matched against
+   names and addresses alike.
+
+   THE RESOLUTION IS SEPARATE FROM THE TYPING. The box holds whatever the person
+   wrote; `pick` holds who that actually is, and it is recomputed on every
+   keystroke rather than only when an option is clicked. So pasting a whole
+   address and pressing Send works without ever opening the list, which is how
+   most people who have the address in their hand will use it. */
+function reviewWirePicker(){
+  const box = document.getElementById('rv-who');
+  const list = document.getElementById('rv-who-list');
+  const say = document.getElementById('rv-who-say');
+  const hid = document.getElementById('rv-who-id');
+  const caret = document.getElementById('rv-who-caret');
+  if (!box || !list) return { get: () => null };
+
+  let pick = null, active = null, open = false;
+
+  const paint = () => {
+    list.innerHTML = reviewPickerListHtml(box.value, active);
+    list.hidden = !open;
+    box.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  const tell = () => {
+    /* An empty box is not an error — it is a box nobody has filled in yet, and
+       shouting at somebody before they have typed is how a form feels hostile. */
+    if (!String(box.value || '').trim()){
+      pick = null; hid.value = '';
+      say.textContent = i18t('rv_who_hint');
+      say.style.color = 'var(--color-neutral-600)';
+      return;
+    }
+    const r = reviewResolvePerson(box.value);
+    pick = r.ok ? r.user : null;
+    hid.value = r.ok ? r.user.id : '';
+    say.textContent = r.ok ? i18t('rv_who_ok', { who: r.user.name, email: r.user.email || '' }) : r.why;
+    say.style.color = r.ok ? 'var(--st-green-fg)' : 'var(--st-amber-fg)';
+  };
+  const choose = id => {
+    const u = (window.getUsers ? window.getUsers() : []).find(x => x && String(x.id) === String(id));
+    if (!u) return;
+    box.value = u.email ? (u.name + ' <' + u.email + '>') : u.name;
+    active = u.id; open = false;
+    tell(); paint(); box.focus();
+  };
+
+  box.addEventListener('input', () => { open = true; active = null; tell(); paint(); });
+  box.addEventListener('focus', () => { open = true; paint(); });
+  caret?.addEventListener('click', () => { open = !open; paint(); if (open) box.focus(); });
+  list.addEventListener('mousedown', ev => {
+    /* mousedown, not click: the box's blur would close the list out from under
+       the pointer before a click ever landed. */
+    const li = ev.target.closest && ev.target.closest('[data-rv-pick]');
+    if (!li) return;
+    ev.preventDefault();
+    choose(li.getAttribute('data-rv-pick'));
+  });
+  box.addEventListener('blur', () => { setTimeout(() => { open = false; paint(); }, 120); });
+  box.addEventListener('keydown', ev => {
+    const hits = reviewSearchPeople(box.value, 8).hits;
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){
+      ev.preventDefault();
+      if (!hits.length) return;
+      open = true;
+      const at = hits.findIndex(u => String(u.id) === String(active));
+      const next = ev.key === 'ArrowDown'
+        ? (at < 0 ? 0 : Math.min(at + 1, hits.length - 1))
+        : (at <= 0 ? 0 : at - 1);
+      active = hits[next].id;
+      box.setAttribute('aria-activedescendant', 'rv-opt-' + active);
+      paint();
+      return;
+    }
+    if (ev.key === 'Enter'){
+      /* Enter takes the highlighted row, or the only match, and otherwise does
+         nothing — it must not submit a dialog whose main field is unresolved. */
+      const target = active ? active : (hits.length === 1 ? hits[0].id : null);
+      if (target){ ev.preventDefault(); choose(target); }
+      return;
+    }
+    if (ev.key === 'Escape' && open){
+      /* Closes the LIST, not the dialog. The application's own Escape handler is
+         on the document and would otherwise throw away everything typed. */
+      ev.stopPropagation(); ev.preventDefault();
+      open = false; paint();
+    }
+  });
+
+  tell(); paint();
+  return { get: () => pick };
+}
+
 function openReviewAskModal(c, opts = {}){
   if (!window.openModal) return;
   window.openModal(reviewAskModalHtml(c), { maxWidth: '34rem' });
   const done = () => { if (typeof opts.after === 'function') opts.after(); };
+  const picker = reviewWirePicker();
   document.getElementById('rv-cancel-modal')?.addEventListener('click', () => window.closeModal());
   document.getElementById('rv-send')?.addEventListener('click', async () => {
-    const sel = document.getElementById('rv-who');
-    const u = (window.userById && sel) ? window.userById(sel.value) : null;
+    const box = document.getElementById('rv-who');
+    const u = picker.get();
+    if (!u){
+      /* Refused HERE, with the reason, rather than by a disabled button. A
+         button that is simply grey tells you nothing about which of the four
+         things you got wrong. */
+      const r = reviewResolvePerson(box ? box.value : '');
+      _rvSay(r.why || i18t('rv_pick_someone'), 'err');
+      if (box) box.focus();
+      return;
+    }
     const note = (document.getElementById('rv-note') || {}).value || '';
     const dueV = (document.getElementById('rv-due') || {}).value || '';
     const rv = reviewAsk(c, { reviewer: u || {}, note, due: dueV });
@@ -731,7 +975,7 @@ function openReviewReturnModal(c, opts = {}){
         ${unmarked ? `<div style="color:var(--st-ruby-fg);margin-top:5px"><b>${unmarked}</b> ${_rvE(i18t('rv_tally_unmarked'))}</div>` : ''}
       </div>
       <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_rvE(i18t('rv_return_note_label'))}</label>
-      <textarea id="rv-rnote" rows="3" class="ui-input" style="width:100%;margin-bottom:14px" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
+      <textarea id="rv-rnote" rows="3" style="${RV_FLD}margin-bottom:14px;resize:vertical" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
         <button id="rv-rok" class="ui-btn ui-btn-primary"${unmarked ? ' disabled' : ''}>${_rvE(i18t('rv_return_btn'))}</button>
@@ -757,7 +1001,7 @@ function openReviewNoteModal(c, changeId, opts = {}){
     <div style="padding:18px 20px 16px">
       <h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px">${_rvE(i18t('rv_note_title_modal', { id: changeId }))}</h2>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">${_rvE(i18t('rv_note_sub'))}</p>
-      <textarea id="rv-cnote" rows="4" class="ui-input" style="width:100%;margin-bottom:14px">${_rvE((cur && cur.note) || '')}</textarea>
+      <textarea id="rv-cnote" rows="4" style="${RV_FLD}margin-bottom:14px;resize:vertical">${_rvE((cur && cur.note) || '')}</textarea>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
         <button id="rv-cok" class="ui-btn ui-btn-primary">${_rvE(i18t('act_save'))}</button>
@@ -823,6 +1067,8 @@ Object.assign(window, {
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
   reviewState, reviewInboxFor, reviewWhen,
   reviewSeatShowsReview, reviewChipHtml, reviewVerbsHtml, reviewBannerHtml,
+  reviewSearchPeople, reviewResolvePerson, reviewPersonRowHtml, reviewPickerListHtml,
+  RV_FLD, RV_LBL, reviewWirePicker,
   reviewAskModalHtml, openReviewAskModal, openReviewReturnModal, openReviewNoteModal,
   reviewWireCards,
 });

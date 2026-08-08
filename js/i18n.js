@@ -2745,7 +2745,7 @@ const STRINGS = {
 
     // ---- INTERNAL REVIEW: the step between writing a redline and sending it ----
     /* Platform wording, so it translates. The RECORD's words for a verdict do
-       not â they are stamped into audit lines and live in REVIEW_VERDICT_RECORD
+       not — they are stamped into audit lines and live in REVIEW_VERDICT_RECORD
        (js/review.js) in English, for the same reason ROLE_LABEL does. */
     rv_v_cleared: 'Cleared to send',
     rv_v_held: 'Held back',
@@ -2757,7 +2757,7 @@ const STRINGS = {
     rv_your_reviewer: 'your reviewer',
     rv_already_open: 'This contract is already with a reviewer. Cancel that review before asking for another.',
     rv_pick_someone: 'Choose who should review this.',
-    rv_nothing_to_review: 'There is nothing to review â nothing unsent of yours, and nothing outstanding from the counterparty.',
+    rv_nothing_to_review: 'There is nothing to review — nothing unsent of yours, and nothing outstanding from the counterparty.',
     rv_no_open_review: 'No internal review is open on this contract.',
     rv_only_reviewer: 'Only {who} can rule on this review.',
     rv_verdict_ours_only: 'Your own unsent changes can only be cleared or held.',
@@ -2803,6 +2803,17 @@ const STRINGS = {
     rv_modal_title: 'Ask a colleague to review this',
     rv_modal_sub: 'They see every change below, clear or hold each one, and hand it back to you. Nothing reaches the counterparty while it is with them.',
     rv_who: 'Who should review it',
+    rv_who_ph: 'Type a name, or paste their email address',
+    rv_who_hint: 'Start typing to search everyone in this workspace — by name or by email.',
+    rv_who_show_all: 'Show the list',
+    rv_who_ok: 'Sending to {who} · {email}',
+    rv_who_no_match: 'Nobody in this workspace matches that. Check the spelling, or paste their email address.',
+    rv_who_not_a_member: '{email} is not a member of this workspace. A reviewer needs a HaTi seat — they have to be able to clear or hold each change, and only they can lift a hold.',
+    rv_who_ambiguous: 'That matches {n} people. Keep typing, or paste the exact email address.',
+    rv_who_is_you: 'You cannot review your own changes. Somebody else has to look at them.',
+    rv_who_is_viewer: '{who} is a Viewer, so they cannot rule on a review. Ask an Admin to change their role first.',
+    rv_who_more_one: '{n} more match — keep typing to narrow it down',
+    rv_who_more_other: '{n} more matches — keep typing to narrow it down',
     rv_no_colleagues: 'There is nobody else in this workspace to ask. Add a colleague in Team & settings first.',
     rv_note_label: 'What do you want them to look at?',
     rv_note_ph: 'e.g. I am not comfortable with the liability cap — is 12 months of fees defensible here?',
@@ -5574,6 +5585,17 @@ const STRINGS = {
     rv_modal_title: 'Be en kollega granska det här',
     rv_modal_sub: 'De ser varje ändring nedan, släpper eller håller kvar var och en och lämnar tillbaka till dig. Inget når motparten medan det ligger hos dem.',
     rv_who: 'Vem ska granska',
+    rv_who_ph: 'Skriv ett namn, eller klistra in e-postadressen',
+    rv_who_hint: 'Börja skriva för att söka bland alla i arbetsytan — på namn eller e-post.',
+    rv_who_show_all: 'Visa listan',
+    rv_who_ok: 'Skickas till {who} · {email}',
+    rv_who_no_match: 'Ingen i arbetsytan matchar det. Kontrollera stavningen, eller klistra in e-postadressen.',
+    rv_who_not_a_member: '{email} är inte medlem i den här arbetsytan. En granskare behöver en plats i HaTi — de måste kunna släppa eller hålla kvar varje ändring, och bara de kan häva ett kvarhållande.',
+    rv_who_ambiguous: 'Det matchar {n} personer. Skriv vidare, eller klistra in den exakta e-postadressen.',
+    rv_who_is_you: 'Du kan inte granska dina egna ändringar. Någon annan måste titta på dem.',
+    rv_who_is_viewer: '{who} är Läsare och kan därför inte avgöra i en granskning. Be en administratör ändra rollen först.',
+    rv_who_more_one: '{n} träff till — skriv vidare för att smalna av',
+    rv_who_more_other: '{n} träffar till — skriv vidare för att smalna av',
     rv_no_colleagues: 'Det finns ingen annan i arbetsytan att fråga. Lägg till en kollega under Team och inställningar först.',
     rv_note_label: 'Vad vill du att de tittar på?',
     rv_note_ph: 't.ex. Jag är osäker på ansvarsbegränsningen — håller 12 månaders arvode här?',
