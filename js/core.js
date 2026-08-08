@@ -4053,9 +4053,17 @@ async function applyNegoProposals(c, r, who){
     const newText=String(p.newText==null?'':p.newText);
     /* Already here. A durable link can send the same round twice and the poller
        retries anything it could not mark applied, so the same ask must not
-       become two fingerprints on the index. */
+       become two fingerprints on the index.
+
+       Matched on the RICH body too, when the proposal carries one: a
+       formatting-only ask has the same text as the clause — and as any other
+       formatting-only ask on it — so a text-only match would swallow a real
+       proposal as a duplicate. Canonical comparison, so serialisation noise
+       does not un-duplicate a genuine retry. */
+    const canonB=h=>{ try{ return window.canonicalRich?canonicalRich(String(h||'')):String(h||''); }catch(_){ return String(h||''); } };
     if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===p.clauseId
-        && x.status==='pending' && String(x.newText||'')===newText)) continue;
+        && x.status==='pending' && String(x.newText||'')===newText
+        && (!p.bodyHtml || canonB(x.bodyHtml)===canonB(p.bodyHtml)))) continue;
     let ch=null;
     try{
       ch=await negoFileChange(c, { clauseId:String(p.clauseId), changeType:type,

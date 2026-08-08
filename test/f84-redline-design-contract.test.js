@@ -432,28 +432,34 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'publishing a round is the owner\'s act; the other chair sends answers back');
   });
 
-  test('and it carries their words instead — on the column\'s own control', async () => {
+  test('the window has no verbs at all — not even seat-relative ones', async () => {
     const p = await asCounterparty();
-    /* The send that used to be asserted here is GONE, and that is the stronger
-       version of this test's own claim. It read "Send Response" and pointed at
-       the counterparty postbox — which on the owner's page is negoHandOver, a
-       turn move recorded as made BY the counterparty. Offering it from a
-       preview meant the owner could produce a record of the other side handing
-       the table back having done nothing. Counterparty View is for checking
-       what crosses the wall; sending is theirs, on their own link. */
+    /* This test used to assert the bulk verb rendered with THEIR words
+       ("Accept all"). Counterparty View is read-only now (Young, 08 Aug 2026
+       — the counterparty-view work order): deciding their asks is theirs to
+       do, from their own link, so the seat-relative label question no longer
+       arises — there is no button to label. The column explains itself
+       instead of going quiet. */
     assert.ok(!/Send Response/.test(headerLabels(p).join(' | ')),
       'the preview seat offers no send — it cannot move the table in their name');
-    assert.match(p.doc.getElementById('nego-bulk-acc').textContent, /Accept all/,
-      'the bulk verb is seat-relative where it actually renders — the column head');
+    assert.equal(p.doc.getElementById('nego-bulk-acc'), null,
+      'no bulk Accept from the window');
+    assert.equal(p.doc.getElementById('nego-bulk-rej'), null,
+      'no bulk Reject either');
+    assert.match(p.doc.getElementById('nego-readonly-why').textContent,
+      /window onto exactly what/, 'the column says why it has no verbs');
   });
 
   test('ONE copy of each batch verb — the header never duplicates the column', async () => {
     /* Two buttons for one act, and only one of them following the seat rule,
        is exactly how the D2 drift happened — so the durable claim is now
-       stronger: there is no second button at all. */
+       stronger: on the owner's seat there is exactly one copy, and on the
+       read-only preview there is none at all. */
+    const own = await page();
+    assert.ok(own.doc.getElementById('nego-bulk-acc'), 'the engine\'s bulk control renders for the owner');
+    assert.equal(own.$('[data-redline-proxy="nego-bulk-acc"]'), null, 'and no proxy shadows it');
     const p = await asCounterparty();
-    assert.ok(p.doc.getElementById('nego-bulk-acc'), 'the engine\'s bulk control renders');
-    assert.equal(p.$('[data-redline-proxy="nego-bulk-acc"]'), null, 'and no proxy shadows it');
+    assert.equal(p.doc.getElementById('nego-bulk-acc'), null, 'and none on the preview');
     assert.equal(p.doc.querySelectorAll('[data-rl-blast]').length,
       p.doc.getElementById('nego-send') ? 1 : 0,
       'the blast identity lives on the engine\'s own send, nowhere else');
@@ -470,7 +476,7 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'no header proxy onto their postbox');
     assert.equal(p.doc.getElementById('nego-send-decisions'), null,
       'and no postbox for it to point at');
-    assert.match(p.doc.querySelector('.nego-index-send .why').textContent, /PREVIEW of their seat/,
+    assert.match(p.doc.getElementById('nego-readonly-why').textContent, /read-only/,
       'the column says what this seat is, rather than going quiet');
   });
 

@@ -5970,6 +5970,194 @@ function reminderSweep() {
 setTimeout(reminderSweep, 30 * 1000).unref?.();
 setInterval(reminderSweep, 12 * 60 * 60 * 1000).unref?.();
 
+/* ---------- the scheduled monthly report email ----------
+   (WORKORDER-monthly-report-email.md.) A short digest of the portfolio, sent
+   once when a calendar month closes, built from the same aggregates the
+   Reports screen reads and delivered down the one existing email path
+   (sendEmail → Resend + outbox). Three deliberate copies of the reminder
+   sweep's shape, because its lessons were paid for:
+
+     · FIRE-ONCE is a keyed row in the reminders table (`monthly-report:<month>`),
+       not a timestamp comparison — atomic, and a restart mid-cycle cannot
+       double-send;
+     · "sent when the month CLOSES", not "sent on the 1st": each sweep asks
+       whether last month's report has gone yet, so a server that was down on
+       the 1st sends on the 2nd instead of skipping a month;
+     · health is RECORDED (`monthlyReportHealth`), and a failing build drops
+       an admin-visible outbox note — a report that quietly stops is the
+       failure mode, exactly as it was for reminders.
+
+   Wording is fixed English: an email is a record (the ROLE_LABEL rule).
+   Contract names inside it are the customer's own text either way. Figures
+   follow the company MARKET (org jurisdiction → currency). */
+const MONTHLY_REPORT_DEFAULTS = { enabled: true, recipients: 'admins' };
+const monthlyReportSettings = () => ({ ...MONTHLY_REPORT_DEFAULTS, ...(getSetting('monthlyReport') || {}) });
+const _mrMonthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+// Local server time, like isoDay — a UTC read a few hours east of Greenwich
+// would close the month a day early (the reminder sweep's own lesson).
+const mrPrevMonth = () => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); d.setMonth(d.getMonth() - 1); return _mrMonthKey(d); };
+const MR_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+const mrMonthName = key => { const [y, m] = String(key).split('-').map(Number); return `${MR_MONTHS[(m || 1) - 1]} ${y}`; };
+
+function mrRecipients() {
+  const s = monthlyReportSettings();
+  if (Array.isArray(s.recipients)) return s.recipients.filter(e => /.+@.+/.test(String(e)));
+  const q = s.recipients === 'all' ? 'SELECT email FROM users' : "SELECT email FROM users WHERE role='admin'";
+  return db.prepare(q).all().map(u => u.email).filter(Boolean);
+}
+
+/* The digest for one closed month. Whole-workspace on purpose — this is the
+   admin's portfolio letter, not a per-user view, and recipients are chosen by
+   an admin under that understanding. */
+function buildMonthlyReport(month) {
+  const cur = (orgJx() || {}).currency || 'KES';
+  const money = n => `${cur} ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
+  const rows = db.prepare('SELECT id,name,counterparty,status,expiry,value,json FROM contracts').all();
+  const parsed = rows.map(r => { let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {} return { r, c }; });
+  const active = rows.filter(r => r.status !== 'Declined');
+  const totalValue = active.reduce((s, r) => s + (Number(r.value) || 0), 0);
+  const byStatus = {};
+  for (const r of active) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+
+  // What moved in the month, read off the audit trail the way the history
+  // screen reads it — never re-derived from today's status alone.
+  const inMonth = at => String(at || '').slice(0, 7) === month;
+  let created = 0, signed = 0;
+  for (const { c } of parsed) {
+    const audit = Array.isArray(c.audit) ? c.audit : [];
+    if (audit.some(a => inMonth(a.at) && (a.action === 'Created' || a.action === 'Uploaded'))) created++;
+    if (audit.some(a => inMonth(a.at) && a.action === 'Signed')) signed++;
+  }
+
+  // What needs attention now: the next 90 days of expiries, and obligations
+  // already overdue. Same normalisation the reminder sweep settled on.
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
+  const expiring = [];
+  for (const { r, c } of parsed) {
+    if (r.status === 'Declined') continue;
+    const exp = dateOnly((c.metadata && c.metadata.expiryDate) || r.expiry || null);
+    if (!exp) continue;
+    const d = daysTo(exp);
+    if (d >= 0 && d <= 90) expiring.push({ name: r.name, id: r.id, exp, d });
+  }
+  expiring.sort((a, b) => a.d - b.d);
+  let overdueOb = 0;
+  for (const { c } of parsed) {
+    for (const o of (Array.isArray(c.obligations) ? c.obligations : [])) {
+      if (o.status === 'done') continue;
+      const due = dateOnly(o.due);
+      if (due && daysTo(due) < 0) overdueOb++;
+    }
+  }
+
+  const org = (getSetting('org') || {}).name || 'your workspace';
+  const app = APP_URL();
+  const statusLine = Object.keys(byStatus).sort()
+    .map(s => `${byStatus[s]} ${s.toLowerCase()}`).join(' · ') || 'none yet';
+  const lines = [
+    `HaTi monthly report — ${mrMonthName(month)} — ${org}`,
+    '',
+    'PORTFOLIO TODAY',
+    `  Active contracts: ${active.length} (${statusLine})`,
+    `  Total value on the book: ${money(totalValue)}`,
+    '',
+    `MOVED IN ${mrMonthName(month).toUpperCase()}`,
+    `  New contracts: ${created} · Signed: ${signed}`,
+    '',
+    'NEEDS ATTENTION',
+    `  Expiring in the next 90 days: ${expiring.length}`,
+    ...expiring.slice(0, 5).map(x => `    - ${x.name} (${x.id}) — expires ${x.exp}, ${x.d} day${x.d === 1 ? '' : 's'} away`),
+    ...(expiring.length > 5 ? [`    …and ${expiring.length - 5} more in the renewal pipeline`] : []),
+    `  Obligations overdue: ${overdueOb}`,
+    '',
+    app ? `Open HaTi for the full picture: ${app}` : 'Open HaTi for the full picture.',
+    'This report goes out automatically when a month closes. An admin can change who receives it, or switch it off, under Team & Settings.',
+  ];
+  return { subject: `HaTi monthly report — ${mrMonthName(month)}`,
+    body: lines.join('\n'),
+    facts: { contracts: active.length, totalValue, created, signed, expiring: expiring.length, overdueOb } };
+}
+
+function recordMonthlyReportRun(patch) {
+  const h = getSetting('monthlyReportHealth') || {};
+  setSetting('monthlyReportHealth', { ...h, lastRunAt: now(), ...patch });
+}
+/* Send the report for one month. The rkey row is claimed BEFORE the send —
+   the same order fire() uses — so a crash mid-send costs one report, never
+   doubles one. `force` (the manual Send-now) bypasses the claim check but
+   still records it, so a manual send also satisfies the schedule. */
+function runMonthlyReport(month, opts = {}) {
+  const key = `monthly-report:${month}`;
+  const claimed = db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key);
+  if (claimed && !opts.force) return { sent: 0, month, alreadySent: true };
+  const to = mrRecipients();
+  if (!to.length) { recordMonthlyReportRun({ lastError: 'no recipients', lastErrorAt: now() }); return { sent: 0, month, noRecipients: true }; }
+  if (!db.prepare('SELECT COUNT(*) n FROM contracts').get().n) {
+    // an empty workspace sends no letter about nothing — but the month is
+    // marked done, so a workspace seeded mid-month is not nagged about the past
+    if (!claimed) db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+    recordMonthlyReportRun({ lastSkipped: month });
+    return { sent: 0, month, skippedEmpty: true };
+  }
+  const report = buildMonthlyReport(month);
+  if (!claimed) db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+  for (const addr of to) sendEmail(addr, report.subject, report.body, 'monthly report');
+  recordMonthlyReportRun({ lastSentMonth: month, lastSentAt: now(), lastSentTo: to.length,
+    lastError: null, lastErrorAt: null });
+  return { sent: to.length, to, month, facts: report.facts };
+}
+function monthlyReportSweep() {
+  try {
+    if (!monthlyReportSettings().enabled) return;
+    runMonthlyReport(mrPrevMonth());
+  } catch (e) {
+    const msg = (e && e.message) || String(e);
+    console.warn('[monthly-report] sweep failed, the report did not go out this cycle:', msg);
+    recordMonthlyReportRun({ lastError: msg, lastErrorAt: now() });
+    try {
+      db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,0,?,?,?)')
+        .run('mr_' + rid(6), 'admin', 'The monthly report did not go out',
+          `Building or sending the monthly report failed this cycle.\n\nReason: ${msg}\n\nIt will be retried on the next sweep; nothing else is affected.`,
+          'system', 'monthly report failure', now());
+    } catch (_) {}
+  }
+}
+// Shortly after boot (so a restart never skips a month-close), then every 6h.
+setTimeout(monthlyReportSweep, 45 * 1000).unref?.();
+setInterval(monthlyReportSweep, 6 * 60 * 60 * 1000).unref?.();
+
+// The admin's window onto it: what it is set to, how the last run went, and a
+// preview of what next month's letter currently says.
+app.get('/api/reports/monthly', auth, admin, (req, res) => {
+  res.json({ settings: monthlyReportSettings(),
+    health: getSetting('monthlyReportHealth') || null,
+    emailConfigured: EMAIL_ON(),
+    nextMonth: mrPrevMonth(),
+    preview: buildMonthlyReport(mrPrevMonth()) });
+});
+app.put('/api/reports/monthly/settings', auth, admin, (req, res) => {
+  const b = req.body || {};
+  const s = monthlyReportSettings();
+  if ('enabled' in b) s.enabled = !!b.enabled;
+  if ('recipients' in b) {
+    const r = b.recipients;
+    const ok = r === 'admins' || r === 'all'
+      || (Array.isArray(r) && r.length && r.every(e => /.+@.+/.test(String(e))));
+    if (!ok) return res.status(400).json({ error: 'recipients must be "admins", "all", or a list of email addresses' });
+    s.recipients = r;
+  }
+  setSetting('monthlyReport', s);
+  res.json({ ok: true, settings: s });
+});
+// Send now, without waiting for the sweep — the same builder, the same path,
+// so what the button sends is what the schedule would have sent.
+app.post('/api/reports/monthly/run', auth, admin, (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String((req.body || {}).month || '')) ? req.body.month : mrPrevMonth();
+  res.json(runMonthlyReport(month, { force: true }));
+});
+
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   // A durable link is never "used up", so marking it applied wholesale would
   // silence every future round. Only the one answer just applied is marked.

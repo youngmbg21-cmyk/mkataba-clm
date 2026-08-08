@@ -259,6 +259,86 @@ const READ = () => {
     await ctx.close();
   }
 
+  /* ---------- FORMATTING-ONLY EDITS FILE (the work order that began on this
+     page). Bold a clause, change no words, walk the two-step save — the change
+     must FILE, wear the formatting-only chip, and carry a truthful summary.
+     Then the refusal that remains: save with nothing changed at all, and the
+     answer must land IN the edit bar, not only in a corner toast. A RICH
+     contract, because a plain-text one has no formatting to promise. */
+  {
+    /* Clause ids are STAMPED, as buildSharePayload's negotiation.baselineBody
+       always carries them — a payload without them re-mints ids on every
+       portal repaint and the filed change loses its clause (which is the
+       fixture bug this comment prevents from coming back, not a product one). */
+    const RICH_BODY = '<h1>Distribution Agreement</h1>'
+      + '<h2 data-clause-id="cl_purp01">1. Purpose</h2><p>The Distributor wholesales wines; the Client purchases for resale.</p>'
+      + '<h2 data-clause-id="cl_term02">2. Term</h2><p>Two (2) years from the effective date.</p>';
+    const rich = { id: 'MK-LIVE-R', name: 'Distribution Agreement — Juno Limited',
+      counterparty: 'Juno Limited', template: 'WH', status: 'Under Review', folder: 'proc',
+      format: 'rich', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],
+      signatures: [], comments: [], changes: [],
+      redlineText: RICH_BODY,
+      negotiation: { round: 1, turn: 'counterparty', turnAt: null,
+        baselineBody: RICH_BODY, baselineText: '', chainHead: null, chainSeq: 0, seq: 0, rounds: [] } };
+    await W.admin.json('/api/contracts/MK-LIVE-R', { method: 'PUT', body: { contract: rich, baseVersion: 0 } });
+    const r = await W.admin.json('/api/shares', { method: 'POST', body: {
+      payload: { kind: 'hati-share', purpose: 'negotiate', org: 'Young', sharedBy: 'Young Mbagaya', contract: rich },
+      recipient: { name: 'Juno Limited', email: 'juno@example.co.ke' }, channel: 'link', purpose: 'negotiate' } });
+    const token = r.token || (r.link || '').split('share=')[1];
+    const ctx = await browser.newContext({ viewport: { width: 1400, height: 950 } });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errors.push(`fmt: ${e.message}`));
+    await page.goto(`${h.base}/#share=t:${token}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+
+    const opened = await page.evaluate(() => {
+      const b = document.querySelector('[data-nego-edit]');
+      if (!b) return false; b.click(); return true;
+    });
+    check('fmt: the editor opens on the counterparty page', opened);
+    await page.waitForTimeout(400);
+    await page.evaluate(() => {
+      const ed = document.querySelector('[data-nego-editor]');
+      // the B button's own result: same words, bold markup
+      ed.innerHTML = ed.innerHTML.replace(/<p>/g, '<p><b>').replace(/<\/p>/g, '</b></p>');
+      document.querySelector('[data-nego-next]').click();
+    });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      const t = document.querySelector('[data-nego-reason]');
+      t.value = 'House style: body text in bold.';
+      t.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('[data-nego-save]').click();
+    });
+    await page.waitForTimeout(900);
+    const filed = await page.evaluate(() => ({
+      cards: [...document.querySelectorAll('[data-nego-card]')].map(e => e.textContent).join(''),
+      chip: !!document.querySelector('.nego-note.fmt'),
+      fmtBody: !!document.querySelector('.nego-fmt-only'),
+    }));
+    check('fmt: the formatting-only change FILED — a card is on the index',
+      /CHG-\d+/.test(filed.cards) && /Draft/.test(filed.cards), filed.cards ? filed.cards.slice(0, 60) : 'no card rendered');
+    check('fmt: the clause wears the formatting-only chip', filed.chip);
+    check('fmt: the document shows the proposed markup, not an unmarked baseline', filed.fmtBody);
+
+    /* And the true no-op: open the OTHER clause, change nothing, file. */
+    const noop = await page.evaluate(async () => {
+      const btns = [...document.querySelectorAll('[data-nego-edit]')];
+      const b = btns[btns.length - 1];
+      if (!b) return null; b.click();
+      await new Promise(r => setTimeout(r, 300));
+      document.querySelector('[data-nego-next]')?.click();
+      await new Promise(r => setTimeout(r, 250));
+      document.querySelector('[data-nego-save]')?.click();
+      await new Promise(r => setTimeout(r, 400));
+      const n = document.querySelector('.nego-edit-bar .nego-nofile');
+      return n ? n.textContent : null;
+    });
+    check('fmt: a save with nothing changed says so IN the bar, beside the button',
+      !!noop && /Nothing changed/.test(noop), noop || 'no inline message rendered');
+    await ctx.close();
+  }
+
   await browser.close();
   await h.stop();
   errors.slice(0, 5).forEach(e => check('no page error', false, e));

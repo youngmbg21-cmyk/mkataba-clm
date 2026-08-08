@@ -31,25 +31,24 @@
 
 5. `WORKORDER-formatting-only-changes.md` — **formatting-only edits (bold,
    italic, underline, lists) must be fileable as tracked changes** (items
-   **FO-1 … FO-5**). Raised 8 Aug 2026 from the counterparty page: the File
-   change button refuses a formatting-only edit because the funnel's no-op
-   guard and the fingerprint both attest to words only. Touches the hash
-   canonical form (hashV bump with backward verification) — do not start
-   casually. Logged only; awaiting Young's go-ahead.
+   **FO-1 … FO-5**). Raised 8 Aug 2026 from the counterparty page. **CLOSED —
+   built 8 Aug 2026**: funnel detection, hashV 3 with v2 back-verification,
+   both renderers, transport dedupe, inline refusal. Proof in f151, f35,
+   live-verify (36/36).
 
 6. `WORKORDER-counterparty-view-readonly.md` — **the owner's Counterparty View
    becomes view-only** (items **CV-1 … CV-4**): no edits, no decisions, no
-   hand-back, no Copilot from the preview seat. Raised 8 Aug 2026. Removes the
-   type-it-in-on-their-behalf route (flagged in CV-4). Logged only; awaiting
-   Young's go-ahead.
+   hand-back, no Copilot from the preview seat. Raised 8 Aug 2026. **CLOSED —
+   built 8 Aug 2026**: readonly mount + engine-level lock; the
+   type-it-in-on-their-behalf route is gone (CV-4, accepted). Proof in f152;
+   f84/f92 updated to the new contract.
 
 7. `WORKORDER-monthly-report-email.md` — **set up the scheduled monthly report
-   email** (items **MR-1 … MR-4**). Raised 8 Aug 2026. Builds on three things
-   the product already has: the Resend outbox, the reminder-sweep scheduler
-   pattern (with health recording), and the Reports screen's aggregates.
-   Carries five scope decisions (**D1–D5**: recipients, contents, timing,
-   language/currency, opt-out) that need Young's answers before any build.
-   Logged only; awaiting Young's go-ahead.
+   email** (items **MR-1 … MR-4**). Raised 8 Aug 2026. **CLOSED — built 8 Aug
+   2026** on the order's own D1–D5 recommendations (admins by default,
+   digest, month-close send, fixed English + market currency, admin-controlled
+   audience). Proof in f153. The D1–D5 answers are settings, changeable any
+   time.
 
 ---
 

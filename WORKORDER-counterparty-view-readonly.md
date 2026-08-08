@@ -3,7 +3,17 @@
 **Raised by:** Young, from hands-on testing on the owner's Negotiate tab
 (Counterparty View toggle), 2026-08-08.
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — logged only. No code written. Do not start until Young says so.
+**Status:** CLOSED — built 2026-08-08 on Young's go-ahead ("implement the work
+jobs"). CV-1..CV-3 landed: the preview mounts readonly (no Direct Edit, no
+accept/reject/bulk verbs, no hand-back postbox or its wiring, no playbook
+pass, no Copilot, no thread composer), the column explains itself
+(readonlyWhy), and the lock exists beneath the sign — wireNegotiationTab
+refuses decide/file on any readonly mount. CV-4's removal is in effect: the
+type-on-their-behalf route is gone; the enteredBy machinery stays for inbound
+links and the Word round-trip. Proof: f152 (4 tests, incl. a click-sweep that
+diffs the record byte-for-byte), f84 and f92 updated to the new contract
+(their counterparty rounds now act through the engine, as applyResponse does),
+full suite 2601/2601.
 **Severity:** Medium-high. Not data loss — everything entered is honestly
 stamped — but the seat offers verbs the owner has decided it must not have.
 

@@ -2,8 +2,19 @@
 
 **Raised by:** Young, 2026-08-08: "set up the scheduled monthly report email."
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — logged only. No code written. Scope questions below need
-Young's answers before any build starts.
+**Status:** CLOSED — built 2026-08-08 on Young's blanket go-ahead ("implement
+the work jobs"), taking this order's own recommendations for D1–D5: admins by
+default with an admin-editable audience (admins / everyone) in Team &
+Settings; a short digest (portfolio, what moved, what needs attention) linking
+into the app; sent when the month CLOSES (checked every 6h, so a server down
+on the 1st sends on the 2nd instead of skipping); fixed-English wording (an
+email is a record) with currency from the company market; recipients are
+admin-controlled rather than per-person opt-out. MR-1..MR-4 landed: the
+builder, the sweep (fire-once key in the reminders table + health +
+failure-to-outbox), GET/PUT/POST admin routes incl. Send now, and the
+Settings card. Proof: f153 (6 tests against the real server and outbox),
+full suite 2601/2601. Change any of the D1–D5 answers any time — they are one
+setting and a small wording edit, not a rebuild.
 
 ---
 

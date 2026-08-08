@@ -675,12 +675,24 @@ function negoNextId(c){
    change, these exact words before and after, proposed by this party at this
    moment, following THIS predecessor.
 
-   The canonical string is settled here and stamped `hashV: 2` on every record,
-   so a future change to it is detectable rather than a silent verification
-   failure. Its fields, in order:
+   The canonical string is settled here and stamped with its `hashV` on every
+   record, so a future change to it is detectable rather than a silent
+   verification failure. v3 fields, in order:
 
      contractRef | clauseId | changeType | oldText | newText
-                 | author | createdAt | prevChangeHash
+                 | author | createdAt | prevChangeHash | bodyHtml
+
+   v3 exists because of formatting-only changes: two proposals with identical
+   words and different formatting are different asks, and a fingerprint that
+   attests to words alone cannot tell them apart. The rich body is hashed AS
+   STORED — the verbatim string, never re-sanitised or re-serialised at verify
+   time — so a later change to the sanitiser cannot break an old record's own
+   verification. (That also means a stored bodyHtml must never be mutated after
+   filing; a revision issues a new hash instead.)
+
+   Records written under v2 (no bodyHtml field) keep verifying forever:
+   verification recomputes each record with the version it was WRITTEN under,
+   read off the record's own hashV stamp. New issuances are always v3.
 
    Two deliberate exclusions. STATUS is not in it — a change's hash must not
    move when it is accepted, rejected, discussed or reopened, or it could not be
@@ -698,9 +710,10 @@ function negoNextId(c){
    never status order. A revision of a pending change is an issuance like any
    other, so a revised change's new hash chains onto its own prior wording, and
    every earlier wording stays recoverable from the chain. */
-const NEGO_HASH_V = 2;
+const NEGO_HASH_V = 3;
 function negoHashInput(contractRef, iss){
-  return ['hati-change-v2',
+  const v = Number(iss.hashV) || NEGO_HASH_V;
+  const fields = [
     String(contractRef == null ? '' : contractRef),
     String(iss.clauseId || ''),
     String(iss.changeType || ''),
@@ -709,7 +722,10 @@ function negoHashInput(contractRef, iss){
     String(iss.author || ''),
     String(iss.createdAt || ''),
     String(iss.prevChangeHash || ''),
-  ].join('\n');
+  ];
+  if (v >= 3) return ['hati-change-v3', ...fields,
+    String(iss.bodyHtml == null ? '' : iss.bodyHtml)].join('\n');
+  return ['hati-change-v2', ...fields].join('\n');
 }
 async function negoHash(contractRef, iss){
   return '0x' + await sha256(negoHashInput(contractRef, iss));
@@ -778,10 +794,14 @@ async function verifyChangeChain(c){
   let omitted = 0;                       // links this copy was never given (see below)
   const lastOf = new Map();              // and the previous hash of each change's own history
   for (const iss of list){
-    if (iss.hashV !== NEGO_HASH_V)
+    /* Each record verifies under the format it was WRITTEN under — v2 records
+       predate the rich-body field and must keep verifying after v3 shipped, or
+       bumping the format would have silently accused every existing contract
+       of tampering. negoHashInput reads the record's own hashV stamp. */
+    if (iss.hashV !== 2 && iss.hashV !== NEGO_HASH_V)
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
         reason: 'unknown-hash-version',
-        detail: `#${iss.id} was written under hash format v${iss.hashV || 1}; this build verifies v${NEGO_HASH_V}` };
+        detail: `#${iss.id} was written under hash format v${iss.hashV || 1}; this build verifies v2 and v${NEGO_HASH_V}` };
     /* A revision must follow its own previous wording; anything else must
        follow whatever was issued immediately before it. Rebuilt here from the
        stored records rather than trusted, so a reordered or removed issuance
@@ -909,6 +929,31 @@ function negoSummariseOps(changeType, ops, oldText, newText){
    is a counter-proposal to a settled point, and it gets a new id in the next
    round. Quietly folding it into the decided change would rewrite what the
    other side agreed to. */
+/* Whether a text-noop edit genuinely moved the FORMATTING. Only meaningful on
+   a rich contract — a plain-text document has no formatting to move, and its
+   accept path flattens to text, so a formatting-only ask there would be a
+   promise the document cannot keep. The comparison is canonical (attribute
+   order, whitespace, empties all normalised), so an editor that merely
+   re-serialised the same markup still reads as unchanged. */
+function _negoFormattingMoved(c, draft, live){
+  if (!draft.bodyHtml) return false;
+  if (!(window.isRich && window.canonicalRich && isRich(c.format))) return false;
+  const canon = h => { try{ return canonicalRich(String(h || '')); }catch(_){ return String(h || ''); } };
+  const cl = window.negoClauseById ? negoClauseById(c, draft.clauseId) : null;
+  const base = (cl && cl.bodyHtml) ? canon(cl.bodyHtml) : '';
+  if (!base) return false;
+  const want = canon(draft.bodyHtml);
+  if (want === base) return false;                              // truly nothing changed
+  if (live && canon(live.bodyHtml || '') === want) return false; // an empty revision of the live ask
+  return true;
+}
+
+/* The record's own words for a formatting-only ask. A RECORD, not a label:
+   stamped into summaries and audit lines, so it keeps English like every other
+   recorded string (roleName vs ROLE_LABEL — same rule). The screens translate
+   their own chip through i18t instead. */
+const NEGO_FMT_ONLY_SUMMARY = 'Formatting changed — the wording is unchanged';
+
 async function negoFileChange(c, draft, opts = {}){
   /* ---------- AN EXECUTED CONTRACT TAKES NO NEW CHANGES ----------
      The signed door in negoResolve refused to DECIDE on an executed contract
@@ -991,11 +1036,24 @@ async function negoFileChange(c, draft, opts = {}){
 
   /* A no-op produces NO record. Saving a clause you looked at and did not
      change must not file a fingerprint against it — an index full of empty
-     changes is an index nobody reads. */
-  if (draft.changeType === 'modify' && window.redlineIsNoop && redlineIsNoop(ops)) return null;
+     changes is an index nobody reads.
 
+     UNLESS THE FORMATTING MOVED. The ops are a diff over the TEXT projection,
+     and bold, italics, underline and list wrapping do not change the text — so
+     for years a formatting-only edit was indistinguishable from no edit at
+     all, and File change refused it with a toast nobody saw. The rich forms
+     are compared here (canonicalRich: "formatting is part of the document"),
+     and an edit whose words are unchanged but whose markup differs from the
+     round baseline files as a real change, flagged `formattingOnly` so every
+     renderer can say what kind of ask it is. Equal rich forms still refuse —
+     that is the true no-op this guard has always existed for. */
   const live = c.changes.find(x => x.clauseId === draft.clauseId
     && x.status === 'pending' && x.authorSide === side && x.roundN === roundN);
+  let formattingOnly = false;
+  if (draft.changeType === 'modify' && window.redlineIsNoop && redlineIsNoop(ops)){
+    formattingOnly = _negoFormattingMoved(c, draft, live);
+    if (!formattingOnly) return null;
+  }
 
   if (live){
     /* A revision: same slot, new content, new link in the chain. The previous
@@ -1014,9 +1072,13 @@ async function negoFileChange(c, draft, opts = {}){
     live.bodyHtml = draft.bodyHtml != null ? draft.bodyHtml : live.bodyHtml;
     live.headingText = draft.headingText != null ? draft.headingText : live.headingText;
     live.ops = ops;
+    /* Recomputed on every revision: a formatting-only ask revised into a
+       wording change stops being formatting-only, and the flag must follow. */
+    live.formattingOnly = formattingOnly;
     live.createdAt = at;
     live.updatedAt = at;
-    live.summary = String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText);
+    live.summary = String(opts.summary || '').trim()
+      || (formattingOnly ? NEGO_FMT_ONLY_SUMMARY : negoSummariseOps(draft.changeType, ops, oldText, newText));
     await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });
     if (window.logAudit) logAudit(c, 'Negotiation',
       `#${live.id} revised by ${author} — “${live.summary}” on ${live.clauseLabel || live.clauseId};` +
@@ -1044,8 +1106,10 @@ async function negoFileChange(c, draft, opts = {}){
     enteredBy: enteredBy || null,
     createdAt: at, updatedAt: at,
     roundN,
+    formattingOnly,
     clauseLabel: draft.clauseLabel || negoClauseLabel(cl) || null,
-    summary: String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText),
+    summary: String(opts.summary || '').trim()
+      || (formattingOnly ? NEGO_FMT_ONLY_SUMMARY : negoSummariseOps(draft.changeType, ops, oldText, newText)),
     note: opts.note || null,
     /* WHY THE ASKER ASKED, IN THEIR OWN WORDS — and deliberately not `note`.
        `note` is provenance: "Copilot — Simplify", written by the

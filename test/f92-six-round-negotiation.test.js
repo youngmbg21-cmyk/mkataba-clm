@@ -147,36 +147,48 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.ok(!t.$('[data-rl-blast]'), 'nothing unsent, no flashing control');
 
     /* ================= ROUND 2 — the counterparty answers ================= */
+    /* COUNTERPARTY VIEW IS A WINDOW NOW (Young, 08 Aug 2026 — the
+       counterparty-view work order). It used to be their live seat, and this
+       round used to be driven through it: Accept pressed on their cards, the
+       counter-edit typed in their name. Every one of those verbs is gone from
+       the preview — checking what they see and acting as them are different
+       things. So the story is unchanged but the HANDS are honest: what the
+       other side does is made through the engine, exactly as applyResponse
+       makes it when their real answer arrives from their own link, and the
+       preview is asserted verb-less. */
     t.view('counterparty');
     await t.pause();
     // The eye banner, not the wall's internal counts.
     assert.match(t.$('#rl-banner').textContent, /exactly what/, 'G1: the view wall banner');
     assert.ok(!/The wall:/.test(t.$('#rl-banner').textContent));
-    // Their view of our asks: Accept green, Reject red — and no Send.
     const [ask1, ask2] = win.negoChanges(c).map(x => x.id);
-    assert.ok(t.card(ask1).querySelector('.rl-acc') && t.card(ask1).querySelector('.rl-rej'),
-      'incoming asks carry Accept/Reject');
+    assert.ok(!t.card(ask1).querySelector('.rl-acc') && !t.card(ask1).querySelector('.rl-rej'),
+      'the preview offers no Accept/Reject — deciding their asks is theirs to do');
     assert.ok(!t.card(ask1).querySelector('.rl-sent'),
       'the amber Sent state is the AUTHOR\'s, not the decider\'s');
+    assert.ok(!t.$('[data-nego-edit]'), 'no Direct Edit from the preview');
+    assert.match(t.$('#nego-readonly-why').textContent, /window onto exactly what/,
+      'the column says why it has no verbs');
     /* The Copilot provenance label is not painted on a card at all now (F137),
        so it cannot cross the toggle. Asserted on the TEXT rather than on the
        old .rl-card-note element, which would pass by simply not existing. */
     assert.ok(!/Copilot —/.test(t.$('#rl-changes').textContent),
       'G1: the provenance label is not on the counterparty\'s cards');
 
-    t.card(ask1).querySelector('[data-nego-accept]').click();   // accept Net-45
-    await t.pause();
-    t.card(ask2).querySelector('[data-nego-reject]').click();   // reject 30-day notice
-    await t.pause();
-    // Counter-edit on the rejected clause, as them.
-    await t.edit(/Termination/, '<p>Either party may terminate by giving not less than forty-five (45) days written notice.</p>');
+    // Their answers and their counter-ask, as their own link files them.
+    win.negoResolve(c, ask1, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' });   // accept Net-45
+    win.negoResolve(c, ask2, 'rejected', { side: 'counterparty', by: 'Erik Lindqvist' });   // reject 30-day notice
+    const termCl = win.negoClauseList(c).find(x => /Termination/.test(x.headingText));
+    await win.negoEditClause(c, termCl.clauseId,
+      '<p>Either party may terminate by giving not less than forty-five (45) days written notice.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist' });
     win.renderRedline();
+    await t.pause();
     const counter = win.negoChanges(c).find(x => x.authorSide === 'counterparty');
     assert.ok(counter, 'the counter-ask is on the record in their name');
-    assert.ok(t.card(counter.id).querySelector('.rl-send'),
-      'G2: their own draft carries Send — nobody rules on their own ask');
-    assert.ok(!t.card(counter.id).querySelector('.rl-acc'),
-      'and no Accept on their own ask');
+    assert.ok(t.card(counter.id), 'and the preview shows it');
+    assert.ok(!t.card(counter.id).querySelector('.rl-send') && !t.card(counter.id).querySelector('.rl-acc'),
+      'with no verbs on it — the window does not act');
 
     /* Hand the table back.
 
@@ -235,18 +247,18 @@ describe('F92 — the six-round negotiation, end to end', () => {
     await t.pause();
     assert.ok(!t.text().includes('walk if they push past'),
       'G1: the internal note never surfaces in their thread column');
-    const reply = t.doc.getElementById('nego-ti-' + storage.id);
-    assert.ok(reply, 'the visible thread on the ask still takes replies');
-    // Say it in the open: press Shared, then send.
-    [...t.$$(`[data-nego-vis][data-for="${storage.id}"]`)]
-      .find(b => b.getAttribute('data-nego-vis') === 'shared').click();
-    reply.value = '90 days works if the premium rate applies after 60.';
-    t.$(`[data-nego-send="${storage.id}"]`).click();
+    /* The preview takes no replies either — a message posted from here would
+       be recorded as said BY them. Their reply arrives through the engine,
+       as their own page files it. */
+    assert.equal(t.doc.getElementById('nego-ti-' + storage.id), null,
+      'no composer on the window');
+    win.negoPostComment(c, storage.id, '90 days works if the premium rate applies after 60.',
+      { side: 'counterparty', visibility: 'shared', by: 'Erik Lindqvist' });
     await t.pause();
     win.renderRedline();
     const thread = win.negoChanges(c).find(x => x.id === storage.id).thread;
     assert.equal(thread.filter(m => m.visibility === 'shared').length, 1, 'the reply travelled shared');
-    t.card(storage.id).querySelector('[data-nego-accept]').click();
+    win.negoResolve(c, storage.id, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' });
     await t.pause();
     // the preview seat has no send — see the note in round 2
     win.negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });
@@ -309,7 +321,9 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.equal(win.negoTurn(c), 'counterparty');
     t.view('counterparty');
     await t.pause();
-    t.card(gl.id).querySelector('[data-nego-accept]').click();
+    assert.ok(!t.card(gl.id).querySelector('[data-nego-accept]'),
+      'the window still offers no verbs in round six');
+    win.negoResolve(c, gl.id, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' });
     await t.pause();
     // the preview seat has no send — see the note in round 2
     win.negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });

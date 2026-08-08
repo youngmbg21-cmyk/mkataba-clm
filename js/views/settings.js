@@ -293,6 +293,24 @@ function renderTeam(){
         </section>
 
         <section style="${cardStyle}">
+          <h4 style="${h4Style}">${i18t('set_monthly_report')}</h4>
+          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('set_monthly_report_sub')}</p>
+          ${API_MODE()&&isAdmin()?`
+          <div id="mr-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text);cursor:pointer;margin-bottom:8px">
+            <input id="mr-enabled" type="checkbox" style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+            <span>${i18t('set_monthly_report_on')}</span></label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="mr-recipients" aria-label="${i18t('set_mr_recipients_aria')}" style="min-width:170px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:7px 10px;font:inherit;font-size:12.5px;color:inherit;outline:none">
+              <option value="admins">${i18t('set_mr_admins')}</option>
+              <option value="all">${i18t('set_mr_all')}</option>
+            </select>
+            <button id="mr-send-now" style="${secondaryBtn}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_mr_send_now')}</button>
+          </div>`
+          :`<p style="font-size:11px;color:var(--color-neutral-600)">${API_MODE()?i18t('set_mr_admin_only'):i18t('set_mr_needs_server')}</p>`}
+        </section>
+
+        <section style="${cardStyle}">
           <h4 style="${h4Style}">${i18t('set_copilot_engine')}</h4>
           <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('set_engine_sub')}</p>
           <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">${i18t('set_checking')}</div>
@@ -547,6 +565,40 @@ function renderTeam(){
     document.getElementById('rem-run')?.addEventListener('click',async()=>{
       try{ const r=await api('reminders/run','POST',{}); toast(i18tn('set_checked_queued',r.queued,{checked:r.checked,n:r.queued})); loadOutbox(); }
       catch(e){ toast(e.message,'err'); }
+    });
+    /* ---- the monthly report card (MR work order) ----
+       Status, the on/off switch and the audience, read from and written to the
+       server's own setting — the sweep that sends the report runs there, so
+       this card is a remote control, not a second copy of the rule. */
+    const loadMonthly=async()=>{
+      const st=document.getElementById('mr-status'); if(!st) return;
+      try{ const r=await api('reports/monthly');
+        const h=r.health||{};
+        st.innerHTML=[
+          r.emailConfigured?'':`<span style="color:var(--st-amber-fg)">${i18t('set_email_not_configured')}</span>`,
+          h.lastSentMonth?i18t('set_mr_last_sent',{month:h.lastSentMonth,n:h.lastSentTo||0}):i18t('set_mr_none_yet'),
+          h.lastError?`<span style="color:var(--st-ruby-dot)">${i18t('set_mr_last_error',{err:esc(h.lastError)})}</span>`:'',
+        ].filter(Boolean).join(' · ');
+        const en=document.getElementById('mr-enabled'); if(en) en.checked=!!r.settings.enabled;
+        const rec=document.getElementById('mr-recipients');
+        if(rec&&typeof r.settings.recipients==='string') rec.value=r.settings.recipients;
+      }catch(e){ st.textContent=e.message||'—'; }
+    };
+    setTimeout(loadMonthly,80);
+    document.getElementById('mr-enabled')?.addEventListener('change',async e=>{
+      try{ await api('reports/monthly/settings','PUT',{enabled:e.target.checked});
+        toast(e.target.checked?i18t('set_mr_on'):i18t('set_mr_off')); }
+      catch(err){ toast(err.message,'err'); loadMonthly(); }
+    });
+    document.getElementById('mr-recipients')?.addEventListener('change',async e=>{
+      try{ await api('reports/monthly/settings','PUT',{recipients:e.target.value}); toast(i18t('set_mr_saved')); }
+      catch(err){ toast(err.message,'err'); loadMonthly(); }
+    });
+    document.getElementById('mr-send-now')?.addEventListener('click',async()=>{
+      try{ const r=await api('reports/monthly/run','POST',{});
+        toast(r.sent?i18tn('set_mr_sent_n',r.sent,{n:r.sent,month:r.month}):i18t('set_mr_nothing_sent'));
+        loadMonthly(); loadOutbox(); }
+      catch(err){ toast(err.message,'err'); }
     });
   }
 

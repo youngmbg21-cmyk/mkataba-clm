@@ -2,7 +2,19 @@
 
 **Raised by:** Young, from hands-on testing on the counterparty's page, 2026-08-08.
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — logged only. No code written. Do not start until Young says so.
+**Status:** CLOSED — built 2026-08-08 on Young's go-ahead ("implement the work
+jobs"). All items landed: FO-1 (funnel detection via canonicalRich, flagged
+`formattingOnly`), FO-2 (hashV 3 covering the stored rich body verbatim; v2
+records verify under v2 — proven on a mixed chain), FO-3 (both document
+renderers show the proposed markup with a "Formatting only" chip and a truthful
+summary — negoDocHtml AND redlineDocHtml, the second found live in Chromium
+when the first alone left the portal blank), FO-4 (transport dedupe compares
+rich bodies; the reason still travels), FO-5 (the true-no-op refusal now lands
+inline in the edit bar). Proof: f151 (12 tests), f35 updated, live-verify
+extended (36/36 against the real server and portal), full suite 2601/2601.
+Known limit, deliberate: the Word tracked-changes export draws from text ops,
+so a formatting-only ask exports as unchanged text there — the record and every
+web surface carry it fully.
 **Severity:** Medium. The button appears dead, but nothing is lost or corrupted —
 the app refuses the filing on purpose and says so only in a fleeting toast.
 
