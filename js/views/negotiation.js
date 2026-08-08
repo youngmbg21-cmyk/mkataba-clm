@@ -2096,6 +2096,10 @@ function negoLiveCardsHtml(c, opts){
                 you says nothing at all. It is a pill in the top row now, and the
                 card carries an edge. */}
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
+        ${''/* Both renderers carry it — the project's own duplication rule. */}
+        ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px"
+          title="${_ne(i18t('ng_revised_title'))}"><span aria-hidden="true">&#9998;</span> ${
+          i18t('ng_revised_by_after',{who:_ne(ch.revisedBy),author:_ne(ch.author)})}</div>` : ''}
         ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
           <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
@@ -8932,7 +8936,10 @@ function redlineChangeCardsHtml(c, opts = {}){
       .filter(Boolean).map(_ne).join(' &middot; ');
     /* The same tooltip the marked wording in the document carries, so hovering
        either one answers the same question with the same words. */
-    const lastBy = String(ch.author || ch.by || '').trim();
+    /* The person who last MOVED the wording, which is the reviser where there is
+       one. It used to read the author unconditionally and so claimed the
+       original author had made a change somebody else made. */
+    const lastBy = String((side !== 'counterparty' && ch.revisedBy) || ch.author || ch.by || '').trim();
     const tip = lastBy ? `Last updated by ${lastBy}` : '';
     /* ---- THE PROVENANCE LABEL IS NOT PAINTED ----
        `ch.note` on a Copilot-filed change is provenance — "Copilot — Edit",
@@ -8975,6 +8982,23 @@ function redlineChangeCardsHtml(c, opts = {}){
     const behalfBlock = ch.enteredBy
       ? `<div class="rl-card-behalf" title="${i18t('ng_typed_on_behalf')}">`
         + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_entered_by_on_behalf',{who:_ne(ch.enteredBy),author:_ne(ch.author)})}</div>`
+      : '';
+    /* ---- AND WHO REWROTE IT, WHEN THAT IS NOT WHO ASKED ----
+       The same idea as the stamp above, one step along: enteredBy says who
+       TYPED an ask filed in somebody else's name, this says who last changed
+       the WORDING of an ask that stays in its author's name. It shows up when a
+       colleague reviewing a redline simply corrects it, which is the common and
+       useful thing for them to do — and which, until this line existed, left
+       the card attributing their words to the person who raised the change. */
+    /* OUR SEAT ONLY. The name of a colleague who corrected our wording is an
+       internal fact, exactly like the note the reviewer left on it — the
+       payload does not carry `revisedBy` at all, so the counterparty's real
+       page could never draw this, and Counterparty View is supposed to show
+       what they see rather than one thing more. Caught by f158 before it
+       shipped, on the preview rather than in the payload. */
+    const revisedBlock = (side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author)
+      ? `<div class="rl-card-behalf" title="${_nea(i18t('ng_revised_title'))}">`
+        + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_revised_by_after',{who:_ne(ch.revisedBy),author:_ne(ch.author)})}</div>`
       : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
@@ -9100,7 +9124,7 @@ function redlineChangeCardsHtml(c, opts = {}){
         <span class="rl-card-why-k">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
         <span class="nego-why-clamp">${_ne(v.note)}</span></div>`;
     })();
-    const body = `<div class="rl-card-body">${behalfBlock}${whyBlock}${rvNoteBlock}${
+    const body = `<div class="rl-card-body">${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${
       window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"

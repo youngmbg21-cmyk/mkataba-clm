@@ -1077,6 +1077,32 @@ async function negoFileChange(c, draft, opts = {}){
     live.formattingOnly = formattingOnly;
     live.createdAt = at;
     live.updatedAt = at;
+    /* ---------- WHO ACTUALLY WROTE THE WORDING THAT IS THERE NOW ----------
+       A revision keeps the change's id, its slot and its AUTHOR — the ask is
+       still the person's who raised it. What it did not keep was any record on
+       the change itself of who had rewritten it, so a colleague reviewing a
+       redline could open the clause, retype it, and the card would go on
+       attributing their words to the original author. The audit line named them
+       correctly; the thing anybody actually looks at did not.
+
+       That matters most in exactly the case it was found in: an internal
+       reviewer correcting the wording they are being asked to clear. "Who wrote
+       this" is not a detail on a document heading for signature.
+
+       Recorded HERE, in the funnel, so every route inherits it — the direct
+       edit, the clause library, Copilot, the playbook and the Word round-trip
+       all arrive at this line without knowing they need to.
+
+       CLEARED when the author revises their own ask again: the wording is
+       theirs once more, and a stale "revised by" would be a claim about the
+       present that stopped being true. */
+    if (String(author) !== String(live.author)){
+      live.revisedBy = author;
+      live.revisedAt = at;
+    } else {
+      delete live.revisedBy;
+      delete live.revisedAt;
+    }
     live.summary = String(opts.summary || '').trim()
       || (formattingOnly ? NEGO_FMT_ONLY_SUMMARY : negoSummariseOps(draft.changeType, ops, oldText, newText));
     await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });

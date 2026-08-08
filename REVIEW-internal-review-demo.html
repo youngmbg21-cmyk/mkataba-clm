@@ -147,6 +147,7 @@
   .diff del{color:var(--hold);text-decoration:line-through;text-decoration-thickness:1px}
   .diff ins{color:var(--clear);text-decoration:none;font-weight:650}
   .said{border-left:2px solid var(--warn-line);background:var(--warn-soft);border-radius:0 6px 6px 0;padding:7px 10px;font-size:12.5px;line-height:1.45;color:var(--ink)}
+  .revby{font-size:12px;color:var(--ink-faint);display:flex;gap:6px;align-items:baseline}
   .said b{display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--warn);margin-bottom:2px}
   .verbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:9px;border-top:1px dashed var(--rule)}
   .verbs-k{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint)}
@@ -392,15 +393,15 @@
         { id:'CHG-004', side:'ours', clause:'Clause 4 · Payment Terms',
           summary:'Payment terms extended from Net-30 to Net-45',
           was:'payable within thirty (30) days', now:'payable within forty-five (45) days',
-          sent:false, hash:'a1', review:null },
+          sent:false, hash:'a1', review:null, author:'Wanjiru Kamau' },
         { id:'CHG-005', side:'ours', clause:'Clause 6 · Liability',
           summary:'Liability cap removed',
           was:'capped at the fees paid in the preceding twelve months', now:'unlimited',
-          sent:false, hash:'b1', review:null },
+          sent:false, hash:'b1', review:null, author:'Wanjiru Kamau' },
         { id:'CHG-003', side:'theirs', clause:'Clause 5 · Storage Conditions',
           summary:'Storage term reduced to 90 days with extended-stay premium',
           was:'stored for up to one hundred and eighty (180) days', now:'stored for up to ninety (90) days',
-          sent:true, hash:'c1', review:null },
+          sent:true, hash:'c1', review:null, author:'Erik Lindqvist' },
       ],
     };
   }
@@ -526,15 +527,32 @@
     render();
   }
 
-  function revise(id){
+  /* ---- WHO REWROTE IT ----
+     The review itself is feedback only: clear, hold, advise, note. But a
+     reviewer is an ordinary colleague with editing rights, and correcting the
+     cap beats writing "make it 24 months" and waiting a round. When they do,
+     the change keeps its number AND ITS AUTHOR — the ask is still the person's
+     who raised it — and gains a note of who rewrote the words. Without that the
+     card goes on attributing their wording to you. */
+  function revise(id, by){
     var c = S.changes.filter(function(x){ return x.id === id; })[0];
     if (!c || c.sent) return;
-    c.now = c.id === 'CHG-005' ? 'unlimited, save for wilful misconduct'
-          : 'payable within ninety (90) days';
-    c.summary = c.id === 'CHG-005' ? 'Liability cap removed, with a carve-out for wilful misconduct'
-          : 'Payment terms extended from Net-30 to Net-90';
+    var who = by || PEOPLE.you;
+    if (who === PEOPLE.boss){
+      c.now = 'capped at twenty-four (24) months of fees';
+      c.summary = 'Liability cap set at 24 months, not removed';
+    } else {
+      c.now = c.id === 'CHG-005' ? 'unlimited, save for wilful misconduct'
+            : 'payable within ninety (90) days';
+      c.summary = c.id === 'CHG-005' ? 'Liability cap removed, with a carve-out for wilful misconduct'
+            : 'Payment terms extended from Net-30 to Net-90';
+    }
     c.hash = c.hash + '+';
-    record(PEOPLE.you, '#' + id + ' revised by ' + PEOPLE.you + ' — “' + c.summary + '”');
+    /* Cleared when the author takes the wording back — a stale "revised by"
+       would be a claim about the present that stopped being true. */
+    if (who !== c.author) c.revisedBy = who; else delete c.revisedBy;
+    if (who === PEOPLE.boss) S.done.bossEdited = true;
+    record(who, '#' + id + ' revised by ' + who + ' — “' + c.summary + '”');
     S.done.revised = true;
     /* Both directions are the same principle — when in doubt, nothing leaves —
        so both are said in the colour that means "look at this again". */
@@ -634,6 +652,10 @@
        reviewSeatShowsReview() applies. */
     if (S.seat !== 'cp' && c.review && c.review.note)
       bits.push('<div class="said"><b>' + esc(c.review.by) + ' said</b>' + esc(c.review.note) + '</div>');
+    /* An internal name, so it never appears on the counterparty's seat. */
+    if (S.seat !== 'cp' && c.revisedBy && c.revisedBy !== c.author)
+      bits.push('<div class="revby">&#9998; ' + esc(c.revisedBy) + ' rewrote this wording — '
+        + esc(c.author) + ' proposed the change</div>');
 
     var verbs = [];
     if (S.seat === 'boss' && S.review && inOpen(c)){
@@ -647,6 +669,10 @@
         verbs.push(vb(c, 'advise-discuss', 'Advise: discuss', ''));
       }
       verbs.push('<button class="vbtn" data-note="' + esc(c.id) + '" type="button">Note</button>');
+      /* Not part of the review — this is the ordinary editing right any
+         colleague has, shown here because it is the question everybody asks
+         about this feature. */
+      if (mine) verbs.push('<button class="vbtn" data-revise-boss="' + esc(c.id) + '" type="button">Rewrite it yourself</button>');
     } else if (S.seat === 'you' && mine && !c.sent){
       verbs.push('<span class="verbs-k">Your ask</span>');
       verbs.push('<button class="vbtn" data-revise="' + esc(c.id) + '" type="button">Rewrite the wording</button>');
@@ -763,6 +789,7 @@
     { k:'sawCp',      t:'Switch to <b>Nordfrakt</b> and look for the held change.' },
     { k:'blocked',    t:'Turn the rule on in the panel below, then try to send with something unreviewed.' },
     { k:'revised',    t:'Rewrite a held change and watch the hold survive it.' },
+    { k:'bossEdited', t:'As <b>Achieng</b>, press <b>Rewrite it yourself</b> and see who the card credits.' },
   ];
 
   function renderTry(){
@@ -972,6 +999,8 @@
     if (nt){ noteModal(nt.getAttribute('data-note')); return; }
     var rv = t.closest('[data-revise]');
     if (rv){ revise(rv.getAttribute('data-revise')); return; }
+    var rb = t.closest('[data-revise-boss]');
+    if (rb){ revise(rb.getAttribute('data-revise-boss'), PEOPLE.boss); return; }
   });
 
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
