@@ -29,6 +29,20 @@
    branch `feature/pdf-upload`, own fixtures, own stop conditions) and does not
    interact with Stages 0–9.
 
+5. `WORKORDER-formatting-only-changes.md` — **formatting-only edits (bold,
+   italic, underline, lists) must be fileable as tracked changes** (items
+   **FO-1 … FO-5**). Raised 8 Aug 2026 from the counterparty page: the File
+   change button refuses a formatting-only edit because the funnel's no-op
+   guard and the fingerprint both attest to words only. Touches the hash
+   canonical form (hashV bump with backward verification) — do not start
+   casually. Logged only; awaiting Young's go-ahead.
+
+6. `WORKORDER-counterparty-view-readonly.md` — **the owner's Counterparty View
+   becomes view-only** (items **CV-1 … CV-4**): no edits, no decisions, no
+   hand-back, no Copilot from the preview seat. Raised 8 Aug 2026. Removes the
+   type-it-in-on-their-behalf route (flagged in CV-4). Logged only; awaiting
+   Young's go-ahead.
+
 ---
 
 ## What this document is
