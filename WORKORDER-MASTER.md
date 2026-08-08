@@ -43,6 +43,14 @@
    type-it-in-on-their-behalf route (flagged in CV-4). Logged only; awaiting
    Young's go-ahead.
 
+7. `WORKORDER-monthly-report-email.md` — **set up the scheduled monthly report
+   email** (items **MR-1 … MR-4**). Raised 8 Aug 2026. Builds on three things
+   the product already has: the Resend outbox, the reminder-sweep scheduler
+   pattern (with health recording), and the Reports screen's aggregates.
+   Carries five scope decisions (**D1–D5**: recipients, contents, timing,
+   language/currency, opt-out) that need Young's answers before any build.
+   Logged only; awaiting Young's go-ahead.
+
 ---
 
 ## What this document is
