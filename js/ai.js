@@ -919,18 +919,18 @@ function aiAnswer(qRaw){
     const exp=cs.filter(c=>c.expiry && c.status!=='Declined')
       .map(c=>({c,d:Math.ceil((new Date(c.expiry+'T00:00:00')-Date.now())/86400000)}))
       .filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
-    if(!exp.length) return { text:`Nothing in the active book lapses in the next 90 days.` };
+    if(!exp.length) return { text:`<span class="ai-tone ai-tone-pos">Nothing in the active book lapses in the next 90 days.</span>` };
     const soon=exp.filter(x=>x.d<=30).length;
-    return { text:`<strong>${exp.length} contract${exp.length===1?'':'s'}</strong> lapse within 90 days${soon?`, including <strong>${soon} inside 30 days</strong>`:''}. Closest first — ${exp[0].c.name} with ${exp[0].c.counterparty} in <strong>${exp[0].d} days</strong>:`, cards:aiCards(exp.map(x=>x.c)) };
+    return { text:`<strong>${exp.length} contract${exp.length===1?'':'s'}</strong> lapse within 90 days${soon?`, including <span class="ai-tone ai-tone-warn"><strong>${soon} inside 30 days</strong></span>`:''}. Closest first — ${exp[0].c.name} with ${exp[0].c.counterparty} in <strong>${exp[0].d} days</strong>:`, cards:aiCards(exp.map(x=>x.c)) };
   }
   // 1b) risk / findings / scan queries
   if(has('risk','finding','findings','issue','issues','problem','scan','red flag','exposure')){
     const scanned=cs.filter(c=>c.scan);
     if(!scanned.length) return { text:`No contracts have been scanned yet. Open any contract and hit <strong>${i18t('ai_run_scan')}</strong> in the workspace — I’ll check its clauses against ${jxAdjective()} practice and pin every finding to the clause it concerns.` };
     const withOpen=scanned.filter(c=>openFindings(c).length).sort((a,b)=>SEV_RANK[worstSevOf(openFindings(b))]-SEV_RANK[worstSevOf(openFindings(a))]);
-    if(!withOpen.length) return { text:`${scanned.length} contract${scanned.length===1?' has':'s have'} been scanned and every finding is resolved or dismissed — the reviewed book is clean.`, cards:aiCards(scanned) };
+    if(!withOpen.length) return { text:`${scanned.length} contract${scanned.length===1?' has':'s have'} been scanned and every finding is resolved or dismissed — <span class="ai-tone ai-tone-pos">the reviewed book is clean</span>.`, cards:aiCards(scanned) };
     const high=withOpen.reduce((s,c)=>s+openFindings(c).filter(x=>x.sev==='high').length,0);
-    return { text:`<strong>${withOpen.length} contract${withOpen.length===1?'':'s'}</strong> ${withOpen.length===1?'has':'have'} open scan findings${high?`, including <strong>${high} high-severity</strong>`:''}. Sorted by worst exposure:`, cards:aiCards(withOpen) };
+    return { text:`<strong>${withOpen.length} contract${withOpen.length===1?'':'s'}</strong> ${withOpen.length===1?'has':'have'} open scan findings${high?`, including <span class="ai-tone ai-tone-neg"><strong>${high} high-severity</strong></span>`:''}. Sorted by worst exposure:`, cards:aiCards(withOpen) };
   }
   // 2) pending / under review
   if(has('pending','under review','waiting','counterparty action','awaiting')){
