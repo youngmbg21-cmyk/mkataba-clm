@@ -751,18 +751,36 @@ Examples:
   (that last one is INVALID — it mixes KES with a count. Pick one unit.)
   "What is a force majeure clause?" → no chart. It is a definition.`;
 
-/* ---------- tone markers, for the prompt ---------- */
-const AI_TONE_RULES = `EMPHASIS
-Wrap short spans to colour them. Use them on statuses, deadlines, amounts and
-risk statements — not on ordinary prose.
-  {+…} good news        e.g. {+signed three weeks early}
-  {-…} bad news         e.g. {-expired without renewal}
-  {!…} needs attention  e.g. {!expires in 9 days}
-  {~…} context/aside    e.g. {~drafted from the standard template}
-These markers are how emphasis reaches the reader — a substantive answer about
-the portfolio should usually carry one to three of them, on the words that
-matter most (the deadline, the amount at stake, the risk). Never colour a whole
-sentence, and never use them for decoration.`;
+/* ---------- tone markers, for the prompt ----------
+   DUTIES, NOT AN INVITATION. The first draft of this block described the
+   markers and asked nicely; real answers came back with none, and a page of
+   uncoloured prose about five expiring contracts reads as if nothing in it
+   is urgent. So the block now states formatting duties the way the rest of
+   the prompt states data duties — with an example of the register wanted,
+   because a model follows a worked example far more reliably than an
+   adjective. */
+const AI_TONE_RULES = `EMPHASIS — FORMATTING DUTIES, NOT OPTIONS
+The interface renders the markers below as coloured highlights. They are how
+emphasis reaches the reader; an answer without them reads flat and unfinished.
+
+1. Make every figure BOLD (markdown **…**): every amount, percentage, count,
+   date and contract id.
+2. Wrap the phrase carrying each finding's VERDICT in a tone marker:
+     {+…} good news        e.g. {+target beaten, and beaten early}
+     {-…} bad news         e.g. {-lapsed without renewal}
+     {!…} needs attention  e.g. {!five contracts expire inside 30 days}
+     {~…} context/aside    e.g. {~drafted from the standard template}
+3. Mandatory placements: any deadline inside 30 days, any overdue obligation
+   and any deadlock gets {!…} or {-…}; a clean bill of health gets {+…}.
+4. Dose: a short answer carries 1–2 markers; a portfolio overview carries one
+   per section, typically 3–5. Never colour a whole paragraph, never mark
+   ordinary prose, never nest markers.
+
+The register wanted (an answer should read like this):
+  "**Five contracts** lapse inside 30 days — {!three are still in Draft}, so
+   they will expire unsigned unless someone moves. Your largest exposure,
+   **Naivas (KES 163M)**, is {+signed and current}. {~Two of the five are
+   renewals of standard paper.}"`;
 
 if (typeof window !== 'undefined') Object.assign(window, {
   AI_CHART_RECIPES, AI_SERIES, AI_CHARTS, AI_CHART_CDN,
