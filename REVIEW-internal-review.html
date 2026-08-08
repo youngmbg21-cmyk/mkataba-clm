@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HaTi — Internal review before redlines go out</title>
+<!-- A walkthrough of the internal-review feature, written for the owner to
+     read rather than for a developer. The same page is published as an
+     artifact; this copy is the one that lives with the code. -->
+</head>
+<body>
+<style>
+  /* ------------------------------------------------------------------
+     Palette. The subject is a gate on a legal desk: petrol-blue stamp ink
+     for the platform's own voice, oxblood for what is held back, a deep
+     green for what is cleared to travel. Neutrals carry a faint blue bias
+     so they read as chosen rather than inherited.
+     Every colour is defined here, on bare :root, and only re-pointed in
+     the two dark blocks — nothing gets its ONLY definition behind a media
+     query, which is how a page ends up with one theme's text on the
+     other theme's ground.
+     ------------------------------------------------------------------ */
+  :root{
+    --paper:#F6F6F3;
+    --surface:#FFFFFF;
+    --surface-2:#F0F0EC;
+    --ink:#15171C;
+    --ink-soft:#4E535D;
+    --ink-faint:#767B85;
+    --rule:#DEDED8;
+    --rule-soft:#E9E9E4;
+    --accent:#1F4E5F;
+    --accent-soft:#E3EDF0;
+    --accent-line:#B9D2D9;
+    --hold:#8F2A2A;
+    --hold-soft:#F7E9E7;
+    --hold-line:#E2BCB6;
+    --clear:#2C6248;
+    --clear-soft:#E5F0E9;
+    --clear-line:#B7D5C4;
+    --warn:#7A5310;
+    --warn-soft:#FAF0DC;
+    --warn-line:#E5CE9C;
+    --on-fill:#FFFFFF;
+    --shadow:0 1px 2px rgba(21,23,28,.06), 0 8px 24px -12px rgba(21,23,28,.18);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1115;
+      --surface:#171A20;
+      --surface-2:#1E222A;
+      --ink:#E7E8EB;
+      --ink-soft:#A8AEB9;
+      --ink-faint:#7C838F;
+      --rule:#2A2F38;
+      --rule-soft:#232830;
+      --accent:#79BACD;
+      --accent-soft:#16323C;
+      --accent-line:#2C5666;
+      --hold:#E79891;
+      --hold-soft:#37201F;
+      --hold-line:#5E3130;
+      --clear:#87C9A5;
+      --clear-soft:#172C23;
+      --clear-line:#2E5442;
+      --warn:#DFB768;
+      --warn-soft:#332714;
+      --warn-line:#5A4520;
+      --on-fill:#0F1115;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1115;
+    --surface:#171A20;
+    --surface-2:#1E222A;
+    --ink:#E7E8EB;
+    --ink-soft:#A8AEB9;
+    --ink-faint:#7C838F;
+    --rule:#2A2F38;
+    --rule-soft:#232830;
+    --accent:#79BACD;
+    --accent-soft:#16323C;
+    --accent-line:#2C5666;
+    --hold:#E79891;
+    --hold-soft:#37201F;
+    --hold-line:#5E3130;
+    --clear:#87C9A5;
+    --clear-soft:#172C23;
+    --clear-line:#2E5442;
+    --warn:#DFB768;
+    --warn-soft:#332714;
+    --warn-line:#5A4520;
+    --on-fill:#0F1115;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:52rem;margin:0 auto;padding:0 24px 96px}
+
+  /* ---- masthead ---- */
+  .masthead{padding:64px 0 28px;border-bottom:2px solid var(--ink)}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 14px;font-weight:600;
+  }
+  h1{
+    font-family:var(--serif);font-weight:600;font-size:clamp(30px,5vw,46px);
+    line-height:1.12;letter-spacing:-.015em;margin:0 0 14px;text-wrap:balance;
+  }
+  .standfirst{font-size:19px;line-height:1.55;color:var(--ink-soft);margin:0;max-width:38em}
+  .byline{
+    display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);
+  }
+  .byline b{color:var(--ink-soft);font-weight:600}
+
+  /* ---- prose ---- */
+  h2{
+    font-family:var(--serif);font-weight:600;font-size:26px;line-height:1.25;
+    letter-spacing:-.01em;margin:56px 0 4px;text-wrap:balance;
+  }
+  h3{
+    font-family:var(--sans);font-weight:650;font-size:15px;letter-spacing:.005em;
+    margin:34px 0 8px;color:var(--ink);
+  }
+  p{margin:0 0 16px;max-width:36em}
+  ul,ol{margin:0 0 16px;padding-left:22px;max-width:36em}
+  li{margin-bottom:7px}
+  strong{font-weight:650}
+  em.q{font-style:italic;color:var(--ink-soft)}
+  code{
+    font-family:var(--mono);font-size:.86em;background:var(--surface-2);
+    padding:1px 5px;border-radius:4px;color:var(--ink);
+  }
+  a{color:var(--accent);text-underline-offset:2px}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+  /* ---- the step rail. The walkthrough is a real sequence — write, ask,
+         rule, send — so the numbering encodes order rather than decorating. */
+  .step{position:relative;padding-top:8px}
+  .step-n{
+    font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.1em;
+    color:var(--accent);text-transform:uppercase;margin:0 0 2px;
+  }
+  @media (min-width:1080px){
+    .step-n{position:absolute;left:-96px;top:16px;margin:0;text-align:right;width:72px}
+  }
+
+  /* ---- callouts ---- */
+  .note{
+    border-left:3px solid var(--accent);background:var(--accent-soft);
+    padding:14px 18px;margin:0 0 18px;border-radius:0 8px 8px 0;max-width:38em;
+  }
+  .note p{margin:0;font-size:15.5px;line-height:1.55}
+  .note p + p{margin-top:9px}
+  .note.is-hold{border-left-color:var(--hold);background:var(--hold-soft)}
+  .note.is-warn{border-left-color:var(--warn);background:var(--warn-soft)}
+
+  /* ---- the screen panels. Tinted inset + sans type: everything inside a
+         .screen is the APP, everything outside it is this memo. ---- */
+  .screen{
+    background:var(--surface-2);border:1px solid var(--rule);border-radius:14px;
+    padding:20px;margin:22px 0 26px;font-family:var(--sans);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .screen-cap{
+    font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-faint);display:flex;align-items:center;gap:8px;margin:0;
+  }
+  .screen-cap::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .screen-foot{
+    font-family:var(--sans);font-size:13px;line-height:1.5;color:var(--ink-soft);margin:0;
+  }
+  .scroller{overflow-x:auto}
+
+  /* ---- app-alike primitives ---- */
+  .banner{
+    display:flex;align-items:flex-start;gap:12px;padding:12px 15px;border-radius:9px;
+    border:1px solid var(--warn-line);background:var(--warn-soft);color:var(--warn);
+    font-size:13.5px;line-height:1.5;
+  }
+  .banner.is-clear{border-color:var(--clear-line);background:var(--clear-soft);color:var(--clear)}
+  .banner b{font-weight:650}
+  .grow{flex:1;min-width:0}
+  .btn{
+    font:inherit;font-size:12.5px;font-weight:650;border-radius:7px;padding:5px 12px;
+    border:1.5px solid currentColor;background:transparent;color:inherit;cursor:default;flex:none;
+  }
+  .btn-solid{background:var(--accent);border-color:var(--accent);color:var(--on-fill)}
+
+  .card{
+    background:var(--surface);border:1px solid var(--rule);border-radius:11px;
+    padding:13px 15px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow);
+  }
+  .card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cid{
+    font-family:var(--mono);font-size:11px;font-weight:650;color:var(--accent);
+    border:1.5px solid var(--accent-line);border-radius:99px;padding:1px 8px;
+  }
+  .origin{
+    font-family:var(--sans);font-size:10.5px;font-weight:650;letter-spacing:.02em;
+    padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);
+  }
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:10px;
+    font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:5px;
+    padding:2px 7px;border:1px solid currentColor;
+  }
+  .chip-held{background:var(--hold-soft);color:var(--hold)}
+  .chip-clear{background:var(--clear-soft);color:var(--clear)}
+  .chip-advice{background:var(--surface-2);color:var(--ink-soft)}
+  .chip-draft{background:var(--surface-2);color:var(--ink-faint)}
+  .card-sum{font-size:14px;font-weight:600;line-height:1.4;margin:0}
+  .card-meta{font-size:12px;color:var(--ink-faint);margin:0}
+  .card-quote{
+    border-left:2px solid var(--warn-line);background:var(--warn-soft);border-radius:0 5px 5px 0;
+    padding:7px 11px;font-size:12.5px;line-height:1.5;color:var(--ink);
+  }
+  .card-quote span{
+    display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--warn);margin-bottom:2px;
+  }
+  .verbs{
+    display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    padding-top:9px;border-top:1px dashed var(--rule);
+  }
+  .verbs-k{
+    font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--ink-faint);margin-right:2px;
+  }
+  .vbtn{
+    font:inherit;font-size:11.5px;font-weight:650;border-radius:6px;padding:3px 10px;
+    border:1.5px solid var(--rule);background:var(--surface);color:var(--ink-soft);cursor:default;
+  }
+  .vbtn.on-clear{border-color:var(--clear);background:var(--clear-soft);color:var(--clear)}
+  .vbtn.on-hold{border-color:var(--hold);background:var(--hold-soft);color:var(--hold)}
+  .vbtn.is-clear{color:var(--clear)}
+  .vbtn.is-hold{color:var(--hold)}
+
+  /* modal mock */
+  .modal{
+    background:var(--surface);border:1px solid var(--rule);border-radius:11px;
+    padding:18px 20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:11px;
+  }
+  .modal h4{font-family:var(--sans);font-size:16px;font-weight:650;margin:0}
+  .modal .sub{font-size:12.5px;color:var(--ink-soft);margin:0;line-height:1.5}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .flabel{font-size:11px;font-weight:650;color:var(--ink-soft)}
+  .fbox{
+    border:1px solid var(--rule);border-radius:7px;background:var(--surface-2);
+    padding:8px 11px;font-size:13px;color:var(--ink);
+  }
+  .fbox.is-placeholder{color:var(--ink-faint)}
+  .scope{
+    border:1px solid var(--rule);border-radius:9px;background:var(--surface-2);padding:11px 13px;
+    display:flex;flex-direction:column;gap:7px;
+  }
+  .scope-k{
+    font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);
+  }
+  .scope-row{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.45}
+  .scope-row .cid{flex:none;margin-top:1px}
+  .modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:3px}
+
+  /* settings + phone */
+  .panel{
+    background:var(--surface);border:1px solid var(--rule);border-radius:11px;padding:16px 18px;
+    display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow);
+  }
+  .panel h4{font-family:var(--sans);font-size:15px;font-weight:650;margin:0}
+  .panel .sub{font-size:12.5px;color:var(--ink-soft);margin:0;line-height:1.5}
+  .toggle{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45}
+  .box{
+    flex:none;width:15px;height:15px;border-radius:4px;border:1.5px solid var(--accent);
+    background:var(--accent);margin-top:2px;position:relative;
+  }
+  .box::after{
+    content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;
+    border:solid var(--on-fill);border-width:0 2px 2px 0;transform:rotate(42deg);
+  }
+  .radio-row{display:flex;flex-direction:column;gap:6px;font-size:13px;padding-left:25px}
+  .radio{display:flex;gap:8px;align-items:center;color:var(--ink-soft)}
+  .radio i{
+    flex:none;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink-faint);
+    display:inline-block;
+  }
+  .radio.on{color:var(--ink);font-weight:600}
+  .radio.on i{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2.5px var(--surface)}
+
+  .phone{
+    width:270px;border:1px solid var(--rule);border-radius:20px;background:var(--surface);
+    padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow);
+  }
+  .phone-head{font-family:var(--sans);font-size:15px;font-weight:650}
+  .phone-sub{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint)}
+  .m-notice{
+    border:1px solid var(--warn-line);background:var(--warn-soft);border-radius:10px;padding:11px 13px;
+    display:flex;flex-direction:column;gap:3px;
+  }
+  .m-notice b{font-size:14px;color:var(--warn)}
+  .m-notice span{font-size:12.5px;color:var(--ink-soft);line-height:1.45}
+
+  /* dashboard row */
+  .dashrow{
+    display:flex;gap:12px;align-items:flex-start;background:var(--surface);
+    border:1px solid var(--rule);border-radius:10px;padding:11px 13px;box-shadow:var(--shadow);
+  }
+  .dashdot{
+    flex:none;width:30px;height:30px;border-radius:50%;background:var(--warn-soft);
+    color:var(--warn);display:grid;place-items:center;font-size:14px;
+  }
+  .dashrow .t{font-size:13.5px;font-weight:600;line-height:1.35}
+  .dashrow .m{font-size:11.5px;color:var(--ink-faint);margin-top:2px}
+  .dashrow .tag{
+    margin-left:auto;flex:none;font-family:var(--mono);font-size:11px;font-weight:650;color:var(--warn);
+  }
+
+  /* send-button before/after */
+  .compare{display:flex;flex-wrap:wrap;gap:12px}
+  .compare > div{
+    flex:1;min-width:220px;background:var(--surface);border:1px solid var(--rule);
+    border-radius:10px;padding:13px 15px;display:flex;flex-direction:column;gap:9px;
+  }
+  .compare .k{
+    font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);
+  }
+  .sendbtn{
+    align-self:flex-start;font-family:var(--sans);font-size:12.5px;font-weight:700;
+    border-radius:7px;padding:7px 13px;background:var(--clear);color:var(--on-fill);border:0;
+  }
+  .sendbtn.is-off{background:var(--surface-2);color:var(--ink-faint);border:1px solid var(--rule)}
+  .compare .why{font-size:12px;color:var(--ink-soft);line-height:1.45;margin:0}
+
+  /* rules table */
+  .rules{
+    width:100%;border-collapse:collapse;font-family:var(--sans);font-size:13.5px;
+    margin:6px 0 20px;
+  }
+  .rules th,.rules td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  .rules th{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-faint);font-weight:600;border-bottom:1px solid var(--rule);
+  }
+  .rules td:first-child{font-weight:600;width:38%}
+  .rules tr:last-child td{border-bottom:0}
+
+  .foot{
+    margin-top:64px;padding-top:22px;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:12px;color:var(--ink-faint);line-height:1.7;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .step{scroll-margin-top:24px}
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">HaTi · What changed</p>
+    <h1>Redlines now stop for a second pair of eyes before they leave the building.</h1>
+    <p class="standfirst">You asked for three things: a way to send changes to a colleague, a way for them to hold something back, and a rule that stops the send until they have looked. All three are built. Here is what each one does, on screen.</p>
+    <div class="byline">
+      <span><b>Branch</b> claude/hati-redlines-review-27gwx7</span>
+      <span><b>Not merged</b> to main</span>
+      <span><b>Tests</b> 2 649 passing</span>
+    </div>
+  </header>
+
+  <h2>The idea underneath all three</h2>
+  <p>Until now, a change you wrote in the negotiation room was live the moment you saved it. The only thing between a junior's wording and the counterparty's inbox was somebody remembering to ask.</p>
+  <p>The fix is one idea, and everything else follows from it: <strong>written and sent are two different states of the same redline.</strong> What you write sits in a working state nobody outside the company can see. Sending is a separate, deliberate act. Everything internal — your boss's note, the wording they killed — happens in the gap between the two, and none of it travels.</p>
+  <div class="note">
+    <p>HaTi already knew which of your changes the other side had never seen. That set — your unsent asks — is exactly what a review governs. Anything already sent is out of reach: you cannot un-send a redline, so nothing here pretends you can.</p>
+  </div>
+
+  <!-- ==================== 1 ==================== -->
+  <section class="step">
+    <p class="step-n">Step one</p>
+    <h2>Ask a named colleague</h2>
+    <p>In the negotiation workbench there is a new button beside <em class="q">Review vs Playbook</em>. It opens one short form: who, what you want them to look at, and by when.</p>
+
+    <div class="screen">
+      <p class="screen-cap">Negotiate → Internal review</p>
+      <div class="modal">
+        <h4>Ask a colleague to review this</h4>
+        <p class="sub">They see every change below, clear or hold each one, and hand it back to you. Nothing reaches the counterparty while it is with them.</p>
+
+        <div class="field">
+          <span class="flabel">Who should review it</span>
+          <div class="fbox">Achieng Otieno — Admin</div>
+        </div>
+        <div class="field">
+          <span class="flabel">What do you want them to look at?</span>
+          <div class="fbox">I am not comfortable with the liability cap — is 12 months of fees defensible here?</div>
+        </div>
+        <div class="field">
+          <span class="flabel">Needed by</span>
+          <div class="fbox">2026-08-12</div>
+        </div>
+        <div class="toggle" style="font-size:12.5px;color:var(--ink-soft)">
+          <span class="box"></span><span>Email them as well as showing it in HaTi.</span>
+        </div>
+
+        <div class="scope">
+          <span class="scope-k">What they will be looking at</span>
+          <div class="scope-row"><span class="cid">#CHG-004</span><span><strong>Payment terms extended from Net-30 to Net-45</strong><br><span style="color:var(--ink-faint)">Clause 4 · Payment Terms</span></span></div>
+          <div class="scope-row"><span class="cid">#CHG-005</span><span><strong>Liability cap removed</strong><br><span style="color:var(--ink-faint)">Clause 6 · Liability</span></span></div>
+          <div class="scope-row"><span class="cid">#CHG-003</span><span><strong>Nordfrakt asks for 90-day storage</strong><br><span style="color:var(--ink-faint)">Clause 5 · Storage — from the counterparty, undecided</span></span></div>
+        </div>
+
+        <div class="modal-acts">
+          <button class="btn" type="button">Cancel</button>
+          <button class="btn btn-solid" type="button">Send for review</button>
+        </div>
+      </div>
+      <p class="screen-foot">Two lists, because a reviewer is answering two different questions: <strong>your</strong> unsent changes, which they can stop, and <strong>the counterparty's</strong> open asks, which they can only advise on.</p>
+    </div>
+
+    <h3>Where it lands</h3>
+    <p>It appears on your colleague's dashboard, in the card that already holds what needs a person. Reviews lead that card, because they are the only item on it that somebody is personally waiting on — a renewal date does not know your name.</p>
+
+    <div class="screen">
+      <p class="screen-cap">Dashboard → Decisions due</p>
+      <div class="dashrow">
+        <span class="dashdot">◱</span>
+        <span class="grow">
+          <span class="t">Reviews waiting on you — Cane Supply Agreement</span>
+          <span class="m">asked by Wanjiru Kamau · 3 changes to look at</span>
+        </span>
+        <span class="tag">2026-08-12</span>
+      </div>
+      <p class="screen-foot">If the workspace has email set up, they also get a message naming the contract and your question. If it does not, the toast tells you plainly: <em class="q">"it is on their dashboard in HaTi. No email went out."</em> — so you know to go and tell them.</p>
+    </div>
+  </section>
+
+  <!-- ==================== 2 ==================== -->
+  <section class="step">
+    <p class="step-n">Step two</p>
+    <h2>They rule on each change</h2>
+    <p>Your colleague opens the same contract. A banner tells them what they are there for and how much is left; each change carries its own two buttons.</p>
+
+    <div class="screen">
+      <p class="screen-cap">The reviewer's screen</p>
+      <div class="banner">
+        <span class="grow"><b>Wanjiru Kamau asked you to review this.</b> "I am not comfortable with the liability cap — is 12 months of fees defensible here?" 3 of 3 still need your verdict. <b>Due 2026-08-12.</b></span>
+        <button class="btn" type="button">Hand it back</button>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="cid">CHG-004</span><span class="origin">Your ask</span>
+          <span class="chip chip-clear">✓ Cleared to send</span>
+        </div>
+        <p class="card-sum">Payment terms extended from Net-30 to Net-45</p>
+        <p class="card-meta">Clause 4 · Payment Terms · Wanjiru Kamau</p>
+        <div class="verbs">
+          <span class="verbs-k">Your verdict</span>
+          <button class="vbtn on-clear" type="button">Cleared to send</button>
+          <button class="vbtn is-hold" type="button">Held back</button>
+          <button class="vbtn" type="button">Note</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="cid">CHG-005</span><span class="origin">Your ask</span>
+          <span class="chip chip-held">⏹ Held back</span>
+        </div>
+        <p class="card-sum">Liability cap removed</p>
+        <p class="card-meta">Clause 6 · Liability · Wanjiru Kamau</p>
+        <div class="card-quote"><span>Achieng Otieno said</span>Not going out. Ask for 24 months of fees instead — uncapped is not a position we can defend to the board.</div>
+        <div class="verbs">
+          <span class="verbs-k">Your verdict</span>
+          <button class="vbtn is-clear" type="button">Cleared to send</button>
+          <button class="vbtn on-hold" type="button">Held back</button>
+          <button class="vbtn" type="button">Note</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="cid">CHG-003</span>
+          <span class="origin" style="background:var(--surface-2);color:var(--ink-soft)">Nordfrakt Logistik AB's ask</span>
+          <span class="chip chip-advice">💬 Advise: reject</span>
+        </div>
+        <p class="card-sum">Storage term reduced to 90 days with extended-stay premium</p>
+        <p class="card-meta">Clause 5 · Storage Conditions · Erik Lindqvist</p>
+        <div class="verbs">
+          <span class="verbs-k">Your verdict</span>
+          <button class="vbtn" type="button">Advise: accept</button>
+          <button class="vbtn on-hold" type="button">Advise: reject</button>
+          <button class="vbtn" type="button">Advise: discuss</button>
+          <button class="vbtn" type="button">Note</button>
+        </div>
+      </div>
+
+      <p class="screen-foot">Two vocabularies on purpose. On <strong>your</strong> changes the reviewer is a gatekeeper — cleared or held, and a hold has a real effect. On <strong>the counterparty's</strong>, they have no gate to keep, so it is recorded as advice and changes nothing by itself. Calling that "approved" would have been the friendlier word and the more dangerous one.</p>
+    </div>
+
+    <h3>Handing it back</h3>
+    <p><em class="q">Hand it back</em> refuses while any of <strong>your</strong> changes still has no verdict — an unmarked change would otherwise sail through a finished review having been looked at by nobody. Advice on the counterparty's asks stays optional: a reviewer with nothing to add should not have to invent something.</p>
+
+    <div class="screen">
+      <p class="screen-cap">Back on your screen</p>
+      <div class="banner is-clear">
+        <span class="grow"><b>Achieng Otieno has reviewed this.</b> 1 cleared to send, 1 held back, 1 of the counterparty's asks advised on. "Push the cap, not the indemnity, in the same round."</span>
+        <button class="btn" type="button">Ask again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3 ==================== -->
+  <section class="step">
+    <p class="step-n">Step three</p>
+    <h2>What a hold actually does</h2>
+    <p>A held change loses its Send button, wears its badge, and is removed from what travels — on every route, with no setting involved. The send button counts what will really go, and says separately what is being held, because "3 unsent" quietly becoming "2 unsent" reads as a change having vanished.</p>
+
+    <div class="screen">
+      <p class="screen-cap">Publish Round, before and after the review</p>
+      <div class="compare">
+        <div>
+          <span class="k">Before</span>
+          <button class="sendbtn" type="button">Publish Round · 2 unsent</button>
+          <p class="why">Both changes would go out together.</p>
+        </div>
+        <div>
+          <span class="k">After</span>
+          <button class="sendbtn" type="button">Publish Round · 1 unsent · 1 held</button>
+          <p class="why">Only the cleared change travels. The held one stays on your screen, marked, until Achieng lifts it.</p>
+        </div>
+      </div>
+      <p class="screen-foot">The counterparty is never told a review happened, who ruled, or that a hold exists — not the verdict, not the name, not the fact. "We are arguing internally about Clause 6" is worth money to the other side.</p>
+    </div>
+
+    <div class="note is-hold">
+      <p><strong>The one rule that makes this trustworthy:</strong> a hold survives an edit. If you rewrite a change your boss held, it is still held — the card says the wording has moved and asks for another look. The reverse is also true: if you rewrite a change they <em>cleared</em>, the clearance lapses, because they approved words that are no longer there.</p>
+      <p>Both directions are the same principle. When in doubt, nothing leaves.</p>
+    </div>
+  </section>
+
+  <!-- ==================== 4 ==================== -->
+  <section class="step">
+    <p class="step-n">Step four</p>
+    <h2>The rule that locks the send</h2>
+    <p>Everything above works on trust. The gate makes it a rule — and it sits in Settings next to the approval rules, because they are the same question asked at two different moments. <strong>Approval decides who says yes before signing. This decides who looks before sending.</strong></p>
+
+    <div class="screen">
+      <p class="screen-cap">Settings → next to the approval rules (admin only)</p>
+      <div class="panel">
+        <h4>Internal review before redlines go out</h4>
+        <p class="sub">Off unless you turn it on. When it is on, changes written here cannot be sent to a counterparty until a colleague has looked at them.</p>
+        <div class="toggle"><span class="box"></span><span><strong>Require an internal review before changes are sent</strong></span></div>
+        <div class="radio-row">
+          <span class="radio"><i></i>Every contract</span>
+          <span class="radio on"><i></i>Only contracts that deviate from the playbook</span>
+          <span class="radio"><i></i>Only contracts at or above a value</span>
+        </div>
+      </div>
+      <p class="screen-foot">The middle option is the one worth using. Routing everything to the boss is how a review step becomes something people work around; routing the exceptions is how it becomes something they use.</p>
+    </div>
+
+    <h3>What "locked" means</h3>
+    <p>Three doors send redlines in HaTi — the Share dialog, the round-send onto the counterparty's standing link, and the workbench's own button. All three now ask the same question and print the same sentence. The readiness panel carries it too, as a block rather than a tick-past warning.</p>
+
+    <div class="screen">
+      <p class="screen-cap">Pressing Publish Round while the gate holds</p>
+      <div class="banner">
+        <span class="grow">These changes are with <b>Achieng Otieno</b> for internal review. They go out once the review comes back.</span>
+      </div>
+      <p class="screen-foot">Said <em>before</em> the dialog opens, not after — nobody should fill in an address and a covering note only to be told the wording is still with their boss.</p>
+    </div>
+  </section>
+
+  <!-- ==================== guardrails ==================== -->
+  <h2>The guardrails</h2>
+  <p>Most of these exist because the feature is worse than useless if any one of them leaks.</p>
+
+  <div class="scroller">
+    <table class="rules">
+      <thead>
+        <tr><th>Rule</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Nobody clears their own wording</td>
+          <td>Only the named reviewer can rule. Anyone who could write a verdict could clear their own change and send it — the same rule the negotiation already applies to accepting proposals.</td>
+        </tr>
+        <tr>
+          <td>Viewers cannot be asked</td>
+          <td>A viewer cannot act anywhere else in HaTi either, so a review sent to one would be a request into a void. They are not offered in the list.</td>
+        </tr>
+        <tr>
+          <td>A change written after the request is not covered by it</td>
+          <td>Otherwise anyone could slip wording past an open review by writing it a minute late. It shows as unreviewed and blocks the send.</td>
+        </tr>
+        <tr>
+          <td>Sent wording cannot be held</td>
+          <td>A hold only ever applies to changes the other side has not seen. Removing something they already hold would read to them as us rewriting what we sent.</td>
+        </tr>
+        <tr>
+          <td>The counterparty learns nothing</td>
+          <td>Three separate locks — read-only mounts, the counterparty seat, and their own portal — all refuse to draw any part of a review. Their copy of the contract carries no review data at all.</td>
+        </tr>
+        <tr>
+          <td>Everything is on the record</td>
+          <td>The request, every verdict, every note and the hand-back with its tally are written to the contract's audit trail, in the same plain English the rest of it uses.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ==================== phone ==================== -->
+  <h2>On a phone</h2>
+  <p>The phone shows the state and does not set verdicts. That is a deliberate line, and the screen says so rather than leaving you to discover it.</p>
+
+  <div class="screen" style="align-items:flex-start">
+    <p class="screen-cap" style="align-self:stretch">Contract → Document</p>
+    <div class="phone">
+      <div>
+        <div class="phone-head">Cane Supply Agreement</div>
+        <div class="phone-sub">MK-R1 · Nordfrakt Logistik AB</div>
+      </div>
+      <div class="m-notice">
+        <b>With Achieng Otieno for internal review.</b>
+        <span>1 change is held back and will not be sent.</span>
+      </div>
+    </div>
+    <p class="screen-foot">Somebody who opens a contract on the way to a meeting has to be able to see that their redlines are sitting with their boss, and that one of them is not going out. A screen that stayed silent about a hold would let them believe they had sent something they had not.</p>
+  </div>
+
+  <!-- ==================== limits ==================== -->
+  <h2>What I did not build</h2>
+  <p>Said plainly, so nothing here is a surprise later.</p>
+  <ul>
+    <li><strong>No reminders or escalation.</strong> A review with a due date that passes is marked overdue on the dashboard and does nothing else — it will not chase your colleague or reassign itself.</li>
+    <li><strong>No verdicts on a phone.</strong> Clearing and holding are done on a computer, as above.</li>
+    <li><strong>One review open at a time</strong> per contract. Asking a second person means cancelling the first or waiting. Two reviewers ruling on one change at once has no sensible answer, so it is not offered.</li>
+    <li><strong>Email only if the workspace has a mail provider.</strong> Without one the review still files and still appears on their dashboard; you are told no email went out.</li>
+    <li><strong>The reviewer cannot rewrite your change for you.</strong> They hold it and say why; you rewrite it. Letting them counter-draft over your wording would put two authors on one fingerprinted record, which is the one thing the change model is built to prevent.</li>
+  </ul>
+
+  <h2>Trying it</h2>
+  <ol>
+    <li>Check out the branch and open the app as you normally would.</li>
+    <li>Open a contract, go to <strong>Negotiate</strong>, and propose a couple of changes.</li>
+    <li>Press <strong>Internal review</strong> in the toolbar and send it to a colleague.</li>
+    <li>Sign in as that colleague — their dashboard shows it. Clear one change, hold the other, hand it back.</li>
+    <li>Back on your own account, press <strong>Publish Round</strong> and watch the held one stay behind.</li>
+    <li>To see the gate, turn it on in <strong>Settings</strong> and try to send before asking anyone.</li>
+  </ol>
+
+  <p class="foot">
+    Nothing is merged to main.<br>
+    New: js/review.js · the review model, the gate, and the shared drawing<br>
+    Touched: the share payload, the send doors, both change-card renderers, Settings, the dashboard, the phone, both languages<br>
+    Tests: f152 (the model, the gate, the wall, both renderers, the real payload) · f153 (the notification route)
+  </p>
+
+</div>
+
+</body>
+</html>

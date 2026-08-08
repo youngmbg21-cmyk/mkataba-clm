@@ -44,6 +44,29 @@ Playbook apply — TWO entrances: -> js/playbook.js ~260 (classic apply) -> js/v
 
 Word DOCX round-trip -> js/negotiation.js ~1133, ~1145 and ~1151
 
+INTERNAL REVIEW — THE STEP BEFORE A CHANGE IS SENT (added 2026-08-08)
+
+There is now a gap between WRITING a redline and SENDING it, and js/review.js owns it. A colleague is asked by name, rules on each change (cleared / held on ours, advice on theirs), and hands it back. A HELD change never travels.
+
+Three things to know before touching anything near a send:
+
+1. THE HOLD IS ENFORCED IN buildSharePayload, UNCONDITIONALLY — reviewHeldIds is folded into the same held-back set holdUnsent uses, with no opts flag, because reshareToLastRecipient (the route every round after the first travels on) passes no options at all. A flag-gated filter would leak on the ordinary path and pass every test.
+
+2. THERE ARE THREE SEND DOORS AND ALL THREE ASK reviewSendBlock / reviewGateMessage — the share dialog's doSend, reshareToLastRecipient (which THROWS, because its callers await it and announce what comes back), and the workbench's #nego-send (which refuses before opening the dialog, so nobody fills in a form that was never going to send). A fourth door must call it too.
+
+3. A REVIEW IS INTERNAL AND THE COUNTERPARTY MUST NEVER LEARN ONE HAPPENED — not the verdict, not the name, not that a hold exists. reviewSeatShowsReview() is the one predicate; the chip, the verbs and the banner all ask it, and it refuses on readonly, on side==='counterparty' and in PORTAL_MODE.
+
+The gate is a SETTING (Settings → next to the approval rules, admin only) and is OFF unless switched on. It gates SENDING; the approval chain gates SIGNING. Both appear in contractReadiness.
+
+WHERE IT IS DRAWN, and it is drawn in more places than one: the banner on the workbench and on the contract tab, the verdict chip and buttons on BOTH change-card renderers (redlineChangeCardsHtml and negoLiveCardsHtml), the reviewer's inbox on the dashboard's "Decisions due" card, and a read-only notice on the phone. The phone shows the state and never sets a verdict — deliberate, and it says so on screen.
+
+TWO TRAPS THIS FEATURE HIT IN ANGER, both worth remembering:
+
+- js/core.js declares its shell as `const` (currentUser, getUsers, userById, canEdit, state). A `const` is a LEXICAL binding, not a property of window, so a bare call from another module reaches core.js's copy and cannot be substituted. review.js therefore calls window.currentUser() and friends — but reads `state` BARE, because there is no window.state at all and `window.state && …` read as "no settings" forever, silently disabling the gate.
+- READING MUST NOT WRITE. reviewInit creates c.review; every read went through it at first, so merely painting a screen stamped an empty review onto the contract. f59 caught it. Only reviewAsk and reviewMark initialise now.
+
+Tests: f152 (the model, the gate, the wall, both renderers, the real payload) and f153 (the notification route).
+
 REMAINING SIDE DOORS — check on every change-related fix
 
 js/views/portal.js ~1096 — the portal pushes into c.changes directly when rebuilding a counterparty reader's session. This is legitimate re-insertion of ALREADY-FILED changes (the comment above it explains why). But verify it after any change to the shape of a change object, because it copies objects wholesale.

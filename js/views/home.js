@@ -351,6 +351,13 @@ function hmDashSlices(){
   const compliancePct=live.length?Math.round(clean/live.length*100):100;
   const REG_PROFILE={SE:'EU / GDPR', KE:'KICA / ODPC'};
   const apprMineN=myApprovals.filter(x=>x.mine).length;
+  /* ---- REVIEWS SITTING ON THIS PERSON'S DESK ----
+     The same principle the approvals queue above was rewritten for: a list that
+     is not the reader's own is a list nobody owns. reviewInboxFor filters to
+     contracts where an internal review is OPEN and this reader is the named
+     reviewer — so the count is a promise somebody made to them by name, not a
+     workspace-wide tally they can do nothing about. */
+  const myReviews=(window.reviewInboxFor?reviewInboxFor(cs, me):[]);
   const KPI_CATALOG={
     under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(jxLocale()),        delta:i18t('home_new_this_week',{n:newThisWeek}),                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
     active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:i18t('home_executed',{n:Number(m.signed||0).toLocaleString(jxLocale())}),       sub:i18t('home_across_agreements',{n:agreementsIn(cs).length.toLocaleString(jxLocale())}), grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
@@ -371,7 +378,7 @@ function hmDashSlices(){
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
     canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
     exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
-    clean, compliancePct, REG_PROFILE, apprMineN, KPI_CATALOG };
+    clean, compliancePct, REG_PROFILE, apprMineN, myReviews, KPI_CATALOG };
 }
 
 /* THE EMAIL WARNING, SAID ONCE AND QUIETLY.
@@ -396,7 +403,7 @@ function renderDashboard(){
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
     canApproveSomeStep, myApprovals, newThisWeek, stalled, onExecuted, lapsed, expWithin,
     exp30, exp60, exp90, expVal, expDelta, expSub, cycles, avgCycle, G, stageSub, live,
-    clean, compliancePct, REG_PROFILE, apprMineN, KPI_CATALOG } = hmDashSlices();
+    clean, compliancePct, REG_PROFILE, apprMineN, myReviews, KPI_CATALOG } = hmDashSlices();
   const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
   // Adaptive layout: the redesign's stat cards are wider and quieter than the
   // gradient blocks they replace, so they sit four to a row and wrap.
@@ -527,6 +534,15 @@ function renderDashboard(){
      review. Drawn in the design's feed row — a round tone tile, two lines — and
      capped to the pipeline's height, scrolling inside its own box. */
   const decisionItems=[
+    /* REVIEWS LEAD, because they are the only item on this card that somebody
+       is personally waiting on. A renewal date does not know your name; a
+       colleague who sent you three redlines on Tuesday does. */
+    ...myReviews.map(x=>({
+      cid:x.c.id, urgent:!!(x.rv.due&&String(x.rv.due)<new Date().toISOString().slice(0,10)), ic:'users',
+      txt:i18t('rv_home_title')+' — <strong style="font-weight:600">'+esc(x.c.name)+'</strong>',
+      meta:`${esc(i18t('rv_home_from',{who:x.rv.by}))} · ${esc(i18tn('rv_home_sub',x.st.total,{n:x.st.total}))}`,
+      tag:x.rv.due?esc(String(x.rv.due)):esc(i18t('rv_home_open')),
+    })),
     ...decisions.map(x=>({
       cid:x.c.id, urgent:x.d<=30, ic:'calendar',
       txt:i18t('home_renew_or_exit',{name:`<strong style="font-weight:600">${esc(x.c.name)}</strong>`}),

@@ -283,6 +283,24 @@ function renderTeam(){
             :`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
         </section>
 
+        ${''/* ---- THE OTHER GATE, AND IT IS DELIBERATELY NEXT TO THIS ONE ----
+               The rules above decide who has to say yes before a contract may
+               be SIGNED. This one decides who has to look before a redline may
+               be SENT. They are the same shape of question asked at two
+               different moments, and the moment is the whole difference: an
+               approval that arrives after the wording is with the counterparty
+               is an approval of something already done. Sitting them side by
+               side is how an admin sees that they are two settings and not one.
+
+               OFF BY DEFAULT, and the copy says so. A gate that appeared after
+               an update and stopped everybody's sends would be an outage. */}
+        <section style="${cardStyle}">
+          <h4 style="${h4Style}">${i18t('rv_set_title')}</h4>
+          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('rv_set_sub')}</p>
+          <div id="rv-gate-panel"></div>
+          ${isAdmin()?'':`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
+        </section>
+
         <section style="${cardStyle}">
           <h4 style="${h4Style}">${i18t('set_renewal_reminders')}</h4>
           <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('set_renewal_sub')}</p>
@@ -909,6 +927,7 @@ function renderTeam(){
   }));
   renderApprovalRules();
   document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
+  renderReviewGatePanel();
   document.getElementById('bk-export')?.addEventListener('click',()=>{
     downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
       JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
@@ -1174,6 +1193,48 @@ function openApprovalRuleEditor(idx){
   });
 }
 
+/* ---- the internal-review gate (Admin) ----
+   THREE CONTROLS AND NO SAVE BUTTON. Each one writes on change, because a gate
+   that is armed only if you remember to press Save is a gate that is off when
+   it matters. saveReviewGateCfg is the single writer (js/review.js); this panel
+   never touches state.settings itself. */
+function renderReviewGatePanel(){
+  const host=document.getElementById('rv-gate-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.reviewGateCfg?reviewGateCfg():{on:false,when:'deviation',value:0});
+  const dis=admin?'':' disabled';
+  const money=(window.jxCurrency?jxCurrency():'');
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
+      <input id="rv-gate-on" type="checkbox"${cfg.on?' checked':''}${dis} style="margin-top:2px"/>
+      <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_on')}</span>
+    </label>
+    <div id="rv-gate-more"${cfg.on?'':' hidden'}>
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_when')}</label>
+      <select id="rv-gate-when" class="ui-input"${dis} style="width:100%;margin-bottom:9px">
+        <option value="always"${cfg.when==='always'?' selected':''}>${i18t('rv_set_when_always')}</option>
+        <option value="deviation"${cfg.when==='deviation'?' selected':''}>${i18t('rv_set_when_deviation')}</option>
+        <option value="value"${cfg.when==='value'?' selected':''}>${i18t('rv_set_when_value')}</option>
+      </select>
+      <div id="rv-gate-valwrap"${cfg.when==='value'?'':' hidden'}>
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_value')}${money?` (${money})`:''}</label>
+        <input id="rv-gate-value" type="number" min="0" step="1000" class="ui-input"${dis} value="${Number(cfg.value||0)}" style="width:100%"/>
+      </div>
+    </div>`;
+  if(!admin) return;
+  const write=()=>{
+    const on=!!document.getElementById('rv-gate-on').checked;
+    const when=document.getElementById('rv-gate-when')?.value||'deviation';
+    const value=Number(document.getElementById('rv-gate-value')?.value||0);
+    saveReviewGateCfg({on,when,value});
+    toast(i18t('rv_set_saved'));
+    renderReviewGatePanel();
+  };
+  document.getElementById('rv-gate-on')?.addEventListener('change',write);
+  document.getElementById('rv-gate-when')?.addEventListener('change',write);
+  document.getElementById('rv-gate-value')?.addEventListener('change',write);
+}
+
 /* ---- E8-T3 active sessions ---- */
 async function loadSessions(){
   const host=document.getElementById('sessions-list'); if(!host) return;
@@ -1195,4 +1256,4 @@ async function loadSessions(){
   }catch(e){ host.innerHTML=`<p style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_could_not_load_sessions')}</p>`; }
 }
 
-Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel,loadSessions});
+Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,condLabel,loadSessions});

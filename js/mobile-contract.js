@@ -73,7 +73,38 @@ function mContractHeadHtml(c){
    negoRenumberBlocked answers that — 'locked' for an executed contract (and for
    a contract that numbers live), 'table' while there are changes on the table —
    and this reads its answer rather than guessing from the status. */
+/* ---- THE INTERNAL REVIEW, ON A PHONE ----
+   READ ONLY, AND IT SAYS SO. The phone shell files no changes of its own — that
+   is deliberate and documented — and a verdict is a change to what may leave
+   the building, so it belongs on the same side of that line. What a phone MUST
+   carry is the fact: a person who opens a contract on the train has to be able
+   to see that three of their redlines are sitting with their boss, and that two
+   more are being held back and will not go out. A screen that stayed silent
+   about a hold would have them believe they had sent something they had not.
+
+   Drawn from reviewState and reviewHeldIds — the same two functions the
+   workbench reads, so the phone and the desk cannot disagree. */
+function mReviewNoticeHtml(c){
+  if(!window.reviewState) return '';
+  let st=null; try{ st=reviewState(c); }catch(_){ return ''; }
+  const held=(window.reviewHeldIds?reviewHeldIds(c).size:0);
+  if(st.phase!=='yours' && st.phase!=='waiting' && !held) return '';
+  const line = st.phase==='yours' ? i18t('rv_phone_yours',{who:st.rv.by})
+    : st.phase==='waiting' ? i18t('rv_phone_waiting',{who:st.rv.reviewer.name})
+    : '';
+  const bits=[];
+  if(line) bits.push(`<div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${mEsc(line)}</div>`);
+  if(held) bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18tn('rv_phone_held',held,{n:held}))}</div>`);
+  if(st.phase==='yours') bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18t('rv_phone_desktop'))}</div>`);
+  return `<div class="m-notice" style="display:block;background:var(--st-amber-bg);border-color:var(--st-amber-line)">${bits.join('')}</div>`;
+}
+
 function mDocNoticesHtml(c){
+  /* The review line rides ABOVE the numbering notices and outside the early
+     returns below: an executed contract has no review to run, but a contract
+     whose numbers are live still very much can, and the old structure would
+     have swallowed the notice on the first branch that matched. */
+  const rv = mLocked(c) ? '' : mReviewNoticeHtml(c);
   if(mLocked(c)) return `
     <div class="m-notice" style="background:var(--st-gray-bg);border-color:var(--st-gray-line)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -81,19 +112,19 @@ function mDocNoticesHtml(c){
     </div>`;
 
   const blocked = (typeof negoRenumberBlocked==='function') ? negoRenumberBlocked(c) : 'locked';
-  if(blocked==='locked' && typeof negoLiveNumbered==='function' && negoLiveNumbered(c)) return `
+  if(blocked==='locked' && typeof negoLiveNumbered==='function' && negoLiveNumbered(c)) return rv + `
     <div class="m-notice" style="background:var(--st-steel-bg);border-color:var(--st-steel-line)">
       <span style="width:8px;height:8px;border-radius:50%;background:var(--st-steel-dot);flex:none"></span>
       <span style="font-size:14px;color:var(--st-steel-fg);line-height:1.45">${i18t('mc_numbers_live')}</span>
     </div>`;
-  if(blocked) return '';
+  if(blocked) return rv;
 
   let plan = null;
   try{ plan = (typeof negoRenumberPlan==='function') ? negoRenumberPlan(c) : null; }catch(_){ plan=null; }
   const moves = plan && Array.isArray(plan.moves) ? plan.moves.filter(mv=>mv && mv.from!==mv.to) : [];
-  if(!moves.length) return '';
+  if(!moves.length) return rv;
   const refs = (plan && Array.isArray(plan.refs) ? plan.refs.length : 0);
-  return `
+  return rv + `
     <div class="m-notice" style="display:block;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
       <div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${i18t('mc_numbering_gap')}</div>
       <div class="m-note" style="margin-top:3px">${moves.length} heading${moves.length===1?'':'s'} still read at their old number${refs?`, and ${refs} cross-reference${refs===1?'':'s'} point${refs===1?'s':''} at them`:''}.</div>

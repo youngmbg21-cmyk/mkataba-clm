@@ -2079,6 +2079,11 @@ function negoLiveCardsHtml(c, opts){
             title="${i18t('ng_answered_not_sent')}">${i18t('ng_not_sent_yet_lc')}</span>` : ''}
           ${ch.withdrawn ? `<span class="nego-st withdrawn" data-withdrawn="${_ne(ch.id)}"
             title="${i18t('ng_refused_withdrawn')}">withdrawn</span>` : ''}
+          ${''/* THE SAME CHIP THE WORKBENCH DRAWS, from the same function. Two
+                 renderers draw a change in this product and both have to carry
+                 every fact about it — the day formatting-only changes shipped
+                 was the day that stopped being advice. */}
+          ${window.reviewChipHtml ? reviewChipHtml(ch, opts) : ''}
         </div>
         ${ch.status === 'rejected' && !ch.withdrawn ? `<div class="nego-contested" data-contested="${_ne(ch.id)}">
           <b>${i18t('ng_still_between_you')}</b> This was refused. It stops being outstanding when
@@ -2095,8 +2100,14 @@ function negoLiveCardsHtml(c, opts){
           <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
+        ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
+          const v = window.reviewOn ? reviewOn(ch) : null;
+          return (v && v.note) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
+            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--st-amber-fg)">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
+            <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
+        ${window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}
         ${held ? `<div class="nego-hold" data-hold="${_ne(ch.id)}">
           <span aria-hidden="true">▲</span>
           <span><b>${i18t('ng_not_sent_yet')}</b> ${_ne(String(opts.org || window.FIRST_PARTY || 'The other side'))} has not seen this answer.
@@ -2744,9 +2755,18 @@ function negoIndexSendHtml(c, opts = {}){
      its own send for the case this one does not cover: handing the contract
      back with nothing of ours outstanding. */
   if (me === 'owner'){
-    const n = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner').length : 0;
-    if (!n) return '';
+    const total = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner').length : 0;
+    /* What is HELD comes off the count for the same reason it comes off the
+       toolbar's: this button publishes, and it must not offer to publish
+       something the reviewer has stopped. Where everything is held the postbox
+       says so rather than disappearing — a send that vanishes leaves the reader
+       looking for the button rather than reading the reason. */
+    const heldN = window.reviewHeldIds ? reviewHeldIds(c).size : 0;
+    const n = Math.max(0, total - heldN);
     const them = _ne(String(c.counterparty || 'the counterparty'));
+    if (!n) return heldN ? `<div class="nego-index-send">
+      <span class="why">${_ne(i18tn('rv_all_held_note', heldN, { n: heldN }))}</span>
+    </div>` : '';
     /* THE ONE SEND, WHERE THE DRAFTS ARE. This button used to have a flashing
        proxy in the page header ("Send All"), which crowded the toolbar until
        the contract dropdown clipped mid-word — two copies of one act. The
@@ -2922,6 +2942,7 @@ function negoTabHtml(c, opts = {}){
   negoInit(c);
   return `<div id="nego-root">
     ${negoHeadHtml(c, opts)}
+    ${window.reviewBannerHtml ? reviewBannerHtml(c, opts) : ''}
     ${negoTurnBannerHtml(c, opts)}
     ${negoCompareBarHtml(c)}
     ${negoCleanBarHtml(c)}
@@ -4069,6 +4090,13 @@ function wireNegotiationTab(c, opts = {}){
      negoDocHtml): the baseline is a reference, and a reader with no right to
      propose must not be offered a menu that ends in a proposal. */
   const editableRoom = !opts.readonly && opts.canEdit !== false;
+  /* The internal review's own clicks — the verdict buttons on each card and the
+     banner's ask/return/cancel. ONE wiring function, shared with the workbench
+     and delegated from the host, so a repaint cannot strand a listener and a
+     card painted after this call is still live. Never on a read-only mount:
+     Counterparty View is a window, not a chair, and an internal review is the
+     last thing that seat may touch. */
+  if (editableRoom && window.reviewWireCards) reviewWireCards(c, host, { repaint: () => again() });
   /* ---- THE LOCK, NOT ONLY THE SIGN ----
      A read-only mount (Counterparty View, an executed contract, a signing
      link) renders no verbs — but hiding buttons is the sign on the door, and
@@ -4246,6 +4274,17 @@ function wireNegotiationTab(c, opts = {}){
 
   const send = host.querySelector('#nego-send');
   if (send) send.addEventListener('click', () => {
+    /* REFUSED HERE AS WELL AS AT THE DOOR, and the repetition is deliberate.
+       core.js holds the send itself — the share dialog and the round-send both
+       land on reviewSendBlock, and nothing gets out past it. But this button
+       opens a DIALOG, and a person who fills in an address, writes a covering
+       note and presses Send only to be told the wording is still with their
+       boss has been walked to the end of a corridor with no door. Said before
+       the corridor, not after it. */
+    if (window.reviewGateMessage){
+      let msg = null; try{ msg = reviewGateMessage(c); }catch(_){ msg = null; }
+      if (msg){ if (window.toast) toast(msg, 'err'); return; }
+    }
     /* WE ALREADY KNOW WHERE THIS GOES. With an address recorded, the send is a
        send — the same one-press act the counterparty's postbox has always been.
        Without one it still appears, and still works: it opens the dialog, which
@@ -6391,10 +6430,20 @@ function renderRedline(){
      page; it is one word on the verb that sends them instead, at the moment
      that fact matters. */
   const _unsent = (window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).length;
+  /* ---- AND WHAT AN INTERNAL HOLD DOES TO THAT COUNT ----
+     A held ask is unsent and is NOT going out, so counting it as something this
+     button will publish overstates what the press does. The button counts what
+     would actually travel; the number the hold accounts for is said separately,
+     in its own words, because "3 unsent" quietly becoming "2 unsent" after a
+     reviewer looked at it reads as a change having disappeared. */
+  const _held = (side === 'owner' && window.reviewHeldIds) ? reviewHeldIds(c).size : 0;
+  const _goes = Math.max(0, _unsent - _held);
   const sendLabel = (side === 'owner' ? 'Publish Round' : 'Send Response')
-    + (_unsent ? ` · ${_unsent} unsent` : '');
+    + (_goes ? ` · ${_goes} unsent` : '')
+    + (_held ? ` · ${_held} held` : '');
   const sendTip = side === 'owner'
     ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
+      + (_held ? ` — ${_held} change${_held === 1 ? '' : 's'} held back by an internal reviewer will not travel` : '')
     : `Send the answers and counter-proposals held on this page to ${sendWho}`;
   /* ---- CLOSING THE ROUND, FROM THE PAGE THE ROUND IS WORKED ON ----
      negoAdvanceRound archives the decided changes onto the round record and
@@ -6476,6 +6525,20 @@ function renderRedline(){
                  The counterparty never sees the playbook either way. */}
           ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
             title="${i18t('ng_review_every_clause')}">${i18t('ng_review_vs_playbook')}</button>` : ''}
+          ${''/* THE WAY IN, ALWAYS PRESENT. The review banner offers a request
+                 too, but only once there is something to say — and a person who
+                 wants a second pair of eyes before anyone has told them to needs
+                 a door that is there on an ordinary day. Its word follows the
+                 state, because the reviewer and the requester press the same
+                 place for opposite acts: one asks, the other hands it back. */}
+          ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
+            const st = reviewState(c);
+            const label = st.phase === 'yours' ? i18t('rv_head_return')
+              : st.phase === 'waiting' ? i18t('rv_head_waiting', { who: st.rv.reviewer.name })
+              : i18t('rv_head_ask');
+            return `<button type="button" data-rl-review class="rl-pb-btn"
+              data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100; ${_ne(label)}</button>`;
+          })() : ''}
           <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="${i18t('ng_focus_mode')}" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
@@ -6538,6 +6601,18 @@ function renderRedline(){
      ids now — ws-share, ws-import, ws-compare — wired just above. */
   host.querySelectorAll('[data-redline-side]').forEach(el =>
     el.addEventListener('click', () => { _redlineSide = el.getAttribute('data-redline-side'); renderRedline(); }));
+  /* THE HEAD'S REVIEW BUTTON. One control, three acts, chosen from the state
+     rather than from three buttons: the requester asks, the reviewer hands
+     back, and anyone looking at a review already out gets the banner's Cancel
+     instead of a second way to do it. */
+  host.querySelectorAll('[data-rl-review]').forEach(el =>
+    el.addEventListener('click', () => {
+      const st = window.reviewState ? reviewState(c) : { phase: 'none' };
+      if (st.phase === 'yours') openReviewReturnModal(c, { after: () => renderRedline() });
+      else if (st.phase === 'waiting'){
+        if (window.toast) toast(i18t('rv_already_with', { who: st.rv.reviewer.name }));
+      } else openReviewAskModal(c, { after: () => renderRedline() });
+    }));
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
      see rlSetFocus. The paint call lines the fresh button's face up with the
      mode the page came back in. */
@@ -8742,7 +8817,13 @@ function redlineChangeCardsHtml(c, opts = {}){
        cannot disagree. Nothing here sets a "sent" flag of its own: the badge
        flips because the turn moved, and the turn moves only when something
        actually left the building. */
-    const mineUnsent = !theirs && unsent.has(ch.id);
+    /* ---- AND WHETHER AN INTERNAL REVIEWER HAS HELD IT ----
+       A held ask is unsent and stays unsent: the Send verb comes off the card
+       and the badge says who is holding it. Reading it here, from the shared
+       model, rather than deciding it in this file — the phone's card and the
+       contract tab's card ask the same function the same question. */
+    const rvHeld = !theirs && !!(window.reviewHeld && reviewHeld(ch)) && unsent.has(ch.id);
+    const mineUnsent = !theirs && unsent.has(ch.id) && !rvHeld;
     const mineSent = !theirs && !unsent.has(ch.id) && ch.status === 'pending';
     const heldHere = heldIds.has(ch.id) && ch.status !== 'pending';
     const sentHere = sentIds.has(ch.id) && ch.status !== 'pending' && !heldHere;
@@ -8751,6 +8832,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     const badge = heldHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; &#128274; held'] : ['no', 'Rejected &middot; &#128274; held'])
       : sentHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; sent'] : ['no', 'Rejected &middot; sent'])
       : contested ? ['no', !theirs ? 'Refused &middot; withdraw or revise' : 'Refused &middot; waiting on them']
+      : rvHeld ? ['no', '&#9209; ' + i18t('rv_badge_held')]
       : mineUnsent ? ['draft', '&#128274; Draft']
       : theirs ? ['sent', 'Awaiting you'] : ['sent', 'Sent'];
     /* The organisation is the AUTHOR's, not the viewer's. Written seat-relative
@@ -8923,8 +9005,21 @@ function redlineChangeCardsHtml(c, opts = {}){
        column — repainting on mouseenter would fight the pointer and drop the
        node the event came from. Safe only because of the exemption above: a
        card that can be in the hidden state carries nothing but inert verbs. */
-    const body = `<div class="rl-card-body">${behalfBlock}${whyBlock}${
-      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}</div>`;
+    /* The reviewer's verdict, and — on the reviewer's own screen — the buttons
+       that set it. Both come from js/review.js so this card and the contract
+       tab's card cannot disagree about what the boss said. */
+    const rvChip = window.reviewChipHtml ? reviewChipHtml(ch, opts) : '';
+    const rvNoteBlock = (() => {
+      if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
+      const v = window.reviewOn ? reviewOn(ch) : null;
+      if (!v || !v.note) return '';
+      return `<div class="rl-card-why" style="border-left-color:var(--st-amber-line)">
+        <span class="rl-card-why-k">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
+        <span class="nego-why-clamp">${_ne(v.note)}</span></div>`;
+    })();
+    const body = `<div class="rl-card-body">${behalfBlock}${whyBlock}${rvNoteBlock}${
+      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${
+      window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"
         title="${open ? 'Collapse this card' : 'Open this card'}"
@@ -8938,7 +9033,7 @@ function redlineChangeCardsHtml(c, opts = {}){
       ''/* What the reader's open/shut choice was made ABOUT — see rlCardSetOpen. */
       } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
       <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
-        <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
+        ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
         ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}</div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
       ${body}
@@ -9332,7 +9427,15 @@ function redlinePanesHtml(c, opts = {}){
      are undefined and the clause tools render as transparent boxes with white
      text on a white page. */
   return `<div id="nego-root" class="rl-root">
-    <div id="rl-banner">${opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
+    <div id="rl-banner">${''/* THE INTERNAL REVIEW LINE COMES FIRST, and it is not
+           behind opts.bannerHtml. That override exists so the portal can supply
+           its own wall line; a review is the one thing on this page the portal
+           must never be told about, so it is drawn outside the override and
+           reviewBannerHtml itself returns nothing in PORTAL_MODE or read-only.
+           Two locks, because the cost of getting this one wrong is telling the
+           counterparty that we are arguing about their wording internally. */
+      }${window.reviewBannerHtml ? reviewBannerHtml(c, opts) : ''}${
+      opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
       ''/* THE SET-ONCE EMAIL STRIP USED TO SIT HERE, and it was the last full
            width band between the top of this page and the first word of the
            contract. The address is a fact about the counterparty, so it is a
