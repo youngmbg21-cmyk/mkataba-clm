@@ -172,6 +172,25 @@ const _hrEsc=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&l
 function _hrMoney(n){ return (typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n); }
 function _hrDate(iso){ const t=Date.parse(String(iso||'')+'T00:00:00'); return isNaN(t)?_hrEsc(iso):new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
 function _hrSign(n){ return (n>0?'+':'')+n; }
+/* ---------- emphasis ----------
+   Colour and symbols carry the reading: green is good news, amber needs an
+   eye, red needs a hand. SEMANTIC only — a value is coloured because of what
+   it means, never for decoration, and every mark also reads in plain black
+   on a mono printer (the arrow/⚠/✓ carries the meaning without the colour). */
+const _hrSpan=(cls,txt)=>`<span class="${cls}">${txt}</span>`;
+/* A month-on-month movement: ▲/▼ plus colour decided by whether UP is good
+   here — one more signed contract is green, one more open obligation is red. */
+function _hrDelta(n,upIsGood,label){
+  if(!n) return _hrSpan('muted',`± 0 ${label}`);
+  const up=n>0;
+  return _hrSpan(up===upIsGood?'pos':'neg',`${up?'▲':'▼'} ${Math.abs(n)} ${label}`);
+}
+/* Days until a date, coloured by how soon somebody has to act. */
+const _hrDaysCell=d=>d<=30?_hrSpan('neg','⚠ '+d):d<=60?_hrSpan('amb',String(d)):_hrSpan('pos',String(d));
+const _hrIdleCell=n=>n>30?_hrSpan('neg','⚠ '+n):n>14?_hrSpan('amb',String(n)):String(n);
+const _hrRiskCell=r=>r>=70?_hrSpan('neg','⚠ '+r):_hrSpan('amb',String(r));
+/* An all-clear line: the ✓ says "checked and fine", not "no data". */
+const _hrAllClear=txt=>`<p class="ok">✓ ${txt}</p>`;
 
 function buildHealthReportHtml(d, imgs){
   const t=k=>i18t(k);
@@ -188,11 +207,12 @@ function buildHealthReportHtml(d, imgs){
   else{
     const p=d.prev;
     const live=d.live.reduce((s,c)=>s+Number(c.value||0),0);
+    const dv=live-(p.totalValue||0);
     const bits=[
-      `${_hrSign(d.cs.length-p.total)} ${_hrEsc(t('hr_d_contracts'))}`,
-      `${_hrSign(d.cs.filter(c=>c.status==='Signed').length-(p.signed||0))} ${_hrEsc(t('hr_d_signed'))}`,
-      money?`${(live-(p.totalValue||0))>=0?'+':'−'}${_hrEsc(_hrMoney(Math.abs(live-(p.totalValue||0))))} ${_hrEsc(t('hr_d_value'))}`:'',
-      `${_hrSign(d.obs.length-(p.openOb||0))} ${_hrEsc(t('hr_d_openob'))}`,
+      _hrDelta(d.cs.length-p.total,true,_hrEsc(t('hr_d_contracts'))),
+      _hrDelta(d.cs.filter(c=>c.status==='Signed').length-(p.signed||0),true,_hrEsc(t('hr_d_signed'))),
+      money?(dv?_hrSpan(dv>0?'pos':'neg',`${dv>0?'▲':'▼'} ${_hrEsc(_hrMoney(Math.abs(dv)))} ${_hrEsc(t('hr_d_value'))}`):''):'',
+      _hrDelta(d.obs.length-(p.openOb||0),false,_hrEsc(t('hr_d_openob'))),
     ].filter(Boolean);
     delta=`<p>${_hrEsc(i18t('hr_delta_since',{month:p.month}))} ${bits.join(' · ')}</p>`;
   }
@@ -200,8 +220,8 @@ function buildHealthReportHtml(d, imgs){
   // the workings behind the score
   const workings=d.health.deductions.length
     ?table([t('hr_col_what'),t('hr_col_count'),t('hr_col_points')],
-      d.health.deductions.map(x=>[_hrEsc(t(x.key)),String(x.n),'−'+x.pts]))
-    :`<p class="muted">${_hrEsc(t('hr_no_deductions'))}</p>`;
+      d.health.deductions.map(x=>[_hrEsc(t(x.key)),String(x.n),_hrSpan('neg','−'+x.pts)]))
+    :_hrAllClear(_hrEsc(t('hr_no_deductions')));
 
   // §2 — where the money is
   const streams=Object.entries(d.r.byFolder||{}).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
@@ -212,19 +232,19 @@ function buildHealthReportHtml(d, imgs){
 
   // §3 — expiring
   const expRows=d.expiring90.slice(0,10).map(x=>[
-    _hrEsc(x.c.name||x.c.id), _hrEsc(x.c.counterparty||'—'), _hrDate(x.e), String(x.d),
+    _hrEsc(x.c.name||x.c.id), _hrEsc(x.c.counterparty||'—'), _hrDate(x.e), _hrDaysCell(x.d),
     ...(money?[x.c.value?_hrEsc(_hrMoney(x.c.value)):'—']:[]) ]);
   const expCols=[t('hr_col_contract'),t('hr_col_party'),t('hr_col_date'),t('hr_col_days'),...(money?[t('hr_col_value')]:[])];
 
   // §4 — stuck
-  const stuckRows=d.stuckReview.slice(0,8).map(x=>[_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),String(x.idle)]);
+  const stuckRows=d.stuckReview.slice(0,8).map(x=>[_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrIdleCell(x.idle)]);
   const deadNames=(d.friction&&Array.isArray(d.friction.deadlockList))
     ?d.friction.deadlockList.map(x=>x&&(x.name||x.id||x)).filter(v=>typeof v==='string'&&v).slice(0,4):[];
 
   // §5 — risky
   const riskRows=d.risky.slice(0,8).map(x=>{
     const f=d.findingsOf(x.c);
-    return [_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),String(Math.round(x.r)),_hrEsc(f.join('; ')||'—')];
+    return [_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrRiskCell(Math.round(x.r)),_hrEsc(f.join('; ')||'—')];
   });
 
   // §6 — friction
@@ -240,8 +260,8 @@ function buildHealthReportHtml(d, imgs){
 
   // §7 — actions
   const actParts=[];
-  if(d.decisions.length) actParts.push(`<h3>${_hrEsc(t('hr_act_renewals'))}</h3>${table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_date'),t('hr_col_days')],d.decisions.slice(0,8).map(x=>[_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrDate(x.dd),String(x.d)]))}`);
-  if(d.overdueOb.length) actParts.push(`<h3>${_hrEsc(t('hr_act_overdue'))}</h3><ul>${d.overdueOb.slice(0,8).map(o=>`<li>${_hrEsc(o.desc||'—')}${o.cname?` — ${_hrEsc(o.cname)}`:''}</li>`).join('')}</ul>`);
+  if(d.decisions.length) actParts.push(`<h3>${_hrEsc(t('hr_act_renewals'))}</h3>${table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_date'),t('hr_col_days')],d.decisions.slice(0,8).map(x=>[_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrDate(x.dd),_hrDaysCell(x.d)]))}`);
+  if(d.overdueOb.length) actParts.push(`<h3>${_hrEsc(t('hr_act_overdue'))}</h3><ul>${d.overdueOb.slice(0,8).map(o=>`<li>${_hrSpan('neg','⚠')} ${_hrEsc(o.desc||'—')}${o.cname?` — ${_hrEsc(o.cname)}`:''}</li>`).join('')}</ul>`);
 
   const gen=d.generatedAt.toLocaleDateString(jxLocale(),{day:'2-digit',month:'long',year:'numeric'});
   const chartsMissing=!imgs||!Object.keys(imgs).length;
@@ -263,7 +283,18 @@ function buildHealthReportHtml(d, imgs){
   h1{font-size:26px;margin:26px 0 4px}
   .sub{color:#6b7280;font-size:12.5px;margin:0 0 22px;font-family:-apple-system,'Segoe UI',Arial,sans-serif}
   h2{font-size:16px;margin:30px 0 8px;padding-top:14px;border-top:1px solid #e5e7eb}
-  h2 .no{color:#9ca3af;font-weight:400;margin-right:8px}
+  h2 .no{display:inline-block;width:22px;height:22px;border-radius:50%;background:#0d9488;color:#fff;
+    text-align:center;line-height:22px;font-size:12px;font-weight:600;margin-right:10px;
+    font-family:-apple-system,'Segoe UI',Arial,sans-serif}
+  .pos{color:#0f7a58;font-weight:600}
+  .amb{color:#b45309;font-weight:600}
+  .neg{color:#b91c1c;font-weight:600}
+  .ok{color:#0f7a58}
+  .chip{display:inline-block;border-radius:999px;padding:3px 12px;font-size:13.5px;font-weight:700;
+    font-family:-apple-system,'Segoe UI',Arial,sans-serif}
+  .chip.c-strong,.chip.c-good{background:#e6f4ef;color:#0f7a58}
+  .chip.c-fair{background:#fdf3e0;color:#b45309}
+  .chip.c-weak{background:#fdeaea;color:#b91c1c}
   h3{font-size:13px;margin:14px 0 6px;font-family:-apple-system,'Segoe UI',Arial,sans-serif;
     text-transform:uppercase;letter-spacing:.05em;color:#4b5563}
   .muted{color:#6b7280}
@@ -295,7 +326,8 @@ function buildHealthReportHtml(d, imgs){
 
   <div class="scorebox">
     <span class="score s-${d.health.gradeKey.replace('hr_grade_','')}">${d.health.score}</span>
-    <span class="grade">${_hrEsc(t(d.health.gradeKey))} <span class="muted">${_hrEsc(t('hr_out_of'))}</span></span>
+    <span class="chip c-${d.health.gradeKey.replace('hr_grade_','')}">${_hrEsc(t(d.health.gradeKey))}</span>
+    <span class="muted">${_hrEsc(t('hr_out_of'))}</span>
   </div>
   ${chartImg('status','hr_status_chart')}
 
@@ -310,22 +342,22 @@ function buildHealthReportHtml(d, imgs){
 
   <h2><span class="no">3</span>${_hrEsc(t('hr_s3'))}</h2>
   <p>${_hrEsc(i18t('hr_exp_within',{n30:d.win30,n60:d.win60,n90:d.win90}))}</p>
-  ${expRows.length?table(expCols,expRows):`<p class="muted">${_hrEsc(t('hr_expiring_none'))}</p>`}
+  ${expRows.length?table(expCols,expRows):_hrAllClear(_hrEsc(t('hr_expiring_none')))}
   ${chartImg('expiry','hr_expiry_chart')}
 
   <h2><span class="no">4</span>${_hrEsc(t('hr_s4'))}</h2>
-  ${stuckRows.length?`<h3>${_hrEsc(t('hr_stuck_review'))}</h3>${table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_idle')],stuckRows)}`:`<p class="muted">${_hrEsc(t('hr_stuck_none'))}</p>`}
-  ${d.awaiting?`<p>${_hrEsc(i18tn('hr_awaiting',d.awaiting,{n:d.awaiting}))}</p>`:''}
-  ${deadNames.length?`<p>${_hrEsc(t('hr_deadlocks'))} ${deadNames.map(_hrEsc).join(', ')}</p>`:''}
+  ${stuckRows.length?`<h3>${_hrEsc(t('hr_stuck_review'))}</h3>${table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_idle')],stuckRows)}`:_hrAllClear(_hrEsc(t('hr_stuck_none')))}
+  ${d.awaiting?`<p>${_hrSpan('amb','→')} ${_hrEsc(i18tn('hr_awaiting',d.awaiting,{n:d.awaiting}))}</p>`:''}
+  ${deadNames.length?`<p>${_hrSpan('neg','⚠ '+_hrEsc(t('hr_deadlocks')))} ${deadNames.map(_hrEsc).join(', ')}</p>`:''}
 
   <h2><span class="no">5</span>${_hrEsc(t('hr_s5'))}</h2>
-  ${riskRows.length?table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_risk'),t('hr_risk_top_findings')],riskRows):`<p class="muted">${_hrEsc(t('hr_risky_none'))}</p>`}
+  ${riskRows.length?table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_risk'),t('hr_risk_top_findings')],riskRows):_hrAllClear(_hrEsc(t('hr_risky_none')))}
 
   <h2><span class="no">6</span>${_hrEsc(t('hr_s6'))}</h2>
   ${frictionHtml}
 
   <h2><span class="no">7</span>${_hrEsc(t('hr_s7'))}</h2>
-  ${actParts.length?actParts.join(''):`<p class="muted">${_hrEsc(t('hr_act_none'))}</p>`}
+  ${actParts.length?actParts.join(''):_hrAllClear(_hrEsc(t('hr_act_none')))}
   ${money?chartImg('renewal','hr_renewal_chart'):''}
 
   <div class="foot">

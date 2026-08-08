@@ -758,7 +758,11 @@ risk statements — not on ordinary prose.
   {+…} good news        e.g. {+signed three weeks early}
   {-…} bad news         e.g. {-expired without renewal}
   {!…} needs attention  e.g. {!expires in 9 days}
-  {~…} context/aside    e.g. {~drafted from the standard template}`;
+  {~…} context/aside    e.g. {~drafted from the standard template}
+These markers are how emphasis reaches the reader — a substantive answer about
+the portfolio should usually carry one to three of them, on the words that
+matter most (the deadline, the amount at stake, the risk). Never colour a whole
+sentence, and never use them for decoration.`;
 
 if (typeof window !== 'undefined') Object.assign(window, {
   AI_CHART_RECIPES, AI_SERIES, AI_CHARTS, AI_CHART_CDN,
