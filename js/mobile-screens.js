@@ -230,7 +230,12 @@ function mContractsHtml(){
     { k:'Signed', get label(){ return i18t('m_chip_executed'); } },
     { k:'Declined', get label(){ return i18t('m_chip_closed'); } },
   ];
-  const streams = Object.keys((typeof FOLDERS==='object'&&FOLDERS)||{});
+  /* The same filter the desktop register applies to its stream tabs. The rows
+     below already come from regFiltered(), which drops out-of-reach streams —
+     without this the phone offered chips that could only ever return nothing. */
+  const streams = (typeof visibleFolders==='function')
+    ? visibleFolders().map(f=>f.id)
+    : Object.keys((typeof FOLDERS==='object'&&FOLDERS)||{});
   const statusChips = STATUS_CHIPS.map(c=>`
     <button class="m-chip${R.stage===c.k?' on':''}" data-m-stage="${mEsc(c.k)}">${mEsc(c.label)}</button>`).join('');
   const streamChips = streams.map(f=>`

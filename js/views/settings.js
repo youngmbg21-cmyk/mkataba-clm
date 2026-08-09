@@ -235,9 +235,18 @@ function renderTeam(){
             <input id="tm-name" type="text" placeholder="${esc(i18t('set_ph_full_name'))}" style="${inputStyle}"/>
             <input id="tm-email" type="email" placeholder="${esc(i18t('set_ph_work_email'))}" style="${inputStyle}"/>
             <input id="tm-title" type="text" placeholder="${esc(i18t('set_ph_title'))}" style="${inputStyle}"/>
+            ${''/* THE SAFE ONE IS THE DEFAULT. This opened on Editor — edit &
+                   sign — so an admin who filled in a name and an email and did
+                   not think about the dropdown had granted the right to redline
+                   and to SIGN. The quietest path through a form must never be
+                   the widest grant; it is the same rule the access dropdown
+                   below already follows. Viewer reads and nothing more, so a
+                   skipped answer costs a follow-up rather than an authority
+                   nobody meant to hand over. Reported from the field (Young,
+                   09 Aug 2026). */}
             <select id="tm-role" style="${inputStyle}">
+              <option value="viewer" selected>${i18t('set_role_viewer')}</option>
               <option value="legal">${i18t('set_role_legal')}</option>
-              <option value="viewer">${i18t('set_role_viewer')}</option>
               <option value="admin">${i18t('set_role_admin')}</option>
             </select>
             <input id="tm-pass" type="password" placeholder="${esc(i18t('set_ph_temp_pass'))}" style="${inputStyle}"/>

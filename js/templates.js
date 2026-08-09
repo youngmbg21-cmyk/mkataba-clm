@@ -57,9 +57,20 @@ function folderColor(idOrContract){
 /* Legend that explains the card / row edge-stripe colours. Each entry mirrors
    the stripe (a short vertical bar) next to its stream name, so the colour code
    is self-documenting on any striped view. Custom streams are included too. */
+/* ---- THE STREAMS THIS READER MAY SEE ----
+   Every "file under" picker and every stream legend in the product is built
+   from the two functions below, so this is the one place the question has to be
+   asked. A restricted member being offered a stream they cannot open is either
+   a dead end (the guard bounces them) or, on a picker, a contract filed
+   somewhere they will never see it again. */
+function visibleFolders(){
+  const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
+  const all=Object.values(FOLDERS);
+  return acc==='*' ? all : all.filter(f=>acc.includes(f.id));
+}
 function folderLegendHtml(opts={}){
   const short = f => (typeof STREAM_SHORT!=='undefined' && STREAM_SHORT[f.id]) || f.name;
-  const items = Object.values(FOLDERS).map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:2px;background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
+  const items = visibleFolders().map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:2px;background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;${opts.style||''}">
     <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('fo_value_streams')}</span>
     ${items}
@@ -67,8 +78,14 @@ function folderLegendHtml(opts={}){
 }
 // <option> list for any "file under" select — includes a create sentinel
 function folderOptionsHtml(selectedId, includeAuto){
+  const opts=visibleFolders();
+  /* The stream a record is ALREADY in stays on the list even when it is out of
+     reach, or reopening that record silently re-files it under whatever
+     happened to be first. */
+  if(selectedId && selectedId!=='auto' && selectedId!=='__new__'
+     && FOLDERS[selectedId] && !opts.some(f=>f.id===selectedId)) opts.unshift(FOLDERS[selectedId]);
   return (includeAuto?`<option value="auto" ${selectedId==='auto'?'selected':''}>${i18t('fo_auto_route')}</option>`:'')
-    + Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${selectedId===f.id?'selected':''}>${esc(f.name)}</option>`).join('')
+    + opts.map(f=>`<option value="${esc(f.id)}" ${selectedId===f.id?'selected':''}>${esc(f.name)}</option>`).join('')
     + `<option value="__new__">${i18t('fo_create_new')}</option>`;
 }
 function rebuildFolderSelect(sel, selectedId){
@@ -175,4 +192,4 @@ Object.values(TEMPLATES).forEach(t=>{
   Object.defineProperty(t,'fields',{ get(){ return builtinTemplateFields(t.id); }, enumerable:false, configurable:true });
 });
 
-Object.assign(window,{TEMPLATE_BASE_FIELDS,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
+Object.assign(window,{TEMPLATE_BASE_FIELDS,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});

@@ -890,10 +890,42 @@ function directoryLookup(nameOrEmail){
 }
 // A user's folder access: '*' = every stream (the default, and always for admins),
 // otherwise an array of folder ids they are restricted to.
+/* TWO PLACES CARRY THIS ANSWER, AND ONLY ONE OF THEM REACHES A RESTRICTED
+   MEMBER'S OWN BROWSER.
+
+   state.settings.folderAccess is the whole workspace's map. It is the admin's
+   editing surface — and the server DELIBERATELY strips it from the bootstrap of
+   anyone who is not an admin, because it discloses who is fenced off from what.
+   So on a restricted member's own screen that map is simply absent, every read
+   of it came back undefined, and this function answered "every stream". The
+   server went on filtering their data correctly, so nothing leaked; but the
+   screen drew the whole workspace's stream switcher and the member was told
+   they had access they did not have. Reported from the field (Young, 09 Aug
+   2026): "I assign one stream, I log in, I still see all of them."
+
+   The server already sends each person their OWN scope on the user record
+   (publicUser → folderScopeFor). That is the authority when the map is silent.
+
+   ORDER MATTERS. The map wins WHEN IT HAS AN ENTRY, because an admin editing
+   access sees the change take effect on their own screen before the save
+   round-trips. Absence falls through to the record. And a workspace with no
+   server at all has neither an entry nor a record, so it answers '*' exactly as
+   it always did. */
 function userFolderAccess(u){
   u=u||currentUser(); if(!u) return '*'; if(u.role==='admin') return '*';
-  const v=(((state.settings||{}).folderAccess)||{})[u.id];
-  return (v==null||v==='*'||(Array.isArray(v)&&v.length===0))?'*':v;
+  const map=((state.settings||{}).folderAccess)||{};
+  if(u.id in map){
+    /* The map's own quirk, kept: an admin who ticks nothing has not locked
+       somebody out of the whole workspace, they have said nothing. */
+    const v=map[u.id];
+    return (v==null||v==='*'||(Array.isArray(v)&&v.length===0))?'*':v;
+  }
+  /* The server's answer for this person, taken literally — an empty list there
+     is a deliberate deny-all (see folderScopeFor), and the server is already
+     filtering on exactly that. A screen that disagreed would offer streams the
+     data never arrives for. */
+  const own=u.folderAccess;
+  return (own==null||own==='*'||!Array.isArray(own))?'*':own;
 }
 function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
 

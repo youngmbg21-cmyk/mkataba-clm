@@ -1483,7 +1483,15 @@ app.get('/api/bootstrap', auth, (req, res) => {
   res.json({
     org: getSetting('org'),
     me: publicUser(req.user),
-    users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(publicUser),
+    /* M-3, second half. Stripping folderAccess from the settings blob above
+       achieved nothing while this list handed the same map back one record at a
+       time — every member's scope, to every signed-in member. A non-admin gets
+       their own scope on `me` and nobody else's here. */
+    users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(u => {
+      const p = publicUser(u);
+      if (req.user.role !== 'admin' && u.id !== req.user.id) delete p.folderAccess;
+      return p;
+    }),
     uid: getSetting('uid') || 100,
     settings,
     count: db.prepare(`SELECT COUNT(*) n FROM contracts ${whereOf(f.sql)}`).get(...f.args).n,

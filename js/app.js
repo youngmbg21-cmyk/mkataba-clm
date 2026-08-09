@@ -542,7 +542,10 @@ function exportWorkingSetCsv(){
 function commandPaletteResults(q){
   q=(q||'').trim().toLowerCase();
   const out=[];
-  const folders=Object.values(FOLDERS||{});
+  /* The reader's own streams. openFolder() below refuses one they are not
+     granted, so listing it here offers a door that answers "no access" — and
+     names a stream they were not meant to know about. */
+  const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));

@@ -100,6 +100,25 @@ FORMATTING-ONLY CHANGES (added 2026-08-08). The funnel now files an edit whose w
 
 COUNTERPARTY VIEW IS A WINDOW, NOT A CHAIR (added 2026-08-08). The owner's Internal/Counterparty toggle mounts the preview READ-ONLY: no Direct Edit, no accept/reject, no hand-back, no Copilot, no thread composer, no playbook pass. The lock is layered — the mount passes readonly, and wireNegotiationTab refuses decide/file under readonly even if a stray path reaches them. The portal is the counterparty's only acting seat. Typing in a change on their behalf from the preview is GONE by decision (Young, 08 Aug 2026); the enteredBy stamp remains in the funnel for the routes that still file in their name (inbound links, Word round-trip).
 
+WHO MAY SEE WHICH STREAM, AND WHERE THE ANSWER COMES FROM (added 2026-08-09)
+
+The server is the enforcement and always was: folderScopeFor() filters every query and masks every response, and F1 pins it. The BROWSER's copy is for drawing only — but it has to be right, or the screen tells a member they have access they do not have.
+
+ONE FUNCTION ANSWERS IT: userFolderAccess(u) in js/core.js, and canAccessFolder() on top of it. It has TWO sources and they are not interchangeable:
+
+- state.settings.folderAccess — the whole workspace's map. The ADMIN's editing surface. The server strips it from a non-admin's bootstrap on purpose, because it discloses who is fenced off from what.
+- u.folderAccess — the server's answer for THIS person, on their own user record. The only source a restricted member's browser has.
+
+The map wins where it has an entry (so an admin sees an edit take effect before the save round-trips); absence falls through to the record; neither present means every stream, which is what absence has always meant. An empty array means "nothing said" in the MAP and "deny all" on the RECORD — the map's quirk is historical and the record matches folderScopeFor.
+
+Reading only the map is how a restricted member came to see all eight streams (Young, 09 Aug 2026): the map is not there on their screen, every read was undefined, and the answer was "*". Nothing leaked — the server kept the rows out — but the register's stream tabs, the command palette, the phone's chips and every "file under" picker are all built from that one answer.
+
+EVERY STREAM LIST GOES THROUGH visibleFolders() in js/templates.js. It feeds folderOptionsHtml (every "file under" select in the product) and folderLegendHtml. The three lists that build their own — the register's tabs, the command palette, the phone's stream chips — each ask userFolderAccess directly. A new stream list must ask one of them. A picker keeps the stream a record is ALREADY in even when it is out of reach, or reopening that record silently re-files it.
+
+THE MAP DOES NOT TRAVEL. Stripping it from `settings` is only half: publicUser carries folderAccess per record, so the bootstrap's users list handed the same map back one row at a time. A non-admin now gets their own and nobody else's. Tests: f1 (the server's enforcement), f160 (the browser's answer, the four lists, and the disclosure).
+
+A NEW MEMBER DEFAULTS TO VIEWER. The add-member form's role dropdown opened on Editor, so an admin who skipped it granted edit AND signature. The quietest path through a form must not be the widest grant — the same rule the access dropdown beside it follows, differently expressed because a role has a safe default and an access answer does not (that one refuses until answered). f149 pins both.
+
 THE PHONE (added 2026-08-04)
 
 There is now a SECOND SHELL. Below 768px the desktop shell is hidden outright and js/mobile*.js draws the app instead. It is NOT a fork: it reads hmDashSlices() for figures, regFiltered()/regState() for the register, wsNextAction() for the next action, negoTimeline()/negoIntegrityReport() for history, negoRenumberPlan()/negoRenumberApply() for numbering, and buildSharePayload() + POST /api/shares for links. It files NO changes of its own — grep the five mobile files for changes.push / negoFileChange and you will find nothing, which is deliberate.
