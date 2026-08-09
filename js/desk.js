@@ -750,6 +750,73 @@ function deskChipHtml(c, opts = {}){
   </button>`;
 }
 
+/* ---- WHOSE HAND WROTE THIS ----
+   The question a shared draft creates and a single-author one never did. The
+   card already carried the author in its grey meta run ("CL 9.2 · Grace Mwangi ·
+   Wanjiru Catering Ltd"), which is where you put a fact nobody is looking for —
+   and once two or three people are drafting into one round it is the first
+   thing you look for. So it gets its own line, with a face, in the render this
+   was designed from.
+
+   ONLY WHERE IT IS INFORMATION. Not on the counterparty's asks — their card
+   already says "from Sarova" and their internal staffing is none of our
+   business. Not where the reader wrote it themselves. Not on a contract with no
+   desk. A caption that appears on every card whatever it says is chrome again,
+   which is the thing it was moved out of.
+
+   Built HERE so both card renderers get it from one place: the workbench's
+   redlineChangeCardsHtml and the contract tab's negoLiveCardsHtml. That is this
+   codebase's own duplication rule, and this feature is exactly the kind that
+   gets fixed in one of them and not the other. */
+function deskCardByHtml(c, ch, opts = {}){
+  if (!c || !ch || !deskSeatShowsDesk(opts)) return '';
+  if (!deskIsOpen(c)) return '';
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (ch.authorSide !== side) return '';
+  const me = _dkMe();
+  const who = String(ch.author || ch.by || '').trim();
+  if (!who) return '';
+  if (me && String(me.name) === who) return '';
+  /* Who last MOVED the wording, where that is not who raised it. The change
+     model already stamps revisedBy for exactly this, and a card that named only
+     the author would credit the wrong person for a colleague's correction. */
+  const revised = String(ch.revisedBy || '').trim();
+  const when = ch.createdAt || ch.at || '';
+  const day = when ? String(when).slice(0, 10) : '';
+  return `<div class="dk-card-by">
+    <span class="dk-face dk-face-sm" title="${_dkE(who)}">${_dkE(deskInitials(who))}</span>
+    <span>${_dkE(i18t('dk_drafted_by', { who }))}${day ? ' · ' + _dkE(day) : ''}${
+      revised && revised !== who ? ' · ' + _dkE(i18t('dk_revised_by', { who: revised })) : ''}</span>
+  </div>`;
+}
+
+/* ---- A CARD WITH NO BUTTONS MUST SAY WHOSE DECISION IT IS ----
+   The render's "what you can do instead" line, and the reason it was in the
+   render: a contributor opening the counterparty's proposal sees a card with
+   the verbs simply absent. Undrawing a control the model would refuse is right
+   — a dead button reads as a refusal with no reason — but an absence with no
+   sentence is the same fault one step quieter. They conclude the page is
+   broken, or that somebody has already dealt with it.
+
+   ONE sentence, only where a verb is actually missing because of the desk, and
+   it names the person who can act. Silent when the rule is off, when there is
+   no desk, and for the lead, who is missing nothing. */
+function deskCardInsteadHtml(c, ch, opts = {}){
+  if (!c || !ch || !deskSeatShowsDesk(opts) || opts.readonly) return '';
+  if (!deskEnforced() || !deskIsOpen(c)) return '';
+  const me = _dkMe();
+  if (!me || deskMaySend(c, me)) return '';        // the lead is missing nothing
+  const lead = deskLead(c) || { name: '' };
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const theirs = ch.authorSide !== side;
+  const member = deskIsMember(c, me);
+  const line = theirs
+    ? i18t('dk_instead_theirs', { who: lead.name, cp: c.counterparty || i18t('dk_the_counterparty') })
+    : member ? i18t('dk_instead_ours', { who: lead.name })
+    : i18t('dk_instead_reading', { who: lead.name });
+  return `<div class="dk-card-instead">${_dkE(line)}</div>`;
+}
+
 /* ---- THE ONE BAND, AND ONLY WHEN SOMETHING REFUSES ----
    The density rule this feature is drawn to, stated at deskChipHtml: a band
    appears only when it changes what you can do right now. Leading a negotiation
@@ -1086,6 +1153,7 @@ Object.assign(window, {
   deskJoinRequests, deskJoinPending, deskJoinPendingFor, deskRequestJoin,
   deskDeclineJoin, deskJoinInboxFor,
   deskSeatShowsDesk, deskInitials, deskChipHtml, deskNoticeHtml,
+  deskCardByHtml, deskCardInsteadHtml,
   deskWireChip, deskOpenFromChip,
   deskSheetHtml, openDeskSheet, openDeskHandover, openDeskJoinAsk,
   DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleInboxFor, deskLedBy,

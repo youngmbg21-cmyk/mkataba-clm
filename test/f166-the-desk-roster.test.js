@@ -298,3 +298,85 @@ describe('f166 · stage 2 still enforces nothing', () => {
     }
   });
 });
+
+/* ============================================================
+   5 — THE TWO LINES THE CARD GAINED
+   ============================================================
+   Shipped late, because they were in the design render and not in the first
+   four stages — reported off a screenshot (Young, 09 Aug 2026): "attached is
+   the renders that you created… I do not see these renders in the live report."
+
+   BOTH CARD RENDERERS, always. redlineChangeCardsHtml draws the workbench and
+   negoLiveCardsHtml draws the contract tab, and a fix in one of them is not a
+   fix in the other — this codebase's own duplication rule, and a feature like
+   this is exactly what it was written for. */
+describe('f166 · a shared draft says whose hand wrote it', () => {
+
+  function viewWorld(user, on = true){
+    const w = buildWorld({ user, negotiationView: true, contractView: true });
+    w.win.state = { settings: { deskRule: { on } }, contracts: [], activeId: 'MK-D2' };
+    w.win.getUsers = () => EVERYONE;
+    w.win.userById = id => EVERYONE.find(u => u.id === id) || null;
+    w.win.saveSettings = () => {};
+    w.win.canAccessFolder = () => true;
+    return w;
+  }
+  /* A desk led by ME with a change Grace drafted. */
+  async function shared(user, on = true){
+    const w = viewWorld(user, on);
+    const c = contract();
+    await mine(w.win, c, 4, '<p>Payable within forty-five (45) days.</p>');
+    w.win.deskAddContributor(c, GRACE, { force: true });
+    const cl = w.win.negoClauseList(c).find(x => String(x.num) === '6');
+    await w.win.negoEditClause(c, cl.clauseId,
+      '<p>Liability is capped at 150% of the fees paid in the preceding twelve months.</p>',
+      { side: 'owner', author: GRACE.name, summary: 'grace raises the cap' });
+    return { w, c };
+  }
+
+  test('the workbench card names the colleague who drafted it', async () => {
+    const { w, c } = await shared(ME);
+    const html = w.win.redlineChangeCardsHtml(c, {});
+    assert.match(html, /dk-card-by/);
+    assert.match(html, /drafted by Grace Mwangi/);
+  });
+
+  test('it does not caption your own wording back at you', async () => {
+    const { w, c } = await shared(GRACE);
+    const html = w.win.redlineChangeCardsHtml(c, {});
+    assert.equal(/drafted by Grace Mwangi/.test(html), false,
+      'a caption on every card whatever it says is chrome again');
+  });
+
+  test('and it never appears on the counterparty\'s seat', async () => {
+    const { w, c } = await shared(ME);
+    assert.equal(/dk-card-by/.test(w.win.redlineChangeCardsHtml(c, { side: 'counterparty' })), false);
+    assert.equal(/dk-card-by/.test(w.win.redlineChangeCardsHtml(c, { previewing: true })), false);
+  });
+
+  test('a contributor is told whose decision the counterparty\'s ask is — on BOTH renderers', async () => {
+    const { w, c } = await shared(ME);
+    const cl = w.win.negoClauseList(c).find(x => String(x.num) === '2');
+    await w.win.negoEditClause(c, cl.clauseId, '<p>Fortnightly consignments.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist', summary: 'their ask' });
+
+    const asGrace = viewWorld(GRACE);
+    const bench = asGrace.win.redlineChangeCardsHtml(c, {});
+    assert.match(bench, /dk-card-instead/, 'the workbench');
+    assert.match(bench, /Answering Nordfrakt Logistik AB is Wanjiru Kamau/);
+
+    const tab = asGrace.win.negoLiveCardsHtml(c, {});
+    assert.match(tab, /dk-card-instead/, 'the contract tab');
+  });
+
+  test('the lead is missing nothing, so is told nothing', async () => {
+    const { w, c } = await shared(ME);
+    assert.equal(/dk-card-instead/.test(w.win.redlineChangeCardsHtml(c, {})), false);
+  });
+
+  test('with the rule off there is no gap to explain', async () => {
+    const { c } = await shared(ME, false);
+    const asGrace = viewWorld(GRACE, false);
+    assert.equal(/dk-card-instead/.test(asGrace.win.redlineChangeCardsHtml(c, {})), false);
+  });
+});

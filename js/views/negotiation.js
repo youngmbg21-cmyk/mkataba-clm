@@ -2131,6 +2131,15 @@ function negoLiveCardsHtml(c, opts){
             <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
+        ${''/* ---- THE GAP WHERE A VERB WOULD HAVE BEEN ----
+               Both card renderers carry it — the project's own duplication
+               rule, and this feature is exactly the kind that gets fixed in one
+               and forgotten in the other. Only the "instead" sentence, not the
+               drafted-by line the workbench card gets: THIS card already prints
+               the author on a line of its own a few rows up, and saying it
+               twice would be the "one tag per card" fault the review feature
+               was reported for. */}
+        ${window.deskCardInsteadHtml ? deskCardInsteadHtml(c, ch, opts) : ''}
         ${window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}
         ${held ? `<div class="nego-hold" data-hold="${_ne(ch.id)}">
           <span aria-hidden="true">▲</span>
@@ -9530,8 +9539,15 @@ function redlineChangeCardsHtml(c, opts = {}){
           <span class="rl-card-why-k rl-said-k">${i18t('rv_held_what_now_k')}</span>
           <span>${_ne(rvHeldBy ? i18t('rv_held_what_now', { who: rvHeldBy }) : i18t('rv_held_what_now_anon'))}</span>
         </div>` : '';
-    const body = `<div class="rl-card-body">${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${rvStuckBlock}${
-      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${
+    /* WHO WROTE IT, and — where a verb is missing because of the desk — whose
+       decision it is. Both are built in js/desk.js so the contract tab's card
+       renderer gets exactly the same two lines from the same function; a fix in
+       one renderer is not a fix in the other. The "instead" line sits AFTER the
+       verbs, because it is about the gap where a verb would have been. */
+    const dkBy = window.deskCardByHtml ? deskCardByHtml(c, ch, opts) : '';
+    const dkInstead = window.deskCardInsteadHtml ? deskCardInsteadHtml(c, ch, opts) : '';
+    const body = `<div class="rl-card-body">${dkBy}${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${rvStuckBlock}${
+      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${dkInstead}${
       window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"

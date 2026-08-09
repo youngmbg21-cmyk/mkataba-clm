@@ -771,6 +771,19 @@
   .dk-row-sub{ font-size:11px; color:var(--color-neutral-600); overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
   .dk-row-ask{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
+  /* ---- ON THE CARD ----
+     Who wrote it, and the sentence where a verb would have been. Both are the
+     smallest type on the card on purpose: the wording is the subject and these
+     are the two questions a SHARED draft adds to it, not new subjects of their
+     own. */
+  .dk-card-by{ display:flex; align-items:center; gap:6px; font-size:10.5px;
+    color:var(--color-neutral-600); margin:0 0 7px; min-width:0; }
+  .dk-card-by span:last-child{ min-width:0; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; }
+  .dk-face-sm{ width:18px; height:18px; font-size:8px; box-shadow:none; }
+  .dk-card-instead{ font-size:11px; line-height:1.5; color:var(--color-neutral-700);
+    background:var(--color-bg); border:1px solid var(--color-divider);
+    border-radius:6px; padding:6px 9px; margin-top:7px; }
   /* Draft new agreement. Solid green, by the owner's call: starting the next
      agreement is a first-class act here, not a second thought beside whatever
      this one contract happens to need. .ui-btn-primary carries the fill; this
