@@ -2039,7 +2039,27 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       const decided = (Array.isArray(c.changes) ? c.changes : []).find(ch => {
         if (!ch || !ch.id) return false;
         const was = prevCh.get(String(ch.id));
-        return was && String(was.status || '') !== String(ch.status || '');
+        if (!was || String(was.status || '') === String(ch.status || '')) return false;
+        /* ---- DECIDING IS NOT THE SAME THING AS RECEIVING ----
+           This asked only "did a status move", and a status moves on the way IN
+           as well as on the way out: the counterparty's answer to OUR ask
+           arrives through this same save. So a colleague who happened to be
+           holding a review was refused every time their browser applied an
+           inbound response — the poller could never mark it applied, it retried
+           for ever, and the redline never landed. Reported exactly as that: "I
+           am unable to receive redline from the counterparty."
+
+           The rule is about ANSWERING THEIR ASK, so it asks two narrower
+           questions. Whose ask moved — ours moving is their reply arriving, and
+           nothing to do with this rule. And who settled it: negoResolve records
+           the decider by name and an inbound decision carries the
+           counterparty's, so a settlement in somebody else's name is not this
+           caller's act. Their own withdrawal is theirs too. */
+        if (ch.authorSide !== 'counterparty') return false;
+        const by = String(ch.resolvedBy || '');
+        if (by && by !== String(req.user.name || '')) return false;
+        if (ch.withdrawn && ch.withdrawn.side === 'counterparty') return false;
+        return true;
       });
       if (decided)
         return res.status(403).json({ error: 'You are reviewing changes on this contract.'

@@ -207,10 +207,72 @@ describe('f162 · a reviewer does not send the round', () => {
   test('and a reviewer cannot answer the counterparty on the way past', async () => {
     await seed({ review: reviewOn(['CHG-002'], U.boss) });
     const c = contract({ review: reviewOn(['CHG-002'], U.boss) });
+    /* THEIR ask, settled by this caller — the act the rule is about. Moving one
+       of OUR OWN changes is the counterparty's reply arriving, which is a
+       receive and must pass; see the block above. */
+    c.changes[0].authorSide = 'counterparty';
     c.changes[0].status = 'accepted';
     const r = await put(boss, c);
     assert.equal(r.status, 403);
     assert.match(r.json.error, /accepting or rejecting/i);
+  });
+});
+
+/* ============================================================
+   2b — DECIDING IS NOT THE SAME THING AS RECEIVING
+   ============================================================
+   The guard above asked only "did a change's status move", and a status moves
+   on the way IN as well as on the way out: the counterparty's answer to our own
+   ask arrives through this same save. So a colleague who happened to be holding
+   a review was refused every time their browser applied an inbound response —
+   the poller could never mark it applied, it retried for ever, and the redline
+   never landed on the board.
+
+   Reported exactly as that: "I am unable to receive redline from the
+   counterparty." Shipped by me, and this is the file that keeps it fixed. */
+describe('f162 · a reviewer can still receive the counterparty’s answer', () => {
+
+  /* Their reply to OUR ask: our change moves, and negoResolve records the
+     decider by name — theirs. */
+  const theirAnswer = (rv) => {
+    const c = contract({ review: rv });
+    c.changes[0].status = 'accepted';
+    c.changes[0].resolvedBy = 'Erik Lindqvist';
+    c.changes[0].resolvedAt = '2026-08-09T12:00:00.000Z';
+    return c;
+  };
+
+  test('the answer lands even while they are holding a review', async () => {
+    await seed({ review: reviewOn(['CHG-002'], U.boss) });
+    const r = await put(boss, theirAnswer(reviewOn(['CHG-002'], U.boss)));
+    assert.equal(r.status, 200, r.status === 403 ? r.json.error : '');
+  });
+
+  test('and so does their withdrawal of their own ask', async () => {
+    await seed({ review: reviewOn(['CHG-002'], U.boss) });
+    const c = contract({ review: reviewOn(['CHG-002'], U.boss) });
+    c.changes[2].status = 'pending';
+    c.changes[2].authorSide = 'counterparty';
+    c.changes[2].withdrawn = { by: 'Erik Lindqvist', side: 'counterparty', at: '2026-08-09T12:00:00.000Z' };
+    assert.equal((await put(boss, c)).status, 200);
+  });
+
+  test('but answering THEIR ask is still refused — the rule is intact', async () => {
+    await seed({ review: reviewOn(['CHG-002'], U.boss) });
+    const c = contract({ review: reviewOn(['CHG-002'], U.boss) });
+    c.changes[2].authorSide = 'counterparty';
+    c.changes[2].status = 'rejected';
+    const r = await put(boss, c);
+    assert.equal(r.status, 403);
+    assert.match(r.json.error, /accepting or rejecting/i);
+  });
+
+  test('and a colleague holding no review may do either', async () => {
+    await seed({ review: reviewOn(['CHG-002'], U.boss) });
+    const c = contract({ review: reviewOn(['CHG-002'], U.boss) });
+    c.changes[2].authorSide = 'counterparty';
+    c.changes[2].status = 'rejected';
+    assert.equal((await put(other, c)).status, 200);
   });
 });
 
