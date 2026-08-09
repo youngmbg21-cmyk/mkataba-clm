@@ -59,14 +59,25 @@ async function page(opts = {}){
 }
 
 describe('F94 — the toggle exists, and the page starts un-focused', () => {
-  test('the focus button sits in the toolbar strip, beside the type stepper', async () => {
+  test('the focus button sits on the toolbar strip, beside the type stepper', async () => {
+    /* WHAT THIS PINS, AND WHAT IT DELIBERATELY NO LONGER PINS. The pair belong
+       together on the toolbar — that is the rule, and it still holds. Which END
+       of the strip they sit at is not: they moved from the front of the row to
+       the quiet end beside the view toggle, because neither is pressed twice in
+       the life of a contract and they were holding the two positions the eye
+       lands on first. So the assertion is "same strip, still together", which is
+       the thing that would actually be wrong if somebody broke it. */
     const p = await page();
     const btn = p.$('[data-rl-focus]');
     assert.ok(btn, 'the focus button is missing');
-    const strip = p.$('.rl-head-id');
-    assert.ok(strip && strip.contains(btn), 'the focus button must live in the toolbar strip');
-    assert.ok(strip.contains(p.$('.rl-type-step')),
-      'the type stepper shares the strip — the button is placed beside it');
+    const strip = p.$('.rl-head');
+    assert.ok(strip && strip.contains(btn), 'the focus button must live on the toolbar strip');
+    const stepper = p.$('.rl-type-step');
+    assert.ok(stepper && strip.contains(stepper),
+      'the type stepper shares the strip');
+    const pair = p.$('.rl-setwrap');
+    assert.ok(pair && pair.contains(btn) && pair.contains(stepper),
+      'the two set-once controls stay grouped, at the quiet end of the row');
   });
 
   test('a fresh render is NOT in focus mode, and the button says so', async () => {

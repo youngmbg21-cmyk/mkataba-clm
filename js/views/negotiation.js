@@ -6362,6 +6362,14 @@ function redlineLayoutCss(){
     display:flex;flex-direction:column}
   html.dark .redline-page .rl-paper{box-shadow:0 10px 30px rgba(0,0,0,.45)}
   .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:20px 24px 28px}
+  /* The quiet end of the toolbar: separated by a hairline so the row reads as
+     "what this does" then "how it is set", rather than as one undifferentiated
+     line of nine controls. */
+  .redline-page .rl-setwrap{display:inline-flex;align-items:center;gap:8px;flex:none;
+    padding-left:10px;margin-left:2px;border-left:1px solid var(--color-divider)}
+  @media (max-width:900px){
+    .redline-page .rl-setwrap{border-left:0;padding-left:0}
+  }
   .redline-page #rl-changes-col{border-radius:12px}
   .redline-page #rl-changes-col h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:700}
@@ -6762,8 +6770,16 @@ function renderRedline(){
              ellipsis), and it disappears when nobody is there. */}
       <section class="rl-head room-quiet">
         <span id="rl-presence" class="rl-presence" hidden></span>
+        ${''/* ---- THE ACTS LEAD THE ROW; THE SET-ONCE CONTROLS DO NOT ----
+               The type-size stepper and the focus toggle held the first two
+               positions on this strip — the place the eye lands — and neither
+               is something anybody presses twice. They are set once and then
+               left alone for the life of the contract, so they now sit at the
+               quiet end of the row beside the view toggle, and the row opens
+               with the two verbs you actually press while reading.
+               Nothing has left the page: same controls, same ids, same
+               handlers, moved along the same strip. */}
         <div class="rl-head-id">
-          ${rlTypeStepHtml()}
           ${''/* Not in Counterparty View: the playbook pass can FILE proposals,
                  and that view is a window, not a chair (see the mount below).
                  The counterparty never sees the playbook either way. */}
@@ -6792,9 +6808,6 @@ function renderRedline(){
             return `<button type="button" data-rl-review class="rl-pb-btn"
               data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100; ${_ne(label)}</button>`;
           })() : ''}
-          <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="${i18t('ng_focus_mode')}" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-          </button>
         </div>
         ${''/* The send stays on THIS page rather than moving into the shared
                head. The head is built by js/views/contract.js and a workbench
@@ -6813,6 +6826,15 @@ function renderRedline(){
                  round, and the round is not the reviewer's job. It also mounts a
                  whole second surface for somebody whose task is one clause. */}
           ${_rvPosture ? '' : `<div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
+          ${''/* The quiet end: how the page is SET, rather than what it does.
+                 Both keep the ids and the classes they have always had, so
+                 rlWireTypeStep and the focus handlers bind exactly as before. */}
+          <span class="rl-setwrap">
+            ${rlTypeStepHtml()}
+            <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="${i18t('ng_focus_mode')}" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            </button>
+          </span>
         </div>
       </section>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
