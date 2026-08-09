@@ -6678,7 +6678,17 @@ function renderRedline(){
              files. Both call roomHeadHtml now. The primary is suppressed here
              because this page has its own act at the other end of the strip:
              Publish Round. */}
-      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false}) : '')}
+      ${''/* Whether this is the owner's window onto the counterparty's seat
+             travels with the head, so the desk chip knows not to draw: who
+             works this negotiation on our side is internal, and the preview
+             exists to show what the OTHER side sees.
+
+             Read off `side` rather than off `previewing`. They are the same
+             fact, but `previewing` is declared two hundred lines below this
+             string and a `const` read before its declaration is a
+             ReferenceError that takes the whole page down — which is exactly
+             what it did. */}
+      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false,previewing:side==='counterparty'}) : '')}
       ${''/* THE ROOM'S OWN TAB ROW, NOT A SECOND ONE. This page carried a
              hand-written [Docs][Negotiate] pair while the contract page
              carried its own — two switchers for one room, in two files, free

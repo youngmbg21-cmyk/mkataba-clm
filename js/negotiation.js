@@ -981,6 +981,19 @@ async function negoFileChange(c, draft, opts = {}){
   }
   negoInit(c);
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
+  /* ---------- STARTING WORK CLAIMS THE NEGOTIATION ----------
+     The first change filed on our side opens a desk and records who opened it.
+     HERE, in the funnel, for the reason the executed-contract guard above gives
+     in its own words: negoEditClause, negoInsertClause and negoDeleteClause all
+     arrive here, and so do the routes that skip the wrappers entirely — the
+     Copilot shortcut in js/core.js, both playbook entrances and the Word
+     round-trip. A claim written into any one of those would be a claim the
+     other four never make.
+
+     Quiet by design, and it never refuses: filing a redline is the act the
+     person meant to perform, and stage 1 of this feature stamps a name without
+     changing what anybody may do. */
+  if (window.deskClaimOnFile){ try{ deskClaimOnFile(c, side); }catch(_){} }
   const author = String(opts.author || (side === 'owner'
     ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
     : (c.counterparty || 'The counterparty'))).trim();

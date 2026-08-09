@@ -721,6 +721,31 @@
     overflow-wrap:anywhere; }
   .room-head .room-acts{ display:flex; align-items:center; gap:8px; flex:none; }
   .room-back{ width:34px; height:34px; padding:0; flex:none; margin-top:2px; }
+  /* ---- THE NEGOTIATION DESK, IN THE HEADER AND NOWHERE ELSE ----
+     Who leads a negotiation is a fact about the contract, so it rides with the
+     contract's other facts. This is the whole visual cost of the feature: one
+     pill, no new row, ~34px matching every other control on the strip. A band
+     is drawn only where something actually refuses (see deskNoticeHtml), and
+     that band shares the review banner's single slot. */
+  .dk-chip{ display:inline-flex; align-items:center; gap:7px; flex:none; cursor:pointer;
+    height:34px; padding:0 11px 0 4px; border-radius:99px; font:inherit; font-size:12px;
+    border:1px solid var(--color-divider); background:var(--color-bg); color:var(--color-text);
+    max-width:min(46vw,260px); }
+  .dk-chip.dk-chip-empty{ padding:0 12px; color:var(--color-neutral-600); }
+  .dk-chip:hover{ border-color:var(--color-accent); background:var(--color-accent-100); }
+  .dk-chip:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
+  .dk-chip .dk-faces{ display:inline-flex; flex:none; }
+  .dk-chip .dk-who{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dk-face{ width:24px; height:24px; border-radius:50%; flex:none; display:inline-flex;
+    align-items:center; justify-content:center; font-family:var(--font-mono); font-size:9.5px;
+    font-weight:700; letter-spacing:.02em; background:var(--color-accent-100);
+    color:var(--color-accent-800); border:1px solid var(--color-divider);
+    box-shadow:0 0 0 2px var(--color-bg); }
+  .dk-face-lead{ background:var(--color-accent); color:#fff; border-color:var(--color-accent); }
+  /* Below the tablet break the header is already wrapping; the name goes and
+     the faces stay, because a face still says "somebody owns this" and a
+     truncated name says nothing at all. */
+  @media (max-width:720px){ .dk-chip .dk-who{ display:none; } .dk-chip{ padding:0 4px; } }
   /* Draft new agreement. Solid green, by the owner's call: starting the next
      agreement is a first-class act here, not a second thought beside whatever
      this one contract happens to need. .ui-btn-primary carries the fill; this

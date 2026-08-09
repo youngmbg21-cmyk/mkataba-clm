@@ -2779,6 +2779,18 @@ const STRINGS = {
     rv_doc_showing_all: 'Showing the whole contract.',
     rv_doc_show_all: 'Show the whole contract',
     rv_doc_back_to_yours: 'Back to your clauses',
+
+    /* ---- the negotiation desk (js/desk.js) ----
+       PLAIN NOUNS, because the reader is not being taught a model. "Lead" and
+       "contributor" are words a commercial team already uses about a deal; a
+       screen that said "principal actor" or "delegated editor" would be
+       teaching vocabulary in order to explain a permission. */
+    dk_claim: 'Start negotiation',
+    dk_claim_title: 'Open a negotiation desk on this contract and lead it',
+    dk_you_lead: 'You lead',
+    dk_who_leads: '{who} leads',
+    dk_chip_title: '{who} leads this negotiation — open the desk',
+    dk_opened_toast: 'You are leading this negotiation.',
     rv_pick_sub: 'You have more than one open on this contract. Each is handed back on its own.',
     rv_pick_from: 'Asked by {who}',
     rv_pick_nothing_left: 'Nothing left to rule on',
@@ -5605,6 +5617,14 @@ const STRINGS = {
     rv_doc_showing_all: 'Visar hela avtalet.',
     rv_doc_show_all: 'Visa hela avtalet',
     rv_doc_back_to_yours: 'Tillbaka till dina klausuler',
+
+    /* ---- förhandlingsbordet (js/desk.js) ---- */
+    dk_claim: 'Starta förhandling',
+    dk_claim_title: 'Öppna ett förhandlingsbord för det här avtalet och led det',
+    dk_you_lead: 'Du leder',
+    dk_who_leads: '{who} leder',
+    dk_chip_title: '{who} leder den här förhandlingen — öppna bordet',
+    dk_opened_toast: 'Du leder nu den här förhandlingen.',
     rv_pick_sub: 'Du har mer än en öppen i det här avtalet. Var och en lämnas tillbaka för sig.',
     rv_pick_from: 'Begärd av {who}',
     rv_pick_nothing_left: 'Inget kvar att avgöra',
