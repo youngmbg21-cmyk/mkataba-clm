@@ -22,6 +22,7 @@ import './obligations.js';
 import './playbook.js';
 import './approvals.js';
 import './review.js';       // internal review: the step between writing a redline and sending it
+import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
 import './signature.js';
 import './wizard.js';
 import './views/calendar.js';

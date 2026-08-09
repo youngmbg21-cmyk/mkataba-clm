@@ -1933,6 +1933,14 @@ function contractReadiness(c){
     /* The reader's own posture blocks first: it is about THEM rather than about
        the contract, so it is true even where the gate is off, and it is the
        more useful sentence when both apply. */
+    /* Not being the lead of this negotiation belongs on the readiness list for
+       the same reason the reviewer's posture does: the panel exists to say why
+       the send will refuse before somebody fills in a form that was never going
+       to go anywhere. */
+    if(window.deskSendBlock){
+      const dm=deskSendBlock(c);
+      if(dm) add('block','desk',dm);
+    }
     if(window.reviewActorBlockMessage){
       const am=reviewActorBlockMessage(c);
       if(am) add('block','review',am);
@@ -2336,7 +2344,24 @@ function shareVersions(c, org){
 const SHARE_PURPOSE = p => (['sign','negotiate','view','history'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
-  const sharedBy=(who&&who.sharedBy)||currentUser().name;
+  /* ---- ONE NAMED CONTACT, AND IT IS THE LEAD ----
+     `sharedBy` is who the counterparty is told to reply to: the portal prints
+     it on the header, on the response screen, on the signing screen and in the
+     nudge email. So it is a CONTACT, not an audit field — and taking it from
+     whoever happened to press the button meant a contributor doing something
+     administrative surfaced as a change of contact on the other side.
+
+     Where a negotiation has a desk, the contact is its lead. That is stable
+     across a lead's tenure, it is the person who can actually answer, and when
+     it does change the counterparty is told in a sentence rather than left to
+     notice (see deskAnnouncement). Where there is no desk this is exactly what
+     it always was.
+
+     THE CONTRIBUTORS ARE STILL INTERNAL. One name travels because a deal has a
+     contact; the roster does not, and neither does the fact that a desk exists. */
+  const _deskLead=(window.deskIsOpen&&window.deskIsOpen(c)&&window.deskLead)?deskLead(c):null;
+  const sharedBy=(who&&who.sharedBy)||(_deskLead&&_deskLead.name)||currentUser().name;
+  const leadNotice=(window.deskAnnouncement)?deskAnnouncement(c):null;
   const shareUpload = u => u ? { fileName:u.fileName, size:u.size, mime:u.mime,
     fileHash:u.fileHash, dataUrl:u.dataUrl, extractedText:u.extractedText } : undefined;
   /* The negotiation history, trimmed to what the other side is entitled to
@@ -2495,6 +2520,9 @@ function buildSharePayload(c, docHash, who, opts){
   const purpose = purposeChosen || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
+    /* One courtesy sentence, on the round after the contact changed and on that
+       round only. The entire visible consequence of everything the desk does. */
+    leadNotice:leadNotice||undefined,
     purpose:purpose, purposeChosen:purposeChosen,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
       /* THE MARKS ALREADY TAKEN travel with the copy. The owner signing first
@@ -2715,7 +2743,21 @@ function reviewActorSendBlock(c){
   toast(msg,'err');
   return true;
 }
+/* THE DESK'S OWN REFUSAL, asked by the same doors and first. Reaching the
+   counterparty is the lead's act; a contributor who is not the lead is refused
+   here whatever their review posture is, and the sentence they get says so
+   rather than talking about a review they do not have. Where the desk rule is
+   off this answers false and nothing changes — see deskMaySend. */
+function deskSendBlockToast(c){
+  if(!window.deskSendBlock) return false;
+  let msg=null;
+  try{ msg=deskSendBlock(c); }catch(_){ return false; }
+  if(!msg) return false;
+  toast(msg,'err');
+  return true;
+}
 function reviewSendBlock(c){
+  if(deskSendBlockToast(c)) return true;
   if(reviewActorSendBlock(c)) return true;
   if(!window.reviewGateMessage) return false;
   let msg=null;
@@ -2734,6 +2776,14 @@ async function reshareToLastRecipient(c, opts={}){
      did not happen. */
   /* The reviewer's posture first, then the gate — same order, same sentences as
      reviewSendBlock. Thrown rather than toasted for the reason below. */
+  /* The desk first, then the reviewer's posture, then the gate — the same order
+     and the same sentences reviewSendBlock uses. This route never opens the
+     share dialog, so a check that lived only there would never run on the path
+     every round after the first actually travels. */
+  if(window.deskSendBlock){
+    let msg=null; try{ msg=deskSendBlock(c); }catch(_){ msg=null; }
+    if(msg) throw new Error(msg);
+  }
   if(window.reviewActorBlockMessage){
     let msg=null; try{ msg=reviewActorBlockMessage(c); }catch(_){ msg=null; }
     if(msg) throw new Error(msg);
@@ -4371,4 +4421,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

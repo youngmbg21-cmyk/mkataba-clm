@@ -2796,8 +2796,17 @@ function negoIndexSendHtml(c, opts = {}){
        who has accepted a review does not publish on this contract until they
        have handed it back. Says why rather than vanishing, for the reason the
        comment above gives. */
-    if (rlActorHeld(c, opts) && window.reviewActorBlockMessage){
-      const why = reviewActorBlockMessage(c);
+    /* rlActorHeld now answers for TWO postures — mid-review, and not the lead of
+       this negotiation — so the sentence has to be fetched from whichever one is
+       true. Asking only the review would have printed nothing at all for a
+       contributor: the button would vanish with no explanation, which is the
+       exact failure the comment above says this branch exists to avoid. */
+    if (rlActorHeld(c, opts)){
+      let why = null;
+      if (window.deskSendBlock){ try{ why = deskSendBlock(c); }catch(_){ why = null; } }
+      if (!why && window.reviewActorBlockMessage){
+        try{ why = reviewActorBlockMessage(c); }catch(_){ why = null; }
+      }
       return why ? `<div class="nego-index-send"><span class="why">${_ne(why)}</span></div>` : '';
     }
     if (!n){
@@ -2982,7 +2991,7 @@ function negoTabHtml(c, opts = {}){
   negoInit(c);
   return `<div id="nego-root">
     ${negoHeadHtml(c, opts)}
-    ${window.reviewBannerHtml ? reviewBannerHtml(c, opts) : ''}
+    ${window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''}
     ${negoTurnBannerHtml(c, opts)}
     ${negoCompareBarHtml(c)}
     ${negoCleanBarHtml(c)}
@@ -4194,11 +4203,21 @@ function wireNegotiationTab(c, opts = {}){
      record. Answering the counterparty settles their ask and travels on the
      next round, which is precisely what a person who has taken on a review
      does not do here until they hand it back. */
+  /* TWO POSTURES, ONE DOOR. Not being the lead of this negotiation has exactly
+     the same consequence as being mid-review — answering the counterparty is
+     reaching them — so the two refusals are asked in one place and print their
+     own sentence. The desk is asked first because it is the standing state:
+     "you are not on this negotiation" explains more than "hand your review
+     back" to somebody who has no review. */
   const postureOut = () => {
     if (opts.side === 'counterparty' || opts.readonly) return false;
-    if (typeof window.reviewActorBlockMessage !== 'function') return false;
     let msg = null;
-    try{ msg = reviewActorBlockMessage(c); }catch(_){ return false; }
+    if (typeof window.deskSendBlock === 'function'){
+      try{ msg = deskSendBlock(c); }catch(_){ msg = null; }
+    }
+    if (!msg && typeof window.reviewActorBlockMessage === 'function'){
+      try{ msg = reviewActorBlockMessage(c); }catch(_){ return false; }
+    }
     if (!msg) return false;
     if (window.toast) toast(msg, 'err');
     return true;
@@ -4376,6 +4395,10 @@ function wireNegotiationTab(c, opts = {}){
        note and presses Send only to be told the wording is still with their
        boss has been walked to the end of a corridor with no door. Said before
        the corridor, not after it. */
+    if (window.deskSendBlock){
+      let msg = null; try{ msg = deskSendBlock(c); }catch(_){ msg = null; }
+      if (msg){ if (window.toast) toast(msg, 'err'); return; }
+    }
     if (window.reviewGateMessage){
       let msg = null; try{ msg = reviewGateMessage(c); }catch(_){ msg = null; }
       if (msg){ if (window.toast) toast(msg, 'err'); return; }
@@ -6678,7 +6701,17 @@ function renderRedline(){
              files. Both call roomHeadHtml now. The primary is suppressed here
              because this page has its own act at the other end of the strip:
              Publish Round. */}
-      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false}) : '')}
+      ${''/* Whether this is the owner's window onto the counterparty's seat
+             travels with the head, so the desk chip knows not to draw: who
+             works this negotiation on our side is internal, and the preview
+             exists to show what the OTHER side sees.
+
+             Read off `side` rather than off `previewing`. They are the same
+             fact, but `previewing` is declared two hundred lines below this
+             string and a `const` read before its declaration is a
+             ReferenceError that takes the whole page down — which is exactly
+             what it did. */}
+      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false,previewing:side==='counterparty'}) : '')}
       ${''/* THE ROOM'S OWN TAB ROW, NOT A SECOND ONE. This page carried a
              hand-written [Docs][Negotiate] pair while the contract page
              carried its own — two switchers for one room, in two files, free
@@ -6905,6 +6938,15 @@ function renderRedline(){
        because a lock with no sign is a button that errors at a reader who
        should never have been offered it. */
     readonly: previewing || ((typeof negoExecuted === 'function') ? negoExecuted(c) : false),
+    /* ---- READING IS NOT WORKING ----
+       Somebody with stream access who is not on this desk keeps the whole
+       document, every redline and the full history — locking the READ would
+       break the register, the reports and the search, and would send people to
+       the telephone, which is the fragmentation this product exists to end. It
+       is the hands that close. `editable` in both card renderers and the
+       document's own edit affordances already read this flag, so one answer
+       here reaches all of them. */
+    canEdit: rlMayRedline(c, { side, readonly: previewing }),
     /* The more specific reason wins, same rule as the portal: "executed" tells
        the reader what to do next; the preview line only explains the absence
        of verbs. */
@@ -9054,10 +9096,53 @@ function rlRvDocClauses(c, opts = {}){
   all.forEach(x => { if (x && ids.has(String(x.id)) && x.clauseId) out.add(String(x.clauseId)); });
   return out;
 }
+/* ---- ONE NOTICE SLOT, AND THE MOST RESTRICTIVE THING IN IT ----
+   The brief this feature was designed against (Young, 09 Aug 2026) is that
+   more information must not push the contract off the page. The review banner
+   already owns one band above the negotiation; the desk needed to say something
+   too, and the obvious answer — a second band — is how a page ends up with five
+   strips of chrome above the first word of an agreement.
+
+   So there is ONE slot and both features draw into it, most restrictive first.
+   A review hold is a refusal the reader can act on and outranks "you are only
+   reading here", which is a standing state they can do one thing about. Where
+   the review has something to say, the desk says nothing: a reader who is also
+   holding a clause has one sentence to read, not two.
+
+   BOTH DRAW SITES CALL THIS — the contract tab's panes and the workbench —
+   because a fix in one is not a fix in the other. That is the duplication rule
+   this codebase states at the top of its own map. */
+function rlOneNoticeHtml(c, opts = {}){
+  const rv = (window.reviewBannerHtml ? reviewBannerHtml(c, opts) : '') || '';
+  if (rv) return rv;
+  return (window.deskNoticeHtml ? deskNoticeHtml(c, opts) : '') || '';
+}
+/* ---- TWO REASONS THIS PERSON CANNOT REACH THE OTHER SIDE, ONE ANSWER ----
+   A reviewer mid-review, and somebody who is not the lead of this negotiation.
+   They are different facts with the same consequence — no publishing, no
+   closing, no answering the counterparty — and the FIVE renderers that compute
+   `canAct` each ask this one function, which is the only reason gating the desk
+   did not mean finding those five sites again.
+
+   Both are POSTURES rather than demotions: hand the review back, or be handed
+   the lead, and everything returns. */
 function rlActorHeld(c, opts = {}){
   if (opts.side === 'counterparty' || opts.readonly) return false;
+  if (typeof window.deskMaySend === 'function'){
+    try{ if (!deskMaySend(c)) return true; }catch(_){}
+  }
   if (typeof window.reviewActorIsHeld !== 'function') return false;
   try{ return reviewActorIsHeld(c); }catch(_){ return false; }
+}
+/* Whether this reader may put wording into our draft at all. The reviewer's
+   posture deliberately does NOT come into this — correcting the clause they
+   were handed is the thing that feature exists to allow — so this asks the desk
+   and nothing else. Read by the workbench's mount, which passes it as
+   opts.canEdit, and `editable` in both card renderers already reads that. */
+function rlMayRedline(c, opts = {}){
+  if (opts.side === 'counterparty' || opts.readonly) return false;
+  if (typeof window.deskMayRedline !== 'function') return true;
+  try{ return deskMayRedline(c); }catch(_){ return true; }
 }
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
@@ -9870,7 +9955,7 @@ function redlinePanesHtml(c, opts = {}){
            reviewBannerHtml itself returns nothing in PORTAL_MODE or read-only.
            Two locks, because the cost of getting this one wrong is telling the
            counterparty that we are arguing about their wording internally. */
-      }${window.reviewBannerHtml ? reviewBannerHtml(c, opts) : ''}${
+      }${window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''}${
       opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
       ''/* THE SET-ONCE EMAIL STRIP USED TO SIT HERE, and it was the last full
            width band between the top of this page and the first word of the
@@ -10199,7 +10284,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
-  redlineCardIds, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
+  redlineCardIds, rlOneNoticeHtml, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,

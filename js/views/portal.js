@@ -2151,6 +2151,16 @@ function renderShareWorkbench(p, opts={}){
   const msg=(opts.share&&opts.share.message)
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#9993;</span><span>
         <b>${i18t('po_message_from',{who:esc(p.sharedBy||org)})}</b> ${esc(opts.share.message)}</span></div>` : '';
+  /* ---- THE CONTACT ON OUR SIDE HAS CHANGED, AND THEY ARE TOLD ----
+     One sentence, on the round the handover happened and no other. It is the
+     ONLY thing about our internal arrangements that ever reaches this page:
+     they learn that the person they have been dealing with has handed the file
+     on, which is ordinary courtesy, and nothing about who else works it, who
+     drafted a clause, or that a desk exists at all.
+     Discovering a new name at the top of a page with no explanation is how a
+     counterparty comes to feel handled; this is the difference. */
+  const handover=(p&&p.leadNotice)
+    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128100;</span><span>${esc(p.leadNotice)}</span></div>` : '';
   root.innerHTML=`
   <div class="pw-page" id="pw-page">
     <section class="pw-id">
@@ -2196,6 +2206,7 @@ function renderShareWorkbench(p, opts={}){
       ${portalClosedBanner()}
       ${portalRevisedBanner()}
       ${portalRoundBanner(c,p)}
+      ${handover}
       ${msg}
     </div>
     <div class="pw-mount"><div id="pt-nego"></div></div>

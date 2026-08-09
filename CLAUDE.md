@@ -162,9 +162,35 @@ js/core.js ~3779 — a Copilot route that bypasses the wrapper functions and cal
 
 RULE OF THUMB: if a fix touches change objects, run grep -rn "changes.push|negoFileChange(" js/ and account for every hit before declaring the fix done. Remember Playbook has TWO entrances — fixing one is not fixing Playbook.
 
+AND THE FUNNEL NOW CARRIES TWO GUARDS OF ITS OWN, in this order: deskClaimOnFile (which stamps who started the negotiation) then deskBlockMessage (which refuses a reader's write where the rule is on). The order is load-bearing — reversed, the rule refuses the very act that would have created the desk and no contract can ever be started once it is switched on.
+
 FORMATTING-ONLY CHANGES (added 2026-08-08). The funnel now files an edit whose words are unchanged but whose formatting moved: the change carries formattingOnly and the summary "Formatting changed — the wording is unchanged". Fingerprints are hashV 3 and cover the stored rich body verbatim; older v2 records verify under v2 forever — never re-sanitise a stored bodyHtml after filing, that breaks its own fingerprint. TWO renderers draw a pending change and BOTH carry the formatting-only branch: negoDocHtml (the contract-tab panes) and redlineDocHtml (the workbench and the counterparty portal). A fix to how a change is drawn goes in both or the two screens disagree — this was re-learned the day the feature shipped.
 
 COUNTERPARTY VIEW IS A WINDOW, NOT A CHAIR (added 2026-08-08). The owner's Internal/Counterparty toggle mounts the preview READ-ONLY: no Direct Edit, no accept/reject, no hand-back, no Copilot, no thread composer, no playbook pass. The lock is layered — the mount passes readonly, and wireNegotiationTab refuses decide/file under readonly even if a stray path reaches them. The portal is the counterparty's only acting seat. Typing in a change on their behalf from the preview is GONE by decision (Young, 08 Aug 2026); the enteredBy stamp remains in the funnel for the routes that still file in their name (inbound links, Word round-trip).
+
+THE NEGOTIATION DESK — WHO WORKS THIS ONE, AND WHO REACHES THE OTHER SIDE (added 2026-08-09)
+
+js/desk.js. Two questions used to stand between a person and a redline: your role, and which streams you can see. There is now a third — ARE YOU ON THIS NEGOTIATION — and one sentence answers every hard case: PROPOSING IS NOT REACHING.
+
+FOUR SEATS. Initiator (stamped once, grants nothing, it is history). Lead (exactly one, the only person who reaches the counterparty). Contributor (full hands on our draft, nothing they do travels). Reader (everyone else with stream access — reads everything, no hands, one button: ask to join).
+
+THE DESK IS CLAIMED BY THE FIRST CHANGE FILED ON OUR SIDE, in negoFileChange — the same funnel, for the same reason: the Copilot shortcut, both playbook entrances and the Word round-trip never pass a button. deskClaimOnFile runs BEFORE the refusal, so the act that creates a desk is never refused by it.
+
+TWO PREDICATES AND EVERYTHING ASKS ONE — deskMayRedline and deskMaySend. Both answer TRUE on four escapes and all four matter: the rule is off, no desk is claimed (the whole back catalogue), nobody is signed in, or PORTAL_MODE. A fifth escape would be a bug; a missing one locks the product.
+
+IT IS A SETTING (Settings → below the review gate, admin only) and is OFF unless switched on. It gates REDLINING; the review gate gates SENDING a round; the approval chain gates SIGNING. All three appear in contractReadiness.
+
+WHERE IT MEETS THE REVIEW: rlActorHeld now answers for TWO postures — mid-review, and not the lead — so the FIVE canAct renderers inherit the desk without being touched. rlMayRedline is the separate question (a reviewer corrects wording; a reader has no hands) and reaches both card renderers and the document through the mount's `canEdit`.
+
+ONE NOTICE SLOT, NOT TWO — rlOneNoticeHtml draws the review banner and, only where that is empty, the desk's reader band. The phone does the same in mDocNoticesHtml. Two stacked amber bands above a contract is the clutter this was briefed against; the density rule is A BAND APPEARS ONLY WHEN IT CHANGES WHAT YOU CAN DO RIGHT NOW, which is why a lead and a contributor see none and the whole feature costs the header one chip.
+
+THE SERVER IS THE ENFORCEMENT. deskRuleOn/deskSeatOf/ourChangesTouched/rosterMoved in server/server.js, on PUT /api/contracts/:id. An ordinary save carries the whole record, so a client-only rule is one request wide — and the roster is guarded too or it is two (add yourself, then redline). Asked as a DIFFERENCE, like the reserved-signing-step guard beside it: housekeeping saves pass untouched.
+
+EXACTLY ONE THING ABOUT OUR SIDE TRAVELS. buildSharePayload's `sharedBy` is the LEAD (stable across a tenure, not whoever pressed send) and `leadNotice` is one courtesy sentence on the round the contact changed. The roster, the join requests, the stale flag and the desk itself never travel.
+
+THE PRICE OF ONE DOOR OUT: deskStale/deskStaleInboxFor flag a negotiation where the counterparty has waited more working days than the setting allows, on OUR dashboard only. deskLedBy is the leaver check. Without these the design's own failure mode is a deal that goes silent because one person is on leave.
+
+Tests: f165 (the record), f166 (the roster and asking to join), f167 (the rule, the screen, the doors), f168 (the server, against raw responses), f169 (the clock, the leaver, the courtesy note). NOT f162/f163/f164 — those numbers went to the review-server, counterparty-redline and finished-review work that landed on main in the same week.
 
 WHO MAY SEE WHICH STREAM, AND WHERE THE ANSWER COMES FROM (added 2026-08-09)
 

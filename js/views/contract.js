@@ -3744,6 +3744,14 @@ function roomHeadHtml(c,opts={}){
       <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
     </div>
     <div class="room-acts">
+      ${''/* ---- THE DESK, AND IT COSTS THE PAGE ONE CONTROL ----
+             Who leads this negotiation is a FACT about the contract, like its
+             value and its stream, so it sits with the other facts rather than
+             in a band of its own above the document. Both this page and the
+             negotiation workbench call roomHeadHtml, so the desk appears on
+             both from one line. See the note above deskChipHtml for the space
+             budget this is drawn to. */}
+      ${(window.deskChipHtml?deskChipHtml(c,opts):'')}
       <div style="position:relative;flex:none">
         <button id="ws-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
           title="${i18t('ct_everything_else')}" style="width:34px;height:34px;padding:0;font-size:15px;line-height:1">&#8943;</button>

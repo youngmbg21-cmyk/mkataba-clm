@@ -54,6 +54,12 @@ const MODULES = [
      "no deviation" when the playbook module is absent, which is the right
      answer on a stage that has no playbook. */
   'js/review.js',
+  /* The desk sits on the same shelf as the review: it annotates the contract
+     with who is working it and never touches the change model, so it loads
+     straight after and needs nothing else. negoFileChange calls into it through
+     `window`, so a stage without it files changes exactly as before — which is
+     the behaviour every test written before this feature is asserting. */
+  'js/desk.js',
   'js/wordflow.js',
 ];
 /* js/views/contract.js is loaded ONLY on request (buildWorld({contractView:true})).

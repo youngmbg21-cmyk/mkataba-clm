@@ -989,6 +989,44 @@ async function negoFileChange(c, draft, opts = {}){
   }
   negoInit(c);
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
+  /* ---------- STARTING WORK CLAIMS THE NEGOTIATION ----------
+     The first change filed on our side opens a desk and records who opened it.
+     HERE, in the funnel, for the reason the executed-contract guard above gives
+     in its own words: negoEditClause, negoInsertClause and negoDeleteClause all
+     arrive here, and so do the routes that skip the wrappers entirely — the
+     Copilot shortcut in js/core.js, both playbook entrances and the Word
+     round-trip. A claim written into any one of those would be a claim the
+     other four never make.
+
+     Quiet by design, and it never refuses: filing a redline is the act the
+     person meant to perform, and stage 1 of this feature stamps a name without
+     changing what anybody may do. */
+  if (window.deskClaimOnFile){ try{ deskClaimOnFile(c, side); }catch(_){} }
+  /* ---------- AND WHERE THE RULE IS ON, IT REFUSES HERE ----------
+     THE LOCK, not the sign. js/views/negotiation.js stops OFFERING the verbs to
+     somebody who is only reading, and that is the right thing for a screen to
+     do — but a hidden button is a decision about pixels. The side doors this
+     codebase already names in its own map (the Copilot shortcut in core.js,
+     both playbook entrances, the Word round-trip, an inbound link) reach this
+     function without passing any screen at all, and a rule they can walk around
+     is decoration.
+
+     AFTER the claim, deliberately: the first person to work an unclaimed
+     contract claims it and is then a member, so the rule never refuses the act
+     that would have created the desk.
+
+     OUR SIDE ONLY. The counterparty's own proposals arrive through here too and
+     have nothing to do with who sits at our desk; their wall is the transport,
+     which is a different mechanism. deskMayRedline answers true in PORTAL_MODE
+     for the same reason. */
+  if (side === 'owner' && window.deskBlockMessage){
+    let why = null;
+    try{ why = deskBlockMessage(c); }catch(_){ why = null; }
+    if (why){
+      if (window.toast) toast(why, 'err');
+      return null;
+    }
+  }
   const author = String(opts.author || (side === 'owner'
     ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
     : (c.counterparty || 'The counterparty'))).trim();
