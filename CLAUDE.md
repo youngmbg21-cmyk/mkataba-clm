@@ -204,6 +204,18 @@ The second case is the common shape of company standard paper: the agreement's n
 
 clauseSegment, clauseFrontMatter and clauseStampIds must all answer the heading question the same way — they share _clTitleIndex / _clHeadingsMarkClauses for exactly that reason. Changing one without the others is how the title ends up both chrome and a clause, or a clause ends up with no id and therefore unnegotiable.
 
+AN ID IS ONLY DURABLE IF THERE IS SOMEWHERE TO WRITE IT (added 2026-08-09)
+
+clauseStampIds is idempotent only where the ids are STORED. negoStampContract writes them back into c.redlineText — and ONLY when the body is rich and stored. A contract built from a template, or one whose body is plain text, keeps no stored markup: the wording is regenerated on demand and every read minted brand new random ids for the same clauses.
+
+That is not cosmetic, because negoFreshenBaseline re-reads the baseline on EVERY paint of the workbench while nothing is on the table (deliberately — a key term filled on the Doc page has to show through). So on those contracts the clause ids were replaced on every repaint, on BOTH parties' screens independently. This was the reported fault "the counterparty cannot start the redline": they proposed wording against a clause id, our baseline renamed it before their answer got home, applyNegoProposals could not find the clause, dropped it with `continue`, applyResponse reported nothing applied, and the poller re-applied the same impossible response every cycle for ever — silently, on both screens. Our OWN first change froze the baseline (negoFreshenBaseline refuses to move once anything is filed), which is exactly why it started working the moment the owner sent a redline first.
+
+clauseCarryIds(prevHtml, nextHtml) is the fix and negoFreshenBaseline is its only caller: a re-read of an unchanged document now returns the SAME document, byte for byte, so there is nothing to replace. A clause is recognised across the two readings by its HEADING TEXT where headings mark the clauses, and by POSITION where they do not — in a headingless document every block's text can move and its place cannot. A document that changed SHAPE keeps its fresh stamp rather than being guessed at.
+
+A VERB THAT CANNOT WORK MUST NOT BE DRAWN. Found on the same walk: the signing screen's "Not ready to sign?" list still offered "Change the wording yourself", which opens #portal-redline — and W6 deliberately stops that editor being built on a link ISSUED for signature (f113 pins it). The panel went, the button stayed, and on every signing link it threw on a null element and did nothing. It is now drawn only where it works; the signing link's remaining route says what happens next, which is the owner's own process — they tell us, we send a negotiation link, they redline on that. The handler refuses in words if a fourth route ever draws it anyway. f49 used to REQUIRE the broken button and now pins its absence and the sentence that replaces it.
+
+AND THE OTHER HALF: applyNegoProposals no longer drops what it cannot place. A stale id — every link minted before this — is recovered by the wording they were editing, then by the clause label, and the change is filed on OUR id, never theirs. What genuinely cannot be placed is written into the audit trail with their exact words, and a response whose whole content was unplaceable wording is reported HANDLED so the poller stops. Only wording: a refused DECISION stays unhandled, because that is a refusal rather than a delivery (f37 pins it). Tests: f163.
+
 TWO LANGUAGES, AND THEY ARE NOT THE SAME THING AS TWO MARKETS (added 2026-08-07)
 
 The app reads in English or Swedish. Two separate settings do NOT mean the same thing, and mixing them up is the main way this goes wrong:

@@ -642,7 +642,15 @@ function negoFreshenBaseline(c){
   if ((c.changes || []).length) return false;         // something is on the table
   if ((n.rounds || []).length || n.round !== 1) return false;  // history exists
   if (n.chainHead) return false;                      // a hash has cited this baseline
-  const body = negoStampContract(c);
+  /* THE RE-READ MUST NOT RENAME THE CLAUSES. A template contract stores no body
+     of its own, so negoStampContract has nowhere to write its ids back to and
+     mints fresh ones every call — which made this function replace the baseline
+     on every paint, with a new set of clause ids each time. Any id already given
+     to the other side was dead within seconds. See clauseCarryIds. */
+  let body = negoStampContract(c);
+  if (body && n.baselineBody && window.clauseCarryIds){
+    try { body = clauseCarryIds(n.baselineBody, body); } catch (_){ /* keep the fresh stamp */ }
+  }
   if (!body || body === n.baselineBody) return false;
   const text = window.richToText ? richToText(body) : '';
   n.baselineBody = body;

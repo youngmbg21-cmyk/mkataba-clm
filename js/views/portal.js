@@ -707,7 +707,15 @@ function portalOpenPointsHtml(c, p){
         <span style="font-size:13px;font-weight:600;color:var(--st-amber-fg)">${i18t('po_still_open_between')}</span>
         <span style="margin-left:auto;font-size:10.5px;color:var(--st-amber-fg);font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
-      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${canReply?`Answer ${pts.length===1?'it':'them'} right here — that changes nothing in the contract — or press <b>${i18t('po_propose_edits')}</b> when you have new wording to put forward.`:`Press <b>${i18t('po_propose_edits')}</b> if you want to come back on ${pts.length===1?'it':'them'}.`}</p>
+      ${''/* NAME A CONTROL THAT IS ACTUALLY ON THIS SCREEN. This said "press
+             Propose edits", which no button has been called since the respond
+             panel was rewritten, and which does not exist at all on a link
+             issued for signature — so the one card carrying the live
+             disagreement pointed at nothing. */}
+      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${
+        portalIssuedForSigning(p)
+          ? `This link was sent to you for signature, so the wording cannot be edited on it — press <b>${i18t('po_not_ready_sign')}</b> and tell ${org} what you want changed.`
+          : `Press <b>${i18t('po_not_ready_sign')}</b> and then <b>Change the wording yourself</b> to come back on ${pts.length===1?'it':'them'}.`}</p>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid var(--st-amber-line);background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
@@ -2510,8 +2518,27 @@ function renderSharePortal(p, opts={}){
           <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
             style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:12px;color:var(--color-accent-700);cursor:pointer;text-align:center;text-decoration:underline">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
-            ${[['pt-redline','history','Change the wording yourself','Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.'],
-               ['pt-changes','alert','Tell them what you want changed','Describe it in the comment box above. The wording stays as it is for now.'],
+            ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
+                   "Change the wording yourself" opens #portal-redline, and W6
+                   deliberately stops that editor being built on a link the
+                   sender ISSUED for signature — a signing link states the
+                   wording is final, and f113 pins that it carries no redline
+                   surface. The button was left behind when the panel went, so
+                   on every signing link it threw on a null element and did
+                   nothing at all: the one control a reader presses when they
+                   want changes, silently broken, on the screen where being
+                   stuck is most expensive.
+
+                   It is drawn where it works and not where it does not, and the
+                   route that IS open says what happens next — which is the
+                   owner's own process: they tell us, we send them a negotiation
+                   link, they redline on that. */}
+            ${[...(signingSeat ? [] : [['pt-redline','history','Change the wording yourself',
+                 'Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.']]),
+               ['pt-changes','alert','Tell them what you want changed',
+                 signingSeat
+                   ? `Describe it in the comment box above. This link was sent to you for signature, so the wording cannot be edited on it — ${esc((p&&p.org)||'the sender')} will send you a link you can redline on.`
+                   : 'Describe it in the comment box above. The wording stays as it is for now.'],
                ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
               .map(([id,ic,label,why])=>`<div>
                 <button id="${id}" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;text-align:left;display:flex;align-items:center;gap:7px">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
@@ -2595,8 +2622,15 @@ function renderSharePortal(p, opts={}){
       const _pt=document.getElementById('pt-plain-toggle'); if(_pt) _pt.textContent='Edit the whole document instead';
     }
   });
-  document.getElementById('pt-redline')?.addEventListener('click',()=>
-    showRedline(document.getElementById('portal-redline').classList.contains('hidden')));
+  document.getElementById('pt-redline')?.addEventListener('click',()=>{
+    /* Belt as well as braces: the button is no longer drawn where the panel is
+       not built, and if a fourth route ever draws it anyway this refuses in
+       words rather than throwing on a null and looking like a dead product. */
+    const panel=document.getElementById('portal-redline');
+    if(!panel){ toast('This link was sent to you for signature — ask '
+      +((p&&p.org)||'the sender')+' for a link you can propose wording on.','err'); return; }
+    showRedline(panel.classList.contains('hidden'));
+  });
   /* CANCEL IS A DISCARD, so it says so and asks first — but only when there is
      something to lose. Closing an editor nobody typed into is not a decision
      worth a dialog. */

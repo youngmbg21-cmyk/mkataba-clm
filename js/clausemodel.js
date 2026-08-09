@@ -358,6 +358,92 @@ function clauseStampIds(html){
   }
   return { html: root.innerHTML, stamped, headingless: false };
 }
+/* ---------- KEEPING THE ID WHEN THE DOCUMENT IS READ AGAIN ----------
+
+   clauseStampIds is idempotent only where the ids are STORED. A contract built
+   from a template keeps no body of its own — c.redlineText is empty and the
+   wording is regenerated from the template on demand — so negoStampContract has
+   nowhere to write the stamp back to, and every fresh read mints brand new
+   random ids for the same clauses.
+
+   That is not cosmetic. A change is anchored on a clause id, the counterparty's
+   copy is anchored on the ids we sent them, and negoFreshenBaseline re-reads the
+   baseline on EVERY paint of the workbench while nothing is on the table. So on
+   a template contract the ids moved under both parties continuously: the
+   counterparty proposed wording against clause `cl_a1b2`, and by the time their
+   answer came home our clause was called something else. applyNegoProposals
+   could not find it, dropped it without a word, and the poller retried the same
+   impossible response for ever. The whole reported fault — "they cannot redline
+   until I have sent a redline first" — is this: our own first change freezes the
+   baseline (negoFreshenBaseline refuses to move once anything is filed), and the
+   ids stop wandering from that moment on.
+
+   This carries the ids from the previous reading onto the new one, so a re-read
+   of an unchanged document produces the SAME document, byte for byte, and
+   negoFreshenBaseline has nothing to replace.
+
+   HOW A CLAUSE IS RECOGNISED ACROSS THE TWO READINGS: by its heading text where
+   headings mark the clauses (a heading survives a key term being filled in three
+   paragraphs below it), and by position where they do not — in a headingless
+   document every block's text can move, and its place in the document is the
+   only thing that does not. Both readings are taken with the same two helpers
+   clauseSegment and clauseStampIds use, so a clause can never be one thing here
+   and another there. */
+function clauseCarryIds(prevHtml, nextHtml){
+  const attr = (typeof window !== 'undefined' && window.RICH_CLAUSE_ATTR) || 'data-clause-id';
+  const nextRoot = _clParse(nextHtml);
+  if (!prevHtml) return nextRoot.innerHTML;
+  const prevRoot = _clParse(prevHtml);
+  const slotsOf = root => {
+    const blocks = Array.from(root.children);
+    const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
+    const titleAt = _clTitleIndex(blocks, headings);
+    if (!_clHeadingsMarkClauses(blocks, headings))
+      return { byHeading: false, els: blocks.slice(titleAt >= 0 ? titleAt + 1 : 0)
+        .filter(el => (el.textContent || '').trim()) };
+    const title = titleAt >= 0 ? blocks[titleAt] : null;
+    return { byHeading: true, els: headings.filter(el => el !== title) };
+  };
+  const was = slotsOf(prevRoot), now = slotsOf(nextRoot);
+  /* A document that has changed SHAPE — headings appeared, or the whole thing
+     was replaced — is not the same document read again, and guessing which
+     clause is which would re-point live changes. It keeps its fresh stamp. */
+  if (!was.els.length || !now.els.length || was.byHeading !== now.byHeading)
+    return nextRoot.innerHTML;
+  const used = new Set();
+  const take = id => { if (!id || used.has(id)) return false; used.add(id); return true; };
+  const key = el => (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  const unmatched = [];
+  if (was.byHeading){
+    const pool = new Map();
+    for (const el of was.els){
+      const id = el.getAttribute(attr); if (!id) continue;
+      const k = key(el);
+      if (!pool.has(k)) pool.set(k, []);
+      pool.get(k).push(id);
+    }
+    now.els.forEach((el, i) => {
+      const list = pool.get(key(el));
+      const id = list && list.length ? list.shift() : null;
+      if (id && take(id)) el.setAttribute(attr, id); else unmatched.push(i);
+    });
+  } else now.els.forEach((_, i) => unmatched.push(i));
+  for (const i of unmatched){
+    const src = was.els[i];
+    const id = src ? src.getAttribute(attr) : null;
+    if (id && take(id)) now.els[i].setAttribute(attr, id);
+  }
+  /* A carried id landing beside a freshly minted one that happens to match is
+     vanishingly unlikely and catastrophic — two clauses answering to one id —
+     so it is checked rather than assumed away, exactly as clauseStampIds does. */
+  const seen = new Set();
+  for (const el of now.els){
+    const id = el.getAttribute(attr); if (!id) continue;
+    if (seen.has(id)) el.setAttribute(attr, clauseNewId(seen)); else seen.add(id);
+  }
+  return nextRoot.innerHTML;
+}
+
 /* The clauses of a contract's working body, with ids guaranteed present.
    Reading and stamping are separate on purpose — this is the read. */
 function clauseList(html){ return clauseSegment(html); }
@@ -784,7 +870,7 @@ function clauseRenumberPlan(clauses){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
-  clauseSegment, clauseFrontMatter, clauseStampIds, clauseList, clauseFindById,
+  clauseSegment, clauseFrontMatter, clauseStampIds, clauseCarryIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
   clauseRefsInText, clauseResolveRefs, clauseRefNorm,
   clauseHeadingRenumber, clauseRenumberText, clauseRenumberBodyHtml, clauseRenumberPlan,
