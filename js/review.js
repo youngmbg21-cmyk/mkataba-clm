@@ -163,8 +163,55 @@ function reviewRequests(c){
    `reviewOpenOf` survives as "the most recent open one" for the few callers
    that genuinely want a single answer; everything that reasons about a
    PARTICULAR change asks reviewOpenFor instead. */
+/* ---------- WHAT A REVIEW IS STILL ABOUT ----------
+   THE ONE POPULATION, and everything that counts a review counts THIS.
+
+   Reported from the field (Young, 09 Aug 2026), off a screenshot of three
+   yellow rows: "once a reviewer has sent back feedback and an issue is closed
+   these banners should disappear completely as they serve no purpose but taking
+   up space". Two of those rows read “CHG-003 0 of 0 still need your verdict”,
+   which is not a sentence anybody can act on — the changes had been decided and
+   were in the round history, so there was no card to press, no verdict to give
+   and no way to make the row go away.
+
+   It happened because "what is left in this review" was measured over
+   negoUnsentAsks — our own asks the other side has NEVER SEEN. That population
+   is right for the send (a hold cannot recall wording the counterparty already
+   holds) and wrong for the reviewer, and it empties for two quite different
+   reasons: the change was decided (genuinely finished), or the round was merely
+   handed over (still pending, still rulable, still very much their job). The
+   first left a dead row nagging for ever; the second printed 0 of 0 over a
+   change the reviewer could still open and rule on.
+
+   So a review is about its own changes that are STILL ON THE TABLE — pending,
+   undecided, whoever has seen them. Read off c.changes rather than through the
+   negotiation module, so it answers the same on a page that has not loaded one
+   and matches the server's rvInPlay word for word. */
+function reviewInPlay(c, rv){
+  const ids = new Set((((rv && rv.changeIds) || [])).map(String));
+  if (!ids.size) return [];
+  return (Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && ids.has(String(x.id)) && String(x.status || 'pending') === 'pending');
+}
+/* ---------- A REVIEW WITH NOTHING LEFT IN IT IS OVER ----------
+   Nobody closed it, so the record still says open — but every clause it covered
+   has been decided or retracted, and there is nothing left for anyone to do
+   about it. It must therefore stop being drawn, stop appearing on the
+   reviewer's desk, and above all stop NARROWING them: the reported screen had a
+   colleague locked out of the round, their card column emptied, by two asks
+   that had been overtaken by events days earlier.
+
+   The record is NOT rewritten. Reading must not write (see reviewInit), the
+   audit trail already carries the request, and a review that was overtaken
+   rather than answered should read that way in the history. The screens simply
+   stop asking about it. */
+function reviewSpent(c, rv){
+  if (!rv || rv.status !== 'open') return false;
+  if (!Array.isArray(rv.changeIds) || !rv.changeIds.length) return false;
+  return reviewInPlay(c, rv).length === 0;
+}
 function reviewOpenList(c){
-  return reviewRequests(c).filter(r => r && r.status === 'open');
+  return reviewRequests(c).filter(r => r && r.status === 'open' && !reviewSpent(c, r));
 }
 function reviewOpenOf(c){
   const open = reviewOpenList(c);
@@ -688,10 +735,11 @@ function reviewReturn(c, o = {}){
      request, or one deliberately left out of it, was never in front of this
      reviewer — refusing to let them finish because of it would be asking them
      to rule on wording nobody showed them. */
-  const idsIn = new Set((rv.changeIds || []).map(String));
-  const inRv = ((window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
-    .concat((window.negoPending ? window.negoPending(c) : []).filter(x => x && x.authorSide === 'counterparty')))
-    .filter(x => idsIn.has(String(x.id)));
+  /* Counted over what is still ON THE TABLE, which is the same population the
+     banner counts — the two must not disagree about what still wants a verdict,
+     or the row nags for an answer the hand-back does not want and lets through
+     an answer the row never asked for. See reviewInPlay. */
+  const inRv = reviewInPlay(c, rv);
   const ourIn = inRv.filter(x => reviewSideOf(x) === 'ours');
   const unmarked = ourIn.filter(x => !reviewOn(x));
   if (unmarked.length){
@@ -847,12 +895,14 @@ function reviewGateMessage(c){
    screen next to it about whether the boss has answered. */
 /* How many of a given review's changes still want an answer. Counted over the
    review's OWN ids rather than over what is outstanding on the contract — with
-   several open, the contract's total is nobody's total. */
+   several open, the contract's total is nobody's total.
+
+   AND OVER WHAT IS STILL ON THE TABLE, not over what is still unsent. Those are
+   different sets the moment a round is handed over, and counting the wrong one
+   printed "0 of 0 still need your verdict" over a change the reviewer could
+   open, read and rule on. See reviewInPlay. */
 function reviewProgress(c, rv){
-  const ids = new Set((rv && rv.changeIds || []).map(String));
-  const all = ((window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
-    .concat((window.negoPending ? window.negoPending(c) : []).filter(x => x && x.authorSide === 'counterparty')))
-    .filter(x => ids.has(String(x.id)));
+  const all = reviewInPlay(c, rv);
   const marked = all.filter(x => reviewOn(x)).length;
   return { total: all.length, marked, left: all.length - marked };
 }
@@ -1050,83 +1100,104 @@ function reviewBannerHtml(c, opts = {}){
   if (!c || !reviewSeatShowsReview(opts)) return '';
   if (reviewBannerCleared(c)) return '';
   const st = reviewState(c);
-  if (st.phase === 'none' && !st.gate.required) return '';
-  const wrap = (tone, body) => {
-    const bg = { amber: 'var(--st-amber-bg)', green: 'var(--st-green-bg)', ruby: 'var(--st-ruby-bg)' }[tone];
-    const fg = { amber: 'var(--st-amber-fg)', green: 'var(--st-green-fg)', ruby: 'var(--st-ruby-fg)' }[tone];
-    const ln = { amber: 'var(--st-amber-line)', green: 'var(--st-green-line)', ruby: 'var(--st-ruby-line)' }[tone];
-    return `<div class="rv-banner" data-rv-banner="${_rvE(st.phase)}"
-      style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;margin:0 0 10px;border-radius:9px;
-      border:1px solid ${ln};background:${bg};color:${fg};font-size:11.5px;line-height:1.5">${body}
-      <button type="button" data-rv-act="rv-clear" aria-label="${_rvE(i18t('rv_clear_banner'))}"
-        title="${_rvE(i18t('rv_clear_banner'))}"
-        style="flex:none;align-self:flex-start;font:inherit;font-size:15px;line-height:1;cursor:pointer;
-        border:0;background:transparent;color:inherit;opacity:.65;padding:1px 2px;margin:-1px -3px 0 2px">&times;</button></div>`;
-  };
+
+  /* ---- THE BANNER IS A LIST OF ROWS, NOT A STATE MACHINE ----
+     It used to branch: one phase won, and everything the reader also needed to
+     know was thrown away with the branches that lost. That is how a reviewer
+     who had just handed a review back was shown nothing at all if a colleague
+     still had one open — and, when nothing else was open, was shown the
+     REQUESTER's banner about themselves, in the third person, with the
+     requester's "Ask again" on it. Reported as exactly that (Young, 09 Aug
+     2026): the states were checked one at a time, and the reader was not.
+
+     So the question is asked once per row and always from the reader's chair:
+     what do I owe, what am I waiting on, what came back to me, what was taken
+     off me. A reader with none of those gets no banner. */
+  const rows = [];
+  let tone = 'amber';
   const act = (id, label) => `<button type="button" data-rv-act="${id}"
     style="flex:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:4px 10px;
     border:1.5px solid currentColor;background:transparent;color:inherit">${_rvE(label)}</button>`;
+  const line = (body, button) => `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
+    <span style="flex:1;min-width:0">${body}</span>${button || ''}</div>`;
 
-  /* ---- ONE ROW PER REVIEW ----
-     Several can be open at once, so a single sentence cannot describe the
-     state: sales has clause 5, procurement has clause 10, and each has its own
-     due date and its own way out. Rows, not a paragraph — and each row's button
-     names the review it acts on, because "cancel the review" with two open is a
-     question rather than an instruction.
-
-     The reader's own reviews lead, and always. A row you owe a verdict on is
-     work; a row somebody else owes is news. */
-  const row = (rv, kind) => {
+  /* 1. WHAT I OWE A VERDICT ON. No button: the toolbar is the one hand-back
+     door and it asks which review — see openReviewReturnPicker. */
+  for (const rv of st.mine){
     const p = st.progress(rv);
-    if (kind === 'yours')
-      /* NO BUTTON ON THE ROW. With two reviews open this drew two identical
-         "Hand it back"s beside a third in the toolbar — three controls for one
-         act. The toolbar is the door and it asks which; see
-         openReviewReturnPicker. The row's job is to say what was asked, which
-         changes it covers and by when.
+    rows.push(line(`<b>${_rvE(i18t('rv_banner_yours', { who: rv.by }))}</b>
+      <span style="font-family:var(--font-mono);font-size:10.5px;opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
+      ${rv.note ? `<span title="${_rvE(rv.note)}">“${_rvE(_rvClamp(rv.note, 120))}” </span>` : ''}${
+        _rvE(i18tn('rv_banner_yours_sub', p.left, { n: p.left, total: p.total }))}
+      ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}`));
+  }
+  /* 2. WHAT IS OUT WITH SOMEBODY ELSE — only the ones I am entitled to know
+     about, and the Cancel only where I could actually use it. */
+  for (const rv of st.waiting){
+    if (!reviewMaySee(rv)) continue;
+    const p = st.progress(rv);
+    rows.push(line(`<b>${_rvE(i18t('rv_banner_waiting', { who: rv.reviewer.name }))}</b>
+      <span style="font-family:var(--font-mono);font-size:10.5px;opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
+      ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}
+      ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}`,
+      reviewMayCancel(rv) ? act('rv-cancel:' + rv.id, i18t('rv_cancel_btn')) : ''));
+  }
+  /* 3. WHAT CAME BACK, or was taken off me. The most recent closed review this
+     reader is actually in — a colleague outside it is told nothing, which is
+     the same rule the open rows follow.
 
-         The note is CLAMPED here and whole on hover: a pasted Copilot answer
-         had turned this banner into a wall of text above the contract. */
-      return `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
-        <span style="flex:1;min-width:0">
-          <b>${_rvE(i18t('rv_banner_yours', { who: rv.by }))}</b>
-          <span style="font-family:var(--font-mono);font-size:10.5px;opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
-          ${rv.note ? `<span title="${_rvE(rv.note)}">“${_rvE(_rvClamp(rv.note, 120))}” </span>` : ''}${
-            _rvE(i18tn('rv_banner_yours_sub', p.left, { n: p.left, total: p.total }))}
-          ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span></div>`;
-    return `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
-      <span style="flex:1;min-width:0">
-        <b>${_rvE(i18t('rv_banner_waiting', { who: rv.reviewer.name }))}</b>
-        <span style="font-family:var(--font-mono);font-size:10.5px;opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
-        ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}
-        ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span>
-      ${reviewMayCancel(rv) ? act('rv-cancel:' + rv.id, i18t('rv_cancel_btn')) : ''}</div>`;
-  };
-  if (st.phase === 'yours' || st.phase === 'waiting'){
-    /* NOT EVERY OPEN REVIEW — the ones this reader is in, plus all of them for
-       an admin. A colleague handed clause 5 was reading who else was reviewing
-       what, when it was due and how far along they were. See reviewMaySee. */
-    const rows = st.mine.map(rv => row(rv, 'yours'))
-      .concat(st.waiting.filter(rv => reviewMaySee(rv)).map(rv => row(rv, 'waiting')));
-    if (!rows.length && !(st.gate.required && st.waiting.length)) return '';
-    return wrap('amber', `<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">
-      ${rows.join('')}
-      ${st.gate.required && st.waiting.length ? `<span style="font-size:11px">${_rvE(i18t('rv_gate_holds_send'))}</span>` : ''}
-    </span>`);
+     AND NEWS STOPS BEING NEWS. Reported from the field (Young, 09 Aug 2026): a
+     "X withdrew the review they asked you for" row was still sitting on the
+     workbench long after every clause it covered had been decided and closed —
+     "they serve no purpose but taking up space". It is worth saying while there
+     is still something to do about it: a hand-back is the requester's cue to
+     act on the wording, and a withdrawal explains why a reviewer's column just
+     un-narrowed. Once the clauses themselves are off the table both sentences
+     are about a job nobody can do any more, and the history is where a finished
+     job belongs. So the row lives exactly as long as its subject does. */
+  const closed = reviewRequests(c).filter(r =>
+    r && r.status !== 'open' && reviewMaySee(r) && reviewInPlay(c, r).length);
+  const news = closed.length ? closed[closed.length - 1] : null;
+  if (news && news.status === 'returned'){
+    const t = news.tally || { cleared: 0, held: 0, advised: 0 };
+    if (t.held) tone = 'ruby'; else if (!rows.length) tone = 'green';
+    const sub = `${_rvE(i18t('rv_banner_returned_sub', { cleared: t.cleared, held: t.held, advised: t.advised }))}
+      ${news.returnedNote ? `<span style="display:block;margin-top:3px">“${_rvE(_rvClamp(news.returnedNote, 240))}”</span>` : ''}`;
+    /* THE REVIEWER IS TOLD NOTHING, because there is nothing to tell them: they
+       did this, they were toasted at the time, and a permanent notice about a
+       finished job — one that does not even say which clauses it covered — is
+       the definition of noise. Asked for by name (Young, 09 Aug 2026): "just
+       delete it completely." The news belongs to the person who is now waiting
+       to act on it. */
+    if (!(reviewIsReviewer(news) && !reviewIsRequester(news)))
+      rows.push(line(`<b>${_rvE(i18t('rv_banner_returned', { who: news.returnedBy || news.reviewer.name }))}</b> ${sub}`,
+        act('rv-ask', i18t('rv_ask_again_btn'))));
   }
-  if (st.phase === 'returned'){
-    const t = st.rv.tally || { cleared: 0, held: 0, advised: 0 };
-    const tone = t.held ? 'ruby' : 'green';
-    return wrap(tone, `<span style="flex:1;min-width:0">
-      <b>${_rvE(i18t('rv_banner_returned', { who: st.rv.returnedBy || st.rv.reviewer.name }))}</b>
-      ${_rvE(i18t('rv_banner_returned_sub', { cleared: t.cleared, held: t.held, advised: t.advised }))}
-      ${st.rv.returnedNote ? `<span style="display:block;margin-top:3px">“${_rvE(st.rv.returnedNote)}”</span>` : ''}</span>
-      ${act('rv-ask', i18t('rv_ask_again_btn'))}`);
-  }
-  /* Nothing has been asked and the gate wants something asked. */
-  return wrap('amber', `<span style="flex:1;min-width:0">
-    <b>${_rvE(i18t('rv_banner_gate'))}</b> ${_rvE(reviewGateMessage(c) || '')}</span>
-    ${act('rv-ask', i18t('rv_ask_btn'))}`);
+  /* A WITHDRAWN REVIEW LEAVES NO PHASE BEHIND. The people who cancelled it need
+     no notice; the person it was taken from does — otherwise their column
+     quietly un-narrows and nothing anywhere says why. */
+  if (news && news.status === 'cancelled' && reviewIsReviewer(news) && !reviewIsRequester(news))
+    rows.push(line(`<b>${_rvE(i18t('rv_banner_cancelled_you', { who: news.by }))}</b>`));
+
+  /* 4. AND THE GATE, when it wants a review nobody has asked for yet. */
+  if (!rows.length && st.gate.required && !st.open.length)
+    rows.push(line(`<b>${_rvE(i18t('rv_banner_gate'))}</b> ${_rvE(reviewGateMessage(c) || '')}`,
+      act('rv-ask', i18t('rv_ask_btn'))));
+  else if (st.gate.required && st.waiting.filter(rv => reviewMaySee(rv)).length)
+    rows.push(`<span style="font-size:11px">${_rvE(i18t('rv_gate_holds_send'))}</span>`);
+
+  if (!rows.length) return '';
+  const bg = { amber: 'var(--st-amber-bg)', green: 'var(--st-green-bg)', ruby: 'var(--st-ruby-bg)' }[tone];
+  const fg = { amber: 'var(--st-amber-fg)', green: 'var(--st-green-fg)', ruby: 'var(--st-ruby-fg)' }[tone];
+  const ln = { amber: 'var(--st-amber-line)', green: 'var(--st-green-line)', ruby: 'var(--st-ruby-line)' }[tone];
+  return `<div class="rv-banner" data-rv-banner="${_rvE(st.phase)}"
+    style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;margin:0 0 10px;border-radius:9px;
+    border:1px solid ${ln};background:${bg};color:${fg};font-size:11.5px;line-height:1.5">
+    <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">${rows.join('')}</span>
+    <button type="button" data-rv-act="rv-clear" aria-label="${_rvE(i18t('rv_clear_banner'))}"
+      title="${_rvE(i18t('rv_clear_banner'))}"
+      style="flex:none;align-self:flex-start;font:inherit;font-size:15px;line-height:1;cursor:pointer;
+      border:0;background:transparent;color:inherit;opacity:.65;padding:1px 2px;margin:-1px -3px 0 2px">&times;</button></div>`;
 }
 function reviewWhen(at){
   if (!at) return '';
@@ -1631,6 +1702,7 @@ Object.assign(window, {
   reviewMaySee, reviewMayCancel, reviewOutNameFor, reviewVerdictByFor,
   reviewActorHeld, reviewActorIsHeld, reviewActorBlockMessage, reviewMyChangeIds,
   reviewOpenList, reviewOpenFor, reviewMineOpen, reviewNames, reviewWaitingOn,
+  reviewInPlay, reviewSpent,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,

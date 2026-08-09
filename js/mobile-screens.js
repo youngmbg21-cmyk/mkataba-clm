@@ -290,21 +290,21 @@ function mContractsHtml(){
     <div class="m-scroll">${list}</div>`;
 }
 
-/* The New-contract sheet. Company standard templates first — a published
-   library template is the team's one-click default and belongs at the top —
-   then the three ways paper otherwise gets in. Every route calls the same
-   function the desktop's + menu calls. */
+/* The New-contract sheet: the three ways paper gets in, and nothing else.
+   Every route calls the same function the desktop's + menu calls.
+
+   IT USED TO LIST THE COMPANY STANDARDS ABOVE THEM, and they are gone for the
+   reason the desktop menu's list went (Young, 09 Aug 2026): each of those rows
+   is the first route, "Draft from a template", opened one level down — and
+   openWizard's picker leads with the same standards. A sheet that answers "how
+   does a contract get in here" with a scrolling column of contract names is
+   answering a different question. The footnote counting the built-in templates
+   went with them: a count of a list you cannot see, on a panel whose whole
+   point is now three doors.
+
+   The [data-m-newlib] wiring below stays — it costs nothing with no row
+   carrying it, and it is what a future row would need. */
 function mNewSheetHtml(){
-  const lib = (typeof tplLibPublished==='function' && typeof canEdit==='function' && canEdit()) ? tplLibPublished() : [];
-  const builtin = (typeof myCreatableTemplates==='function') ? myCreatableTemplates() : [];
-  const libRows = lib.map(t=>`
-    <button class="m-row" data-m-newlib="${mEsc(t.id)}">
-      <span style="flex:1;min-width:0">
-        <span class="m-row-name">${mEsc(t.name)}</span>
-        <span class="m-row-sub">${i18t('m_one_click')}</span>
-      </span>
-      <span class="m-pill" style="background:var(--st-green-bg);color:var(--st-green-fg)">v${mEsc(t.publishedVersion)}</span>
-    </button>`).join('');
   const routes = `
     <button class="m-row" data-m-act="new-wizard">
       <span style="flex:1;min-width:0">
@@ -328,11 +328,9 @@ function mNewSheetHtml(){
   return `
     <div class="m-grab"></div>
     <div class="m-sheet-title" style="margin-bottom:10px">${i18t('m_new_contract')}</div>
-    ${lib.length?`<div class="m-capline" style="margin-bottom:6px">${i18t('m_company_standards')}</div>
-      <div class="m-card m-list" style="background:var(--color-bg)">${libRows}</div>`:''}
-    <div class="m-capline" style="margin:${lib.length?'14px':'0'} 0 6px">${i18t('m_other_ways_in')}</div>
+    ${''/* No caption above them. "Other ways in" was true while the standards
+           sat on top and is a heading about nothing now that they do not. */}
     <div class="m-card m-list" style="background:var(--color-bg)">${routes}</div>
-    ${builtin.length?`<div class="m-note" style="margin-top:10px">${builtin.length} HaTi standard template${builtin.length===1?'':'s'} are open to your role.</div>`:''}
     <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 

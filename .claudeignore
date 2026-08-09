@@ -1,0 +1,101 @@
+# .claudeignore — the "don't look here" list.
+#
+# Same idea as .gitignore, different job. .gitignore says what git must not
+# SAVE. This says what a coding assistant should not READ or SEARCH, so a
+# question about the product does not get answered out of a folder of test
+# props.
+#
+# NOTE: Claude Code itself does not read this file — it reads the deny list in
+# .claude/settings.json, which is kept in step with this one. This file is here
+# for the other tools that follow the convention, and because it is the
+# readable version: the settings file is the same list written as JSON.
+#
+# Nothing here is deleted or unavailable. It is skipped by default and can
+# still be opened by name when somebody actually wants it.
+
+# ---- Dependencies & build output ----
+node_modules/
+dist/
+build/
+.cache/
+coverage/
+
+# ---- Binary test fixtures ----
+# 6.2 MB, 92 files, 70 of them PDFs. The automated suite reads exactly two
+# small .docx files out of all of it; the rest are props from a manual QA
+# session and can be rebuilt by the scripts in test-fixtures/generators/.
+test-fixtures/
+fixtures/
+
+# ---- Fonts ----
+# 500 KB of base64. One line in fonts.css is 122,588 characters long.
+# The app SERVES this — it is ignored for reading, never for deleting.
+fonts/
+*.woff
+*.woff2
+*.ttf
+*.otf
+
+# ---- Sample contracts ----
+# Also served by the app (server.js mounts /sample-contracts). Skipped for
+# reading only.
+sample-contracts/
+
+# ---- Binary document formats ----
+*.pdf
+*.docx
+*.doc
+*.xlsx
+*.zip
+*.tar
+*.tar.gz
+*.gz
+
+# ---- Images ----
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.webp
+*.svg
+
+# ---- Generated test output ----
+test/chromium/shots/
+test/chromium/lang-coverage.json
+test/chromium/theme-tokens-baseline.json
+
+# ---- Server runtime data ----
+server/data/
+server/data-*/
+
+# ---- Append-only history logs ----
+# Roughly 900 KB between them — search these on purpose, not by accident.
+BUGLOG.md
+SUMMARY.md
+TESTREPORT.md
+CHECKLIST.md
+SESSION-NOTES.md
+LOOP_REPORT.md
+INVENTORY.md
+findings.json
+
+# ---- Standalone report pages, not app code ----
+ux-review.html
+REVIEW-internal-review.html
+REVIEW-internal-review-demo.html
+HaTi-Kenya-Pricing-Research.html
+
+# ---- Logs, temp, secrets ----
+*.log
+scratchpad/
+.env
+.env.*
+!.env.example
+package-lock.json
+
+# ---- DELIBERATELY NOT IGNORED ----
+# CLAUDE.md, README.md, PLAN.md, AUDIT.md, the DESIGN-* and WORKORDER-* files,
+# and everything under js/, server/, index.html and test/*.test.js. Those are
+# the working files. Hiding them would make the tool worse at its job without
+# making anything faster that matters.

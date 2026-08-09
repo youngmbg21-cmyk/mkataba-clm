@@ -3723,8 +3723,9 @@ function roomHeadHtml(c,opts={}){
      SOLID GREEN, as asked. I had it as a green outline on the reasoning that
      one filled button per head keeps the hierarchy — the owner's call is that
      starting the next agreement is a first-class act on this platform and
-     should look like one. Two filled greens, and the head reads as two things
-     you can do rather than one thing you must.
+     should look like one. Share is filled too now, on the same call (09 Aug
+     2026): the head carries the acts, and an act drawn as an outline beside two
+     filled ones reads as the one you are not meant to press.
 
      Only where this head owns its primary. The negotiation workbench passes
      its own (Publish Round) and is a working surface, not a landing — offering
@@ -3785,7 +3786,18 @@ function roomHeadHtml(c,opts={}){
                  on the Document tab now, so it is not repeated here. */}
         </div>
       </div>
-      ${may?`<button id="ws-share" class="ui-btn" style="font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
+      ${''/* SOLID GREEN, on the owner's call (Young, 09 Aug 2026) — "make the
+             Share buttons both in Document and Negotiate tabs visible in green
+             like the other buttons". It was the head's one plain outline, and
+             beside two filled greens it read as a lesser control than Save as
+             template in the ⋯ menu, which is the opposite of what sending a
+             contract to the other side is worth.
+
+             ONE BUTTON, BOTH TABS. roomHeadHtml is drawn by renderWorkspace
+             (Document, Key terms, Signing, History) AND by renderRedline
+             (Negotiate) — there is no second Share markup anywhere, so this is
+             the whole of the change. See THE MAP's five-tabs section. */}
+      ${may?`<button id="ws-share" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary)}
       ${newBtn}
     </div>

@@ -29,6 +29,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 const { JSDOM } = require('jsdom');
+const { runFileInContext } = require('./vmcache');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -125,6 +126,14 @@ function buildWorld(opts = {}) {
   win.console = console;
   win.setTimeout = (fn) => { try { fn(); } catch (_) {} return 0; };   // run deferred UI work at once
   win.clearTimeout = () => {};
+  /* An interval never fires — the same gap portalworld.js documents at length.
+     setTimeout was stubbed here and setInterval was not, so js/core.js's own
+     pollers (refreshShareOverview and refreshWaitingQuestions on 60s,
+     refreshAiUsage on 30s, and schedulePolling's _pollTimer) armed real jsdom
+     timers in every world this harness builds. Nothing asserts on a poll
+     arriving by itself; the tests that care call the refresh directly. */
+  win.setInterval = () => 0;
+  win.clearInterval = () => {};
   if (!win.URL.createObjectURL) win.URL.createObjectURL = () => 'blob:stub';
   if (!win.URL.revokeObjectURL) win.URL.revokeObjectURL = () => {};
 
@@ -290,7 +299,7 @@ function buildWorld(opts = {}) {
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3
-    vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: rel });
+    runFileInContext(abs, ctx, rel);              // compiled once per process, see test/vmcache.js
     loaded.push(rel);
   }
   installDownloadRecorder();

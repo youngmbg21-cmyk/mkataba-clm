@@ -330,11 +330,34 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     const others = v.$('#pt-other');
     assert.ok(others, 'the alternatives are on the page');
     assert.ok(others.className.includes('hidden'), 'but not competing with the signature');
-    for (const id of ['pt-accept', 'pt-redline', 'pt-changes', 'pt-decline'])
+    for (const id of ['pt-accept', 'pt-changes', 'pt-decline'])
       assert.ok(v.$('#' + id), `${id} must still exist and still work`);
-    for (const label of ['Change the wording yourself', 'Tell them what you want changed',
-                         'Decline this contract'])
+    for (const label of ['Tell them what you want changed', 'Decline this contract'])
       assert.ok(others.textContent.includes(label), `"${label}" names the act, not the mechanism`);
+    /* ---- AND NOT "CHANGE THE WORDING YOURSELF" ----
+       This list used to carry it, and this test used to require it. It stopped
+       being true when W6 removed #portal-redline from a link ISSUED for
+       signature (f113 pins that a signing link carries no redline surface), and
+       nothing removed the button that opens it — so it threw on a null element
+       and did nothing at all, on the one control a reader presses when they
+       want changes. Reported by Young, 09 Aug 2026.
+
+       A verb that cannot work must not be drawn, and the route that IS open has
+       to say what happens next — which is the owner's own process: they tell us,
+       we send a negotiation link, they redline on that. */
+    assert.equal(v.$('#pt-redline'), null,
+      'a button whose panel this link deliberately does not build must not be drawn');
+    assert.ok(!others.textContent.includes('Change the wording yourself'));
+    assert.match(others.textContent, /cannot be edited on it/,
+      'and the reader is told why, and what to do instead');
+  });
+
+  /* The redline route is not gone from the product — it is gone from the link
+     that closed the negotiation. A link nobody issued for signature keeps it. */
+  test('a link that was NOT issued for signature keeps the redline route', async () => {
+    const v = theirPage(contract());
+    assert.ok(v.$('#pt-redline'), 'the verb');
+    assert.ok(v.$('#portal-redline'), 'and the editor it opens');
   });
 
   /* The fallback, kept because links created before purposes existed are still

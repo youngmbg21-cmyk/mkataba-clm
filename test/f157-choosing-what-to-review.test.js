@@ -143,8 +143,10 @@ describe('f157 · waiting is amber, held is ruby', () => {
     const { c, b } = await three(win);
     win.reviewAsk(c, { reviewer: BOSS, ids: [b.id] });
     const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
-    assert.match(html, /data-rv-verdict="waiting"/);
-    assert.match(html, /With Achieng Otieno/);
+    /* The workbench card's ONE status badge carries it — the review's own chip
+       stood down beside it rather than saying the same thing twice. */
+    assert.match(html, /With Achieng Otieno/, 'and it names who has it');
+    assert.ok(!/data-rv-verdict="held"/.test(html), 'waiting is not a verdict');
     assert.match(html, /data-rv-waiting="1"/, 'and the card is flagged for the amber edge');
   });
 

@@ -3966,7 +3966,24 @@ async function applyResponse(c, r, opts={}){
     const withdrew=applyNegoWithdrawals(c, r, who);
     if(!done.length && !filed.length && !withdrew.length){
       if(!opts.background) toast(i18t('co_no_decisions'),'err');
-      return false;
+      /* WORDING THAT CANNOT LAND MUST STILL STOP ARRIVING. Reported unhandled,
+         the poller re-fetches this same response every cycle and re-applies
+         nothing, for ever — which is precisely how a counterparty's redline came
+         to disappear with no error on either screen (f163). So a response whose
+         whole content was PROPOSED WORDING none of which could be placed is
+         reported handled: applyNegoProposals has just written their exact words
+         into the trail, and the owner is told once here.
+
+         Only wording. A refused DECISION — ruling on their own ask, or naming a
+         fingerprint this contract has never had — stays unhandled and unapplied,
+         because that is a refusal rather than a delivery, and f37 pins it. */
+      const proposed=Array.isArray(r.negoProposed)?r.negoProposed.length:0;
+      const decided=Array.isArray(r.negoDecisions)?r.negoDecisions.length:0;
+      const withdrawn=Array.isArray(r.negoWithdrawn)?r.negoWithdrawn.length:0;
+      if(!proposed || decided || withdrawn) return false;
+      c.lastAction=todayStr(); persist(c);
+      toast(`${r.name||'The counterparty'} sent wording that does not match any clause on ${c.id} — nothing was filed. Their exact words are in this contract's history.`,'err');
+      return true;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
     const said=[done.length?`${acc} of ${done.length} proposed changes accepted (${done.map(x=>'#'+x.id).join(', ')})`:'',
@@ -4236,11 +4253,31 @@ async function applyNegoProposals(c, r, who){
   const list=Array.isArray(r.negoProposed)?r.negoProposed.slice(0,200):[];
   if(!list.length || !window.negoFileChange) return [];
   const filed=[];
+  const unplaced=[];
   for(const p of list){
-    if(!p || !p.clauseId) continue;
+    if(!p || !p.clauseId){ if(p) unplaced.push(p); continue; }
     const type=p.changeType==='deleteClause'||p.changeType==='insertClause'?p.changeType:'modify';
-    const cl=window.negoClauseById?negoClauseById(c, String(p.clauseId)):null;
-    if(!cl && type!=='insertClause') continue;      // a clause we do not have
+    /* ---- FINDING THE CLAUSE THEY MEANT, AND SAYING SO WHEN WE CANNOT ----
+       The id is the answer and is tried first. But an id can be stale — a link
+       minted before clauseCarryIds existed carries ids our baseline has since
+       re-minted — and this used to `continue` on a miss, in silence: nothing
+       filed, applyResponse returned false, the poller never marked the response
+       handled, and it re-applied the same impossible answer every cycle for
+       ever. The counterparty's wording was simply gone, with no line anywhere
+       saying so. So the miss is recovered from where it honestly can be, by the
+       wording they were editing and then by the clause's own label, and
+       RECORDED when it cannot. */
+    let cl=window.negoClauseById?negoClauseById(c, String(p.clauseId)):null;
+    if(!cl && type!=='insertClause' && window.negoClauseList){
+      const norm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
+      const clauses=negoClauseList(c)||[];
+      const want=norm(p.oldText);
+      cl=(want && clauses.find(x=>norm(x.text)===want))
+        || (p.clauseLabel && window.negoClauseLabel
+            && clauses.find(x=>norm(negoClauseLabel(x))===norm(p.clauseLabel)))
+        || null;
+    }
+    if(!cl && type!=='insertClause'){ unplaced.push(p); continue; }
     const newText=String(p.newText==null?'':p.newText);
     /* Already here. A durable link can send the same round twice and the poller
        retries anything it could not mark applied, so the same ask must not
@@ -4252,12 +4289,17 @@ async function applyNegoProposals(c, r, who){
        proposal as a duplicate. Canonical comparison, so serialisation noise
        does not un-duplicate a genuine retry. */
     const canonB=h=>{ try{ return window.canonicalRich?canonicalRich(String(h||'')):String(h||''); }catch(_){ return String(h||''); } };
-    if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===p.clauseId
+    /* OUR id for the clause, never theirs. Where the ask arrived on a stale id
+       and was recovered by its wording above, filing it under the id they sent
+       would anchor the change on a clause this contract does not have — the
+       same invisible hole one step further along. */
+    const clauseId=String((cl&&cl.clauseId)||p.clauseId);
+    if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===clauseId
         && x.status==='pending' && String(x.newText||'')===newText
         && (!p.bodyHtml || canonB(x.bodyHtml)===canonB(p.bodyHtml)))) continue;
     let ch=null;
     try{
-      ch=await negoFileChange(c, { clauseId:String(p.clauseId), changeType:type,
+      ch=await negoFileChange(c, { clauseId, changeType:type,
         oldText: cl?cl.text:String(p.oldText||''), newText,
         bodyHtml: p.bodyHtml?(window.sanitizeRich?sanitizeRich(p.bodyHtml):null):null,
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
@@ -4270,12 +4312,21 @@ async function applyNegoProposals(c, r, who){
         { side:'counterparty', author:who, why:p.why||null, note:p.note||null, quiet:true,
           via:`their link${p.id?` as ${p.id}`:''}` });
     }catch(e){ ch=null; }
-    if(!ch) continue;
+    if(!ch){ unplaced.push(p); continue; }
     filed.push(ch.id);
     logAudit(c,'Negotiation',`#${ch.id} proposed by ${who} through their link — “${ch.summary}”`
       +` on ${ch.clauseLabel||ch.clauseId} · fingerprint ${ch.hash}`
       +` (the counterparty's wording, recorded in their name${p.id&&p.id!==ch.id?`; their copy called it ${p.id}`:''})`);
   }
+  /* WORDING THAT ARRIVED AND COULD NOT BE PLACED IS NEWS, not a no-op. It used
+     to vanish: nothing filed, nothing logged, and the poller re-fetching the
+     same response every cycle because it had never been reported handled. The
+     text they wrote is kept verbatim in the trail, so the round is recoverable
+     by hand rather than lost. */
+  if(unplaced.length)
+    logAudit(c,'Negotiation',`${unplaced.length} change${unplaced.length===1?'':'s'} proposed by ${who}`
+      +` through their link could NOT be matched to a clause on this contract and ${unplaced.length===1?'was':'were'} not filed`
+      +` — ${unplaced.map(p=>`${p.clauseLabel||p.clauseId||'an unnamed clause'}: “${String(p.newText||'').slice(0,300)}”`).join(' | ')}`);
   return filed;
 }
 

@@ -170,9 +170,11 @@ describe('f161 · a review is internal, and inside the company it is not public 
     const w = world();
     const { c, ten } = await twoOut(w);
     const html = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
-    /* "It cannot be sent yet" is everybody's business; "Young has it" is not. */
+    /* "It cannot be sent yet" is everybody's business; "Young has it" is not.
+       The state lives in the card's ONE status badge now — the review's own
+       chip stood down beside it rather than saying the same thing twice. */
     assert.match(html, new RegExp('data-nego-card="' + ten.id + '"'), 'they are working this contract');
-    assert.match(html, /Out for review/, 'the state is on the card');
+    assert.match(html, /Out for review|In review/, 'the state is on the card');
     assert.ok(!/With Young Ochoka|With Simon Jordan/.test(html), 'the name is not');
   });
 
@@ -190,7 +192,7 @@ describe('f161 · a review is internal, and inside the company it is not public 
     const sales = seat(SALES, c);
     sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
     const asOther = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
-    assert.match(asOther, /data-rv-verdict="held"/, 'they can see it is held');
+    assert.match(asOther, /Held by review/, 'they can see it is held');
     assert.ok(!/Simon Jordan/.test(asOther), 'and not who held it, nor why');
     const asMe = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
     assert.match(asMe, /Simon Jordan/, 'the requester is told, because they asked');
@@ -480,6 +482,166 @@ describe('f161 · the reviewer’s screen is the job and nothing else', () => {
     const tab = seat(SALES, c).win.negoDocHtml(c, { side: 'owner' });
     assert.match(tab, /data-rv-docnote="folded"/);
     assert.ok(!/Sourcing/.test(tab));
+  });
+});
+
+/* ============================================================
+   3d — EVERY STATE, FROM EVERY CHAIR
+   ============================================================
+   Reported as a criticism, and a fair one (Young, 09 Aug 2026): "why do I have
+   the 'Ask again' after I have sent back my feedback? And why does it say ask
+   again when I was the one that was asked?"
+
+   The OPEN states had been taught who may see a review. The states after it
+   never had. So the moment a review came back, the banner announced it in the
+   third person to the person who had just written it, offered them the
+   requester's verb, and drew the reviewer's name and their hand-back note to
+   every colleague on the contract.
+
+   This block walks the whole matrix rather than the state that was reported —
+   the fault was not the sentence, it was checking some states and not others. */
+describe('f161 · the states after a review comes back', () => {
+
+  async function returned(w){
+    const { c, six } = await twoOut(w);
+    const sales = seat(SALES, c);
+    sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
+    sales.win.reviewReturn(c, { note: 'Move it forward as is.' });
+    return c;
+  }
+  const banner = (u, c) => seat(u, c).win.reviewBannerHtml(c, { side: 'owner' });
+  const verbs = html => [...html.matchAll(/data-rv-act="([^"]+)"/g)].map(m => m[1]);
+
+  /* THE REVIEWER IS TOLD NOTHING ONCE THEY HAVE HANDED BACK. A permanent
+     notice about a job they finished — which did not even say which clauses it
+     covered — is noise, and it carried the requester's verb. Asked for by name:
+     "just delete it completely." */
+  test('the reviewer gets no banner about their own hand-back', async () => {
+    const w = world();
+    const c = await returned(w);
+    const html = banner(SALES, c);
+    assert.ok(!/has reviewed this|handed this back/.test(html),
+      'the news belongs to the person now waiting to act on it');
+    assert.ok(!verbs(html).includes('rv-ask'), 'and never the requester’s verb');
+  });
+
+  test('the requester is told who answered, and may ask again', async () => {
+    const w = world();
+    const c = await returned(w);
+    const html = w.win.reviewBannerHtml(c, { side: 'owner' });
+    assert.match(html, /Simon Jordan has reviewed this/);
+    assert.match(html, /Move it forward as is/, 'their note is for the person who asked');
+    assert.ok(verbs(html).includes('rv-ask'));
+  });
+
+  test('an admin sees it too', async () => {
+    const w = world();
+    const c = await returned(w);
+    assert.match(banner(BOSS, c), /Simon Jordan has reviewed this/);
+  });
+
+  test('and a colleague outside the review is told none of it', async () => {
+    const w = world();
+    const c = await returned(w);
+    const html = banner(OTHER, c);
+    assert.equal(html, '', 'the name and the note were drawn to everybody');
+  });
+
+  test('a withdrawn review tells the person it was taken from', async () => {
+    const w = world();
+    const { c, a } = await twoOut(w);
+    w.win.reviewCancel(c, { reviewId: a.id });
+    assert.match(banner(SALES, c), /Wanjiru Kamau withdrew the review/,
+      'their column quietly un-narrowed and nothing said why');
+    /* The requester's banner still carries the OTHER review, which is open —
+       what it must not carry is news of a withdrawal they performed. */
+    const asMe = w.win.reviewBannerHtml(c, { side: 'owner' });
+    assert.ok(!/withdrew the review/.test(asMe), 'the person who withdrew it needs no notice');
+    assert.ok(!/withdrew the review/.test(banner(OTHER, c)));
+  });
+
+  test('and with nothing asked at all, nobody has a banner', async () => {
+    const w = world();
+    const c = contract(); w.win.negoInit(c);
+    await mine(w.win, c, '6', '<p>Uncapped.</p>');
+    for (const u of [ME, SALES, OTHER, BOSS])
+      assert.equal(u === ME ? w.win.reviewBannerHtml(c, { side: 'owner' }) : banner(u, c), '');
+  });
+});
+
+/* ============================================================
+   3e — A HOLD IS NOT A DEAD END
+   ============================================================
+   Reported off a card with two ruby tags on it and one verb: "it says held back
+   or held by review but there is no button to resolve the situation and send
+   the redline to the counterparty. What is going on?"
+
+   Two faults. The card said it twice — its own status badge AND the review's
+   chip, both ruby, both saying held. And a held change had lost Send
+   (correctly), the ask (because that verb tested a flag a hold clears) and
+   Withdraw, leaving Edit and no route anywhere. A rule with no way forward is a
+   dead end, not a rule. */
+describe('f161 · a held change says it once, and says what to do', () => {
+
+  async function held(w){
+    const { c, six } = await twoOut(w);
+    const sales = seat(SALES, c);
+    sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
+    sales.win.reviewReturn(c, {});
+    return { c, six };
+  }
+  const card = (html, id) => {
+    const i = html.indexOf('data-nego-card="' + id + '"');
+    return i < 0 ? '' : html.slice(i, html.indexOf('</article>', i));
+  };
+
+  test('one tag, not two', async () => {
+    const w = world();
+    const { c, six } = await held(w);
+    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    assert.match(one, /Held by Simon Jordan/, 'the card’s own status slot says it');
+    assert.ok(!/data-rv-chip/.test(one), 'and the review’s chip stands down beside it');
+  });
+
+  test('and the tag names who, only where the reader may know', async () => {
+    const w = world();
+    const { c, six } = await held(w);
+    const asOther = card(seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    assert.match(asOther, /Held by review/, 'they can see it is held');
+    assert.ok(!/Simon Jordan/.test(asOther), 'and not by whom');
+  });
+
+  test('the card offers a way forward, and says what it is', async () => {
+    const w = world();
+    const { c, six } = await held(w);
+    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    assert.match(one, new RegExp('data-rl-ask-review="' + six.id + '"'),
+      'only the person who held it can lift it, so the way out is to ask them again');
+    assert.match(one, new RegExp('data-rl-retract="' + six.id + '"'),
+      'or take your own ask off the table');
+    assert.match(one, /Only Simon Jordan can lift this/, 'and the card says so in words');
+    assert.ok(!new RegExp('data-rl-send="' + six.id + '"').test(one), 'but never Send');
+  });
+
+  test('asking again re-opens it, and clearing gives the Send back', async () => {
+    const w = world();
+    const { c, six } = await held(w);
+    const again = w.win.reviewAsk(c, { reviewer: SALES, ids: [six.id] });
+    assert.ok(again, 'a held change whose review has closed is free to ask about');
+    const sales = seat(SALES, c);
+    assert.ok(sales.win.reviewMark(c, six.id, 'cleared'), 'the reviewer can now lift it');
+    sales.win.reviewReturn(c, {});
+    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    assert.match(one, new RegExp('data-rl-send="' + six.id + '"'), 'and the round can go');
+  });
+
+  test('while it is out again, it is not asked about twice', async () => {
+    const w = world();
+    const { c, six } = await held(w);
+    w.win.reviewAsk(c, { reviewer: SALES, ids: [six.id] });
+    const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
+    assert.ok(!new RegExp('data-rl-ask-review="' + six.id + '"').test(one),
+      'a change sitting with somebody does not need asking again');
   });
 });
 

@@ -19,6 +19,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 const { JSDOM } = require('jsdom');
+const { runFileInContext } = require('./vmcache');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -96,6 +97,21 @@ function buildPortal(opts = {}) {
   win.console = console;
   win.setTimeout = fn => { try { fn(); } catch (_) {} return 0; };
   win.clearTimeout = () => {};
+  /* An interval NEVER FIRES here, and this stub is why f25 took 32 seconds.
+     The signing screen arms a one-second ticker for the resend-code cooldown
+     (portalStartOtp, js/views/portal.js — RESEND_COOLDOWN is 30000 and the
+     ticker clears itself only once that much REAL time has passed). setTimeout
+     above was stubbed and setInterval was not, so the genuine jsdom timer ran,
+     held the event loop open, and every signing test sat idle for the full
+     thirty seconds after its assertions had already passed. A CPU profile of
+     that file was 29.9s idle out of 31.9s.
+     Not firing is also the right behaviour on its own terms: a test that waits
+     on a wall clock is a test that fails on a slow machine. Anything a ticker
+     is supposed to do is asserted by calling it, not by waiting for it. The
+     product calls tickCooldown() once synchronously before arming the
+     interval, so the first painted state is still the real one. */
+  win.setInterval = () => 0;
+  win.clearInterval = () => {};
   win.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
   // jsdom has no layout, so scrollIntoView does not exist; the product treats
   // it as a convenience but a missing function would still throw mid-handler
@@ -160,7 +176,7 @@ function buildPortal(opts = {}) {
   for (const rel of MODULES) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;
-    vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: rel });
+    runFileInContext(abs, ctx, rel);              // compiled once per process, see test/vmcache.js
   }
   /* Recorders are re-installed AFTER the modules load. Several of these names
      are declared by the modules themselves (wordflow.js defines
