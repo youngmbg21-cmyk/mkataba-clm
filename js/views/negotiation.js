@@ -5179,8 +5179,30 @@ function rlSetFocus(on){
      needs a frame to lay the new shell out before clientHeight means anything,
      which is what the rAF is for; the timeout is for the stages that have no
      rAF. Leaving focus re-measures for the same reason, in reverse. */
-  if (typeof window !== 'undefined' && window.syncViewHeight){
-    const remeasure = () => { try{ syncViewHeight(); }catch(_){} };
+  /* ---- AND THE WIDTH IS A STALE MEASUREMENT FOR EXACTLY THE SAME REASON ----
+     The note above is about the height, and it was right about the height and
+     silent about the other axis. Focus mode hides the sidebar, hides the top
+     strip and drops the page's padding — every one of which makes the GRID
+     WIDER — while rlLayoutResizer has written the columns in PIXELS for the
+     narrow shell. So the queue and the contract keep their old widths, the
+     whole gain falls into the cards (the only `1fr` track), and the drag handle
+     stays drawn at a boundary that has moved.
+
+     Nothing looks wrong until you touch the handle. The first pointer move
+     calls rlLayoutResizer, which finally measures the focus-mode width and
+     snaps all three columns at once — measured at 1600px: the queue jumping
+     210 to 300 and the contract 724 to 834 on a ONE-PIXEL drag. Reported as
+     "the left window grows and closes the contract box", and only in focus
+     mode, which is the tell: regular mode never changes width underneath the
+     inline columns.
+
+     Re-measured in the same frame as the height, for the same reason and with
+     the same rAF: the browser needs one to lay the new shell out. */
+  if (typeof window !== 'undefined'){
+    const remeasure = () => {
+      try{ if (window.syncViewHeight) syncViewHeight(); }catch(_){}
+      try{ rlLayoutResizer(document); }catch(_){}
+    };
     if (window.requestAnimationFrame) requestAnimationFrame(remeasure);
     else setTimeout(remeasure, 0);
   }
@@ -6074,6 +6096,9 @@ function redlineLayoutCss(){
     cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
   .redline-page .rl-resizer span{width:4px;height:72px;border-radius:999px;
     background:var(--color-neutral-300);transition:background .15s}
+  /* At a limit: the grip goes amber so "it stopped" reads as a boundary rather
+     than a broken control. */
+  .redline-page .rl-resizer[data-rl-at-limit] span{background:var(--st-amber-dot)}
   .redline-page .rl-resizer:hover span,.redline-page .rl-resizer[data-drag] span{
     background:var(--color-accent)}
 
@@ -8119,6 +8144,16 @@ function rlLayoutResizer(host){
   grid.style.gridTemplateColumns =
     (qw ? qw + 'px ' : '') + s.left + 'px minmax(0,1fr)';
   rez.style.left = (qw ? qw + RL_GAP : 0) + s.left + 'px';
+  /* ---- AND IT SAYS WHEN IT WILL NOT GO FURTHER ----
+     The split has real limits — the contract keeps a readable measure, the
+     cards keep a readable width — and reaching one is legitimate. Reaching it
+     in SILENCE is not: the handle simply stopped following the cursor with
+     nothing on screen to say why, so the control read as broken exactly when
+     somebody was pushing hardest at it. A splitter at its limit should look
+     like one. */
+  const atMin = s.left <= RL_LEFT_MIN, atMax = s.left >= s.avail - RL_RIGHT_MIN;
+  if (atMin || atMax) rez.setAttribute('data-rl-at-limit', atMin ? 'min' : 'max');
+  else rez.removeAttribute('data-rl-at-limit');
 }
 /* ---------- THE CONTRACT TEXT SIZE, STEPPED ----------
    A⁻ / readout / A⁺ on the sub-header strip. It drives --rl-doc-type — the
@@ -8181,11 +8216,36 @@ function rlWireResizer(host){
   if (!grid || !rez) return;
   rlLayoutResizer(scope);
   const clamp = f => Math.max(RL_FMIN, Math.min(RL_FMAX, f));
-  let startX = 0, startFrac = RL_F0;
+  /* ---- THE HANDLE FOLLOWS THE POINTER, IN THE LAYOUT'S OWN GEOMETRY ----
+
+     This measured the drag as a DISTANCE TRAVELLED and divided it by
+     `clientWidth - RL_GAP`, which is the two-column available width. The layout
+     divides by `clientWidth - RL_GAP*2 - queue`. With the queue open those
+     differ by over 300px, so one pixel of pointer bought less than one pixel of
+     column and the handle fell behind the cursor from the first move.
+
+     Travelled-distance also creates a DEAD BAND at the limits. Drag past the
+     end of the range and the stored fraction pins at RL_FMIN while the pointer
+     keeps going; drag back and nothing happens until the pointer has returned
+     the whole overshoot — 279px of nothing, in the measured case. The control
+     reads as broken precisely when somebody is pushing it hardest.
+
+     Both go away by asking where the pointer IS rather than how far it has
+     come: the fraction is derived from the pointer's position inside the grid,
+     in the same geometry rlLayoutResizer uses to place the columns. The grab
+     offset is kept so taking hold of the handle anywhere along its width does
+     not jump it under the cursor. */
+  let grabDx = 0;
+  const pointerFrac = x => {
+    const r = grid.getBoundingClientRect();
+    const qw = _rlQueueW(grid);
+    const avail = Math.max(1, grid.clientWidth - (qw ? RL_GAP * 2 : RL_GAP) - qw);
+    const left = (x + grabDx) - r.left - (qw ? qw + RL_GAP : 0);
+    return clamp(left / avail);
+  };
   const onMove = e => {
     const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-    const avail = Math.max(1, grid.clientWidth - RL_GAP);
-    try { localStorage.setItem(RL_SPLIT_KEY, String(clamp(startFrac + (x - startX) / avail))); } catch (e2) {}
+    try { localStorage.setItem(RL_SPLIT_KEY, String(pointerFrac(x))); } catch (e2) {}
     rlLayoutResizer(scope);
   };
   const onUp = () => { delete rez.dataset.drag;
@@ -8193,7 +8253,11 @@ function rlWireResizer(host){
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp); };
   rez.addEventListener('pointerdown', e => { e.preventDefault();
-    rez.dataset.drag = '1'; startX = e.clientX; startFrac = _rlLeftFrac();
+    rez.dataset.drag = '1';
+    /* Where the handle's own centre sits relative to the grab, so the boundary
+       keeps its offset under the cursor for the whole drag. */
+    const hb = rez.getBoundingClientRect();
+    grabDx = (hb.left + hb.width / 2) - e.clientX;
     document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp); });
