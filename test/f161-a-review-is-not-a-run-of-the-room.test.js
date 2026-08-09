@@ -398,6 +398,92 @@ describe('f161 · one door, and no bulk verbs behind it', () => {
 });
 
 /* ============================================================
+   3c — THE SCREEN A REVIEWER IS GIVEN
+   ============================================================
+   "All these features should not be there if the purpose is for internal
+   review. Let the internal reviewer only focus on the task at hand" (Young,
+   09 Aug 2026). Every control below governs the ROUND, and the round is not
+   their job: the playbook pass runs across the whole contract and writes its
+   verdicts onto the record, the view toggle previews what the counterparty will
+   be sent, and the filter slices a column that holds one thing.
+
+   And the document folds to their own clause — FOLDED, NOT WITHHELD, because a
+   reviewer judging a cap has to be able to check what "Losses" means three
+   clauses up, and a verdict given without that is worse than a slower one. */
+describe('f161 · the reviewer’s screen is the job and nothing else', () => {
+
+  const head = (w, c) => w.win.renderRedlineHeadProbe
+    ? w.win.renderRedlineHeadProbe(c) : null;
+
+  test('the round’s tools are not drawn for a reviewer', async () => {
+    const w = world();
+    const { c } = await twoOut(w);
+    const sales = seat(SALES, c);
+    /* The filter lives on the panes; the playbook button and the view toggle
+       live in the head, which renderRedline builds — asserted in the browser
+       run. Here: the one that is reachable from a renderer. */
+    const panes = sales.win.redlinePanesHtml(c, { side: 'owner' });
+    assert.ok(!/id="rl-card-filter"/.test(panes),
+      'every setting of that control gives the same answer for a reviewer');
+    assert.match(w.win.redlinePanesHtml(c, { side: 'owner' }), /id="rl-card-filter"/,
+      'and the requester keeps it');
+  });
+
+  test('the discussion narrows to their clauses too', async () => {
+    const w = world();
+    const { c, six, ten } = await twoOut(w);
+    /* A thread needs a message on it, or there is no thread to narrow. */
+    w.win.negoPostComment(c, six.id, 'Why 24 months?', { side: 'owner', author: ME.name });
+    w.win.negoPostComment(c, ten.id, 'Which estates?', { side: 'owner', author: ME.name });
+    const all = w.win.redlineThreads(c, { side: 'owner' }).map(t => t.ch.id);
+    assert.ok(all.includes(six.id) && all.includes(ten.id), 'the requester sees every thread');
+    const theirs = seat(SALES, c).win.redlineThreads(c, { side: 'owner' }).map(t => t.ch.id);
+    assert.deepEqual([...theirs], [six.id],
+      'a thread hangs off a change, and a change that is not their job carries a conversation that is not either');
+  });
+
+  test('the document opens on their clause, and says how much is folded', async () => {
+    const w = world();
+    const { c, six, ten } = await twoOut(w);
+    const sales = seat(SALES, c);
+    const doc = sales.win.redlineDocHtml(c, { side: 'owner' });
+    assert.match(doc, /Liability/, 'their clause is on the page');
+    assert.ok(!/Sourcing/.test(doc), 'the rest is folded away');
+    assert.match(doc, /data-rv-docnote="folded"/);
+    assert.match(doc, /folded away/, 'a page that quietly showed one clause of forty reads as broken');
+    assert.match(doc, /data-rl-rv-fulldoc="1"/, 'and the way to the rest of it is on the page');
+  });
+
+  test('and the rest of the contract is one press away', async () => {
+    const w = world();
+    const { c } = await twoOut(w);
+    const sales = seat(SALES, c);
+    sales.win.rlSetRvFullDoc(true);
+    const doc = sales.win.redlineDocHtml(c, { side: 'owner' });
+    assert.match(doc, /Sourcing/, 'nothing was withheld, only folded');
+    assert.match(doc, /data-rv-docnote="full"/);
+    assert.match(doc, /data-rl-rv-fulldoc="0"/, 'and the way back');
+    sales.win.rlSetRvFullDoc(false);
+  });
+
+  test('nobody else’s document folds', async () => {
+    const w = world();
+    const { c } = await twoOut(w);
+    const doc = w.win.redlineDocHtml(c, { side: 'owner' });
+    assert.match(doc, /Sourcing/);
+    assert.ok(!/data-rv-docnote/.test(doc), 'the notice is a reviewer’s, and only theirs');
+  });
+
+  test('both document renderers fold, or the two screens disagree', async () => {
+    const w = world();
+    const { c } = await twoOut(w);
+    const tab = seat(SALES, c).win.negoDocHtml(c, { side: 'owner' });
+    assert.match(tab, /data-rv-docnote="folded"/);
+    assert.ok(!/Sourcing/.test(tab));
+  });
+});
+
+/* ============================================================
    4 — THE BANNER CLEARS
    ============================================================ */
 describe('f161 · the notice clears for the sitting', () => {

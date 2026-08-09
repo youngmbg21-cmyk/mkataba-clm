@@ -2773,6 +2773,12 @@ const STRINGS = {
     /* The hand-back picker. Named by the CHANGE tags, because "REV-2" means
        nothing to a reader and "CHG-017" is what is printed on the card. */
     rv_pick_title: 'Which review are you handing back?',
+    /* The reviewer's folded document. */
+    rv_doc_showing_yours_one: 'Showing the clause you were asked to review. 1 other clause is folded away.',
+    rv_doc_showing_yours_other: 'Showing the clauses you were asked to review. {n} other clauses are folded away.',
+    rv_doc_showing_all: 'Showing the whole contract.',
+    rv_doc_show_all: 'Show the whole contract',
+    rv_doc_back_to_yours: 'Back to your clauses',
     rv_pick_sub: 'You have more than one open on this contract. Each is handed back on its own.',
     rv_pick_from: 'Asked by {who}',
     rv_pick_nothing_left: 'Nothing left to rule on',
@@ -5594,6 +5600,11 @@ const STRINGS = {
     rv_who_no_stream: '{who} har inte åtkomst till avtalets värdeström och skulle aldrig kunna öppna det.',
     rv_clear_banner: 'Dölj den här notisen',
     rv_pick_title: 'Vilken granskning lämnar du tillbaka?',
+    rv_doc_showing_yours_one: 'Visar klausulen du ombads granska. 1 annan klausul är dold.',
+    rv_doc_showing_yours_other: 'Visar klausulerna du ombads granska. {n} andra klausuler är dolda.',
+    rv_doc_showing_all: 'Visar hela avtalet.',
+    rv_doc_show_all: 'Visa hela avtalet',
+    rv_doc_back_to_yours: 'Tillbaka till dina klausuler',
     rv_pick_sub: 'Du har mer än en öppen i det här avtalet. Var och en lämnas tillbaka för sig.',
     rv_pick_from: 'Begärd av {who}',
     rv_pick_nothing_left: 'Inget kvar att avgöra',

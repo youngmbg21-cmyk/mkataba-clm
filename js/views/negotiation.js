@@ -1776,7 +1776,12 @@ function negoDocHtml(c, opts){
   };
 
   const prefix = baseline ? 'nb' : 'nw';
-  const body = clauses.map(cl => {
+  /* Folded to the reviewer's own clauses, exactly as on the workbench — two
+     renderers draw this document and both must fold, or the two screens
+     disagree about what a reviewer is reading. See rlRvDocClauses. */
+  const _rvOnly = (typeof rlRvDocClauses === 'function') ? rlRvDocClauses(c, opts) : null;
+  const _rvHidden = _rvOnly ? clauses.filter(cl => !_rvOnly.has(String(cl.clauseId))).length : 0;
+  const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId))).map(cl => {
     const own = clauseBlock(cl, byClause.get(cl.clauseId), prefix);
     if (baseline) return own;
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
@@ -1796,6 +1801,7 @@ function negoDocHtml(c, opts){
     <h1>${_ne(title)}</h1>
     <div class="nego-meta">${_ne(meta)}</div>
     ${gaps}
+    ${(typeof rlRvDocNoticeHtml === 'function') ? rlRvDocNoticeHtml(c, opts, _rvHidden) : ''}
     ${body || `<p style="color:var(--n-ink-soft)">${i18t('ng_no_wording_yet')}</p>`}
     ${tail}
   </article>`;
@@ -5158,6 +5164,37 @@ const RL_CARD_FILTERS = [
 ];
 let _rlCardFilter = 'all';
 function rlCardFilter(){ return _rlCardFilter; }
+/* ---- THE REVIEWER'S DOCUMENT OPENS ON THEIR OWN CLAUSE ----
+   Asked for as distraction (Young, 09 Aug 2026): a colleague handed one clause
+   was reading the whole agreement to find it. So the document folds to the
+   clauses they were sent, with ONE control that opens the rest.
+
+   FOLDED, NOT WITHHELD, and the difference matters: a reviewer judging a
+   liability cap has to be able to check what "Losses" is defined as three
+   clauses up, and an answer given without that is worse than a slower one. The
+   control is on the page, always, saying how much is hidden.
+
+   Per sitting and in memory, like the banner's clear — a reader who opened the
+   whole contract yesterday should still land on their clause today. */
+let _rlRvFullDoc = false;
+function rlRvFullDoc(){ return _rlRvFullDoc; }
+function rlSetRvFullDoc(on){ _rlRvFullDoc = !!on; }
+/* ONE DELEGATED LISTENER, registered once — the pattern js/aichart.js uses for
+   its card buttons, and for the same reason. This control lives INSIDE the
+   document pane, and that pane is repainted by several paths after the page
+   wires itself; a listener bound to the element is dropped by the first of
+   them, which is exactly what happened when it was. Bound to the document, it
+   cannot be repainted away. */
+if (typeof document !== 'undefined' && !document._rlRvDocWired){
+  document._rlRvDocWired = true;
+  document.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-rl-rv-fulldoc]');
+    if (!b) return;
+    ev.preventDefault();
+    rlSetRvFullDoc(b.getAttribute('data-rl-rv-fulldoc') === '1');
+    if (window.renderRedline) renderRedline();
+  });
+}
 function rlSetCardFilter(v){
   _rlCardFilter = RL_CARD_FILTERS.some(([k]) => k === v) ? v : 'all';
   return _rlCardFilter;
@@ -5868,6 +5905,16 @@ function redlineLayoutCss(){
      A select at the head of the Tracked Changes panel. It wears the accent
      when it is actually narrowing the column: a filter that looks idle while
      hiding cards is how a change gets "lost". */
+  /* The reviewer's folded-document notice. Reads as a note about the page, not
+     as a warning: nothing is wrong, it is simply showing less on purpose. */
+  .rl-rv-docnote{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 14px;
+    padding:8px 12px;border-radius:8px;font-size:11.5px;line-height:1.5;
+    border:1px dashed var(--color-divider);background:var(--color-bg);color:var(--color-neutral-700)}
+  .rl-rv-docnote span{flex:1;min-width:0}
+  .rl-rv-docnote button{flex:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;
+    border-radius:6px;padding:3px 10px;border:1px solid var(--color-divider);
+    background:var(--color-surface);color:var(--color-accent-800)}
+  .rl-rv-docnote button:hover{border-color:var(--color-accent-800)}
   .redline-page .rl-card-filter{border:1px solid var(--color-divider);background:var(--color-neutral-100);
     border-radius:7px;padding:3px 6px;font:inherit;font-size:10px;font-weight:700;
     color:var(--color-neutral-600);cursor:pointer;flex:none;max-width:100%}
@@ -6678,7 +6725,12 @@ function renderRedline(){
           ${''/* Not in Counterparty View: the playbook pass can FILE proposals,
                  and that view is a window, not a chair (see the mount below).
                  The counterparty never sees the playbook either way. */}
-          ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
+          ${''/* AND NOT THE REVIEWER'S EITHER. The playbook pass runs across the
+                 WHOLE contract, writes its verdicts onto the record and files an
+                 audit line — an authoring act on the round, by somebody who was
+                 asked to look at one clause. Reported as distraction (Young,
+                 09 Aug 2026); it is more than that. */}
+          ${side !== 'counterparty' && !_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
             title="${i18t('ng_review_every_clause')}">${i18t('ng_review_vs_playbook')}</button>` : ''}
           ${''/* THE WAY IN, ALWAYS PRESENT. The review banner offers a request
                  too, but only once there is something to say — and a person who
@@ -6715,7 +6767,10 @@ function renderRedline(){
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             ${_ne(sendLabel)}</button>`}
           ${side === 'counterparty' ? '' : closer}
-          <div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>
+          ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about the
+                 round, and the round is not the reviewer's job. It also mounts a
+                 whole second surface for somebody whose task is one clause. */}
+          ${_rvPosture ? '' : `<div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
         </div>
       </section>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
@@ -8536,7 +8591,12 @@ function redlineDocHtml(c, opts = {}){
       <div class="nego-body">${inner}</div>
     </section>`;
   };
-  const body = clauses.map(cl => {
+  /* Folded to the reviewer's own clauses — see rlRvDocClauses. Null means the
+     whole contract, which is every reader who is not reviewing here and any
+     reviewer who has pressed the control below. */
+  const _rvOnly = rlRvDocClauses(c, opts);
+  const _rvHidden = _rvOnly ? clauses.filter(cl => !_rvOnly.has(String(cl.clauseId))).length : 0;
+  const body = clauses.filter(cl => !_rvOnly || _rvOnly.has(String(cl.clauseId))).map(cl => {
     const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
     const ch = byClause.get(cl.clauseId);
     if (ch){
@@ -8602,6 +8662,7 @@ function redlineDocHtml(c, opts = {}){
     ${head}
     ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps',
       offer: side === 'owner' && (typeof window.canEdit !== 'function' || window.canEdit()) })}
+    ${rlRvDocNoticeHtml(c, opts, _rvHidden)}
     ${body || `<p class="rl-clause-p">${i18t('ng_no_clause_structure')}</p>`}
   </article>`;
 }
@@ -8968,6 +9029,30 @@ function rlMyCardIds(c, opts = {}){
   if (opts.side === 'counterparty' || opts.readonly) return null;
   if (typeof window.reviewMyChangeIds !== 'function') return null;
   try{ return reviewMyChangeIds(c); }catch(_){ return null; }
+}
+/* Which clauses this reader's document should show, or null for all of them.
+   Built from the CHANGES they were handed — a clause is theirs when one of
+   their changes sits on it. Returns null when they are reviewing nothing here,
+   or when they have opened the whole contract. */
+/* The one control. Drawn only for a reviewer, and it says how much is folded —
+   a document that quietly showed one clause of forty would read as a broken
+   page rather than as a focused one. */
+function rlRvDocNoticeHtml(c, opts, hiddenCount){
+  if (!rlMyCardIds(c, opts)) return '';
+  const full = rlRvFullDoc();
+  return `<div class="rl-rv-docnote" data-rv-docnote="${full ? 'full' : 'folded'}">
+    <span>${_ne(full ? i18t('rv_doc_showing_all') : i18tn('rv_doc_showing_yours', hiddenCount, { n: hiddenCount }))}</span>
+    <button type="button" data-rl-rv-fulldoc="${full ? '0' : '1'}">${
+      _ne(full ? i18t('rv_doc_back_to_yours') : i18t('rv_doc_show_all'))}</button>
+  </div>`;
+}
+function rlRvDocClauses(c, opts = {}){
+  const ids = rlMyCardIds(c, opts);
+  if (!ids || rlRvFullDoc()) return null;
+  const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
+  const out = new Set();
+  all.forEach(x => { if (x && ids.has(String(x.id)) && x.clauseId) out.add(String(x.clauseId)); });
+  return out;
 }
 function rlActorHeld(c, opts = {}){
   if (opts.side === 'counterparty' || opts.readonly) return false;
@@ -9778,8 +9863,13 @@ function redlinePanesHtml(c, opts = {}){
                ties the outer two to the middle. */}
         <div class="rl-doc-head">
           <b>${i18t('ng_the_contract')}</b>
-          <span class="rl-doc-marked">${(() => { const n = (typeof negoChanges === 'function' ? negoChanges(c) : [])
-            .filter(x => x && x.status !== 'superseded' && !x.withdrawn && x.status !== 'rejected').length;
+          ${''/* Counts the marks IN THE DOCUMENT AS DRAWN. With a reviewer's
+                 document folded to their own clause, the contract's total is a
+                 number about a page they are not looking at. */}
+          <span class="rl-doc-marked">${(() => { const only = rlMyCardIds(c, opts);
+            const n = (typeof negoChanges === 'function' ? negoChanges(c) : [])
+            .filter(x => x && x.status !== 'superseded' && !x.withdrawn && x.status !== 'rejected'
+              && (!only || rlRvFullDoc() || only.has(String(x.id)))).length;
             return n ? `<span class="rl-doc-dot"></span>${n} marked` : 'no marks'; })()}</span>
         </div>
         <div class="nego-scroll" id="nego-scroll-work">${redlineDocHtml(c, opts)}</div>
@@ -9804,10 +9894,14 @@ function redlinePanesHtml(c, opts = {}){
 
         <div class="nego-pane index" id="rl-changes-col" role="tabpanel" aria-label="${i18t('ng_tracked_changes')}">
           <div class="nego-index-head rl-idx-head">
-          <select id="rl-card-filter" class="rl-card-filter${rlCardFilter() === 'all' ? '' : ' on'}"
+          ${''/* NOTHING TO FILTER. Every option here slices the round — yours,
+                 theirs, drafts, sent — and a reviewer's column holds one thing:
+                 the clauses they were handed. A control whose every setting
+                 gives the same answer is furniture. */}
+          ${rlActorHeld(c, opts) ? '' : `<select id="rl-card-filter" class="rl-card-filter${rlCardFilter() === 'all' ? '' : ' on'}"
             aria-label="${i18t('ng_filter_tracked')}" title="${_nea(i18t('ng_filter_title'))}">${
             RL_CARD_FILTERS.map(([k, label]) =>
-              `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}>${label}</option>`).join('')}</select>
+              `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}>${label}</option>`).join('')}</select>`}
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
@@ -9867,8 +9961,12 @@ function redlineThreads(c, opts = {}){
      counts included: rl-thread-count and the rail chip are both drawn from
      this list, so the numbers cannot betray what the list conceals. */
   const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
+  /* And narrowed to what a reviewer was handed, like the cards and the queue: a
+     thread hangs off a change, and a change that is not their job carries a
+     conversation that is not either. The tab's pill counts off this list. */
   const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
+    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)
+        && (!rlMyCardIds(c, opts) || rlMyCardIds(c, opts).has(String(x.id)))) : [];
   return changes.map(ch => ({
     ch,
     msgs: (window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []))
@@ -9880,8 +9978,12 @@ function redlineDiscussionHtml(c, opts = {}){
   const canComment = opts.canComment != null ? !!opts.canComment : !opts.readonly;
   const threads = redlineThreads(c, opts);
   const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
+  /* And narrowed to what a reviewer was handed, like the cards and the queue: a
+     thread hangs off a change, and a change that is not their job carries a
+     conversation that is not either. The tab's pill counts off this list. */
   const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
+    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)
+        && (!rlMyCardIds(c, opts) || rlMyCardIds(c, opts).has(String(x.id)))) : [];
   const head = `
     <div class="rl-disc-head">
       <h3>${i18t('ng_discussion')}</h3>
