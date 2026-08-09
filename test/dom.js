@@ -10,6 +10,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { runFileInContext } = require('./vmcache');
 
 function fakeElement(id) {
   const el = {
@@ -109,8 +110,8 @@ function loadViews(files, overrides = {}) {
      sentence reads from the market pack, so a view evaluated without the pair
      throws — or worse, renders dictionary keys — on the first thing it draws. */
   for (const f of ['js/i18n.js', 'js/jurisdiction.js'].concat(files)) {
-    const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
-    vm.runInContext(src, sandbox, { filename: f });
+    // compiled once per process, see test/vmcache.js
+    runFileInContext(path.join(__dirname, '..', f), sandbox, f);
   }
   return sandbox;
 }

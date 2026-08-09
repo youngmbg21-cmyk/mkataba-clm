@@ -1,0 +1,73 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Read(./node_modules/**)",
+      "Read(./dist/**)",
+      "Read(./build/**)",
+      "Read(./coverage/**)",
+
+      "Read(./test-fixtures/**)",
+      "Read(./fixtures/**)",
+      "Read(./sample-contracts/**)",
+      "Read(./fonts/**)",
+
+      "Read(./**/*.pdf)",
+      "Read(./**/*.docx)",
+      "Read(./**/*.doc)",
+      "Read(./**/*.xlsx)",
+      "Read(./**/*.zip)",
+      "Read(./**/*.woff)",
+      "Read(./**/*.woff2)",
+      "Read(./**/*.ttf)",
+      "Read(./**/*.otf)",
+      "Read(./**/*.png)",
+      "Read(./**/*.jpg)",
+      "Read(./**/*.jpeg)",
+      "Read(./**/*.gif)",
+      "Read(./**/*.ico)",
+      "Read(./**/*.log)",
+
+      "Read(./test/chromium/shots/**)",
+      "Read(./test/chromium/lang-coverage.json)",
+      "Read(./test/chromium/theme-tokens-baseline.json)",
+
+      "Read(./server/data/**)",
+      "Read(./server/data-*/**)",
+
+      "Read(./BUGLOG.md)",
+      "Read(./SUMMARY.md)",
+      "Read(./TESTREPORT.md)",
+      "Read(./CHECKLIST.md)",
+      "Read(./SESSION-NOTES.md)",
+      "Read(./LOOP_REPORT.md)",
+      "Read(./INVENTORY.md)",
+      "Read(./findings.json)",
+
+      "Read(./ux-review.html)",
+      "Read(./REVIEW-internal-review.html)",
+      "Read(./REVIEW-internal-review-demo.html)",
+      "Read(./HaTi-Kenya-Pricing-Research.html)",
+
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.test)",
+      "Read(./.env.development)",
+      "Read(./.env.production)",
+      "Read(./.env.*.local)",
+
+      "Read(./scratchpad/**)"
+    ]
+  }
+}
