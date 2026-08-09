@@ -455,6 +455,10 @@ function createFromTemplate(tid){
     signatures:[] };
   c._loaded=true; c._light=false; c._v=0;
   state.contracts.unshift(c);
+  /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
+     wsTabDefaults. Registered at every creation site because there is no
+     single funnel for creating a contract. */
+  if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
   state.activeId=c.id; state.selId=c.id;
   persist(c);
   toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);

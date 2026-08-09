@@ -1320,6 +1320,10 @@ async function submitUpload(){
   }
   _up=null;
   state.contracts.unshift(c);
+  /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
+     wsTabDefaults. Registered at every creation site because there is no
+     single funnel for creating a contract. */
+  if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
   state.activeId=c.id;
   persist(c);
   closeModal();
@@ -2316,9 +2320,38 @@ let _wsTabFor=null;
    the tab that was pressed rather than on the default. Honoured once, then
    cleared, so it cannot leak into the next contract. */
 let _wsTabWant=null;
+/* ---- A CONTRACT YOU HAVE JUST DRAFTED OPENS ON KEY TERMS ----
+   Asked for directly (Young, 09 Aug 2026): "when you draft a contract it does
+   not land you to document but rather lands you to Key terms first."
+
+   It is the right order of work. A new draft's document is a template with
+   blanks in it, and the blanks are filled from the terms — value, dates,
+   parties, governing law. Landing on the document shows somebody the OUTPUT of
+   a form they have not filled in yet, which reads as a half-finished contract
+   rather than as a step they have not taken.
+
+   ONCE, AND ONLY FOR A DRAFT. The id is consumed on first arrival, so going
+   back to the contract later behaves exactly as it always has — this is about
+   where a NEW contract opens, not a permanent change to the room's default.
+   And it is checked against the live status rather than against the moment of
+   creation: an uploaded agreement that is already executed has no terms to fill
+   and belongs on its document.
+
+   Registered by every path that creates a contract — the wizard, both template
+   routes, the clause library, the uploader and the migration importer — because
+   there is no single funnel for creation the way negoFileChange is for changes,
+   and a flag set in one of them is a flag the other five never set. */
+const _wsNewDrafts=new Set();
+function roomOpenOnTerms(id){ if(id) _wsNewDrafts.add(String(id)); }
+/* Which tab the room has settled on. `_wsTab` is a module-level `let`, so
+   nothing outside this file can read it — which made the landing rule above
+   untestable and, worse, unobservable from the workbench. One reader, no
+   setter: changing the tab still goes through roomGoTab. */
+function roomCurrentTab(){ return _wsTab; }
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
-    _wsTab='docs';
+    const fresh=_wsNewDrafts.delete(String(c.id));
+    _wsTab=(fresh && c.status==='Draft')?'terms':'docs';
     _wsTabFor=c.id;
     if(window.negoResetView) negoResetView();   // don't open on another contract's fingerprint
   }
@@ -5081,4 +5114,4 @@ Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});

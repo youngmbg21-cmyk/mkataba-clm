@@ -116,6 +116,37 @@ const FORM = () => {
   check('Skip for now leaves the fields empty rather than inventing them',
     !skipped.cp, `counterparty="${skipped.cp}"`);
 
+  /* ---------- 2b. A NEW DRAFT LANDS ON KEY TERMS ----------
+     Asked for directly: drafting a contract should not drop you on the
+     document, which is a template full of blanks you have not filled in — it
+     should land on the terms those blanks are filled FROM. Read off the tab row
+     the reader is actually looking at, not off the module's variable. */
+  const landed = await page.evaluate(() => {
+    const on = document.querySelector('#ws-tabs [data-ws-tab][aria-selected="true"]');
+    return { tab: on && on.getAttribute('data-ws-tab'),
+             label: on && on.textContent.trim(),
+             view: window.state.view };
+  });
+  check('a new draft lands on Key terms, not on the document',
+    landed.tab === 'terms', `tab=${landed.tab} "${landed.label}" view=${landed.view}`);
+
+  /* …and it is a welcome, not a permanent change to where the room opens.
+     Opening ANOTHER contract in between is what clears the room's memory of the
+     tab — staying on the same one deliberately keeps you where you were, which
+     is behaviour this page has always had and which the landing must not
+     disturb. So the round trip goes via a different agreement. */
+  const other = await page.evaluate(() => (window.state.contracts.find(x => x.id !== window.state.activeId) || {}).id);
+  await page.evaluate(id => window.openWorkspace(id), other);
+  await page.waitForTimeout(1000);
+  await page.evaluate(id => window.openWorkspace(id), skipped.id);
+  await page.waitForTimeout(1200);
+  const again = await page.evaluate(() => {
+    const on = document.querySelector('#ws-tabs [data-ws-tab][aria-selected="true"]');
+    return on && on.getAttribute('data-ws-tab');
+  });
+  check('coming back to it later opens on the document as before',
+    again === 'docs', `tab=${again}`);
+
   /* ---------- 3. HaTi STANDARD TEMPLATE — already asked, now also skippable ---------- */
   await page.evaluate(() => window.setView('templates'));
   await page.waitForTimeout(400);

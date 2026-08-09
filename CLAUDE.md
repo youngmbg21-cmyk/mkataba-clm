@@ -221,6 +221,20 @@ WHAT THIS MEANS FOR THE DUPLICATION WARNING: a UI fix now has one more place it 
 
 The phone's selection menu reuses rlSelMenu and rlAiPropose unchanged — a tap builds the same Range a drag would and lets the existing handler run. Do not add a second proposal path for touch.
 
+A NEW DRAFT OPENS ON KEY TERMS, NOT ON ITS DOCUMENT (added 2026-08-09)
+
+Asked for directly (Young): drafting a contract should land on the terms, because a new draft's document is a template full of blanks and those blanks are filled FROM the terms. Landing on the document shows somebody the OUTPUT of a form they have not filled in.
+
+roomOpenOnTerms(id) registers the intent; wsTabDefaults consumes it on first arrival. THREE PROPERTIES, and all three are pinned by f170:
+
+- ONCE. The id is deleted on arrival, so coming back later opens where the room has always opened. Note that staying on the SAME contract keeps whatever tab you were on — that is the room's existing memory (_wsTabFor) and the landing does not disturb it. Only opening a different contract resets it.
+- DRAFTS ONLY, checked against the live status rather than the moment of creation: an uploaded agreement that is already executed has no terms to fill.
+- AN EXPLICIT REQUEST STILL WINS — _wsTabWant is applied after, so pressing "Document" on the workbench lands on the document.
+
+SEVEN CREATION SITES REGISTER IT, and there is no single funnel the way negoFileChange is for changes: the wizard, the built-in template route (app.js), the library template form (templatefields.js), the versioned template library, the clause library, "Draft new agreement" in the room, and the migration importer. f170 reads the SOURCE of all seven and fails when an eighth route is added without it.
+
+roomCurrentTab() was added purely so this is observable — _wsTab is a module-level `let` and nothing outside contract.js could read it, which made the rule untestable from the workbench as well as from a test.
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.

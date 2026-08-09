@@ -450,6 +450,10 @@ async function migBuildAndSave(ctx){
     if(props.length){ logLinkSuggestion(c, props); c.relationGuess=guessRelation(file.name, extractedText); }
   }
   state.contracts.unshift(c);
+  /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
+     wsTabDefaults. Registered at every creation site because there is no
+     single funnel for creating a contract. */
+  if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
   persist(c);
   return c;
 }
