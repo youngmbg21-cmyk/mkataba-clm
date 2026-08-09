@@ -204,6 +204,37 @@ describe('f162 · a reviewer does not send the round', () => {
     assert.equal((await share(boss, ['CHG-001'])).status, 200, 'a posture, not a demotion');
   });
 
+  /* ---- AND IT LIFTS WHEN THE REVIEW IS OVERTAKEN BY EVENTS ----
+     A review nobody closed, whose every clause has since been decided, holds
+     nothing. The browser stopped drawing it and stopped narrowing the person
+     (f164), so this file has to agree at the door — otherwise the screen offers
+     a Send that comes back 403, which is the worst of both readings. */
+  test('a review with nothing left in it does not lock the sender', async () => {
+    await seed({ review: reviewOn(['CHG-002'], U.boss) });
+    assert.equal((await share(boss, ['CHG-001'])).status, 403, 'held while the clause is live');
+    const c = contract({ review: reviewOn(['CHG-002'], U.boss) });
+    c.changes[1].status = 'accepted';                       // the clause was decided
+    c.changes[1].resolvedBy = 'Erik Lindqvist';
+    assert.equal((await put(admin, c)).status, 200);
+    assert.equal((await share(boss, ['CHG-001'])).status, 200,
+      'and released once there is nothing left to rule on');
+  });
+
+  /* WHAT A SPENT REVIEW DOES NOT LOSE. Its scope and its reviewer are still
+     frozen: a review that could be re-pointed at a live clause is a review
+     anybody can make themselves the reviewer of and clear on the next save. */
+  test('…but its scope is still frozen, so it cannot be re-pointed at a live clause', async () => {
+    await seed({ review: reviewOn(['CHG-002'], U.boss) });
+    const c = contract({ review: reviewOn(['CHG-002'], U.boss) });
+    c.changes[1].status = 'accepted';
+    assert.equal((await put(admin, c)).status, 200);
+    const moved = contract({ review: reviewOn(['CHG-003'], U.boss) });
+    moved.changes[1].status = 'accepted';
+    const r = await put(boss, moved);
+    assert.equal(r.status, 403);
+    assert.match(r.json.error, /cannot be edited/i);
+  });
+
   test('and a reviewer cannot answer the counterparty on the way past', async () => {
     await seed({ review: reviewOn(['CHG-002'], U.boss) });
     const c = contract({ review: reviewOn(['CHG-002'], U.boss) });

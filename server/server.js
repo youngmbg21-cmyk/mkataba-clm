@@ -752,9 +752,29 @@ function rvWithheldIds(c){
   }
   return out;
 }
+/* ---------- A REVIEW WITH NOTHING LEFT IN IT IS OVER ----------
+   The same reading js/review.js makes, and it has to be here or the two
+   disagree at the only door that matters: the browser would draw the round back
+   for a reviewer whose asks had all been decided, and this file would answer 403
+   when they pressed Send. Every clause the review covered has been decided or
+   retracted; nobody closed it, and there is nothing left to close it about.
+
+   THE STRUCTURAL GUARDS BELOW DO NOT USE THIS, deliberately. rvOpenList stays
+   the raw list for them: a spent review whose scope and reviewer could be
+   rewritten on a save is a spent review that can be re-pointed at a live change
+   by whoever wants to rule on it. What a spent review loses is its hold on the
+   PERSON, which is the thing that was never load-bearing. */
+const rvInPlay = (c, rv) => {
+  const ids = new Set((((rv && rv.changeIds) || [])).map(String));
+  if (!ids.size) return [];
+  return (Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && ids.has(String(x.id)) && String(x.status || 'pending') === 'pending');
+};
+const rvSpent = (c, rv) => !!rv && rv.status === 'open'
+  && Array.isArray(rv.changeIds) && !!rv.changeIds.length && rvInPlay(c, rv).length === 0;
 /* The open reviews this person owes a verdict on. Being asked narrows you: on
    this contract, until you hand back, nothing you do reaches the counterparty. */
-const rvActorHeld = (c, u) => rvOpenList(c).filter(r => rvIsReviewer(r, u));
+const rvActorHeld = (c, u) => rvOpenList(c).filter(r => rvIsReviewer(r, u) && !rvSpent(c, r));
 
 /* THE GATE IS A SETTING, and off unless an admin turned it on. Read from the
    same appSettings blob the browser reads, so the two cannot disagree about

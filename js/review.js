@@ -163,8 +163,55 @@ function reviewRequests(c){
    `reviewOpenOf` survives as "the most recent open one" for the few callers
    that genuinely want a single answer; everything that reasons about a
    PARTICULAR change asks reviewOpenFor instead. */
+/* ---------- WHAT A REVIEW IS STILL ABOUT ----------
+   THE ONE POPULATION, and everything that counts a review counts THIS.
+
+   Reported from the field (Young, 09 Aug 2026), off a screenshot of three
+   yellow rows: "once a reviewer has sent back feedback and an issue is closed
+   these banners should disappear completely as they serve no purpose but taking
+   up space". Two of those rows read “CHG-003 0 of 0 still need your verdict”,
+   which is not a sentence anybody can act on — the changes had been decided and
+   were in the round history, so there was no card to press, no verdict to give
+   and no way to make the row go away.
+
+   It happened because "what is left in this review" was measured over
+   negoUnsentAsks — our own asks the other side has NEVER SEEN. That population
+   is right for the send (a hold cannot recall wording the counterparty already
+   holds) and wrong for the reviewer, and it empties for two quite different
+   reasons: the change was decided (genuinely finished), or the round was merely
+   handed over (still pending, still rulable, still very much their job). The
+   first left a dead row nagging for ever; the second printed 0 of 0 over a
+   change the reviewer could still open and rule on.
+
+   So a review is about its own changes that are STILL ON THE TABLE — pending,
+   undecided, whoever has seen them. Read off c.changes rather than through the
+   negotiation module, so it answers the same on a page that has not loaded one
+   and matches the server's rvInPlay word for word. */
+function reviewInPlay(c, rv){
+  const ids = new Set((((rv && rv.changeIds) || [])).map(String));
+  if (!ids.size) return [];
+  return (Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && ids.has(String(x.id)) && String(x.status || 'pending') === 'pending');
+}
+/* ---------- A REVIEW WITH NOTHING LEFT IN IT IS OVER ----------
+   Nobody closed it, so the record still says open — but every clause it covered
+   has been decided or retracted, and there is nothing left for anyone to do
+   about it. It must therefore stop being drawn, stop appearing on the
+   reviewer's desk, and above all stop NARROWING them: the reported screen had a
+   colleague locked out of the round, their card column emptied, by two asks
+   that had been overtaken by events days earlier.
+
+   The record is NOT rewritten. Reading must not write (see reviewInit), the
+   audit trail already carries the request, and a review that was overtaken
+   rather than answered should read that way in the history. The screens simply
+   stop asking about it. */
+function reviewSpent(c, rv){
+  if (!rv || rv.status !== 'open') return false;
+  if (!Array.isArray(rv.changeIds) || !rv.changeIds.length) return false;
+  return reviewInPlay(c, rv).length === 0;
+}
 function reviewOpenList(c){
-  return reviewRequests(c).filter(r => r && r.status === 'open');
+  return reviewRequests(c).filter(r => r && r.status === 'open' && !reviewSpent(c, r));
 }
 function reviewOpenOf(c){
   const open = reviewOpenList(c);
@@ -688,10 +735,11 @@ function reviewReturn(c, o = {}){
      request, or one deliberately left out of it, was never in front of this
      reviewer — refusing to let them finish because of it would be asking them
      to rule on wording nobody showed them. */
-  const idsIn = new Set((rv.changeIds || []).map(String));
-  const inRv = ((window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
-    .concat((window.negoPending ? window.negoPending(c) : []).filter(x => x && x.authorSide === 'counterparty')))
-    .filter(x => idsIn.has(String(x.id)));
+  /* Counted over what is still ON THE TABLE, which is the same population the
+     banner counts — the two must not disagree about what still wants a verdict,
+     or the row nags for an answer the hand-back does not want and lets through
+     an answer the row never asked for. See reviewInPlay. */
+  const inRv = reviewInPlay(c, rv);
   const ourIn = inRv.filter(x => reviewSideOf(x) === 'ours');
   const unmarked = ourIn.filter(x => !reviewOn(x));
   if (unmarked.length){
@@ -847,12 +895,14 @@ function reviewGateMessage(c){
    screen next to it about whether the boss has answered. */
 /* How many of a given review's changes still want an answer. Counted over the
    review's OWN ids rather than over what is outstanding on the contract — with
-   several open, the contract's total is nobody's total. */
+   several open, the contract's total is nobody's total.
+
+   AND OVER WHAT IS STILL ON THE TABLE, not over what is still unsent. Those are
+   different sets the moment a round is handed over, and counting the wrong one
+   printed "0 of 0 still need your verdict" over a change the reviewer could
+   open, read and rule on. See reviewInPlay. */
 function reviewProgress(c, rv){
-  const ids = new Set((rv && rv.changeIds || []).map(String));
-  const all = ((window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
-    .concat((window.negoPending ? window.negoPending(c) : []).filter(x => x && x.authorSide === 'counterparty')))
-    .filter(x => ids.has(String(x.id)));
+  const all = reviewInPlay(c, rv);
   const marked = all.filter(x => reviewOn(x)).length;
   return { total: all.length, marked, left: all.length - marked };
 }
@@ -1094,8 +1144,19 @@ function reviewBannerHtml(c, opts = {}){
   }
   /* 3. WHAT CAME BACK, or was taken off me. The most recent closed review this
      reader is actually in — a colleague outside it is told nothing, which is
-     the same rule the open rows follow. */
-  const closed = reviewRequests(c).filter(r => r && r.status !== 'open' && reviewMaySee(r));
+     the same rule the open rows follow.
+
+     AND NEWS STOPS BEING NEWS. Reported from the field (Young, 09 Aug 2026): a
+     "X withdrew the review they asked you for" row was still sitting on the
+     workbench long after every clause it covered had been decided and closed —
+     "they serve no purpose but taking up space". It is worth saying while there
+     is still something to do about it: a hand-back is the requester's cue to
+     act on the wording, and a withdrawal explains why a reviewer's column just
+     un-narrowed. Once the clauses themselves are off the table both sentences
+     are about a job nobody can do any more, and the history is where a finished
+     job belongs. So the row lives exactly as long as its subject does. */
+  const closed = reviewRequests(c).filter(r =>
+    r && r.status !== 'open' && reviewMaySee(r) && reviewInPlay(c, r).length);
   const news = closed.length ? closed[closed.length - 1] : null;
   if (news && news.status === 'returned'){
     const t = news.tally || { cleared: 0, held: 0, advised: 0 };
@@ -1621,6 +1682,7 @@ Object.assign(window, {
   reviewMaySee, reviewMayCancel, reviewOutNameFor, reviewVerdictByFor,
   reviewActorHeld, reviewActorIsHeld, reviewActorBlockMessage, reviewMyChangeIds,
   reviewOpenList, reviewOpenFor, reviewMineOpen, reviewNames, reviewWaitingOn,
+  reviewInPlay, reviewSpent,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
