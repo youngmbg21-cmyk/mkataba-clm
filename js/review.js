@@ -136,10 +136,42 @@ function reviewInit(c){
 function reviewRequests(c){
   return (c && c.review && Array.isArray(c.review.requests)) ? c.review.requests : [];
 }
+/* ---------- MORE THAN ONE REVIEW AT A TIME ----------
+   This was one open review per contract, and that was the wrong shape for how
+   the work is actually done. You read a contract from the top; clause 5 wants
+   somebody in sales to look at it, so it goes to sales THEN — and twenty
+   minutes later clause 10 wants procurement, who have nothing to do with sales
+   and should not wait for them. Making the second ask cancel or join the first
+   forces the reader to hold the whole document in their head and escalate once,
+   at the end, which is exactly the batch habit this feature was meant to
+   replace (Young, 09 Aug 2026).
+
+   So: several reviews may be open at once, each with its own reviewer, its own
+   set of changes and its own hand-back. A CHANGE BELONGS TO AT MOST ONE — two
+   people ruling on one clause has no coherent answer, and reviewAsk refuses it
+   rather than picking a winner.
+
+   `reviewOpenOf` survives as "the most recent open one" for the few callers
+   that genuinely want a single answer; everything that reasons about a
+   PARTICULAR change asks reviewOpenFor instead. */
+function reviewOpenList(c){
+  return reviewRequests(c).filter(r => r && r.status === 'open');
+}
 function reviewOpenOf(c){
-  const rs = reviewRequests(c);
-  for (let i = rs.length - 1; i >= 0; i--) if (rs[i] && rs[i].status === 'open') return rs[i];
-  return null;
+  const open = reviewOpenList(c);
+  return open.length ? open[open.length - 1] : null;
+}
+/* The review this change is sitting in, or null. The one function that makes
+   "several at once" safe: every verdict, every badge and every refusal is
+   decided per change rather than per contract. */
+function reviewOpenFor(c, ch){
+  if (!ch) return null;
+  return reviewOpenList(c).find(r => (r.changeIds || []).some(id => String(id) === String(ch.id))) || null;
+}
+/* The open reviews this person is the named reviewer of. */
+function reviewMineOpen(c, u){
+  const me = u || _rvMe();
+  return reviewOpenList(c).filter(r => reviewIsReviewer(r, me));
 }
 function reviewLastOf(c){ const rs = reviewRequests(c); return rs.length ? rs[rs.length - 1] : null; }
 
@@ -173,17 +205,13 @@ const reviewSideOf = ch => (ch && ch.authorSide === 'counterparty') ? 'theirs' :
    reviewOutFor returns the reviewer's NAME rather than a boolean, because every
    caller wants to say who — "with Achieng" is the useful sentence and "under
    review" is not. */
-function reviewInOpen(c, ch){
-  const rv = reviewOpenOf(c);
-  if (!rv || !ch) return false;
-  return (rv.changeIds || []).some(id => String(id) === String(ch.id));
-}
+function reviewInOpen(c, ch){ return !!reviewOpenFor(c, ch); }
 /* Out, and not yet answered. A change the reviewer has already ruled on is not
    waiting on them any more, so it stops wearing the badge the moment they
    decide — the hold or the clearance says where it stands from then on. */
 function reviewOutFor(c, ch){
-  if (!reviewInOpen(c, ch) || reviewOn(ch)) return null;
-  const rv = reviewOpenOf(c);
+  if (reviewOn(ch)) return null;
+  const rv = reviewOpenFor(c, ch);
   return (rv && rv.reviewer && rv.reviewer.name) || null;
 }
 /* Our own unsent asks currently sitting with somebody. What the send warning
@@ -1227,6 +1255,7 @@ Object.assign(window, {
   reviewInit, reviewRequests, reviewOpenOf, reviewLastOf, reviewScope, reviewSideOf,
   reviewOn, reviewStale, reviewCurrent, reviewHeld, reviewCleared, reviewHeldIds, reviewSendable,
   reviewIsReviewer, reviewIsRequester, reviewCandidates,
+  reviewOpenList, reviewOpenFor, reviewMineOpen,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
