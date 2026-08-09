@@ -139,16 +139,49 @@ describe('f161 · a review is internal, and inside the company it is not public 
     assert.equal(html, '', 'no rows they may see, and no gate — so no banner');
   });
 
-  test('the card still says a change is out, without saying with whom', async () => {
+  /* THE REVIEWER'S COLUMN IS THEIR OWN WORK AND NOTHING ELSE. Asked for
+     directly (Young, 09 Aug 2026): "I should only be able to see the card that
+     has been forwarded to me, not all the cards in the negotiation tracker."
+     The document stays readable — you cannot judge a clause you may not read —
+     but the round's other work is not their job, and somebody else's escalated
+     clause is not their business either. */
+  test('a reviewer’s column holds only what was forwarded to them', async () => {
+    const w = world();
+    const { c, four, six, ten } = await twoOut(w);
+    const html = seat(SALES, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
+    assert.match(html, new RegExp('data-nego-card="' + six.id + '"'), 'their own clause');
+    assert.ok(!new RegExp('data-nego-card="' + ten.id + '"').test(html),
+      'procurement’s clause is not theirs to read about');
+    assert.ok(!new RegExp('data-nego-card="' + four.id + '"').test(html),
+      'nor the round’s ordinary work');
+    /* The count on the tab must agree, or the pill says four over one card. */
+    assert.deepEqual([...seat(SALES, c).win.redlineCardIds(c, { side: 'owner' })], [six.id]);
+  });
+
+  test('and the requester still sees the whole round', async () => {
+    const w = world();
+    const { c, four, six, ten } = await twoOut(w);
+    const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    [four, six, ten].forEach(x =>
+      assert.match(html, new RegExp('data-nego-card="' + x.id + '"')));
+  });
+
+  test('an uninvolved colleague sees the round, and no reviewer’s name', async () => {
     const w = world();
     const { c, ten } = await twoOut(w);
-    const sales = seat(SALES, c);
-    const html = sales.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const html = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
     /* "It cannot be sent yet" is everybody's business; "Young has it" is not. */
-    assert.match(html, /Out for review/, 'the state is still on the card');
-    assert.ok(!/With Young Ochoka/.test(html), 'the name is not');
-    /* And their own clause still names their own review, to them. */
-    assert.match(html, /With Simon Jordan|Your verdict/, 'their own job is theirs to see');
+    assert.match(html, new RegExp('data-nego-card="' + ten.id + '"'), 'they are working this contract');
+    assert.match(html, /Out for review/, 'the state is on the card');
+    assert.ok(!/With Young Ochoka|With Simon Jordan/.test(html), 'the name is not');
+  });
+
+  test('the same narrowing on the contract tab, or the two screens disagree', async () => {
+    const w = world();
+    const { c, six, ten } = await twoOut(w);
+    const tab = seat(SALES, c).win.negoLiveCardsHtml(c, { side: 'owner' });
+    assert.match(tab, new RegExp(six.id));
+    assert.ok(!new RegExp(ten.id).test(tab));
   });
 
   test('a held verdict does not name the reviewer to an outsider', async () => {
@@ -296,6 +329,71 @@ describe('f161 · a reviewer does not run the round', () => {
     const cards = sales.win.redlineChangeCardsHtml(c, { side: 'owner' });
     assert.ok(!new RegExp('data-nego-accept="' + theirs.id + '"').test(cards),
       'accepting their ask settles it and travels on the next round');
+  });
+});
+
+/* ============================================================
+   3b — ONE HAND-BACK DOOR, AND THE BULK VERBS
+   ============================================================
+   Two reviews open with one person drew two identical "Hand it back" buttons in
+   the banner beside a third in the toolbar — three controls for one act. And
+   the first pass at the posture gated two of the FIVE places canAct is
+   computed, so "Accept All Non-Risk" and "Reject All Counterparty" were still
+   sitting on the reviewer's screen. Both reported off the same screenshot. */
+describe('f161 · one door, and no bulk verbs behind it', () => {
+
+  test('the banner rows carry no hand-back of their own', async () => {
+    const w = world();
+    const { c } = await twoOut(w);
+    const html = seat(SALES, c).win.reviewBannerHtml(c, { side: 'owner' });
+    assert.ok(!/data-rv-act="rv-return/.test(html), 'the toolbar is the door');
+  });
+
+  test('the door names each review by its change tags', async () => {
+    const w = world();
+    const { c, six, ten } = await twoOut(w);
+    /* Both to the same person, which is the situation that produced two
+       buttons. */
+    const w2 = world();
+    const c2 = contract({ id: 'MK-R3' }); w2.win.negoInit(c2);
+    const a1 = await mine(w2.win, c2, '6', '<p>Uncapped.</p>');
+    const a2 = await mine(w2.win, c2, '10', '<p>Any estate.</p>');
+    const r1 = w2.win.reviewAsk(c2, { reviewer: SALES, ids: [a1.id] });
+    const r2 = w2.win.reviewAsk(c2, { reviewer: SALES, ids: [a2.id] });
+    assert.equal(w2.win.reviewMineOpen(c2, SALES).length, 2, 'two jobs, one person');
+    assert.equal(w2.win.reviewTagsFor(r1), a1.id);
+    assert.equal(w2.win.reviewTagsFor(r2), a2.id,
+      'CHG-017 is what is printed on the card; REV-2 means nothing to a reader');
+  });
+
+  test('the bulk accept and reject are not offered to a reviewer', async () => {
+    const w = world();
+    const { c } = await twoOut(w);
+    const sales = seat(SALES, c);
+    /* Four surfaces draw them. All four ask the posture now. */
+    for (const [name, html] of [
+      ['workbench panes', sales.win.redlinePanesHtml(c, { side: 'owner' })],
+      ['contract tab panes', sales.win.negoPanesHtml(c, { side: 'owner' })],
+      ['contract tab head', sales.win.negoHeadHtml(c, { side: 'owner' })],
+    ]){
+      assert.ok(!/nego-bulk-acc|nego-all-acc/.test(html), name + ' still offers Accept All');
+      assert.ok(!/nego-bulk-rej|nego-all-rej/.test(html), name + ' still offers Reject All');
+    }
+    /* And the requester keeps them. */
+    assert.match(w.win.negoPanesHtml(c, { side: 'owner' }), /nego-bulk-acc/);
+  });
+
+  test('a pasted essay cannot become the banner', async () => {
+    const w = world();
+    const c = contract(); w.win.negoInit(c);
+    const six = await mine(w.win, c, '6', '<p>Uncapped.</p>');
+    const essay = 'An addendum becomes part of the contract. '.repeat(60);
+    const rv = w.win.reviewAsk(c, { reviewer: SALES, ids: [six.id], note: essay });
+    assert.ok(rv.note.length <= 600, 'stored capped, so the record cannot grow without limit');
+    const html = seat(SALES, c).win.reviewBannerHtml(c, { side: 'owner' });
+    const shown = (html.match(/“([^”]*)”/) || [])[1] || '';
+    assert.ok(shown.length <= 130, 'and drawn shorter still — it sits above the contract');
+    assert.match(html, /title="/, 'the whole note is on hover');
   });
 });
 

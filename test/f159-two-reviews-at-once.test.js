@@ -319,18 +319,30 @@ describe('f159 · the banner says both, and its buttons name theirs', () => {
     assert.match(html, new RegExp('data-rv-act="rv-cancel:' + b.id + '"'));
   });
 
-  test('the reviewer’s own row hands back, and only theirs', async () => {
+  /* THE ROW NO LONGER CARRIES A HAND-BACK, and that is the point. Two reviews
+     open with one person drew two identical "Hand it back" buttons beside a
+     third in the toolbar — three controls for one act, reported off a real
+     screen (Young, 09 Aug 2026). The toolbar is the one door and it asks which
+     review, naming each by the changes in it. What the row still does is say
+     what was asked and which changes it covers. */
+  test('the reviewer’s row states the job and offers no button of its own', async () => {
     const w = world({ user: SALES, negotiationView: true, contractView: true });
     const { c, five, ten } = await reading(w.win);
     const a = w.win.reviewAsk(c, { reviewer: SALES, ids: [five.id], by: ME.name });
     const b = w.win.reviewAsk(c, { reviewer: PROC,  ids: [ten.id],  by: ME.name });
     const html = w.win.reviewBannerHtml(c, { side: 'owner' });
-    assert.match(html, new RegExp('data-rv-act="rv-return:' + a.id + '"'),
-      'their own review is handed back');
-    assert.ok(!new RegExp('data-rv-act="rv-return:' + b.id + '"').test(html),
-      'nobody closes somebody else’s review');
-    assert.match(html, new RegExp('data-rv-act="rv-cancel:' + b.id + '"'),
-      'procurement’s is news, with the other way out');
+    assert.ok(!/data-rv-act="rv-return/.test(html), 'one door, and it is not here');
+    assert.match(html, new RegExp(five.id), 'the row names the change it covers');
+    /* Who may SEE which review is f161's subject, and this fixture's reviewer is
+       an admin — who sees them all. Asserted there, on a fixture built for it. */
+  });
+
+  test('the one door asks which review, by its change tags', async () => {
+    const w = world({ user: SALES, negotiationView: true, contractView: true });
+    const { c, five } = await reading(w.win);
+    const a = w.win.reviewAsk(c, { reviewer: SALES, ids: [five.id], by: ME.name });
+    assert.equal(w.win.reviewTagsFor(a), five.id,
+      'a reader knows CHG-017; REV-2 means nothing to them');
   });
 
   test('the counterparty is told none of it', async () => {

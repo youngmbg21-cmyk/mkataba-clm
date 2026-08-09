@@ -110,6 +110,15 @@ const _rvAudit = (c, action, detail) => { if (window.logAudit) window.logAudit(c
 const _rvSave = c => { if (window.persist) window.persist(c); };
 const _rvE = s => String(s == null ? '' : s)
   .replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+/* A NOTE IS A SENTENCE, NOT AN ESSAY. Nothing bounded this, and a whole Copilot
+   answer pasted into the box became the banner — a wall of amber text above the
+   contract somebody was trying to read. Stored capped, drawn shorter still, and
+   the full text is always on hover and in the hand-back dialog. */
+const RV_NOTE_MAX = 600;
+const _rvClamp = (s, n) => {
+  const t = String(s == null ? '' : s).trim();
+  return t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
+};
 
 /* ---------- the store ----------
    A LIST, not a single field. A contract is reviewed more than once — round 2
@@ -379,6 +388,24 @@ function reviewActorHeld(c, u){
   return mine.length ? mine : null;
 }
 const reviewActorIsHeld = (c, u) => !!reviewActorHeld(c, u);
+/* THE CHANGES THIS PERSON WAS ACTUALLY HANDED, across every review open with
+   them — or null when they are not reviewing anything here, which means "no
+   narrowing, show them the round".
+
+   Asked for by name (Young, 09 Aug 2026): "as someone who has been handed a
+   redline to review internally, I should only be able to see the card that has
+   been forwarded to me, not all the cards in the negotiation tracker." The
+   DOCUMENT is untouched — you cannot judge a clause you are not allowed to
+   read, and they had access to this contract before anybody asked them. It is
+   the change list that narrows, because that list is the round's work and the
+   round is not their job. */
+function reviewMyChangeIds(c, u){
+  const mine = reviewActorHeld(c, u);
+  if (!mine) return null;
+  const ids = new Set();
+  mine.forEach(rv => (rv.changeIds || []).forEach(id => ids.add(String(id))));
+  return ids;
+}
 /* The refusal in one sentence, or null. Every door that puts wording in front
    of the counterparty prints exactly this, so they cannot each invent their own
    account of the same rule. */
@@ -526,7 +553,7 @@ function reviewAsk(c, o = {}){
     by: String(o.by || (me && me.name) || 'System'),
     byId: (me && me.id) || null,
     reviewer: { id: who.id || null, name, email: who.email || null },
-    note: String(o.note || '').trim() || null,
+    note: _rvClamp(o.note, RV_NOTE_MAX) || null,
     due: String(o.due || '').trim() || null,
     /* WHAT WAS IN FRONT OF THEM WHEN THEY WERE ASKED. Recorded because the set
        moves: a change filed after the request is not something the reviewer was
@@ -1052,15 +1079,25 @@ function reviewBannerHtml(c, opts = {}){
   const row = (rv, kind) => {
     const p = st.progress(rv);
     if (kind === 'yours')
+      /* NO BUTTON ON THE ROW. With two reviews open this drew two identical
+         "Hand it back"s beside a third in the toolbar — three controls for one
+         act. The toolbar is the door and it asks which; see
+         openReviewReturnPicker. The row's job is to say what was asked, which
+         changes it covers and by when.
+
+         The note is CLAMPED here and whole on hover: a pasted Copilot answer
+         had turned this banner into a wall of text above the contract. */
       return `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
         <span style="flex:1;min-width:0">
           <b>${_rvE(i18t('rv_banner_yours', { who: rv.by }))}</b>
-          ${_rvE(rv.note ? '“' + rv.note + '” ' : '')}${_rvE(i18tn('rv_banner_yours_sub', p.left, { n: p.left, total: p.total }))}
-          ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span>
-        ${act('rv-return:' + rv.id, i18t('rv_return_btn'))}</div>`;
+          <span style="font-family:var(--font-mono);font-size:10.5px;opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
+          ${rv.note ? `<span title="${_rvE(rv.note)}">“${_rvE(_rvClamp(rv.note, 120))}” </span>` : ''}${
+            _rvE(i18tn('rv_banner_yours_sub', p.left, { n: p.left, total: p.total }))}
+          ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span></div>`;
     return `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
       <span style="flex:1;min-width:0">
         <b>${_rvE(i18t('rv_banner_waiting', { who: rv.reviewer.name }))}</b>
+        <span style="font-family:var(--font-mono);font-size:10.5px;opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
         ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}
         ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span>
       ${reviewMayCancel(rv) ? act('rv-cancel:' + rv.id, i18t('rv_cancel_btn')) : ''}</div>`;
@@ -1397,6 +1434,57 @@ function openReviewAskModal(c, opts = {}){
   });
 }
 
+/* ---- ONE DOOR, AND IT ASKS WHICH ----
+   Two reviews open with the same person drew two rows, each with its own
+   "Hand it back", and a third copy sat in the toolbar: three controls, two of
+   them identical, for a question the screen never actually put. Asked for
+   directly (Young, 09 Aug 2026): one hand-back, and if there is more than one
+   review it asks which — named by the changes in it, because "REV-2" means
+   nothing to a reader and "CHG-017" is what is printed on the card.
+
+   With exactly one review of theirs open this step does not appear at all; the
+   question would be rhetorical. */
+function reviewTagsFor(rv){
+  const ids = (rv && rv.changeIds || []).map(String);
+  if (!ids.length) return i18t('rv_pick_nothing_left');
+  return ids.join(', ');
+}
+function openReviewReturnPicker(c, opts = {}){
+  if (!window.openModal) return;
+  const mine = reviewMineOpen(c);
+  if (mine.length <= 1){ openReviewReturnModal(c, { ...opts, reviewId: mine[0] && mine[0].id }); return; }
+  const row = rv => {
+    const p = reviewProgress(c, rv);
+    return `<button type="button" data-rv-pick-return="${_rvE(rv.id)}"
+      style="display:block;width:100%;text-align:left;font:inherit;cursor:pointer;margin-bottom:8px;
+      border:1px solid var(--color-divider);border-radius:8px;padding:10px 12px;background:var(--color-surface)">
+      <span style="display:block;font-size:12.5px;font-weight:700;font-family:var(--font-mono);color:var(--color-accent-800)">${_rvE(reviewTagsFor(rv))}</span>
+      <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:3px;line-height:1.5">
+        ${_rvE(i18t('rv_pick_from', { who: rv.by }))}${rv.due ? ' · ' + _rvE(i18t('rv_due', { when: rv.due })) : ''}
+        · ${_rvE(i18tn('rv_pick_left', p.left, { n: p.left, total: p.total }))}</span>
+      ${rv.note ? `<span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:4px;
+        overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"
+        title="${_rvE(rv.note)}">“${_rvE(_rvClamp(rv.note, 240))}”</span>` : ''}
+    </button>`;
+  };
+  window.openModal(`
+    <div style="padding:18px 20px 16px">
+      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_pick_title'))}</h2>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">${_rvE(i18t('rv_pick_sub'))}</p>
+      ${mine.map(row).join('')}
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+        <button id="rv-pcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      </div>
+    </div>`, { maxWidth: '30rem' });
+  document.getElementById('rv-pcancel')?.addEventListener('click', () => window.closeModal());
+  document.querySelectorAll('[data-rv-pick-return]').forEach(b =>
+    b.addEventListener('click', () => {
+      const id = b.getAttribute('data-rv-pick-return');
+      window.closeModal();
+      openReviewReturnModal(c, { ...opts, reviewId: id });
+    }));
+}
+
 function openReviewReturnModal(c, opts = {}){
   if (!window.openModal) return;
   /* THIS review's tally, not the contract's. reviewScope answers "what is still
@@ -1506,7 +1594,7 @@ function reviewWireCards(c, host, opts = {}){
       const reviewId = cut < 0 ? null : raw.slice(cut + 1);
       if (what === 'rv-clear'){ reviewClearBanner(c); again(); }
       else if (what === 'rv-ask') openReviewAskModal(c, { after: again });
-      else if (what === 'rv-return') openReviewReturnModal(c, { reviewId, after: again });
+      else if (what === 'rv-return') openReviewReturnPicker(c, { reviewId, after: again });
       else if (what === 'rv-cancel'){
         if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); }
       }
@@ -1521,7 +1609,7 @@ Object.assign(window, {
   reviewOn, reviewStale, reviewCurrent, reviewHeld, reviewCleared, reviewHeldIds, reviewSendable,
   reviewIsReviewer, reviewIsRequester, reviewCandidates,
   reviewMaySee, reviewMayCancel, reviewOutNameFor, reviewVerdictByFor,
-  reviewActorHeld, reviewActorIsHeld, reviewActorBlockMessage,
+  reviewActorHeld, reviewActorIsHeld, reviewActorBlockMessage, reviewMyChangeIds,
   reviewOpenList, reviewOpenFor, reviewMineOpen, reviewNames, reviewWaitingOn,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
@@ -1531,6 +1619,7 @@ Object.assign(window, {
   reviewBannerCleared, reviewClearBanner, reviewUnclearBanner,
   reviewSearchPeople, reviewResolvePerson, reviewPersonRowHtml, reviewPickerListHtml,
   RV_FLD, RV_LBL, reviewWirePicker,
-  reviewAskModalHtml, openReviewAskModal, openReviewReturnModal, openReviewNoteModal,
+  reviewAskModalHtml, openReviewAskModal, openReviewReturnModal, openReviewReturnPicker,
+  reviewTagsFor, openReviewNoteModal,
   reviewWireCards,
 });

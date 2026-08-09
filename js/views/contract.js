@@ -2373,7 +2373,17 @@ function roomTabsHtml(c,active){
    discoverable only by clicking. */
 function negoTabCountHtml(c){
   if(!window.negoProgress) return '';
-  const p=negoProgress(c);
+  /* NARROWED FOR A REVIEWER, so the tab and the column it opens onto agree. A
+     pill reading 3 over a stack of 2 is the same "pill that counts something
+     other than the list it labels" fault redlineCardIds exists to prevent —
+     and here the third number is a change they were deliberately not handed. */
+  const mineOnly = (typeof window.reviewMyChangeIds==='function')
+    ? (()=>{ try{ return reviewMyChangeIds(c); }catch(_){ return null; } })() : null;
+  const p = mineOnly
+    ? (typeof negoChanges==='function' ? negoChanges(c) : [])
+        .filter(x=>x && mineOnly.has(String(x.id)) && x.status!=='superseded' && !x.withdrawn)
+        .reduce((a,x)=>({ total:a.total+1, pending:a.pending+(x.status==='pending'?1:0) }), { total:0, pending:0 })
+    : negoProgress(c);
   const total=p.total||0;
   if(!total) return '';
   const due=p.pending||0;

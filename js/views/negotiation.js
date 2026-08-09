@@ -1877,7 +1877,10 @@ function negoCardsHtml(c, opts){
 }
 function negoLiveCardsHtml(c, opts){
   const side = opts.side || 'owner';
-  const canAct = opts.readonly ? false : true;
+  /* THE REVIEWER'S POSTURE. Missed here on the first pass, which is exactly the
+     duplication warning in the project's own rules: five renderers compute
+     canAct, and gating two of them gated nothing this reader could see. */
+  const canAct = opts.readonly ? false : !rlActorHeld(c, opts);
   /* DECIDING AND SPEAKING ARE NOT THE SAME PERMISSION, and one flag was
      answering for both. A read-only copy is one that cannot move the
      negotiation — a spent one-shot link, an executed contract — and that is
@@ -1890,7 +1893,11 @@ function negoLiveCardsHtml(c, opts){
      behaviour it had. A page that knows it still has a channel back says so. */
   const canComment = opts.canComment != null ? !!opts.canComment : canAct;
   const seenScope = negoSeenScope(c, opts);
-  const changes = negoChanges(c).filter(x => x.status !== 'superseded');
+  /* Narrowed to what this reader was handed, when they are reviewing here. See
+     rlMyCardIds — the twin of the filter on the workbench's column. */
+  const _mineOnly = rlMyCardIds(c, opts);
+  const changes = negoChanges(c).filter(x => x.status !== 'superseded'
+    && (!_mineOnly || _mineOnly.has(String(x.id))));
   const history = negoHistoryHtml(c, opts);
   if (!changes.length) return `
     <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
@@ -2503,7 +2510,7 @@ function negoHeadHtml(c, opts){
      A refusal clears when the side that asked withdraws it. */
   const ready = negoProgress(c).total > 0
     && (window.negoAlignment ? negoAlignment(c).aligned : negoReadyToSign(c));
-  const canAct = !opts.readonly;
+  const canAct = !opts.readonly && !rlActorHeld(c, opts);   /* see rlActorHeld */
   const side = opts.side || 'owner';
   return `
     ${negoModeHtml(c, opts)}
@@ -2832,7 +2839,7 @@ function negoIndexSendHtml(c, opts = {}){
 }
 function negoPanesHtml(c, opts = {}){
   const p = negoProgress(c);
-  const canAct = !opts.readonly;
+  const canAct = !opts.readonly && !rlActorHeld(c, opts);   /* see rlActorHeld */
   /* Which chair. Same reason as redlinePanesHtml: this markup is shared, and
      the risk-derived bulk verb is the owner's alone (D2). */
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
@@ -6762,7 +6769,11 @@ function renderRedline(){
       const st = window.reviewState ? reviewState(c) : { phase: 'none' };
       /* Owe a verdict → hand it back. Otherwise → ask, whether or not something
          else is already out with somebody. */
-      if (st.phase === 'yours') openReviewReturnModal(c, { after: () => renderRedline() });
+      /* THE ONE DOOR. With more than one review open with this person the
+         picker asks which, naming each by its change tags; with one it goes
+         straight through. The banner rows no longer carry a button of their
+         own — see reviewBannerHtml. */
+      if (st.phase === 'yours') openReviewReturnPicker(c, { after: () => renderRedline() });
       else openReviewAskModal(c, { after: () => renderRedline() });
     }));
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
@@ -8930,8 +8941,10 @@ function redlineCardIds(c, opts = {}){
   const heldIds = new Set(opts.holdsDecisions ? (opts.heldDecisionIds || []) : []);
   const sentIds = new Set(opts.sentDecisionIds || []);
   const contestedAny = x => x && x.status === 'rejected' && !x.withdrawn;
+  const mineOnly = rlMyCardIds(c, opts);
   return all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
-    || sentIds.has(x.id)) && !hidden.has(x.id)).map(x => x.id);
+    || sentIds.has(x.id)) && !hidden.has(x.id)
+    && (!mineOnly || mineOnly.has(String(x.id)))).map(x => x.id);
 }
 /* ---- YOU WERE ASKED TO LOOK AT A CLAUSE, NOT TO RUN THE ROUND ----
    While a review is open with this person, nothing they do on this contract
@@ -8943,6 +8956,19 @@ function redlineCardIds(c, opts = {}){
    Not asked on the counterparty's own seat: that is a different company's
    reader, they have no internal review here, and reviewActorHeld would be
    answering about the wrong person entirely. */
+/* ---- THE CARDS THIS READER WAS HANDED ----
+   Null means "everything", which is every reader who is not reviewing anything
+   here. A reviewer gets the ids in their own open reviews and nothing else: the
+   round's other work is not their job and, in the case of somebody else's
+   escalated clause, not their business either. Asked on all three card
+   surfaces, because the tab's count and the two card renderers must agree about
+   what is on the page — a pill that counts four over one card is the fault
+   redlineCardIds exists to prevent. */
+function rlMyCardIds(c, opts = {}){
+  if (opts.side === 'counterparty' || opts.readonly) return null;
+  if (typeof window.reviewMyChangeIds !== 'function') return null;
+  try{ return reviewMyChangeIds(c); }catch(_){ return null; }
+}
 function rlActorHeld(c, opts = {}){
   if (opts.side === 'counterparty' || opts.readonly) return false;
   if (typeof window.reviewActorIsHeld !== 'function') return false;
@@ -8985,8 +9011,10 @@ function redlineChangeCardsHtml(c, opts = {}){
      because the other side is holding the first answer. */
   const sentIds = new Set(opts.sentDecisionIds || []);
   const redeciding = id => _negoRedeciding[id];
+  const mineOnly = rlMyCardIds(c, opts);
   const changes = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
-    || sentIds.has(x.id)) && !hidden.has(x.id));
+    || sentIds.has(x.id)) && !hidden.has(x.id)
+    && (!mineOnly || mineOnly.has(String(x.id))));
   /* Named on the module so the tab pill above reads the same answer — see
      redlineCardIds directly below. */
   /* Which of OUR asks have never left the building. The engine already answers
@@ -9387,8 +9415,14 @@ function rlQueueRows(c, opts = {}){
      what they have already settled this round. So the filter is the one
      negoProgress uses — everything on the table that has not been superseded —
      minus withdrawn asks, which are off the table by definition. */
+  /* AND NARROWED TO WHAT A REVIEWER WAS HANDED, for the same reason the card
+     stack is: this queue is the ROUND's work, and the round is not their job.
+     Its footer counts off these rows, so narrowing here keeps "1 of 2" honest
+     instead of reading "0 of 3" over two rows. */
+  const mineOnly = rlMyCardIds(c, opts);
   const live = (typeof negoChanges === 'function' ? negoChanges(c) : [])
-    .filter(x => x && x.status !== 'superseded' && !x.withdrawn && !hidden.has(x.id));
+    .filter(x => x && x.status !== 'superseded' && !x.withdrawn && !hidden.has(x.id)
+      && (!mineOnly || mineOnly.has(String(x.id))));
 
   /* DOCUMENT ORDER, read off the baseline rather than off the change list.
      Changes are filed in the order somebody happened to make them; a queue
@@ -9679,7 +9713,7 @@ function redlinePanesHtml(c, opts = {}){
      archived round or one issued hash and the baseline may not move. */
   if (window.negoFreshenBaseline) negoFreshenBaseline(c);
   const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
-  const canAct = !opts.readonly;
+  const canAct = !opts.readonly && !rlActorHeld(c, opts);   /* see rlActorHeld */
   const threadTotal = redlineThreads(c, opts).length;
   const mode = rlSideMode();
   /* The Tracked Changes tab's count: the LIVE redlines this seat can see —
