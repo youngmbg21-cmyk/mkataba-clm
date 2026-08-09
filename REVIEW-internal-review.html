@@ -214,9 +214,13 @@
     font-family:var(--sans);font-size:10.5px;font-weight:650;letter-spacing:.02em;
     padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);
   }
+  /* SENTENCE CASE, and small. A reviewer's name goes in here, and a name set in
+     capitals is both shouting and wider than the card — "WITH ACHIENG OTIENO"
+     was reported off a real screen. Matches what the product actually draws:
+     9px, weight 700, no transform, the same as the "Your ask" beside it. */
   .chip{
-    display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:10px;
-    font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:5px;
+    display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-size:9px;
+    font-weight:700;letter-spacing:.01em;border-radius:5px;
     padding:2px 7px;border:1px solid currentColor;
   }
   .chip-held{background:var(--hold-soft);color:var(--hold)}
@@ -229,8 +233,9 @@
     border-left:2px solid var(--warn-line);background:var(--warn-soft);border-radius:0 5px 5px 0;
     padding:7px 11px;font-size:12.5px;line-height:1.5;color:var(--ink);
   }
+  /* Holds a name — "Achieng Otieno said" — so it is not set in capitals. */
   .card-quote span{
-    display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;
     color:var(--warn);margin-bottom:2px;
   }
   .verbs{

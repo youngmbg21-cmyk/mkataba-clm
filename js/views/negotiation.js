@@ -2107,7 +2107,12 @@ function negoLiveCardsHtml(c, opts){
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
           const v = window.reviewOn ? reviewOn(ch) : null;
           return (v && v.note) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
-            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--st-amber-fg)">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
+            ${''/* NOT UPPERCASE, unlike the labels above it: this one holds a
+                   PERSON'S NAME. "WHY THEY ASKED" is a caption and capitals
+                   read as a caption; "ACHIENG OTIENO SAID" reads as shouting,
+                   and a long name in caps outgrows the card. Same rule as the
+                   review chip beside it. */}
+            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
             <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
@@ -5698,6 +5703,8 @@ function redlineLayoutCss(){
     overflow-wrap:anywhere}
   .redline-page .rl-card-why-k{display:block;font-size:9px;font-weight:700;letter-spacing:.08em;
     text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px}
+  /* A caption may shout; a name may not. This one is "Achieng Otieno said". */
+  .redline-page .rl-said-k{text-transform:none;letter-spacing:.01em}
   .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5}
   /* ---- THE CARD NO LONGER CARRIES THE REDLINE ----
      It used to, clamped to two lines, which put the changed wording on screen
@@ -9211,7 +9218,9 @@ function redlineChangeCardsHtml(c, opts = {}){
       const v = window.reviewOn ? reviewOn(ch) : null;
       if (!v || !v.note) return '';
       return `<div class="rl-card-why" style="border-left-color:var(--st-amber-line)">
-        <span class="rl-card-why-k">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
+        ${''/* rl-said-k, not the bare caption class: this line holds a PERSON'S
+               NAME and capitals read as shouting. See the twin in negoDocHtml. */}
+        <span class="rl-card-why-k rl-said-k">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
         <span class="nego-why-clamp">${_ne(v.note)}</span></div>`;
     })();
     const body = `<div class="rl-card-body">${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${
