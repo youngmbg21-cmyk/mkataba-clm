@@ -1102,11 +1102,13 @@ function reviewBannerHtml(c, opts = {}){
     if (t.held) tone = 'ruby'; else if (!rows.length) tone = 'green';
     const sub = `${_rvE(i18t('rv_banner_returned_sub', { cleared: t.cleared, held: t.held, advised: t.advised }))}
       ${news.returnedNote ? `<span style="display:block;margin-top:3px">“${_rvE(_rvClamp(news.returnedNote, 240))}”</span>` : ''}`;
-    /* THE REVIEWER READS THEIR OWN HAND-BACK IN THE FIRST PERSON and is offered
-       nothing: they did this, and "Ask again" is the requester's act. */
-    if (reviewIsReviewer(news) && !reviewIsRequester(news))
-      rows.push(line(`<b>${_rvE(i18t('rv_banner_returned_you', { who: news.by }))}</b> ${sub}`));
-    else
+    /* THE REVIEWER IS TOLD NOTHING, because there is nothing to tell them: they
+       did this, they were toasted at the time, and a permanent notice about a
+       finished job — one that does not even say which clauses it covered — is
+       the definition of noise. Asked for by name (Young, 09 Aug 2026): "just
+       delete it completely." The news belongs to the person who is now waiting
+       to act on it. */
+    if (!(reviewIsReviewer(news) && !reviewIsRequester(news)))
       rows.push(line(`<b>${_rvE(i18t('rv_banner_returned', { who: news.returnedBy || news.reviewer.name }))}</b> ${sub}`,
         act('rv-ask', i18t('rv_ask_again_btn'))));
   }

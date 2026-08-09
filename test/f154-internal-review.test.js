@@ -431,10 +431,14 @@ describe('f154 · the verdict shows on both change cards', () => {
 
     const bench = win.redlineChangeCardsHtml(c, { side: 'owner' });
     const tab = win.negoLiveCardsHtml(c, { side: 'owner' });
-    for (const [name, html] of [['workbench', bench], ['contract tab', tab]]){
-      assert.match(html, /data-rv-chip/, `${name} draws the verdict chip`);
-      assert.match(html, /data-rv-verdict="held"/, `${name} says which verdict`);
-    }
+    /* ONE TAG PER CARD, and which element carries it differs by renderer: the
+       workbench card has a single status badge and that badge says it, while
+       the contract tab's card has no such slot and uses the shared chip. What
+       must not differ is the FACT — a reader on one screen learning something
+       the other screen is missing is the whole point of this block. */
+    assert.match(bench, /Held by/, 'the workbench badge says it');
+    assert.match(tab, /data-rv-verdict="held"/, 'the contract tab chip says it');
+    assert.ok(!/data-rv-chip/.test(bench), 'and the workbench does not say it twice');
   });
 
   test('a held ask loses its Send button on the workbench card', async () => {

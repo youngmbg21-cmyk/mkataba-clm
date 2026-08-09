@@ -9162,7 +9162,15 @@ function redlineChangeCardsHtml(c, opts = {}){
        the card has to say which. */
     const rvOut = !theirs && unsent.has(ch.id)
       && !!(window.reviewOutFor && reviewOutFor(c, ch));
-    const mineUnsent = !theirs && unsent.has(ch.id) && !rvHeld && !rvOut;
+    /* WHO is holding it, where this reader is entitled to the name. Null
+       otherwise, and the badge falls back to the anonymous wording. */
+    const rvHeldBy = rvHeld && window.reviewVerdictByFor ? reviewVerdictByFor(ch, null, c) : null;
+    const rvOutNamed = rvOut && window.reviewOutNameFor ? reviewOutNameFor(c, ch) : null;
+    /* OUR OWN UNSENT DRAFT, whatever a review has since done to it. mineUnsent
+       below is the narrower "…and free to send"; this one is what the card
+       needs to know before it can offer a way OUT of a hold. */
+    const mineDraft = !theirs && unsent.has(ch.id);
+    const mineUnsent = mineDraft && !rvHeld && !rvOut;
     const mineSent = !theirs && !unsent.has(ch.id) && ch.status === 'pending';
     const heldHere = heldIds.has(ch.id) && ch.status !== 'pending';
     const sentHere = sentIds.has(ch.id) && ch.status !== 'pending' && !heldHere;
@@ -9171,8 +9179,14 @@ function redlineChangeCardsHtml(c, opts = {}){
     const badge = heldHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; &#128274; held'] : ['no', 'Rejected &middot; &#128274; held'])
       : sentHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; sent'] : ['no', 'Rejected &middot; sent'])
       : contested ? ['no', !theirs ? 'Refused &middot; withdraw or revise' : 'Refused &middot; waiting on them']
-      : rvHeld ? ['no', '&#9209; ' + i18t('rv_badge_held')]
-      : rvOut ? ['draft', '&#8987; ' + i18t('rv_badge_waiting')]
+      /* ---- ONE TAG, NOT TWO ----
+         This badge and the review's own chip were both drawn, both ruby, both
+         saying held — reported as "you are adding more and more tags which is
+         also confusing" (Young, 09 Aug 2026). The card has ONE status slot and
+         this is the card's status, so the badge keeps it and names who where
+         the reader is entitled to the name; the chip stands down beside it. */
+      : rvHeld ? ['no', '&#9209; ' + (rvHeldBy ? i18t('rv_badge_held_by', { who: rvHeldBy }) : i18t('rv_badge_held'))]
+      : rvOut ? ['draft', '&#8987; ' + (rvOutNamed ? i18t('rv_badge_waiting_by', { who: rvOutNamed }) : i18t('rv_badge_waiting'))]
       : mineUnsent ? ['draft', '&#128274; Draft']
       : theirs ? ['sent', 'Awaiting you'] : ['sent', 'Sent'];
     /* The organisation is the AUTHOR's, not the viewer's. Written seat-relative
@@ -9304,7 +9318,25 @@ function redlineChangeCardsHtml(c, opts = {}){
         && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
       verbs.push(`<button class="rl-edit" data-rl-ask-review="${_nea(ch.id)}"
         title="${_nea(i18t('rv_card_ask_title'))}">&#128100; ${i18t('rv_card_ask')}</button>`);
-    if (editable && mineUnsent) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
+    /* ---- AND THE WAY OUT OF A HOLD ----
+       A held change had ONE verb on it — Edit — and no route anywhere. Send was
+       gone (correctly), the ask was gone (because it tested mineUnsent, which a
+       hold clears), and so was Withdraw. Reported exactly as that: "there is no
+       button to resolve the situation." A rule with no way forward is a dead
+       end, not a rule.
+
+       Only the person who placed the hold can lift it, so the way forward is to
+       ask them again — a fresh review, scoped to this one change, which gives
+       them back the buttons. Offered only where nothing is already open on it,
+       because a change sitting with somebody does not need asking twice. */
+    if (editable && rvHeld && !rvOut && window.openReviewAskModal
+        && window.reviewSeatShowsReview && reviewSeatShowsReview(opts)
+        && !(window.reviewInOpen && reviewInOpen(c, ch)))
+      verbs.push(`<button class="rl-edit" data-rl-ask-review="${_nea(ch.id)}"
+        title="${_nea(i18t('rv_held_ask_again_title'))}">&#128100; ${i18t('rv_held_ask_again')}</button>`);
+    /* Taking your own draft off the table is not sending it, so a hold does not
+       stand in the way — and it is the other honest answer to a refusal. */
+    if (editable && (mineUnsent || rvHeld)) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
         title="${_nea(i18t('ng_retract_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_retract')}</button>`);
     /* The one verb on this card that reaches the other company, so the one the
        reviewer's posture takes away. Retract above stays: taking your own draft
@@ -9385,7 +9417,10 @@ function redlineChangeCardsHtml(c, opts = {}){
     /* The reviewer's verdict, and — on the reviewer's own screen — the buttons
        that set it. Both come from js/review.js so this card and the contract
        tab's card cannot disagree about what the boss said. */
-    const rvChip = window.reviewChipHtml ? reviewChipHtml(ch, opts, c) : '';
+    /* The badge above carries the review's state on this card, so the shared
+       chip would be the same sentence twice. It still runs on the contract
+       tab's card, which has no such badge. */
+    const rvChip = (!rvHeld && !rvOut && window.reviewChipHtml) ? reviewChipHtml(ch, opts, c) : '';
     const rvNoteBlock = (() => {
       if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
       const v = window.reviewOn ? reviewOn(ch) : null;
@@ -9401,7 +9436,16 @@ function redlineChangeCardsHtml(c, opts = {}){
         <span class="rl-card-why-k rl-said-k">${i18t('rv_reviewer_said', { who: _ne(sayBy) })}</span>
         <span class="nego-why-clamp">${_ne(v.note)}</span></div>`;
     })();
-    const body = `<div class="rl-card-body">${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${
+    /* ---- AND IT SAYS WHAT IS HAPPENING ----
+       A tag is a state, not an explanation. This is the sentence a reader needs
+       when the Send button has gone: who stopped it, that only they can lift
+       it, and the two things that can be done about it. */
+    const rvStuckBlock = (rvHeld && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
+      ? `<div class="rl-card-why" style="border-left-color:var(--st-ruby-line)">
+          <span class="rl-card-why-k rl-said-k">${i18t('rv_held_what_now_k')}</span>
+          <span>${_ne(rvHeldBy ? i18t('rv_held_what_now', { who: rvHeldBy }) : i18t('rv_held_what_now_anon'))}</span>
+        </div>` : '';
+    const body = `<div class="rl-card-body">${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${rvStuckBlock}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${
       window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
