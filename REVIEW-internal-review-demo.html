@@ -117,6 +117,11 @@
   .banner b{font-weight:650}
   .banner .btn{border-color:currentColor;color:inherit;background:transparent;flex:none}
   .banner .btn:hover:not(:disabled){background:var(--surface);color:inherit}
+  /* One row per open review — see bannerHtml. */
+  .rvrows{display:flex;flex-direction:column;gap:10px}
+  .rvrow{display:flex;align-items:flex-start;gap:12px;width:100%}
+  .rvrow + .rvrow{padding-top:10px;border-top:1px solid color-mix(in srgb, currentColor 22%, transparent)}
+  .rvfoot{font-size:12px;opacity:.85}
 
   .cards{display:flex;flex-direction:column;gap:11px}
   .card{
@@ -272,7 +277,10 @@
       <b>Wanjiru Kamau</b><span>wrote the redlines</span>
     </button>
     <button class="seat" data-seat="boss" aria-pressed="false">
-      <b>Achieng Otieno</b><span>the reviewer</span>
+      <b>Achieng Otieno</b><span>sales</span>
+    </button>
+    <button class="seat" data-seat="proc" aria-pressed="false">
+      <b>Björn Nordin</b><span>procurement</span>
     </button>
     <button class="seat" data-seat="cp" aria-pressed="false">
       <b>Nordfrakt Logistik AB</b><span>the counterparty</span>
@@ -327,13 +335,24 @@
      for, so a revision makes it stale. A stale CLEAR stops being a
      clear; a stale HOLD is still a hold. Nothing leaves on doubt.
      ========================================================== */
-  var PEOPLE = { you:'Wanjiru Kamau', boss:'Achieng Otieno', cp:'Nordfrakt Logistik AB' };
+  var PEOPLE = { you:'Wanjiru Kamau', boss:'Achieng Otieno', proc:'Björn Nordin',
+                 cp:'Nordfrakt Logistik AB' };
+  /* The seats that can hold a review. Everything that used to say "the boss"
+     asks this instead, because there is no longer one reviewer. */
+  var REVIEWER_SEATS = ['boss', 'proc'];
+  function seatOf(name){
+    for (var k = 0; k < REVIEWER_SEATS.length; k++)
+      if (PEOPLE[REVIEWER_SEATS[k]] === name) return REVIEWER_SEATS[k];
+    return null;
+  }
+  var meNow = function(){ return PEOPLE[S.seat]; };
 
   /* A workspace the size of a real one. The picker is the point: at this many
      people a dropdown is a control you cannot use, so it takes typing and
      matches on the address as well as the name. */
   var STAFF = [
     { id:'u_boss', name:'Achieng Otieno', email:'achieng@wanjiru.co.ke', role:'Admin' },
+    { id:'u_proc', name:'Björn Nordin',   email:'bjorn@wanjiru.co.ke',   role:'Editor' },
     { id:'u_twin', name:'Achieng Wafula', email:'a.wafula@wanjiru.co.ke', role:'Editor' },
     { id:'u_leg',  name:'Brian Mutiso',   email:'brian@wanjiru.co.ke',   role:'Editor' },
     { id:'u_fin',  name:'Grace Njeri',    email:'grace@wanjiru.co.ke',   role:'Editor' },
@@ -385,7 +404,8 @@
       gate:{ on:false, when:'always' },
       deviates:true,          // the playbook says clause 6 is off-piste
       published:false,        // has a round left the building
-      review:null,            // the open request
+      reviews:[],             // the OPEN requests — several run at once
+      nextRv:1,
       history:[],             // returned requests
       log:[],
       done:{},
@@ -398,6 +418,10 @@
           summary:'Liability cap removed',
           was:'capped at the fees paid in the preceding twelve months', now:'unlimited',
           sent:false, hash:'b1', review:null, author:'Wanjiru Kamau' },
+        { id:'CHG-006', side:'ours', clause:'Clause 10 · Sourcing',
+          summary:'Cane may be sourced from any certified estate',
+          was:'sourced from the named estates only', now:'sourced from any certified estate',
+          sent:false, hash:'d1', review:null, author:'Wanjiru Kamau' },
         { id:'CHG-003', side:'theirs', clause:'Clause 5 · Storage Conditions',
           summary:'Storage term reduced to 90 days with extended-stay premium',
           was:'stored for up to one hundred and eighty (180) days', now:'stored for up to ninety (90) days',
@@ -410,7 +434,13 @@
   var ours       = function(){ return S.changes.filter(function(c){ return c.side==='ours'; }); };
   var theirsOpen = function(){ return S.changes.filter(function(c){ return c.side==='theirs'; }); };
   var unsent     = function(){ return ours().filter(function(c){ return !c.sent; }); };
-  var scope      = function(){ return unsent().concat(theirsOpen()); };
+  /* WHAT IS STILL FREE TO ASK ABOUT. Everything outstanding, minus anything
+     already sitting with somebody — a change with sales cannot also go to
+     procurement, and offering it would invite exactly that. */
+  var scope      = function(){
+    return unsent().concat(theirsOpen()).filter(function(c){ return !openFor(c); });
+  };
+  var outstanding = function(){ return unsent().concat(theirsOpen()); };
 
   function stale(c){ return !!(c.review && c.review.hash && c.review.hash !== c.hash); }
   function held(c){ return !!(c.review && c.review.verdict === 'held'); }          // sticky: survives an edit
@@ -420,9 +450,47 @@
      refusal (ruby), this is in flight (amber). Both stay behind when you send —
      wording read by the counterparty while your reviewer is midway through it
      makes their verdict worthless. */
-  function inOpen(c){ return !!(S.review && S.review.ids.indexOf(c.id) >= 0); }
-  function outFor(c){ return (inOpen(c) && !c.review) ? S.review.reviewer : null; }
+  /* THE REVIEW THIS CHANGE IS IN, not "the" review. With several open, asking
+     the contract for its review picks an arbitrary one — which is how sales
+     ends up able to rule on procurement's clause. Every question below is
+     asked through here. */
+  function openFor(c){
+    for (var i = 0; i < S.reviews.length; i++)
+      if (S.reviews[i].ids.indexOf(c.id) >= 0) return S.reviews[i];
+    return null;
+  }
+  function inOpen(c){ return !!openFor(c); }
+  function outFor(c){ var rv = openFor(c); return (rv && !c.review) ? rv.reviewer : null; }
   function waiting(){ return unsent().filter(function(c){ return !!outFor(c); }); }
+  /* The open reviews this seat is the named reviewer of. */
+  function myReviews(){
+    var me = meNow();
+    return S.reviews.filter(function(rv){ return rv.reviewer === me; });
+  }
+  function rvById(id){ return S.reviews.filter(function(rv){ return rv.id === id; })[0] || null; }
+  function rvChanges(rv){
+    return outstanding().filter(function(c){ return rv.ids.indexOf(c.id) >= 0; });
+  }
+  /* Who is holding our unsent wording right now — a list, because it can be two
+     people, and "your reviewer" would be a lie about both of them. */
+  function waitingNames(){
+    var seen = [];
+    waiting().forEach(function(c){
+      var w = outFor(c); if (w && seen.indexOf(w) < 0) seen.push(w);
+    });
+    if (!seen.length) return 'a colleague';
+    if (seen.length === 1) return seen[0];
+    return seen.slice(0, -1).join(', ') + ' and ' + seen[seen.length - 1];
+  }
+  function heldNames(){
+    var seen = [];
+    unsent().filter(held).forEach(function(c){
+      var w = c.review.by; if (seen.indexOf(w) < 0) seen.push(w);
+    });
+    if (!seen.length) return 'your reviewer';
+    if (seen.length === 1) return seen[0];
+    return seen.slice(0, -1).join(', ') + ' and ' + seen[seen.length - 1];
+  }
   function sendable(){ return unsent().filter(function(c){ return !held(c) && !outFor(c); }); }
 
   /* The gate, in the same order of questions the real one asks. */
@@ -440,7 +508,7 @@
     var unreviewed = s.filter(function(c){ return !cleared(c); });
     if (!required) return { required:false, ok:true, reason:'not-required', held:heldIds() };
     if (!s.length) return { required:true, ok:false, reason:'all-held' };
-    if (S.review && s.some(outFor)) return { required:true, ok:false, reason:'with-reviewer' };
+    if (s.some(outFor)) return { required:true, ok:false, reason:'with-reviewer' };
     if (unreviewed.length) return { required:true, ok:false,
       reason: S.history.length ? 'not-cleared' : 'never-requested', n:unreviewed.length };
     return { required:true, ok:true, reason:'cleared' };
@@ -449,9 +517,9 @@
     var g = gate();
     if (g.ok) return null;
     if (g.reason === 'all-held')
-      return 'Every unsent change is held back by ' + PEOPLE.boss + ', so there is nothing to send.';
+      return 'Every unsent change is held back by ' + heldNames() + ', so there is nothing to send.';
     if (g.reason === 'with-reviewer')
-      return 'These changes are with ' + PEOPLE.boss + ' for internal review. They go out once the review comes back.';
+      return 'These changes are with ' + waitingNames() + ' for internal review. They go out once the review comes back.';
     if (g.reason === 'never-requested')
       return 'This contract needs an internal review before changes go out — ' + g.n
         + ' change' + (g.n === 1 ? ' has' : 's have') + ' not been looked at.';
@@ -477,31 +545,54 @@
   /* ==========================================================
      THE ACTS
      ========================================================== */
+  /* NO ONE-AT-A-TIME RULE. Sales gets clause 6 while you are still reading;
+     procurement gets clause 10 twenty minutes later; neither waits for the
+     other. What is still refused is one CHANGE in two reviews, which scope()
+     enforces by not offering it and the filter below enforces if it is named
+     anyway. */
   function askReview(note, due, who, ids){
-    if (S.review){ toast('This contract is already with a reviewer.', 'err'); return; }
-    if (!scope().length){ toast('There is nothing to review.', 'err'); return; }
-    var want = (ids && ids.length) ? ids : scope().map(function(c){ return c.id; });
-    S.review = { by:PEOPLE.you, reviewer:who || PEOPLE.boss, note:note || null, due:due || null,
-                 ids:want };
-    record(PEOPLE.you, 'Internal review requested from ' + S.review.reviewer + ' — ' + unsent().length
-      + ' of our unsent change(s) and ' + theirsOpen().length + ' of theirs in scope'
+    var free = scope();
+    if (!free.length){ toast('There is nothing left to review — everything outstanding is already with somebody.', 'err'); return; }
+    var freeIds = free.map(function(c){ return c.id; });
+    var want = (ids && ids.length)
+      ? ids.filter(function(id){ return freeIds.indexOf(id) >= 0; })
+      : freeIds;
+    if (!want.length){ toast('Those changes are already with a colleague — a change can only be with one person.', 'err'); return; }
+    var rv = { id:'REV-' + (S.nextRv++), by:PEOPLE.you, reviewer:who || PEOPLE.boss,
+               note:note || null, due:due || null, ids:want };
+    S.reviews.push(rv);
+    var mineIn = want.filter(function(id){
+      return unsent().some(function(c){ return c.id === id; }); }).length;
+    record(PEOPLE.you, 'Internal review ' + rv.id + ' requested from ' + rv.reviewer + ' — ' + mineIn
+      + ' of our unsent change(s) and ' + (want.length - mineIn) + ' of theirs in scope'
       + (due ? ', due ' + due : '') + (note ? '; “' + note + '”' : ''));
     S.done.asked = true;
-    toast('Sent to ' + S.review.reviewer + ' — it is on their dashboard in HaTi. No email went out in this prototype.');
+    if (S.reviews.length > 1) S.done.twoAtOnce = true;
+    toast('Sent to ' + rv.reviewer + ' — it is on their dashboard in HaTi. No email went out in this prototype.');
     render();
   }
 
   function mark(id, verdict){
-    if (S.seat !== 'boss'){ toast('Only ' + PEOPLE.boss + ' can rule on this review.', 'err'); return; }
-    if (!S.review){ toast('No internal review is open on this contract.', 'err'); return; }
     var c = S.changes.filter(function(x){ return x.id === id; })[0];
     if (!c) return;
-    if (!inOpen(c)){ toast('Change ' + id + ' was not part of this review.', 'err'); return; }
-    c.review = { verdict:verdict, by:PEOPLE.boss, hash:c.hash, note:(c.review && c.review.note) || null };
+    /* THE REVIEW THIS CHANGE IS IN. Resolve it per contract instead and the
+       check below tests the wrong person — sales could rule on procurement's
+       clause. Two different refusals, because "nobody was asked about this" and
+       "somebody else was asked about this" are different mistakes. */
+    var rv = openFor(c);
+    if (!rv){
+      toast(S.reviews.length
+        ? 'Change ' + id + ' is not part of any review you were asked about.'
+        : 'No internal review is open on this contract.', 'err');
+      return;
+    }
+    if (meNow() !== rv.reviewer){ toast('Only ' + rv.reviewer + ' can rule on ' + id + '.', 'err'); return; }
+    c.review = { verdict:verdict, by:rv.reviewer, hash:c.hash, rv:rv.id,
+                 note:(c.review && c.review.note) || null };
     var word = { cleared:'cleared to send', held:'held back',
       'advise-accept':'advises accepting', 'advise-reject':'advises rejecting',
       'advise-discuss':'advises discussing' }[verdict];
-    record(PEOPLE.boss, '#' + id + ' ' + word + ' by ' + PEOPLE.boss + ' — “' + c.summary + '”');
+    record(rv.reviewer, '#' + id + ' ' + word + ' by ' + rv.reviewer + ' in ' + rv.id + ' — “' + c.summary + '”');
     if (verdict === 'held') S.done.held = true;
     if (verdict === 'cleared') S.done.cleared = true;
     render();
@@ -511,26 +602,39 @@
     var c = S.changes.filter(function(x){ return x.id === id; })[0];
     if (!c || !c.review) return;
     c.review.note = String(text || '').trim() || null;
-    record(PEOPLE.boss, '#' + id + ' note — “' + c.review.note + '”');
+    record(meNow(), '#' + id + ' note — “' + c.review.note + '”');
     render();
   }
 
-  function handBack(){
-    var unmarked = unsent().filter(function(c){ return inOpen(c) && !c.review; });
+  /* A REVIEWER CLOSES THEIR OWN, AND ONLY THEIR OWN. And it checks only its own
+     changes: an unmarked change sitting in somebody else's review must not stop
+     this one being handed back, or sales would be waiting on procurement for no
+     reason. */
+  function handBack(rvId){
+    var mine = myReviews();
+    var rv = rvId ? rvById(rvId) : (mine.length === 1 ? mine[0] : null);
+    if (!rv){
+      toast(mine.length ? 'Which review? Use the button on the one you mean.'
+                        : 'No internal review of yours is open on this contract.', 'err');
+      return;
+    }
+    if (meNow() !== rv.reviewer){ toast('Only ' + rv.reviewer + ' can hand ' + rv.id + ' back.', 'err'); return; }
+    var inRv = rvChanges(rv);
+    var unmarked = inRv.filter(function(c){ return c.side === 'ours' && !c.review; });
     if (unmarked.length){
-      toast(unmarked.length + ' change' + (unmarked.length === 1 ? ' of yours has' : 's of yours have')
+      toast(unmarked.length + ' change' + (unmarked.length === 1 ? ' of theirs has' : 's of theirs have')
         + ' no verdict yet. Clear or hold each one before handing the review back.', 'err');
       return;
     }
-    var inRv = unsent().filter(inOpen);
-    var t = { cleared:inRv.filter(cleared).length, held:inRv.filter(held).length,
-              advised:theirsOpen().filter(function(c){ return inOpen(c) && !!c.review; }).length };
-    S.history.push({ by:PEOPLE.boss, to:S.review.by, tally:t });
-    S.review = null;
-    record(PEOPLE.boss, 'Internal review returned to ' + PEOPLE.you + ' — ' + t.cleared
+    var oursIn = inRv.filter(function(c){ return c.side === 'ours'; });
+    var t = { cleared:oursIn.filter(cleared).length, held:oursIn.filter(held).length,
+              advised:inRv.filter(function(c){ return c.side === 'theirs' && !!c.review; }).length };
+    S.history.push({ by:rv.reviewer, to:rv.by, tally:t });
+    S.reviews = S.reviews.filter(function(x){ return x !== rv; });
+    record(rv.reviewer, 'Internal review ' + rv.id + ' returned to ' + rv.by + ' — ' + t.cleared
       + ' cleared to send, ' + t.held + ' held back, ' + t.advised + ' of the counterparty’s asks advised on');
     S.done.handedBack = true;
-    toast('Handed back to ' + PEOPLE.you + '.');
+    toast('Handed back to ' + rv.by + '.');
     render();
   }
 
@@ -545,28 +649,32 @@
     var c = S.changes.filter(function(x){ return x.id === id; })[0];
     if (!c || c.sent) return;
     var who = by || PEOPLE.you;
-    if (who === PEOPLE.boss){
-      c.now = 'capped at twenty-four (24) months of fees';
-      c.summary = 'Liability cap set at 24 months, not removed';
+    if (seatOf(who)){
+      c.now = c.id === 'CHG-006' ? 'sourced from any estate on the certified register'
+            : 'capped at twenty-four (24) months of fees';
+      c.summary = c.id === 'CHG-006' ? 'Sourcing widened to the certified register only'
+            : 'Liability cap set at 24 months, not removed';
     } else {
       c.now = c.id === 'CHG-005' ? 'unlimited, save for wilful misconduct'
+            : c.id === 'CHG-006' ? 'sourced from any certified or provisionally certified estate'
             : 'payable within ninety (90) days';
       c.summary = c.id === 'CHG-005' ? 'Liability cap removed, with a carve-out for wilful misconduct'
+            : c.id === 'CHG-006' ? 'Sourcing widened to provisionally certified estates too'
             : 'Payment terms extended from Net-30 to Net-90';
     }
     c.hash = c.hash + '+';
     /* Cleared when the author takes the wording back — a stale "revised by"
        would be a claim about the present that stopped being true. */
     if (who !== c.author) c.revisedBy = who; else delete c.revisedBy;
-    if (who === PEOPLE.boss) S.done.bossEdited = true;
+    if (seatOf(who)) S.done.bossEdited = true;
     record(who, '#' + id + ' revised by ' + who + ' — “' + c.summary + '”');
     S.done.revised = true;
     /* Both directions are the same principle — when in doubt, nothing leaves —
        so both are said in the colour that means "look at this again". */
     if (c.review && stale(c)){
       toast(c.review.verdict === 'held'
-        ? 'Revised — and it is STILL held. A hold survives an edit; only ' + PEOPLE.boss + ' can lift it.'
-        : 'Revised — the clearance has lapsed. ' + PEOPLE.boss + ' approved wording that is no longer there.',
+        ? 'Revised — and it is STILL held. A hold survives an edit; only ' + c.review.by + ' can lift it.'
+        : 'Revised — the clearance has lapsed. ' + c.review.by + ' approved wording that is no longer there.',
         'err');
     }
     render();
@@ -665,7 +773,10 @@
         + esc(c.author) + ' proposed the change</div>');
 
     var verbs = [];
-    if (S.seat === 'boss' && S.review && inOpen(c)){
+    /* THE VERDICT BUTTONS BELONG TO THE REVIEWER THIS CHANGE IS WITH. Sales
+       sees them on clause 6 and not on clause 10; procurement, the reverse. */
+    var rvHere = openFor(c);
+    if (rvHere && meNow() === rvHere.reviewer){
       verbs.push('<span class="verbs-k">Your verdict</span>');
       if (mine){
         verbs.push(vb(c, 'cleared', 'Cleared to send', 'clear'));
@@ -683,6 +794,13 @@
     } else if (S.seat === 'you' && mine && !c.sent){
       verbs.push('<span class="verbs-k">Your ask</span>');
       verbs.push('<button class="vbtn" data-revise="' + esc(c.id) + '" type="button">Rewrite the wording</button>');
+      /* ---- THE WAY IN, ON THE CHANGE ITSELF ----
+         A door on the toolbar is fine at the end of a read and useless in the
+         middle of one. You are on clause 10, you want procurement to see THIS,
+         and you should not have to remember it until you reach the bottom. It
+         goes once somebody has it: a change is with one person, never two. */
+      if (!held(c) && !outFor(c))
+        verbs.push('<button class="vbtn" data-ask-one="' + esc(c.id) + '" type="button">👤 Review</button>');
       if (held(c)) verbs.push('<span style="font-size:11.5px;color:var(--hold)">Held by ' + esc(c.review.by) + ' — it will not be sent.</span>');
       else if (outFor(c)) verbs.push('<span style="font-size:11.5px;color:var(--warn)">With ' + esc(outFor(c)) + ' — it will not be sent until they answer.</span>');
     }
@@ -699,19 +817,38 @@
 
   function bannerHtml(){
     if (S.seat === 'cp') return '';
-    if (S.review){
-      if (S.seat === 'boss'){
-        var left = scope().filter(function(c){ return inOpen(c) && !c.review; }).length;
-        return '<div class="banner"><span class="g"><b>' + esc(S.review.by) + ' asked you to review this.</b> '
-          + (S.review.note ? '“' + esc(S.review.note) + '” ' : '')
-          + left + ' of ' + S.review.ids.length + ' still need' + (left === 1 ? 's' : '') + ' your verdict.'
-          + (S.review.due ? ' <b>Due ' + esc(S.review.due) + '.</b>' : '')
-          + '</span><button class="btn" data-act="handback" type="button">Hand it back</button></div>';
-      }
-      return '<div class="banner"><span class="g"><b>With ' + esc(S.review.reviewer) + ' for internal review.</b> '
-        + S.review.ids.length + ' change' + (S.review.ids.length === 1 ? '' : 's') + ' went to them.'
-        + (gate().required ? ' Nothing goes to the counterparty until the review comes back.' : '')
-        + '</span><button class="btn" data-act="cancel" type="button">Cancel review</button></div>';
+    /* ---- ONE ROW PER REVIEW ----
+       Several can be open at once, so a single sentence cannot describe the
+       state: sales has clause 6, procurement has clause 10, and each has its
+       own due date and its own way out. Each row's button NAMES the review it
+       acts on — with two open, "cancel the review" is a question rather than an
+       instruction. The reader's own rows lead: one you owe a verdict on is
+       work, one somebody else owes is news. */
+    if (S.reviews.length){
+      var me = meNow();
+      var rows = S.reviews.slice().sort(function(a, b){
+        return (b.reviewer === me) - (a.reviewer === me);
+      }).map(function(rv){
+        if (rv.reviewer === me){
+          var inRv = rvChanges(rv);
+          var left = inRv.filter(function(c){ return !c.review; }).length;
+          return '<div class="rvrow"><span class="g"><b>' + esc(rv.by) + ' asked you to review this.</b> '
+            + (rv.note ? '“' + esc(rv.note) + '” ' : '')
+            + left + ' of ' + inRv.length + ' still need' + (left === 1 ? 's' : '') + ' your verdict.'
+            + (rv.due ? ' <b>Due ' + esc(rv.due) + '.</b>' : '')
+            + '</span><button class="btn" data-act="handback" data-rv="' + esc(rv.id)
+            + '" type="button">Hand it back</button></div>';
+        }
+        return '<div class="rvrow"><span class="g"><b>With ' + esc(rv.reviewer) + '.</b> '
+          + rv.ids.length + ' change' + (rv.ids.length === 1 ? '' : 's') + ' went to them.'
+          + (rv.due ? ' <b>Due ' + esc(rv.due) + '.</b>' : '')
+          + '</span><button class="btn" data-act="cancel" data-rv="' + esc(rv.id)
+          + '" type="button">Cancel</button></div>';
+      }).join('');
+      return '<div class="banner"><span class="g rvrows">' + rows
+        + (gate().required && S.reviews.some(function(rv){ return rv.reviewer !== me; })
+            ? '<span class="rvfoot">Nothing goes to the counterparty until the reviews come back.</span>' : '')
+        + '</span></div>';
     }
     if (S.history.length){
       var h = S.history[S.history.length - 1];
@@ -734,10 +871,15 @@
       + '<span class="id">MK-R1 · Nordfrakt Logistik AB</span>'
       + '<span class="who">' + esc(PEOPLE[S.seat]) + '</span></div>');
     out.push('<div class="toolbar">'
+      /* ALWAYS A WAY IN. This used to become "With Achieng Otieno" the moment
+         anything went out — a button that had stopped being a button, on the
+         one control you need again the second you spot something else worth
+         escalating. Who is holding what belongs on the cards, where the
+         changes are; the toolbar's job is to open the door. */
       + (S.seat === 'you'
-        ? '<button class="btn btn-accent" data-act="ask" type="button"' + (S.review ? ' disabled' : '') + '>👤 '
-            + (S.review ? 'With ' + esc(PEOPLE.boss) : 'Internal review') + '</button>'
-        : '<button class="btn btn-accent" data-act="handback" type="button"' + (S.review ? '' : ' disabled') + '>Hand review back</button>')
+        ? '<button class="btn btn-accent" data-act="ask" type="button">👤 Internal review</button>'
+        : '<button class="btn btn-accent" data-act="handback" type="button"'
+            + (myReviews().length ? '' : ' disabled') + '>Hand review back</button>')
       + '</div>');
     var b = bannerHtml(); if (b) out.push(b);
     out.push('<div class="cards">' + S.changes.map(cardHtml).join('') + '</div>');
@@ -748,7 +890,7 @@
         + (n ? ' · ' + n + ' unsent' : '') + (h ? ' · ' + h + ' held' : '')
         + (w ? ' · ' + w + ' in review' : '') + '</button>'
         + '<span class="why">'
-        + (h ? h + ' held back by ' + esc(PEOPLE.boss) + ' will not travel. ' : '')
+        + (h ? h + ' held back by ' + esc(heldNames()) + ' will not travel. ' : '')
         + (w ? w + ' still being read and will not travel yet. ' : '')
         + (g.required && !g.ok ? 'The rule is on, so this is locked.' : 'Nothing reaches ' + esc(PEOPLE.cp) + ' until you press this.')
         + '</span></div>');
@@ -758,7 +900,7 @@
 
   function cpView(){
     var p = payload(), json = JSON.stringify(p, null, 2);
-    var leaks = ['review', 'held', 'Achieng', 'cleared'].filter(function(w){
+    var leaks = ['review', 'held', 'Achieng', 'Björn', 'cleared'].filter(function(w){
       return json.toLowerCase().indexOf(w.toLowerCase()) >= 0;
     });
     var out = [];
@@ -783,20 +925,21 @@
       + '<p style="font-size:12px;color:var(--ink-soft);margin:9px 0 0">'
       + (leaks.length
           ? '⚠️ Found: ' + esc(leaks.join(', '))
-          : '<mark>Checked for “review”, “held”, “cleared” and the reviewer’s name — none of them are in there.</mark>')
+          : '<mark>Checked for “review”, “held”, “cleared” and both reviewers’ names — none of them are in there.</mark>')
       + '</p></details>');
     return out.join('');
   }
 
   var TRY = [
-    { k:'asked',      t:'As Wanjiru, press <b>Internal review</b> and send it to Achieng.' },
-    { k:'held',       t:'Switch to <b>Achieng</b> and hold the liability change back.' },
-    { k:'cleared',    t:'Clear the payment-terms change, then <b>hand it back</b>.' },
+    { k:'asked',      t:'As Wanjiru, press <b>👤 Review</b> on the liability change and send that one to Achieng.' },
+    { k:'twoAtOnce',  t:'Still as Wanjiru, press <b>👤 Review</b> on the sourcing change and send it to <b>Björn</b> — Achieng does not have to finish first.' },
+    { k:'held',       t:'Switch to <b>Achieng</b> and hold the liability change back. Notice the sourcing change has no buttons for them.' },
+    { k:'cleared',    t:'Clear something, then <b>hand it back</b> — Björn’s review stays open.' },
     { k:'published',  t:'Back as <b>Wanjiru</b>, press <b>Publish Round</b>.' },
     { k:'sawCp',      t:'Switch to <b>Nordfrakt</b> and look for the held change.' },
     { k:'blocked',    t:'Turn the rule on in the panel below, then try to send with something unreviewed.' },
     { k:'revised',    t:'Rewrite a held change and watch the hold survive it.' },
-    { k:'bossEdited', t:'As <b>Achieng</b>, press <b>Rewrite it yourself</b> and see who the card credits.' },
+    { k:'bossEdited', t:'As a reviewer, press <b>Rewrite it yourself</b> and see who the card credits.' },
   ];
 
   function renderTry(){
@@ -830,13 +973,18 @@
 
   /* ---- modals ---- */
   function closeModal(){ document.getElementById('modal-root').innerHTML = ''; }
-  function askModal(){
+  /* `only` is set when the ask came from a change's own button: the dialog
+     opens narrowed to that one, because that is what you pressed. */
+  function askModal(only){
+    var free = scope();
+    if (!free.length){ toast('Everything outstanding is already with somebody.', 'err'); return; }
     /* ONE TICK PER CHANGE, all on to start with: "all of it" is the common case
        and a dialog that opens empty makes you work to get back to the default.
        What matters is that unticking is possible — you are uneasy about the
        indemnity, not about all five redlines. */
-    var rows = scope().map(function(c){
-      return '<label class="r pickrow"><input type="checkbox" class="pickch" data-ch="' + esc(c.id) + '" checked/>'
+    var rows = free.map(function(c){
+      return '<label class="r pickrow"><input type="checkbox" class="pickch" data-ch="' + esc(c.id) + '"'
+        + (!only || only === c.id ? ' checked' : '') + '/>'
         + '<span class="cid">' + esc(c.id) + '</span><span><b>' + esc(c.summary)
         + '</b><br><span style="color:var(--ink-faint)">' + esc(c.clause)
         + (c.side === 'theirs' ? ' — from the counterparty, undecided' : '') + '</span></span></label>';
@@ -938,7 +1086,7 @@
       '<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true">'
       + '<h3>Some of this is still being looked at</h3>'
       + '<p class="sub">' + w.length + ' change' + (w.length === 1 ? ' is' : 's are') + ' with '
-      + esc(S.review ? S.review.reviewer : 'a colleague')
+      + esc(waitingNames())
       + ' and ' + (w.length === 1 ? 'has' : 'have') + ' not been answered yet. Sending now makes the review '
       + 'pointless — the verdict would arrive about wording ' + esc(PEOPLE.cp) + ' has already read.</p>'
       + '<div class="scope">' + w.map(function(c){
@@ -991,15 +1139,23 @@
     var act = t.closest('[data-act]');
     if (act){
       var a = act.getAttribute('data-act');
+      var which = act.getAttribute('data-rv');
       if (a === 'ask') askModal();
-      else if (a === 'handback') handBack();
+      else if (a === 'handback') handBack(which);
       else if (a === 'publish') publish();
       else if (a === 'cancel'){
-        record(PEOPLE.you, 'Internal review cancelled — it was with ' + S.review.reviewer);
-        S.review = null; toast('Review cancelled.'); render();
+        /* NAMED. With two open, cancelling "the review" would quietly kill the
+           wrong person's. */
+        var rv = which ? rvById(which) : (S.reviews.length === 1 ? S.reviews[0] : null);
+        if (!rv){ toast('Which review? Use the button on the row you mean.', 'err'); return; }
+        S.reviews = S.reviews.filter(function(x){ return x !== rv; });
+        record(PEOPLE.you, 'Internal review ' + rv.id + ' cancelled — it was with ' + rv.reviewer);
+        toast('Review cancelled — ' + rv.reviewer + ' no longer has it.'); render();
       }
       return;
     }
+    var one = t.closest('[data-ask-one]');
+    if (one){ askModal(one.getAttribute('data-ask-one')); return; }
     var m = t.closest('[data-mark]');
     if (m){ mark(m.getAttribute('data-mark'), m.getAttribute('data-verdict')); return; }
     var nt = t.closest('[data-note]');
@@ -1007,7 +1163,7 @@
     var rv = t.closest('[data-revise]');
     if (rv){ revise(rv.getAttribute('data-revise')); return; }
     var rb = t.closest('[data-revise-boss]');
-    if (rb){ revise(rb.getAttribute('data-revise-boss'), PEOPLE.boss); return; }
+    if (rb){ revise(rb.getAttribute('data-revise-boss'), meNow()); return; }
   });
 
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
