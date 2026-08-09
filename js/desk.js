@@ -213,10 +213,48 @@ function deskIsContributor(c, u){
   if (!me) return false;
   return deskContributors(c).some(p => _dkSamePerson(p, me));
 }
-/* Lead or contributor: the people with hands on this negotiation. */
+/* Lead or contributor: the people ON THE ROSTER. This is the membership
+   question, and it is not the same as "may this person work here" — see
+   deskHasSeat directly below, which is what everything actually asks. */
 function deskIsMember(c, u){
   const me = u || _dkMe();
   return !!(me && (deskIsLead(c, me) || deskIsContributor(c, me)));
+}
+/* ---- BEING ASKED TO REVIEW LETS YOU IN WITHOUT JOINING ----
+   The design said this from the first day and the first four stages did not
+   build it, which broke the internal review outright. Reported off a screenshot
+   (Young, 09 Aug 2026): "as an internal reviewer, I can't click on any of these
+   buttons. They are frozen."
+
+   Three faults, one cause — the desk was treating a reviewer as a stranger:
+
+     · wireNegotiationTab wires the verdict buttons only when the room is
+       editable (`opts.canEdit !== false`), and the mount takes that flag from
+       deskMayRedline. A reviewer who was not also a contributor therefore had
+       Cleared / Held / Note DRAWN AND DEAD — the exact dead-button fault this
+       codebase warns about in four other places.
+     · js/review.js's own rule is that a reviewer may correct the wording of the
+       clause they were handed; the update-in-place rule folds it into the same
+       change. The desk refused that write, so the one thing the review feature
+       exists to allow stopped working.
+     · The reader's band told them to ask to join a negotiation they had already
+       been asked, by name, to do a job on.
+
+   So an OPEN REVIEW IS A SEAT. It is temporary, it expires when they hand back,
+   and it is narrow: reviewMyChangeIds already limits a reviewer's card column
+   to the clauses they were given, so the seat cannot become a way to work the
+   rest of the round. What it deliberately does NOT grant is deskMaySend —
+   nothing a reviewer does reaches the counterparty, which is what BOTH features
+   already say in their own words. */
+function deskReviewSeat(c, u){
+  if (typeof window.reviewMineOpen !== 'function') return false;
+  try{ return reviewMineOpen(c, u || _dkMe()).length > 0; }catch(_){ return false; }
+}
+/* The question everything asks: may this person put a hand on our draft here.
+   Roster, or an open review. */
+function deskHasSeat(c, u){
+  const me = u || _dkMe();
+  return !!(me && (deskIsMember(c, me) || deskReviewSeat(c, me)));
 }
 /* ---------- what seat is this person in ----------
    'lead' | 'contributor' | 'reader', or null meaning THERE IS NO DESK — which
@@ -291,7 +329,8 @@ function deskMayRedline(c, u){
   if (!deskIsOpen(c)) return true;
   const me = u || _dkMe();
   if (!me) return true;
-  return deskIsMember(c, me);
+  /* THE SEAT, not the roster — an open review is a seat. See deskHasSeat. */
+  return deskHasSeat(c, me);
 }
 /* REACHING THE COUNTERPARTY IS THE LEAD'S ACT, and an admin is not exempt: they
    take the lead first, which writes an audit line and changes the chip on
@@ -806,6 +845,15 @@ function deskCardInsteadHtml(c, ch, opts = {}){
   if (!deskEnforced() || !deskIsOpen(c)) return '';
   const me = _dkMe();
   if (!me || deskMaySend(c, me)) return '';        // the lead is missing nothing
+  /* AND NOT ON A CLAUSE THEY WERE HANDED TO RULE ON. The verdict buttons under
+     this card ARE the action; a line saying somebody else decides, printed
+     directly above them, tells a reviewer their own job is not theirs. */
+  if (typeof window.reviewOpenFor === 'function' && typeof window.reviewIsReviewer === 'function'){
+    try{
+      const rv = reviewOpenFor(c, ch);
+      if (rv && reviewIsReviewer(rv, me)) return '';
+    }catch(_){}
+  }
   const lead = deskLead(c) || { name: '' };
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const theirs = ch.authorSide !== side;
@@ -836,7 +884,11 @@ function deskNoticeHtml(c, opts = {}){
   if (opts.readonly) return '';
   const me = _dkMe();
   if (!me || !deskIsOpen(c)) return '';
-  if (deskIsMember(c, me)) return '';
+  /* A REVIEWER IS NOT A STRANGER HERE. They were asked, by name, to rule on a
+     clause of this negotiation; telling them to ask to join it is nonsense, and
+     it sat directly above the verdict buttons contradicting them. Their own
+     banner is the review's, which rlOneNoticeHtml already prefers. */
+  if (deskHasSeat(c, me)) return '';
   const lead = deskLead(c);
   const asked = deskJoinPendingFor(c, me);
   return `<div class="dk-notice" data-dk-notice="reader">
@@ -1148,6 +1200,7 @@ Object.assign(window, {
   deskInit, deskOf, deskIsOpen, deskLead, deskInitiator, deskIsLead, deskRole,
   deskOpen, deskClaimOnFile,
   deskContributors, deskIsContributor, deskIsMember, deskMayManage,
+  deskReviewSeat, deskHasSeat,
   deskCandidates, deskSearchPeople, deskResolvePerson,
   deskAddContributor, deskRemoveContributor, deskHandover,
   deskJoinRequests, deskJoinPending, deskJoinPendingFor, deskRequestJoin,

@@ -259,3 +259,96 @@ describe('f167 · the workbench stops offering what the model will refuse', () =
     assert.equal(asDan.win.rlMayRedline(c, {}), true);
   });
 });
+
+/* ============================================================
+   5 — BEING ASKED TO REVIEW IS A SEAT
+   ============================================================
+   The desk shipped without this and broke the internal review outright.
+   Reported off a screenshot (Young, 09 Aug 2026): "as an internal reviewer, I
+   can't click on any of these buttons. They are frozen."
+
+   ONE CAUSE, THREE SYMPTOMS, and the first is the worst kind of bug this
+   codebase has a name for:
+
+     · wireNegotiationTab wires the verdict buttons only where the room is
+       editable, and the mount takes that flag from deskMayRedline — so
+       Cleared / Held / Note were DRAWN AND DEAD.
+     · a reviewer may correct the wording of the clause they were handed; that
+       is the one thing js/review.js exists to allow, and the desk refused it.
+     · the reader's band told them to ask to join a negotiation they had already
+       been asked by name to work on.
+
+   What the seat does NOT grant is reaching the counterparty. Both features
+   already agree about that and must go on agreeing. */
+describe('f167 · a reviewer is not a stranger at the desk', () => {
+
+  function viewWorld(user, on = true){
+    const w = buildWorld({ user, negotiationView: true, contractView: true });
+    w.win.state = { settings: { deskRule: { on } }, contracts: [], activeId: 'MK-D3' };
+    w.win.getUsers = () => EVERYONE;
+    w.win.userById = id => EVERYONE.find(u => u.id === id) || null;
+    w.win.saveSettings = () => {};
+    w.win.canAccessFolder = () => true;
+    return w;
+  }
+  /* A desk led by ME, with DAN — who is on no roster — asked to review one
+     change. GRACE stays a plain reader throughout, as the control. */
+  async function withReviewer(){
+    const lead = viewWorld(ME);
+    const c = contract();
+    const ch = await editIn(lead.win, c, 4, NEW_TERMS);
+    lead.win.reviewAsk(c, { reviewer: { id: DAN.id, name: DAN.name, email: DAN.email }, ids: [ch.id] });
+    return { lead, c, ch };
+  }
+
+  test('the verdict buttons are wired, because the room stays editable for them', async () => {
+    const { c } = await withReviewer();
+    const asDan = viewWorld(DAN);
+    assert.equal(asDan.win.deskIsMember(c, DAN), false, 'they are on no roster');
+    assert.equal(asDan.win.deskHasSeat(c, DAN), true, 'and they still have a seat');
+    assert.equal(asDan.win.rlMayRedline(c, {}), true,
+      'this is the flag wireNegotiationTab reads before it wires Cleared / Held / Note');
+  });
+
+  test('they can correct the wording they were handed — the review\'s own rule', async () => {
+    const { c } = await withReviewer();
+    const asDan = viewWorld(DAN);
+    const fixed = await editIn(asDan.win, c, 4,
+      '<p>Undisputed invoices are payable within sixty (60) days.</p>', { author: DAN.name });
+    assert.ok(fixed, 'the desk must not refuse the one thing the review exists to allow');
+  });
+
+  test('and their verdict is accepted', async () => {
+    const { c, ch } = await withReviewer();
+    const asDan = viewWorld(DAN);
+    assert.ok(asDan.win.reviewMark(c, ch.id, 'cleared'));
+  });
+
+  test('they are not told to ask to join a job they were given', async () => {
+    const { c } = await withReviewer();
+    const asDan = viewWorld(DAN);
+    assert.equal(asDan.win.deskNoticeHtml(c, {}), '');
+    /* And no line above their verdict buttons saying somebody else decides. */
+    assert.equal(/dk-card-instead/.test(asDan.win.redlineChangeCardsHtml(c, {})), false);
+  });
+
+  test('the seat does NOT reach the counterparty, and both features agree', async () => {
+    const { c } = await withReviewer();
+    const asDan = viewWorld(DAN);
+    assert.equal(asDan.win.deskMaySend(c, DAN), false);
+    assert.equal(asDan.win.rlActorHeld(c, {}), true);
+  });
+
+  test('it expires with the review, and a plain reader never had it', async () => {
+    const { c, ch } = await withReviewer();
+    const asDan = viewWorld(DAN);
+    asDan.win.reviewMark(c, ch.id, 'cleared');
+    asDan.win.reviewReturn(c, {});
+    assert.equal(asDan.win.deskHasSeat(c, DAN), false, 'handing back gives the seat up');
+    assert.equal(asDan.win.deskMayRedline(c, DAN), false);
+
+    const asGrace = viewWorld(GRACE);
+    assert.equal(asGrace.win.deskHasSeat(c, GRACE), false, 'and a bystander never had one');
+    assert.match(asGrace.win.deskNoticeHtml(c, {}), /Ask to join/);
+  });
+});

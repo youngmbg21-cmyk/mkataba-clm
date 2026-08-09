@@ -180,6 +180,8 @@ TWO PREDICATES AND EVERYTHING ASKS ONE — deskMayRedline and deskMaySend. Both 
 
 IT IS A SETTING (Settings → below the review gate, admin only) and is OFF unless switched on. It gates REDLINING; the review gate gates SENDING a round; the approval chain gates SIGNING. All three appear in contractReadiness.
 
+BEING ASKED TO REVIEW IS A SEAT — deskHasSeat (roster OR an open review here), and deskMayRedline asks it rather than deskIsMember. This was missing for four stages and broke the review outright: wireNegotiationTab wires the verdict buttons only where `opts.canEdit !== false`, the mount takes that from deskMayRedline, so Cleared/Held/Note were DRAWN AND DEAD for any reviewer not also on the roster — and the same refusal stopped them correcting the wording, which is the one thing js/review.js exists to allow. The seat is temporary, narrow (reviewMyChangeIds already limits their column) and never grants deskMaySend. f167.
+
 WHERE IT MEETS THE REVIEW: rlActorHeld now answers for TWO postures — mid-review, and not the lead — so the FIVE canAct renderers inherit the desk without being touched. rlMayRedline is the separate question (a reviewer corrects wording; a reader has no hands) and reaches both card renderers and the document through the mount's `canEdit`.
 
 ONE NOTICE SLOT, NOT TWO — rlOneNoticeHtml draws the review banner and, only where that is empty, the desk's reader band. The phone does the same in mDocNoticesHtml. Two stacked amber bands above a contract is the clutter this was briefed against; the density rule is A BAND APPEARS ONLY WHEN IT CHANGES WHAT YOU CAN DO RIGHT NOW, which is why a lead and a contributor see none and the whole feature costs the header one chip.
@@ -190,7 +192,7 @@ EXACTLY ONE THING ABOUT OUR SIDE TRAVELS. buildSharePayload's `sharedBy` is the 
 
 THE PRICE OF ONE DOOR OUT: deskStale/deskStaleInboxFor flag a negotiation where the counterparty has waited more working days than the setting allows, on OUR dashboard only. deskLedBy is the leaver check. Without these the design's own failure mode is a deal that goes silent because one person is on leave.
 
-Tests: f165 (the record), f166 (the roster and asking to join), f167 (the rule, the screen, the doors), f168 (the server, against raw responses), f169 (the clock, the leaver, the courtesy note). NOT f162/f163/f164 — those numbers went to the review-server, counterparty-redline and finished-review work that landed on main in the same week.
+Tests: f165 (the record), f166 (the roster, asking to join, and the two lines on the card), f167 (the rule, the screen, the doors), f168 (the server, against raw responses), f169 (the clock, the leaver, the courtesy note). NOT f162/f163/f164 — those numbers went to the review-server, counterparty-redline and finished-review work that landed on main in the same week.
 
 WHO MAY SEE WHICH STREAM, AND WHERE THE ANSWER COMES FROM (added 2026-08-09)
 
