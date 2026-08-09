@@ -526,15 +526,115 @@ mark{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
 .legend span{display:inline-flex;align-items:center;gap:6px;}
 .legend i{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block;}
 .legend i.dash{width:16px;height:0;border-radius:0;border-top:2px dashed var(--ch-ref);}
+
+/* ---------- INSIGHTS: ONE PAGE, MANY TABS ----------
+   The analyst screens used to be six doors in the sidebar. They are tabs of
+   the Insights page now, beside the two that were already there — so the page
+   header, the tab row and the time range are written once by the shell and
+   each panel only contributes its own intro. */
+.ins-head{margin-bottom:4px;}
+.ins-head h1{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+.ins-sub{font-size:12.5px;color:var(--color-neutral-500);margin-top:3px;}
+.ins-tabrow{
+  display:flex;align-items:flex-end;gap:16px;margin-top:14px;
+  border-bottom:1px solid var(--color-divider);
+}
+.ins-tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:thin;}
+.ins-tabs::-webkit-scrollbar{height:5px;}
+.ins-tabs::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:3px;}
+.ins-tab{
+  border:0;background:none;padding:9px 12px 10px;font-size:12.5px;font-weight:600;
+  color:var(--color-neutral-500);white-space:nowrap;border-bottom:2px solid transparent;
+  margin-bottom:-1px;display:inline-flex;align-items:center;gap:6px;
+}
+.ins-tab:hover{color:var(--color-text);}
+.ins-tab.on{color:var(--accent-ink);border-bottom-color:var(--accent-solid);}
+.ins-tab .n{
+  font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:999px;
+  background:var(--color-surface-2);color:var(--color-neutral-500);
+  font-variant-numeric:tabular-nums;
+}
+.ins-tab.on .n{background:var(--st-steel-bg);color:var(--st-steel-fg);}
+.ins-range{display:flex;gap:2px;flex:none;padding-bottom:7px;}
+.ins-range button{
+  border:0;background:none;font-size:12px;font-weight:600;padding:4px 9px;
+  border-radius:8px;color:var(--color-neutral-500);
+}
+.ins-range button:hover{background:var(--color-surface-2);color:var(--color-text);}
+.ins-range button.on{color:var(--accent-ink);background:var(--st-steel-bg);}
+
+/* each panel's own intro — smaller than a page header, because it is not one */
+.panel-head{display:flex;align-items:flex-start;gap:16px;margin:18px 0 14px;flex-wrap:wrap;}
+.panel-head .t{font-size:12.5px;color:var(--color-neutral-500);max-width:74ch;}
+.panel-head .t b{color:var(--color-text);font-weight:600;}
+.panel-head .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+@media (max-width:820px){ .ins-tabrow{flex-direction:column;align-items:stretch;gap:0;} .ins-range{padding:6px 0;} }
+
+/* ---------- COPILOT'S READ ----------
+   The one place AI appears in Insights, and it is opt-in by design: nothing
+   runs until the button is pressed, and the counted report never depends on
+   it. That is the same promise the source tags make, in a different form. */
+.copread{
+  display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;
+  padding:14px 16px;border-radius:var(--radius-md);margin-bottom:14px;
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  box-shadow:var(--shadow-sm);
+}
+.copread .hd{display:flex;align-items:center;gap:8px;width:100%;}
+.copread .hd h3{font-size:13px;font-weight:700;}
+.copread .hd .tagline{
+  font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;
+  background:var(--st-steel-bg);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);
+}
+.copread .ic{
+  width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;
+  background:var(--st-steel-bg);color:var(--st-steel-fg);
+}
+.copread p{margin:0;font-size:11.5px;color:var(--color-neutral-500);flex:1;min-width:220px;line-height:1.65;}
+
+/* ---------- NEGOTIATION FRICTION ---------- */
+.fr-big{display:flex;gap:16px;align-items:flex-start;padding:14px 2px;border-bottom:1px solid var(--color-divider);}
+.fr-big:last-child{border-bottom:0;}
+.fr-big .n{
+  font-family:var(--font-heading);font-size:30px;font-weight:800;letter-spacing:-.03em;
+  line-height:1;min-width:74px;font-variant-numeric:tabular-nums;
+}
+.fr-big .bd{flex:1;min-width:0;font-size:12.5px;line-height:1.6;}
+.fr-big .bd b{font-weight:700;}
+.fr-big .bd a{display:block;margin-top:6px;font-size:11.5px;font-weight:600;color:var(--accent-ink);text-decoration:none;}
+.fr-big .bd a:hover{text-decoration:underline;}
+
+.fr-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-top:14px;border-top:1px solid var(--color-divider);margin-top:2px;}
+.fr-pair .k{font-family:var(--font-heading);font-size:20px;font-weight:800;letter-spacing:-.02em;}
+.fr-pair .l{font-size:11.5px;color:var(--color-neutral-500);}
+
+/* the contested-clause list: a bar, a share, and the rounds it adds */
+.cl-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(90px,1fr) 42px 44px;gap:10px;align-items:center;padding:5px 0;}
+.cl-row .nm{font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-row .track{display:block;height:9px;background:var(--color-surface-2);border-radius:5px;overflow:hidden;}
+.cl-row .fill{display:block;height:100%;border-radius:5px;background:var(--color-accent-600);}
+.cl-row .fill.flat{background:var(--color-neutral-300);}
+.cl-row .pc,.cl-row .rd{text-align:right;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+.cl-row .rd.up{color:var(--st-ruby-fg);}
+.cl-row .rd.dn{color:var(--st-green-fg);}
+@media (max-width:700px){ .cl-row{grid-template-columns:minmax(0,1fr) 42px 44px;} .cl-row .track{display:none;} }
+
+/* ---------- CONTRACT GRAPH ---------- */
+.graphwrap{overflow-x:auto;}
+.graphwrap svg{display:block;min-width:660px;}
+.gnode-l{font-family:var(--font-body);font-size:11px;font-weight:700;fill:var(--color-text);}
+.gnode-s{font-family:var(--font-body);font-size:9.5px;fill:var(--color-neutral-500);}
+.gcol{font-family:var(--font-body);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;fill:var(--color-neutral-500);}
+.gedge-l{font-family:var(--font-body);font-size:9.5px;font-weight:700;fill:var(--color-neutral-500);}
 </style>
 </head>
 <body>
 
 <div class="proto-note">
   <p><b>Prototype — pictures only.</b> Nothing is connected to HaTi and every figure is invented.
-  Three example organisations share one engine — switch between them in the top bar to see how
-  differently the same product reads for a manufacturer, a health charity and a Swedish law firm.
-  Then switch <b>shelf</b> to see it change again by the reader's job.</p>
+  Everything the analyst does now lives under <b>Insights</b> as tabs, beside the two that were already
+  there. Three example organisations share one engine — switch between them in the top bar.</p>
 </div>
 
 <div class="shell">
@@ -561,6 +661,10 @@ mark{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
     </div>
   </div>
 
+  <!-- THE SIDEBAR LOST A SECTION. The previous cut invented an ANALYST group
+       with six doors of its own. Everything it held now sits behind the
+       Insights door that was already in the product, so the group is gone and
+       the five everyday doors are back to being five. -->
   <nav class="sidenav">
     <button class="nav-item">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
@@ -574,53 +678,52 @@ mark{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
       <span class="lbl">Calendar</span>
     </button>
-    <button class="nav-item">
+    <button class="nav-item active">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
-      <span class="lbl">Insights</span>
+      <span class="lbl">Insights</span><span class="nav-count" id="nav-exp">39</span>
     </button>
     <button class="nav-item">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
       <span class="lbl">Templates</span>
     </button>
 
-    <div class="nav-head">Analyst <span class="nav-new">New</span></div>
-
-    <button class="nav-item active" data-go="s-home">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 15 3.5-4.5 3 2.5L20 6"/></svg>
-      <span class="lbl">Analyst home</span>
+    <div class="nav-head">Administration</div>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
+      <span class="lbl">Settings &amp; Rules</span>
     </button>
-    <button class="nav-item" data-go="s-mix">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg>
-      <span class="lbl">Categories &amp; packs</span><span class="nav-count" id="nav-packs">6</span>
-    </button>
-    <button class="nav-item" data-go="s-oblig">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h9a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1"/><rect x="8" y="2.5" width="8" height="4" rx="1.2"/><path d="m8.5 12 1.8 1.8 3.6-3.8"/><path d="M8.5 17.2h7"/></svg>
-      <span class="lbl">Obligations</span><span class="nav-count" id="nav-oblig">1284</span>
-    </button>
-    <button class="nav-item" data-go="s-brief">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.7 4.4v4.4h-4.4"/></svg>
-      <span class="lbl">Briefings</span>
-    </button>
-    <button class="nav-item" data-go="s-exp">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3.5 6.6v5.2c0 4.8 3.4 8.6 8.5 10.2 5.1-1.6 8.5-5.4 8.5-10.2V6.6L12 3Z"/><path d="M12 8.6v4.2"/><circle cx="12" cy="16.2" r=".9" fill="currentColor"/></svg>
-      <span class="lbl">Exposure</span><span class="nav-count" id="nav-exp">34</span>
-    </button>
-    <button class="nav-item" data-go="s-deals">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0-9-9"/><path d="M12 7v5l3.4 2"/><path d="M3 16.5 5 21l4.5-2"/></svg>
-      <span class="lbl">Negotiation stats</span>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span class="lbl">Our standards</span>
     </button>
   </nav>
 
   <main class="main">
+
+    <!-- ONE PAGE HEADER FOR THE WHOLE OF INSIGHTS. Every panel below is a tab
+         of this page, not a page of its own, so the title, the tab row and the
+         time range are written once here rather than by each renderer. -->
+    <div class="ins-head">
+      <h1>Insights</h1>
+      <div class="ins-sub" id="ins-sub"></div>
+      <div class="ins-tabrow">
+        <div class="ins-tabs" id="ins-tabs" role="tablist"></div>
+        <div class="ins-range">
+          <button class="on">All time</button><button>Last 90 days</button>
+        </div>
+      </div>
+    </div>
+    <div id="ins-src"></div>
+
     <section class="screen on" id="s-home"></section>
-    <section class="screen" id="s-mix"></section>
+    <section class="screen" id="s-exp"></section>
     <section class="screen" id="s-oblig"></section>
     <section class="screen" id="s-brief"></section>
-    <section class="screen" id="s-exp"></section>
-    <section class="screen" id="s-deals"></section>
+    <section class="screen" id="s-friction"></section>
+    <section class="screen" id="s-graph"></section>
+    <section class="screen" id="s-mix"></section>
   </main>
 </div>
-
 <script>
 /* ============================================================================
    THE DATA. Three organisations, one engine.
@@ -1127,9 +1230,9 @@ function catChip(k){ return '<span class="cat">'+esc(catLabel(k))+'</span>'; }
 function plural(n,word){ return n+' '+word+(n===1?'':'s'); }
 function pill(tone,label){ return '<span class="pill '+tone+'"><span class="dot"></span>'+esc(label)+'</span>'; }
 
-/* The line that appears under every analytical page header. It is the promise
-   the whole cut is built on, so it is stated on every screen rather than once
-   in a place nobody scrolls back to. */
+/* The promise the whole cut is built on. It used to be repeated by each of the
+   six screens; now that they are tabs of ONE page it is written once, directly
+   under the tab row, where it governs everything below it. */
 function sourceBar(){
   return '<div class="srcbar">'+
     '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3.5 6.6v5.2c0 4.8 3.4 8.6 8.5 10.2 5.1-1.6 8.5-5.4 8.5-10.2V6.6L12 3Z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg>'+
@@ -1192,12 +1295,12 @@ function renderHome(){
   });
 
   $('#s-home').innerHTML =
-    '<div class="page-head"><div><h1>Analyst</h1>'+
-    '<div class="sub">'+esc(o.name)+' — '+esc(o.kind)+', '+esc(o.market)+'. '+o.contracts+
-    ' contracts in '+o.mix.length+' categories: '+esc(mixTop)+' and more.</div></div>'+
+    '<div class="panel-head"><div class="t">'+o.contracts+' contracts in '+o.mix.length+
+    ' categories: '+esc(mixTop)+' and more. What is measured follows the category of each contract, '+
+    'not the industry of the company.</div>'+
     '<div class="acts"><button class="btn">Email me this weekly</button>'+
-    '<button class="btn btn-primary" data-go="s-exp">Open exposure report</button></div></div>'+
-    sourceBar() + shelf + tiles(tl) +
+    '<button class="btn btn-primary" data-go="s-exp">Open exposure</button></div></div>'+
+    shelf + tiles(tl) +
     '<div class="grid g-2-1"><div class="card">'+
       '<div class="card-h"><div><h3>Needs you this week — '+esc(r.label)+'</h3>'+
       '<div class="hint">Ranked by what it costs to ignore. Every row names its category, what kind of exposure it is, and where the figure came from.</div></div></div>'+
@@ -1242,12 +1345,10 @@ function renderMix(){
   var checkTotal = o.mix.reduce(function(a,m){ return a+CATS[m.c].checks.length; },0);
 
   $('#s-mix').innerHTML =
-    '<div class="page-head"><div><h1>Categories &amp; packs</h1>'+
-    '<div class="sub">A category belongs to the CONTRACT, not the company — which is why '+esc(o.name)+
-    ' holds '+o.mix.length+' at once. '+checkTotal+' checks run across them, and every one is answerable '+
-    'from a document you already hold or from HaTi’s own filing record.</div></div>'+
+    '<div class="panel-head"><div class="t">A category belongs to the <b>contract</b>, not the company — which '+
+    'is why '+esc(o.name)+' holds '+o.mix.length+' at once. '+checkTotal+' checks run across them, and every '+
+    'one is answerable from a document you already hold or from HaTi’s own filing record.</div>'+
     '<div class="acts"><button class="btn">Recheck categories</button><button class="btn btn-primary">Add a pack</button></div></div>'+
-    sourceBar()+
 
     '<div class="grid g-2-1" style="margin-bottom:14px;">'+
       '<div class="card"><div class="card-h"><div><h3>What kind of organisation this is</h3>'+
@@ -1301,14 +1402,12 @@ function renderOblig(){
   }).join('');
 
   $('#s-oblig').innerHTML =
-    '<div class="page-head"><div><h1>Obligations</h1>'+
-    '<div class="sub">Every promise inside every contract, in one list, each tagged with the category it came '+
-    'from and the clause it was read out of. This screen needed no changes for the honesty rule — it was already '+
-    'nothing but sentences from documents.</div></div>'+
+    '<div class="panel-head"><div class="t">Every promise inside every contract, in one list, each tagged with '+
+    'the category it came from and the clause it was read out of. Nothing on this tab is anything but sentences '+
+    'from documents.</div>'+
     '<div class="acts"><button class="btn'+(obView==='list'?' btn-primary':'')+'" data-obview="list">List</button>'+
     '<button class="btn'+(obView==='cal'?' btn-primary':'')+'" data-obview="cal">Calendar</button>'+
     '<button class="btn">Export</button></div></div>'+
-    sourceBar()+
 
     (obView==='list' ?
       '<div class="card" style="margin-bottom:14px;">'+
@@ -1601,11 +1700,11 @@ function renderBrief(){
     }).join('')+'</div></div>';
 
   $('#s-brief').innerHTML =
-    '<div class="page-head"><div><h1>Briefing — '+esc(b.title)+'</h1>'+
-    '<div class="sub">'+esc(b.who)+' · '+esc(b.sub)+'. Prepared automatically before every renewal, '+
-    'review or break date, so nobody walks in without the history.</div></div>'+
+    '<div class="panel-head"><div class="t"><b>'+esc(b.title)+'</b> — '+esc(b.who)+' · '+esc(b.sub)+
+    '. Prepared automatically before every renewal, review or break date, so nobody walks in without the '+
+    'history.</div>'+
     '<div class="acts"><button class="btn">Download PDF</button><button class="btn btn-primary">Start the review</button></div></div>'+
-    sourceBar() + picker + tls + chart +
+    picker + tls + chart +
     '<div class="grid g-2-1">'+
       '<div style="display:flex;flex-direction:column;gap:14px;">'+ secs + tl + '</div>'+
       '<div style="display:flex;flex-direction:column;gap:14px;">'+ open + cut + '</div>'+
@@ -1645,13 +1744,12 @@ function renderExp(){
   var biggest = Object.keys(e).reduce(function(a,b){ return e[b].n>e[a].n?b:a; });
 
   $('#s-exp').innerHTML =
-    '<div class="page-head"><div><h1>Exposure — August 2026</h1>'+
-    '<div class="sub">Value has five currencies here, and the first one is <b>contracted value</b>, not cash. '+
-    'HaTi cannot say what a leak cost you — that is in your accounts. It can say how much contracted value sits '+
-    'behind a term nobody is using. For '+esc(o.name)+' the heaviest currency is <b>'+CURR[biggest].label.toLowerCase()+'</b>.</div></div>'+
+    '<div class="panel-head"><div class="t">August 2026. Value has five currencies here and the first is '+
+    '<b>contracted value</b>, not cash — HaTi cannot say what a leak cost you, only how much contracted value '+
+    'sits behind a term nobody is using. For '+esc(o.name)+' the heaviest currency is <b>'+
+    CURR[biggest].label.toLowerCase()+'</b>.</div>'+
     '<div class="acts"><button class="btn">Compare with July</button><button class="btn">Email to the board</button>'+
     '<button class="btn btn-primary">Download PDF</button></div></div>'+
-    sourceBar()+
 
     '<div class="grid g5" style="margin-bottom:14px;">'+cards+'</div>'+
 
@@ -1687,106 +1785,298 @@ function renderExp(){
     '</div></div>';
 }
 
-/* ------------------------ 6 · NEGOTIATION STATS ------------------------ */
-function renderDeals(){
-  var o=O(), d=o.deals;
-  var cats = d.enough.concat(d.thin);
-  if (dealCat===null) dealCat = cats.length ? cats[0].c : null;
-  var sel = cats.filter(function(c){ return c.c===dealCat; })[0] || cats[0];
-  var isEnough = sel && d.enough.some(function(x){ return x.c===sel.c; });
-
-  var chips='<div class="shelf"><span class="cap">Category</span>'+
-    cats.map(function(c){
-      return '<button class="fbtn'+(dealCat===c.c?' on':'')+'" data-dealcat="'+c.c+'">'+
-        esc(catLabel(c.c))+' · '+c.n+'</button>';
-    }).join('')+
-    '<span style="font-size:11.5px;color:var(--color-neutral-500);margin-left:6px;">'+
-    'Statistics unlock at '+STAT_MIN+' contracts. Below that you get the checks instead.</span></div>';
-
-  var body;
-  if (!sel){
-    body='<div class="card"><div class="card-h"><div><h3>Nothing to measure yet</h3>'+
-      '<div class="hint">No category here has been negotiated enough to say anything.</div></div></div></div>';
-  } else if (isEnough){
-    var s=sel, st=d.stages, sT=d.stagesTheir, tot=st.reduce(function(a,b){return a+b;},0);
-    var stageNames=['Drafting','Internal<br/>review','Sitting with the counterparty','Negotiating','Sign'];
-    var ramp=['var(--ch-1)','var(--ch-2)','var(--ch-3)','var(--ch-4)','var(--ch-5)'];
-    body=
-      '<div class="grid g4" style="margin-bottom:14px;">'+
-      '<div class="tile"><span class="k">Median time to sign</span><span class="v">'+s.med+'<small> days</small></span><span class="d">across '+s.n+' '+catLabel(s.c).toLowerCase()+' contracts</span></div>'+
-      '<div class="tile"><span class="k">On your standard paper</span><span class="v">'+s.std+'<small> days</small></span><span class="d">Used in '+s.untouched+'% of these</span></div>'+
-      '<div class="tile"><span class="k">On their paper</span><span class="v">'+s.their+'<small> days</small></span><span class="d">'+(s.their/s.std).toFixed(1)+'× as long</span></div>'+
-      '<div class="tile"><span class="k">Signed untouched</span><span class="v">'+s.untouched+'<small>%</small></span><span class="d">of '+catLabel(s.c).toLowerCase()+' contracts</span></div>'+
-      '</div>'+
-      '<div class="grid g-2-1" style="margin-bottom:14px;">'+
-        '<div class="card"><div class="card-h"><div><h3>Where the '+tot+' days actually go</h3>'+
-        '<div class="hint">A deal moves through these in order, so the bar is one hue getting darker rather than five unrelated colours.</div></div>'+
-        '<div class="side">'+srcTag('hati')+'</div></div>'+
-        '<div class="stagebar">'+st.map(function(v,i){
-          return '<div style="flex:'+v+';background:'+ramp[i]+';"'+(i>2?' class="dk"':'')+'>'+(v>1?v+'d':'')+'</div>';
-        }).join('')+'</div>'+
-        '<div class="stage-x">'+st.map(function(v,i){ return '<div style="flex:'+v+';">'+stageNames[i]+'</div>'; }).join('')+'</div>'+
-        '<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--color-divider);">'+
-        '<div style="font-size:12px;font-weight:700;margin-bottom:2px;">The same journey on their paper — '+sT.reduce(function(a,b){return a+b;},0)+' days</div>'+
-        '<div style="font-size:11.5px;color:var(--color-neutral-500);margin-bottom:8px;">Each bar fills its own width — what differs is the total.</div>'+
-        '<div class="stagebar" style="height:26px;">'+sT.map(function(v,i){
-          return '<div style="flex:'+v+';background:'+ramp[i]+';"'+(i>2?' class="dk"':'')+'>'+(v>3?v+'d':'')+'</div>';
-        }).join('')+'</div></div>'+
-        '<div class="callout" style="margin-top:16px;"><b>Nearly half the wait is the other side reading.</b> '+
-        'Every figure on this card is HaTi timing its own workflow — no other system was consulted.</div></div>'+
-        '<div class="card"><div class="card-h"><div><h3>How often your standard terms are simply signed</h3>'+
-        '<div class="hint">Where acceptance is high, small matters could skip legal review entirely.</div></div>'+
-        '<div class="side">'+srcTag('hati')+'</div></div>'+
-        rank(d.accept.map(function(a){ return {nm:a.nm,sub:a.sub,pct:a.pct,warn:a.warn}; }),100)+
-        '</div>'+
-      '</div>'+
-      '<div class="grid g-2-1">'+
-        '<div class="card"><div class="card-h"><div><h3>Which clauses cause the arguments</h3>'+
-        '<div class="hint">Counted within '+esc(catLabel(s.c).toLowerCase())+' contracts only, from the tracked changes '+
-        'HaTi filed itself.</div></div><div class="side">'+srcTag('hati')+'</div></div>'+
-        '<div class="tblwrap"><table><thead><tr><th>Clause</th><th class="num">Redlined</th><th class="num">Days added</th><th>What they usually ask for</th></tr></thead><tbody>'+
-        d.friction.map(function(f){
-          return '<tr><td class="t-strong">'+esc(f.cl)+'</td>'+
-            '<td class="num"'+(f.hot?' style="color:var(--st-ruby-fg);font-weight:700;"':'')+'>'+f.r+'%</td>'+
-            '<td class="num">'+esc(f.d)+'</td><td class="t-mut">'+esc(f.a)+'</td></tr>';
-        }).join('')+'</tbody></table></div></div>'+
-        '<div class="card"><div class="card-h"><div><h3>Live negotiations</h3>'+
-        '<div class="hint">Whose turn it is, and who has gone quiet.</div></div><div class="side">'+srcTag('hati')+'</div></div>'+
-        '<div class="tblwrap"><table style="min-width:0;"><thead><tr><th>Deal</th><th class="num">Open</th><th>Waiting on</th></tr></thead><tbody>'+
-        d.live.map(function(l){
-          return '<tr><td class="t-strong">'+esc(l.nm)+'<div class="t-mut">'+esc(l.d)+'</div></td>'+
-            '<td class="num">'+esc(l.o)+'</td><td>'+pill(l.s,l.l)+'</td></tr>';
-        }).join('')+'</tbody></table></div></div>'+
-      '</div>';
-  } else {
-    var c=CATS[sel.c];
-    body=
-      '<div class="grid g-1-2">'+
-        '<div class="card" style="border-color:var(--st-amber-line);">'+
-        '<div class="card-h"><div><h3>Not enough to say anything</h3>'+
-        '<div class="hint">This is deliberate, and it is the honest half of a categorised analyst.</div></div></div>'+
-        '<div class="callout warn">You hold <b>'+plural(sel.n,esc(catLabel(sel.c).toLowerCase())+' contract')+'</b>. '+
-        'A sentence like “78% of these get redlined” computed from '+sel.n+' documents is noise wearing the '+
-        'clothes of insight — and noise that looks like insight is worse than nothing, because people act on it.</div>'+
-        '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
-        'Statistics unlock at '+STAT_MIN+' contracts in a category. Until then the pack still runs every one of its checks, '+
-        'because a check works perfectly well on a single document.</div></div>'+
-        '<div class="card"><div class="card-h"><div><h3>What runs instead — the '+esc(c.short.toLowerCase())+' checks</h3>'+
-        '<div class="hint">Each of these answers on one contract, so it needs no volume at all — and each names where its answer comes from.</div></div></div>'+
-        '<div class="checklist" style="gap:9px;">'+c.checks.map(function(k){
-          return '<div><span>'+esc(k.t)+' '+srcTag(k.s)+'</span></div>';
-        }).join('')+'</div>'+
-        '<div class="thin"><div style="font-size:11.5px;color:var(--color-neutral-500);">Watching: '+esc(c.watches)+'.</div></div>'+
-        '</div>'+
-      '</div>';
+/* ====================== 5 · NEGOTIATION FRICTION =======================
+   This tab already existed in Insights. The previous cut of this prototype
+   built a "Negotiation stats" screen that measured the same thing from the
+   same place, so the two are one tab now rather than two doors saying
+   different numbers about the same negotiations. */
+const FRICTION = {
+  savanna:{
+    negotiations:46, opened:9, avgRounds:1.8,
+    top:{clause:'Clause 12 · LIMITATION OF LIABILITY', pct:78, extra:0.6},
+    refused:{n:7, deals:5},
+    slowest:{who:'Serena Hotels', rounds:2.6, book:1.8, accept:100},
+    stats:[['18 days','median to signature'],['6h','median decision time'],
+           ['73%','signed within 30 days'],['67%','changes accepted first pass']],
+    clauses:[['Clause 12 · LIMITATION OF LIABILITY',78,0.6],['Clause 9 · PAYMENT TERMS',54,0.3],
+             ['Clause 14 · INDEMNITY',44,0.5],['Clause 13 · TERMINATION FOR CONVENIENCE',37,0.4],
+             ['Clause 20 · GOVERNING LAW',31,-0.2],['Clause 17 · DATA PROTECTION',22,-0.3],
+             ['Clause 18 · CONFIDENTIALITY',18,-0.1]],
+    parties:[['Serena Hotels',3,2.6,100,'slow'],['Java House Group',5,2.1,76,'slow'],
+             ['Rift Valley Logistics',4,2.0,45,'slow'],['Naivas Supermarkets',9,1.6,88,'smooth'],
+             ['Carrefour Kenya',4,1.4,92,'smooth'],['Cloudpoint Systems',6,1.1,100,'smooth']]
+  },
+  ubuntu:{
+    negotiations:24, opened:3, avgRounds:2.1,
+    top:{clause:'Clause 4 · INDIRECT COST RECOVERY', pct:41, extra:0.8},
+    refused:{n:4, deals:3},
+    slowest:{who:'Nordic Development Agency', rounds:2.8, book:2.1, accept:45},
+    stats:[['34 days','median to signature'],['2 days','median decision time'],
+           ['38%','signed within 30 days'],['41%','changes accepted first pass']],
+    clauses:[['Clause 4 · INDIRECT COST RECOVERY',41,0.8],['Clause 5 · BUDGET REALLOCATION',32,0.5],
+             ['Clause 8 · REPORTING CYCLE',27,0.3],['Clause 15 · OWNERSHIP OF OUTPUTS',23,0.4],
+             ['Clause 11 · AUDIT & FLOW-DOWN',18,-0.1],['Clause 13 · TERMINATION',12,-0.2]],
+    parties:[['Nordic Development Agency',4,2.8,45,'slow'],['Global Health Fund',6,2.4,33,'slow'],
+             ['County Health Partnership',3,1.6,80,'smooth'],['Kilifi County Health',5,1.4,90,'smooth'],
+             ['Rift Motors Ltd',3,1.2,100,'smooth'],['(no counterparty)',3,1.0,100,'smooth']]
+  },
+  nordlund:{
+    negotiations:29, opened:6, avgRounds:1.3,
+    top:{clause:'Clause 9 · LIMITATION OF LIABILITY', pct:52, extra:0.7},
+    refused:{n:2, deals:2},
+    slowest:{who:'Hedberg AB', rounds:2.0, book:1.3, accept:60},
+    stats:[['11 days','median to signature'],['3h','median decision time'],
+           ['86%','signed within 30 days'],['79%','changes accepted first pass']],
+    clauses:[['Clause 9 · LIMITATION OF LIABILITY',52,0.7],['Clause 3 · SCOPE OF THE ENGAGEMENT',38,0.4],
+             ['Clause 4 · FEE BASIS AND UPLIFT',29,0.2],['Clause 12 · CONFLICTS & CONFIDENTIALITY',14,-0.3],
+             ['Clause 18 · GOVERNING LAW',10,-0.2]],
+    parties:[['Hedberg AB',4,2.0,60,'slow'],['Juridik Pro AB',2,1.5,50,'slow'],
+             ['Sundqvist Industri',3,1.5,75,'smooth'],['Fastighets AB Vasa',2,1.0,100,'smooth'],
+             ['(internal matters)',9,1.0,100,'smooth']]
   }
+};
 
-  $('#s-deals').innerHTML =
-    '<div class="page-head"><div><h1>Negotiation stats</h1>'+
-    '<div class="sub">This whole screen is HaTi timing and counting its own work — who filed what, when, and how '+
-    'long it sat. It is the one place where the source is the platform’s record rather than the contract.</div></div>'+
-    '<div class="acts"><button class="btn">Last 12 months</button><button class="btn btn-primary">Share</button></div></div>'+
-    sourceBar() + chips + body;
+function copRead(what){
+  return '<div class="copread">'+
+    '<div class="hd"><span class="ic">'+
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>'+
+    '</span><h3>Copilot’s read</h3><span class="tagline">Optional · AI</span></div>'+
+    '<button class="btn btn-primary" style="flex:none;">Interpret these numbers</button>'+
+    '<p>Copilot explains what is behind '+esc(what)+' and what to do about it this week. '+
+    '<b style="color:var(--color-text);font-weight:600;">Nothing runs until you press it</b>, and the counted '+
+    'figures never depend on it — they are read from your documents either way.</p></div>';
+}
+
+function renderFriction(){
+  var o=O(), f=FRICTION[org];
+  var maxPct = Math.max.apply(null, f.clauses.map(function(c){return c[1];}));
+
+  var clauses = f.clauses.map(function(c){
+    var up = c[2] > 0;
+    return '<div class="cl-row"><span class="nm" title="'+esc(c[0])+'">'+esc(c[0])+'</span>'+
+      '<span class="track"><span class="fill'+(up?'':' flat')+'" style="width:'+Math.round(c[1]/maxPct*100)+'%"></span></span>'+
+      '<span class="pc">'+c[1]+'%</span>'+
+      '<span class="rd '+(up?'up':'dn')+'">'+(up?'+':'−')+Math.abs(c[2]).toFixed(1)+'</span></div>';
+  }).join('');
+
+  var parties = f.parties.map(function(p){
+    return '<tr><td class="t-strong">'+esc(p[0])+'</td><td class="num">'+p[1]+'</td>'+
+      '<td class="num">'+p[2].toFixed(1)+'</td><td class="num">'+p[3]+'%</td>'+
+      '<td>'+pill(p[4]==='slow'?'amber':'green', p[4])+'</td></tr>';
+  }).join('');
+
+  $('#s-friction').innerHTML =
+    '<div class="panel-head"><div class="t">Every figure here is HaTi timing and counting its own work — who '+
+    'filed which change, when, and how long it sat before somebody decided. It is the one tab whose source is '+
+    'the platform’s record rather than the contract.</div>'+
+    '<div class="acts"><button class="btn">Export</button><button class="btn btn-primary">Share with the team</button></div></div>'+
+
+    copRead('these '+f.negotiations+' negotiations') +
+
+    '<div class="grid g-2-1">'+
+      '<div class="card"><div class="card-h"><div><h3>What is slowing you down</h3>'+
+      '<div class="hint">'+f.negotiations+' negotiations · '+f.opened+' opened this month · '+
+      f.avgRounds.toFixed(1)+' rounds each on average</div></div><div class="side">'+srcTag('hati')+'</div></div>'+
+
+      '<div class="fr-big"><span class="n">'+f.top.pct+'%</span><div class="bd">'+
+      'of negotiations get stuck on <b>'+esc(f.top.clause)+'</b> — and when they do, the deal takes '+
+      '<b>'+f.top.extra.toFixed(1)+' more rounds</b>. It is the single change worth making to your standard paper.'+
+      '<a href="#">Open the clause in Our standards →</a></div></div>'+
+
+      '<div class="fr-big"><span class="n">'+f.refused.n+'</span><div class="bd">'+
+      'changes are <b>refused and still open</b> — nobody withdrew them, so '+f.refused.deals+
+      ' deals are waiting on a decision somebody has to make.'+
+      '<a href="#">See the '+(f.refused.n===7?'seven':f.refused.n)+' →</a></div></div>'+
+
+      '<div class="fr-big"><span class="n">'+f.slowest.rounds.toFixed(1)+'</span><div class="bd">'+
+      'rounds per deal with <b>'+esc(f.slowest.who)+'</b>, against '+f.slowest.book.toFixed(1)+
+      ' across the book — the slowest counterparty you negotiate with, and they accept <b>'+
+      f.slowest.accept+'%</b> of what you ask.'+
+      '<a href="#">Filter the page to '+esc(f.slowest.who)+' →</a></div></div>'+
+
+      '<div class="fr-pair">'+f.stats.map(function(s){
+        return '<div><div class="k">'+esc(s[0])+'</div><div class="l">'+esc(s[1])+'</div></div>';
+      }).join('')+'</div>'+
+      '</div>'+
+
+      '<div style="display:flex;flex-direction:column;gap:14px;">'+
+      '<div class="card"><div class="card-h"><div><h3>Most-contested clauses</h3>'+
+      '<div class="hint">% of '+f.negotiations+' negotiations · and the rounds each one adds or saves</div></div></div>'+
+      clauses+
+      '<div class="thin" style="font-size:11px;color:var(--color-neutral-500);">'+
+      'A teal bar marks a clause that <b>costs</b> you rounds. Grey marks one that gets challenged and settles '+
+      'quickly anyway — those are not the ones to rewrite.</div></div>'+
+
+      '<div class="card"><div class="card-h"><div><h3>Friction by counterparty</h3>'+
+      '<div class="hint">Click a row to filter the whole tab</div></div></div>'+
+      '<div class="tblwrap"><table style="min-width:0;"><thead><tr><th>Counterparty</th>'+
+      '<th class="num">Deals</th><th class="num">Rounds</th><th class="num">Accept us</th><th></th></tr></thead>'+
+      '<tbody>'+parties+'</tbody></table></div></div>'+
+      '</div>'+
+    '</div>';
+}
+
+/* ======================== 6 · CONTRACT GRAPH ===========================
+   Also already in Insights. It draws who you are contracted with and how the
+   agreements connect — which, for a chain of donor to charity to partner, is
+   the clearest way to show a condition that failed to reach the end of it. */
+const GRAPH = {
+  savanna:{
+    cols:[['Customers',150],['Savanna Foods Ltd',450],['Suppliers',760]],
+    nodes:[
+      {id:'c1',x:40,y:56,w:215,l:'Naivas Supermarkets',s:'24% of contracted revenue',t:'amber'},
+      {id:'c2',x:40,y:118,w:215,l:'Carrefour Kenya',s:'15% of contracted revenue'},
+      {id:'c3',x:40,y:180,w:215,l:'Java House Group',s:'12% of contracted revenue'},
+      {id:'c4',x:40,y:242,w:215,l:'59 other customers',s:'40% between them'},
+      {id:'you',x:350,y:140,w:200,l:'Savanna Foods Ltd',s:'148 contracts · 6 categories',t:'you'},
+      {id:'s1',x:645,y:56,w:215,l:'Rift Valley Logistics',s:'2 rates on file above the ceiling',t:'ruby'},
+      {id:'s2',x:645,y:118,w:215,l:'Nairobi Cold Chain',s:'sole source · no alternative named',t:'ruby'},
+      {id:'s3',x:645,y:180,w:215,l:'Mombasa Packaging Co',s:'ceiling written in at 7%'},
+      {id:'s4',x:645,y:242,w:215,l:'38 other suppliers',s:'7 with no ceiling at all',t:'amber'}
+    ],
+    edges:[{a:'c1',b:'you',l:'24%',t:'amber'},{a:'c2',b:'you',l:'15%'},{a:'c3',b:'you',l:'12%'},
+           {a:'c4',b:'you',l:'40%'},
+           {a:'you',b:'s1',l:'KES 24.6M',t:'ruby'},{a:'you',b:'s2',l:'KES 11.2M',t:'ruby'},
+           {a:'you',b:'s3',l:'KES 8.4M'},{a:'you',b:'s4',l:'KES 142M'}],
+    h:320,
+    note:'Two nodes here are worth a second look: the customer holding a quarter of contracted revenue, and the '+
+         'supplier named as sole source with no alternative anywhere in the book. Both are counts over the '+
+         'agreements — nothing on this map is a receipt.'
+  },
+  ubuntu:{
+    cols:[['Funders',150],['Ubuntu Health Trust',450],['Partners holding funder money',760]],
+    nodes:[
+      {id:'ghf',x:40,y:70,w:215,l:'Global Health Fund',s:'KES 118M · quarterly reporting',t:'amber'},
+      {id:'nda',x:40,y:150,w:215,l:'Nordic Development Agency',s:'KES 46M · six-monthly'},
+      {id:'chp',x:40,y:230,w:215,l:'County Health Partnership',s:'KES 9M · annual'},
+      {id:'you',x:350,y:150,w:200,l:'Ubuntu Health Trust',s:'96 contracts · 6 categories',t:'you'},
+      {id:'p1',x:645,y:48,w:215,l:'Kilifi Community Org',s:'audit condition present',t:'ok'},
+      {id:'p2',x:645,y:118,w:215,l:'Coast Health Network',s:'audit condition MISSING',t:'ruby'},
+      {id:'p3',x:645,y:188,w:215,l:'Turkana Wellbeing',s:'audit condition MISSING',t:'ruby'},
+      {id:'p4',x:645,y:258,w:215,l:'Mombasa Youth Trust',s:'audit condition present',t:'ok'}
+    ],
+    edges:[{a:'ghf',b:'you',l:'61% of funding',t:'amber'},{a:'nda',b:'you',l:'24%'},{a:'chp',b:'you',l:'5%'},
+           {a:'you',b:'p1',l:'flowed down',t:'ok'},{a:'you',b:'p2',l:'not flowed down',t:'ruby',dash:true},
+           {a:'you',b:'p3',l:'not flowed down',t:'ruby',dash:true},{a:'you',b:'p4',l:'flowed down',t:'ok'}],
+    h:336,
+    note:'Clause 11.4 of the Global Health Fund agreement requires the audit right to reach every organisation '+
+         'holding its money. Two of the four partner agreements do not contain it. That gap was found by reading '+
+         'one document against another — the single most useful thing a graph of contracts can do, and it needs '+
+         'no system but this one.'
+  },
+  nordlund:{
+    cols:[['Clients',150],['Nordlund Advokatbyrå',450],['Suppliers & premises',760]],
+    nodes:[
+      {id:'c1',x:40,y:56,w:215,l:'Hedberg AB',s:'18% of contracted fees'},
+      {id:'c2',x:40,y:118,w:215,l:'Sundqvist Industri',s:'11% of contracted fees'},
+      {id:'c3',x:40,y:180,w:215,l:'8 engagements',s:'no cap on your liability',t:'ruby'},
+      {id:'c4',x:40,y:242,w:215,l:'11 other engagements',s:'capped at the fee paid',t:'ok'},
+      {id:'you',x:350,y:140,w:200,l:'Nordlund Advokatbyrå',s:'74 contracts · 6 categories',t:'you'},
+      {id:'s1',x:645,y:80,w:215,l:'Fastighets AB Vasa',s:'break option lapses 30 Nov',t:'amber'},
+      {id:'s2',x:645,y:150,w:215,l:'Juridik Pro AB',s:'40 seats licensed'},
+      {id:'s3',x:645,y:220,w:215,l:'3 other licences',s:'automatic uplift, no ceiling',t:'amber'}
+    ],
+    edges:[{a:'c1',b:'you',l:'18%'},{a:'c2',b:'you',l:'11%'},{a:'c3',b:'you',l:'uncapped',t:'ruby'},
+           {a:'c4',b:'you',l:'capped',t:'ok'},
+           {a:'you',b:'s1',l:'SEK 3.4M',t:'amber'},{a:'you',b:'s2',l:'SEK 0.4M'},{a:'you',b:'s3',l:'SEK 0.8M',t:'amber'}],
+    h:300,
+    note:'Because the map is drawn from the agreements, a group that shares a defect can be one node — the eight '+
+         'engagement letters with no liability cap sit together rather than being scattered across the picture.'
+  }
+};
+
+var GTONE = {
+  you:  {stroke:'var(--accent-solid)',  bar:'var(--accent-solid)'},
+  ruby: {stroke:'var(--st-ruby-line)',  bar:'var(--st-ruby-dot)'},
+  amber:{stroke:'var(--st-amber-line)', bar:'var(--st-amber-dot)'},
+  ok:   {stroke:'var(--st-green-line)', bar:'var(--st-green-dot)'},
+  none: {stroke:'var(--color-divider)', bar:'var(--color-neutral-300)'}
+};
+
+function renderGraph(){
+  var o=O(), g=GRAPH[org], H=44;
+  var by={}; g.nodes.forEach(function(n){ by[n.id]=n; });
+
+  /* The labels were unreadable because they sat ON the curves, not because
+     they were badly placed — pushing them out towards the nodes only sent
+     them under the boxes instead. They stay at the midpoint, where the fan
+     already spreads them vertically, and get a halo: the surface colour
+     painted as a stroke underneath the glyphs. */
+  function bez(t,p0,p1,p2,p3){
+    var u=1-t;
+    return u*u*u*p0 + 3*u*u*t*p1 + 3*u*t*t*p2 + t*t*t*p3;
+  }
+  var edges = g.edges.map(function(e){
+    var a=by[e.a], b=by[e.b];
+    var x1=a.x+a.w, y1=a.y+H/2, x2=b.x, y2=b.y+H/2, mx=(x1+x2)/2;
+    var tone=GTONE[e.t||'none'];
+    var t = 0.5;
+    var lx = bez(t,x1,mx,mx,x2), ly = bez(t,y1,y1,y2,y2);
+    return '<path d="M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2+'" fill="none" '+
+      'stroke="'+tone.bar+'" stroke-width="'+(e.t==='ruby'?2.2:1.6)+'"'+
+      (e.dash?' stroke-dasharray="5 4"':'')+' opacity="'+(e.t?'1':'.55')+'"/>'+
+      '<text class="gedge-l" x="'+lx.toFixed(1)+'" y="'+(ly-7).toFixed(1)+'" text-anchor="middle" '+
+      'stroke="var(--color-surface)" stroke-width="3.5" paint-order="stroke"'+
+      (e.t==='ruby'?' fill="var(--st-ruby-fg)"':'')+'>'+esc(e.l)+'</text>';
+  }).join('');
+
+  var nodes = g.nodes.map(function(n){
+    var tone=GTONE[n.t||'none'];
+    return '<g><rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+H+'" rx="10" '+
+      'fill="var(--color-surface)" stroke="'+tone.stroke+'" stroke-width="'+(n.t==='you'?2:1)+'"/>'+
+      '<rect x="'+(n.x+1)+'" y="'+(n.y+8)+'" width="3" height="'+(H-16)+'" rx="1.5" fill="'+tone.bar+'"/>'+
+      '<text class="gnode-l" x="'+(n.x+14)+'" y="'+(n.y+19)+'">'+esc(n.l)+'</text>'+
+      '<text class="gnode-s" x="'+(n.x+14)+'" y="'+(n.y+33)+'"'+
+      (n.t==='ruby'?' fill="var(--st-ruby-fg)" font-weight="700"':'')+'>'+esc(n.s)+'</text></g>';
+  }).join('');
+
+  var cols = g.cols.map(function(c){
+    return '<text class="gcol" x="'+c[1]+'" y="26" text-anchor="middle">'+esc(c[0])+'</text>';
+  }).join('');
+
+  $('#s-graph').innerHTML =
+    '<div class="panel-head"><div class="t">Who '+esc(o.name)+' is contracted with, drawn from the agreements '+
+    'themselves. Node position is the direction the paper flows; a coloured edge is a finding, not a decoration.</div>'+
+    '<div class="acts"><button class="btn">Download PNG</button><button class="btn">Expand</button></div></div>'+
+
+    '<div class="card"><div class="card-h"><div><h3>The contract graph</h3>'+
+    '<div class="hint">Every node and every line is a document or a group of documents already in HaTi.</div></div>'+
+    '<div class="side">'+srcTag('doc')+'</div></div>'+
+    '<div class="graphwrap"><svg viewBox="0 0 900 '+g.h+'" width="100%" height="'+g.h+'" role="img" '+
+    'aria-label="A map of the organisation and the counterparties it holds agreements with.">'+
+    cols + edges + nodes + '</svg></div>'+
+    '<div class="legend" style="margin-top:14px;">'+
+    '<span><i style="background:var(--st-ruby-dot)"></i>Something is wrong here</span>'+
+    '<span><i style="background:var(--st-amber-dot)"></i>Worth watching</span>'+
+    '<span><i style="background:var(--st-green-dot)"></i>As it should be</span>'+
+    '<span><i class="dash" style="border-top-color:var(--st-ruby-dot)"></i>A condition that did not reach the other end</span>'+
+    '</div>'+
+    '<div class="callout" style="margin-top:14px;">'+g.note+'</div></div>';
+}
+
+/* ============================ THE TAB ROW =============================
+   Seven tabs on one page, in the order somebody would actually use them:
+   the weekly read first, the configuration last, and the two tabs that were
+   already in Insights kept where they were rather than renamed. */
+var TABS = [
+  {id:'s-home',    label:'Overview',            sub:'the week’s read, by whose job it is'},
+  {id:'s-exp',     label:'Exposure',            sub:'five currencies of risk, cash being only one', count:function(o){return findingCount(o);}},
+  {id:'s-oblig',   label:'Obligations',         sub:'every promise in every contract, and when it falls due', count:function(o){return o.obligations.toLocaleString('en-GB');}},
+  {id:'s-brief',   label:'Briefings',           sub:'one page before every renewal, review or break date'},
+  {id:'s-friction',label:'Negotiation friction',sub:'what slows your negotiations down, and who'},
+  {id:'s-graph',   label:'Contract graph',      sub:'who you are contracted with, and how it connects'},
+  {id:'s-mix',     label:'Categories & packs',  sub:'what kind of contracts you hold, and what each pack checks', count:function(o){return o.mix.length;}}
+];
+var tab = 's-home';
+
+function renderTabs(){
+  var o=O();
+  $('#ins-tabs').innerHTML = TABS.map(function(t){
+    return '<button class="ins-tab'+(tab===t.id?' on':'')+'" data-tab="'+t.id+'" role="tab">'+
+      esc(t.label)+(t.count?'<span class="n">'+t.count(o)+'</span>':'')+'</button>';
+  }).join('');
+  var cur = TABS.filter(function(t){return t.id===tab;})[0];
+  $('#ins-sub').innerHTML = esc(o.name)+' · '+esc(o.kind)+', '+esc(o.market)+' — '+esc(cur.sub);
 }
 
 /* ------------------------------ PLUMBING ------------------------------- */
@@ -1795,24 +2085,27 @@ function renderAll(){
   $('#mkt-text').textContent=o.market;
   $('#avatar').textContent=o.initials;
   $('#nav-contracts').textContent=o.contracts;
-  $('#nav-oblig').textContent=o.obligations.toLocaleString('en-GB');
-  $('#nav-packs').textContent=o.mix.length;
   $('#nav-exp').textContent=findingCount(o);
-  renderHome(); renderMix(); renderOblig(); renderBrief(); renderExp(); renderDeals();
+  $('#ins-src').innerHTML = sourceBar();
+  renderTabs();
+  renderHome(); renderMix(); renderOblig(); renderBrief(); renderExp();
+  renderFriction(); renderGraph();
 }
-function go(id){
+function goTab(id){
+  tab=id;
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('on', s.id===id); });
-  document.querySelectorAll('.nav-item[data-go]').forEach(function(n){ n.classList.toggle('active', n.dataset.go===id); });
+  renderTabs();
   $('.main').scrollTop=0;
 }
 
-/* ONE delegated listener. Every screen is redrawn from data on each change, so
-   handlers bound to individual buttons would be lost the moment their screen
+/* ONE delegated listener. Every panel is redrawn from data on each change, so
+   handlers bound to individual buttons would be lost the moment their panel
    re-rendered — this catches clicks at the document instead. */
 document.addEventListener('click', function(ev){
-  var t=ev.target.closest('[data-go],[data-org],[data-role],[data-cur],[data-brief],[data-obview],[data-obcat],[data-dealcat]');
+  var t=ev.target.closest('[data-tab],[data-go],[data-org],[data-role],[data-cur],[data-brief],[data-obview],[data-obcat],[data-dealcat]');
   if(!t) return;
-  if(t.dataset.go){ go(t.dataset.go); return; }
+  if(t.dataset.tab){ goTab(t.dataset.tab); return; }
+  if(t.dataset.go){ goTab(t.dataset.go); return; }
   if(t.dataset.org){
     org=t.dataset.org; role=0; curKey='value'; obCat='all'; dealCat=null;
     document.querySelectorAll('.obtn').forEach(function(b){ b.classList.toggle('on', b.dataset.org===org); });
@@ -1823,7 +2116,15 @@ document.addEventListener('click', function(ev){
   if(t.dataset.brief){ briefKey=t.dataset.brief; renderBrief(); return; }
   if(t.dataset.obview){ obView=t.dataset.obview; renderOblig(); return; }
   if(t.dataset.obcat){ obCat=t.dataset.obcat; renderOblig(); return; }
-  if(t.dataset.dealcat){ dealCat=t.dataset.dealcat; renderDeals(); return; }
+});
+
+/* the time-range control is decoration in a prototype, but a control that
+   cannot be pressed reads as broken */
+document.querySelectorAll('.ins-range button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.ins-range button').forEach(function(o){ o.classList.remove('on'); });
+    b.classList.add('on');
+  });
 });
 
 renderAll();
