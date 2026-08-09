@@ -440,6 +440,11 @@ describe('f154 · the verdict shows on both change cards', () => {
     const bad = await mine(win, c, '6', '<p>Liability is uncapped.</p>');
     win.reviewAsk(c, { reviewer: BOSS, by: ME.name });
     win.reviewMark(c, bad.id, 'held');
+    /* Both must be ANSWERED before either is sendable: an unanswered change is
+       still sitting with the reviewer, and it stays behind for that reason
+       rather than for the hold's. */
+    win.reviewMark(c, good.id, 'cleared');
+    win.reviewReturn(c, {});
 
     const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
     assert.ok(html.includes(`data-rl-send="${good.id}"`), 'the cleared one may still be sent');
@@ -512,6 +517,8 @@ describe('f154 · the real share payload', () => {
 
     s.reviewAsk(c, { reviewer: BOSS, by: ME.name });
     s.reviewMark(c, bad.id, 'held', { note: 'INTERNAL-never-offer-this' });
+    s.reviewMark(c, good.id, 'cleared');
+    s.reviewReturn(c, {});
 
     /* Two arguments. This is reshareToLastRecipient's own call — the route every
        round after the first travels on, and the one that passes no options. */

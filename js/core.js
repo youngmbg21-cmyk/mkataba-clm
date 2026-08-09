@@ -2349,8 +2349,13 @@ function buildSharePayload(c, docHash, who, opts){
      reviewHeldIds is itself limited to UNSENT asks (see its own note): wording
      the other side already holds cannot be recalled, and a payload that quietly
      dropped it would read to them as us editing what we had already said. */
-  if (window.reviewHeldIds){
-    try{ for (const id of reviewHeldIds(c)) heldBack.add(id); }catch(_){}
+  if (window.reviewWithheldIds){
+    /* HELD **AND** STILL BEING LOOKED AT. Both stay behind, for the same
+       reason: wording sent while a colleague is midway through reading it makes
+       their verdict worthless — it arrives about something the counterparty has
+       already seen. The screens tell the two apart (ruby for a refusal, amber
+       for in flight); the payload does not need to. */
+    try{ for (const id of reviewWithheldIds(c)) heldBack.add(id); }catch(_){}
   }
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
     .filter(x => x.status !== 'superseded' && !heldBack.has(x.id))

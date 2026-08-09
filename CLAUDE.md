@@ -65,7 +65,19 @@ TWO TRAPS THIS FEATURE HIT IN ANGER, both worth remembering:
 - js/core.js declares its shell as `const` (currentUser, getUsers, userById, canEdit, state). A `const` is a LEXICAL binding, not a property of window, so a bare call from another module reaches core.js's copy and cannot be substituted. review.js therefore calls window.currentUser() and friends — but reads `state` BARE, because there is no window.state at all and `window.state && …` read as "no settings" forever, silently disabling the gate.
 - READING MUST NOT WRITE. reviewInit creates c.review; every read went through it at first, so merely painting a screen stamped an empty review onto the contract. f59 caught it. Only reviewAsk and reviewMark initialise now.
 
-Tests: f154 (the model, the gate, the wall, both renderers, the real payload) and f155 (the notification route). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
+WHAT A REVIEWER MAY DO TO THE WORDING. The review itself is feedback only — cleared / held / advice / note, and reviewMark writes nothing but a verdict. But a reviewer is an ordinary Editor, so they can open the clause and correct it like anyone, and the update-in-place rule folds that into the SAME change: same id, author unchanged (the ask is still whoever raised it), previous wording on revisions[], new fingerprint. negoFileChange now also stamps `revisedBy` when the reviser is not the author, and clears it when the author takes the wording back. Both card renderers print it; it is an internal name, so it is drawn on our seat only and is not in the share payload's allow-list. f158.
+
+A REVIEW IS A CHOSEN SUBSET, NOT EVERYTHING OUTSTANDING. rv.changeIds is the set actually asked about; reviewInOpen(c,ch) is the predicate, and the verdict buttons, the hand-back tally, the card badge and the gate all read it. "A review is open" and "this change is in it" are different questions — conflating them is how a review of one clause locked the whole round.
+
+TWO REASONS A CHANGE STAYS BEHIND, AND THEY ARE NOT THE SAME COLOUR. HELD is a refusal and wears ruby. OUT FOR REVIEW (in the open set, no verdict yet) is in flight and wears amber — reviewOutFor() returns the reviewer's name. Painting both red would hide the one that matters among the ones that do not. reviewWithheldIds() is the union and is what buildSharePayload subtracts: wording read by the counterparty while a colleague is midway through it makes their verdict worthless.
+
+PRESSING SEND WITH SOMETHING STILL OUT WARNS (reviewSendWarning) rather than refusing, when the rule is off — and offers "send the other N". Where the rule is ON the gate has already refused, so the warning never runs; two mechanisms for one fact would be two to keep in step.
+
+CHOOSING THE REVIEWER is a combobox, not a dropdown: a scrolling list stops working at about thirty people, and a real workspace has hundreds. It matches on name AND email, resolves a pasted address without the list being opened, and refuses four different ways with four different sentences (not a member / a viewer / yourself / no match). A reviewer must have a seat — they alone can lift a hold, so posting a review to an address with no account behind it would deadlock the send. The server refuses the same things.
+
+DO NOT WRITE class="ui-input" — the application does not define it anywhere. It was used throughout this feature and every field rendered unstyled; the reviewer picker in particular read as stray text. RV_FLD / RV_LBL in js/review.js quote core.js's own FLD/LBL.
+
+Tests: f154 (the model, the gate, the wall, both renderers, the real payload), f155 (the notification route) f156 (the picker, and a guard against broken encoding) f157 (the chosen subset, the two colours, the warning) and f158 (who rewrote the wording). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
 
 REMAINING SIDE DOORS — check on every change-related fix
 

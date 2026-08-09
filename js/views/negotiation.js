@@ -2083,7 +2083,7 @@ function negoLiveCardsHtml(c, opts){
                  renderers draw a change in this product and both have to carry
                  every fact about it — the day formatting-only changes shipped
                  was the day that stopped being advice. */}
-          ${window.reviewChipHtml ? reviewChipHtml(ch, opts) : ''}
+          ${window.reviewChipHtml ? reviewChipHtml(ch, opts, c) : ''}
         </div>
         ${ch.status === 'rejected' && !ch.withdrawn ? `<div class="nego-contested" data-contested="${_ne(ch.id)}">
           <b>${i18t('ng_still_between_you')}</b> This was refused. It stops being outstanding when
@@ -2096,6 +2096,10 @@ function negoLiveCardsHtml(c, opts){
                 you says nothing at all. It is a pill in the top row now, and the
                 card carries an edge. */}
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
+        ${''/* Both renderers carry it — the project's own duplication rule. */}
+        ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px"
+          title="${_ne(i18t('ng_revised_title'))}"><span aria-hidden="true">&#9998;</span> ${
+          i18t('ng_revised_by_after',{who:_ne(ch.revisedBy),author:_ne(ch.author)})}</div>` : ''}
         ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
           <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
@@ -2762,11 +2766,16 @@ function negoIndexSendHtml(c, opts = {}){
        says so rather than disappearing — a send that vanishes leaves the reader
        looking for the button rather than reading the reason. */
     const heldN = window.reviewHeldIds ? reviewHeldIds(c).size : 0;
-    const n = Math.max(0, total - heldN);
+    const waitN = window.reviewAwaiting ? reviewAwaiting(c).length : 0;
+    const n = Math.max(0, total - heldN - waitN);
     const them = _ne(String(c.counterparty || 'the counterparty'));
-    if (!n) return heldN ? `<div class="nego-index-send">
-      <span class="why">${_ne(i18tn('rv_all_held_note', heldN, { n: heldN }))}</span>
-    </div>` : '';
+    if (!n){
+      if (waitN) return `<div class="nego-index-send">
+        <span class="why">${_ne(i18tn('rv_all_waiting_note', waitN, { n: waitN }))}</span></div>`;
+      return heldN ? `<div class="nego-index-send">
+        <span class="why">${_ne(i18tn('rv_all_held_note', heldN, { n: heldN }))}</span>
+      </div>` : '';
+    }
     /* THE ONE SEND, WHERE THE DRAFTS ARE. This button used to have a flashing
        proxy in the page header ("Send All"), which crowded the toolbar until
        the contract dropdown clipped mid-word — two copies of one act. The
@@ -4061,6 +4070,44 @@ function negoReadPassage(range, root){
 }
 if (typeof window !== 'undefined') Object.assign(window, { negoReadPassage, _negoNodeText });
 
+/* ---- THE ACKNOWLEDGEMENT IS PER CONTRACT AND PER SET ----
+   Answering "send the rest" must not become a standing permission: file a new
+   change, put it in a review, press send again, and the question has to be
+   asked again. Keyed on the ids actually waiting, so any change to that set
+   re-asks. Held in memory only — a decision this cheap to re-ask is not worth
+   persisting, and a stored one would outlive the reason it was given. */
+let _rlSendAck = {};
+const _rlAckKey = (c, warn) => String(c && c.id) + '|' + (warn.ids || []).slice().sort().join(',');
+const _rlSendAcked = (c, warn) => _rlSendAck[_rlAckKey(c, warn)] === true;
+const _rlAckSend = (c, warn) => { _rlSendAck[_rlAckKey(c, warn)] = true; };
+
+/* Three answers, because there are three sensible things to do and a yes/no
+   dialog would force the useful one to be spelled out in prose instead. */
+function reviewConfirmSend(c, warn, handlers){
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  if (!window.openModal){ handlers.onRest && handlers.onRest(); return; }
+  openModal(`
+    <div style="padding:18px 20px 16px">
+      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 6px">${e(i18t('rv_warn_title'))}</h2>
+      <p style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-700);margin:0 0 12px">${e(warn.text)}</p>
+      <ul style="list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:4px">
+        ${warn.ids.map(id => `<li style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-700)">#${e(id)}</li>`).join('')}
+      </ul>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button id="rv-warn-wait" class="ui-btn">${e(i18t('rv_warn_wait'))}</button>
+        <button id="rv-warn-rest" class="ui-btn ui-btn-primary"${warn.restIds.length ? '' : ' disabled'}>${
+          e(i18tn('rv_warn_send_rest', warn.restIds.length, { n: warn.restIds.length }))}</button>
+      </div>
+    </div>`, { maxWidth: '30rem' });
+  document.getElementById('rv-warn-wait')?.addEventListener('click', () => {
+    closeModal(); handlers.onWait && handlers.onWait();
+  });
+  document.getElementById('rv-warn-rest')?.addEventListener('click', () => {
+    closeModal(); handlers.onRest && handlers.onRest();
+  });
+}
+
 function wireNegotiationTab(c, opts = {}){
   const side = opts.side || 'owner';
   const host = document.getElementById(opts.hostId || 'nego-tab');
@@ -4284,6 +4331,23 @@ function wireNegotiationTab(c, opts = {}){
     if (window.reviewGateMessage){
       let msg = null; try{ msg = reviewGateMessage(c); }catch(_){ msg = null; }
       if (msg){ if (window.toast) toast(msg, 'err'); return; }
+    }
+    /* ---- AND THE SOFTER CASE: SOME OF THIS IS STILL BEING LOOKED AT ----
+       With the rule off, sending wording that is sitting with a colleague is
+       allowed and is almost always a mistake — the review comes back the next
+       morning with a verdict on something the counterparty has already read.
+       So it asks, once, and names who is holding it. Answering "send the rest"
+       leaves those changes behind exactly as a hold would; there is no third
+       state and nothing new to remember. */
+    if (window.reviewSendWarning){
+      let warn = null; try{ warn = reviewSendWarning(c); }catch(_){ warn = null; }
+      if (warn && !_rlSendAcked(c, warn)){
+        reviewConfirmSend(c, warn, {
+          onRest: () => { _rlAckSend(c, warn); send.click(); },
+          onWait: () => {},
+        });
+        return;
+      }
     }
     /* WE ALREADY KNOW WHERE THIS GOES. With an address recorded, the send is a
        send — the same one-press act the counterparty's postbox has always been.
@@ -5637,6 +5701,15 @@ function redlineLayoutCss(){
   .redline-page .rl-caret-open{transform:rotate(180deg)}
   .redline-page .rl-caret:focus-visible{outline:2px solid var(--color-accent);border-radius:3px}
   /* Tighter, because a collapsed card is a row in a list rather than a panel. */
+  /* ---- THE TWO REVIEW STATES, TOLD BY THE EDGE ----
+     Amber: out with a colleague, still in flight. Ruby: they held it, and it is
+     not going anywhere. Deliberately NOT the same colour — see the note on
+     reviewChipHtml in js/review.js. The edge is drawn as an inset shadow rather
+     than a border so it cannot shift the card's geometry when the state
+     changes; a row that jumps two pixels on repaint is how a column of eight
+     cards reads as unstable. */
+  .redline-page .rl-card[data-rv-waiting]{box-shadow:inset 3px 0 0 var(--st-amber-dot)}
+  .redline-page .rl-card[data-rv-held]{box-shadow:inset 3px 0 0 var(--st-ruby-dot)}
   .redline-page .rl-card-shut{padding:9px 12px}
   .redline-page .rl-card-shut .rl-card-top{margin-bottom:3px}
   /* ---- SHUT HIDES THE BODY; A PEEK PUTS IT BACK ----
@@ -6437,13 +6510,20 @@ function renderRedline(){
      in its own words, because "3 unsent" quietly becoming "2 unsent" after a
      reviewer looked at it reads as a change having disappeared. */
   const _held = (side === 'owner' && window.reviewHeldIds) ? reviewHeldIds(c).size : 0;
-  const _goes = Math.max(0, _unsent - _held);
+  const _wait = (side === 'owner' && window.reviewAwaiting) ? reviewAwaiting(c).length : 0;
+  const _goes = Math.max(0, _unsent - _held - _wait);
+  /* THE COUNT IS WHAT WILL TRAVEL. The two reasons something is staying behind
+     are named separately rather than folded into one number: "held" is a person
+     having said no, "in review" is a person not having answered yet, and a
+     reader deciding whether to chase somebody needs to know which. */
   const sendLabel = (side === 'owner' ? 'Publish Round' : 'Send Response')
     + (_goes ? ` · ${_goes} unsent` : '')
-    + (_held ? ` · ${_held} held` : '');
+    + (_held ? ` · ${_held} held` : '')
+    + (_wait ? ` · ${_wait} in review` : '');
   const sendTip = side === 'owner'
     ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
-      + (_held ? ` — ${_held} change${_held === 1 ? '' : 's'} held back by an internal reviewer will not travel` : '')
+      + (_held ? ` — ${_held} held back by an internal reviewer will not travel` : '')
+      + (_wait ? ` — ${_wait} still with a colleague and will not travel yet` : '')
     : `Send the answers and counter-proposals held on this page to ${sendWho}`;
   /* ---- CLOSING THE ROUND, FROM THE PAGE THE ROUND IS WORKED ON ----
      negoAdvanceRound archives the decided changes onto the round record and
@@ -8823,7 +8903,13 @@ function redlineChangeCardsHtml(c, opts = {}){
        model, rather than deciding it in this file — the phone's card and the
        contract tab's card ask the same function the same question. */
     const rvHeld = !theirs && !!(window.reviewHeld && reviewHeld(ch)) && unsent.has(ch.id);
-    const mineUnsent = !theirs && unsent.has(ch.id) && !rvHeld;
+    /* OUT WITH A COLLEAGUE, and therefore not something to send. Same treatment
+       as a hold — the Send verb comes off — but a different badge and a
+       different colour, because waiting and refused are different states and
+       the card has to say which. */
+    const rvOut = !theirs && unsent.has(ch.id)
+      && !!(window.reviewOutFor && reviewOutFor(c, ch));
+    const mineUnsent = !theirs && unsent.has(ch.id) && !rvHeld && !rvOut;
     const mineSent = !theirs && !unsent.has(ch.id) && ch.status === 'pending';
     const heldHere = heldIds.has(ch.id) && ch.status !== 'pending';
     const sentHere = sentIds.has(ch.id) && ch.status !== 'pending' && !heldHere;
@@ -8833,6 +8919,7 @@ function redlineChangeCardsHtml(c, opts = {}){
       : sentHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; sent'] : ['no', 'Rejected &middot; sent'])
       : contested ? ['no', !theirs ? 'Refused &middot; withdraw or revise' : 'Refused &middot; waiting on them']
       : rvHeld ? ['no', '&#9209; ' + i18t('rv_badge_held')]
+      : rvOut ? ['draft', '&#8987; ' + i18t('rv_badge_waiting')]
       : mineUnsent ? ['draft', '&#128274; Draft']
       : theirs ? ['sent', 'Awaiting you'] : ['sent', 'Sent'];
     /* The organisation is the AUTHOR's, not the viewer's. Written seat-relative
@@ -8849,7 +8936,10 @@ function redlineChangeCardsHtml(c, opts = {}){
       .filter(Boolean).map(_ne).join(' &middot; ');
     /* The same tooltip the marked wording in the document carries, so hovering
        either one answers the same question with the same words. */
-    const lastBy = String(ch.author || ch.by || '').trim();
+    /* The person who last MOVED the wording, which is the reviser where there is
+       one. It used to read the author unconditionally and so claimed the
+       original author had made a change somebody else made. */
+    const lastBy = String((side !== 'counterparty' && ch.revisedBy) || ch.author || ch.by || '').trim();
     const tip = lastBy ? `Last updated by ${lastBy}` : '';
     /* ---- THE PROVENANCE LABEL IS NOT PAINTED ----
        `ch.note` on a Copilot-filed change is provenance — "Copilot — Edit",
@@ -8892,6 +8982,23 @@ function redlineChangeCardsHtml(c, opts = {}){
     const behalfBlock = ch.enteredBy
       ? `<div class="rl-card-behalf" title="${i18t('ng_typed_on_behalf')}">`
         + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_entered_by_on_behalf',{who:_ne(ch.enteredBy),author:_ne(ch.author)})}</div>`
+      : '';
+    /* ---- AND WHO REWROTE IT, WHEN THAT IS NOT WHO ASKED ----
+       The same idea as the stamp above, one step along: enteredBy says who
+       TYPED an ask filed in somebody else's name, this says who last changed
+       the WORDING of an ask that stays in its author's name. It shows up when a
+       colleague reviewing a redline simply corrects it, which is the common and
+       useful thing for them to do — and which, until this line existed, left
+       the card attributing their words to the person who raised the change. */
+    /* OUR SEAT ONLY. The name of a colleague who corrected our wording is an
+       internal fact, exactly like the note the reviewer left on it — the
+       payload does not carry `revisedBy` at all, so the counterparty's real
+       page could never draw this, and Counterparty View is supposed to show
+       what they see rather than one thing more. Caught by f158 before it
+       shipped, on the preview rather than in the payload. */
+    const revisedBlock = (side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author)
+      ? `<div class="rl-card-behalf" title="${_nea(i18t('ng_revised_title'))}">`
+        + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_revised_by_after',{who:_ne(ch.revisedBy),author:_ne(ch.author)})}</div>`
       : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
@@ -9008,7 +9115,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     /* The reviewer's verdict, and — on the reviewer's own screen — the buttons
        that set it. Both come from js/review.js so this card and the contract
        tab's card cannot disagree about what the boss said. */
-    const rvChip = window.reviewChipHtml ? reviewChipHtml(ch, opts) : '';
+    const rvChip = window.reviewChipHtml ? reviewChipHtml(ch, opts, c) : '';
     const rvNoteBlock = (() => {
       if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
       const v = window.reviewOn ? reviewOn(ch) : null;
@@ -9017,7 +9124,7 @@ function redlineChangeCardsHtml(c, opts = {}){
         <span class="rl-card-why-k">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
         <span class="nego-why-clamp">${_ne(v.note)}</span></div>`;
     })();
-    const body = `<div class="rl-card-body">${behalfBlock}${whyBlock}${rvNoteBlock}${
+    const body = `<div class="rl-card-body">${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${
       window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
@@ -9027,6 +9134,8 @@ function redlineChangeCardsHtml(c, opts = {}){
     return `<article class="rl-card${open ? '' : ' rl-card-shut'}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
+      rvOut ? ' data-rv-waiting="1"' : ''}${
+      rvHeld ? ' data-rv-held="1"' : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
       ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}"${
       mayPeek ? ' data-rl-peek="1"' : ''}${
