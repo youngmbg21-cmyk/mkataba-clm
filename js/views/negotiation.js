@@ -2106,13 +2106,15 @@ function negoLiveCardsHtml(c, opts){
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
           const v = window.reviewOn ? reviewOn(ch) : null;
-          return (v && v.note) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
+          /* Same rule as the workbench's twin: the note names its author. */
+          const sayBy = (v && window.reviewVerdictByFor) ? reviewVerdictByFor(ch, null, c) : (v && v.by);
+          return (v && v.note && sayBy) ? `<div style="border-left:2px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
             ${''/* NOT UPPERCASE, unlike the labels above it: this one holds a
                    PERSON'S NAME. "WHY THEY ASKED" is a caption and capitals
                    read as a caption; "ACHIENG OTIENO SAID" reads as shouting,
                    and a long name in caps outgrows the card. Same rule as the
                    review chip beside it. */}
-            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
+            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)">${i18t('rv_reviewer_said', { who: _ne(sayBy) })}</span>
             <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
@@ -2729,7 +2731,9 @@ function negoTurnBannerHtml(c, opts){
     ${''/* Only when the postbox is NOT up. With unsent asks the send belongs in
            the index beside them; with none, this is the way to hand the
            contract back unchanged, and there is nowhere else for it. */}
-    ${mine && !heldHere && !opts.readonly && side === 'owner'
+    ${''/* And not while the reader is somebody's reviewer here: a door that
+           opens onto a refusal is worse than no door. */}
+    ${mine && !heldHere && !opts.readonly && side === 'owner' && !rlActorHeld(c, opts)
       ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">${i18t('ng_send_to_who',{who:_ne(c.counterparty || i18t('ng_the_counterparty'))})}</button>`
       : ''}
   </div>`;
@@ -2774,6 +2778,15 @@ function negoIndexSendHtml(c, opts = {}){
     const waitN = window.reviewAwaiting ? reviewAwaiting(c).length : 0;
     const n = Math.max(0, total - heldN - waitN);
     const them = _ne(String(c.counterparty || 'the counterparty'));
+    /* AND NOT WHILE THE READER IS A REVIEWER HERE. Same reasoning as the held
+       count above, one step further out: this button publishes, and a person
+       who has accepted a review does not publish on this contract until they
+       have handed it back. Says why rather than vanishing, for the reason the
+       comment above gives. */
+    if (rlActorHeld(c, opts) && window.reviewActorBlockMessage){
+      const why = reviewActorBlockMessage(c);
+      return why ? `<div class="nego-index-send"><span class="why">${_ne(why)}</span></div>` : '';
+    }
     if (!n){
       if (waitN) return `<div class="nego-index-send">
         <span class="why">${_ne(i18tn('rv_all_waiting_note', waitN, { n: waitN }))}</span></div>`;
@@ -3085,7 +3098,9 @@ function negoRoomActionsHtml(c, opts){
      let someone reading history accept the round behind it, which is the
      "nothing here to accept" rule leaking at the top of the page. */
   const comparing = !negoIsLivePair(negoComparePair().left, negoComparePair().right);
-  const canAct = !opts.readonly && !comparing;
+  /* Same posture as the workbench — see rlActorHeld. Both renderers or the two
+     screens disagree about what a reviewer may do. */
+  const canAct = !opts.readonly && !comparing && !rlActorHeld(c, opts);
   if (side === 'counterparty'){
     /* The counterparty's actions occupy the slot the owner uses for Save Draft
        and Share Link. Same room, same place on the screen, the verbs each side
@@ -4160,8 +4175,23 @@ function wireNegotiationTab(c, opts = {}){
     if (window.toast) toast(i18t('ng_view_only_no_actions'), 'err');
     return true;
   };
+  /* THE REVIEWER'S POSTURE, ENFORCED AND NOT MERELY UNDRAWN. The cards stop
+     offering Accept and Reject while a review is open with this reader, but a
+     hidden verb is a decision about pixels; this is the decision about the
+     record. Answering the counterparty settles their ask and travels on the
+     next round, which is precisely what a person who has taken on a review
+     does not do here until they hand it back. */
+  const postureOut = () => {
+    if (opts.side === 'counterparty' || opts.readonly) return false;
+    if (typeof window.reviewActorBlockMessage !== 'function') return false;
+    let msg = null;
+    try{ msg = reviewActorBlockMessage(c); }catch(_){ return false; }
+    if (!msg) return false;
+    if (window.toast) toast(msg, 'err');
+    return true;
+  };
   const decide = (id, status, extra) => {
-    if (lockedOut()) return;
+    if (lockedOut() || postureOut()) return;
     const ch = negoResolve(c, id, status, { side, by: opts.by, ...(extra || {}) });
     if (!ch) return;
     delete _negoRedeciding[id];   // answered again — the card settles again
@@ -6568,7 +6598,13 @@ function renderRedline(){
      naming dialog the room uses, because closing is irreversible. */
   const prog = (typeof negoProgress === 'function') ? negoProgress(c)
     : { pending: 0, total: 0 };
-  const closer = (!prog.pending && prog.total && side === 'owner')
+  /* AND NEITHER ACT IS THE REVIEWER'S while their review is open. Publishing
+     puts wording in front of the counterparty; closing the round makes the
+     agreed wording the next baseline, which settles what was sent. A person who
+     accepted a review does neither here until they have handed it back — the
+     posture, not the gate. See rlActorHeld. */
+  const _rvPosture = rlActorHeld(c, { side, readonly: false });
+  const closer = (!prog.pending && prog.total && side === 'owner' && !_rvPosture)
     ? `<button data-rl-close-round class="rl-btn rl-btn-go" title="${_nea(i18t('ng_close_round_title'))}">&#10003; ${i18t('ng_close_round_n',{n:negoRound(c)})}</button>` : '';
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
@@ -6668,7 +6704,7 @@ function renderRedline(){
                are what this row is FOR; the toggle is a way of looking, and a
                way of looking should not sit in front of the act. */}
         <div class="rl-actions">
-          ${side === 'counterparty' ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
+          ${side === 'counterparty' || _rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             ${_ne(sendLabel)}</button>`}
           ${side === 'counterparty' ? '' : closer}
@@ -8897,10 +8933,31 @@ function redlineCardIds(c, opts = {}){
   return all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
     || sentIds.has(x.id)) && !hidden.has(x.id)).map(x => x.id);
 }
+/* ---- YOU WERE ASKED TO LOOK AT A CLAUSE, NOT TO RUN THE ROUND ----
+   While a review is open with this person, nothing they do on this contract
+   reaches the counterparty: no answering the other side's proposals, no sending
+   a change, no publishing the round. They keep the two things the job needs —
+   ruling on their own clauses and correcting that wording — and everything
+   returns the moment they hand back.
+
+   Not asked on the counterparty's own seat: that is a different company's
+   reader, they have no internal review here, and reviewActorHeld would be
+   answering about the wrong person entirely. */
+function rlActorHeld(c, opts = {}){
+  if (opts.side === 'counterparty' || opts.readonly) return false;
+  if (typeof window.reviewActorIsHeld !== 'function') return false;
+  try{ return reviewActorIsHeld(c); }catch(_){ return false; }
+}
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const canAct = !opts.readonly;
-  const editable = canAct && opts.canEdit !== false;
+  const held = rlActorHeld(c, opts);
+  /* Answering the counterparty IS reaching them: an accept settles their ask
+     and travels on the next round. */
+  const canAct = !opts.readonly && !held;
+  /* Editing is not reaching them, and a reviewer correcting the wording is the
+     thing this feature was built to allow. So `editable` keeps its own answer
+     and only the SEND verbs below consult the posture. */
+  const editable = !opts.readonly && opts.canEdit !== false;
   const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
   /* Through the wall: the other side's unsent drafts have no card on this
      side, because on this side they do not exist. opts.hiddenIds — see
@@ -9136,7 +9193,10 @@ function redlineChangeCardsHtml(c, opts = {}){
         title="${_nea(i18t('rv_card_ask_title'))}">&#128100; ${i18t('rv_card_ask')}</button>`);
     if (editable && mineUnsent) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
         title="${_nea(i18t('ng_retract_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_retract')}</button>`);
-    if (editable && mineUnsent) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
+    /* The one verb on this card that reaches the other company, so the one the
+       reviewer's posture takes away. Retract above stays: taking your own draft
+       back is not a send. */
+    if (editable && mineUnsent && !held) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
         title="${_nea(i18t('ng_send_unsent_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_send')}</button>`);
     /* ---- AND WHAT THE SEND BECOMES ----
        Not the button disappearing. A verb that vanishes on success leaves the
@@ -9217,10 +9277,15 @@ function redlineChangeCardsHtml(c, opts = {}){
       if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
       const v = window.reviewOn ? reviewOn(ch) : null;
       if (!v || !v.note) return '';
+      /* THE NOTE NAMES ITS AUTHOR, so it is theirs and the requester's to read.
+         The chip above already drops the name for everybody else; leaving the
+         note behind would have handed back both the name and the reasoning. */
+      const sayBy = window.reviewVerdictByFor ? reviewVerdictByFor(ch, null, c) : v.by;
+      if (!sayBy) return '';
       return `<div class="rl-card-why" style="border-left-color:var(--st-amber-line)">
         ${''/* rl-said-k, not the bare caption class: this line holds a PERSON'S
                NAME and capitals read as shouting. See the twin in negoDocHtml. */}
-        <span class="rl-card-why-k rl-said-k">${i18t('rv_reviewer_said', { who: _ne(v.by) })}</span>
+        <span class="rl-card-why-k rl-said-k">${i18t('rv_reviewer_said', { who: _ne(sayBy) })}</span>
         <span class="nego-why-clamp">${_ne(v.note)}</span></div>`;
     })();
     const body = `<div class="rl-card-body">${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${

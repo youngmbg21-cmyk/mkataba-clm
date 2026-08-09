@@ -218,6 +218,27 @@ function reviewOutFor(c, ch){
   const rv = reviewOpenFor(c, ch);
   return (rv && rv.reviewer && rv.reviewer.name) || null;
 }
+/* THE SAME QUESTION, ASKED BY A SCREEN. "Is this change out" is everybody's
+   business — it governs whether the round can be sent. WHO is holding it is the
+   business of the two people in that review and of an admin, so this returns
+   the name only to them and null to everyone else. Declared here and defined
+   after reviewMaySee, which needs the identity helpers below. */
+function reviewOutNameFor(c, ch, u){
+  const name = reviewOutFor(c, ch);
+  if (!name) return null;
+  return reviewMaySee(reviewOpenFor(c, ch), u) ? name : null;
+}
+/* And for a verdict already given: the reviewer's name, or null. */
+function reviewVerdictByFor(ch, u, c){
+  const v = reviewOn(ch);
+  if (!v) return null;
+  const rv = c ? (reviewRequests(c) || []).find(r => r && r.id === v.reviewId) : null;
+  /* An older record carries no reviewId. Fall back to the name on the verdict
+     and show it only to an admin — a stored verdict must not become the way
+     round the rule. */
+  if (!rv) return _rvIsAdmin(u) ? (v.by || null) : null;
+  return reviewMaySee(rv, u) ? (v.by || null) : null;
+}
 /* Our own unsent asks currently sitting with somebody. What the send warning
    counts, and what the card's amber edge is drawn from. */
 function reviewAwaiting(c){
@@ -307,14 +328,87 @@ function reviewIsRequester(rv, u){
   if (rv.byId && me.id) return String(rv.byId) === String(me.id);
   return !!rv.by && String(rv.by) === String(me.name);
 }
+const _rvIsAdmin = u => { const me = u || _rvMe(); return !!(me && me.role === 'admin'); };
+
+/* ---------- A REVIEW IS NOT PUBLIC INSIDE THE COMPANY ----------
+   Reported from the field (Young, 09 Aug 2026): a colleague asked to look at
+   one clause could read every open review on the contract — who else was
+   reviewing, what they were sent, when it was due — and could press Cancel on
+   any of them.
+
+   Escalating a clause is an act with politics in it. "Legal are looking at the
+   indemnity" is the requester's information to share or not, and a second
+   reviewer has no business learning it just because they were handed a
+   different clause. So a review is visible to the two people in it and to an
+   admin, and to nobody else.
+
+   WHAT EVERYBODY ELSE STILL SEES. That a change is held, or out — because that
+   governs whether it can be sent and anyone working the contract needs it —
+   but not a name. reviewChipHtml drops the name rather than the chip. */
+function reviewMaySee(rv, u){
+  const me = u || _rvMe();
+  if (!rv || !me) return false;
+  return _rvIsAdmin(me) || reviewIsReviewer(rv, me) || reviewIsRequester(rv, me);
+}
+/* YOU RAISED IT, SO YOU CAN WITHDRAW IT — and an admin can, so nothing is stuck
+   when somebody is away. A reviewer cannot cancel their way out of a job, and
+   emphatically cannot cancel somebody else's. Checked in the model and not only
+   by hiding the button: there was no check here at all. */
+function reviewMayCancel(rv, u){
+  const me = u || _rvMe();
+  if (!rv || !me) return false;
+  return _rvIsAdmin(me) || reviewIsRequester(rv, me);
+}
+
+/* ---------- WHILE YOUR REVIEW IS OPEN, YOU ARE A REVIEWER ----------
+   Asked for by name (Young, 09 Aug 2026): "my responsibility is only related to
+   the one clause I need to provide feedback for", and today the person asked
+   keeps every ordinary power — they can publish the round, answer the
+   counterparty and send the very wording somebody else is still reading.
+
+   So being asked NARROWS you on that contract, for as long as the ask is open:
+   rule on your own clauses, correct that wording, and nothing that reaches the
+   counterparty. Handing back returns everything, which is what makes this
+   bearable — it is a posture, not a demotion.
+
+   Returns the open reviews this person owes a verdict on, or null. */
+function reviewActorHeld(c, u){
+  const me = u || _rvMe();
+  if (!c || !me) return null;
+  const mine = reviewMineOpen(c, me);
+  return mine.length ? mine : null;
+}
+const reviewActorIsHeld = (c, u) => !!reviewActorHeld(c, u);
+/* The refusal in one sentence, or null. Every door that puts wording in front
+   of the counterparty prints exactly this, so they cannot each invent their own
+   account of the same rule. */
+function reviewActorBlockMessage(c, u){
+  const mine = reviewActorHeld(c, u);
+  if (!mine) return null;
+  const n = mine.reduce((a, rv) => a + (rv.changeIds || []).length, 0);
+  return i18tn('rv_actor_locked', n, { n, who: mine[0].by });
+}
+
 /* Who can be asked. Viewers are excluded because a viewer cannot decide
    anything anywhere else in the product either, and a review they could not act
    on would be a request into a void. Yourself is excluded for the reason the
-   change model already states in its own words: nobody rules on their own ask. */
-function reviewCandidates(){
+   change model already states in its own words: nobody rules on their own ask.
+
+   AND THEY MUST BE ABLE TO OPEN THE CONTRACT. A member restricted to other
+   value streams cannot see this one at all — the server keeps it out of their
+   register — so a request posted to them is a request into a void of a
+   different kind, and a worse one: only the named reviewer can lift a hold, so
+   the send sits behind a wall whose only key belongs to somebody who cannot
+   reach the door. The server refuses the same thing on the same grounds. */
+function reviewCandidates(c){
   const me = _rvMe();
+  const folder = c && c.folder;
+  const reaches = u => {
+    if (!folder || typeof window.canAccessFolder !== 'function') return true;
+    try{ return canAccessFolder(folder, u); }catch(_){ return true; }
+  };
   return (window.getUsers ? window.getUsers() : [])
-    .filter(u => u && u.role !== 'viewer' && !(me && String(u.id) === String(me.id)));
+    .filter(u => u && u.role !== 'viewer' && !(me && String(u.id) === String(me.id)) && reaches(u));
 }
 
 /* ---------- FINDING A COLLEAGUE IN A COMPANY OF HUNDREDS ----------
@@ -344,8 +438,8 @@ const _rvIsEmailish = s => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(s || ''
 /* The list under the field: everyone who matches, best first. Capped by the
    caller, which also says how many were left out — a silent truncation reads as
    "that is everybody" when it is not. */
-function reviewSearchPeople(q, limit){
-  const all = reviewCandidates();
+function reviewSearchPeople(q, limit, c){
+  const all = reviewCandidates(c);
   const s = String(q || '').trim().toLowerCase();
   if (!s) return { hits: all.slice(0, limit || 8), total: all.length };
   const score = u => {
@@ -363,7 +457,7 @@ function reviewSearchPeople(q, limit){
 
 /* What a typed string resolves to. Returns { ok, user } or { ok:false, why },
    where `why` is a sentence rather than a code — it is printed as-is. */
-function reviewResolvePerson(q){
+function reviewResolvePerson(q, c){
   const raw = String(q || '').trim();
   if (!raw) return { ok: false, why: i18t('rv_pick_someone') };
   /* Accept what the list itself puts in the box ("Name — address"), so a value
@@ -385,6 +479,16 @@ function reviewResolvePerson(q){
     why: _rvIsEmailish(typed) ? i18t('rv_who_not_a_member', { email: typed }) : i18t('rv_who_no_match') };
   if (me && String(hit.id) === String(me.id)) return { ok: false, why: i18t('rv_who_is_you') };
   if (hit.role === 'viewer') return { ok: false, why: i18t('rv_who_is_viewer', { who: hit.name }) };
+  /* A FIFTH REFUSAL, and the one with a deadlock behind it: somebody who cannot
+     open this contract at all. Only the named reviewer can lift a hold, so a
+     request posted to them leaves the wording behind a wall with no key on this
+     side of it. Answerable only where this browser knows their scope — an
+     admin's does; the server refuses the same thing for everyone else. */
+  if (c && c.folder && typeof window.canAccessFolder === 'function'){
+    let reaches = true;
+    try{ reaches = canAccessFolder(c.folder, hit); }catch(_){ reaches = true; }
+    if (!reaches) return { ok: false, why: i18t('rv_who_no_stream', { who: hit.name }) };
+  }
   return { ok: true, user: hit };
 }
 
@@ -450,6 +554,15 @@ function reviewCancel(c, o = {}){
   const open = reviewOpenList(c);
   const rv = o.reviewId ? open.find(r => r.id === o.reviewId) : (open.length === 1 ? open[0] : null);
   if (!rv){ if (open.length > 1) _rvSay(i18t('rv_which_review'), 'err'); return null; }
+  /* YOU RAISED IT OR YOU RUN THE PLACE. There was no check here at all, so a
+     colleague asked to look at one clause could withdraw somebody else's
+     escalation — including the requester's, on a clause they were never shown.
+     See reviewMayCancel. */
+  const actor = o.by ? { name: o.by, id: o.byId || null, role: o.role } : _rvMe();
+  if (!o.force && !reviewMayCancel(rv, actor)){
+    _rvSay(i18t('rv_only_requester_cancels', { who: rv.by }), 'err');
+    return null;
+  }
   rv.status = 'cancelled';
   rv.returnedAt = _rvNow();
   const by = String(o.by || (_rvMe() && _rvMe().name) || 'System');
@@ -660,9 +773,12 @@ function reviewNames(list){
   if (names.length === 2) return i18t('rv_two_names', { a: names[0], b: names[1] });
   return i18t('rv_many_names', { a: names[0], b: names[1], n: names.length - 2 });
 }
-/* Who is holding our unsent wording right now. */
+/* Who is holding our unsent wording right now — named only where this reader is
+   entitled to the name. reviewNames already falls back to "your reviewer" on an
+   empty list, so a reader outside every open review gets a sentence that is
+   true, useful and carries nobody's name. */
 function reviewWaitingOn(c){
-  return reviewNames(reviewAwaiting(c).map(x => reviewOutFor(c, x)));
+  return reviewNames(reviewAwaiting(c).map(x => reviewOutNameFor(c, x)));
 }
 function reviewSendWarning(c){
   const waiting = reviewAwaiting(c);
@@ -689,7 +805,7 @@ function reviewGateMessage(c){
   if (g.ok) return null;
   if (g.reason === 'all-held')
     return i18tn('rv_gate_all_held', g.held.length, { n: g.held.length,
-      who: (g.held[0] && g.held[0].review && g.held[0].review.by) || i18t('rv_your_reviewer') });
+      who: reviewVerdictByFor(g.held[0], null, c) || i18t('rv_your_reviewer') });
   if (g.reason === 'with-reviewer')
     return i18t('rv_gate_with_reviewer', { who: reviewWaitingOn(c) });
   if (g.reason === 'never-requested')
@@ -810,13 +926,20 @@ function reviewSeatShowsReview(opts){
    Two states, two colours, and the difference is the whole point. */
 function reviewChipHtml(ch, opts, c){
   if (!reviewSeatShowsReview(opts)) return '';
+  /* OUT IS EVERYBODY'S BUSINESS; WHO HAS IT IS NOT. A colleague working this
+     contract needs to know a change cannot be sent yet. Learning that Legal
+     specifically are on it is the requester's information to give. So the chip
+     stays and the name drops out for anyone who is not in that review. */
   const out = c ? reviewOutFor(c, ch) : null;
-  if (out) return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="waiting"
-    title="${_rvE(i18t('rv_waiting_title', { who: out }))}"
+  if (out){
+    const named = c ? reviewOutNameFor(c, ch) : null;
+    return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="waiting"
+    title="${_rvE(named ? i18t('rv_waiting_title', { who: named }) : i18t('rv_waiting_title_anon'))}"
     style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.01em;
     border-radius:5px;padding:2px 7px;background:var(--st-amber-bg);
     color:var(--st-amber-fg);border:1px solid currentColor">
-    <span aria-hidden="true">&#8987;</span> ${_rvE(i18t('rv_with_who', { who: out }))}</span>`;
+    <span aria-hidden="true">&#8987;</span> ${_rvE(named ? i18t('rv_with_who', { who: named }) : i18t('rv_out_for_review'))}</span>`;
+  }
   const v = reviewOn(ch);
   if (!v) return '';
   const stale = reviewStale(ch);
@@ -825,7 +948,10 @@ function reviewChipHtml(ch, opts, c){
   const bg = { ruby: 'var(--st-ruby-bg)', green: 'var(--st-green-bg)', slate: 'var(--color-bg)' }[tone];
   const fg = { ruby: 'var(--st-ruby-fg)', green: 'var(--st-green-fg)', slate: 'var(--color-neutral-700)' }[tone];
   const word = reviewVerdictLabel(v.verdict);
-  const title = `${word} — ${v.by}${v.note ? ': ' + v.note : ''}`;
+  /* Same rule for a verdict already given: the word, always; the name and the
+     reviewer's note, only to the two people in that review and to an admin. */
+  const by = c ? reviewVerdictByFor(ch, null, c) : null;
+  const title = by ? `${word} — ${by}${v.note ? ': ' + v.note : ''}` : word;
   return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="${_rvE(v.verdict)}"${
     stale ? ' data-rv-stale="1"' : ''}
     title="${_rvE(title)}"
@@ -840,9 +966,15 @@ function reviewChipHtml(ch, opts, c){
    whose verdict the model will refuse is a card that lies. */
 function reviewVerbsHtml(c, ch, opts = {}){
   if (!reviewSeatShowsReview(opts)) return '';
-  const st = reviewState(c);
-  if (!st.rv || st.phase !== 'yours') return '';
-  if (!reviewInOpen(c, ch)) return '';
+  /* THE REVIEW THIS CHANGE IS IN, AND IT MUST BE MINE. Asking "is a review of
+     mine open" and then "is this change in ANY open review" are two true
+     statements that together say something false: with sales and procurement
+     both reviewing, sales was drawn the verdict buttons on procurement's
+     clause. reviewMark refused the press, so nothing was ever written — but a
+     button that cannot work is a card that lies, which is what the comment
+     above already said. */
+  const rv = reviewOpenFor(c, ch);
+  if (!rv || !reviewIsReviewer(rv)) return '';
   const cur = reviewOn(ch);
   const on = v => cur && cur.verdict === v;
   const btn = (v, cls, label, title) => `<button type="button" class="rv-btn ${cls}"
@@ -871,8 +1003,25 @@ function reviewVerbsHtml(c, ch, opts = {}){
 
 /* The banner. Four states, and each one names the person it is waiting on —
    "in review" with no name is the status flip this feature exists to replace. */
+/* ---- CLEARED FOR THIS SITTING, NOT FOR GOOD ----
+   Reported from the field (Young, 09 Aug 2026): with two reviews open the
+   banner takes a third of the workbench, above the contract you are trying to
+   read. So it clears — and it clears for the session only, in memory, so a
+   refresh brings it back and nothing about the state is ever permanently
+   hidden. There is always a way to clear it again.
+
+   Kept per contract: clearing the notice on one agreement says nothing about
+   the next one. Not persisted anywhere on purpose — a dismissal that outlives
+   the tab is how somebody stops being told their colleague is holding wording,
+   for weeks, and never finds out why the send is refusing. */
+const _rvCleared = new Set();
+function reviewBannerCleared(c){ return !!(c && _rvCleared.has(String(c.id))); }
+function reviewClearBanner(c){ if (c) _rvCleared.add(String(c.id)); }
+function reviewUnclearBanner(c){ if (c) _rvCleared.delete(String(c.id)); }
+
 function reviewBannerHtml(c, opts = {}){
   if (!c || !reviewSeatShowsReview(opts)) return '';
+  if (reviewBannerCleared(c)) return '';
   const st = reviewState(c);
   if (st.phase === 'none' && !st.gate.required) return '';
   const wrap = (tone, body) => {
@@ -881,7 +1030,11 @@ function reviewBannerHtml(c, opts = {}){
     const ln = { amber: 'var(--st-amber-line)', green: 'var(--st-green-line)', ruby: 'var(--st-ruby-line)' }[tone];
     return `<div class="rv-banner" data-rv-banner="${_rvE(st.phase)}"
       style="display:flex;align-items:flex-start;gap:10px;padding:10px 13px;margin:0 0 10px;border-radius:9px;
-      border:1px solid ${ln};background:${bg};color:${fg};font-size:11.5px;line-height:1.5">${body}</div>`;
+      border:1px solid ${ln};background:${bg};color:${fg};font-size:11.5px;line-height:1.5">${body}
+      <button type="button" data-rv-act="rv-clear" aria-label="${_rvE(i18t('rv_clear_banner'))}"
+        title="${_rvE(i18t('rv_clear_banner'))}"
+        style="flex:none;align-self:flex-start;font:inherit;font-size:15px;line-height:1;cursor:pointer;
+        border:0;background:transparent;color:inherit;opacity:.65;padding:1px 2px;margin:-1px -3px 0 2px">&times;</button></div>`;
   };
   const act = (id, label) => `<button type="button" data-rv-act="${id}"
     style="flex:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:4px 10px;
@@ -910,11 +1063,15 @@ function reviewBannerHtml(c, opts = {}){
         <b>${_rvE(i18t('rv_banner_waiting', { who: rv.reviewer.name }))}</b>
         ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}
         ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span>
-      ${act('rv-cancel:' + rv.id, i18t('rv_cancel_btn'))}</div>`;
+      ${reviewMayCancel(rv) ? act('rv-cancel:' + rv.id, i18t('rv_cancel_btn')) : ''}</div>`;
   };
   if (st.phase === 'yours' || st.phase === 'waiting'){
+    /* NOT EVERY OPEN REVIEW — the ones this reader is in, plus all of them for
+       an admin. A colleague handed clause 5 was reading who else was reviewing
+       what, when it was due and how far along they were. See reviewMaySee. */
     const rows = st.mine.map(rv => row(rv, 'yours'))
-      .concat(st.waiting.map(rv => row(rv, 'waiting')));
+      .concat(st.waiting.filter(rv => reviewMaySee(rv)).map(rv => row(rv, 'waiting')));
+    if (!rows.length && !(st.gate.required && st.waiting.length)) return '';
     return wrap('amber', `<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">
       ${rows.join('')}
       ${st.gate.required && st.waiting.length ? `<span style="font-size:11px">${_rvE(i18t('rv_gate_holds_send'))}</span>` : ''}
@@ -979,8 +1136,8 @@ function reviewPersonRowHtml(u, active){
 
 /* The list panel, rebuilt on every keystroke. Capped, and it SAYS it is capped:
    a list silently cut at eight reads as "those are all the matches". */
-function reviewPickerListHtml(q, activeId){
-  const r = reviewSearchPeople(q, 8);
+function reviewPickerListHtml(q, activeId, c){
+  const r = reviewSearchPeople(q, 8, c);
   if (!r.hits.length)
     return `<li style="padding:9px 11px;font-size:11.5px;color:var(--color-neutral-600)">${
       _rvE(_rvIsEmailish(q) ? i18t('rv_who_not_a_member', { email: String(q).trim() }) : i18t('rv_who_no_match'))}</li>`;
@@ -1001,7 +1158,7 @@ function reviewAskModalHtml(c, opts = {}){
      offered unticked in case the reader wants to add to it. */
   const pre = Array.isArray(opts.ids) && opts.ids.length ? new Set(opts.ids.map(String)) : null;
   const on = ch => !pre || pre.has(String(ch.id));
-  const people = reviewCandidates();
+  const people = reviewCandidates(c);
   const today = new Date(); today.setDate(today.getDate() + 2);
   const due = today.toISOString().slice(0, 10);
   /* ---- ONE TICK PER CHANGE ----
@@ -1089,7 +1246,7 @@ function reviewAskModalHtml(c, opts = {}){
    keystroke rather than only when an option is clicked. So pasting a whole
    address and pressing Send works without ever opening the list, which is how
    most people who have the address in their hand will use it. */
-function reviewWirePicker(){
+function reviewWirePicker(c){
   const box = document.getElementById('rv-who');
   const list = document.getElementById('rv-who-list');
   const say = document.getElementById('rv-who-say');
@@ -1100,7 +1257,7 @@ function reviewWirePicker(){
   let pick = null, active = null, open = false;
 
   const paint = () => {
-    list.innerHTML = reviewPickerListHtml(box.value, active);
+    list.innerHTML = reviewPickerListHtml(box.value, active, c);
     list.hidden = !open;
     box.setAttribute('aria-expanded', open ? 'true' : 'false');
   };
@@ -1113,7 +1270,7 @@ function reviewWirePicker(){
       say.style.color = 'var(--color-neutral-600)';
       return;
     }
-    const r = reviewResolvePerson(box.value);
+    const r = reviewResolvePerson(box.value, c);
     pick = r.ok ? r.user : null;
     hid.value = r.ok ? r.user.id : '';
     say.textContent = r.ok ? i18t('rv_who_ok', { who: r.user.name, email: r.user.email || '' }) : r.why;
@@ -1140,7 +1297,7 @@ function reviewWirePicker(){
   });
   box.addEventListener('blur', () => { setTimeout(() => { open = false; paint(); }, 120); });
   box.addEventListener('keydown', ev => {
-    const hits = reviewSearchPeople(box.value, 8).hits;
+    const hits = reviewSearchPeople(box.value, 8, c).hits;
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){
       ev.preventDefault();
       if (!hits.length) return;
@@ -1177,7 +1334,7 @@ function openReviewAskModal(c, opts = {}){
   if (!window.openModal) return;
   window.openModal(reviewAskModalHtml(c, opts), { maxWidth: '34rem' });
   const done = () => { if (typeof opts.after === 'function') opts.after(); };
-  const picker = reviewWirePicker();
+  const picker = reviewWirePicker(c);
   /* The chosen ids, and the button that says how many. Recounted on every tick
      so the verb always names what pressing it will actually do. */
   const boxes = () => [...document.querySelectorAll('.rv-pickch')];
@@ -1209,7 +1366,7 @@ function openReviewAskModal(c, opts = {}){
       /* Refused HERE, with the reason, rather than by a disabled button. A
          button that is simply grey tells you nothing about which of the four
          things you got wrong. */
-      const r = reviewResolvePerson(box ? box.value : '');
+      const r = reviewResolvePerson(box ? box.value : '', c);
       _rvSay(r.why || i18t('rv_pick_someone'), 'err');
       if (box) box.focus();
       return;
@@ -1347,7 +1504,8 @@ function reviewWireCards(c, host, opts = {}){
       const cut = raw.indexOf(':');
       const what = cut < 0 ? raw : raw.slice(0, cut);
       const reviewId = cut < 0 ? null : raw.slice(cut + 1);
-      if (what === 'rv-ask') openReviewAskModal(c, { after: again });
+      if (what === 'rv-clear'){ reviewClearBanner(c); again(); }
+      else if (what === 'rv-ask') openReviewAskModal(c, { after: again });
       else if (what === 'rv-return') openReviewReturnModal(c, { reviewId, after: again });
       else if (what === 'rv-cancel'){
         if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); }
@@ -1362,12 +1520,15 @@ Object.assign(window, {
   reviewInit, reviewRequests, reviewOpenOf, reviewLastOf, reviewScope, reviewSideOf,
   reviewOn, reviewStale, reviewCurrent, reviewHeld, reviewCleared, reviewHeldIds, reviewSendable,
   reviewIsReviewer, reviewIsRequester, reviewCandidates,
+  reviewMaySee, reviewMayCancel, reviewOutNameFor, reviewVerdictByFor,
+  reviewActorHeld, reviewActorIsHeld, reviewActorBlockMessage,
   reviewOpenList, reviewOpenFor, reviewMineOpen, reviewNames, reviewWaitingOn,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
   reviewState, reviewProgress, reviewInboxFor, reviewWhen,
   reviewSeatShowsReview, reviewChipHtml, reviewVerbsHtml, reviewBannerHtml,
+  reviewBannerCleared, reviewClearBanner, reviewUnclearBanner,
   reviewSearchPeople, reviewResolvePerson, reviewPersonRowHtml, reviewPickerListHtml,
   RV_FLD, RV_LBL, reviewWirePicker,
   reviewAskModalHtml, openReviewAskModal, openReviewReturnModal, openReviewNoteModal,

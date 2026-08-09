@@ -86,17 +86,31 @@ function mContractHeadHtml(c){
    workbench reads, so the phone and the desk cannot disagree. */
 function mReviewNoticeHtml(c){
   if(!window.reviewState) return '';
+  /* Clearable here too, and by the same session-only rule — the phone has less
+     room than the desk, not more. reviewBannerCleared is the one flag, so a
+     notice cleared on the desk is cleared here for that sitting. */
+  if(window.reviewBannerCleared && reviewBannerCleared(c)) return '';
   let st=null; try{ st=reviewState(c); }catch(_){ return ''; }
   const held=(window.reviewHeldIds?reviewHeldIds(c).size:0);
   if(st.phase!=='yours' && st.phase!=='waiting' && !held) return '';
+  /* NAMED ONLY WHERE THIS READER IS IN THAT REVIEW — the same rule the desk
+     applies. `st.rv` is whichever review leads; on the waiting side that can be
+     somebody else's, and the phone was printing their reviewer's name to
+     anyone. */
+  const seen = !window.reviewMaySee || reviewMaySee(st.rv);
   const line = st.phase==='yours' ? i18t('rv_phone_yours',{who:st.rv.by})
-    : st.phase==='waiting' ? i18t('rv_phone_waiting',{who:st.rv.reviewer.name})
+    : st.phase==='waiting' ? (seen ? i18t('rv_phone_waiting',{who:st.rv.reviewer.name})
+                                   : i18t('rv_waiting_title_anon'))
     : '';
   const bits=[];
   if(line) bits.push(`<div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${mEsc(line)}</div>`);
   if(held) bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18tn('rv_phone_held',held,{n:held}))}</div>`);
   if(st.phase==='yours') bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18t('rv_phone_desktop'))}</div>`);
-  return `<div class="m-notice" style="display:block;background:var(--st-amber-bg);border-color:var(--st-amber-line)">${bits.join('')}</div>`;
+  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:8px;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
+    <span style="flex:1;min-width:0">${bits.join('')}</span>
+    <button type="button" data-m-rv-clear aria-label="${mEsc(i18t('rv_clear_banner'))}"
+      style="flex:none;font:inherit;font-size:19px;line-height:1;border:0;background:transparent;color:inherit;opacity:.65;padding:2px 4px">&times;</button>
+  </div>`;
 }
 
 function mDocNoticesHtml(c){

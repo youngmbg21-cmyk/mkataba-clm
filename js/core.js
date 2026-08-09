@@ -1930,6 +1930,13 @@ function contractReadiness(c){
      settings that wording of this kind does not leave without being looked at,
      and a warning is something a sender ticks past. */
   try{
+    /* The reader's own posture blocks first: it is about THEM rather than about
+       the contract, so it is true even where the gate is off, and it is the
+       more useful sentence when both apply. */
+    if(window.reviewActorBlockMessage){
+      const am=reviewActorBlockMessage(c);
+      if(am) add('block','review',am);
+    }
     if(window.reviewGateMessage){
       const rm=reviewGateMessage(c);
       if(rm) add('block','review',rm);
@@ -2688,7 +2695,28 @@ function shareRememberRecipient(c, info){
    is untouched whatever it is for.
 
    Returns TRUE when the send must not proceed, having already said why. */
+/* THE TWO REFUSALS A SEND CAN MEET, and they are different questions.
+
+   The GATE is about the CONTRACT: is there wording here that nobody has looked
+   at yet. It is a setting and is off unless an admin turns it on.
+
+   THE POSTURE is about the PERSON: you were asked to review a clause and have
+   not handed it back, so on this contract you are a reviewer and nothing you do
+   reaches the counterparty. That is not a setting — it follows from having
+   accepted the job, and it lifts the moment you hand back.
+
+   Both are asked here so that every door gets both, and neither door has to
+   remember which one it was supposed to ask. */
+function reviewActorSendBlock(c){
+  if(!window.reviewActorBlockMessage) return false;
+  let msg=null;
+  try{ msg=reviewActorBlockMessage(c); }catch(_){ return false; }
+  if(!msg) return false;
+  toast(msg,'err');
+  return true;
+}
 function reviewSendBlock(c){
+  if(reviewActorSendBlock(c)) return true;
   if(!window.reviewGateMessage) return false;
   let msg=null;
   try{ msg=reviewGateMessage(c); }catch(_){ return false; }
@@ -2704,6 +2732,12 @@ async function reshareToLastRecipient(c, opts={}){
      have run. Thrown rather than toasted: the callers await this and report
      what comes back, and a silent false would have them announce a send that
      did not happen. */
+  /* The reviewer's posture first, then the gate — same order, same sentences as
+     reviewSendBlock. Thrown rather than toasted for the reason below. */
+  if(window.reviewActorBlockMessage){
+    let msg=null; try{ msg=reviewActorBlockMessage(c); }catch(_){ msg=null; }
+    if(msg) throw new Error(msg);
+  }
   if(window.reviewGateMessage){
     let msg=null; try{ msg=reviewGateMessage(c); }catch(_){ msg=null; }
     if(msg) throw new Error(msg);

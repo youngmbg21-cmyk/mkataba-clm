@@ -4298,6 +4298,15 @@ app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => 
     : (b.reviewerEmail ? db.prepare('SELECT * FROM users WHERE email=?').get(cleanEmail(b.reviewerEmail)) : null);
   if (!u) return res.status(404).json({ error: 'That colleague is not a member of this workspace' });
   if (u.role === 'viewer') return res.status(400).json({ error: 'A viewer cannot rule on a review' });
+  /* AND THEY MUST BE ABLE TO OPEN IT. A member restricted to other value
+     streams never sees this contract — folderScopeFor keeps it out of every
+     query they make — so a request posted to them is a mail about a document
+     they cannot reach. Worse than useless: only the named reviewer can lift a
+     hold, so with the gate on the wording sits behind a wall whose only key is
+     held by somebody who cannot find the door. The browser refuses the same
+     thing where it can see their scope; this refuses it for everyone. */
+  if (!inScope(folderScopeFor(u), row.folder))
+    return res.status(400).json({ error: `${u.name} does not have access to this contract's value stream, so they could never open it` });
   const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
   const appUrl = `${req.protocol}://${req.get('host')}/`;
   const note = clean(b.note).slice(0, 1000);

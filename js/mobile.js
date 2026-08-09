@@ -819,6 +819,13 @@ function mWire(){
   root.querySelectorAll('[data-m-desk]').forEach(b=>b.addEventListener('click',()=>{
     mGo('handoff',{ deskView:b.getAttribute('data-m-desk') });
   }));
+  /* The review notice's clear. Session-only and shared with the desk — see
+     reviewClearBanner. A refresh brings it back, which is the point. */
+  root.querySelectorAll('[data-m-rv-clear]').forEach(b=>b.addEventListener('click',()=>{
+    const c = (typeof mContract==='function') ? mContract() : null;
+    if(c && window.reviewClearBanner) reviewClearBanner(c);
+    mRender();
+  }));
   /* The sheet stays OPEN after a language change, unlike the market: you tick a
      language to see the app in it, and closing the sheet would hide the one
      thing you just changed. mRender redraws the whole phone shell, so the row
