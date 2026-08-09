@@ -375,7 +375,7 @@
     <div class="byline">
       <span><b>Branch</b> claude/hati-redlines-review-27gwx7</span>
       <span><b>Not merged</b> to main</span>
-      <span><b>Tests</b> 2 649 passing</span>
+      <span><b>Tests</b> 2 694 passing</span>
     </div>
   </header>
 
@@ -400,7 +400,8 @@
 
         <div class="field">
           <span class="flabel">Who should review it</span>
-          <div class="fbox">Achieng Otieno — Admin</div>
+          <div class="fbox is-placeholder">Type a name, or paste their email address</div>
+          <span style="font-size:11.5px;color:var(--clear);margin-top:4px;display:block">Sending to Achieng Otieno · achieng@wanjiru.co.ke</span>
         </div>
         <div class="field">
           <span class="flabel">What do you want them to look at?</span>
@@ -415,10 +416,10 @@
         </div>
 
         <div class="scope">
-          <span class="scope-k">What they will be looking at</span>
-          <div class="scope-row"><span class="cid">#CHG-004</span><span><strong>Payment terms extended from Net-30 to Net-45</strong><br><span style="color:var(--ink-faint)">Clause 4 · Payment Terms</span></span></div>
-          <div class="scope-row"><span class="cid">#CHG-005</span><span><strong>Liability cap removed</strong><br><span style="color:var(--ink-faint)">Clause 6 · Liability</span></span></div>
-          <div class="scope-row"><span class="cid">#CHG-003</span><span><strong>Nordfrakt asks for 90-day storage</strong><br><span style="color:var(--ink-faint)">Clause 5 · Storage — from the counterparty, undecided</span></span></div>
+          <span class="scope-k">What they will be looking at &nbsp;·&nbsp; <span style="text-transform:none;letter-spacing:0;color:var(--accent)">Select none</span></span>
+          <div class="scope-row"><span style="flex:none;margin-top:2px" aria-hidden="true">☑</span><span class="cid">#CHG-004</span><span><strong>Payment terms extended from Net-30 to Net-45</strong><br><span style="color:var(--ink-faint)">Clause 4 · Payment Terms</span></span></div>
+          <div class="scope-row"><span style="flex:none;margin-top:2px" aria-hidden="true">☑</span><span class="cid">#CHG-005</span><span><strong>Liability cap removed</strong><br><span style="color:var(--ink-faint)">Clause 6 · Liability</span></span></div>
+          <div class="scope-row"><span style="flex:none;margin-top:2px" aria-hidden="true">☑</span><span class="cid">#CHG-003</span><span><strong>Nordfrakt asks for 90-day storage</strong><br><span style="color:var(--ink-faint)">Clause 5 · Storage — from the counterparty, undecided</span></span></div>
         </div>
 
         <div class="modal-acts">
@@ -426,7 +427,9 @@
           <button class="btn btn-solid" type="button">Send for review</button>
         </div>
       </div>
+      <p class="screen-foot"><strong>One tick per change, and you can untick.</strong> Everything starts selected, because that is the common case — but you are usually uneasy about one clause, not all five, and sending the other four with it would stop the rest of the round for no reason. Your reviewer can only rule on what you actually ticked.</p>
       <p class="screen-foot">Two lists, because a reviewer is answering two different questions: <strong>your</strong> unsent changes, which they can stop, and <strong>the counterparty's</strong> open asks, which they can only advise on.</p>
+      <p class="screen-foot">The name field takes typing rather than being a dropdown — a scrolling list stops working at about thirty people. It matches on name or email, and refuses an address with no HaTi account behind it, because only a colleague with a seat can lift a hold.</p>
     </div>
 
     <h3>Where it lands</h3>
@@ -545,6 +548,46 @@
       <p class="screen-foot">The counterparty is never told a review happened, who ruled, or that a hold exists — not the verdict, not the name, not the fact. "We are arguing internally about Clause 6" is worth money to the other side.</p>
     </div>
 
+    <h3>Three states, three colours</h3>
+    <p>A change of yours is now in one of three places, and the card says which without being read:</p>
+
+    <div class="screen">
+      <p class="screen-cap">The change column, mid-review</p>
+      <div class="card">
+        <div class="card-top"><span class="cid">CHG-004</span><span class="origin">Your ask</span>
+          <span class="chip chip-draft">🔒 Draft</span></div>
+        <p class="card-sum">Payment terms extended from Net-30 to Net-45</p>
+        <p class="card-meta">Nobody is looking at this. It goes when you press send.</p>
+      </div>
+      <div class="card">
+        <div class="card-top"><span class="cid">CHG-006</span><span class="origin">Your ask</span>
+          <span class="chip" style="background:var(--warn-soft);color:var(--warn)">⌛ With Achieng Otieno</span></div>
+        <p class="card-sum">Notices may be given by email</p>
+        <p class="card-meta">Out for review and not yet answered. It will not travel until they reply.</p>
+      </div>
+      <div class="card">
+        <div class="card-top"><span class="cid">CHG-005</span><span class="origin">Your ask</span>
+          <span class="chip chip-held">⏹ Held back</span></div>
+        <p class="card-sum">Liability cap removed</p>
+        <p class="card-meta">Refused. It will not travel until Achieng lifts the hold.</p>
+      </div>
+      <p class="screen-foot"><strong>Amber is not red, deliberately.</strong> Red means <em>refused</em> everywhere else in HaTi, and a change merely sitting with somebody has not been refused — it may well come back cleared. If both were red, the one your reviewer actually stopped would disappear among the ones they simply have not opened yet.</p>
+    </div>
+
+    <h3>Pressing send while something is still out</h3>
+    <p>Both amber and red stay behind when you send — wording the counterparty reads while your colleague is halfway through it makes their verdict worthless. So the send asks first, and offers the useful third answer rather than only yes and no.</p>
+
+    <div class="screen">
+      <p class="screen-cap">Publish Round, with one change still out</p>
+      <div class="banner">
+        <span class="grow"><b>Some of this is still being looked at.</b> 1 change is with Achieng Otieno and has not been answered yet. Sending it now makes the review pointless — their verdict would arrive about wording the counterparty has already read. 2 other changes are ready to go.</span>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" type="button">Wait for the review</button>
+        <button class="btn btn-solid" type="button">Send the other 2 now</button>
+      </div>
+    </div>
+
     <div class="note is-hold">
       <p><strong>The one rule that makes this trustworthy:</strong> a hold survives an edit. If you rewrite a change your boss held, it is still held — the card says the wording has moved and asks for another look. The reverse is also true: if you rewrite a change they <em>cleared</em>, the clearance lapses, because they approved words that are no longer there.</p>
       <p>Both directions are the same principle. When in doubt, nothing leaves.</p>
@@ -649,8 +692,26 @@
     <li><strong>No verdicts on a phone.</strong> Clearing and holding are done on a computer, as above.</li>
     <li><strong>One review open at a time</strong> per contract. Asking a second person means cancelling the first or waiting. Two reviewers ruling on one change at once has no sensible answer, so it is not offered.</li>
     <li><strong>Email only if the workspace has a mail provider.</strong> Without one the review still files and still appears on their dashboard; you are told no email went out.</li>
-    <li><strong>The reviewer cannot rewrite your change for you.</strong> They hold it and say why; you rewrite it. Letting them counter-draft over your wording would put two authors on one fingerprinted record, which is the one thing the change model is built to prevent.</li>
+    <li><strong>The review panel itself writes no wording</strong> — it takes verdicts and notes only. But your reviewer is an ordinary colleague with editing rights, so they <em>can</em> simply open the clause and correct it, and usually that is the better thing for them to do. See the section below.</li>
   </ul>
+
+  <h2>Can your reviewer change the wording?</h2>
+  <p>The question everybody asks, and the answer is: <strong>yes, but not from the review panel.</strong></p>
+  <p>The review takes verdicts and notes — cleared, held, advice, a sentence saying why. It writes no wording. But the person reviewing is a colleague with ordinary editing rights, so nothing stops them opening the clause and fixing it, and for a senior reviewer that is usually better than writing "make it 24 months" and waiting a round.</p>
+  <p>When they do, the change keeps its number <em>and its author</em> — the ask is still yours, they changed the words — your original wording stays recoverable in the history, and the card says so:</p>
+
+  <div class="screen">
+    <p class="screen-cap">After your reviewer corrects the clause</p>
+    <div class="card">
+      <div class="card-top"><span class="cid">CHG-005</span><span class="origin">Your ask</span>
+        <span class="chip chip-clear">✓ Cleared to send</span></div>
+      <p class="card-sum">Liability cap set at 24 months, not removed</p>
+      <p class="card-meta">Clause 6 · Liability</p>
+      <p class="card-meta">✎ <strong>Achieng Otieno rewrote this wording</strong> — Wanjiru Kamau proposed the change</p>
+    </div>
+    <p class="screen-foot">Their own verdict goes stale when they edit, so a hold they placed survives their own rewrite until they lift it. And the line disappears if you take the wording back — it is a statement about who wrote what is there <em>now</em>.</p>
+    <p class="screen-foot">The counterparty is told none of this. They receive the corrected wording with no hint that two people touched it.</p>
+  </div>
 
   <h2>Trying it</h2>
   <ol>
@@ -666,7 +727,8 @@
     Nothing is merged to main.<br>
     New: js/review.js · the review model, the gate, and the shared drawing<br>
     Touched: the share payload, the send doors, both change-card renderers, Settings, the dashboard, the phone, both languages<br>
-    Tests: f152 (the model, the gate, the wall, both renderers, the real payload) · f153 (the notification route)
+    Tests: f154 (the model, the gate, the wall, both renderers, the real payload) · f155 (the notification route)<br>
+    f156 (the picker) · f157 (choosing what to review, the two colours, the warning) · f158 (who rewrote the wording)
   </p>
 
 </div>
