@@ -2982,7 +2982,7 @@ function negoTabHtml(c, opts = {}){
   negoInit(c);
   return `<div id="nego-root">
     ${negoHeadHtml(c, opts)}
-    ${window.reviewBannerHtml ? reviewBannerHtml(c, opts) : ''}
+    ${window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''}
     ${negoTurnBannerHtml(c, opts)}
     ${negoCompareBarHtml(c)}
     ${negoCleanBarHtml(c)}
@@ -9064,6 +9064,27 @@ function rlRvDocClauses(c, opts = {}){
   all.forEach(x => { if (x && ids.has(String(x.id)) && x.clauseId) out.add(String(x.clauseId)); });
   return out;
 }
+/* ---- ONE NOTICE SLOT, AND THE MOST RESTRICTIVE THING IN IT ----
+   The brief this feature was designed against (Young, 09 Aug 2026) is that
+   more information must not push the contract off the page. The review banner
+   already owns one band above the negotiation; the desk needed to say something
+   too, and the obvious answer — a second band — is how a page ends up with five
+   strips of chrome above the first word of an agreement.
+
+   So there is ONE slot and both features draw into it, most restrictive first.
+   A review hold is a refusal the reader can act on and outranks "you are only
+   reading here", which is a standing state they can do one thing about. Where
+   the review has something to say, the desk says nothing: a reader who is also
+   holding a clause has one sentence to read, not two.
+
+   BOTH DRAW SITES CALL THIS — the contract tab's panes and the workbench —
+   because a fix in one is not a fix in the other. That is the duplication rule
+   this codebase states at the top of its own map. */
+function rlOneNoticeHtml(c, opts = {}){
+  const rv = (window.reviewBannerHtml ? reviewBannerHtml(c, opts) : '') || '';
+  if (rv) return rv;
+  return (window.deskNoticeHtml ? deskNoticeHtml(c, opts) : '') || '';
+}
 function rlActorHeld(c, opts = {}){
   if (opts.side === 'counterparty' || opts.readonly) return false;
   if (typeof window.reviewActorIsHeld !== 'function') return false;
@@ -9836,7 +9857,7 @@ function redlinePanesHtml(c, opts = {}){
            reviewBannerHtml itself returns nothing in PORTAL_MODE or read-only.
            Two locks, because the cost of getting this one wrong is telling the
            counterparty that we are arguing about their wording internally. */
-      }${window.reviewBannerHtml ? reviewBannerHtml(c, opts) : ''}${
+      }${window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''}${
       opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
       ''/* THE SET-ONCE EMAIL STRIP USED TO SIT HERE, and it was the last full
            width band between the top of this page and the first word of the
@@ -10165,7 +10186,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
-  redlineCardIds, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
+  redlineCardIds, rlOneNoticeHtml, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, RL_CARD_PEEK_MS,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,

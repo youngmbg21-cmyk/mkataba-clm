@@ -1158,8 +1158,11 @@ const RV_LBL = 'display:block;font-size:11px;font-weight:600;color:var(--color-n
 /* One row of the picker's list. Name, address and role — the address because it
    is what disambiguates two people with one name, and because it is what the
    person searching usually has in front of them. */
-function reviewPersonRowHtml(u, active){
-  return `<li role="option" id="rv-opt-${_rvE(u.id)}" aria-selected="${active ? 'true' : 'false'}"
+/* `prefix` so the desk's picker can reuse the row without borrowing the
+   review's element ids — two lists on two dialogs must not answer to the same
+   aria-activedescendant. */
+function reviewPersonRowHtml(u, active, prefix){
+  return `<li role="option" id="${_rvE(prefix || 'rv')}-opt-${_rvE(u.id)}" aria-selected="${active ? 'true' : 'false'}"
     data-rv-pick="${_rvE(u.id)}"
     style="display:flex;gap:9px;align-items:baseline;padding:7px 11px;cursor:pointer;
     background:${active ? 'var(--color-accent-100)' : 'transparent'}">
@@ -1173,13 +1176,14 @@ function reviewPersonRowHtml(u, active){
 
 /* The list panel, rebuilt on every keystroke. Capped, and it SAYS it is capped:
    a list silently cut at eight reads as "those are all the matches". */
-function reviewPickerListHtml(q, activeId, c){
-  const r = reviewSearchPeople(q, 8, c);
+function reviewPickerListHtml(q, activeId, c, cfg = {}){
+  const r = (cfg.search || reviewSearchPeople)(q, 8, c);
+  const prefix = cfg.prefix || 'rv';
   if (!r.hits.length)
     return `<li style="padding:9px 11px;font-size:11.5px;color:var(--color-neutral-600)">${
       _rvE(_rvIsEmailish(q) ? i18t('rv_who_not_a_member', { email: String(q).trim() }) : i18t('rv_who_no_match'))}</li>`;
   const more = r.total - r.hits.length;
-  return r.hits.map(u => reviewPersonRowHtml(u, String(u.id) === String(activeId))).join('')
+  return r.hits.map(u => reviewPersonRowHtml(u, String(u.id) === String(activeId), prefix)).join('')
     /* STICKY, because it is a promise about the list rather than a row in it.
        Left in the normal flow it sat below eight rows in a scrolling box — so
        the one line telling you there are three hundred more people required
@@ -1283,18 +1287,34 @@ function reviewAskModalHtml(c, opts = {}){
    keystroke rather than only when an option is clicked. So pasting a whole
    address and pressing Send works without ever opening the list, which is how
    most people who have the address in their hand will use it. */
-function reviewWirePicker(c){
-  const box = document.getElementById('rv-who');
-  const list = document.getElementById('rv-who-list');
-  const say = document.getElementById('rv-who-say');
-  const hid = document.getElementById('rv-who-id');
-  const caret = document.getElementById('rv-who-caret');
+/* ---- ONE COMBOBOX, TWO DIALOGS ----
+   The negotiation desk needs the same control for the same reason — find one
+   colleague among hundreds, by name or by a pasted address — and a second copy
+   of ninety lines of keyboard handling is two copies to keep in step. So the
+   ids and the two questions it asks (who matches, and what does this string
+   resolve to) are parameters, and the defaults are exactly what this file
+   already did: prefix `rv`, reviewSearchPeople, reviewResolvePerson.
+
+   The RULES stay with the caller, because they are genuinely different. A
+   reviewer may not be yourself; a desk lead usually IS. A reviewer must not be
+   a viewer; nor must a contributor, but a contributor must also not already be
+   on the desk. Sharing the widget and sharing the policy are different things
+   and only the first one is safe. */
+function reviewWirePicker(c, cfg = {}){
+  const p = cfg.prefix || 'rv';
+  const search = cfg.search || reviewSearchPeople;
+  const resolve = cfg.resolve || reviewResolvePerson;
+  const box = document.getElementById(p + '-who');
+  const list = document.getElementById(p + '-who-list');
+  const say = document.getElementById(p + '-who-say');
+  const hid = document.getElementById(p + '-who-id');
+  const caret = document.getElementById(p + '-who-caret');
   if (!box || !list) return { get: () => null };
 
   let pick = null, active = null, open = false;
 
   const paint = () => {
-    list.innerHTML = reviewPickerListHtml(box.value, active, c);
+    list.innerHTML = reviewPickerListHtml(box.value, active, c, cfg);
     list.hidden = !open;
     box.setAttribute('aria-expanded', open ? 'true' : 'false');
   };
@@ -1307,7 +1327,7 @@ function reviewWirePicker(c){
       say.style.color = 'var(--color-neutral-600)';
       return;
     }
-    const r = reviewResolvePerson(box.value, c);
+    const r = resolve(box.value, c);
     pick = r.ok ? r.user : null;
     hid.value = r.ok ? r.user.id : '';
     say.textContent = r.ok ? i18t('rv_who_ok', { who: r.user.name, email: r.user.email || '' }) : r.why;
@@ -1334,7 +1354,7 @@ function reviewWirePicker(c){
   });
   box.addEventListener('blur', () => { setTimeout(() => { open = false; paint(); }, 120); });
   box.addEventListener('keydown', ev => {
-    const hits = reviewSearchPeople(box.value, 8, c).hits;
+    const hits = search(box.value, 8, c).hits;
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp'){
       ev.preventDefault();
       if (!hits.length) return;
@@ -1344,7 +1364,7 @@ function reviewWirePicker(c){
         ? (at < 0 ? 0 : Math.min(at + 1, hits.length - 1))
         : (at <= 0 ? 0 : at - 1);
       active = hits[next].id;
-      box.setAttribute('aria-activedescendant', 'rv-opt-' + active);
+      box.setAttribute('aria-activedescendant', p + '-opt-' + active);
       paint();
       return;
     }

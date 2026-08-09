@@ -746,6 +746,31 @@
      the faces stay, because a face still says "somebody owns this" and a
      truncated name says nothing at all. */
   @media (max-width:720px){ .dk-chip .dk-who{ display:none; } .dk-chip{ padding:0 4px; } }
+  .dk-face-more{ background:var(--color-bg); color:var(--color-neutral-600); font-size:9px; }
+  .dk-pip{ flex:none; min-width:17px; height:17px; padding:0 4px; border-radius:99px;
+    background:var(--st-amber-fg); color:var(--color-surface); font-family:var(--font-mono);
+    font-size:9.5px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+  /* ---- THE ONE BAND, AND ONLY FOR SOMEBODY WHO CANNOT ACT ----
+     It shares the review banner's slot rather than opening a second one; see
+     rlOneNoticeHtml. A lead and a contributor never see it at all. */
+  .dk-notice{ display:flex; align-items:center; gap:10px; padding:9px 13px; margin:0 0 10px;
+    border-radius:9px; border:1px solid var(--st-amber-line); background:var(--st-amber-bg);
+    color:var(--st-amber-fg); font-size:11.5px; line-height:1.5; }
+  .dk-notice-tag{ flex:none; font-family:var(--font-mono); font-size:9px; font-weight:700;
+    letter-spacing:.07em; border:1px solid currentColor; border-radius:5px; padding:2px 6px; }
+  .dk-notice-txt{ flex:1; min-width:0; }
+  .dk-notice-said{ flex:none; opacity:.8; font-style:italic; }
+  .dk-notice-btn{ flex:none; font:inherit; font-size:11px; font-weight:700; cursor:pointer;
+    border-radius:6px; padding:4px 10px; border:1.5px solid currentColor; background:transparent;
+    color:inherit; }
+  /* Rows in the desk sheet. */
+  .dk-row{ display:flex; align-items:center; gap:9px; border:1px solid var(--color-divider);
+    border-radius:7px; padding:7px 10px; margin-bottom:6px; background:var(--color-surface); }
+  .dk-row-id{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .dk-row-name{ font-size:12.5px; font-weight:600; color:var(--color-text); }
+  .dk-row-sub{ font-size:11px; color:var(--color-neutral-600); overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .dk-row-ask{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
   /* Draft new agreement. Solid green, by the owner's call: starting the next
      agreement is a first-class act here, not a second thought beside whatever
      this one contract happens to need. .ui-btn-primary carries the fill; this
