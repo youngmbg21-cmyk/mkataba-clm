@@ -116,7 +116,17 @@ CHOOSING THE REVIEWER is a combobox, not a dropdown: a scrolling list stops work
 
 DO NOT WRITE class="ui-input" — the application does not define it anywhere. It was used throughout this feature and every field rendered unstyled; the reviewer picker in particular read as stray text. RV_FLD / RV_LBL in js/review.js quote core.js's own FLD/LBL.
 
-Tests: f154 (the model, the gate, the wall, both renderers, the real payload), f155 (the notification route) f156 (the picker, and a guard against broken encoding) f157 (the chosen subset, the two colours, the warning), f158 (who rewrote the wording), f159 (two reviews at once, and the ask on the card) and f161 (who may see a review, who may cancel it, and what a reviewer may not do). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
+THE SERVER UNDERSTANDS IT NOW, AND IT IS THE AUTHORITY (added 2026-08-09). Until this, every rule lived in the browser: a held change stayed behind because buildSharePayload chose to leave it behind, and a verdict belonged to the reviewer because the screen only drew the buttons for them. Good against mistakes, not a wall. server.js now carries its OWN read-only reading of the same record — rvOpenList / rvOpenFor / rvWithheldIds / rvActorHeld / rvUnreviewedIds — and refuses at the two doors that matter.
+
+EVERY QUESTION IS ASKED OF THE STORED CONTRACT, NEVER OF THE REQUEST BODY. A client that has been told a change is held can simply not send that field, and one that decides it is the reviewer can say so; the stored record is the only thing neither can edit on the way past. rvUnsentOurs repeats negoUnsentAsks's arithmetic deliberately — invent a different definition and the server withholds changes the browser thinks it sent.
+
+POST /api/shares does three things in order: refuses a sender who holds an open review here (403, and it names the way out), refuses when the gate is on and the payload carries something never looked at, then STRIPS the held and the still-being-read from the envelope. Stripped rather than refused, because the ordinary case is a race — the payload was built, a colleague pressed Hold, the send arrived a second later — and losing a whole round over one clause is the wrong answer. The response carries `withheldByReview` so the sender is not told a lie by omission.
+
+PUT /api/contracts/:id GUARDS AS A DIFFERENCE, exactly like the signing-step guard beside it: the question is never "is this person a reviewer" but "does this save move something about a review, and was this caller entitled to move it". A save that touches nothing here passes untouched. What it refuses: a verdict written by anyone but the named reviewer of the review THAT CHANGE is in; a review cancelled by anyone but its requester or an admin; handed back by anyone but its reviewer; removed from the array at all; an open review's changeIds or reviewer edited; and a change's status moved by somebody holding an open review.
+
+WHAT THIS MEANS FOR THE BROWSER'S COPY: it is now cosmetics, like folderScopeFor made the stream lists cosmetics. If the two ever disagree, f162 is the file that is right.
+
+Tests: f154 (the model, the gate, the wall, both renderers, the real payload), f155 (the notification route) f156 (the picker, and a guard against broken encoding) f157 (the chosen subset, the two colours, the warning), f158 (who rewrote the wording), f159 (two reviews at once, and the ask on the card) f161 (who may see a review, who may cancel it, and what a reviewer may not do) and f162 (the server's own refusals, against raw responses). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
 
 REMAINING SIDE DOORS — check on every change-related fix
 

@@ -676,6 +676,114 @@ function folderScopeFor(user) {
 const scopeIsAll = s => s === ADMIN_SCOPE;
 const inScope = (scope, folder) => scopeIsAll(scope) || scope.includes(String(folder || ''));
 
+/* ============================================================
+   THE INTERNAL REVIEW, AS THE SERVER READS IT
+   ============================================================
+   js/review.js owns the model and the screens. Until now the SERVER stored it
+   without understanding a word of it: the review lives inside the contract's
+   JSON blob, and every rule about it — a held change never travels, a verdict
+   is the named reviewer's alone, a reviewer does not publish the round — was
+   enforced in the browser and nowhere else. Good enough against mistakes; not
+   a wall.
+
+   What follows is the server's own reading of the same record, deliberately
+   identical to js/review.js and deliberately READ-ONLY. It never writes a
+   review; it answers questions about the stored one so the two routes that
+   matter can refuse:
+
+     POST /api/shares          — the moment wording leaves the building
+     PUT  /api/contracts/:id   — the moment a verdict is written down
+
+   WHERE THE ANSWER COMES FROM MATTERS. Every question here is asked of the
+   STORED contract, never of the request body. A client that has been told a
+   change is held can simply not send that field; a client that decides it is
+   the reviewer can say so. The stored record is the only thing neither can
+   edit on the way past. */
+const rvReviews = c => (c && c.review && Array.isArray(c.review.requests)) ? c.review.requests : [];
+const rvOpenList = c => rvReviews(c).filter(r => r && r.status === 'open');
+const rvSame = (a, b) => a != null && b != null && String(a) === String(b);
+/* Id first, name second — the same match js/review.js makes, and for the same
+   reason: two people share a name, and an old record may carry no id. */
+const rvIsReviewer = (rv, u) => {
+  if (!rv || !u) return false;
+  const r = rv.reviewer || {};
+  return r.id ? rvSame(r.id, u.id) : rvSame(r.name, u.name);
+};
+const rvIsRequester = (rv, u) => {
+  if (!rv || !u) return false;
+  return rv.byId ? rvSame(rv.byId, u.id) : rvSame(rv.by, u.name);
+};
+const rvMaySeeReview = (rv, u) => !!u && (u.role === 'admin' || rvIsReviewer(rv, u) || rvIsRequester(rv, u));
+/* The review a given change is sitting in, or null. With several open at once
+   this is the only safe question — see the note in js/review.js. */
+const rvOpenFor = (c, id) => rvOpenList(c).find(r => (r.changeIds || []).some(x => rvSame(x, id))) || null;
+const rvChangeById = (c, id) => (Array.isArray(c && c.changes) ? c.changes : []).find(x => x && rvSame(x.id, id)) || null;
+/* A verdict is given to particular wording. A revision re-hashes the change, so
+   an approval that outlived the words it was given for is a claim nobody made:
+   a stale CLEAR is not a clear. A stale HOLD is still a hold — somebody said
+   this must not go out, and rewriting it is not permission to overrule them. */
+const rvVerdict = ch => (ch && ch.review && ch.review.verdict) ? ch.review : null;
+const rvStale = ch => { const v = rvVerdict(ch); return !!(v && v.hash && ch.hash && String(v.hash) !== String(ch.hash)); };
+const rvHeld = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'held'); };
+const rvCleared = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'cleared' && !rvStale(ch)); };
+
+/* OUR OWN ASKS THE OTHER SIDE HAS NEVER SEEN. The only population a review
+   governs: what has already gone cannot be recalled, and pretending otherwise
+   would let a hold rewrite history the counterparty is holding. */
+function rvUnsentOurs(c){
+  /* THE SAME ARITHMETIC negoUnsentAsks does, and it must stay the same: unsent
+     is measured against the hand-over that actually happened. With no turnAt at
+     all nothing has ever gone, so every pending ask of ours is unsent. Invent a
+     different definition here and the server would withhold changes the browser
+     believes it sent, or pass ones it believes it is holding. */
+  const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  return (Array.isArray(c && c.changes) ? c.changes : []).filter(x =>
+    x && x.status === 'pending' && x.authorSide !== 'counterparty'
+    && (at ? String(x.createdAt || '') > String(at) : true));
+}
+/* TWO REASONS A CHANGE STAYS BEHIND, and they are one answer here. HELD is a
+   refusal. OUT is in flight — wording read by the counterparty while a
+   colleague is midway through it makes their verdict worthless. */
+function rvWithheldIds(c){
+  const out = new Set();
+  for (const ch of rvUnsentOurs(c)){
+    if (rvHeld(ch)) { out.add(String(ch.id)); continue; }
+    if (!rvVerdict(ch) && rvOpenFor(c, ch.id)) out.add(String(ch.id));
+  }
+  return out;
+}
+/* The open reviews this person owes a verdict on. Being asked narrows you: on
+   this contract, until you hand back, nothing you do reaches the counterparty. */
+const rvActorHeld = (c, u) => rvOpenList(c).filter(r => rvIsReviewer(r, u));
+
+/* THE GATE IS A SETTING, and off unless an admin turned it on. Read from the
+   same appSettings blob the browser reads, so the two cannot disagree about
+   whether the rule is even running. */
+function rvGateCfg(){
+  const s = (getSetting('appSettings') || {}).reviewGate;
+  const g = (s && typeof s === 'object') ? s : {};
+  return { on: !!g.on, when: ['always', 'deviation', 'value'].includes(g.when) ? g.when : 'deviation',
+    value: Number(g.value || 0) };
+}
+function rvGateApplies(c){
+  const g = rvGateCfg();
+  if (!g.on) return false;
+  if (g.when === 'always') return true;
+  if (g.when === 'value') return Number((c && c.value) || 0) >= g.value;
+  /* 'deviation' — the playbook says this contract is off-piste. */
+  const pb = c && c.playbook;
+  return !!(pb && Array.isArray(pb.verdicts) && pb.verdicts.some(v => v && v.verdict === 'deviation'));
+}
+/* Which of our unsent asks the gate has not been satisfied about. A cleared
+   verdict that has gone stale counts as unreviewed, which is the whole point of
+   the staleness rule. */
+function rvUnreviewedIds(c){
+  if (!rvGateApplies(c)) return new Set();
+  const out = new Set();
+  for (const ch of rvUnsentOurs(c)) if (!rvHeld(ch) && !rvCleared(ch)) out.add(String(ch.id));
+  return out;
+}
+
 /* SQL fragment builders. Two flavours because the queries below are split
    between positional (?) and named (@x) parameters; both return '' when the
    caller is unrestricted so the surrounding SQL is byte-identical to before. */
@@ -1860,6 +1968,82 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           + 'Only they can sign it.',
         reservedFor: stolen.name || null,
       });
+    }
+  }
+
+  /* ---------- THE INTERNAL REVIEW, GUARDED ON THE WAY IN ----------
+     Asked as a DIFFERENCE, exactly like the signing-step guard above it, and
+     for the same reason: this route receives the whole contract on every save,
+     so the question is never "is this person a reviewer" — a save that touches
+     nothing about a review would fail that — but "does this save change
+     something about a review, and was this caller entitled to change it".
+     Every save that moves nothing here passes untouched.
+
+     WHY IT MATTERS THAT IT IS HERE. A verdict is the thing the wall reads. Any
+     client that could write one could clear its own wording and send it, and
+     until now the only thing stopping that was the browser choosing not to. */
+  if (prev){
+    const wasOpen = new Map(rvOpenList(prev).map(r => [String(r.id), r]));
+    const nowAll = new Map(rvReviews(c).map(r => [String(r.id), r]));
+
+    /* 1. A REVIEW'S SCOPE AND ITS REVIEWER ARE FIXED ONCE IT IS OPEN. Editing
+       either would let a sender quietly re-point somebody else's escalation —
+       drop the clause they were holding, or make themselves the reviewer of it
+       and clear it on the next save. */
+    for (const [id, before] of wasOpen){
+      const after = nowAll.get(id);
+      if (!after) continue;                                   // removal is handled below
+      if (stable(before.changeIds || []) !== stable(after.changeIds || []))
+        return res.status(403).json({ error: `Internal review ${id} is open — the changes it covers cannot be edited.` });
+      if (stable(before.reviewer || null) !== stable(after.reviewer || null))
+        return res.status(403).json({ error: `Internal review ${id} is open — its reviewer cannot be changed.` });
+    }
+
+    /* 2. HOW AN OPEN REVIEW MAY END. Cancelled by the person who raised it or
+       by an admin; returned by the reviewer it was given to; and never simply
+       deleted, because a review that can be dropped from the array is a hold
+       anybody can lift with a save. */
+    for (const [id, before] of wasOpen){
+      const after = nowAll.get(id);
+      if (!after)
+        return res.status(403).json({ error: `Internal review ${id} cannot be removed from the record.` });
+      if (after.status === 'open') continue;
+      if (after.status === 'cancelled' && !(rvIsRequester(before, req.user) || req.user.role === 'admin'))
+        return res.status(403).json({ error: `Only ${before.by || 'the person who asked'}, or an admin, can cancel internal review ${id}.` });
+      if (after.status === 'returned' && !rvIsReviewer(before, req.user))
+        return res.status(403).json({ error: `Only ${(before.reviewer || {}).name || 'the reviewer'} can hand internal review ${id} back.` });
+    }
+
+    /* 3. A VERDICT IS THE NAMED REVIEWER'S ALONE. Compared per change, against
+       the review THAT CHANGE was in — with several reviews open, asking the
+       contract for "the" review would test the wrong person, which is the fault
+       the browser's model had and had to be taught out of. */
+    const prevCh = new Map((Array.isArray(prev.changes) ? prev.changes : []).map(x => [String(x && x.id), x]));
+    for (const ch of (Array.isArray(c.changes) ? c.changes : [])){
+      if (!ch || !ch.id) continue;
+      const was = prevCh.get(String(ch.id));
+      if (stable((was && was.review) || null) === stable(ch.review || null)) continue;   // untouched
+      const rv = rvOpenFor(prev, ch.id);
+      if (!rv)
+        return res.status(403).json({ error: `#${ch.id} is not part of any open internal review, so no verdict can be recorded on it.` });
+      if (!rvIsReviewer(rv, req.user))
+        return res.status(403).json({ error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule on #${ch.id}.` });
+    }
+
+    /* 4. A REVIEWER DOES NOT ANSWER THE COUNTERPARTY. Accepting their ask
+       settles it and travels on the next round, which is precisely what
+       somebody holding a colleague's clause does not do here. Their own two
+       jobs — ruling, and correcting the wording of their clause — move
+       `review` and `body`/`hash`, neither of which is a decision. */
+    if (rvActorHeld(prev, req.user).length){
+      const decided = (Array.isArray(c.changes) ? c.changes : []).find(ch => {
+        if (!ch || !ch.id) return false;
+        const was = prevCh.get(String(ch.id));
+        return was && String(was.status || '') !== String(ch.status || '');
+      });
+      if (decided)
+        return res.status(403).json({ error: 'You are reviewing changes on this contract.'
+          + ' Hand the review back before accepting or rejecting the counterparty\'s proposals.' });
     }
   }
 
@@ -4680,6 +4864,55 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   const shareId = (payload.contract && payload.contract.id) || null;
   if (shareId && !idInScope(folderScopeFor(req.user), shareId)) return res.status(404).json({ error: 'Contract not found' });
+  /* ============================================================
+     THE WALL, ENFORCED WHERE THE WORDING ACTUALLY LEAVES
+     ============================================================
+     buildSharePayload already strips a held change in the browser, and did so
+     alone. This route took the client's word for what was in the envelope,
+     which made the strongest rule in the feature a matter of the sender's
+     software being right.
+
+     Read from the STORED contract, never from the payload. The payload is the
+     thing under suspicion. */
+  const rvRow = shareId ? db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId) : null;
+  let rvStored = null;
+  if (rvRow) { try { rvStored = JSON.parse(rvRow.json); } catch (_) { rvStored = null; } }
+  if (rvStored){
+    /* 1. THE SENDER'S OWN POSTURE. Being asked to review a clause narrows you
+       on this contract until you hand back: nothing you do reaches the
+       counterparty. Refused rather than stripped — the person is not entitled
+       to send this round at all, so there is no smaller send to offer. */
+    const holding = rvActorHeld(rvStored, req.user);
+    if (holding.length){
+      const n = holding.reduce((a, r) => a + ((r.changeIds || []).length), 0);
+      return res.status(403).json({ error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
+        + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
+        reviewing: holding.map(r => r.id) });
+    }
+    /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
+       at does not travel, and this is the refusal the setting promises. */
+    const unreviewed = rvUnreviewedIds(rvStored);
+    if (unreviewed.size){
+      const carried = (payload.contract && Array.isArray(payload.contract.changes) ? payload.contract.changes : [])
+        .filter(x => x && unreviewed.has(String(x.id)));
+      if (carried.length)
+        return res.status(403).json({ error: `${carried.length} change${carried.length === 1 ? ' has' : 's have'}`
+          + ' not been cleared by an internal reviewer, and this workspace requires one before changes are sent.',
+          unreviewed: carried.map(x => x.id) });
+    }
+    /* 3. THE HELD AND THE STILL-BEING-READ, taken out of the envelope. STRIPPED
+       rather than refused, because the ordinary case here is a race and not an
+       attack: the sender built this payload, a colleague pressed Hold, and the
+       send arrived a second later. Refusing would lose the whole round over
+       one clause. What travels is what may travel, and the response says what
+       stayed behind so the sender is not told a lie by omission. */
+    const withheld = rvWithheldIds(rvStored);
+    if (withheld.size && payload.contract && Array.isArray(payload.contract.changes)){
+      const before = payload.contract.changes.length;
+      payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
+      req.rvStripped = before - payload.contract.changes.length;
+    }
+  }
   const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();
@@ -4818,6 +5051,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   }
   res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
     signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
+    /* What the wall took out of the envelope, reported rather than left silent:
+       a sender told "sent" about a round one change lighter has been misled. */
+    withheldByReview: req.rvStripped || undefined,
     emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
