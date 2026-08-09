@@ -658,6 +658,51 @@ const ADMIN_SCOPE = '*';
    Deliberately identical to userFolderAccess() in js/core.js, including the
    "empty array means unrestricted" quirk — an admin who ticks nothing has not
    locked a member out of the entire workspace. */
+/* ---------- THE NEGOTIATION DESK, SERVER SIDE ----------
+   The browser's copy of these answers is for DRAWING — it decides which buttons
+   exist. This copy decides what is written, and it is the one that matters. The
+   pair is the same arrangement folderScopeFor already has with
+   userFolderAccess, and it is repeated here rather than shared because there is
+   no module boundary between them: the client file cannot be required, and a
+   rule expressed twice in twenty lines is safer than a rule expressed once and
+   shipped to the person it is meant to restrain.
+
+   Every one of these answers the SAFE way when it cannot tell: no desk, no
+   rule, no claim means the behaviour this product had before the feature. */
+const deskRuleOn = () => !!((getSetting('appSettings') || {}).deskRule || {}).on;
+const deskOfRow = c => (c && c.desk && typeof c.desk === 'object' && !Array.isArray(c.desk)) ? c.desk : null;
+const deskIsClaimed = c => { const d = deskOfRow(c); return !!(d && d.leadId && !d.closedAt); };
+const deskLeadName = c => (deskOfRow(c) || {}).leadName || 'the lead';
+function deskSeatOf(c, user) {
+  const d = deskOfRow(c);
+  if (!d || !user) return null;
+  if (String(d.leadId) === String(user.id)) return 'lead';
+  if ((d.contributors || []).some(p => p && String(p.id) === String(user.id))) return 'contributor';
+  return 'reader';
+}
+/* Did this save move the roster? Compared as a stable projection rather than
+   field by field, so a reordering is not a change and an added field is. */
+const deskRosterStamp = c => {
+  const d = deskOfRow(c) || {};
+  return JSON.stringify([String(d.leadId || ''),
+    (d.contributors || []).map(p => String((p && p.id) || '')).sort()]);
+};
+const rosterMoved = (prev, next) => deskRosterStamp(prev) !== deskRosterStamp(next);
+/* Did this save add, remove or reword one of OUR changes? Their proposals are
+   not this rule's business — those arrive through the share routes, which have
+   their own wall — so only owner-side records are compared. The hash is the
+   change model's own fingerprint over its wording, so "reworded" is a string
+   comparison rather than a judgement. */
+function ourChangesTouched(prev, next) {
+  const ours = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && x.authorSide !== 'counterparty')
+    .map(x => [String(x.id), String(x.hash || '') + '|' + String(x.status || '')]));
+  const a = ours(prev), b = ours(next);
+  if (a.size !== b.size) return true;
+  for (const [id, stamp] of b) if (a.get(id) !== stamp) return true;
+  return false;
+}
+
 function folderScopeFor(user) {
   if (!user) return [];
   if (user.role === 'admin') return ADMIN_SCOPE;
@@ -1846,6 +1891,39 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      with no account (a counterparty signer, an internal name typed by hand) is
      not bound to a member and is not this rule's business; W7/W8 are what bind
      those, through the link and the code sent to the invited address. */
+  /* ---------- A NEGOTIATION IS WORKED BY THE PEOPLE ON ITS DESK ----------
+     The browser stops OFFERING the verbs to somebody who is not on a desk, and
+     negoFileChange refuses the write. Both of those live in the client, which
+     makes them a sign and a lock on a door anybody can walk around: an ordinary
+     contract save carries the whole record, so a caller that never loaded the
+     page can post redlines under any name it likes. Enforcement is here or it
+     is nowhere — the rule folderScopeFor already follows.
+
+     ASKED AS A DIFFERENCE, exactly like the reserved-signing-step guard below
+     it: not "is this user on the desk" — a save that touches nothing about the
+     negotiation would fail that, and a reader legitimately edits key terms,
+     metadata and obligations all day — but "does this save ADD or ALTER a
+     change on our side, and is the caller entitled to do that". Everything else
+     passes untouched.
+
+     THE DESK ITSELF IS NOT WRITABLE BY A NON-MEMBER either, or the rule would
+     be one request wide: post yourself onto c.desk.contributors, then post the
+     redline. The roster may only be moved by the lead or an admin, which is
+     what deskMayManage says in the browser. */
+  if (prev && deskRuleOn() && deskIsClaimed(prev)) {
+    const seat = deskSeatOf(prev, req.user);
+    if (seat !== 'lead' && rosterMoved(prev, c) && !(seat === 'lead' || req.user.role === 'admin'))
+      return res.status(403).json({
+        error: `Only ${deskLeadName(prev)} — or an admin — can change who is on this negotiation.` });
+    if (seat === 'reader') {
+      const touched = ourChangesTouched(prev, c);
+      if (touched)
+        return res.status(403).json({
+          error: `You are not on this negotiation. ${deskLeadName(prev)} leads it — ask them to add you.`,
+          desk: 'not-a-member' });
+    }
+  }
+
   if (prev && Array.isArray(prev.signerPlan) && Array.isArray(c.signerPlan)) {
     const was = new Map(prev.signerPlan.map(s => [String(s && s.id || s && s.order), s]));
     const stolen = c.signerPlan.find(s => {

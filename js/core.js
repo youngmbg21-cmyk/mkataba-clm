@@ -1933,6 +1933,14 @@ function contractReadiness(c){
     /* The reader's own posture blocks first: it is about THEM rather than about
        the contract, so it is true even where the gate is off, and it is the
        more useful sentence when both apply. */
+    /* Not being the lead of this negotiation belongs on the readiness list for
+       the same reason the reviewer's posture does: the panel exists to say why
+       the send will refuse before somebody fills in a form that was never going
+       to go anywhere. */
+    if(window.deskSendBlock){
+      const dm=deskSendBlock(c);
+      if(dm) add('block','desk',dm);
+    }
     if(window.reviewActorBlockMessage){
       const am=reviewActorBlockMessage(c);
       if(am) add('block','review',am);
@@ -2715,7 +2723,21 @@ function reviewActorSendBlock(c){
   toast(msg,'err');
   return true;
 }
+/* THE DESK'S OWN REFUSAL, asked by the same doors and first. Reaching the
+   counterparty is the lead's act; a contributor who is not the lead is refused
+   here whatever their review posture is, and the sentence they get says so
+   rather than talking about a review they do not have. Where the desk rule is
+   off this answers false and nothing changes — see deskMaySend. */
+function deskSendBlockToast(c){
+  if(!window.deskSendBlock) return false;
+  let msg=null;
+  try{ msg=deskSendBlock(c); }catch(_){ return false; }
+  if(!msg) return false;
+  toast(msg,'err');
+  return true;
+}
 function reviewSendBlock(c){
+  if(deskSendBlockToast(c)) return true;
   if(reviewActorSendBlock(c)) return true;
   if(!window.reviewGateMessage) return false;
   let msg=null;
@@ -2734,6 +2756,14 @@ async function reshareToLastRecipient(c, opts={}){
      did not happen. */
   /* The reviewer's posture first, then the gate — same order, same sentences as
      reviewSendBlock. Thrown rather than toasted for the reason below. */
+  /* The desk first, then the reviewer's posture, then the gate — the same order
+     and the same sentences reviewSendBlock uses. This route never opens the
+     share dialog, so a check that lived only there would never run on the path
+     every round after the first actually travels. */
+  if(window.deskSendBlock){
+    let msg=null; try{ msg=deskSendBlock(c); }catch(_){ msg=null; }
+    if(msg) throw new Error(msg);
+  }
   if(window.reviewActorBlockMessage){
     let msg=null; try{ msg=reviewActorBlockMessage(c); }catch(_){ msg=null; }
     if(msg) throw new Error(msg);
@@ -4320,4 +4350,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

@@ -310,6 +310,20 @@ function renderTeam(){
           ${isAdmin()?'':`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
         </section>
 
+        ${''/* ---- THE THIRD GATE, AND IT ASKS AN EARLIER QUESTION THAN BOTH ----
+               The approval rules decide who says yes before a contract is
+               SIGNED. The review gate decides who looks before a redline is
+               SENT. This decides who may WRITE one at all — so it belongs with
+               them, and it belongs last, because it is the widest of the three
+               and the one an admin should read the other two before switching
+               on. OFF by default, and the copy says so. */}
+        <section style="${cardStyle}">
+          <h4 style="${h4Style}">${i18t('dk_set_title')}</h4>
+          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('dk_set_sub')}</p>
+          <div id="dk-rule-panel"></div>
+          ${isAdmin()?'':`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
+        </section>
+
         <section style="${cardStyle}">
           <h4 style="${h4Style}">${i18t('set_renewal_reminders')}</h4>
           <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">${i18t('set_renewal_sub')}</p>
@@ -937,6 +951,7 @@ function renderTeam(){
   renderApprovalRules();
   document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
   renderReviewGatePanel();
+  renderDeskRulePanel();
   document.getElementById('bk-export')?.addEventListener('click',()=>{
     downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
       JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
@@ -1244,6 +1259,33 @@ function renderReviewGatePanel(){
   document.getElementById('rv-gate-value')?.addEventListener('change',write);
 }
 
+/* ---- who may redline a negotiation (Admin) ----
+   ONE control, written on change, for the reason the review gate's panel gives
+   directly above: a rule that is armed only if you remember to press Save is a
+   rule that is off when it matters. saveDeskCfg is the single writer
+   (js/desk.js); this panel never touches state.settings itself.
+
+   The paragraph under the switch is not decoration. Switching this on changes
+   what colleagues can do on contracts they could work on yesterday, and an
+   admin should be able to read exactly what happens without leaving the row. */
+function renderDeskRulePanel(){
+  const host=document.getElementById('dk-rule-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.deskCfg?deskCfg():{on:false});
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'}">
+      <input id="dk-rule-on" type="checkbox"${cfg.on?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+      <span style="font-weight:600;color:var(--color-text)">${i18t('dk_set_on')}</span>
+    </label>
+    <p style="font-size:11px;color:var(--color-neutral-600);margin:8px 0 0;line-height:1.6">${i18t('dk_set_detail')}</p>`;
+  if(!admin) return;
+  document.getElementById('dk-rule-on')?.addEventListener('change',()=>{
+    saveDeskCfg({on:!!document.getElementById('dk-rule-on').checked});
+    toast(i18t('dk_set_saved'));
+    renderDeskRulePanel();
+  });
+}
+
 /* ---- E8-T3 active sessions ---- */
 async function loadSessions(){
   const host=document.getElementById('sessions-list'); if(!host) return;
@@ -1265,4 +1307,4 @@ async function loadSessions(){
   }catch(e){ host.innerHTML=`<p style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_could_not_load_sessions')}</p>`; }
 }
 
-Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,condLabel,loadSessions});
+Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions});

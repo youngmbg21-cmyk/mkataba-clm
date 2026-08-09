@@ -2796,8 +2796,17 @@ function negoIndexSendHtml(c, opts = {}){
        who has accepted a review does not publish on this contract until they
        have handed it back. Says why rather than vanishing, for the reason the
        comment above gives. */
-    if (rlActorHeld(c, opts) && window.reviewActorBlockMessage){
-      const why = reviewActorBlockMessage(c);
+    /* rlActorHeld now answers for TWO postures — mid-review, and not the lead of
+       this negotiation — so the sentence has to be fetched from whichever one is
+       true. Asking only the review would have printed nothing at all for a
+       contributor: the button would vanish with no explanation, which is the
+       exact failure the comment above says this branch exists to avoid. */
+    if (rlActorHeld(c, opts)){
+      let why = null;
+      if (window.deskSendBlock){ try{ why = deskSendBlock(c); }catch(_){ why = null; } }
+      if (!why && window.reviewActorBlockMessage){
+        try{ why = reviewActorBlockMessage(c); }catch(_){ why = null; }
+      }
       return why ? `<div class="nego-index-send"><span class="why">${_ne(why)}</span></div>` : '';
     }
     if (!n){
@@ -4194,11 +4203,21 @@ function wireNegotiationTab(c, opts = {}){
      record. Answering the counterparty settles their ask and travels on the
      next round, which is precisely what a person who has taken on a review
      does not do here until they hand it back. */
+  /* TWO POSTURES, ONE DOOR. Not being the lead of this negotiation has exactly
+     the same consequence as being mid-review — answering the counterparty is
+     reaching them — so the two refusals are asked in one place and print their
+     own sentence. The desk is asked first because it is the standing state:
+     "you are not on this negotiation" explains more than "hand your review
+     back" to somebody who has no review. */
   const postureOut = () => {
     if (opts.side === 'counterparty' || opts.readonly) return false;
-    if (typeof window.reviewActorBlockMessage !== 'function') return false;
     let msg = null;
-    try{ msg = reviewActorBlockMessage(c); }catch(_){ return false; }
+    if (typeof window.deskSendBlock === 'function'){
+      try{ msg = deskSendBlock(c); }catch(_){ msg = null; }
+    }
+    if (!msg && typeof window.reviewActorBlockMessage === 'function'){
+      try{ msg = reviewActorBlockMessage(c); }catch(_){ return false; }
+    }
     if (!msg) return false;
     if (window.toast) toast(msg, 'err');
     return true;
@@ -4376,6 +4395,10 @@ function wireNegotiationTab(c, opts = {}){
        note and presses Send only to be told the wording is still with their
        boss has been walked to the end of a corridor with no door. Said before
        the corridor, not after it. */
+    if (window.deskSendBlock){
+      let msg = null; try{ msg = deskSendBlock(c); }catch(_){ msg = null; }
+      if (msg){ if (window.toast) toast(msg, 'err'); return; }
+    }
     if (window.reviewGateMessage){
       let msg = null; try{ msg = reviewGateMessage(c); }catch(_){ msg = null; }
       if (msg){ if (window.toast) toast(msg, 'err'); return; }
@@ -6915,6 +6938,15 @@ function renderRedline(){
        because a lock with no sign is a button that errors at a reader who
        should never have been offered it. */
     readonly: previewing || ((typeof negoExecuted === 'function') ? negoExecuted(c) : false),
+    /* ---- READING IS NOT WORKING ----
+       Somebody with stream access who is not on this desk keeps the whole
+       document, every redline and the full history — locking the READ would
+       break the register, the reports and the search, and would send people to
+       the telephone, which is the fragmentation this product exists to end. It
+       is the hands that close. `editable` in both card renderers and the
+       document's own edit affordances already read this flag, so one answer
+       here reaches all of them. */
+    canEdit: rlMayRedline(c, { side, readonly: previewing }),
     /* The more specific reason wins, same rule as the portal: "executed" tells
        the reader what to do next; the preview line only explains the absence
        of verbs. */
@@ -9085,10 +9117,32 @@ function rlOneNoticeHtml(c, opts = {}){
   if (rv) return rv;
   return (window.deskNoticeHtml ? deskNoticeHtml(c, opts) : '') || '';
 }
+/* ---- TWO REASONS THIS PERSON CANNOT REACH THE OTHER SIDE, ONE ANSWER ----
+   A reviewer mid-review, and somebody who is not the lead of this negotiation.
+   They are different facts with the same consequence — no publishing, no
+   closing, no answering the counterparty — and the FIVE renderers that compute
+   `canAct` each ask this one function, which is the only reason gating the desk
+   did not mean finding those five sites again.
+
+   Both are POSTURES rather than demotions: hand the review back, or be handed
+   the lead, and everything returns. */
 function rlActorHeld(c, opts = {}){
   if (opts.side === 'counterparty' || opts.readonly) return false;
+  if (typeof window.deskMaySend === 'function'){
+    try{ if (!deskMaySend(c)) return true; }catch(_){}
+  }
   if (typeof window.reviewActorIsHeld !== 'function') return false;
   try{ return reviewActorIsHeld(c); }catch(_){ return false; }
+}
+/* Whether this reader may put wording into our draft at all. The reviewer's
+   posture deliberately does NOT come into this — correcting the clause they
+   were handed is the thing that feature exists to allow — so this asks the desk
+   and nothing else. Read by the workbench's mount, which passes it as
+   opts.canEdit, and `editable` in both card renderers already reads that. */
+function rlMayRedline(c, opts = {}){
+  if (opts.side === 'counterparty' || opts.readonly) return false;
+  if (typeof window.deskMayRedline !== 'function') return true;
+  try{ return deskMayRedline(c); }catch(_){ return true; }
 }
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';

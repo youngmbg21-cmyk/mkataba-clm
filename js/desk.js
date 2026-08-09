@@ -243,6 +243,82 @@ function deskMayManage(c, u){
   return _dkIsAdmin(me) || deskIsLead(c, me);
 }
 
+/* ============================================================
+   THE RULE — and it is OFF unless somebody switches it on
+   ============================================================
+   Same shape as the internal-review gate next to it in Settings, and off by
+   default for the same reason js/review.js gives in its own words: a gate
+   nobody asked for that appears after an update and stops everybody's work is
+   not a feature, it is an outage.
+
+   TWO STAGES SHIPPED BEFORE THIS ONE so the desks could be watched filling up
+   with real names first. Turning this on is the moment the names start to mean
+   something. */
+const DESK_RULE_DEFAULT = { on: false };
+function deskCfg(){
+  const st = _dkState();
+  const s = (st && st.settings) || {};
+  const g = (s.deskRule && typeof s.deskRule === 'object') ? s.deskRule : {};
+  return { on: !!g.on };
+}
+function saveDeskCfg(g){
+  const st = _dkState();
+  if (!st) return null;
+  st.settings = st.settings || {};
+  st.settings.deskRule = { on: !!(g && g.on) };
+  if (window.saveSettings) window.saveSettings();
+  return st.settings.deskRule;
+}
+const deskEnforced = () => deskCfg().on;
+
+/* ---------- THE TWO PREDICATES EVERYTHING ASKS ----------
+   Both answer TRUE wherever the desk has nothing to say, and the order of the
+   escapes matters:
+
+   - The rule is off. Nothing changes for anybody, which is what "off by
+     default" has to mean or the default is a lie.
+   - There is no desk. Every contract written before this feature, and every one
+     nobody has started negotiating. No desk means the old rules, and the old
+     rules let any Editor with stream access work. Answering false here would
+     lock the whole back catalogue on the morning this shipped.
+   - No signed-in person. A portal reader, a scenario harness, a background
+     render. The desk is about colleagues; it has no opinion here, and the
+     counterparty's own wall is a different mechanism entirely. */
+function deskMayRedline(c, u){
+  if (!deskEnforced()) return true;
+  if (typeof window !== 'undefined' && window.PORTAL_MODE) return true;
+  if (!deskIsOpen(c)) return true;
+  const me = u || _dkMe();
+  if (!me) return true;
+  return deskIsMember(c, me);
+}
+/* REACHING THE COUNTERPARTY IS THE LEAD'S ACT, and an admin is not exempt: they
+   take the lead first, which writes an audit line and changes the chip on
+   everybody's screen. Power is fine. Silent power is not. */
+function deskMaySend(c, u){
+  if (!deskEnforced()) return true;
+  if (typeof window !== 'undefined' && window.PORTAL_MODE) return true;
+  if (!deskIsOpen(c)) return true;
+  const me = u || _dkMe();
+  if (!me) return true;
+  return deskIsLead(c, me);
+}
+/* The refusal in one sentence, or null. Every door that refuses prints exactly
+   what these return, so the workbench, the share dialog, the readiness panel
+   and the funnel cannot each invent their own account of the same rule — the
+   discipline reviewGateMessage already keeps. */
+function deskBlockMessage(c, u){
+  if (deskMayRedline(c, u)) return null;
+  const lead = deskLead(c) || { name: '' };
+  return i18t('dk_block_redline', { who: lead.name });
+}
+function deskSendBlock(c, u){
+  if (deskMaySend(c, u)) return null;
+  const lead = deskLead(c) || { name: '' };
+  return deskIsMember(c, u) ? i18t('dk_block_send', { who: lead.name })
+    : i18t('dk_block_redline', { who: lead.name });
+}
+
 /* Who can be put on a desk. Viewers are out — a viewer cannot change wording
    anywhere else in the product, so a contributor's seat they could not use
    would be a promise the screen cannot keep. The lead is out because they are
@@ -872,7 +948,8 @@ function openDeskJoinAsk(c, opts = {}){
 if (typeof document !== 'undefined') deskWireChip();
 
 Object.assign(window, {
-  DK_WHY_MAX,
+  DK_WHY_MAX, DESK_RULE_DEFAULT, deskCfg, saveDeskCfg, deskEnforced,
+  deskMayRedline, deskMaySend, deskBlockMessage, deskSendBlock,
   deskInit, deskOf, deskIsOpen, deskLead, deskInitiator, deskIsLead, deskRole,
   deskOpen, deskClaimOnFile,
   deskContributors, deskIsContributor, deskIsMember, deskMayManage,
