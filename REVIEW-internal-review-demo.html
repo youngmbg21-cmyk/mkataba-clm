@@ -430,7 +430,14 @@
     var u = unsent();
     if (!u.length) return { required:false, ok:true, reason:'nothing-unsent' };
     var required = S.gate.on && (S.gate.when === 'always' || S.deviates);
-    var s = sendable(), unreviewed = s.filter(function(c){ return !cleared(c); });
+    /* HELD ONLY, on purpose. The question below is asked in order — "is there
+       anything left to send?" before "is any of it out for review?" — so this
+       set must exclude refusals and nothing else. Built from the send-ready set
+       instead (which also drops what is being read) and a contract whose every
+       change is with a colleague reports "all held back by Achieng": a refusal
+       naming a decision nobody made. */
+    var s = unsent().filter(function(c){ return !held(c); });
+    var unreviewed = s.filter(function(c){ return !cleared(c); });
     if (!required) return { required:false, ok:true, reason:'not-required', held:heldIds() };
     if (!s.length) return { required:true, ok:false, reason:'all-held' };
     if (S.review && s.some(outFor)) return { required:true, ok:false, reason:'with-reviewer' };

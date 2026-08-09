@@ -289,3 +289,37 @@ describe('f157 · an unanswered change stays out of the payload', () => {
     assert.ok((p.contract.changes || []).map(x => x.id).includes(ch.id));
   });
 });
+
+/* ============================================================
+   5 — THE REFUSAL NAMES THE RIGHT REASON
+   ============================================================
+   The gate asks "is anything sendable?" before "is anything out for review?",
+   so the set it asks the first question about must exclude ONLY holds. Build it
+   from the send-ready set instead — which also excludes what is being read —
+   and a contract whose every change is sitting with a colleague reports
+   "everything is held back by Achieng", which is a refusal naming a decision
+   nobody made. Caught in the prototype, pinned here for the real one. */
+describe('f157 · out for review is not the same refusal as held', () => {
+  test('with everything out, the gate says who has it — not that it was held', async () => {
+    const { win } = world({ settings: { reviewGate: { on: true, when: 'always', value: 0 } } });
+    const { c } = await three(win);
+    win.reviewAsk(c, { reviewer: BOSS });               // all three, nothing ruled on
+    const g = win.reviewGate(c);
+    assert.equal(g.ok, false);
+    assert.equal(g.reason, 'with-reviewer', 'in flight, not refused');
+    assert.match(win.reviewGateMessage(c), /with Achieng Otieno for internal review/);
+    assert.ok(!/held back/.test(win.reviewGateMessage(c)),
+      'nobody has held anything, so the refusal must not say they did');
+  });
+
+  test('and once they really are all held, it says that instead', async () => {
+    const { win } = world({ user: BOSS, settings: { reviewGate: { on: true, when: 'always', value: 0 } } });
+    const { c, a, b, d } = await three(win);
+    win.reviewAsk(c, { reviewer: BOSS, by: ME.name });
+    [a, b, d].forEach(x => win.reviewMark(c, x.id, 'held'));
+    win.reviewReturn(c, {});
+    const g = win.reviewGate(c);
+    assert.equal(g.reason, 'all-held');
+    assert.match(win.reviewGateMessage(c), /nothing to send/);
+  });
+});
