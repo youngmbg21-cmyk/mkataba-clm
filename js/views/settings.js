@@ -941,7 +941,22 @@ function renderTeam(){
   document.querySelectorAll('[data-remove-user]').forEach(b=>b.addEventListener('click',async()=>{
     const us=getUsers(); const u=us.find(x=>x.id===b.getAttribute('data-remove-user'));
     if(!u) return;
-    if(!await confirmDialog({title:`Remove ${u.name}?`, message:`${u.name} will lose access to this workspace. You can re-invite them later.`, confirmLabel:'Remove member', danger:true})) return;
+    /* ---- SOMEBODY LEAVING TAKES THEIR NEGOTIATIONS WITH THEM ----
+       A desk whose lead has no account is a negotiation with no door out:
+       nobody can publish a round, and the one person who could hand it over is
+       gone. Said BEFORE the removal, while there is still somebody to ask about
+       it — this is the leaver check the whole one-lead design makes necessary.
+       It warns rather than refuses: an admin removing somebody who left the
+       company on Friday must not be stuck, and the desks can be reassigned
+       afterwards by any admin. */
+    let leads='';
+    if(window.deskLedBy){
+      const led=deskLedBy(state.contracts||[],u.id);
+      if(led.length) leads=`\n\n${i18t('dk_leaver_title',{who:u.name,n:led.length})} — `
+        +led.slice(0,5).map(c=>c.name).join(', ')+(led.length>5?`, +${led.length-5}`:'')
+        +`\n${i18t('dk_leaver_sub')}`;
+    }
+    if(!await confirmDialog({title:`Remove ${u.name}?`, message:`${u.name} will lose access to this workspace. You can re-invite them later.${leads}`, confirmLabel:'Remove member', danger:true})) return;
     if(API_MODE()){
       try{ await api('users/'+u.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==u.id); }
       catch(e){ toast(e.message,'err'); return; }
@@ -1277,13 +1292,28 @@ function renderDeskRulePanel(){
       <input id="dk-rule-on" type="checkbox"${cfg.on?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
       <span style="font-weight:600;color:var(--color-text)">${i18t('dk_set_on')}</span>
     </label>
-    <p style="font-size:11px;color:var(--color-neutral-600);margin:8px 0 0;line-height:1.6">${i18t('dk_set_detail')}</p>`;
+    <p style="font-size:11px;color:var(--color-neutral-600);margin:8px 0 0;line-height:1.6">${i18t('dk_set_detail')}</p>
+    ${''/* ---- THE PRICE OF ONE DOOR OUT, AND IT IS SET HERE ----
+           Independent of the switch above on purpose: a deal going quiet
+           because the lead is on leave is worth knowing about whether or not
+           the rule is enforced, and the flag is ours alone — the counterparty
+           is never told we noticed. Too short and it becomes noise people learn
+           to scroll past; too long and it fires after they have already
+           chased. Five working days is the default. */}
+    <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:11px">
+      <label for="dk-stale" style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('dk_set_stale')}</label>
+      <input id="dk-stale" type="number" min="1" max="60" step="1"${admin?'':' disabled'}
+        value="${Number(cfg.staleDays||5)}" style="${window.RV_FLD||''}max-width:120px"/>
+    </div>`;
   if(!admin) return;
-  document.getElementById('dk-rule-on')?.addEventListener('change',()=>{
-    saveDeskCfg({on:!!document.getElementById('dk-rule-on').checked});
+  const write=()=>{
+    saveDeskCfg({on:!!document.getElementById('dk-rule-on').checked,
+      staleDays:Number(document.getElementById('dk-stale')?.value||5)});
     toast(i18t('dk_set_saved'));
     renderDeskRulePanel();
-  });
+  };
+  document.getElementById('dk-rule-on')?.addEventListener('change',write);
+  document.getElementById('dk-stale')?.addEventListener('change',write);
 }
 
 /* ---- E8-T3 active sessions ---- */

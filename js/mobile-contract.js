@@ -52,6 +52,7 @@ function mContractHeadHtml(c){
             ${mPill(c)}
             <span style="flex:1;min-width:0;font-size:14px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
           </div>
+          ${mDeskLineHtml(c)}
         </div>
         <button class="m-head-btn" data-m-act="overflow" aria-label="${i18t('mc_more_actions')}">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>
@@ -113,12 +114,53 @@ function mReviewNoticeHtml(c){
   </div>`;
 }
 
+/* ---- THE DESK, ON THE SCREEN WITH THE LEAST ROOM ON IT ----
+   One line and one face under the contract's name, and no way to manage
+   anything: rearranging a desk is a desk-sized job. What a phone must carry is
+   the FACT — that this negotiation belongs to somebody, and whether that
+   somebody is you — because a person who opens a contract on the train and
+   finds the verbs missing needs the sentence, not a mystery.
+
+   A lead and a contributor get the quiet line. A reader gets the amber one with
+   the one button they have, exactly as the workbench does; mDeskNoticeHtml is
+   the phone's own drawing of deskNoticeHtml's state, sharing the model rather
+   than the markup, because the two shells legitimately look different. */
+function mDeskLineHtml(c){
+  if(!window.deskIsOpen || !deskIsOpen(c)) return '';
+  const role=window.deskRole?deskRole(c):null;
+  const lead=deskLead(c)||{name:''};
+  if(!role) return '';
+  const word=role==='lead'?i18t('dk_you_lead')
+    :role==='contributor'?i18t('dk_you_contribute',{who:lead.name})
+    :i18t('dk_who_leads',{who:lead.name});
+  return `<div class="m-note" style="display:flex;align-items:center;gap:6px;margin-top:2px">
+    <span class="dk-face" style="width:18px;height:18px;font-size:8px">${mEsc(deskInitials(lead.name))}</span>
+    <span>${mEsc(word)}</span></div>`;
+}
+function mDeskNoticeHtml(c){
+  if(!window.deskIsOpen || !deskIsOpen(c)) return '';
+  if(!window.deskIsMember || deskIsMember(c)) return '';
+  const lead=deskLead(c)||{name:''};
+  const asked=window.deskJoinPendingFor?deskJoinPendingFor(c):null;
+  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:8px;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
+    <span style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:600;color:var(--st-amber-fg)">${mEsc(i18t('dk_reading',{who:lead.name}))}</div>
+      <div class="m-note" style="margin-top:3px">${mEsc(asked?i18t('dk_asked_already'):i18t('dk_phone_ask'))}</div>
+    </span>
+    ${asked?'':`<button type="button" data-dk-join="1" style="flex:none;font:inherit;font-size:13px;font-weight:700;
+      border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:7px;padding:5px 11px">${mEsc(i18t('dk_ask_to_join'))}</button>`}
+  </div>`;
+}
+
 function mDocNoticesHtml(c){
   /* The review line rides ABOVE the numbering notices and outside the early
      returns below: an executed contract has no review to run, but a contract
      whose numbers are live still very much can, and the old structure would
      have swallowed the notice on the first branch that matched. */
-  const rv = mLocked(c) ? '' : mReviewNoticeHtml(c);
+  /* The desk's band shares the review's slot here too — same rule as the
+     workbench (rlOneNoticeHtml), and the phone has less room than the desk, not
+     more. Most restrictive first: a review hold is a refusal you can act on. */
+  const rv = mLocked(c) ? '' : (mReviewNoticeHtml(c) || mDeskNoticeHtml(c));
   if(mLocked(c)) return `
     <div class="m-notice" style="background:var(--st-gray-bg);border-color:var(--st-gray-line)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>

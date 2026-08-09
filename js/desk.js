@@ -254,18 +254,19 @@ function deskMayManage(c, u){
    TWO STAGES SHIPPED BEFORE THIS ONE so the desks could be watched filling up
    with real names first. Turning this on is the moment the names start to mean
    something. */
-const DESK_RULE_DEFAULT = { on: false };
+const DESK_RULE_DEFAULT = { on: false, staleDays: 5 };
 function deskCfg(){
   const st = _dkState();
   const s = (st && st.settings) || {};
   const g = (s.deskRule && typeof s.deskRule === 'object') ? s.deskRule : {};
-  return { on: !!g.on };
+  return { on: !!g.on, staleDays: Number(g.staleDays || DESK_STALE_DAYS) };
 }
 function saveDeskCfg(g){
   const st = _dkState();
   if (!st) return null;
   st.settings = st.settings || {};
-  st.settings.deskRule = { on: !!(g && g.on) };
+  st.settings.deskRule = { on: !!(g && g.on),
+    staleDays: Math.max(1, Number((g && g.staleDays) || DESK_STALE_DAYS)) };
   if (window.saveSettings) window.saveSettings();
   return st.settings.deskRule;
 }
@@ -464,10 +465,121 @@ function deskHandover(c, user, o = {}){
   d.leadName = String(user.name || '');
   d.leadEmail = user.email || null;
   d.leadSince = _dkNow();
+  /* ---- THE ONE THING ON THIS DESK THAT TRAVELS ----
+     A counterparty has a named contact on our side; that is ordinary commercial
+     practice and is already what the portal shows. So when the contact changes,
+     they are TOLD, in one sentence, on the next round — rather than discovering
+     it because a different name appeared at the top of a page.
+     That is the whole difference between a handover and being quietly passed
+     around, and it is why this is stamped rather than left implicit.
+
+     Bound to the ROUND it was made in, so the sentence travels once. A note
+     that repeated on every round afterwards would read as an error. */
+     d.announce = (o.tell === false) ? null : {
+    from: was.name, to: d.leadName, at: _dkNow(),
+    round: (window.negoRound ? (() => { try{ return negoRound(c); }catch(_){ return null; } })() : null),
+  };
   _dkSettleJoin(c, user.id, 'approved', actor);
   _dkAudit(c, 'Negotiation desk',
-    `Lead handed from ${was.name} to ${d.leadName} by ${String((actor && actor.name) || 'System')}`);
+    `Lead handed from ${was.name} to ${d.leadName} by ${String((actor && actor.name) || 'System')}`
+    + `${d.announce ? ` — ${c.counterparty || 'the counterparty'} will be told on the next round` : ' — the counterparty will not be told'}`);
   return deskLead(c);
+}
+/* What the counterparty should be told, or null. Read by buildSharePayload and
+   by nothing else. It answers null once the round has moved on, so the sentence
+   goes out once. */
+function deskAnnouncement(c){
+  const d = deskOf(c);
+  const a = d && d.announce;
+  if (!a || !a.to) return null;
+  if (a.round != null && window.negoRound){
+    let now = null;
+    try{ now = negoRound(c); }catch(_){ now = null; }
+    if (now != null && Number(now) !== Number(a.round)) return null;
+  }
+  return i18t('dk_cp_notice', { who: a.to });
+}
+
+/* ---------- THE PRICE OF ONE DOOR OUT ----------
+   Make one person the only route to the counterparty and the deal goes quiet
+   the week they are on leave. That is the failure this whole design would
+   otherwise introduce, and it is the counterparty's experience of it that
+   matters: they are not waiting on our internal arrangements, they are waiting
+   on an answer.
+
+   So: when is the OTHER SIDE waiting on us? Read from the change model rather
+   than from a timestamp somebody has to remember to set — the earliest of their
+   proposals we have not answered is exactly the moment they started waiting,
+   and it is already on the record with a date on it.
+
+   WORKING DAYS, because five calendar days over an Easter weekend is not a
+   week of silence and flagging it as one teaches people to ignore the flag. */
+function _dkWorkingDaysBetween(a, b){
+  const from = new Date(a), to = new Date(b);
+  if (isNaN(from) || isNaN(to)) return 0;
+  let n = 0;
+  const cur = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  while (cur < end){
+    cur.setDate(cur.getDate() + 1);
+    const wd = cur.getDay();
+    if (wd !== 0 && wd !== 6) n++;
+  }
+  return n;
+}
+const DESK_STALE_DAYS = 5;
+function deskWaitingSince(c){
+  if (!c || !deskIsOpen(c)) return null;
+  /* `createdAt` is the change model's own field for when an ask was raised —
+     `at` is the option name the callers pass in and is not what ends up on the
+     record. Reading the wrong one answered "nobody is waiting" on every
+     contract, silently, which is the exact failure this clock exists to catch. */
+  const when = x => String((x && (x.createdAt || x.at)) || '');
+  const pend = (window.negoPending ? window.negoPending(c) : [])
+    .filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending' && when(x));
+  if (!pend.length) return null;
+  return pend.map(when).sort()[0];
+}
+/* Null when the deal is moving. An object when it is not, and it names the lead
+   because the answer to "why is this quiet" is almost always "ask them". */
+function deskStale(c, nowISO){
+  const since = deskWaitingSince(c);
+  if (!since) return null;
+  const days = _dkWorkingDaysBetween(since, nowISO || _dkNow());
+  const limit = Number(deskCfg().staleDays || DESK_STALE_DAYS);
+  if (days < limit) return null;
+  const lead = deskLead(c) || { name: '' };
+  return { days, since, lead, n: (window.negoPending ? window.negoPending(c) : [])
+    .filter(x => x && x.authorSide === 'counterparty' && x.status === 'pending').length };
+}
+/* Every quiet negotiation this person is answerable for. The lead's own, and
+   every one of them for an admin — somebody has to be able to see the whole
+   board or a deal parked behind an absent colleague is invisible until the
+   counterparty chases. THE COUNTERPARTY NEVER SEES ANY OF THIS: it is drawn on
+   our dashboard and is not in the share payload. */
+function deskStaleInboxFor(cs, u, nowISO){
+  const me = u || _dkMe();
+  if (!me) return [];
+  const out = [];
+  (cs || []).forEach(c => {
+    if (!deskIsOpen(c)) return;
+    if (!(deskIsLead(c, me) || _dkIsAdmin(me))) return;
+    const s = deskStale(c, nowISO);
+    if (s) out.push({ c, stale: s });
+  });
+  return out.sort((a, b) => b.stale.days - a.stale.days);
+}
+
+/* ---------- SOMEBODY IS LEAVING ----------
+   A desk whose lead no longer has an account is a negotiation with no door out:
+   nobody can publish a round, and the only person who could hand it over is
+   gone. Read by the team screen before it deactivates or deletes anybody, so
+   the desks are reassigned while there is still somebody to ask about them. */
+function deskLedBy(cs, userId){
+  return (cs || []).filter(c => {
+    const d = deskOf(c);
+    return !!(d && d.leadId && !d.closedAt && String(d.leadId) === String(userId));
+  });
 }
 
 /* ---------- asking to join ----------
@@ -890,6 +1002,21 @@ function openDeskHandover(c, opts = {}){
       </div>
       <div id="dk-who-say" style="font-size:11.5px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
       <input type="hidden" id="dk-who-id" value=""/>
+      ${''/* ---- THE WHOLE "NO SURPRISES" QUESTION, IN ONE TICK BOX ----
+             Internally a handover is instant, logged and announced. Externally
+             it should produce one courteous sentence at the moment they would
+             notice anyway — not a silently different name at the top of their
+             page, which is exactly how a counterparty comes to feel handled.
+             Ticked by default, because the polite thing should be the quiet
+             path through the form. */}
+      <label style="display:flex;gap:9px;align-items:flex-start;font-size:11.5px;line-height:1.5;
+        cursor:pointer;margin-top:12px;border:1px solid var(--color-divider);border-radius:8px;
+        padding:10px 12px;background:var(--color-bg)">
+        <input id="dk-ho-tell" type="checkbox" checked style="margin-top:2px;flex:none"/>
+        <span><b style="color:var(--color-text)">${_dkE(i18t('dk_tell_them', { cp: c.counterparty || i18t('dk_the_counterparty') }))}</b>
+        <span style="display:block;color:var(--color-neutral-600);margin-top:2px">${_dkE(i18t('dk_tell_them_sub', { who: lead.name }))}</span>
+        <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--color-accent-800);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
+      </label>
       <p style="font-size:11.5px;color:var(--color-neutral-600);margin:12px 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
         <button id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
@@ -908,7 +1035,8 @@ function openDeskHandover(c, opts = {}){
       _dkSay(r.why || i18t('dk_pick_someone'), 'err');
       return;
     }
-    if (!deskHandover(c, u)) return;
+    const tell = !!(document.getElementById('dk-ho-tell') || {}).checked;
+    if (!deskHandover(c, u, { tell })) return;
     _dkSave(c);
     window.closeModal();
     _dkSay(i18t('dk_handed_toast', { who: u.name }));
@@ -960,4 +1088,5 @@ Object.assign(window, {
   deskSeatShowsDesk, deskInitials, deskChipHtml, deskNoticeHtml,
   deskWireChip, deskOpenFromChip,
   deskSheetHtml, openDeskSheet, openDeskHandover, openDeskJoinAsk,
+  DESK_STALE_DAYS, deskAnnouncement, deskWaitingSince, deskStale, deskStaleInboxFor, deskLedBy,
 });

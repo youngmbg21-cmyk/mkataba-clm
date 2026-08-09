@@ -2344,7 +2344,24 @@ function shareVersions(c, org){
 const SHARE_PURPOSE = p => (['sign','negotiate','view','history'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
-  const sharedBy=(who&&who.sharedBy)||currentUser().name;
+  /* ---- ONE NAMED CONTACT, AND IT IS THE LEAD ----
+     `sharedBy` is who the counterparty is told to reply to: the portal prints
+     it on the header, on the response screen, on the signing screen and in the
+     nudge email. So it is a CONTACT, not an audit field — and taking it from
+     whoever happened to press the button meant a contributor doing something
+     administrative surfaced as a change of contact on the other side.
+
+     Where a negotiation has a desk, the contact is its lead. That is stable
+     across a lead's tenure, it is the person who can actually answer, and when
+     it does change the counterparty is told in a sentence rather than left to
+     notice (see deskAnnouncement). Where there is no desk this is exactly what
+     it always was.
+
+     THE CONTRIBUTORS ARE STILL INTERNAL. One name travels because a deal has a
+     contact; the roster does not, and neither does the fact that a desk exists. */
+  const _deskLead=(window.deskIsOpen&&window.deskIsOpen(c)&&window.deskLead)?deskLead(c):null;
+  const sharedBy=(who&&who.sharedBy)||(_deskLead&&_deskLead.name)||currentUser().name;
+  const leadNotice=(window.deskAnnouncement)?deskAnnouncement(c):null;
   const shareUpload = u => u ? { fileName:u.fileName, size:u.size, mime:u.mime,
     fileHash:u.fileHash, dataUrl:u.dataUrl, extractedText:u.extractedText } : undefined;
   /* The negotiation history, trimmed to what the other side is entitled to
@@ -2503,6 +2520,9 @@ function buildSharePayload(c, docHash, who, opts){
   const purpose = purposeChosen || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
+    /* One courtesy sentence, on the round after the contact changed and on that
+       round only. The entire visible consequence of everything the desk does. */
+    leadNotice:leadNotice||undefined,
     purpose:purpose, purposeChosen:purposeChosen,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
       /* THE MARKS ALREADY TAKEN travel with the copy. The owner signing first
