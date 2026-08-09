@@ -528,34 +528,79 @@ mark{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
 .legend i.dash{width:16px;height:0;border-radius:0;border-top:2px dashed var(--ch-ref);}
 
 /* ---------- INSIGHTS: ONE PAGE, MANY TABS ----------
-   The analyst screens used to be six doors in the sidebar. They are tabs of
-   the Insights page now, beside the two that were already there — so the page
-   header, the tab row and the time range are written once by the shell and
-   each panel only contributes its own intro. */
+   Drawn as physical file-folder tabs: rounded at the top only, each in its own
+   pastel, the active one raised and at full strength while the rest sit lower
+   and washed toward the page.
+
+   ABOUT THE COLOURS. Everywhere else in this prototype colour MEANS something —
+   ruby is wrong, amber is watch, teal is the brand. Seven pastel tabs would
+   wreck that if they were drawn from the same box, so they are not: every tab
+   tint is a desaturated wash no status ever uses, which is what keeps a lilac
+   tab from reading as a signal. Colour here does one job only — telling one
+   destination from another at a glance, which is the same job it does in the
+   reference. */
+:root{
+  --tab-1:#c9ece4; --tab-2:#d2e6f7; --tab-3:#ded9f6; --tab-4:#f1d8ef;
+  --tab-5:#f9d6dc; --tab-6:#fbdfcc; --tab-7:#f7ecc4;
+  --tab-ink:#332d3f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-4:#432344;
+    --tab-5:#4a2330; --tab-6:#4d3220; --tab-7:#463b18;
+    --tab-ink:#ece7f4;
+  }
+}
+:root[data-theme="dark"]{
+  --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-4:#432344;
+  --tab-5:#4a2330; --tab-6:#4d3220; --tab-7:#463b18;
+  --tab-ink:#ece7f4;
+}
+
 .ins-head{margin-bottom:4px;}
 .ins-head h1{font-size:22px;font-weight:800;letter-spacing:-.02em;}
 .ins-sub{font-size:12.5px;color:var(--color-neutral-500);margin-top:3px;}
+
 .ins-tabrow{
-  display:flex;align-items:flex-end;gap:16px;margin-top:14px;
-  border-bottom:1px solid var(--color-divider);
+  display:flex;align-items:flex-end;gap:16px;margin-top:16px;
+  /* the rail takes the ACTIVE tab's colour — that is what visually joins the
+     raised tab to everything below it */
+  border-bottom:3px solid var(--rail,var(--color-divider));
 }
-.ins-tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:thin;}
+.ins-tabs{
+  display:flex;align-items:flex-end;gap:3px;flex:1;min-width:0;
+  overflow-x:auto;overflow-y:hidden;padding-top:8px;scrollbar-width:thin;
+}
 .ins-tabs::-webkit-scrollbar{height:5px;}
 .ins-tabs::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:3px;}
 .ins-tab{
-  border:0;background:none;padding:9px 12px 10px;font-size:12.5px;font-weight:600;
-  color:var(--color-neutral-500);white-space:nowrap;border-bottom:2px solid transparent;
-  margin-bottom:-1px;display:inline-flex;align-items:center;gap:6px;
+  position:relative;flex:none;border:0;
+  background:color-mix(in srgb,var(--tab-c) 62%,var(--color-bg));
+  color:var(--tab-ink);
+  border-radius:11px 11px 0 0;
+  padding:7px 14px 8px;
+  font-size:12.5px;font-weight:600;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:background .12s,padding .12s;
 }
-.ins-tab:hover{color:var(--color-text);}
-.ins-tab.on{color:var(--accent-ink);border-bottom-color:var(--accent-solid);}
+.ins-tab:hover{ background:color-mix(in srgb,var(--tab-c) 82%,var(--color-bg)); }
+/* the raised folder: full-strength colour, taller, sitting on its own rail */
+.ins-tab.on{
+  background:var(--tab-c);
+  padding:12px 16px 10px;
+  font-weight:700;
+  box-shadow:0 -1px 3px rgba(15,23,42,.07);
+}
 .ins-tab .n{
   font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:999px;
-  background:var(--color-surface-2);color:var(--color-neutral-500);
-  font-variant-numeric:tabular-nums;
+  background:rgba(0,0,0,.09);color:inherit;font-variant-numeric:tabular-nums;
 }
-.ins-tab.on .n{background:var(--st-steel-bg);color:var(--st-steel-fg);}
-.ins-range{display:flex;gap:2px;flex:none;padding-bottom:7px;}
+:root[data-theme="dark"] .ins-tab .n{background:rgba(255,255,255,.16);}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .ins-tab .n{background:rgba(255,255,255,.16);}
+}
+
+.ins-range{display:flex;gap:2px;flex:none;padding-bottom:8px;}
 .ins-range button{
   border:0;background:none;font-size:12px;font-weight:600;padding:4px 9px;
   border-radius:8px;color:var(--color-neutral-500);
@@ -2071,10 +2116,16 @@ var tab = 's-home';
 
 function renderTabs(){
   var o=O();
-  $('#ins-tabs').innerHTML = TABS.map(function(t){
-    return '<button class="ins-tab'+(tab===t.id?' on':'')+'" data-tab="'+t.id+'" role="tab">'+
+  var active=1;
+  $('#ins-tabs').innerHTML = TABS.map(function(t,i){
+    if (tab===t.id) active = i+1;
+    /* the tint is NAMED, not literal, so the same line resolves to the pastel
+       in light mode and to its deep counterpart in dark */
+    return '<button class="ins-tab'+(tab===t.id?' on':'')+'" data-tab="'+t.id+'" role="tab" '+
+      'style="--tab-c:var(--tab-'+(i+1)+')">'+
       esc(t.label)+(t.count?'<span class="n">'+t.count(o)+'</span>':'')+'</button>';
   }).join('');
+  document.querySelector('.ins-tabrow').style.setProperty('--rail','var(--tab-'+active+')');
   var cur = TABS.filter(function(t){return t.id===tab;})[0];
   $('#ins-sub').innerHTML = esc(o.name)+' · '+esc(o.kind)+', '+esc(o.market)+' — '+esc(cur.sub);
 }
