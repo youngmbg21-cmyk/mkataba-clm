@@ -484,6 +484,92 @@ describe('f161 · the reviewer’s screen is the job and nothing else', () => {
 });
 
 /* ============================================================
+   3d — EVERY STATE, FROM EVERY CHAIR
+   ============================================================
+   Reported as a criticism, and a fair one (Young, 09 Aug 2026): "why do I have
+   the 'Ask again' after I have sent back my feedback? And why does it say ask
+   again when I was the one that was asked?"
+
+   The OPEN states had been taught who may see a review. The states after it
+   never had. So the moment a review came back, the banner announced it in the
+   third person to the person who had just written it, offered them the
+   requester's verb, and drew the reviewer's name and their hand-back note to
+   every colleague on the contract.
+
+   This block walks the whole matrix rather than the state that was reported —
+   the fault was not the sentence, it was checking some states and not others. */
+describe('f161 · the states after a review comes back', () => {
+
+  async function returned(w){
+    const { c, six } = await twoOut(w);
+    const sales = seat(SALES, c);
+    sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
+    sales.win.reviewReturn(c, { note: 'Move it forward as is.' });
+    return c;
+  }
+  const banner = (u, c) => seat(u, c).win.reviewBannerHtml(c, { side: 'owner' });
+  const verbs = html => [...html.matchAll(/data-rv-act="([^"]+)"/g)].map(m => m[1]);
+
+  test('the reviewer reads their own hand-back in the first person', async () => {
+    const w = world();
+    const c = await returned(w);
+    const html = banner(SALES, c);
+    assert.match(html, /You handed this back to Wanjiru Kamau/);
+    assert.ok(!/Simon Jordan has reviewed/.test(html), 'not news about themselves');
+  });
+
+  test('…and is offered no verb, because they did it', async () => {
+    const w = world();
+    const c = await returned(w);
+    assert.ok(!verbs(banner(SALES, c)).includes('rv-ask'),
+      '"Ask again" is the requester’s act, offered to the one person who cannot use it');
+  });
+
+  test('the requester is told who answered, and may ask again', async () => {
+    const w = world();
+    const c = await returned(w);
+    const html = w.win.reviewBannerHtml(c, { side: 'owner' });
+    assert.match(html, /Simon Jordan has reviewed this/);
+    assert.match(html, /Move it forward as is/, 'their note is for the person who asked');
+    assert.ok(verbs(html).includes('rv-ask'));
+  });
+
+  test('an admin sees it too', async () => {
+    const w = world();
+    const c = await returned(w);
+    assert.match(banner(BOSS, c), /Simon Jordan has reviewed this/);
+  });
+
+  test('and a colleague outside the review is told none of it', async () => {
+    const w = world();
+    const c = await returned(w);
+    const html = banner(OTHER, c);
+    assert.equal(html, '', 'the name and the note were drawn to everybody');
+  });
+
+  test('a withdrawn review tells the person it was taken from', async () => {
+    const w = world();
+    const { c, a } = await twoOut(w);
+    w.win.reviewCancel(c, { reviewId: a.id });
+    assert.match(banner(SALES, c), /Wanjiru Kamau withdrew the review/,
+      'their column quietly un-narrowed and nothing said why');
+    /* The requester's banner still carries the OTHER review, which is open —
+       what it must not carry is news of a withdrawal they performed. */
+    const asMe = w.win.reviewBannerHtml(c, { side: 'owner' });
+    assert.ok(!/withdrew the review/.test(asMe), 'the person who withdrew it needs no notice');
+    assert.ok(!/withdrew the review/.test(banner(OTHER, c)));
+  });
+
+  test('and with nothing asked at all, nobody has a banner', async () => {
+    const w = world();
+    const c = contract(); w.win.negoInit(c);
+    await mine(w.win, c, '6', '<p>Uncapped.</p>');
+    for (const u of [ME, SALES, OTHER, BOSS])
+      assert.equal(u === ME ? w.win.reviewBannerHtml(c, { side: 'owner' }) : banner(u, c), '');
+  });
+});
+
+/* ============================================================
    4 — THE BANNER CLEARS
    ============================================================ */
 describe('f161 · the notice clears for the sitting', () => {

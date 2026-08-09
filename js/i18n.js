@@ -2816,6 +2816,10 @@ const STRINGS = {
     rv_banner_returned: '{who} has reviewed this.',
     rv_banner_returned_sub: '{cleared} cleared to send, {held} held back, {advised} of the counterparty’s asks advised on.',
     rv_ask_again_btn: 'Ask again',
+    /* The reviewer reads their own hand-back in the first person, and is
+       offered no verb — they did this. See reviewBannerHtml. */
+    rv_banner_returned_you: 'You handed this back to {who}.',
+    rv_banner_cancelled_you: '{who} withdrew the review they asked you for.',
     rv_banner_gate: 'Internal review needed.',
     rv_ask_btn: 'Ask for review',
     rv_head_ask: 'Internal review',
@@ -5642,6 +5646,8 @@ const STRINGS = {
     rv_banner_returned: '{who} har granskat det här.',
     rv_banner_returned_sub: '{cleared} klara att skicka, {held} kvarhållna, {advised} av motpartens önskemål har fått råd.',
     rv_ask_again_btn: 'Fråga igen',
+    rv_banner_returned_you: 'Du lämnade tillbaka det här till {who}.',
+    rv_banner_cancelled_you: '{who} drog tillbaka granskningen du ombads göra.',
     rv_banner_gate: 'Intern granskning krävs.',
     rv_ask_btn: 'Begär granskning',
     rv_head_ask: 'Intern granskning',
