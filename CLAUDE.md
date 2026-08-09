@@ -190,7 +190,7 @@ EXACTLY ONE THING ABOUT OUR SIDE TRAVELS. buildSharePayload's `sharedBy` is the 
 
 THE PRICE OF ONE DOOR OUT: deskStale/deskStaleInboxFor flag a negotiation where the counterparty has waited more working days than the setting allows, on OUR dashboard only. deskLedBy is the leaver check. Without these the design's own failure mode is a deal that goes silent because one person is on leave.
 
-Tests: f162 (the record), f163 (the roster and asking to join), f164 (the rule, the screen, the doors), f165 (the server, against raw responses), f166 (the clock, the leaver, the courtesy note).
+Tests: f165 (the record), f166 (the roster and asking to join), f167 (the rule, the screen, the doors), f168 (the server, against raw responses), f169 (the clock, the leaver, the courtesy note). NOT f162/f163/f164 — those numbers went to the review-server, counterparty-redline and finished-review work that landed on main in the same week.
 
 WHO MAY SEE WHICH STREAM, AND WHERE THE ANSWER COMES FROM (added 2026-08-09)
 

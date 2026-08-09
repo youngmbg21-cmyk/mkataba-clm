@@ -1,5 +1,5 @@
 /* ============================================================
-   f164 — the desk rule, stage 3: the lock, not the sign
+   f167 — the desk rule, stage 3: the lock, not the sign
    ============================================================
    Stages 1 and 2 recorded who works a negotiation and who else was let in.
    This one makes it mean something, and it is a SETTING — off unless an admin
@@ -73,7 +73,7 @@ async function claimed(opts = {}){
    1 — THE FOUR ESCAPES
    ============================================================
    Every one of these is a way the rule must answer "carry on". */
-describe('f164 · where the rule has nothing to say, nothing changes', () => {
+describe('f167 · where the rule has nothing to say, nothing changes', () => {
 
   test('with the rule OFF, a colleague who is not on the desk redlines freely', async () => {
     const { win, c } = await claimed({ on: false });
@@ -115,7 +115,7 @@ describe('f164 · where the rule has nothing to say, nothing changes', () => {
 /* ============================================================
    2 — THE THREE SEATS, ENFORCED
    ============================================================ */
-describe('f164 · what each seat may actually do', () => {
+describe('f167 · what each seat may actually do', () => {
 
   test('a reader is refused by the FUNNEL, with a sentence that says who to ask', async () => {
     const { win, c } = await claimed();
@@ -185,7 +185,7 @@ describe('f164 · what each seat may actually do', () => {
 /* ============================================================
    3 — THE SEND DOORS AND THE READINESS PANEL
    ============================================================ */
-describe('f164 · every door refuses, and says the same thing', () => {
+describe('f167 · every door refuses, and says the same thing', () => {
 
   test('readiness names it as a block before anyone fills in a form', async () => {
     const { c } = await claimed();
@@ -212,7 +212,7 @@ describe('f164 · every door refuses, and says the same thing', () => {
    Five renderers compute `canAct` and all five ask rlActorHeld; one answer for
    two postures is the only reason gating the desk did not mean finding those
    five sites again. */
-describe('f164 · the workbench stops offering what the model will refuse', () => {
+describe('f167 · the workbench stops offering what the model will refuse', () => {
 
   function viewWorld(user, on = true){
     const w = buildWorld({ user, negotiationView: true, contractView: true });

@@ -1,5 +1,5 @@
 /* ============================================================
-   f166 — the desk, stage 4: the gaps a strict rule opens
+   f169 — the desk, stage 4: the gaps a strict rule opens
    ============================================================
    Stage 3 made one person the only route to the counterparty. That is the whole
    point of the design and it introduces exactly one new failure: the deal goes
@@ -75,7 +75,7 @@ async function theirAsk(w, c, num, at){
 /* ============================================================
    1 — THE WAITING CLOCK
    ============================================================ */
-describe('f166 · a deal that has gone quiet is flagged to us, never to them', () => {
+describe('f169 · a deal that has gone quiet is flagged to us, never to them', () => {
 
   test('nothing is flagged while the ball is on their side', async () => {
     const { win, c } = await claimed();
@@ -133,7 +133,7 @@ describe('f166 · a deal that has gone quiet is flagged to us, never to them', (
 /* ============================================================
    2 — THE LEAVER CHECK
    ============================================================ */
-describe('f166 · a lead with no account is a negotiation with no door out', () => {
+describe('f169 · a lead with no account is a negotiation with no door out', () => {
 
   test('the desks somebody leads are findable before they are removed', async () => {
     const { win, c } = await claimed();
@@ -157,7 +157,7 @@ describe('f166 · a lead with no account is a negotiation with no door out', () 
    3 — THE COURTESY NOTE
    ============================================================
    The one sentence about our side that ever crosses the wall. */
-describe('f166 · a handover is announced, once, in plain words', () => {
+describe('f169 · a handover is announced, once, in plain words', () => {
 
   test('the next round carries it, and the round after does not', async () => {
     const { win, c } = await claimed();

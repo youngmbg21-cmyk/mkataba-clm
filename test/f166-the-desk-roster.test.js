@@ -1,5 +1,5 @@
 /* ============================================================
-   f163 — the desk's roster, stage 2: who else works this, and how they ask
+   f166 — the desk's roster, stage 2: who else works this, and how they ask
    ============================================================
    Stage 1 recorded a name. This stage builds the list around it and the one
    conversation the list needs — somebody who is not on the desk asking to be.
@@ -78,7 +78,7 @@ async function claimed(win){
 /* ============================================================
    1 — THE ROSTER AND THE THREE SEATS
    ============================================================ */
-describe('f163 · lead, contributor, reader', () => {
+describe('f166 · lead, contributor, reader', () => {
 
   test('adding a colleague gives them the contributor seat and nobody else moves', async () => {
     const { win } = world();
@@ -149,7 +149,7 @@ describe('f163 · lead, contributor, reader', () => {
    ============================================================
    Each one says which mistake it was. A single grey "invalid" tells you which
    of the five you made: none. */
-describe('f163 · who cannot be put on a desk, and why', () => {
+describe('f166 · who cannot be put on a desk, and why', () => {
 
   test('a viewer, the lead, somebody already on it, a fenced-out member, and nobody', async () => {
     const { win } = world();
@@ -182,7 +182,7 @@ describe('f163 · who cannot be put on a desk, and why', () => {
 /* ============================================================
    3 — ASKING TO JOIN
    ============================================================ */
-describe('f163 · a reader has one button, and it reaches the lead', () => {
+describe('f166 · a reader has one button, and it reaches the lead', () => {
 
   test('the request is filed against the contract and shows on the reader\'s band', async () => {
     const { win } = world();
@@ -256,7 +256,7 @@ describe('f163 · a reader has one button, and it reaches the lead', () => {
 /* ============================================================
    4 — NOBODY LOSES A VERB YET, AND THE WALL HOLDS
    ============================================================ */
-describe('f163 · stage 2 still enforces nothing', () => {
+describe('f166 · stage 2 still enforces nothing', () => {
 
   test('a reader files a change exactly as they did yesterday', async () => {
     const { win } = world();

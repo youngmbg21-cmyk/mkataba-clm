@@ -1,7 +1,7 @@
 /* ============================================================
-   f165 — the desk rule is enforced on the server
+   f168 — the desk rule is enforced on the server
    ============================================================
-   f164 proves the browser refuses. This proves the refusal survives a caller
+   f167 proves the browser refuses. This proves the refusal survives a caller
    who never loaded the browser.
 
    It matters more than it looks. An ordinary contract save carries the WHOLE
@@ -50,7 +50,7 @@ const aChange = (id, hash) => ({ id, clauseId: 'cl_x', authorSide: 'owner', auth
 
 const setRule = on => W.admin.json('/api/settings', { method: 'PUT', body: { deskRule: { on } } });
 
-describe('f165 — a caller who is not on the desk cannot write our redlines', () => {
+describe('f168 — a caller who is not on the desk cannot write our redlines', () => {
 
   test('with the rule ON, a stranger\'s save carrying a new change is refused', async () => {
     await setRule(true);
@@ -129,7 +129,7 @@ describe('f165 — a caller who is not on the desk cannot write our redlines', (
   });
 });
 
-describe('f165 — where the rule has nothing to say, the server says nothing', () => {
+describe('f168 — where the rule has nothing to say, the server says nothing', () => {
 
   test('with the rule OFF the same request goes straight through', async () => {
     await setRule(false);

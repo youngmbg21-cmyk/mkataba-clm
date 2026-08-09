@@ -1,5 +1,5 @@
 /* ============================================================
-   f162 — the negotiation desk, stage 1: it is stamped and it is shown
+   f165 — the negotiation desk, stage 1: it is stamped and it is shown
    ============================================================
    Four questions stand between a person and a redline once this feature is
    finished: your role, your streams, are you on this desk, and is the rule
@@ -68,7 +68,7 @@ const theirs = (win, c, num, body, over = {}) => {
 /* ============================================================
    1 — STARTING WORK CLAIMS THE NEGOTIATION
    ============================================================ */
-describe('f162 · the first redline opens a desk', () => {
+describe('f165 · the first redline opens a desk', () => {
 
   test('filing our first change records the initiator and makes them the lead', async () => {
     const { win } = world();
@@ -143,7 +143,7 @@ describe('f162 · the first redline opens a desk', () => {
    The lesson f59 caught on the review feature, restated because it is the one
    bug that turns every repaint into a save and makes "has this contract
    changed?" unanswerable. Painting a screen must leave the record alone. */
-describe('f162 · reading the desk leaves the contract alone', () => {
+describe('f165 · reading the desk leaves the contract alone', () => {
 
   test('every read on a contract with no desk writes nothing', () => {
     const { win } = world();
@@ -158,7 +158,7 @@ describe('f162 · reading the desk leaves the contract alone', () => {
    3 — STAGE 1 ENFORCES NOTHING
    ============================================================
    The promise that makes this shippable on its own. */
-describe('f162 · nobody loses a verb', () => {
+describe('f165 · nobody loses a verb', () => {
 
   test('a colleague who is not the lead still files changes normally', async () => {
     const { win } = world();
@@ -180,7 +180,7 @@ describe('f162 · nobody loses a verb', () => {
 /* ============================================================
    4 — THE CHIP, AND WHO NEVER SEES IT
    ============================================================ */
-describe('f162 · the desk is drawn once, in the header', () => {
+describe('f165 · the desk is drawn once, in the header', () => {
 
   test('it names the lead, and says "You" to the lead themselves', async () => {
     const { win } = world();
