@@ -737,7 +737,7 @@ function deskChipHtml(c, opts = {}){
   const faces = shown.map((p, i) => _dkFaceHtml(p.name, i === 0, i)).join('')
     + (others.length > 2 ? `<span class="dk-face dk-face-more" style="margin-left:-7px">+${others.length - 2}</span>` : '');
   const who = role === 'lead'
-    ? (others.length ? i18t('dk_you_lead_n', { n: others.length }) : i18t('dk_you_lead'))
+    ? (others.length ? i18tn('dk_you_lead_n', others.length, { n: others.length }) : i18t('dk_you_lead'))
     : role === 'contributor' ? i18t('dk_you_contribute', { who: lead.name })
     : i18t('dk_who_leads', { who: lead.name });
   const pending = deskMayManage(c, me) ? deskJoinPending(c).length : 0;
