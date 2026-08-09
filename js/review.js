@@ -189,9 +189,13 @@ function reviewLastOf(c){ const rs = reviewRequests(c); return rs.length ? rs[rs
    contract in the first place, so leaving it out would have made the feature
    answer only half the question that was asked of it. */
 function reviewScope(c){
-  const ours = (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : []).slice();
+  /* ALREADY OUT IS NOT AVAILABLE. With several reviews able to run at once, the
+     dialog must offer only what is still free — a change sitting with sales
+     cannot also go to procurement, and listing it would invite exactly that. */
+  const free = x => !reviewInOpen(c, x);
+  const ours = (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : []).filter(free);
   const theirs = (window.negoPending ? window.negoPending(c) : [])
-    .filter(x => x && x.authorSide === 'counterparty');
+    .filter(x => x && x.authorSide === 'counterparty' && free(x));
   return { ours, theirs, all: ours.concat(theirs) };
 }
 const reviewSideOf = ch => (ch && ch.authorSide === 'counterparty') ? 'theirs' : 'ours';
@@ -387,7 +391,12 @@ function reviewResolvePerson(q){
 /* ---------- asking ---------- */
 function reviewAsk(c, o = {}){
   reviewInit(c);
-  if (reviewOpenOf(c)){ _rvSay(i18t('rv_already_open'), 'err'); return null; }
+  /* THE ONE-AT-A-TIME RULE IS GONE. It made you read the whole contract, hold
+     every worry in your head and escalate once at the end — the batch habit
+     this feature exists to replace. Clause 5 goes to sales while you are still
+     reading; clause 10 goes to procurement twenty minutes later; neither waits
+     for the other. What is still refused is one CHANGE in two reviews, which
+     reviewScope enforces by not offering it. */
   const who = o.reviewer || {};
   const name = String(who.name || '').trim();
   if (!name){ _rvSay(i18t('rv_pick_someone'), 'err'); return null; }
@@ -435,9 +444,12 @@ function reviewAsk(c, o = {}){
     + `${rv.note ? `; “${rv.note}”` : ''}`);
   return rv;
 }
+/* Cancel a NAMED review. With several open, "cancel the review" is ambiguous
+   and picking the latest would quietly kill the wrong person's. */
 function reviewCancel(c, o = {}){
-  const rv = reviewOpenOf(c);
-  if (!rv) return null;
+  const open = reviewOpenList(c);
+  const rv = o.reviewId ? open.find(r => r.id === o.reviewId) : (open.length === 1 ? open[0] : null);
+  if (!rv){ if (open.length > 1) _rvSay(i18t('rv_which_review'), 'err'); return null; }
   rv.status = 'cancelled';
   rv.returnedAt = _rvNow();
   const by = String(o.by || (_rvMe() && _rvMe().name) || 'System');
@@ -448,8 +460,21 @@ function reviewCancel(c, o = {}){
 
 /* ---------- marking one change ---------- */
 function reviewMark(c, changeId, verdict, o = {}){
-  const rv = reviewOpenOf(c);
-  if (!rv){ _rvSay(i18t('rv_no_open_review'), 'err'); return null; }
+  const chFor = (window.negoChangeById ? window.negoChangeById(c, changeId) : null)
+    || (c.changes || []).find(x => x && x.id === changeId);
+  /* THE REVIEW THIS CHANGE IS IN, not "the" review. With several open, asking
+     the contract for its review picks an arbitrary one, and the reviewer check
+     below would then test the wrong person. */
+  const rv = reviewOpenFor(c, chFor);
+  if (!rv){
+    /* TWO DIFFERENT REFUSALS. "No review is open" and "this change was not in
+       the review you were asked about" are different mistakes, and the second
+       is the one a reviewer with two contracts open actually makes. */
+    _rvSay(reviewOpenList(c).length
+      ? i18t('rv_not_in_review', { id: changeId })
+      : i18t('rv_no_open_review'), 'err');
+    return null;
+  }
   const actor = o.by ? { name: o.by, id: o.byId || null } : _rvMe();
   /* THE REVIEWER, AND NOBODY ELSE. Not a UI courtesy: a verdict is the thing
      the gate reads, so anyone who could write one could clear their own wording
@@ -462,13 +487,8 @@ function reviewMark(c, changeId, verdict, o = {}){
   const ch = (window.negoChangeById ? window.negoChangeById(c, changeId) : null)
     || (window.negoAllChanges ? window.negoAllChanges(c).find(x => x.id === changeId) : null);
   if (!ch) return null;
-  /* Not in this review, not yours to rule on. Without this a reviewer asked
-     about the indemnity could clear the payment terms nobody showed them —
-     which is the same wrong as clearing your own wording, one step removed. */
-  if (!o.force && !reviewInOpen(c, ch)){
-    _rvSay(i18t('rv_not_in_review', { id: ch.id }), 'err');
-    return null;
-  }
+  /* The "not in this review" guard now lives at the top: reviewOpenFor either
+     finds the review this change belongs to or there is nothing to rule on. */
   const side = reviewSideOf(ch);
   const allowed = side === 'ours' ? REVIEW_VERDICTS_OURS : REVIEW_VERDICTS_THEIRS;
   if (!allowed.includes(String(verdict))){
@@ -509,9 +529,17 @@ function reviewMark(c, changeId, verdict, o = {}){
    optional by design — a reviewer with nothing to add about the counterparty's
    wording should not have to invent something to close the review. */
 function reviewReturn(c, o = {}){
-  const rv = reviewOpenOf(c);
-  if (!rv){ _rvSay(i18t('rv_no_open_review'), 'err'); return null; }
   const actor = o.by ? { name: o.by, id: o.byId || null } : _rvMe();
+  /* MINE, unless one is named. A reviewer hands back their own; they cannot
+     close somebody else's, and with two open the contract cannot guess. */
+  const open = reviewOpenList(c);
+  const mine = open.filter(r => reviewIsReviewer(r, actor));
+  const rv = o.reviewId ? open.find(r => r.id === o.reviewId)
+    : (mine.length === 1 ? mine[0] : (open.length === 1 ? open[0] : null));
+  if (!rv){
+    _rvSay(open.length > 1 ? i18t('rv_which_review') : i18t('rv_no_open_review'), 'err');
+    return null;
+  }
   if (!o.force && !reviewIsReviewer(rv, actor)){
     _rvSay(i18t('rv_only_reviewer', { who: rv.reviewer.name }), 'err');
     return null;
@@ -520,7 +548,10 @@ function reviewReturn(c, o = {}){
      request, or one deliberately left out of it, was never in front of this
      reviewer — refusing to let them finish because of it would be asking them
      to rule on wording nobody showed them. */
-  const inRv = reviewScope(c).all.filter(x => reviewInOpen(c, x));
+  const idsIn = new Set((rv.changeIds || []).map(String));
+  const inRv = ((window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
+    .concat((window.negoPending ? window.negoPending(c) : []).filter(x => x && x.authorSide === 'counterparty')))
+    .filter(x => idsIn.has(String(x.id)));
   const ourIn = inRv.filter(x => reviewSideOf(x) === 'ours');
   const unmarked = ourIn.filter(x => !reviewOn(x));
   if (unmarked.length){
@@ -585,7 +616,7 @@ function reviewGate(c){
   const unsent = (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : []);
   const held = unsent.filter(reviewHeld);
   const sendable = unsent.filter(x => !reviewHeld(x));
-  const open = reviewOpenOf(c);
+  const open = reviewOpenList(c);
   const base = { held, sendable, unsent, open, unreviewed: [] };
   /* Nothing of ours is waiting to go, so there is nothing for a gate to hold.
      Handing the contract back with no asks outstanding is a legitimate move and
@@ -600,7 +631,7 @@ function reviewGate(c){
      came apart: a review of the indemnity alone would otherwise have locked the
      payment terms nobody had asked about, which is exactly the over-reach the
      subset exists to end. */
-  if (open && sendable.some(x => reviewOutFor(c, x)))
+  if (open.length && sendable.some(x => reviewOutFor(c, x)))
     return { ...base, unreviewed, required: true, ok: false, reason: 'with-reviewer' };
   if (unreviewed.length) return { ...base, unreviewed, required: true, ok: false,
     reason: reviewRequests(c).length ? 'not-cleared' : 'never-requested' };
@@ -619,21 +650,33 @@ function reviewGate(c){
    to keep in step.
 
    Returns null when there is nothing to warn about. */
+/* "Achieng Otieno", "Achieng Otieno and John Wayne", "Achieng Otieno, John
+   Wayne and 2 others" — because with several reviews open every sentence that
+   used to name one person now has to name a list without becoming a list. */
+function reviewNames(list){
+  const names = [...new Set(list.filter(Boolean))];
+  if (!names.length) return i18t('rv_your_reviewer');
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return i18t('rv_two_names', { a: names[0], b: names[1] });
+  return i18t('rv_many_names', { a: names[0], b: names[1], n: names.length - 2 });
+}
+/* Who is holding our unsent wording right now. */
+function reviewWaitingOn(c){
+  return reviewNames(reviewAwaiting(c).map(x => reviewOutFor(c, x)));
+}
 function reviewSendWarning(c){
   const waiting = reviewAwaiting(c);
   if (!waiting.length) return null;
-  const rv = reviewOpenOf(c);
   const held = reviewHeldIds(c);
   const rest = (window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
     .filter(x => !held.has(x.id) && !reviewOutFor(c, x));
+  const who = reviewWaitingOn(c);
   return {
     n: waiting.length,
-    who: (rv && rv.reviewer && rv.reviewer.name) || i18t('rv_your_reviewer'),
+    who,
     ids: waiting.map(x => x.id),
     restIds: rest.map(x => x.id),
-    text: i18tn('rv_warn_waiting', waiting.length,
-      { n: waiting.length, who: (rv && rv.reviewer && rv.reviewer.name) || i18t('rv_your_reviewer'),
-        rest: rest.length }),
+    text: i18tn('rv_warn_waiting', waiting.length, { n: waiting.length, who, rest: rest.length }),
   };
 }
 
@@ -648,7 +691,7 @@ function reviewGateMessage(c){
     return i18tn('rv_gate_all_held', g.held.length, { n: g.held.length,
       who: (g.held[0] && g.held[0].review && g.held[0].review.by) || i18t('rv_your_reviewer') });
   if (g.reason === 'with-reviewer')
-    return i18t('rv_gate_with_reviewer', { who: (g.open && g.open.reviewer.name) || i18t('rv_your_reviewer') });
+    return i18t('rv_gate_with_reviewer', { who: reviewWaitingOn(c) });
   if (g.reason === 'never-requested')
     return i18tn('rv_gate_never_requested', g.unreviewed.length, { n: g.unreviewed.length });
   return i18tn('rv_gate_not_cleared', g.unreviewed.length, { n: g.unreviewed.length });
@@ -659,24 +702,52 @@ function reviewGateMessage(c){
    phone, the workbench, the contract room and the readiness panel all print
    this; a second opinion anywhere would be a screen that disagrees with the
    screen next to it about whether the boss has answered. */
+/* How many of a given review's changes still want an answer. Counted over the
+   review's OWN ids rather than over what is outstanding on the contract — with
+   several open, the contract's total is nobody's total. */
+function reviewProgress(c, rv){
+  const ids = new Set((rv && rv.changeIds || []).map(String));
+  const all = ((window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
+    .concat((window.negoPending ? window.negoPending(c) : []).filter(x => x && x.authorSide === 'counterparty')))
+    .filter(x => ids.has(String(x.id)));
+  const marked = all.filter(x => reviewOn(x)).length;
+  return { total: all.length, marked, left: all.length - marked };
+}
+const _rvToday = () => new Date().toISOString().slice(0, 10);
+
+/* THE STATE IS NOW A LIST, and the phase is about the READER rather than about
+   the contract. With reviews running in parallel a contract can be waiting on
+   two people while this reader owes a verdict on a third — "the phase" stopped
+   being a single fact. So: `mine` is what this person has to answer, `waiting`
+   is what is out with others, and `phase` names whichever of those the banner
+   should lead with. `rv` is kept pointing at the first of the leading group so
+   the callers that only ever wanted one review still read correctly. */
 function reviewState(c){
-  const open = reviewOpenOf(c);
+  const open = reviewOpenList(c);
   const last = reviewLastOf(c);
   const scope = reviewScope(c);
   const me = _rvMe();
   const gate = reviewGate(c);
-  if (open){
-    const mine = reviewIsReviewer(open, me);
-    const marked = scope.ours.filter(x => reviewOn(x)).length + scope.theirs.filter(x => reviewOn(x)).length;
-    return { phase: mine ? 'yours' : 'waiting', rv: open, mine, gate,
-      total: scope.all.length, marked, scope,
-      overdue: !!(open.due && String(open.due) < String((window.todayStr && new Date().toISOString().slice(0, 10)) || new Date().toISOString().slice(0, 10))) };
+  const mineList = open.filter(r => reviewIsReviewer(r, me));
+  const waitingList = open.filter(r => !reviewIsReviewer(r, me));
+  const base = { open, mine: mineList, waiting: waitingList, gate, scope,
+    progress: rv => reviewProgress(c, rv) };
+  if (mineList.length){
+    const rv = mineList[0];
+    const p = reviewProgress(c, rv);
+    return { ...base, phase: 'yours', rv, total: p.total, marked: p.marked,
+      overdue: !!(rv.due && String(rv.due) < _rvToday()) };
+  }
+  if (waitingList.length){
+    const rv = waitingList[0];
+    const n = waitingList.reduce((a, r) => a + reviewProgress(c, r).total, 0);
+    return { ...base, phase: 'waiting', rv, total: n, marked: 0,
+      overdue: waitingList.some(r => r.due && String(r.due) < _rvToday()) };
   }
   if (last && last.status === 'returned')
-    return { phase: 'returned', rv: last, mine: false, gate, scope,
+    return { ...base, phase: 'returned', rv: last,
       total: scope.all.length, marked: scope.all.filter(x => reviewOn(x)).length };
-  return { phase: 'none', rv: last || null, mine: false, gate, scope,
-    total: scope.all.length, marked: 0 };
+  return { ...base, phase: 'none', rv: last || null, total: scope.all.length, marked: 0 };
 }
 
 /* Contracts sitting on this person's desk. Read by the dashboard, and by
@@ -686,9 +757,8 @@ function reviewInboxFor(cs, u){
   const me = u || _rvMe();
   if (!me) return [];
   return (cs || []).filter(c => {
-    const rv = reviewOpenOf(c);
-    return !!rv && reviewIsReviewer(rv, me);
-  }).map(c => ({ c, rv: reviewOpenOf(c), st: reviewState(c) }));
+    return reviewOpenList(c).some(rv => reviewIsReviewer(rv, me));
+  }).map(c => ({ c, rv: reviewMineOpen(c, me)[0] || reviewOpenOf(c), st: reviewState(c) }));
 }
 
 /* ============================================================
@@ -743,8 +813,8 @@ function reviewChipHtml(ch, opts, c){
   const out = c ? reviewOutFor(c, ch) : null;
   if (out) return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="waiting"
     title="${_rvE(i18t('rv_waiting_title', { who: out }))}"
-    style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;
-    text-transform:uppercase;border-radius:4px;padding:2px 6px;background:var(--st-amber-bg);
+    style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.01em;
+    border-radius:5px;padding:2px 7px;background:var(--st-amber-bg);
     color:var(--st-amber-fg);border:1px solid currentColor">
     <span aria-hidden="true">&#8987;</span> ${_rvE(i18t('rv_with_who', { who: out }))}</span>`;
   const v = reviewOn(ch);
@@ -759,8 +829,8 @@ function reviewChipHtml(ch, opts, c){
   return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="${_rvE(v.verdict)}"${
     stale ? ' data-rv-stale="1"' : ''}
     title="${_rvE(title)}"
-    style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.04em;
-    text-transform:uppercase;border-radius:4px;padding:2px 6px;background:${bg};color:${fg};border:1px solid currentColor">
+    style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.01em;
+    border-radius:5px;padding:2px 7px;background:${bg};color:${fg};border:1px solid currentColor">
     <span aria-hidden="true">${v.verdict === 'held' ? '&#9209;' : v.verdict === 'cleared' ? '&#10003;' : '&#128172;'}</span>
     ${_rvE(word)}${stale ? ` · ${_rvE(i18t('rv_moved_since'))}` : ''}</span>`;
 }
@@ -817,21 +887,38 @@ function reviewBannerHtml(c, opts = {}){
     style="flex:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:4px 10px;
     border:1.5px solid currentColor;background:transparent;color:inherit">${_rvE(label)}</button>`;
 
-  if (st.phase === 'yours'){
-    const left = st.total - st.marked;
-    return wrap('amber', `<span style="flex:1;min-width:0">
-      <b>${_rvE(i18t('rv_banner_yours', { who: st.rv.by }))}</b>
-      ${_rvE(st.rv.note ? '“' + st.rv.note + '” ' : '')}${_rvE(i18tn('rv_banner_yours_sub', left, { n: left, total: st.total }))}
-      ${st.rv.due ? `<b>${_rvE(i18t('rv_due', { when: st.rv.due }))}</b>` : ''}</span>
-      ${act('rv-return', i18t('rv_return_btn'))}`);
-  }
-  if (st.phase === 'waiting'){
-    return wrap('amber', `<span style="flex:1;min-width:0">
-      <b>${_rvE(i18t('rv_banner_waiting', { who: st.rv.reviewer.name }))}</b>
-      ${_rvE(i18tn('rv_banner_waiting_sub', st.total, { n: st.total, when: reviewWhen(st.rv.at) }))}
-      ${st.rv.due ? `<b>${_rvE(i18t('rv_due', { when: st.rv.due }))}</b>` : ''}
-      ${st.gate.required ? `<span style="display:block;margin-top:3px">${_rvE(i18t('rv_gate_holds_send'))}</span>` : ''}</span>
-      ${act('rv-cancel', i18t('rv_cancel_btn'))}`);
+  /* ---- ONE ROW PER REVIEW ----
+     Several can be open at once, so a single sentence cannot describe the
+     state: sales has clause 5, procurement has clause 10, and each has its own
+     due date and its own way out. Rows, not a paragraph — and each row's button
+     names the review it acts on, because "cancel the review" with two open is a
+     question rather than an instruction.
+
+     The reader's own reviews lead, and always. A row you owe a verdict on is
+     work; a row somebody else owes is news. */
+  const row = (rv, kind) => {
+    const p = st.progress(rv);
+    if (kind === 'yours')
+      return `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
+        <span style="flex:1;min-width:0">
+          <b>${_rvE(i18t('rv_banner_yours', { who: rv.by }))}</b>
+          ${_rvE(rv.note ? '“' + rv.note + '” ' : '')}${_rvE(i18tn('rv_banner_yours_sub', p.left, { n: p.left, total: p.total }))}
+          ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span>
+        ${act('rv-return:' + rv.id, i18t('rv_return_btn'))}</div>`;
+    return `<div style="display:flex;align-items:flex-start;gap:10px;width:100%">
+      <span style="flex:1;min-width:0">
+        <b>${_rvE(i18t('rv_banner_waiting', { who: rv.reviewer.name }))}</b>
+        ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}
+        ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}</span>
+      ${act('rv-cancel:' + rv.id, i18t('rv_cancel_btn'))}</div>`;
+  };
+  if (st.phase === 'yours' || st.phase === 'waiting'){
+    const rows = st.mine.map(rv => row(rv, 'yours'))
+      .concat(st.waiting.map(rv => row(rv, 'waiting')));
+    return wrap('amber', `<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">
+      ${rows.join('')}
+      ${st.gate.required && st.waiting.length ? `<span style="font-size:11px">${_rvE(i18t('rv_gate_holds_send'))}</span>` : ''}
+    </span>`);
   }
   if (st.phase === 'returned'){
     const t = st.rv.tally || { cleared: 0, held: 0, advised: 0 };
@@ -908,8 +995,12 @@ function reviewPickerListHtml(q, activeId){
         border-top:1px solid var(--color-divider)">${_rvE(i18tn('rv_who_more', more, { n: more }))}</li>` : '');
 }
 
-function reviewAskModalHtml(c){
+function reviewAskModalHtml(c, opts = {}){
   const scope = reviewScope(c);
+  /* Opened from a card: that change is the one ticked, and the others are
+     offered unticked in case the reader wants to add to it. */
+  const pre = Array.isArray(opts.ids) && opts.ids.length ? new Set(opts.ids.map(String)) : null;
+  const on = ch => !pre || pre.has(String(ch.id));
   const people = reviewCandidates();
   const today = new Date(); today.setDate(today.getDate() + 2);
   const due = today.toISOString().slice(0, 10);
@@ -920,7 +1011,7 @@ function reviewAskModalHtml(c){
      indemnity, not about all five redlines, and a review that dragged the other
      four along stops the rest of the round for no reason. */
   const row = ch => `<li style="display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--color-divider)">
-    <input type="checkbox" class="rv-pickch" data-rv-ch="${_rvE(ch.id)}" checked
+    <input type="checkbox" class="rv-pickch" data-rv-ch="${_rvE(ch.id)}"${on(ch) ? ' checked' : ''}
       aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}" style="margin-top:3px;flex:none"/>
     <span style="flex:none;font-family:var(--font-mono);font-size:9.5px;font-weight:700;border:1.5px solid var(--color-accent);
       color:var(--color-accent);border-radius:99px;padding:1px 6px;margin-top:1px">#${_rvE(ch.id)}</span>
@@ -1084,7 +1175,7 @@ function reviewWirePicker(){
 
 function openReviewAskModal(c, opts = {}){
   if (!window.openModal) return;
-  window.openModal(reviewAskModalHtml(c), { maxWidth: '34rem' });
+  window.openModal(reviewAskModalHtml(c, opts), { maxWidth: '34rem' });
   const done = () => { if (typeof opts.after === 'function') opts.after(); };
   const picker = reviewWirePicker();
   /* The chosen ids, and the button that says how many. Recounted on every tick
@@ -1151,11 +1242,21 @@ function openReviewAskModal(c, opts = {}){
 
 function openReviewReturnModal(c, opts = {}){
   if (!window.openModal) return;
-  const scope = reviewScope(c);
-  const cleared = scope.ours.filter(reviewCleared).length;
-  const held = scope.ours.filter(reviewHeld).length;
-  const advised = scope.theirs.filter(x => reviewOn(x)).length;
-  const unmarked = scope.ours.filter(x => !reviewOn(x)).length;
+  /* THIS review's tally, not the contract's. reviewScope answers "what is still
+     free to ask about" and would count nothing at all here. */
+  const open = reviewOpenList(c);
+  const rv = opts.reviewId ? open.find(r => r.id === opts.reviewId)
+    : (reviewMineOpen(c)[0] || (open.length === 1 ? open[0] : null));
+  if (!rv){ _rvSay(open.length > 1 ? i18t('rv_which_review') : i18t('rv_no_open_review'), 'err'); return; }
+  const ids = new Set((rv.changeIds || []).map(String));
+  const inRv = ((window.negoUnsentAsks ? window.negoUnsentAsks(c, 'owner') : [])
+    .concat((window.negoPending ? window.negoPending(c) : []).filter(x => x && x.authorSide === 'counterparty')))
+    .filter(x => ids.has(String(x.id)));
+  const ourIn = inRv.filter(x => reviewSideOf(x) === 'ours');
+  const cleared = ourIn.filter(reviewCleared).length;
+  const held = ourIn.filter(reviewHeld).length;
+  const advised = inRv.filter(x => reviewSideOf(x) === 'theirs' && reviewOn(x)).length;
+  const unmarked = ourIn.filter(x => !reviewOn(x)).length;
   window.openModal(`
     <div style="padding:18px 20px 16px">
       <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_return_title'))}</h2>
@@ -1176,11 +1277,11 @@ function openReviewReturnModal(c, opts = {}){
   document.getElementById('rv-rcancel')?.addEventListener('click', () => window.closeModal());
   document.getElementById('rv-rok')?.addEventListener('click', () => {
     const note = (document.getElementById('rv-rnote') || {}).value || '';
-    const rv = reviewReturn(c, { note });
-    if (!rv) return;
+    const done = reviewReturn(c, { note, reviewId: rv.id });
+    if (!done) return;
     _rvSave(c);
     window.closeModal();
-    _rvSay(i18t('rv_returned_toast', { who: rv.by }));
+    _rvSay(i18t('rv_returned_toast', { who: done.by }));
     if (typeof opts.after === 'function') opts.after();
   });
 }
@@ -1239,11 +1340,17 @@ function reviewWireCards(c, host, opts = {}){
     const act = ev.target.closest && ev.target.closest('[data-rv-act]');
     if (act){
       ev.preventDefault(); ev.stopPropagation();
-      const what = act.getAttribute('data-rv-act');
+      /* "rv-cancel:REV-2" — the verb and the review it acts on. With several
+         open, a bare verb would act on whichever one the code happened to find
+         first, which is how you cancel the wrong person's review. */
+      const raw = act.getAttribute('data-rv-act');
+      const cut = raw.indexOf(':');
+      const what = cut < 0 ? raw : raw.slice(0, cut);
+      const reviewId = cut < 0 ? null : raw.slice(cut + 1);
       if (what === 'rv-ask') openReviewAskModal(c, { after: again });
-      else if (what === 'rv-return') openReviewReturnModal(c, { after: again });
+      else if (what === 'rv-return') openReviewReturnModal(c, { reviewId, after: again });
       else if (what === 'rv-cancel'){
-        if (reviewCancel(c)){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); }
+        if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); }
       }
     }
   });
@@ -1255,11 +1362,11 @@ Object.assign(window, {
   reviewInit, reviewRequests, reviewOpenOf, reviewLastOf, reviewScope, reviewSideOf,
   reviewOn, reviewStale, reviewCurrent, reviewHeld, reviewCleared, reviewHeldIds, reviewSendable,
   reviewIsReviewer, reviewIsRequester, reviewCandidates,
-  reviewOpenList, reviewOpenFor, reviewMineOpen,
+  reviewOpenList, reviewOpenFor, reviewMineOpen, reviewNames, reviewWaitingOn,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
-  reviewState, reviewInboxFor, reviewWhen,
+  reviewState, reviewProgress, reviewInboxFor, reviewWhen,
   reviewSeatShowsReview, reviewChipHtml, reviewVerbsHtml, reviewBannerHtml,
   reviewSearchPeople, reviewResolvePerson, reviewPersonRowHtml, reviewPickerListHtml,
   RV_FLD, RV_LBL, reviewWirePicker,

@@ -101,13 +101,17 @@ describe('f154 · asking a colleague to look', () => {
     assert.match(line.detail, /Is 45 days defensible\?/);
   });
 
-  test('only one review is open at a time', async () => {
+  test('a second review may be opened — but not over the same change', async () => {
+    /* The one-at-a-time rule is gone: see f159. What survives is that a change
+       belongs to exactly one review, which reviewScope enforces by not
+       offering anything already out. */
     const { win, log } = world();
     const c = contract(); win.negoInit(c);
     await mine(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
-    assert.ok(win.reviewAsk(c, { reviewer: BOSS }));
-    assert.equal(win.reviewAsk(c, { reviewer: BOSS }), null, 'the second is refused');
-    assert.match(log.toasts.map(t => t.msg).join(' '), /already with a reviewer/i);
+    assert.ok(win.reviewAsk(c, { reviewer: BOSS }), 'the first goes out');
+    assert.equal(win.reviewScope(c).all.length, 0, 'and nothing is left free to ask about');
+    assert.equal(win.reviewAsk(c, { reviewer: BOSS }), null, 'so a second has no subject');
+    assert.match(log.toasts.map(t => t.msg).join(' '), /nothing to review/i);
   });
 
   test('a change filed after the request does NOT inherit the review', async () => {
@@ -235,7 +239,7 @@ describe('f154 · the verdict, per change', () => {
     assert.equal(win.reviewReturn(c, {}), null, 'one of ours is unmarked');
     assert.match(log.toasts.map(t => t.msg).join(' '), /no verdict yet/i);
 
-    const second = win.reviewScope(c).ours.find(x => x.id !== a.id);
+    const second = win.negoUnsentAsks(c, 'owner').find(x => x.id !== a.id);
     win.reviewMark(c, second.id, 'held');
     const rv = win.reviewReturn(c, { note: 'Push the cap, not the indemnity.' });
     assert.ok(rv, 'advice on THEIR ask is optional, so it may be returned now');

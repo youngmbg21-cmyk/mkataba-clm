@@ -1745,7 +1745,7 @@ function negoDocHtml(c, opts){
        baseline, where the chip would be a claim about wording no longer on
        the table. */
     const fmtFlag = (ch.formattingOnly && ch.status !== 'rejected')
-      ? `<span class="nego-note fmt">${i18t('ng_formatting_only')}</span>` : '';
+      ? `<span class="nego-note fmt" title="${_nea(i18t('ng_formatting_only_title'))}">${i18t('ng_formatting_only')}</span>` : '';
     const notes = note + fmtFlag + flag;
     /* Emitted ONCE: in the tools row where there is one, in the heading where
        there is not. Rendering it in both places is the thing this change exists
@@ -6636,11 +6636,15 @@ function renderRedline(){
                  a door that is there on an ordinary day. Its word follows the
                  state, because the reviewer and the requester press the same
                  place for opposite acts: one asks, the other hands it back. */}
+          ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the moment
+                 anything went out — a button that had stopped being a button,
+                 on the one control you need again the second you spot something
+                 else worth escalating. Who is holding what belongs on the cards,
+                 where the changes are; the toolbar's job is to open the door.
+                 Reported from the field (Young, 09 Aug 2026). */}
           ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
             const st = reviewState(c);
-            const label = st.phase === 'yours' ? i18t('rv_head_return')
-              : st.phase === 'waiting' ? i18t('rv_head_waiting', { who: st.rv.reviewer.name })
-              : i18t('rv_head_ask');
+            const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
             return `<button type="button" data-rl-review class="rl-pb-btn"
               data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100; ${_ne(label)}</button>`;
           })() : ''}
@@ -6713,10 +6717,10 @@ function renderRedline(){
   host.querySelectorAll('[data-rl-review]').forEach(el =>
     el.addEventListener('click', () => {
       const st = window.reviewState ? reviewState(c) : { phase: 'none' };
+      /* Owe a verdict → hand it back. Otherwise → ask, whether or not something
+         else is already out with somebody. */
       if (st.phase === 'yours') openReviewReturnModal(c, { after: () => renderRedline() });
-      else if (st.phase === 'waiting'){
-        if (window.toast) toast(i18t('rv_already_with', { who: st.rv.reviewer.name }));
-      } else openReviewAskModal(c, { after: () => renderRedline() });
+      else openReviewAskModal(c, { after: () => renderRedline() });
     }));
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
      see rlSetFocus. The paint call lines the fresh button's face up with the
@@ -7991,6 +7995,14 @@ function rlWireClauseTools(c, host, opts){
   /* The card's Retract — an unsent draft of your own comes off the table
      entirely. The engine (negoRetractDraft) holds the rules: yours, pending,
      and never handed over; anything else is refused with a reason. */
+  /* The card's own "ask for a review" — the same dialog the toolbar opens, with
+     this one change already picked. */
+  host.querySelectorAll('[data-rl-ask-review]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    if (!window.openReviewAskModal) return;
+    openReviewAskModal(c, { ids: [btn.getAttribute('data-rl-ask-review')], after: () => again() });
+  }));
+
   host.querySelectorAll('[data-rl-retract]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     const chId = btn.getAttribute('data-rl-retract');
@@ -8485,7 +8497,7 @@ function redlineDocHtml(c, opts = {}){
       /* Named on the tag, because this clause shows no strike/insert marks —
          the chip is the only thing saying the words did not move. */
       const fmtChip = ch.formattingOnly
-        ? `<span class="nego-note fmt">${i18t('ng_formatting_only')}</span>` : '';
+        ? `<span class="nego-note fmt" title="${_nea(i18t('ng_formatting_only_title'))}">${i18t('ng_formatting_only')}</span>` : '';
       return `<section class="nego-clause rl-clause is-changed" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
         <div class="rl-clause-top">
           ${heading(cl)}
@@ -9101,6 +9113,20 @@ function redlineChangeCardsHtml(c, opts = {}){
     /* A draft that has never left the building can simply be taken back —
        negoRetractDraft removes the record, so nothing is withdrawn from
        anyone. Once sent, the honest verbs are Withdraw and revise, above. */
+    /* ---- ASK FOR A REVIEW FROM THE CHANGE ITSELF ----
+       The way in used to be the toolbar, which opens a dialog listing
+       everything — fine at the end of a read, useless in the middle of one. You
+       are on clause 5, you want sales to see THIS, and you should not have to
+       remember it until you reach the end. Opens the same dialog scoped to this
+       one change. */
+    /* OUR SEAT ONLY. `mineUnsent` means "the reader's own unsent draft", which
+       on the counterparty's page is THEIR draft on THEIR side — and they have
+       no internal review, no colleagues here and no business being offered one.
+       Caught by F100f, which reads the counterparty's verbs verbatim. */
+    if (editable && mineUnsent && !rvOut && !rvHeld && window.openReviewAskModal
+        && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
+      verbs.push(`<button class="rl-edit" data-rl-ask-review="${_nea(ch.id)}"
+        title="${_nea(i18t('rv_card_ask_title'))}">&#128100; ${i18t('rv_card_ask')}</button>`);
     if (editable && mineUnsent) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
         title="${_nea(i18t('ng_retract_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_retract')}</button>`);
     if (editable && mineUnsent) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
