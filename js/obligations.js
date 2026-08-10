@@ -289,9 +289,22 @@ function renderObligationsSection(c){
           ${o.quote?`<div class="mt-1 text-[10px] text-ink/50 italic border-l-2 border-line pl-2">“${o.quote.replace(/</g,'&lt;')}”</div>`:''}
         </div>`; }).join('')}</div>`
       :`<p class="text-[11px] text-ink/60 mb-2">${i18t('ob_none_tracked')}</p>`}
+      ${''/* ---- A BUTTON THAT CANNOT BE SEEN IS NOT A BUTTON ----
+             Reported (Young, 10 Aug 2026): "the buttons are almost
+             transparent". They were outlines only — border-brand-200 is a pale
+             mint and border-gold-500/30 is amber at three-tenths — with no fill
+             behind them, on a white card. At rest they read as two labels
+             floating in the empty state's whitespace.
+
+             THE FILL IS THE FIX, not a heavier border. Each takes the tint of
+             its own family (accent for the manual add, amber for the Copilot
+             sweep, which is the colour every AI act on this page wears), so the
+             pair stays quiet against the primary actions elsewhere on the
+             screen while being unmistakably pressable. Hover deepens the same
+             tint rather than introducing a new one. */}
       ${editable?`<div class="flex flex-wrap gap-2">
-        <button id="ob-add" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('plus','w-3 h-3')} Add obligation</button>
-        <button id="ob-find" class="flex items-center gap-1.5 rounded-lg border border-gold-500/30 text-gold-600 px-3 py-1.5 text-[11px] font-600 hover:bg-gold-500/10 transition">${icon('sparkle','w-3 h-3')} Find obligations</button>
+        <button id="ob-add" class="ob-btn ob-btn-add">${icon('plus','w-3 h-3')} Add obligation</button>
+        <button id="ob-find" class="ob-btn ob-btn-find">${icon('sparkle','w-3 h-3')} Find obligations</button>
       </div>`:''}
     </div>`;
   host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>

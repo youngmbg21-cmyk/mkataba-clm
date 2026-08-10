@@ -2604,7 +2604,9 @@ function wireWsTabs(c){
 /* The read-out for one row, so an edit can refresh just that row. */
 function ktReadValue(c,key){
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
-  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
+  // Same instruction the panel's own date rows carry — see ktTermsRowsHtml.
+  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v)
+    :`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
   if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
@@ -2624,25 +2626,46 @@ function ktReadValue(c,key){
    whichever language it breaks in, so the empty read now carries data-kt-none
    and this looks for that. */
 const ktIsEmptyRead = html => /data-kt-none="1"/.test(String(html));
-function ktRowHtml(key,label,readHtml,fieldHtml,editable){
+/* ---- AN EMPTY ROW CARRIES THE MARK OF WHAT GOES IN IT ----
+   Reported (Young, 10 Aug 2026): "it should be clear that the boxes are entry
+   fields... you should clearly see you need to enter a date there." The box was
+   already drawn at rest by then; what it did not say was what KIND of thing was
+   missing. Three rows reading "Not set" in identical grey boxes are three
+   identical shrugs, and the two that want dates look exactly like the one that
+   wants an email address.
+
+   A CUE ICON, ONLY WHEN EMPTY. A filled row does not need telling what it
+   holds — it is holding it — so the icon is the empty state's alone, which also
+   stops a settled panel filling up with decoration. Hidden from screen readers:
+   the label to its left already names the field, and the empty read says its
+   own words ("Pick a date"). */
+function ktRowHtml(key,label,readHtml,fieldHtml,editable,cueIcon){
   if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
-  const empty=ktIsEmptyRead(readHtml)?' data-kt-empty="1"':'';
+  const isEmpty=ktIsEmptyRead(readHtml);
+  const empty=isEmpty?' data-kt-empty="1"':'';
+  const cue=(isEmpty&&cueIcon&&window.icon)
+    ?`<span class="kt-cue" aria-hidden="true">${icon(cueIcon,'w-3 h-3')}</span>`:'';
   return `<div class="kt-row is-editable" data-kt-row="${key}">
     <span class="kt-k">${label}</span>
-    <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${esc(ktIsEmptyRead(readHtml)?i18t('ct_empty_click'):i18t('ct_click_change'))}">${readHtml}</button>
+    <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${esc(isEmpty?i18t('ct_empty_click'):i18t('ct_click_change'))}">${cue}${readHtml}</button>
     <span class="kt-field hidden">${fieldHtml}</span></div>`;
 }
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
   const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:5px;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
+  /* A DATE ROW SAYS SO IN WORDS AS WELL AS IN ITS ICON. "Not set" is a state;
+     "Pick a date" is an instruction, and the two date rows are the ones a
+     reader was getting wrong. Same data-kt-none marker, so everything that
+     keys off empty (the dashed border, the cue, ktIsEmptyRead) is unchanged. */
+  const dashDate=`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
-  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
+  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   return [
     ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
-      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed),
+      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed, 'pencil'),
     /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
        This was a banner across the top of the negotiation asking for it. The
        address is a fact about the counterparty, exactly like the name directly
@@ -2651,7 +2674,7 @@ function ktTermsRowsHtml(c,opts={}){
        leaving it empty costs nothing, because the share dialog still collects
        an address at the moment of sending. */
     ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
-      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed),
+      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil'),
     ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
          <span style="font-size:11px;color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
@@ -2659,9 +2682,9 @@ function ktTermsRowsHtml(c,opts={}){
          <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--color-neutral-600);flex:none;white-space:nowrap">
            <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, ed),
     ktRowHtml('effDate','Effective', day(c.fields&&c.fields.effDate),
-      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed),
+      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar'),
     ktRowHtml('expiry','Expiry', day(c.expiry),
-      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed),
+      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar'),
     ktRowHtml('stream','Value stream', esc((window.streamLabel?streamLabel(c):'')||'—'),'',false),
     tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):'',
   ].join('');
@@ -2750,7 +2773,13 @@ function riskCardHtml(c){
   const r=riskRead(c);
   if(!r) return `<h6 style="${H};margin-bottom:7px">${i18t('ct_risk')}</h6>
     <p style="margin:0 0 9px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_nothing_checked')}</p>
-    <button id="kt-gocheck" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${i18t('ct_go_to_checks')}</button>`;
+    ${''/* Reported with the obligations pair (Young, 10 Aug 2026): almost
+           transparent. A bare .ui-btn is a hairline border on a white
+           background, which is fine on a toolbar full of other buttons and
+           invisible alone at the foot of a paragraph. It takes the accent
+           outline the design already keeps for a secondary act — the same
+           treatment, and the same restraint, as Add obligation beside it. */}
+    <button id="kt-gocheck" class="ui-btn ob-btn-add" style="font-size:11.5px;padding:5px 11px">${i18t('ct_go_to_checks')}</button>`;
   const tone=r.score>=60?'var(--st-ruby-fg)':r.score>=35?'var(--st-amber-fg)':'var(--st-green-fg)';
   const bg=r.score>=60?'var(--st-ruby-bg)':r.score>=35?'var(--st-amber-bg)':'var(--st-green-bg)';
   return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
