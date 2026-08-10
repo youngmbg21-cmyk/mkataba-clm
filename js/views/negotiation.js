@@ -6248,14 +6248,24 @@ function redlineLayoutCss(){
   /* ---- THE COLUMN'S HEAD IS A CAPTION AND A COUNT ----
      It used to be a toolbar: a filter, two bulk verbs and a second send. All
      of those are gone, so what is left is the design's own two-part line —
-     what this column is on the left, how much is in it on the right — and it
-     no longer needs to wrap, because nothing in it can grow. */
-  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;padding:0 2px 10px;
-    border-bottom:0}
+     what this column is on the left, how much is in it on the right.
+
+     DRESSED LIKE THE QUEUE'S HEAD, deliberately (reported: "on top of the
+     card 'tracked changes' is not professionally designed"). The caption
+     takes .rl-q-label's own type — 9.5px/800/.12em — the count moves into a
+     quiet pill instead of floating as grey text, and the head earns the same
+     hairline the queue's head carries, so the two columns flanking the
+     contract read as one design rather than two attempts at it. The same
+     classes render in Counterparty View and on the portal, so all three
+     screens change together. */
+  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:2px 2px 9px;
+    margin-bottom:9px;border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-idx-head [hidden]{display:none!important}
-  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:11px;font-weight:600;letter-spacing:.11em;
+  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;
     text-transform:uppercase;color:var(--color-neutral-500)}
-  .redline-page .rl-idx-n{flex:none;font-size:11.5px;color:var(--color-neutral-400)}
+  .redline-page .rl-idx-n{flex:none;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);
+    background:var(--color-neutral-100);border:1px solid var(--color-divider);
+    border-radius:999px;padding:2px 9px;line-height:1.4}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
      is one the browser may refuse to focus or dispatch to, and Publish Round
      works by clicking this one. Taken out of the flow and out of the reader's
@@ -6312,10 +6322,23 @@ function redlineLayoutCss(){
   .redline-page .rl-cnote{margin-top:8px;min-width:0;padding:8px 10px;border-radius:9px;
     background:var(--color-bg);border:1px solid var(--color-divider)}
   /* A message that went to the other side wears the steel wash, so the two
-     kinds are tellable apart at a glance in a thread that mixes them. Nothing
-     new can be written shared from here — the composer is internal-only — but
-     the record keeps what it was written as. */
+     kinds are tellable apart at a glance in a thread that mixes them. */
   .redline-page .rl-cnote.is-shared{background:var(--st-steel-bg);border-color:var(--st-steel-line)}
+  /* ---- A LONG NOTE FOLDS TO THREE LINES ----
+     The card's height belongs to the change, not to the longest paragraph
+     anybody pasted under it. The toggle under a clamped note is the only way
+     it opens, and it is a class flip, never a repaint. */
+  .redline-page .rl-cnote p.rl-cnote-clamp{display:-webkit-box;-webkit-line-clamp:3;
+    -webkit-box-orient:vertical;overflow:hidden}
+  .redline-page .rl-cnote-more{display:block;margin-top:4px;border:0;background:none;padding:0;
+    font:inherit;font-size:10.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer}
+  .redline-page .rl-cnote-more:hover{text-decoration:underline}
+  /* ---- THE BUTTON AND THE PROMISE FOLLOW THE SWITCH ----
+     Each carries both faces; the pressed side of the visibility switch decides
+     which one shows. Both stay in textContent, which is what the tests read. */
+  .redline-page .rl-cnotes .rl-when-sh{display:none}
+  .redline-page .rl-cnotes:has(.v-sh[aria-pressed="true"]) .rl-when-sh{display:inline}
+  .redline-page .rl-cnotes:has(.v-sh[aria-pressed="true"]) .rl-when-int{display:none}
   .redline-page .rl-cnote-top{display:flex;align-items:baseline;gap:7px;
     font-size:10.5px;margin-bottom:2px;color:var(--color-neutral-400)}
   .redline-page .rl-cnote-top b{min-width:0;overflow-wrap:anywhere;font-weight:600;color:var(--color-neutral-600)}
@@ -6903,6 +6926,23 @@ function renderRedline(){
       setView('register');
     }));
     return;
+  }
+  /* ---- THE OTHER SIDE OF EVERY THREAD, FETCHED BEFORE THE CARDS SAY "NO
+     NOTES" (Young, 10 Aug 2026: "the notes from the counterparty are not
+     being received"). A counterparty's reply is filed in the discussion
+     channel — a public page cannot write to our contract record — and the
+     cards merge the two stores through negoMergedThread. The ROOM fetched
+     that channel before drawing (openNegotiationOwnerRoom) and this page
+     never did, so a note posted on their portal existed on the server and
+     nowhere on the owner's screen until some other view happened to load it.
+     Fire-and-forget, one fetch per sitting: the page paints immediately and
+     repaints when the replies land. */
+  if (window.API_MODE && API_MODE() && window.api && !Array.isArray(c._messages) && !c._msgFetch){
+    c._msgFetch = true;
+    api('contracts/' + c.id + '/messages')
+      .then(r => { c._messages = (r && r.messages) || [];
+        if (document.getElementById('view-redline') && _redlineHeldId === c.id) renderRedline(); })
+      .catch(() => { c._messages = c._messages || []; });
   }
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
@@ -9580,6 +9620,27 @@ if (typeof document !== 'undefined' && !document._rlNoticeFoldWired){
       renderNegotiationTab(getContract(state.activeId) || null, {});
   });
 }
+/* ---- SHOW MORE / SHOW LESS ON A CLAMPED NOTE ----
+   A pure DOM toggle wired once by delegation, the notice fold's own pattern:
+   the cards are repainted by a dozen paths, and a class flip must not cost a
+   repaint that would empty the composer beside it. The labels ride on the
+   button as data- attributes because a dictionary call inside this listener
+   would freeze whichever language was current at load. */
+if (typeof document !== 'undefined' && !document._rlNoteMoreWired){
+  document._rlNoteMoreWired = true;
+  document.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-rl-note-more]');
+    if (!b) return;
+    ev.preventDefault();
+    ev.stopPropagation();          // the card's head toggle must not fire under it
+    const p = b.previousElementSibling;
+    if (!p) return;
+    const open = p.classList.toggle('rl-cnote-clamp') === false;
+    b.textContent = open ? (b.getAttribute('data-less') || 'Show less')
+      : (b.getAttribute('data-more') || 'Show more');
+  });
+}
+
 function rlFloatingNoticesHtml(c, opts = {}){
   const alerts = (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : '') || '';
   const note = rlReadNoticeHtml() || '';
@@ -9649,42 +9710,58 @@ function rlCardNotesHtml(c, ch, opts, side){
   const who = side === 'counterparty'
     ? (opts.org || window.FIRST_PARTY || i18t('ng_the_counterparty'))
     : (c.counterparty || i18t('ng_the_counterparty'));
-  const list = msgs.map(m => `<div class="rl-cnote${m.visibility === 'shared' ? ' is-shared' : ''}">
+  /* ---- A LONG NOTE FOLDS, THE CARD DOES NOT GROW ----
+     Asked for directly (Young, 10 Aug 2026): "when you enter a big paragraph
+     of notes, the page card should not expand. there should be a feature to
+     show more or show less." A pasted paragraph used to set the card's height
+     for everyone scrolling past it. Anything past a few lines clamps to three,
+     with the reader's own Show more / Show less under it — a plain DOM toggle
+     (one delegated listener, beside the fold's), so pressing it repaints
+     nothing and loses nobody's half-typed reply. */
+  const list = msgs.map(m => {
+    const t = String(m.text || '');
+    const long = t.length > 220 || (t.match(/\n/g) || []).length >= 3;
+    return `<div class="rl-cnote${m.visibility === 'shared' ? ' is-shared' : ''}">
       <div class="rl-cnote-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhen(m.at))}</span>${
       m.visibility === 'shared' ? '' : `<span class="rl-cnote-int">${i18t('ng_internal_only')}</span>`}</div>
-      <p>${_ne(m.text || '')}</p>
-    </div>`).join('');
-  /* ---- ONE EXCEPTION, AND IT IS THE COUNTERPARTY'S ----
-     Our cards are internal-only: the design's composer says "never sent to
-     them", and our side reaches the other side through the round.
-
-     THE COUNTERPARTY HAS NO ROUND AND NO COLLEAGUES. Their page is the whole
-     of what they have — one screen, on a link — so an internal-only box there
-     is a reply box that reaches nobody, and taking the choice away would leave
-     them with no way to answer a question at all. F58 caught exactly that.
-     They keep the switch, and it opens on Send-to-them, which is the only
-     thing they are usually here to do. */
+      <p${long ? ' class="rl-cnote-clamp"' : ''}>${_ne(t)}</p>
+      ${long ? `<button type="button" class="rl-cnote-more" data-rl-note-more
+        data-more="${_nea(i18t('ng_note_more'))}" data-less="${_nea(i18t('ng_note_less'))}">${i18t('ng_note_more')}</button>` : ''}
+    </div>`;
+  }).join('');
+  /* ---- BOTH SEATS CHOOSE WHO READS A NOTE ----
+     The counterparty always had the switch: their page is the only channel
+     they have, and an internal-only box there reaches nobody (F58). Our seat
+     used to be internal-only by design — the round was "how we reach them" —
+     and that asymmetry was reported as the gap it is (Young, 10 Aug 2026:
+     "there is no ability to toggle between internal and send to them like we
+     have in the counterparty side"). So our composer carries the same switch.
+     THE DEFAULTS OPPOSE EACH OTHER ON PURPOSE: theirs opens on Send-to-them
+     (answering is what their page is for), ours opens on Internal (the quiet
+     path must not be the one that publishes a colleague's aside — the same
+     rule negoPostComment states for the model). f84 pins our default. */
   const theirSeat = side === 'counterparty';
-  const vis = theirSeat
-    ? `<div class="nego-visswitch" role="group" aria-label="${_nea(i18t('ng_who_can_read'))}">
-        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">&#128274; Internal</button>
-        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; ${i18t('ng_send_to_them')}</button>
-      </div>`
-    /* Hidden, not absent. wireNegotiationTab resolves visibility by finding the
-       PRESSED marker for this change and DEFAULTS TO SHARED when it finds
-       none — so a card with no marker would post every internal note straight
-       to the counterparty, which is the opposite of the promise under the
-       button. */
-    : `<span class="rl-vis-set" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="true" hidden></span>`;
+  const vis = `<div class="nego-visswitch" role="group" aria-label="${_nea(i18t('ng_who_can_read'))}">
+        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="${theirSeat ? 'false' : 'true'}">&#128274; Internal</button>
+        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="${theirSeat ? 'true' : 'false'}">&#127760; ${i18t('ng_send_to_them')}</button>
+      </div>`;
+  /* The button and the promise under it FOLLOW THE SWITCH — a button still
+     reading "Add note" while the switch says Send-to-them is a lie one press
+     wide. Both faces are in the markup and CSS shows the one the pressed
+     switch means (see .rl-when-int / .rl-when-sh), so the send handler and
+     every test that reads textContent are untouched. */
   const composer = canComment ? `
     ${vis}
     <textarea class="chat-field rl-cnote-in" rows="2" id="nego-ti-${_ne(ch.id)}"
       placeholder="${_nea(theirSeat ? i18t('ng_reply_ellipsis') : i18t('ng_card_note_ph'))}"
       aria-label="${_nea(i18t('ng_start_thread_aria',{id:ch.id}))}"></textarea>
     <div class="rl-cnote-foot">
-      <button type="button" class="rl-cnote-add" data-nego-send="${_ne(ch.id)}">${
-      theirSeat ? i18t('ng_send_this_reply') : i18t('ng_card_note_add')}</button>
-      ${theirSeat ? '' : `<span class="rl-cnote-hint">${i18t('ng_card_note_never',{who:_ne(who)})}</span>`}
+      <button type="button" class="rl-cnote-add" data-nego-send="${_ne(ch.id)}"><span class="rl-when-int">${
+        i18t('ng_card_note_add')}</span><span class="rl-when-sh">${
+        i18t('ng_send_this_reply')}</span></button>
+      ${theirSeat ? '' : `<span class="rl-cnote-hint"><span class="rl-when-int">${
+        i18t('ng_card_note_never',{who:_ne(who)})}</span><span class="rl-when-sh">${
+        i18t('ng_card_note_goes',{who:_ne(who)})}</span></span>`}
     </div>` : '';
   return `<div class="rl-cnotes">
     <div class="rl-cnotes-k">${msgs.length ? i18t('ng_card_notes_n',{n:msgs.length}) : i18t('ng_card_notes')}</div>

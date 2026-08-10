@@ -4402,7 +4402,18 @@ async function pollThreadMessages(){
        reply box they were typing into with it. */
     if(next.length!==before){
       const painted=window.negoRepaintOpenRoom ? negoRepaintOpenRoom(c) : false;
-      if(!painted && window.renderDiscussSection) renderDiscussSection(c);
+      /* The WORKBENCH reads these threads too (rlCardNotesHtml), and it was
+         not on this repaint list — so a counterparty note arrived in
+         c._messages and the cards on screen never changed (Young, 10 Aug
+         2026). Never while the reader is mid-sentence: a repaint rebuilds the
+         composer and takes a half-typed note with it; the next tick catches
+         up the moment they pause. */
+      if(!painted && document.getElementById('view-redline') && window.renderRedline){
+        const el=document.activeElement;
+        const typing=el && el.tagName==='TEXTAREA' && String(el.value||'').trim();
+        if(!typing) renderRedline();
+      }
+      else if(!painted && window.renderDiscussSection) renderDiscussSection(c);
     }
   }catch(e){ /* transient — the next tick retries */ }
 }
