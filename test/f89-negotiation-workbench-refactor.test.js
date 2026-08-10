@@ -168,14 +168,19 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
     const p = await page();
     const head = p.$('#view-redline .rl-head');
     assert.ok(head, 'the header section survives');
-    /* The round tag rides on the TAB ROW now, not on the verb strip: the tabs
-       became underline tabs and could not share a wrapping row without leaving
-       their rule stranded, so they took a line of their own and the round tag
-       — the one label that says which round you are looking at — went with
-       them. It is still one line above the same strip. */
+    /* The tab row carries the tabs and nothing else now. The round tag that
+       used to ride at the end of it has moved to where the contract's other
+       facts read — the subtitle under its name, drawn by roomHeadHtml, which
+       both this page and the contract page use — so it appears on all five
+       tabs from one line rather than on this one (10 Aug 2026). The contract
+       switcher that sat beside it has gone: it is navigation to a DIFFERENT
+       agreement, on the row that names this one. */
     const tabrow = p.$('#view-redline .rl-tabrow');
     assert.ok(tabrow, 'the tab row is its own line');
-    assert.ok(tabrow.querySelector('.rl-round'), 'the round tag stays, on the tab row');
+    assert.equal(tabrow.querySelector('.rl-round'), null, 'no round tag on the tab row');
+    assert.equal(p.$('#rl-contract-jump'), null, 'and no contract switcher');
+    assert.match(p.$('.room-sub').textContent, /Round \d/,
+      'the round reads with the contract\'s other facts instead');
     /* The page's TITLE moved up into the Doc page's shell — same name, same
        status chip, same back arrow on both tabs — and the head now carries
        the [Docs][Negotiate] switcher in its place (the tab was labelled
@@ -220,16 +225,26 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
     assert.ok(r, '.rl-paper must carry a rule');
     assert.match(r, /max-width:720px/, 'the Doc page bounds the contract\'s measure; so does this one');
     assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly as the window widens');
-    assert.match(r, /background:var\(--color-surface\)/, 'the sheet is paper, not the column behind it');
-    assert.match(r, /box-shadow:var\(--shadow-md\)/, 'and it carries the paper shadow itself');
+    /* WARM PAPER, ON ITS OWN TOKENS. Not --color-surface any more: the sheet
+       and the cards beside it were the same white, so the paper never read as
+       paper. The three values are named in index.html because the Document
+       tab, the counterparty's page and the phone paint the same sheet — and
+       because the dark theme has to answer differently. */
+    assert.match(r, /background:var\(--color-doc-warm\)/, 'the sheet is paper, not another card');
+    assert.match(r, /border:1px solid var\(--color-doc-warm-line\)/, 'with a warm hairline round it');
+    assert.match(r, /box-shadow:var\(--shadow-paper\)/, 'and it carries the paper shadow itself');
   });
 
-  test('the column is the canvas behind the sheet, not a second sheet', async () => {
+  test('the column is nothing at all — the sheet is the object', async () => {
     const p = await page();
     const r = p.rule('.redline-page .rl-doc', 'box-shadow');
     assert.ok(r, '.rl-doc must have a paint rule of its own, split from .rl-col');
-    assert.match(r, /background:var\(--color-bg\)/, 'the gutters read as page, not as card');
-    // the other two columns are still cards — this is not a global de-framing
+    /* It used to be the page-coloured canvas the sheet floated on, inside a
+       bordered column. Both went (10 Aug 2026): a cream sheet inside a white
+       card inside a bordered column is three frames for one document. */
+    assert.match(r, /background:none/, 'no canvas of its own');
+    assert.match(r, /border:0/, 'and no frame');
+    // the QUEUE is still a card — this is not a global de-framing
     assert.match(p.rule('.redline-page .rl-col') || '', /border:1px solid/);
   });
 
@@ -606,17 +621,31 @@ describe('F89 (8) — a marked phrase says whose hand it was', () => {
   });
 });
 
-describe('F89 (9) — one sidebar, and the discussion is a mode of it, not a third column', () => {
-  test('the sidebar swaps faces; the two panels never share the row', async () => {
+describe('F89 (9) — one sidebar, and one face left in it', () => {
+  /* THE SECOND FACE HAS GONE. The Discussion column was a second list of the
+     same changes, in a different order, behind a tab — so reading what your
+     team said about clause 6.1 meant leaving the card for clause 6.1. The
+     conversation reads on the change now (10 Aug 2026) and the switcher, the
+     tray it sat in and the pair of rules that hid one column to show the other
+     went with it. */
+  test('there is one column, and nothing can hide it', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page\[data-rl-side-mode="changes"\] #rl-disc-col\{display:none\}/);
-    assert.match(p.css(), /\.redline-page\[data-rl-side-mode="disc"\] #rl-changes-col\{display:none\}/);
-    assert.ok(p.$('#rl-side').contains(p.$('#rl-disc-col')), 'the discussion lives inside the one card');
+    assert.equal(p.$('#rl-disc-col'), null, 'no second panel');
+    assert.equal(p.$$('#rl-side [data-rl-mode]').length, 0, 'and nothing to switch with');
+    assert.doesNotMatch(p.css(), /#rl-changes-col\{display:none\}/,
+      'no rule may take the cards off the page');
     p.win.rlSetSideMode('disc');
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
-    p.win.rlSetSideMode('changes');
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'changes',
-      'the tabs are the way back — no reveal chip, no chevron');
+    assert.equal(p.win.rlSideMode(), 'changes', 'there is only one mode to be in');
+    assert.ok(p.$('#rl-changes-col'), 'and the cards are still drawn');
+  });
+
+  test('the conversation moved onto the card, it did not disappear', async () => {
+    const p = await page();
+    const card = p.$('#rl-changes [data-nego-card]');
+    assert.ok(card.querySelector('.rl-cnotes'), 'the notes block is on the change');
+    const id = card.getAttribute('data-nego-card');
+    assert.ok(card.querySelector(`[id="nego-ti-${id}"]`), 'with the engine\'s own composer');
+    assert.ok(card.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
   });
 });
 
@@ -702,23 +731,24 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 
 });
 
-describe('F89 (14) — the card is a handle on the change, not a copy of it', () => {
-  /* IT USED TO BE A COPY. The card carried the redline clamped to two lines,
-     which put the changed wording on screen twice — once in the document pane
-     being read, and again beside it in the lesser version: cut mid-sentence,
-     stripped of its clause, nothing to act on. The scoping engine below is
-     kept and still tested, because ops are rendered wherever a delta is shown;
-     what has gone is the second copy in the sidebar. */
-  test('the card carries no copy of the wording', async () => {
+describe('F89 (14) — the card says what the change is, in two lines', () => {
+  /* AND THAT IS A REVERSAL. The wording was taken OFF the card on the argument
+     that the document beside it already shows the change, so a clamped copy
+     was the same words twice. True, and the card that was left read as a
+     filing reference: an id, a clause number and four buttons, with nothing on
+     it about the thing being decided. It is back on the design's call (10 Aug
+     2026) — clamped to two lines, marks and all, a summary you skim down the
+     column rather than a place to read a clause. The full wording in its own
+     surroundings is one click away and always has been (rlLinkFocus). */
+  test('the card carries the delta, clamped', async () => {
     const p = await page();
-    assert.equal(p.$('#rl-changes .rl-card-diff'), null,
-      'the wording lives in the document, and in exactly one place');
-    const body = p.$('#rl-doc .rl-clause.is-changed .nego-body').textContent.replace(/\s+/g, ' ').trim();
-    const card = p.$('#rl-changes .rl-card').textContent.replace(/\s+/g, ' ').trim();
-    const phrase = body.split(' ').slice(2, 8).join(' ');
-    assert.ok(phrase.length, 'the fixture clause has a body to quote from');
-    assert.ok(!card.includes(phrase),
-      'a card repeating the clause is the copy this change removed');
+    const diff = p.$('#rl-changes .rl-card-diff');
+    assert.ok(diff, 'the card says what is being asked for');
+    assert.ok(diff.textContent.trim().length, 'and says it in words');
+    const r = p.rule('.redline-page .rl-card-diff');
+    assert.match(r, /-webkit-line-clamp:2/,
+      'two lines: a summary, not a second copy of the clause');
+    assert.match(r, /overflow:hidden/);
   });
 
   test('but the document still marks it, so nothing was lost with the copy', async () => {

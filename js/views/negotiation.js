@@ -6964,7 +6964,7 @@ function renderRedline(){
                  "0 need you" is a button that has nothing to do. */}
           ${needsYou.length ? `<button type="button" data-rl-needsyou="${_nea(needsYou[0])}" class="rl-needs"
             title="${_nea(i18t('ng_needs_you_title'))}"><span class="rl-needs-dot"></span>${
-            needsYou.length === 1 ? i18t('ng_needs_you_one') : i18t('ng_needs_you_n', { n: needsYou.length })}<span class="rl-needs-go">&rarr;</span></button>` : ''}
+            i18tn('ng_needs_you', needsYou.length, { n: needsYou.length })}<span class="rl-needs-go">&rarr;</span></button>` : ''}
         </div>
         ${''/* The quiet end of the row: a way of LOOKING, which should never sit
                in front of the acts. The type stepper and the focus button used
@@ -9434,14 +9434,37 @@ function rlCardNotesHtml(c, ch, opts, side){
       m.visibility === 'shared' ? '' : `<span class="rl-cnote-int">${i18t('ng_internal_only')}</span>`}</div>
       <p>${_ne(m.text || '')}</p>
     </div>`).join('');
+  /* ---- ONE EXCEPTION, AND IT IS THE COUNTERPARTY'S ----
+     Our cards are internal-only: the design's composer says "never sent to
+     them", and our side reaches the other side through the round.
+
+     THE COUNTERPARTY HAS NO ROUND AND NO COLLEAGUES. Their page is the whole
+     of what they have — one screen, on a link — so an internal-only box there
+     is a reply box that reaches nobody, and taking the choice away would leave
+     them with no way to answer a question at all. F58 caught exactly that.
+     They keep the switch, and it opens on Send-to-them, which is the only
+     thing they are usually here to do. */
+  const theirSeat = side === 'counterparty';
+  const vis = theirSeat
+    ? `<div class="nego-visswitch" role="group" aria-label="${_nea(i18t('ng_who_can_read'))}">
+        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">&#128274; Internal</button>
+        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; ${i18t('ng_send_to_them')}</button>
+      </div>`
+    /* Hidden, not absent. wireNegotiationTab resolves visibility by finding the
+       PRESSED marker for this change and DEFAULTS TO SHARED when it finds
+       none — so a card with no marker would post every internal note straight
+       to the counterparty, which is the opposite of the promise under the
+       button. */
+    : `<span class="rl-vis-set" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="true" hidden></span>`;
   const composer = canComment ? `
-    <span class="rl-vis-set" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="true" hidden></span>
+    ${vis}
     <textarea class="chat-field rl-cnote-in" rows="2" id="nego-ti-${_ne(ch.id)}"
-      placeholder="${_nea(i18t('ng_card_note_ph'))}"
+      placeholder="${_nea(theirSeat ? i18t('ng_reply_ellipsis') : i18t('ng_card_note_ph'))}"
       aria-label="${_nea(i18t('ng_start_thread_aria',{id:ch.id}))}"></textarea>
     <div class="rl-cnote-foot">
-      <button type="button" class="rl-cnote-add" data-nego-send="${_ne(ch.id)}">${i18t('ng_card_note_add')}</button>
-      <span class="rl-cnote-hint">${i18t('ng_card_note_never',{who:_ne(who)})}</span>
+      <button type="button" class="rl-cnote-add" data-nego-send="${_ne(ch.id)}">${
+      theirSeat ? i18t('ng_send_this_reply') : i18t('ng_card_note_add')}</button>
+      ${theirSeat ? '' : `<span class="rl-cnote-hint">${i18t('ng_card_note_never',{who:_ne(who)})}</span>`}
     </div>` : '';
   return `<div class="rl-cnotes">
     <div class="rl-cnotes-k">${msgs.length ? i18t('ng_card_notes_n',{n:msgs.length}) : i18t('ng_card_notes')}</div>

@@ -66,14 +66,34 @@ function theirLink(c){
     const room = doc.querySelector('#nego-room');
     return (room ? room.querySelector(scoped(sel)) : null) || doc.querySelector(sel);
   };
-  return { p, win: p.win, $,
+  const settle = async () => { for (let i = 0; i < 3; i++) await new Promise(r => setImmediate(r)); };
+  const api = { p, win: p.win, $,
     last: () => { const s = p.log.sent; return s.length ? s[s.length - 1].body : null; },
     async press(sel){
       const el = $(sel);
       assert.ok(el, 'missing control: ' + sel);
       el.dispatchEvent(new p.win.Event('click', { bubbles: true }));
-      for (let i = 0; i < 3; i++) await new Promise(r => setImmediate(r));
+      await settle();
+    },
+    /* ---- ACCEPTING EVERYTHING, ONE CARD AT A TIME ----
+       There used to be a bulk "Accept all" at the head of this column and this
+       helper was one press of it. It is gone by design (10 Aug 2026): deciding
+       the other side's wording in a single click is the one act on this page
+       that should cost a press per clause. The test wants the STATE that
+       follows from every change being accepted, so it now does what a reader
+       does — presses each card's own Accept, re-reading the column between
+       presses because answering one card repaints the rest. */
+    async acceptEvery(){
+      for (let guard = 0; guard < 40; guard++){
+        const room = doc.querySelector('#nego-room') || doc;
+        const btn = room.querySelector('[data-nego-accept]');
+        if (!btn) return;
+        btn.dispatchEvent(new p.win.Event('click', { bubbles: true }));
+        await settle();
+      }
+      throw new Error('accepting never ran out of cards');
     } };
+  return api;
 }
 /* Which verbs a card is offering, by name, so the two sides can be compared as
    sets rather than by poking at one selector at a time. */
@@ -85,7 +105,7 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
   test('Accept and Reject are gone; the status and the sent pill are not', async () => {
     const { c, filed } = await ownerProposed(['4', '6']);
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await v.acceptEvery();
     await v.press('#nego-send-decisions');
     assert.equal(v.last().action, 'decisions', 'the answers really went');
 
@@ -97,10 +117,9 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
       assert.match(v.$(`[data-nego-card="${f.id}"]`).textContent, /Accepted/,
         'with the answer itself on it');
       /* The note shortcut that used to carry data-rl-change is gone (Young,
-         03 Aug 2026). Talking about a decided change is still allowed, and the
-         Discussion column now offers a starter per change rather than one
-         borrowed composer — which is what that shortcut used to re-aim. */
-      if (v.win.rlSetSideMode) v.win.rlSetSideMode('disc');
+         03 Aug 2026), and so is the Discussion column it was re-aiming (10 Aug
+         2026). Talking about a decided change is still allowed — the composer
+         is on the change's own card now, which is where the test looks. */
       assert.ok(v.$(`#nego-ti-${f.id}`) || v.$(`[data-nego-send="${f.id}"]`),
         'talking about it is always allowed');
     }
@@ -112,7 +131,7 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     const id = filed[0].id;
-    await v.press('#nego-bulk-acc');
+    await v.acceptEvery();
     await v.press('#nego-send-decisions');
 
     await v.press(`[data-nego-card="${id}"]`);             // jumps to the clause, decides nothing
@@ -141,12 +160,11 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
 
     const { c: c2, filed } = await ownerProposed();
     const v = theirLink(c2);
-    await v.press('#nego-bulk-acc');
+    await v.acceptEvery();
     await v.press('#nego-send-decisions');
     const theirVerbs = verbsOn(v.win.document, filed[0].id);
     assert.ok(!theirVerbs.includes('accept') && !theirVerbs.includes('reject'),
       'no verdict is offered on a change that already has one: ' + theirVerbs.join(', '));
-    if (v.win.rlSetSideMode) v.win.rlSetSideMode('disc');
     assert.ok(v.$(`#nego-ti-${filed[0].id}`) || v.$(`[data-nego-send="${filed[0].id}"]`),
       'and they can still talk about it');
   });
@@ -157,7 +175,7 @@ describe('F59 — changing your mind is kept, behind one deliberate click', () =
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     const id = filed[0].id;
-    await v.press('#nego-bulk-acc');
+    await v.acceptEvery();
     assert.equal(v.$(`[data-nego-redecide="${id}"]`), null,
       'nothing has gone yet — Undo is the right verb for that');
     assert.ok(v.$(`[data-nego-undo="${id}"]`));
@@ -171,7 +189,7 @@ describe('F59 — changing your mind is kept, behind one deliberate click', () =
   test('pressing it puts the verbs back on that card, and only that card', async () => {
     const { c, filed } = await ownerProposed(['4', '6']);
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await v.acceptEvery();
     await v.press('#nego-send-decisions');
     await v.press(`[data-nego-redecide="${filed[0].id}"]`);
 
@@ -184,7 +202,7 @@ describe('F59 — changing your mind is kept, behind one deliberate click', () =
   test('re-opening changes nothing about the change itself', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await v.acceptEvery();
     await v.press('#nego-send-decisions');
     const before = v.p.log.sent.length;
     await v.press(`[data-nego-redecide="${filed[0].id}"]`);
@@ -197,7 +215,7 @@ describe('F59 — changing your mind is kept, behind one deliberate click', () =
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     const id = filed[0].id;
-    await v.press('#nego-bulk-acc');
+    await v.acceptEvery();
     await v.press('#nego-send-decisions');
     await v.press(`[data-nego-redecide="${id}"]`);
     v.win.promptDialog = async () => 'On reflection, no.';

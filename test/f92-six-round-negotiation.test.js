@@ -236,6 +236,18 @@ describe('F92 — the six-round negotiation, end to end', () => {
     await t.pause();
     const noteMsg = (win.negoChanges(c).find(x => x.id === storage.id).thread || [])[0];
     assert.equal(noteMsg.visibility, 'internal', 'the tagged note filed internal');
+    /* AND IT READS ON THE CHANGE ITSELF. The Discussion column that used to
+       hold it is gone (10 Aug 2026); the notes are the last block of the
+       card's body, so the card has to be open to see them. Asserted HERE,
+       while the change is still on the table — a card leaves the column when
+       its change is decided, and the conversation goes with it. Where the note
+       lives after that is the record and the archive, which this file already
+       checks at the end. */
+    win.renderRedline();
+    t.$(`[data-nego-card="${storage.id}"] .rl-caret`)
+      ?.dispatchEvent(new win.Event('click', { bubbles: true }));
+    assert.ok(t.$$('#rl-changes .rl-cnotes').some(n => /walk if they push past/.test(n.textContent)),
+      'our own internal note is ours to read, on the change it is about');
     // Send the new ask.
     t.$('#rl-changes [data-rl-send]').click();
     await t.pause();
@@ -281,18 +293,25 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.ok(!/The wall:/.test(t.$('#rl-banner').textContent), 'no standing banner');
     assert.match(t.$('[data-redline-proxy]').textContent, /1 unsent/,
       'the send button counts what is being held back');
-    // The owner sees the internal thread; every mark says whose hand it was.
-    assert.ok(t.text().includes('walk if they push past'), 'our own internal note is ours to read');
+    /* The internal note is still ours and still internal — checked on the
+       RECORD here, because by this round the change it hangs off has been
+       decided and its card has left the column. It was read off the screen
+       above, while it was live. */
+    assert.ok((win.negoChanges(c).find(x => x.id === storage.id).thread || [])
+      .some(m => m.visibility === 'internal' && /walk if they push past/.test(m.text)),
+      'our own internal note is still on the record, still internal');
     const marks = t.$$('#rl-doc .rl-clause.is-changed ins, #rl-doc .rl-clause.is-changed del');
     assert.ok(marks.length && marks.every(m => /^Last updated by /.test(m.getAttribute('title') || '')),
       'hover attribution on every marked span');
-    // Flip the sidebar to Discussion and back: one card, one face at a time.
-    win.rlToggleDiscussion(false);
-    assert.equal(t.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
-    const css = t.doc.getElementById('redline-layout-css').textContent;
-    assert.match(css, /\.redline-page\[data-rl-side-mode="disc"\] #rl-changes-col\{display:none\}/);
-    assert.match(css, /\.redline-page\[data-rl-side-mode="changes"\] #rl-disc-col\{display:none\}/);
-    win.rlToggleDiscussion(true);
+    /* THE SIDEBAR HAS ONE FACE NOW. The Discussion column is gone and
+       rlToggleDiscussion survives only as the name the master design calls: it
+       settles the page on the one mode there is and keeps its old return
+       contract. A stored 'disc' from before must not be able to hide the
+       cards. */
+    assert.equal(win.rlToggleDiscussion(false), true, 'it answers "discussion is not showing"');
+    assert.equal(win.rlSideMode(), 'changes', 'and there is nothing else to be');
+    assert.equal(t.$('#rl-disc-col'), null, 'no second column');
+    assert.ok(t.$('#rl-changes-col'), 'and the cards are still here');
 
     // NOW FLIP, with the draft still unsent. Nothing may betray it.
     t.view('counterparty');
@@ -362,7 +381,9 @@ describe('F92 — the six-round negotiation, end to end', () => {
 
   test('the DOM contract survived six rounds of surgery', async () => {
     const t = await table();
-    for (const id of ['view-redline', 'rl-doc', 'rl-changes', 'rl-threads', 'rl-banner', 'rl-grid'])
+    /* #rl-threads has left the list: the Discussion column it named is gone
+       and the conversation reads on the change's own card (.rl-cnotes). */
+    for (const id of ['view-redline', 'rl-doc', 'rl-changes', 'rl-banner', 'rl-grid'])
       assert.ok(t.$('#' + id), `#${id} still stands`);
   });
 });
