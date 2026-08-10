@@ -183,16 +183,36 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     assert.ok(acts[acts.length - 1].matches('[data-redline-proxy]'),
       'Publish Round is the last control in the row');
 
-    /* AND IT DROPS TO ITS OWN LINE WHEN THE WINDOW CANNOT HOLD BOTH. Five
-       tabs and six controls need about 1670px between them; below that a row
-       that merely overflowed would clip Publish Round off the right edge. The
-       rule under the tabs moves onto the spacer with it, or the active tab's
-       underline is stranded above a border drawn under the controls. */
-    const wrap = /@media\s*\(max-width:1700px\)\s*\{([\s\S]*?rl-head[^}]*\})/.exec(p.css())?.[1];
-    assert.ok(wrap && /rl-tabrow\{[^}]*flex-wrap:wrap/.test(wrap),
-      'the row wraps on a narrower window rather than clipping');
-    assert.ok(/rl-tabrow-gap\{[^}]*border-bottom/.test(wrap),
-      'and the row\'s rule moves onto the spacer, between the two lines');
+    /* AND IT DROPS TO ITS OWN LINE ONLY WHEN IT REALLY DOES NOT FIT. This was
+       a width rule — one number, measured on one screen, and wrong on every
+       other one: a round with no reviewer button and no "N needs you" is 300px
+       narrower and sat on two lines for no reason. The row wraps on CONTENT
+       now, which is plain flex-wrap, and the class only records what the
+       browser decided so the two things CSS cannot express can follow it. */
+    assert.ok(!/@media\s*\(max-width:1700px\)/.test(p.css()),
+      'the guessed width rule is gone');
+    assert.ok(/\.rl-tabrow\{[^}]*flex-wrap:wrap/.test(p.css()),
+      'the row wraps when the content does not fit, at any width');
+    assert.ok(/rl-tabrow-wrap .rl-tabrow-gap\{[^}]*border-bottom/.test(p.css()),
+      'and on a wrapped row the rule moves onto the spacer, between the two lines');
+    assert.equal(typeof p.win.rlFitTabRow, 'function',
+      'something has to read the wrap back — CSS cannot');
+  });
+
+  test('the wrap is observed, never assumed — and it measures with its own class off', () => {
+    /* THE TRAP THIS GUARDS. Once the spacer is a full-width line the head is
+       wrapped BY DEFINITION, so an observer that measured with the class still
+       on would confirm its own effect and a row that had grown room again
+       could never come back to one line. */
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const fn = /function rlFitTabRow\(\)\{[\s\S]*?\n\}/.exec(src)?.[0] || '';
+    assert.ok(fn, 'rlFitTabRow is in the file');
+    const off = fn.indexOf("classList.remove('rl-tabrow-wrap')");
+    const read = fn.indexOf('getBoundingClientRect()');
+    const on = fn.indexOf("classList.add('rl-tabrow-wrap')");
+    assert.ok(off > -1 && read > off, 'it takes the class off before it measures');
+    assert.ok(on > read, 'and puts it back only after reading');
   });
 
   test('and the header is still the header', async () => {

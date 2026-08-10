@@ -113,9 +113,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     head.inRow && head.lastInRow && !head.hasShell,
     `inRow=${head.inRow} last=${head.lastInRow} shell=${head.hasShell}`);
   check('1 Publish Round is the far-right control', head.lastAct === 'publish', head.lastAct);
-  /* This window is 1440 — under the 1700px the row needs to hold both — so the
-     head is expected on a second line. What must never happen at any width is
-     the controls running off the right edge. */
+  /* Whether it wrapped here depends on this fixture's controls, and that is
+     the point — the row wraps on content, not on a guessed width. What must
+     never happen at any width is the controls running off the right edge. */
   check('1 and nothing hangs off the right edge', !head.clipped,
     `wrapped=${head.wrapped} clipped=${head.clipped}`);
 

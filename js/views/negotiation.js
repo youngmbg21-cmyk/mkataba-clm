@@ -5446,6 +5446,46 @@ function rlWireFocusKey(){
     if (_rlFocus && document.getElementById('view-redline')) rlSetFocus(false);
   });
 }
+/* ---- DOES THE TAB ROW HOLD BOTH? ASK THE BROWSER, DO NOT GUESS ----
+   The row wraps on content, which is flex-wrap doing its ordinary job. What
+   CSS cannot express is the consequence: the rule under the tabs has to move
+   onto the spacer, and the head has to stretch, only WHEN the wrap happened.
+   So this reads the wrap and records it as a class.
+
+   IT MEASURES WITH THE CLASS OFF, always, or it would read its own effect:
+   once the spacer is a full-width line the head is wrapped by definition, and
+   a row that had grown room again could never come back to one line.
+
+   Called on every paint of the workbench (the head's contents change with the
+   round — a reviewer's button, an "N needs you" — and each one moves the
+   width) and once on resize, throttled to a frame. */
+let _rlFitWired = false;
+function rlFitTabRow(){
+  if (typeof document === 'undefined') return;
+  const row = document.querySelector('.redline-page .rl-tabrow');
+  if (!row || !row.getBoundingClientRect) return;
+  const head = row.querySelector('.rl-head');
+  const tabs = row.firstElementChild;
+  if (!head || !tabs || tabs === head) return;
+  row.classList.remove('rl-tabrow-wrap');
+  /* jsdom has no layout: every rect is zero, so every row would read as
+     unwrapped. That is the right answer there — the class is a painting
+     detail — but say so rather than letting a zero fall through by luck. */
+  const hr = head.getBoundingClientRect(), tr = tabs.getBoundingClientRect();
+  if (!hr.height && !tr.height) return;
+  if (hr.top > tr.top + 6) row.classList.add('rl-tabrow-wrap');
+}
+function rlWireFitTabRow(){
+  if (_rlFitWired || typeof window === 'undefined' || !window.addEventListener) return;
+  _rlFitWired = true;
+  let queued = false;
+  window.addEventListener('resize', () => {
+    if (queued) return;
+    queued = true;
+    const run = () => { queued = false; rlFitTabRow(); };
+    if (window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 16);
+  });
+}
 /* THE DESIGN'S LAYOUT, APPLIED OVER THE ENGINE'S MARKUP.
    The workbench renders two documents side by side — the baseline and the
    working copy — because that is what the contract tab and the room are for,
@@ -5499,32 +5539,37 @@ function redlineLayoutCss(){
      (Young, 10 Aug 2026), which gives the contract a whole band of height
      back. No margin and no minimum height: the tabs set the row's height and
      the controls sit centred in it. */
-  .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;
+  .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:7px;
     flex:none;align-self:center;padding-bottom:2px}
   /* The gap that pushes them right. Its own element rather than margin-left on
      the head, so the row still reads left-to-right in the markup. */
   .redline-page .rl-tabrow-gap{flex:1;min-width:8px}
-  /* ---- AND IT DROPS TO A LINE OF ITS OWN WHEN IT HAS TO ----
-     Five tabs and six controls need about 1670px of window between them —
-     measured on the painted row, not guessed, and rounded up because the
-     labels are translated and Swedish runs longer than English. Above that they share a line, which is what was
-     asked for and what a full-size window gives. Below it they cannot, and a
-     row that merely overflows would clip Publish Round off the right edge, so
-     the head goes back to being a strip: the honest shape, and exactly where
-     it used to live.
+  /* ---- AND IT DROPS TO A LINE OF ITS OWN ONLY WHEN IT REALLY DOES NOT FIT ----
+     This was a width rule — one number, 1700px, measured on one screen. It was
+     wrong on every other one, in both directions: a contract with no "N needs
+     you" and no reviewer button is 300px narrower than the one it was measured
+     on and sat on two lines at 1690 for no reason, which is the fault as
+     reported ("open that available space to the contract"). A single number
+     cannot answer a row whose content changes with the round.
 
-     THE RULE UNDER THE TABS MOVES WITH IT. .room-tabrow carries the row's
-     bottom border and the tabs pull their own underline down onto it — so once
-     the head wraps to a second line, the row's border is under the CONTROLS
-     and the active tab's underline is stranded in mid-air above them. The gap
-     is already a full-width, zero-height element sitting exactly between the
-     two lines, which makes it the honest place for that rule. */
-  @media (max-width:1700px){
-    .redline-page .rl-tabrow{flex-wrap:wrap;border-bottom:0}
-    .redline-page .rl-tabrow-gap{flex-basis:100%;min-width:0;height:0;
-      border-bottom:1px solid var(--color-divider)}
-    .redline-page .rl-head{flex-wrap:wrap;padding:9px 2px 2px;align-self:stretch;width:100%}
-  }
+     SO THE ROW WRAPS ON CONTENT — plain flex-wrap, which is exactly the "only
+     if it does not fit" rule — and the class merely RECORDS what the browser
+     decided, because two things have to follow the wrap and neither is
+     expressible in CSS. rlFitTabRow is the observer; it measures with the class
+     off and puts it back, so it never reads its own effect.
+
+     THE RULE UNDER THE TABS IS THE FIRST OF THE TWO. .room-tabrow carries the
+     row's bottom border and the tabs pull their own underline down onto it — so
+     on a wrapped row the border is under the CONTROLS and the active tab's
+     underline is stranded in mid-air above them. The gap is already a
+     full-width, zero-height element sitting exactly between the two lines,
+     which makes it the honest place for that rule. */
+  .redline-page .rl-tabrow{flex-wrap:wrap}
+  .redline-page .rl-tabrow.rl-tabrow-wrap{border-bottom:0}
+  .redline-page .rl-tabrow.rl-tabrow-wrap .rl-tabrow-gap{flex-basis:100%;min-width:0;height:0;
+    border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-tabrow.rl-tabrow-wrap .rl-head{flex-wrap:wrap;padding:9px 2px 2px;
+    align-self:stretch;width:100%}
   /* The middle pane's head went with the head (see redlinePanesHtml). */
   .redline-page .rl-head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}
   /* WRAPS: this strip now carries tabs, round, stepper, focus, the contract
@@ -5545,7 +5590,7 @@ function redlineLayoutCss(){
      index.html, because the contract page draws the same row — all this line
      does is give it the same 2px side padding the strip below it has, so the
      first tab and the first verb start on the same vertical. */
-  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:stretch;gap:10px}
+  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:stretch;gap:8px}
   .redline-page .rl-tabrow #rl-contract-jump{align-self:center;max-width:260px}
   /* The tab group is the only thing in this row that stretches; the round tag
      rides at its centre rather than being pulled to the row's full height. */
@@ -5582,8 +5627,11 @@ function redlineLayoutCss(){
      compete with the act. */
   .redline-page .rl-segwrap{display:flex;align-items:center;gap:3px;background:var(--color-neutral-100);
     border:1px solid var(--color-divider);padding:3px;border-radius:9px;height:34px;flex:none}
+  /* 10px, not 12: five of these sit on the tab row and the four pixels each
+     one gives back are what lets a 1600px laptop keep the controls up there
+     instead of dropping them to a line of their own. */
   .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:12px;font-weight:500;
-    height:26px;padding:0 12px;border-radius:7px;cursor:pointer;color:var(--color-neutral-500);
+    height:26px;padding:0 10px;border-radius:7px;cursor:pointer;color:var(--color-neutral-500);
     white-space:nowrap;transition:background .12s,color .12s}
   .redline-page .rl-seg.on{background:var(--color-surface);color:var(--color-text);font-weight:600;
     box-shadow:0 1px 2px rgba(15,23,42,.08)}
@@ -7007,7 +7055,13 @@ function renderRedline(){
                    the round, and the round is not the reviewer's job. It also
                    mounts a whole second surface for somebody whose task is one
                    clause. */}
-            ${_rvPosture ? '' : `<div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
+            ${''/* THE WORD "VIEW" TWICE IS THE GROUP'S JOB, NOT EACH BUTTON'S.
+                   "Internal View | Counterparty View" spent 260px of the row
+                   saying the same word twice; the mockup's own toggle reads
+                   Internal | Counterparty, and the group carries the sentence
+                   that says what it switches. */}
+            ${_rvPosture ? '' : `<div class="rl-segwrap" role="group" aria-label="${_nea(i18t('ng_view_group'))}"
+              title="${_nea(i18t('ng_view_group'))}">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
             ${''/* ---- AND THE ONE ACT, AT THE FAR RIGHT ----
                    Where Open Negotiate sits on the Document tab, drawn the same
                    way: filled, because it is what this page is for.
@@ -7105,6 +7159,10 @@ function renderRedline(){
     el.addEventListener('click', () => rlSetFocus(false)));
   rlPaintFocusBtn();
   rlWireFocusKey();
+  /* Whether the tabs and the controls fit on one line is a question about THIS
+     round's controls, so it is asked on every paint, not once. */
+  rlFitTabRow();
+  rlWireFitTabRow();
   /* The contract jump goes through the bench's one door, same as any other
      arrival. Change only — re-picking the current contract is a no-op, not a
      repaint that would drop the reader's scroll. */
@@ -10572,6 +10630,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn,
+  rlFitTabRow, rlWireFitTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,

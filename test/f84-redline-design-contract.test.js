@@ -393,8 +393,11 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
        outright — deciding the other side's wording is a press per clause. */
     const p = await page();
     const strip = p.$$('.rl-head button').map(b => b.textContent.trim());
-    assert.ok(strip.some(t => /Internal View/.test(t)));
-    assert.ok(strip.some(t => /Counterparty View/.test(t)));
+    /* "Internal View | Counterparty View" spent 260px of the row saying the
+       same word twice. The group carries that sentence now (its aria-label and
+       title), which is also what the mockup's own toggle does. */
+    assert.ok(strip.some(t => /^Internal$/.test(t)));
+    assert.ok(strip.some(t => /^Counterparty$/.test(t)));
     assert.ok(strip.some(t => /Publish Round/.test(t)));
     assert.ok(!strip.some(t => /Non-Risk|Reject All|Send All/.test(t)),
       'no bulk verbs anywhere on this page');

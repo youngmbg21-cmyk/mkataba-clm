@@ -1067,6 +1067,7 @@ const STRINGS = {
     /* THE THREE READINGS. See rlReadMode — the switch changes how the page is
        drawn and never what is on the record. */
     ng_read_group: 'How the contract reads',
+    ng_view_group: 'Whose seat you are reading from',
     ng_read_marks: 'Redlined',
     ng_read_agreed: 'As agreed',
     ng_read_proposed: 'With changes',
@@ -2037,8 +2038,8 @@ const STRINGS = {
     m_in_review_no_movement_other: 'In review for {n} days with no movement',
 
     // ---- the workbench's own view toggle ----
-    ng_internal_view: 'Internal View',
-    ng_counterparty_view: 'Counterparty View',
+    ng_internal_view: 'Internal',
+    ng_counterparty_view: 'Counterparty',
 
     // ---- the register: renewal filter option ----
     reg_renew_auto: 'Auto-renew',
@@ -4048,6 +4049,7 @@ const STRINGS = {
     ng_decided_this_round: 'avgjorda den här rundan',
     ng_the_contract: 'Avtalet',
     ng_read_group: 'Så här läses avtalet',
+    ng_view_group: 'Vems vy du läser från',
     ng_read_marks: 'Markerat',
     ng_read_agreed: 'Som avtalat',
     ng_read_proposed: 'Med förslag',
@@ -5015,8 +5017,8 @@ const STRINGS = {
     m_in_review_no_movement_other: 'Under granskning i {n} dagar utan att något hänt',
 
     // ---- the workbench's own view toggle ----
-    ng_internal_view: 'Intern vy',
-    ng_counterparty_view: 'Motpartens vy',
+    ng_internal_view: 'Intern',
+    ng_counterparty_view: 'Motpart',
 
     // ---- the register: renewal filter option ----
     reg_renew_auto: 'Automatisk förnyelse',

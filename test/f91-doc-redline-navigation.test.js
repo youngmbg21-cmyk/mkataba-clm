@@ -188,7 +188,7 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
        two together (10 Aug 2026). */
     const labels = [...b.$('#view-redline').querySelectorAll('.rl-head button')]
       .map(x => x.textContent.trim()).join(' | ');
-    for (const want of ['Internal View', 'Counterparty View', 'Publish Round'])
+    for (const want of ['Internal', 'Counterparty', 'Publish Round'])
       assert.ok(labels.includes(want), `${want} must still be there — got ${labels}`);
     assert.ok(!labels.includes('Non-Risk'),
       'the batch verbs are gone from the page entirely — not moved, removed');

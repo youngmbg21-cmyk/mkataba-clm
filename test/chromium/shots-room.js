@@ -56,8 +56,8 @@ async function shot(page, name, note){
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   /* A DESKTOP, not a laptop. The Negotiate tab shares one row between its five
-     tabs and its six controls above ~1670px and drops them to two lines below
-     it (see the media query in redlineLayoutCss), so a 1500px shot photographs
+     tabs and its six controls when there is room for both and drops them to
+     two lines when there is not (rlFitTabRow), so a 1500px shot photographs
      the narrow fallback rather than the arrangement being shown. Narrow widths
      are covered by laptops-verify, which is a test rather than a picture. */
   const ctx = await browser.newContext({ viewport: { width: 1800, height: 1000 }, deviceScaleFactor: 2 });
