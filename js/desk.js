@@ -989,10 +989,20 @@ function deskOpenFromChip(c){
    deliberately, so the two dialogs cannot drift apart in appearance. */
 const DK_FLD = (typeof window !== 'undefined' && window.RV_FLD) || '';
 const DK_LBL = (typeof window !== 'undefined' && window.RV_LBL) || '';
+/* And the head, for the same reason and from the same place: eight dialogs
+   across the two files, dressed once. Falls back to a bare heading on a stage
+   that has not loaded js/review.js — the desk must not need the review to
+   draw. */
+function _dkHead(glyph, title, sub){
+  if (typeof window !== 'undefined' && window.reviewDialogHeadHtml)
+    return window.reviewDialogHeadHtml(glyph, title, sub);
+  return `<div style="padding:18px 20px 0"><h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px">${_dkE(title)}</h2>
+    <p style="font-size:12px;color:var(--color-neutral-700);margin:0;line-height:1.55">${_dkE(sub || '')}</p></div>`;
+}
 
-function _dkPersonRow(p, right){
-  return `<div class="dk-row">
-    <span class="dk-face">${_dkE(deskInitials(p.name))}</span>
+function _dkPersonRow(p, right, cls){
+  return `<div class="dk-row${cls ? ' ' + cls : ''}">
+    <span class="dk-face${cls === 'dk-row-lead' ? ' dk-face-lead' : ''}">${_dkE(deskInitials(p.name))}</span>
     <span class="dk-row-id">
       <span class="dk-row-name">${_dkE(p.name)}</span>
       <span class="dk-row-sub">${_dkE(p.sub || '')}</span>
@@ -1009,13 +1019,15 @@ function deskSheetHtml(c){
   const pending = may ? deskJoinPending(c) : [];
   const when = at => (window.fmtDT ? String(window.fmtDT(at)).slice(0, 24) : String(at || '').slice(0, 10));
   return `
-  <div style="padding:18px 20px 16px">
-    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_dkE(i18t('dk_sheet_title'))}</h2>
-    <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.55">${_dkE(i18t('dk_sheet_sub'))}</p>
-
+  ${_dkHead('&#128101;', i18t('dk_sheet_title'), i18t('dk_sheet_sub'))}
+  <div class="rvd-body">
     <div style="${DK_LBL}">${_dkE(i18t('dk_lead_label'))}</div>
+    ${''/* The lead is what this panel is ABOUT, so its row wears the accent
+           tint the share dialog gives the option you have chosen — one thing
+           on the panel reads as the subject and the rest as the list. */}
     ${_dkPersonRow({ name: lead.name, sub: d.by ? i18t('dk_started_by', { who: d.by, when: when(d.openedAt) }) : '' },
-      may ? `<button type="button" class="ui-btn" data-dk-handover="1" style="font-size:11px;padding:4px 9px">${_dkE(i18t('dk_handover_btn'))}</button>` : '')}
+      may ? `<button type="button" class="ui-btn" data-dk-handover="1" style="font-size:11px;padding:4px 9px">${_dkE(i18t('dk_handover_btn'))}</button>` : '',
+      'dk-row-lead')}
 
     <div style="${DK_LBL}margin-top:14px">${_dkE(i18tn('dk_contributors_n', others.length, { n: others.length }))}</div>
     ${others.length ? others.map(p => _dkPersonRow(
@@ -1039,7 +1051,7 @@ function deskSheetHtml(c){
     <div id="dk-who-say" style="font-size:11.5px;line-height:1.5;margin-top:5px;color:var(--color-neutral-600)">${_dkE(i18t('dk_add_hint'))}</div>
     <input type="hidden" id="dk-who-id" value=""/>
     <div style="display:flex;justify-content:flex-end;margin-top:8px">
-      <button id="dk-add" class="ui-btn">${_dkE(i18t('dk_add_btn'))}</button>
+      <button id="dk-add" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_add_btn'))}</button>
     </div>` : ''}
 
     ${pending.length ? `
@@ -1060,14 +1072,12 @@ function deskSheetHtml(c){
            the panel, exactly what the counterparty has been told. It is the
            one line that stops somebody assuming the other side already knows
            something they do not — which is how a handover becomes a surprise. */}
-    <div style="border-top:1px solid var(--color-divider);margin-top:16px;padding-top:11px;
-      font-size:11.5px;color:var(--color-neutral-600);line-height:1.55">
+    <div class="rvd-note" style="margin-top:16px">
       ${_dkE(i18t('dk_cp_knows', { cp: c.counterparty || i18t('dk_the_counterparty'), who: lead.name }))}
     </div>
-
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-      <button id="dk-close" class="ui-btn">${_dkE(i18t('dk_done_btn'))}</button>
-    </div>
+  </div>
+  <div class="rvd-foot">
+    <button id="dk-close" class="ui-btn">${_dkE(i18t('dk_done_btn'))}</button>
   </div>`;
 }
 
@@ -1131,9 +1141,8 @@ function openDeskHandover(c, opts = {}){
   if (!window.openModal || !c) return;
   const lead = deskLead(c) || { name: '' };
   window.openModal(`
-    <div style="padding:18px 20px 16px">
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_dkE(i18t('dk_ho_title'))}</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.55">${_dkE(i18t('dk_ho_sub', { who: lead.name }))}</p>
+    ${_dkHead('&#128260;', i18t('dk_ho_title'), i18t('dk_ho_sub', { who: lead.name }))}
+    <div class="rvd-body">
       <label for="dk-who" style="${DK_LBL}">${_dkE(i18t('dk_ho_new_lead'))}</label>
       <div style="position:relative">
         <input id="dk-who" type="text" role="combobox" autocomplete="off" spellcheck="false"
@@ -1165,10 +1174,10 @@ function openDeskHandover(c, opts = {}){
         <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--color-accent-800);margin-top:5px">“${_dkE(i18t('dk_cp_notice', { who: '…' }))}”</span></span>
       </label>
       <p style="font-size:11.5px;color:var(--color-neutral-600);margin:12px 0 0;line-height:1.55">${_dkE(i18t('dk_ho_you_stay'))}</p>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-        <button id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
-        <button id="dk-hook" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_ho_btn'))}</button>
-      </div>
+    </div>
+    <div class="rvd-foot">
+      <button id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
+      <button id="dk-hook" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_ho_btn'))}</button>
     </div>`, { maxWidth: '29rem' });
   const picker = window.reviewWirePicker
     ? reviewWirePicker(c, { prefix: 'dk', search: deskSearchPeople, resolve: deskResolvePerson })
@@ -1198,16 +1207,15 @@ function openDeskJoinAsk(c, opts = {}){
   if (!window.openModal || !c) return;
   const lead = deskLead(c) || { name: '' };
   window.openModal(`
-    <div style="padding:18px 20px 16px">
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px">${_dkE(i18t('dk_join_title'))}</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">${_dkE(i18t('dk_join_sub', { who: lead.name }))}</p>
+    ${_dkHead('&#9995;', i18t('dk_join_title'), i18t('dk_join_sub', { who: lead.name }))}
+    <div class="rvd-body">
       <label for="dk-why" style="${DK_LBL}">${_dkE(i18t('dk_join_why_label'))}</label>
       <textarea id="dk-why" rows="3" maxlength="${DK_WHY_MAX}" style="${DK_FLD}resize:vertical"
         placeholder="${_dkE(i18t('dk_join_why_ph'))}"></textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-        <button id="dk-jcancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
-        <button id="dk-jok" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_join_btn'))}</button>
-      </div>
+    </div>
+    <div class="rvd-foot">
+      <button id="dk-jcancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
+      <button id="dk-jok" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_join_btn'))}</button>
     </div>`, { maxWidth: '28rem' });
   document.getElementById('dk-jcancel')?.addEventListener('click', () => window.closeModal());
   document.getElementById('dk-jok')?.addEventListener('click', () => {

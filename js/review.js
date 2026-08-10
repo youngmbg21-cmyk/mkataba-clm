@@ -1226,6 +1226,30 @@ const RV_FLD = 'width:100%;min-height:34px;border:1px solid var(--color-divider)
 const RV_LBL = 'display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);'
   + 'margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
 
+/* ---- AND THE DIALOGS LOOK LIKE THE PRODUCT'S DIALOGS ----
+   Eight of them across this file and js/desk.js opened as a heading, a grey
+   sentence and a stack of fields on plain white. Reported beside a screenshot
+   of the share dialog (Young, 10 Aug 2026): "add some light color and
+   character to the pop ups ... They are currently very bland."
+
+   ONE head, built here and called from both files, for the reason the map
+   opens with: eight dialogs dressed eight times is six that get updated and
+   two that do not. The classes are defined in index.html — and they are real
+   classes, which is the other lesson this feature learned the hard way with
+   `ui-input`.
+
+   The glyph is an EMOJI rather than an icon set, because icon() is core.js's
+   and this file is loaded on stages that do not have it. */
+function reviewDialogHeadHtml(glyph, title, sub){
+  return `<div class="rvd-head">
+    <span class="rvd-ico" aria-hidden="true">${glyph}</span>
+    <span class="rvd-htxt">
+      <h2 class="rvd-title">${_rvE(title)}</h2>
+      ${sub ? `<p class="rvd-sub">${_rvE(sub)}</p>` : ''}
+    </span>
+  </div>`;
+}
+
 /* One row of the picker's list. Name, address and role — the address because it
    is what disambiguates two people with one name, and because it is what the
    person searching usually has in front of them. */
@@ -1289,9 +1313,8 @@ function reviewAskModalHtml(c, opts = {}){
       <span style="display:block;font-size:10.5px;color:var(--color-neutral-600)">${_rvE(ch.clauseLabel || ch.clauseId || '')}</span>
     </span></li>`;
   return `
-  <div style="padding:18px 20px 16px">
-    <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_modal_title'))}</h2>
-    <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.55">${_rvE(i18t('rv_modal_sub'))}</p>
+  ${reviewDialogHeadHtml('&#128100;', i18t('rv_modal_title'), i18t('rv_modal_sub'))}
+  <div class="rvd-body">
 
     ${people.length ? `
     <div style="margin-bottom:12px">
@@ -1339,11 +1362,10 @@ function reviewAskModalHtml(c, opts = {}){
         <ul style="list-style:none;margin:0;padding:0">${scope.theirs.map(row).join('')}</ul>` : ''}
       ${!scope.all.length ? `<div style="font-size:11.5px;color:var(--color-neutral-700)">${_rvE(i18t('rv_nothing_to_review'))}</div>` : ''}
     </div>
-
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button id="rv-cancel-modal" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-      <button id="rv-send" class="ui-btn ui-btn-primary"${(!people.length || !scope.all.length) ? ' disabled' : ''}>${_rvE(i18t('rv_send_btn'))}</button>
-    </div>
+  </div>
+  <div class="rvd-foot">
+    <button id="rv-cancel-modal" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+    <button id="rv-send" class="ui-btn ui-btn-primary"${(!people.length || !scope.all.length) ? ' disabled' : ''}>${_rvE(i18t('rv_send_btn'))}</button>
   </div>`;
 }
 
@@ -1548,22 +1570,19 @@ function openReviewAskModal(c, opts = {}){
 function openReviewEntryChooser(c, opts = {}){
   if (!window.openModal || !c) return;
   if (!window.openDeskSheet){ openReviewAskModal(c, opts); return; }
-  const opt = (act, label, sub) => `
-    <button type="button" data-rv-entry="${_rvE(act)}" class="ui-btn"
-      style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
-      text-align:left;padding:12px 14px;margin-top:8px;height:auto">
-      <span style="font-weight:600">${_rvE(label)}</span>
-      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:normal;line-height:1.5">${_rvE(sub)}</span>
+  const opt = (act, glyph, label, sub) => `
+    <button type="button" data-rv-entry="${_rvE(act)}" class="rvd-opt">
+      <b>${glyph} ${_rvE(label)}</b>
+      <span>${_rvE(sub)}</span>
     </button>`;
   window.openModal(`
-    <div style="padding:18px 20px 16px">
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_entry_title'))}</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 6px;line-height:1.55">${_rvE(i18t('rv_entry_sub'))}</p>
-      ${opt('desk', i18t('rv_entry_desk'), i18t('rv_entry_desk_sub'))}
-      ${opt('ask', i18t('rv_entry_ask'), i18t('rv_entry_ask_sub'))}
-      <div style="display:flex;justify-content:flex-end;margin-top:14px">
-        <button id="rv-entry-cancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-      </div>
+    ${reviewDialogHeadHtml('&#128100;', i18t('rv_entry_title'), i18t('rv_entry_sub'))}
+    <div class="rvd-body">
+      ${opt('desk', '&#128101;', i18t('rv_entry_desk'), i18t('rv_entry_desk_sub'))}
+      ${opt('ask', '&#128172;', i18t('rv_entry_ask'), i18t('rv_entry_ask_sub'))}
+    </div>
+    <div class="rvd-foot">
+      <button id="rv-entry-cancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
     </div>`, { maxWidth: '26rem' });
   document.getElementById('rv-entry-cancel')?.addEventListener('click', () => window.closeModal());
   document.querySelectorAll('[data-rv-entry]').forEach(b => b.addEventListener('click', () => {
@@ -1614,13 +1633,12 @@ function openReviewReturnPicker(c, opts = {}){
     </button>`;
   };
   window.openModal(`
-    <div style="padding:18px 20px 16px">
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_pick_title'))}</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">${_rvE(i18t('rv_pick_sub'))}</p>
+    ${reviewDialogHeadHtml('&#128229;', i18t('rv_pick_title'), i18t('rv_pick_sub'))}
+    <div class="rvd-body">
       ${mine.map(row).join('')}
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-        <button id="rv-pcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-      </div>
+    </div>
+    <div class="rvd-foot">
+      <button id="rv-pcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
     </div>`, { maxWidth: '30rem' });
   document.getElementById('rv-pcancel')?.addEventListener('click', () => window.closeModal());
   document.querySelectorAll('[data-rv-pick-return]').forEach(b =>
@@ -1649,9 +1667,8 @@ function openReviewReturnModal(c, opts = {}){
   const advised = inRv.filter(x => reviewSideOf(x) === 'theirs' && reviewOn(x)).length;
   const unmarked = ourIn.filter(x => !reviewOn(x)).length;
   window.openModal(`
-    <div style="padding:18px 20px 16px">
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_return_title'))}</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">${_rvE(i18t('rv_return_sub'))}</p>
+    ${reviewDialogHeadHtml('&#128229;', i18t('rv_return_title'), i18t('rv_return_sub'))}
+    <div class="rvd-body">
       <div style="border:1px solid var(--color-divider);border-radius:8px;padding:11px 13px;background:var(--color-bg);margin-bottom:12px;font-size:12px;line-height:1.7">
         <div><b>${cleared}</b> ${_rvE(i18t('rv_tally_cleared'))}</div>
         <div><b>${held}</b> ${_rvE(i18t('rv_tally_held'))}</div>
@@ -1659,11 +1676,11 @@ function openReviewReturnModal(c, opts = {}){
         ${unmarked ? `<div style="color:var(--st-ruby-fg);margin-top:5px"><b>${unmarked}</b> ${_rvE(i18t('rv_tally_unmarked'))}</div>` : ''}
       </div>
       <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_rvE(i18t('rv_return_note_label'))}</label>
-      <textarea id="rv-rnote" rows="3" style="${RV_FLD}margin-bottom:14px;resize:vertical" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-        <button id="rv-rok" class="ui-btn ui-btn-primary"${unmarked ? ' disabled' : ''}>${_rvE(i18t('rv_return_btn'))}</button>
-      </div>
+      <textarea id="rv-rnote" rows="3" style="${RV_FLD}resize:vertical" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
+    </div>
+    <div class="rvd-foot">
+      <button id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      <button id="rv-rok" class="ui-btn ui-btn-primary"${unmarked ? ' disabled' : ''}>${_rvE(i18t('rv_return_btn'))}</button>
     </div>`, { maxWidth: '30rem' });
   document.getElementById('rv-rcancel')?.addEventListener('click', () => window.closeModal());
   document.getElementById('rv-rok')?.addEventListener('click', () => {
@@ -1682,14 +1699,13 @@ function openReviewNoteModal(c, changeId, opts = {}){
   const ch = (window.negoChangeById ? window.negoChangeById(c, changeId) : null);
   const cur = ch && reviewOn(ch);
   window.openModal(`
-    <div style="padding:18px 20px 16px">
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px">${_rvE(i18t('rv_note_title_modal', { id: changeId }))}</h2>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">${_rvE(i18t('rv_note_sub'))}</p>
-      <textarea id="rv-cnote" rows="4" style="${RV_FLD}margin-bottom:14px;resize:vertical">${_rvE((cur && cur.note) || '')}</textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
-        <button id="rv-cok" class="ui-btn ui-btn-primary">${_rvE(i18t('act_save'))}</button>
-      </div>
+    ${reviewDialogHeadHtml('&#9998;', i18t('rv_note_title_modal', { id: changeId }), i18t('rv_note_sub'))}
+    <div class="rvd-body">
+      <textarea id="rv-cnote" rows="4" style="${RV_FLD}resize:vertical">${_rvE((cur && cur.note) || '')}</textarea>
+    </div>
+    <div class="rvd-foot">
+      <button id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      <button id="rv-cok" class="ui-btn ui-btn-primary">${_rvE(i18t('act_save'))}</button>
     </div>`, { maxWidth: '28rem' });
   document.getElementById('rv-ccancel')?.addEventListener('click', () => window.closeModal());
   document.getElementById('rv-cok')?.addEventListener('click', () => {
@@ -1766,6 +1782,7 @@ Object.assign(window, {
   reviewBannerCleared, reviewClearBanner, reviewUnclearBanner,
   reviewSearchPeople, reviewResolvePerson, reviewPersonRowHtml, reviewPickerListHtml,
   RV_FLD, RV_LBL, reviewWirePicker,
+  reviewDialogHeadHtml,
   reviewAskModalHtml, openReviewAskModal, openReviewEntryChooser,
   openReviewReturnModal, openReviewReturnPicker,
   reviewTagsFor, openReviewNoteModal,

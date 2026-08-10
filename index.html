@@ -797,6 +797,60 @@
   .dk-row-sub{ font-size:11px; color:var(--color-neutral-600); overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; }
   .dk-row-ask{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
+  /* The row that is the dialog's SUBJECT rather than one of a list — the
+     desk's lead. Image 3's selected card, in the same tint. */
+  .dk-row-lead{ border-color:var(--color-accent-300); background:var(--color-accent-100); }
+
+  /* ---- ONE SET OF CLOTHES FOR THIS FEATURE'S DIALOGS ----
+     The desk sheet, the review ask, the entry chooser, the hand-back and the
+     two pickers were eight bare white boxes: a heading, a grey sentence, a
+     stack of fields. Reported as exactly that (Young, 10 Aug 2026) — "add
+     some light color and character to the pop ups ... They are currently very
+     bland" — beside a screenshot of the SHARE dialog, which has a coloured
+     heading, an accent-tinted chosen card and green status chips.
+
+     So the vocabulary is QUOTED FROM THAT DIALOG rather than invented: its
+     accent tint for the chosen purpose (--color-accent-100 over
+     --color-accent-300) becomes the head band, and .rvd-note is its
+     #share-hist-note. Nothing here is a new colour; both are combinations the
+     product already ships, which is also why they answer correctly on the
+     navy brand — the ramp changes, the relationship does not.
+
+     WRITTEN ONCE AND USED BY BOTH FILES. Eight dialogs dressed eight times is
+     the duplication this codebase's own map opens with, and it is how six of
+     them end up updated and two do not. js/review.js builds the head
+     (reviewDialogHeadHtml) and js/desk.js calls it. */
+  .rvd-head{ display:flex; align-items:flex-start; gap:11px; padding:15px 20px 13px;
+    background:var(--color-accent-100); border-bottom:1px solid var(--color-accent-300); }
+  .rvd-ico{ flex:none; width:30px; height:30px; border-radius:9px; display:grid;
+    place-items:center; font-size:14px; line-height:1; background:var(--color-surface);
+    border:1px solid var(--color-accent-300); box-shadow:0 1px 2px rgba(15,23,42,.06); }
+  .rvd-htxt{ flex:1; min-width:0; }
+  .rvd-title{ font-family:var(--font-heading); font-weight:600; font-size:16.5px; margin:0;
+    line-height:1.3; color:var(--color-accent-800); }
+  .rvd-sub{ font-size:11.5px; line-height:1.55; margin:3px 0 0; color:var(--color-accent-800);
+    opacity:.82; }
+  .rvd-body{ padding:15px 20px 2px; }
+  /* The actions sit on the quiet ground with a rule above them, so a dialog
+     ends on a shelf rather than trailing off. */
+  .rvd-foot{ display:flex; gap:8px; justify-content:flex-end; align-items:center;
+    padding:12px 20px 14px; margin-top:14px; border-top:1px solid var(--color-divider);
+    background:var(--color-bg); }
+  /* The one line a dialog ends on that is a FACT rather than a control — what
+     the counterparty is told, what the reviewer will be looking at. */
+  .rvd-note{ border:1px solid var(--color-accent-300); background:var(--color-accent-100);
+    color:var(--color-accent-800); border-radius:8px; padding:10px 12px;
+    font-size:11.5px; line-height:1.55; }
+  /* The entry chooser's two big options. */
+  .rvd-opt{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%;
+    text-align:left; padding:12px 14px; margin-top:9px; border-radius:9px; cursor:pointer;
+    font:inherit; border:1.5px solid var(--color-divider); background:var(--color-surface);
+    transition:border-color .12s, background .12s; }
+  .rvd-opt:hover{ border-color:var(--color-accent); background:var(--color-accent-100); }
+  .rvd-opt b{ font-size:12.5px; font-weight:700; color:var(--color-text); }
+  .rvd-opt:hover b{ color:var(--color-accent-800); }
+  .rvd-opt span{ font-size:11.5px; line-height:1.5; color:var(--color-neutral-600);
+    white-space:normal; }
   /* ---- ON THE CARD ----
      Who wrote it, and the sentence where a verb would have been. Both are the
      smallest type on the card on purpose: the wording is the subject and these

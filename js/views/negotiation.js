@@ -6251,21 +6251,39 @@ function redlineLayoutCss(){
      what this column is on the left, how much is in it on the right.
 
      DRESSED LIKE THE QUEUE'S HEAD, deliberately (reported: "on top of the
-     card 'tracked changes' is not professionally designed"). The caption
-     takes .rl-q-label's own type — 9.5px/800/.12em — the count moves into a
-     quiet pill instead of floating as grey text, and the head earns the same
-     hairline the queue's head carries, so the two columns flanking the
-     contract read as one design rather than two attempts at it. The same
-     classes render in Counterparty View and on the portal, so all three
-     screens change together. */
-  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:2px 2px 9px;
-    margin-bottom:9px;border-bottom:1px solid var(--color-divider)}
+     card 'tracked changes' is not professionally designed", and then again
+     for balance). The caption takes .rl-q-label's own type — 9.5px/800/.12em
+     — and the head earns the hairline the queue's head carries, so the two
+     columns flanking the contract read as one design rather than two attempts
+     at it. The same classes render in Counterparty View and on the portal, so
+     all three screens change together.
+
+     AND IT SITS ON THE COLUMN'S OWN GROUND. .nego-index-head paints
+     var(--n-paper) — the ROOM's token, which resolves white — so on this page
+     the head was a white band lying across a grey pane, with the caption
+     jammed against one end of it and a grey pill against the other: two
+     grounds and no gutter, which is what read as unbalanced. The pane goes
+     transparent (the column "sits straight on the page", which is the rule
+     stated at .rl-col and was never true of this one) and the head with it,
+     so there is ONE surface and the cards are the objects on it.
+
+     THE COUNT IS QUIETER THAN THE CAPTION, and it was the other way round: a
+     10.5px/600 pill outweighed the 9.5px label it was answering to. Same type
+     as the caption now, in a chip that only earns colour when there is
+     actually something on the table — which is the product's own habit, that
+     colour means something. */
+  .redline-page .nego-pane.index{background:transparent}
+  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+    background:transparent;padding:9px 4px 10px;margin-bottom:9px;
+    border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-idx-head [hidden]{display:none!important}
   .redline-page .rl-idx-k{flex:1;min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;
     text-transform:uppercase;color:var(--color-neutral-500)}
-  .redline-page .rl-idx-n{flex:none;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);
-    background:var(--color-neutral-100);border:1px solid var(--color-divider);
-    border-radius:999px;padding:2px 9px;line-height:1.4}
+  .redline-page .rl-idx-n{flex:none;font-size:9.5px;font-weight:700;letter-spacing:.02em;
+    color:var(--color-neutral-500);background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:999px;padding:3px 9px;line-height:1}
+  .redline-page .rl-idx-n.is-live{color:var(--color-accent-800);
+    background:var(--color-accent-100);border-color:var(--color-accent-300)}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
      is one the browser may refuse to focus or dispatch to, and Publish Round
      works by clicking this one. Taken out of the flow and out of the reader's
@@ -10695,7 +10713,7 @@ function redlinePanesHtml(c, opts = {}){
         <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}">
           <div class="nego-index-head rl-idx-head">
           <span class="rl-idx-k">${i18t('ng_tracked_changes_head')}</span>
-          <span class="rl-idx-n" id="rl-chg-count-wrap">${i18t('ng_on_the_table',{n:changeTotal})}</span>
+          <span class="rl-idx-n${changeTotal ? ' is-live' : ''}" id="rl-chg-count-wrap">${i18t('ng_on_the_table',{n:changeTotal})}</span>
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
