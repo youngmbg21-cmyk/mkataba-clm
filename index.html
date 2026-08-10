@@ -1049,7 +1049,13 @@
      The cap is on the ROWS so the head and the two buttons stay put. 322px is
      four rows and the top of a fifth: a list that ends flush at its boundary
      looks finished, and one that is visibly cut mid-row says "keep going". */
-  .ob-list{ max-height:322px; overflow-y:auto; padding-right:4px; }
+  /* Key terms and Obligations square off — see renderKeyTermsSide. The card
+     fills the column it was given; the list inside it takes whatever is left
+     after the head and the two buttons, and scrolls. */
+  .terms-grid{ align-items:stretch; }
+  .kt-side-card{ display:flex; flex-direction:column; min-height:0; flex:1; }
+  .kt-side-card > div{ display:flex; flex-direction:column; min-height:0; flex:1; }
+  .ob-list{ flex:1; min-height:120px; max-height:322px; overflow-y:auto; padding-right:4px; }
   /* The obligation's own sentence — see the note at the field (js/obligations.js).
      resize:vertical, not both: the dialog is a two-column grid and a textarea
      dragged wider would push the Due date and Recurring pair out of it.

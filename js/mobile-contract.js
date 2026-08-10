@@ -323,10 +323,15 @@ function mActionBarHtml(c){
     : viewer ? 'You have viewer access — this is read-only.'
     : c.status==='Declined' ? 'Closed — this contract is a record now.'
     : 'All key terms are set.';
+  /* A next action can carry a sentence and no button — the intent-to-sign
+     branch does, since the desktop dropped its "Review & sign below" primary
+     (10 Aug 2026). Honoured here for the same reason the phone reads
+     wsNextAction at all: one authority, or the two shells drift. */
+  const btn = na && !na.noButton;
   return `
     <div class="m-actionbar">
-      <div class="m-note" style="margin-bottom:${na?'8px':'0'}">${guide}</div>
-      ${na?`<button class="m-btn m-btn-primary" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`:''}
+      <div class="m-note" style="margin-bottom:${btn?'8px':'0'}">${guide}</div>
+      ${btn?`<button class="m-btn m-btn-primary" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`:''}
     </div>`;
 }
 

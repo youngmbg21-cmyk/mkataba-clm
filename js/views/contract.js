@@ -2197,12 +2197,21 @@ function wsNextAction(c){
   }
   // Under Review
   if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', get guide(){ return i18t('ct_share_draft_guide'); }, kind:'share' };
-  // U-8: when intent-to-sign is not yet ticked, this button only scrolls to the
-  // consent box — it does not sign. Labelling it "Sign" made the prominent verb
-  // a false promise (tick the box, then hunt for a second Sign control). It now
-  // says what it actually does; the label becomes "Sign" only when a click will
-  // truly execute.
-  if(!c.compliance.consent) return { get label(){ return i18t('ct_review_sign_below'); }, ic:'finger', guide:'Approved — confirm intent-to-sign below, then sign.', kind:'sign-scroll' };
+  /* ---- NO BUTTON FOR "GO AND FIND THE REAL BUTTON" ----
+     U-8 gave this state a primary reading "Review & sign below", on the sound
+     reasoning that labelling it "Sign" was a false promise: the click only
+     scrolled to the consent box. But the honest label gave away what the
+     control was — a button whose whole job is to point at another button, in
+     the most prominent slot on the page, beside Share and Draft new agreement.
+     Removed (Young, 10 Aug 2026).
+
+     THE GUIDE STAYS. `noButton` keeps this branch answering the question the
+     status line asks — what is the next step — while the head draws nothing.
+     Returning null instead would have been the smaller edit and the wrong one:
+     the line would fall back to "All key terms are set", which is true, useless
+     and says nothing about the signature that is actually outstanding. */
+  if(!c.compliance.consent) return { get label(){ return i18t('ct_review_sign_below'); }, ic:'finger',
+    guide:'Approved — confirm intent-to-sign on the Signing tab, then sign.', kind:'sign-scroll', noButton:true };
   return { get label(){ return i18t('ct_sign'); }, ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
 }
 
@@ -2791,13 +2800,26 @@ function riskCardHtml(c){
       <span class="risk-n">${b.n}</span></div>`).join('')}
     <p style="margin:8px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">Scored from ${[r.ranPb?'the playbook review':'',r.ranScan?'the Copilot scan':''].filter(Boolean).join(' and ')}. Anything above 60 needs Legal sign-off before signing.</p>`;
 }
+/* ---- ONE CARD BESIDE KEY TERMS, AND IT MATCHES IT ----
+   The Risk card is gone from this tab (Young, 10 Aug 2026). It was the third
+   card in a two-card column: Key terms on the left, Obligations and Risk
+   stacked on the right, so the right column ran past the bottom of the left
+   one and the two halves of the screen never lined up. Risk is not lost — it
+   is READ from the playbook review and the Copilot scan, and both of those,
+   with their findings, live on the Document tab. A score with no way to act on
+   it beside it is a number to look at, and it was pushing the obligations it
+   sat above off the fold.
+
+   THE ONE THAT STAYS IS SIZED TO ITS NEIGHBOUR. Obligations now takes the
+   column's full height with its list scrolling inside (see .ob-list), so the
+   two cards square off. align-items:stretch on the grid does the work; the
+   height is not a number written twice, which is how two cards drift apart the
+   first time somebody adds a row to one of them. */
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
-  host.innerHTML=`<section id="obligations-section" style="${CARD}"></section>
-    <section style="${CARD}">${riskCardHtml(c)}</section>`;
+  host.innerHTML=`<section id="obligations-section" class="kt-side-card" style="${CARD}"></section>`;
   if(window.renderObligationsSection) renderObligationsSection(c);
-  host.querySelector('#kt-gocheck')?.addEventListener('click',()=>roomGoTab(c,'docs'));
   const read=document.getElementById('kt-readdoc');
   if(read) read.addEventListener('click',()=>roomGoTab(c,'docs'));
 }
@@ -3379,9 +3401,20 @@ function checksRowsHtml(c){
       <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${
         v?`<span class="pill-x" style="${tone}">${v.label}</span>`:'Run &rarr;'}</button></div>`;
   };
+  /* ---- FIND OBLIGATIONS IS NOT A CHECK ON THIS CARD ANY MORE ----
+     Removed as a duplicate (Young, 10 Aug 2026). The Obligations card on Key
+     terms carries its own Find obligations button, beside the list the sweep
+     fills and beside Add obligation, which is the other half of the same job.
+     Two entry points to one act is one too many — and this one was the worse
+     of the two, because pressing it here took you to the other tab to read the
+     result anyway (see the roomGoTab in the wiring below, now gone with it).
+
+     THE OTHER TWO STAY, and the difference is where their results live: a
+     playbook review and a risk scan pin their findings to CLAUSES, on this
+     tab, in a panel over this document. They are checks on the wording. An
+     obligation is a commitment on the record, and the record is on Key terms. */
   return row('playbook','shield',i18t('ct_playbook_review'))
-    + row('risk','scan',i18t('ct_copilot_risk_scan'))
-    + row('oblig','calendar','Find obligations');
+    + row('risk','scan',i18t('ct_copilot_risk_scan'));
 }
 function renderChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
@@ -3437,8 +3470,7 @@ function wireChecksCard(c){
     if(!editable&&!ran){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default';
       b.title='Read-only for your role, or this contract is executed'; return; }
     b.addEventListener('click',async()=>{
-      if(ran&&kind!=='oblig') return openCheckPanel(c,kind);
-      if(ran&&kind==='oblig') return roomGoTab(c,'terms');
+      if(ran) return openCheckPanel(c,kind);
       if(!editable) return;
       b.innerHTML=`<span style="opacity:.6">${i18t('ct_working')}</span>`; b.disabled=true;
       try{
@@ -3456,13 +3488,10 @@ function wireChecksCard(c){
           openCheckPanel(c,'playbook');
           return;
         }
-        /* Obligations go through the product's own review step — the found
-           list is shown and nothing is filed until it is confirmed. This used
-           to call the extractor directly and throw its result away, so the
-           toast reported a count that had nothing to do with the scan. */
-        if(!window.runFindObligations) throw new Error('unavailable');
-        await runFindObligations(c);
-        renderChecksCard(c);
+        /* The obligations branch lived here and has gone with its row — the
+           sweep is run from the Obligations card on Key terms, which is where
+           what it finds is read. runFindObligations itself is untouched; this
+           card simply no longer offers a second door onto it. */
       }catch(e){
         toast(i18t('ct_check_unavailable'),'err');
         renderChecksCard(c);
@@ -3860,7 +3889,10 @@ function roomHeadHtml(c,opts={}){
     const na=(!locked&&may&&window.wsNextAction)?wsNextAction(c):null;
     primary=locked
       ? `<button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
-      : na ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      /* A next action may have no button of its own — see wsNextAction's
+         intent-to-sign branch. It still answers the status line; it just does
+         not earn the head's primary slot. */
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
@@ -4292,7 +4324,13 @@ function renderWorkspace(){
          Editable until the seal binds them. -->
     <div data-ws-pane="terms" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
       <div class="terms-grid">
-      <div style="${CARD};padding:16px 18px;align-self:start">
+      ${''/* align-self is gone from BOTH columns, which is what squares them
+             off: left to itself each card was only as tall as its contents, so
+             the two halves of the screen ended at different places and neither
+             one looked deliberate. Stretched, the shorter card grows to meet
+             the taller and the obligations list — which is the part that varies
+             — scrolls inside its own bounds. See renderKeyTermsSide. */}
+      <div style="${CARD};padding:16px 18px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('tab_key_terms')}</h6>
           ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('ct_confirmed')}</span>`:''}
@@ -4301,12 +4339,11 @@ function renderWorkspace(){
         <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
         ${readTermsHtml(c)}
       </div>
-      ${''/* Obligations and Risk. What this contract COMMITS you to, and where
-             it sits against your standards — the two questions a reader has
-             the moment they have finished reading the terms themselves. Both
-             are filled by renderKeyTermsSide from records that already exist:
-             the obligations the Calendar chases, and the checks you have run. */}
-      <div id="kt-side" style="display:flex;flex-direction:column;gap:12px;align-self:start"></div>
+      ${''/* Obligations: what this contract COMMITS you to — the question a
+             reader has the moment they have finished reading the terms
+             themselves. Filled by renderKeyTermsSide from the record the
+             Calendar already chases. */}
+      <div id="kt-side" style="display:flex;flex-direction:column;gap:12px;min-height:0"></div>
       </div>
     </div>
 

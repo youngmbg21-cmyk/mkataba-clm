@@ -2911,6 +2911,38 @@ async function issueSigningRouteLinks(c){
    opts.handOver — when set, the dialog says on step 1 that sending closes the
    sender's turn, because that is a consequence they should see before they
    press the button rather than discover afterwards. */
+/* Which open is current. A counter rather than a boolean: two presses in quick
+   succession both run to completion, and what matters is that only the LAST one
+   is allowed to paint. See the note in openShareModal. */
+let _shareOpenSeq = 0;
+/* THE FRAME, BEFORE THERE IS ANYTHING TO PUT IN IT.
+   Deliberately not a shimmer or a spinner over grey blocks: this dialog is
+   about to ask one short question, and a skeleton pretending to be three
+   paragraphs would be replaced by something a different shape. Its own title,
+   its own padding and one honest line — so what happens next is the answer
+   arriving under a heading that has not moved, rather than a screen changing
+   its mind. */
+function shareOpeningHtml(){
+  return `<div style="padding:22px 24px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+      <span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
+      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_what_sharing')}</h2></div>
+    <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 18px;">${i18t('co_one_question')}</p>
+    <div aria-hidden="true" style="display:grid;gap:9px">
+      ${[0,1].map(()=>`<div style="height:72px;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg)"></div>`).join('')}
+    </div>
+  </div>`;
+}
+/* Into the frame that is already up, rather than a second dialog. openModal
+   replaces #modal-root wholesale, which re-runs .modal-in's 200ms entry
+   animation — a dialog that arrives, and then arrives again, is a worse answer
+   to "it comes with a delay" than the delay was. Falls back to opening one if
+   the frame is not there, so this is safe for any caller. */
+function shareFillModal(html){
+  const panel=document.querySelector('#modal-root .modal-in');
+  if(panel){ panel.innerHTML=html; return; }
+  openModal(html);
+}
 async function openShareModal(c, opts={}){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
@@ -2918,10 +2950,35 @@ async function openShareModal(c, opts={}){
     toast(i18t('co_upload_share_server'),'err');
     return;
   }
+  /* ---- THE DIALOG OPENS ON THE PRESS, NOT WHEN THE WORK IS DONE ----
+     Reported (Young, 10 Aug 2026): "it comes with a delay". Everything below
+     this line used to run first — ensureFull fetches the whole record,
+     canonicalDoc is hashed, a version is captured and persisted, and
+     contractShares asks the server who this went to last time. Four round
+     trips, and only then was any pixel drawn. On a real server that is a press
+     that appears to do nothing, which is the shape of a broken button.
+
+     THE FRAME COMES UP IMMEDIATELY and fills in. Nothing here is a decision the
+     reader can make early — the first question genuinely does depend on the
+     record — so what is shown is the dialog itself with its own title and a
+     quiet line, and the content replaces it when it is ready. The perceived
+     delay goes because the press is answered; the work takes exactly as long
+     as it did.
+
+     TWO GUARDS, because an await is a window in which anything can happen:
+     _shareOpenSeq catches a second press landing while the first is preparing
+     (the later one wins, and the earlier one must not paint over it), and the
+     missing scrim catches the reader closing the frame or pressing Escape
+     while it prepares — reopening a dialog somebody has just dismissed is
+     worse than the delay this fixes. */
+  const _openSeq = ++_shareOpenSeq;
+  const _superseded = () => _openSeq !== _shareOpenSeq || !document.getElementById('modal-scrim');
+  openModal(shareOpeningHtml());
   // A share copies the contract out of the building, so it must be copied
   // whole: a record loaded for a list view carries neither its uploaded file's
   // bytes nor its round history, and both are things the payload publishes.
   try{ await ensureFull(c); }catch(_){}
+  if(_superseded()) return;
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
@@ -2966,6 +3023,7 @@ async function openShareModal(c, opts={}){
   // fields open already filled rather than filling themselves a moment later
   // under the user's cursor.
   const priorShares=await contractShares(c);
+  if(_superseded()) return;
   const pre=shareModalPrefill(priorShares, c);
   /* WO N4 — the one-question send. Offered only when nothing needs asking:
      the email channel works end to end (server mode), somebody to send to is
@@ -2986,7 +3044,7 @@ async function openShareModal(c, opts={}){
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;
   let ch=pre.channel||'email';
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
-  openModal(`
+  shareFillModal(`
     <div style="padding:22px 24px;">
       ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
       ${shareKindStepHtml(c, purposeSel)}
