@@ -111,6 +111,20 @@ async function shot(page, name, note){
     await page.evaluate(id => window.openRedlineWorkbench(id), negoId);
     await pause(2600);
     await shot(page, '03-negotiate-workbench', 'the redline: the sheet on the left, the cards on the right');
+
+  /* ---- THE THREE READINGS ----
+     The same clauses, drawn as the wording stands today. Photographed because
+     it is the one thing on this page that cannot be checked by reading the
+     markup: what has to be true is that the strikes are GONE and the notice
+     saying so is up. */
+  const asAgreed = await page.$('[data-rl-read="agreed"]');
+  if (asAgreed){
+    await asAgreed.click();
+    await pause(500);
+    await shot(page, '03b-negotiate-as-agreed', 'the same round, read as the wording stands today');
+    const back = await page.$('[data-rl-read="marks"]');
+    if (back){ await back.click(); await pause(400); }
+  }
   }
 
   /* ---------- 4. the negotiation desk ---------- */
