@@ -103,7 +103,9 @@ describe('while there is something to negotiate, the link is the room', () => {
     assert.ok(v.$('#pt-nego .rl-embed'), 'the workbench embed is what they land on');
     assert.ok(v.$('#pt-nego [id="rl-doc"]'), 'the document, with the marks on it');
     assert.ok(v.$('#pt-nego [id="rl-changes-col"]'), 'the tracked changes beside it');
-    assert.ok(v.$('#pt-nego [id="rl-disc-col"]'), 'and the discussion beside those');
+    /* The Discussion column is gone from both seats (10 Aug 2026); the
+       conversation reads on the change's own card. */
+    assert.ok(v.$('#pt-nego .rl-cnotes'), 'and the conversation, on the change it is about');
   });
 
   test('it is the same component the owner reads', async () => {

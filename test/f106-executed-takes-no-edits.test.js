@@ -238,8 +238,13 @@ describe('the lock is about new writes, not about existing history', () => {
 describe('the executed workbench offers nothing to press', () => {
   /* The verbs that must not appear. Each is a real id in the workbench: the AI
      and library controls, the draft saver, and the bulk verbs. */
+  /* nego-bulk-acc has left this list: the bulk verbs are gone from the
+     owner's column (10 Aug 2026) and survive only on the counterparty's own
+     seat. What is being proved here is that a DRAFT renders something
+     pressable, so the executed assertion below is not vacuous — #nego-send is
+     the workbench's own act and is the honest control to check for. */
   const VERBS = ['nego-copilot', 'nego-insert-lib', 'nego-save-draft',
-    'nego-bulk-acc', 'nego-all-acc', 'nego-all-rej'];
+    'nego-send', 'nego-all-acc', 'nego-all-rej'];
 
   /* The page as the router renders it, per the f89 stage: the redline view
      needs state, a getContract, and the share layer stood in for. */

@@ -104,7 +104,13 @@ describe('the sign — the window renders no verbs', () => {
     t.view('counterparty');
     t.view('owner');
     assert.ok(t.$('[data-nego-edit]'), 'Change is back');
-    assert.ok(t.doc.getElementById('nego-bulk-acc'), 'the bulk verb is back');
+    /* The bulk verbs never come back on OUR seat — they are gone from it
+       (10 Aug 2026) and live only on the counterparty's own page. What the
+       flip restores is our own column and its send. */
+    assert.equal(t.doc.getElementById('nego-bulk-acc'), null,
+      'the bulk verbs are not ours to have, in either view');
+    assert.ok(t.doc.getElementById('nego-send') || t.$('[data-redline-proxy]'),
+      'but our own send is back');
     assert.ok(t.$('[data-rl-pbreview]'), 'the playbook pass is back');
     assert.ok(t.$('[data-nego-accept]'), 'their ask is decidable again from the owner chair');
   });

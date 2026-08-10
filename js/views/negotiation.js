@@ -6498,10 +6498,19 @@ function redlineLayoutCss(){
      NOWHERE. jsdom cannot see display:none, which is why every test stayed
      green while the screen went dark. The embed styling is now the base
      styling: one look, every mount. */
-  /* The bulk verbs' rules went with the bulk verbs, and the Discussion
-     column's with the Discussion column (see redlinePanesHtml for both). What
-     the engine still emits under .nego-bulk on OTHER surfaces — the room's own
-     index — is styled by negoStyleHtml, not from here. */
+  /* ---- THE BULK PAIR, ON THE COUNTERPARTY'S SEAT ONLY ----
+     Off our own column by design (see redlinePanesHtml); still drawn on theirs,
+     where answering the whole round in one press is a real answer and there is
+     no Publish Round to do it with. The rules stay because that seat renders
+     through this same stylesheet — the portal mounts the workbench as an
+     embed. The Discussion column's rules went with the column itself. */
+  .redline-page .nego-bulk{display:flex;gap:6px;flex-basis:100%;margin-top:0}
+  .redline-page .nego-bulk button{flex:1;border:0;border-radius:8px;padding:6px 9px;
+    font:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
+  .redline-page .nego-bulk .b-acc{background:#059669;color:#fff}
+  .redline-page .nego-bulk .b-rej{background:#e2e8f0;color:#1e293b}
+  html.dark .redline-page .nego-bulk .b-rej{background:#cbd5e1;color:#0f172a}
+  .redline-page .nego-bulk button:disabled{opacity:.45;cursor:not-allowed}
   `;
   document.head.appendChild(s);
 }
@@ -9256,8 +9265,6 @@ function rlHiddenFrom(c, side){
 }
 const rlMsgVisible = (m, side) =>
   !!m && (m.visibility === 'shared' || (m.side || 'owner') === (side === 'counterparty' ? 'counterparty' : 'owner'));
-/* Which silent change the discussion column's one starter composer is aimed
-   at. Nominated by rlTagInternalNote, honoured by redlineDiscussionHtml. */
 /* ---------- THE CARD SHOWS THE CHANGE, NOT THE CLAUSE ----------
    A card used to render the whole ops array, keeps included — so a one-word
    amendment to a four-line clause arrived as four lines of unchanged wording
@@ -10378,6 +10385,21 @@ function redlinePanesHtml(c, opts = {}){
           <button class="nego-fold" id="nego-fold" hidden>${i18t('ng_hide')}</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
           <div id="nego-progress" hidden>${i18t('ng_resolved_short',{done:p.done,total:p.total})}</div>
+          ${''/* ---- ONE EXCEPTION TO THE BULK VERBS GOING, AND IT IS THEIRS ----
+                 Accept All / Reject All are gone from OUR column: deciding the
+                 other side's wording in one press is the act that should cost a
+                 press per clause, and we have Publish Round for the batch.
+
+                 THE COUNTERPARTY HAS NO PUBLISH ROUND. Their whole answer to a
+                 round is a set of decisions on OUR asks, and "I agree to all of
+                 it" is a real answer — withholding the button withholds nothing
+                 but their time. So their seat keeps the pair, named from their
+                 chair (D2), and our preview of their seat does not, because the
+                 preview is read-only and decides nothing. */}
+          ${canAct && side === 'counterparty' ? `<div class="nego-bulk">
+            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept all</button>
+            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject all</button>
+          </div>` : ''}
           ${''/* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule
                  the counterparty's action bar has carried for a while. An
                  executed contract used to render this column silently, which
@@ -10438,120 +10460,19 @@ function redlineThreads(c, opts = {}){
       .filter(m => rlMsgVisible(m, side)),
   })).filter(t => t.msgs.length);
 }
-function redlineDiscussionHtml(c, opts = {}){
-  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const canComment = opts.canComment != null ? !!opts.canComment : !opts.readonly;
-  const threads = redlineThreads(c, opts);
-  const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
-  /* And narrowed to what a reviewer was handed, like the cards and the queue: a
-     thread hangs off a change, and a change that is not their job carries a
-     conversation that is not either. The tab's pill counts off this list. */
-  const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)
-        && (!rlMyCardIds(c, opts) || rlMyCardIds(c, opts).has(String(x.id)))) : [];
-  const head = `
-    <div class="rl-disc-head">
-      <h3>${i18t('ng_discussion')}</h3>
-      <span class="rl-disc-n" id="rl-thread-count">${
-        threads.length ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}</span>
-    </div>`;
-  /* #rl-threads is present on both branches, empty state included: the design
-     names it as the list, and wiring that only exists once there is something
-     in it is wiring that breaks on the first contract anybody opens. */
-  if (!changes.length) return `${head}
-    <div class="rl-disc-body" id="rl-threads">
-      <div class="rl-disc-empty">${i18t('ng_threads_attach')}</div>
-    </div>`;
+/* THE DISCUSSION COLUMN'S RENDERER STOOD HERE — a thread card per change, a
+   reply box on each, and a starter composer for every change nobody had said
+   anything about yet. The column is gone (Young, 10 Aug 2026): a thread hangs
+   off a change, so the conversation reads on that change's own card, built by
+   rlCardNotesHtml from the same three engine attributes this one used.
 
-  const card = ({ ch, msgs }) => {
-    const anyShared = msgs.some(m => m.visibility === 'shared');
-    const decided = ch.status === 'accepted' || ch.status === 'rejected';
-    const body = msgs.map(m => {
-      const shared = m.visibility === 'shared';
-      return `<div class="rl-msg${shared ? '' : ' is-internal'}">
-        <div class="rl-msg-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhen(m.at))}</span></div>
-        <p>${_ne(m.text || '')}</p>
-      </div>`;
-    }).join('');
-    return `<article class="rl-thread${anyShared ? '' : ' is-internal'}" data-rl-thread="${_ne(ch.id)}" tabindex="0"
-      title="${_nea(i18t('ng_jump_to',{what:ch.clauseLabel || ch.clauseId || i18t('ng_this_clause')}))}">
-      <div class="rl-thread-top">
-        <span class="rl-vis ${anyShared ? 'sh' : 'int'}">${anyShared ? '&#127760; Shared' : '&#128274; Internal'}</span>
-        <span class="rl-thread-state">${decided ? (ch.status === 'accepted' ? 'Accepted' : 'Rejected') : 'Open'}</span>
-      </div>
-      <div class="rl-thread-ref">${i18t('ng_change_n',{id:_ne(ch.id)})}${ch.clauseLabel ? ' &middot; ' + _ne(ch.clauseLabel) : ''}</div>
-      ${body}
-      ${canComment ? `<div class="rl-reply">
-        <div class="nego-visswitch" role="group" aria-label="${i18t('ng_who_can_read')}">
-          <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">&#128274; Internal</button>
-          <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; ${i18t('ng_send_to_them')}</button>
-        </div>
-        <div class="rl-reply-row">
-          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${i18t('ng_reply_ellipsis')}" aria-label="${_ne(i18t('ng_reply_on_change_aria',{id:ch.id}))}"></textarea>
-          <button data-nego-send="${_ne(ch.id)}" title="${i18t('ng_send_this_reply')}">&uarr;</button>
-        </div>
-      </div>` : ''}
-    </article>`;
-  };
+   Removed rather than left uncalled. A builder nothing draws is a builder that
+   quietly stops agreeing with the one that does, which is exactly the drift
+   THE MAP's list of draw sites exists to prevent.
 
-  /* Starting a thread on a change that has none yet: the design's composer at
-     the foot of the column. It targets the same per-change reply the cards use,
-     so a first message is filed exactly like a reply. */
-  const silent = changes.filter(ch => !(window.negoMergedThread
-    ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []))
-    .filter(m => rlMsgVisible(m, side)).length);
-  /* ONE STARTER PER SILENT CHANGE, which is what the rest of this column
-     already does — a change that HAS a thread carries its own reply box, and
-     there was never a reason a change without one should have to borrow
-     somebody else's.
-
-     It used to be a single composer aimed at silent[0], and "Tag with internal
-     note" existed partly to re-aim it: the button nominated a change
-     (_rlStarterFor) and the column honoured the nomination. That button is
-     gone — a reason for a change belongs on the change now, where the other
-     side can read it — and without this, changes two onward would have had no
-     way to start a thread at all. Removing a shortcut must not remove the
-     thing it was a shortcut TO. */
-  const starterFor = ch => `
-    <div class="rl-starter" data-starter-for="${_ne(ch.id)}">
-      <div class="rl-starter-head">${_ne(ch.id)} · ${_ne(ch.clauseLabel || ch.clauseId || '')}</div>
-      <div class="nego-visswitch" role="group" aria-label="${i18t('ng_who_can_read_this')}">
-        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="true">&#128274; Internal</button>
-        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="false">&#127760; Shared</button>
-      </div>
-      <div class="rl-reply-row">
-        <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="${_nea(i18t('ng_ph_start_thread',{id:ch.id}))}" aria-label="${_nea(i18t('ng_start_thread_aria',{id:ch.id}))}"></textarea>
-        <button data-nego-send="${_ne(ch.id)}" title="${i18t('ng_start_thread')}">&uarr;</button>
-      </div>
-    </div>`;
-  const starter = (canComment && silent.length) ? `
-    ${''/* Named, so the composers read as a section of the column rather than
-           as more threads. Without the heading a reader scrolling past the
-           conversation meets a run of identical empty boxes and cannot tell
-           whether they are looking at threads that failed to load. */}
-    <div class="rl-starter-sep">${i18t('ng_not_discussed',{n:silent.length})}</div>
-    ${silent.map(starterFor).join('')}
-    <p class="rl-starter-note">${i18t('ng_internal_default')}</p>` : '';
-
-  /* ---- THE COMPOSERS BELONG INSIDE THE SCROLLER, NOT UNDER IT ----
-     They used to be a sibling of #rl-threads, and #rl-threads is the flex:1
-     child of this column — so every composer took its height out of the thread
-     list. One thread and seven silent changes measured 24px of list holding a
-     224px thread, with 721px of composers below it: the conversation, which is
-     the only thing on this panel anybody came to read, was a clipped sliver
-     with its own scrollbar, and the panel looked broken because it was.
-
-     Nothing here changes what is drawn. The starters are the same starters,
-     one per silent change; they scroll WITH the threads now instead of
-     evicting them, which is the arrangement the column was always described
-     as having ("the composer at the foot of the column"). */
-  return `${head}
-    <div class="rl-disc-body" id="rl-threads">
-      ${threads.length ? threads.map(card).join('')
-        : `<div class="rl-disc-empty">${i18t('ng_no_one_said')}</div>`}
-      ${starter}
-    </div>`;
-}
+   redlineThreads above survives: it is how the page counts what has been
+   said.
+*/
 /* A timestamp a person can read, falling back to the raw value rather than
    inventing one when the record has no parseable date. */
 /* Adds Show more to any clamped reason that actually overflows its two lines.
@@ -10625,7 +10546,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlCardForgetPins, RL_CARD_PEEK_MS,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlRestoreScroll,
-  redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
+  redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,

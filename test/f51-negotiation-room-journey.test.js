@@ -150,7 +150,9 @@ describe('the link they were sent is the workbench, and there is no room', () =>
     assert.equal(v.win.portalNegoPhase(v.payload).phase, 'negotiate');
     assert.equal(v.$('#nego-room'), null, 'the room is retired — no route opens it');
     assert.ok(v.$('#pt-nego .rl-embed'), 'the workbench embed is the landing');
-    for (const id of ['rl-doc', 'rl-changes-col', 'rl-disc-col'])
+    /* rl-disc-col has left this list with the Discussion column itself
+       (10 Aug 2026); the conversation reads on the change's card. */
+    for (const id of ['rl-doc', 'rl-changes-col'])
       assert.ok(v.$('#pt-nego [id="' + id + '"]'), 'the design\'s column: #' + id);
   });
 
@@ -230,7 +232,9 @@ describe('they work through the changes', () => {
     assert.ok(v.$(`[data-nego-accept="${id}"]`));
     assert.ok(v.$(`[data-nego-reject="${id}"]`));
     // discussion is a COLUMN on this surface, not a per-card toggle
-    assert.ok(v.$('#pt-nego [id="rl-disc-col"]'), 'the thread column is on their screen');
+    /* Was the Discussion column. It is gone from both seats (10 Aug 2026) and
+       the thread reads on the change's own card, which is on their screen. */
+    assert.ok(v.$('#pt-nego .rl-cnotes'), 'the thread is on their screen, on the change');
     await v.press(`[data-nego-accept="${id}"]`);
     assert.ok(v.$(`[data-nego-undo="${id}"]`),
       'held is not sent — every decision is reversible until it leaves the page');
@@ -314,15 +318,20 @@ describe('they work through the changes', () => {
     assert.match(v.toasts(), /Enter your full name/);
   });
 
-  test('and the sidebar\'s mode tabs', async () => {
+  test('and the sidebar has one face, which nothing can take away', async () => {
+    /* This pressed the sidebar's mode tabs and checked the flip landed on THIS
+       mount rather than on some other .redline-page. The tabs are gone with
+       the Discussion column (10 Aug 2026); what still has to hold is that
+       their embed cannot end up showing nothing — an old stored preference
+       used to be able to hide the card column. */
     const { c } = await ownerProposed();
     const v = theirLink(c);
     const root = v.$('#pt-nego .rl-embed');
-    await v.press('#pt-nego [data-rl-mode="disc"]');
-    assert.equal(root.getAttribute('data-rl-side-mode'), 'disc',
-      'switching the sidebar is a workbench control, and must act on this mount');
-    await v.press('#pt-nego [data-rl-mode="changes"]');
-    assert.equal(root.getAttribute('data-rl-side-mode'), 'changes');
+    assert.equal(v.$('#pt-nego [data-rl-mode]'), null, 'no face switcher on their mount');
+    v.win.rlSetSideMode('disc');
+    assert.equal(root.getAttribute('data-rl-side-mode'), 'changes',
+      'the one mode there is, painted onto this mount');
+    assert.ok(v.$('#pt-nego [id="rl-changes-col"]'), 'and the cards are still drawn');
   });
 
   test('Reject All does too, and leaves the deal contested rather than settled', async () => {

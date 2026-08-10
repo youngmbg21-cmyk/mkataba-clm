@@ -421,14 +421,18 @@ describe('f161 · the reviewer’s screen is the job and nothing else', () => {
     const w = world();
     const { c } = await twoOut(w);
     const sales = seat(SALES, c);
-    /* The filter lives on the panes; the playbook button and the view toggle
-       live in the head, which renderRedline builds — asserted in the browser
-       run. Here: the one that is reachable from a renderer. */
+    /* THIS USED TO BE ABOUT THE ORIGIN FILTER — the one round-level control
+       reachable from a renderer rather than from the head. The filter is gone
+       from every seat now (10 Aug 2026), so the reviewer-specific claim it
+       carried has to be made about something they still have: the batch send.
+       A reviewer reaches nobody until they hand back, so their column offers
+       no postbox and says why instead. */
     const panes = sales.win.redlinePanesHtml(c, { side: 'owner' });
-    assert.ok(!/id="rl-card-filter"/.test(panes),
-      'every setting of that control gives the same answer for a reviewer');
-    assert.match(w.win.redlinePanesHtml(c, { side: 'owner' }), /id="rl-card-filter"/,
-      'and the requester keeps it');
+    assert.ok(!/id="nego-send"/.test(panes),
+      'a reviewer publishes nothing while their review is open');
+    assert.ok(!/id="rl-card-filter"/.test(panes), 'and there is no filter on any seat');
+    assert.match(w.win.redlinePanesHtml(c, { side: 'owner' }), /id="nego-send"/,
+      'the requester keeps the send');
   });
 
   test('the discussion narrows to their clauses too', async () => {

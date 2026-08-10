@@ -138,7 +138,11 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
     assert.ok(v.$('#pt-nego .rl-embed'), 'and the workbench mounts in it');
     assert.ok(v.$('#pt-nego [id="rl-doc"]'), 'the document canvas');
     assert.ok(v.$('#pt-nego [id="rl-changes-col"]'), 'the tracked changes column');
-    assert.ok(v.$('#pt-nego [id="rl-disc-col"]'), 'and the discussion column');
+    /* The Discussion column is gone from BOTH seats (10 Aug 2026) — the
+       conversation reads on the change it is about. Parity is the claim here,
+       and parity is kept: their card carries the same notes block ours does. */
+    assert.equal(v.$('#pt-nego [id="rl-disc-col"]'), null, 'no discussion column, on either seat');
+    assert.ok(v.$('#pt-nego .rl-cnotes'), 'and the conversation is on the change instead');
   });
 
   /* REWRITTEN. This asserted a sentence — "this is the same screen they are
@@ -322,11 +326,15 @@ describe('an action by one side shows up on the other', () => {
       { side: 'owner', author: 'Wanjiru Kamau', visibility: 'shared' });
 
     const v = counterpartyView(o.c);
-    const threads = v.$('#pt-nego [id="rl-threads"]');
-    assert.match(threads.textContent, /Would you take Net-45 with a 1% early-settlement discount\?/);
-    assert.match(threads.textContent, new RegExp(`Change ${ch.id}`),
-      'the thread names the change it hangs off');
-    assert.match(v.$('#pt-nego [id="rl-thread-count"]').textContent, /1 thread/);
+    /* The thread is on the change's own card now — the Discussion column that
+       used to hold it is gone from both seats (10 Aug 2026), which is why the
+       card is what gets read here and why it no longer has to NAME the change
+       it hangs off: it is inside it. */
+    const card = v.$(`#pt-nego [data-nego-card="${ch.id}"]`);
+    assert.ok(card, 'their copy carries the change');
+    assert.match(card.textContent, /Would you take Net-45 with a 1% early-settlement discount\?/);
+    assert.match(card.querySelector('.rl-cnotes').textContent, /Notes/,
+      'under the card\'s own notes heading');
   });
 
   test('progress and the resolved count move together on both sides', async () => {
@@ -335,8 +343,17 @@ describe('an action by one side shows up on the other', () => {
     assert.match(v.$('#pt-nego-facts').textContent, /Resolved: 0 of 3/);
     assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /0 of 3 resolved/);
 
-    o.win.document.querySelector('#nego-bulk-acc').click();
-    await tick();
+    /* The owner answers every one of their asks. The bulk verb that used to do
+       it in one press is gone from our column (10 Aug 2026) — deciding the
+       other side's wording is a press per clause now — so this is what a
+       reader does: press each card's Accept, re-reading the column between
+       presses because answering one repaints the rest. */
+    for (let guard = 0; guard < 40; guard++){
+      const btn = o.win.document.querySelector('[data-nego-accept]');
+      if (!btn) break;
+      btn.click();
+      await tick();
+    }
     // the owner's page repainted itself; Erik's repaints from a fresh read of the link
     v = counterpartyView(o.c);
     assert.match(v.$('#pt-nego-facts').textContent, /Resolved: 3 of 3/);
@@ -673,8 +690,17 @@ describe('the durable link keeps showing current state', () => {
     assert.match(p.win.document.getElementById('pt-nego-facts').textContent, /Resolved: 0 of 3/);
 
     // Wanjiru answers everything, then the SAME link is refreshed in place
-    o.win.document.querySelector('#nego-bulk-acc').click();
-    await tick();
+    /* The owner answers every one of their asks. The bulk verb that used to do
+       it in one press is gone from our column (10 Aug 2026) — deciding the
+       other side's wording is a press per clause now — so this is what a
+       reader does: press each card's Accept, re-reading the column between
+       presses because answering one repaints the rest. */
+    for (let guard = 0; guard < 40; guard++){
+      const btn = o.win.document.querySelector('[data-nego-accept]');
+      if (!btn) break;
+      btn.click();
+      await tick();
+    }
     p.open(sharePayloadFor(p, o.c));
     assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 0,
       'the settled cards must not survive the refresh');
