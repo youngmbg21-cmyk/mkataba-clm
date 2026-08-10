@@ -72,12 +72,10 @@ async function page(opts = {}){
     /* Drive the REAL control: set the select and fire its change event, which
        runs the page's own handler and repaint. Re-query after — the render
        replaces the DOM. */
-    pick(v){
-      const sel = doc.getElementById('rl-card-filter');
-      assert.ok(sel, 'the origin filter must be in the Tracked Changes head');
-      sel.value = v;
-      sel.dispatchEvent(new win.Event('change', { bubbles: true }));
-    },
+    /* pick() drove the origin filter. The filter is gone; the helper stays as
+       a tombstone so a test written against it fails with a sentence rather
+       than with "cannot read properties of null". */
+    pick(){ assert.fail('the origin filter was removed on 10 Aug 2026'); },
     cardIds: () => [...doc.querySelectorAll('#rl-changes [data-nego-card]')]
       .map(el => el.getAttribute('data-nego-card')) };
 }
@@ -154,72 +152,39 @@ describe('F93 (1) — every card names the side that asked', () => {
   });
 });
 
-describe('F93 (2) — the origin filter above the card stack', () => {
-  test('the dropdown offers exactly the five views, All Changes first', async () => {
-    const p = await page();
-    const opts = [...p.doc.getElementById('rl-card-filter').options].map(o => o.textContent);
-    assert.deepEqual(opts, ['All Changes', 'Your Asks (Us)', 'Counterparty Asks (Them)',
-      'Drafts (Unsent)', 'Sent Redlines']);
-    assert.equal(p.doc.getElementById('rl-card-filter').value, 'all', 'and All Changes is the default');
-  });
+describe('F93 (2) — the origin filter is gone, and nothing hides a card', () => {
+  /* WHAT THIS BLOCK USED TO PIN. A dropdown at the head of the Tracked Changes
+     column offered five views of the round — all, yours, theirs, drafts, sent
+     — and most of the tests here were about the ways it could lie: an active
+     filter that looked idle, an empty result that read as an empty table, a
+     choice that survived onto another contract.
 
-  test('Your Asks and Counterparty Asks split the table by author side', async () => {
+     It is off the page (10 Aug 2026). The queue beside the document already
+     answers "what is left", the column is a handful of cards rather than a
+     table, and every one of those failure modes was a way of LOSING a change
+     behind a control. So the rule worth keeping is the simple one underneath
+     all of them: what is on the table is what is in the column. */
+  test('the dropdown has gone', async () => {
     const p = await page({ myChange: true });
-    const [theirs, mine] = p.win.negoChanges(p.c).map(x => x.id);
-    assert.equal(p.cardIds().length, 2, 'both on the table under All Changes');
-    p.pick('us');
-    assert.deepEqual(p.cardIds(), [mine], 'Your Asks shows only what your side filed');
-    p.pick('them');
-    assert.deepEqual(p.cardIds(), [theirs], 'Counterparty Asks shows only what they sent');
-    p.pick('all');
-    assert.equal(p.cardIds().length, 2, 'and the way back shows everything again');
+    assert.equal(p.doc.getElementById('rl-card-filter'), null, 'no filter in the head');
+    assert.equal(p.$('.rl-idx-head select'), null, 'and nothing else to slice the round with');
   });
 
-  test('Drafts and Sent read from the same set as the wall', async () => {
+  test('ours and theirs sit in the column together', async () => {
     const p = await page({ myChange: true });
-    const mine = p.win.negoChanges(p.c).find(x => x.authorSide === 'owner');
-    p.pick('drafts');
-    assert.deepEqual(p.cardIds(), [mine.id], 'an ask filed after the last hand-over is a draft');
-    p.pick('sent');
-    assert.deepEqual(p.cardIds(), [], 'nothing has been dispatched yet');
-    /* The turn moves — the same act Publish Round performs — and the very
-       same change crosses from Drafts to Sent Redlines without any flag
-       being set on it. */
-    p.win.negoHandOver(p.c, { to: 'counterparty' });
-    p.win.renderRedline();
-    p.win.rlSetCardFilter('drafts'); p.win.renderRedline();
-    assert.deepEqual(p.cardIds(), [], 'no drafts once the round has gone');
-    p.win.rlSetCardFilter('sent'); p.win.renderRedline();
-    assert.deepEqual(p.cardIds(), [mine.id], 'the dispatched redline is a Sent Redline');
+    assert.ok(p.$('#rl-changes [data-rl-origin="us"]'), 'our own ask has a card');
+    assert.ok(p.$('#rl-changes [data-rl-origin="them"]'), 'and so does theirs');
+    assert.equal(p.cardIds().length, 2,
+      'both, together, with nothing narrowing the column');
   });
 
-  test('an empty result names the filter, never an empty table', async () => {
-    const p = await page();               // theirs only — no asks of ours
-    p.pick('us');
-    const empty = p.$('#rl-changes .rl-cards-empty');
-    assert.ok(empty, 'the column explains itself');
-    assert.match(empty.textContent, /Your Asks \(Us\)/, 'the filter is named');
-    assert.match(empty.textContent, /All Changes/, 'and the way back is named too');
-    assert.ok(!/No changes on the table/.test(empty.textContent),
-      '"no changes" and "no changes you asked for" are different facts');
-  });
-
-  test('an active filter wears the accent; All Changes does not', async () => {
+  test('the count above the cards counts the cards', async () => {
+    /* The pill and the list it labels are the pair the old filter could put
+       out of step — a column showing four under a head reading two. Same
+       reading now, from redlineCardIds, so they cannot disagree. */
     const p = await page({ myChange: true });
-    assert.ok(!p.doc.getElementById('rl-card-filter').classList.contains('on'));
-    p.pick('them');
-    assert.ok(p.doc.getElementById('rl-card-filter').classList.contains('on'),
-      'a filter that looks idle while hiding cards is how a change gets lost');
-    assert.equal(p.doc.getElementById('rl-card-filter').value, 'them',
-      'and the repaint keeps the choice selected');
-  });
-
-  test('negoResetView puts the filter back to All Changes', async () => {
-    const p = await page();
-    p.pick('them');
-    p.win.negoResetView();
-    assert.equal(p.win.rlCardFilter(), 'all',
-      'a filter that survives onto another contract lies about its table');
+    assert.match(p.$('.rl-idx-n').textContent,
+      new RegExp('\\b' + p.cardIds().length + ' on the table'));
   });
 });
 
@@ -293,29 +258,30 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     assert.ok(!tip.includes('Naivas'), 'c.counterparty on that page is the reader themselves');
   });
 
-  test('the origin filter is seat-relative there too', async () => {
-    const p = await page({ myChange: true });
-    p.win.rlSetCardFilter('us');
-    const ids = [...theirSeat(p).querySelectorAll('[data-nego-card]')]
-      .map(el => el.getAttribute('data-rl-origin'));
-    assert.deepEqual(ids, ['us'], '"Your Asks" from their chair means THEIR asks');
-    p.win.rlSetCardFilter('all');
-  });
-
-  test('and the dropdown itself ships in the panes their embed renders', async () => {
+  /* The two tests that stood here were about the origin filter reaching their
+     seat with our words on it. The filter is gone from both seats (see F93
+     (2)), so what is left to pin is the thing it was evidence FOR: their page
+     renders the workbench's own head, not a portal-shaped copy of it. */
+  test('their embed renders the workbench\'s own column head', async () => {
     const p = await page({ myChange: true });
     const box = p.doc.createElement('div');
     box.innerHTML = p.win.redlinePanesHtml(p.c,
       { side: 'counterparty', org: 'Wanjiru Catering Ltd', hiddenIds: [] });
-    assert.ok(box.querySelector('#rl-card-filter'), 'same head, same filter, no portal-shaped copy');
+    const head = box.querySelector('.rl-idx-head');
+    assert.ok(head, 'same head, no portal-shaped copy');
+    assert.match(head.textContent, /Tracked changes/i);
+    assert.match(head.textContent, /on the table/);
+    assert.equal(box.querySelector('#rl-card-filter'), null, 'and no filter on their seat either');
   });
 });
 
-describe('F93 (4) — a filtered card still links to its clause', () => {
-  test('clicking a card the filter kept lights and reaches the clause', async () => {
+describe('F93 (4) — a card and its clause are one thing shown twice', () => {
+  /* This pair used to be run through the origin filter, to prove the link
+     survived a narrowed column. The filter is gone (see F93 (2)); the link is
+     the part that mattered and is tested on the plain column. */
+  test('clicking a card lights and reaches the clause', async () => {
     const p = await page({ myChange: true });
-    p.pick('them');
-    const [id] = p.cardIds();
+    const id = p.$('#rl-changes [data-rl-origin="them"]').getAttribute('data-nego-card');
     const clause = p.$(`#rl-doc [data-nego-card-anchor="${id}"]`);
     let scrolled = null;
     clause.scrollIntoView = o => { scrolled = o; };
@@ -324,10 +290,9 @@ describe('F93 (4) — a filtered card still links to its clause', () => {
     assert.ok(scrolled && scrolled.behavior === 'smooth', 'and is scrolled to, smoothly');
   });
 
-  test('clause → card sync survives the filter when the card is shown', async () => {
+  test('clause → card sync works the other way round too', async () => {
     const p = await page({ myChange: true });
-    p.pick('us');
-    const [id] = p.cardIds();
+    const id = p.$('#rl-changes [data-rl-origin="us"]').getAttribute('data-nego-card');
     const clause = p.$(`#rl-doc [data-nego-card-anchor="${id}"]`);
     const card = p.$(`#rl-changes [data-nego-card="${id}"]`);
     let scrolled = false;

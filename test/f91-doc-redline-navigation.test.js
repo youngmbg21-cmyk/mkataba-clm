@@ -164,8 +164,10 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
     b.win.rlSetFocus(true);
     const view = b.$('#view-redline');
     assert.ok(view.classList.contains('rl-focus'));
-    // the grid and both sidebar faces are still on the page, un-hidden by class
-    for (const id of ['rl-grid', 'rl-doc', 'rl-side', 'rl-changes-col', 'rl-disc-col'])
+    /* the grid and the one sidebar face are still on the page, un-hidden by
+       class. #rl-disc-col has left this list with the Discussion column
+       itself (10 Aug 2026). */
+    for (const id of ['rl-grid', 'rl-doc', 'rl-side', 'rl-changes-col'])
       assert.ok(b.$('#' + id), `#${id} must survive focus mode`);
     b.win.rlSetFocus(false);
   });
@@ -181,12 +183,15 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
   test('the other header controls survive the removal', async () => {
     const b = bench(['MK-1']);
     b.win.openRedlineWorkbench('MK-1');
-    const labels = [...b.$('#view-redline').querySelectorAll('.rl-actions button')]
+    /* The whole strip, not just .rl-actions: the acts lead the row and the
+       view toggle sits at its quiet end, so "what does this page offer" is the
+       two together (10 Aug 2026). */
+    const labels = [...b.$('#view-redline').querySelectorAll('.rl-head button')]
       .map(x => x.textContent.trim()).join(' | ');
     for (const want of ['Internal View', 'Counterparty View', 'Publish Round'])
       assert.ok(labels.includes(want), `${want} must still be there — got ${labels}`);
     assert.ok(!labels.includes('Non-Risk'),
-      'the batch verbs moved to the Tracked Changes column head — no second copy here');
+      'the batch verbs are gone from the page entirely — not moved, removed');
   });
 });
 

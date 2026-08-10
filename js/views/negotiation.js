@@ -5187,26 +5187,25 @@ async function negoConfirmCloseRound(c){
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
 const negoIsRedeciding = id => !!_negoRedeciding[id];
-function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlCardFilter = 'all'; _rlRead = 'marks'; negoSetComparePair('baseline', 'working'); }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlRead = 'marks'; negoSetComparePair('baseline', 'working'); }
 
-/* ---------- WHICH CARDS THE TRACKED CHANGES COLUMN SHOWS ----------
-   A view choice, not a data change: the cards it hides are still on the
-   table, still counted by the wall and the progress line, and come back the
-   moment the filter widens. Seat-relative like everything else on the page —
-   "Your Asks" from the counterparty's chair means THEIR asks — so the same
-   dropdown is honest on the owner's workbench, the Counterparty View preview
-   and the portal alike. Reset with the rest of the view state, because a
-   filter that survives onto another contract shows a column that quietly
-   lies about what is on that contract's table. */
-const RL_CARD_FILTERS = [
-  ['all',    'All Changes'],
-  ['us',     'Your Asks (Us)'],
-  ['them',   'Counterparty Asks (Them)'],
-  ['drafts', 'Drafts (Unsent)'],
-  ['sent',   'Sent Redlines'],
-];
-let _rlCardFilter = 'all';
-function rlCardFilter(){ return _rlCardFilter; }
+/* ---------- THE ORIGIN FILTER HAS GONE ----------
+   A dropdown at the head of the Tracked Changes column sliced the round —
+   yours, theirs, drafts, sent. It is off the page (Young, 10 Aug 2026): the
+   queue beside the document already answers "what is left", the column is a
+   handful of cards rather than a table, and a control that can hide a change
+   is a control that can lose one.
+
+   RL_CARD_FILTERS / rlCardFilter / rlSetCardFilter are kept as no-ops on the
+   module's export surface, because the stack of tests that stand this page up
+   set the filter to "all" before they read it — and a helper that vanishes
+   turns "this test no longer applies" into a crash halfway through a test
+   about something else. Nothing reads them any more: redlineChangeCardsHtml
+   draws the whole table it is given. */
+const RL_CARD_FILTERS = [['all', 'All Changes']];
+function rlCardFilter(){ return 'all'; }
+function rlSetCardFilter(){ return 'all'; }
+
 /* ---- THE REVIEWER'S DOCUMENT OPENS ON THEIR OWN CLAUSE ----
    Asked for as distraction (Young, 09 Aug 2026): a colleague handed one clause
    was reading the whole agreement to find it. So the document folds to the
@@ -5238,11 +5237,6 @@ if (typeof document !== 'undefined' && !document._rlRvDocWired){
     if (window.renderRedline) renderRedline();
   });
 }
-function rlSetCardFilter(v){
-  _rlCardFilter = RL_CARD_FILTERS.some(([k]) => k === v) ? v : 'all';
-  return _rlCardFilter;
-}
-
 /* ---------- HOW THE CONTRACT IS BEING READ ----------
    THREE READINGS OF ONE RECORD, and not one of them changes it. The workbench
    has always drawn the marked-up reading — every live proposal shown as a
@@ -6176,7 +6170,7 @@ function redlineLayoutCss(){
   /* The shared composer look, repeated inside this page's own stylesheet
      because the workbench also mounts as an EMBED on the counterparty portal,
      which does not carry the shell's head. Same declarations as index.html. */
-  .redline-page textarea.chat-field{resize:vertical;overflow-y:auto;max-height:7.5em;line-height:1.5;
+  .redline-page textarea.chat-field{resize:none;overflow-y:auto;max-height:7.5em;line-height:1.5;
     white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;box-sizing:border-box}
   .redline-page .nego-visswitch{display:flex;gap:4px;margin-bottom:6px}
   .redline-page .nego-visswitch button{border:1px solid var(--color-divider);background:var(--color-surface);
@@ -8152,23 +8146,10 @@ function rlWireClauseTools(c, host, opts){
       toast(i18t('ng_clause_gone'), 'err');
   }));
 
-  /* ---- THE ORIGIN FILTER ----
-     A change handler and a repaint, nothing else: the choice lives in
-     _rlCardFilter (module state, like the side toggle), the repaint is the
-     page's own `again`, and redlineChangeCardsHtml reads the choice back on
-     the way through — so the select, the column and the empty state can
-     never show three different answers. */
-  const cardFilter = host.querySelector('#rl-card-filter');
-  if (cardFilter) cardFilter.addEventListener('change', () => {
-    rlSetCardFilter(cardFilter.value);
-    again();
-  });
-
-  /* ---- THE SIDEBAR'S MODE TABS ----
-     An attribute switch, never a repaint: the panels stay mounted, so a
-     half-typed reply and a scroll position both survive the flip. */
-  host.querySelectorAll('[data-rl-mode]').forEach(b => b.addEventListener('click', () =>
-    rlSetSideMode(b.getAttribute('data-rl-mode'))));
+  /* The origin filter and the sidebar's mode tabs were wired here. Both
+     controls are gone — see RL_CARD_FILTERS and rlSideMode — so their
+     handlers went with them rather than staying as listeners for elements
+     nothing draws. */
 
   /* ---- THE SPLIT HANDLE ---- */
   rlWireResizer(host);
@@ -8822,8 +8803,16 @@ function redlineDocHtml(c, opts = {}){
     /* A CLAUSE NOBODY HAS AGREED TO IS NOT IN THE AGREED READING. Under "As
        agreed" a live insertion simply is not there — that is what "the wording
        as it stands" means — and under "With changes" it is there as ordinary
-       text rather than as a marked-up proposal. */
-    const which = rlReadSideOf(ch, readMode);
+       text rather than as a marked-up proposal.
+
+       ONLY WHILE IT IS LIVE. A settled insertion keeps the treatment it has
+       always had, in every reading: an accepted one is drawn, a REFUSED one is
+       struck through rather than dropped, because a gap in a document cannot
+       be told from a clause nobody ever proposed. Reading the reading mode
+       without asking that question first is exactly how a rejected clause
+       vanished off the page — f96 caught it. */
+    const settled = ch.status !== 'pending' || ch.withdrawn;
+    const which = settled ? 'marks' : rlReadSideOf(ch, readMode);
     if (which === 'del') return '';
     if (which === 'ins'){
       const cleanText = String(ch.proposedText || ch.newText || '');
@@ -8868,8 +8857,16 @@ function redlineDocHtml(c, opts = {}){
          contract you can read as a contract; a page that removed the marks and
          kept the highlight would be pointing at wording that no longer says
          anything different. What is on the table is still said, twice over, in
-         the queue and in the cards beside it. */
-      const which = rlReadSideOf(ch, readMode);
+         the queue and in the cards beside it.
+
+         AND ONLY WHILE IT IS LIVE, exactly as for an inserted clause above. A
+         change that has been ACCEPTED or REFUSED keeps its marks and its tag
+         in every reading: those marks are the record of what was decided, and
+         "· ✓ adopted" / "· ✗ refused" is the only place the page says the
+         argument is over. A clean reading is about the questions still open,
+         not about erasing the answers. */
+      const settled = ch.status !== 'pending' || ch.withdrawn;
+      const which = settled ? 'marks' : rlReadSideOf(ch, readMode);
       const marked = which === 'marks';
       const clean = redlineBody(ch);
       if (!marked){
@@ -9531,29 +9528,12 @@ function redlineChangeCardsHtml(c, opts = {}){
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }
-  /* ---- THE ORIGIN FILTER ----
-     Applied AFTER the table is assembled, so it can only narrow what is
-     legitimately on it — never resurrect a hidden draft or a settled change.
-     Drafts and Sent read from the same `unsent` set as the badge, the wall
-     and the batch send, so the four can never disagree about which side of
-     the wall an ask is on. An empty result names the filter rather than
-     claiming an empty table: "no changes" and "no changes YOU asked for" are
-     different facts, and the second must not wear the first one's words. */
-  const filter = rlCardFilter();
-  const mineOf = x => x.authorSide === side;
-  const shown = changes.filter(x =>
-    filter === 'us'     ? mineOf(x)
-    : filter === 'them'   ? !mineOf(x)
-    : filter === 'drafts' ? mineOf(x) && unsent.has(x.id)
-    : filter === 'sent'   ? mineOf(x) && !unsent.has(x.id)
-    : true);
-  if (!shown.length){
-    const label = (RL_CARD_FILTERS.find(([k]) => k === filter) || [,'this filter'])[1];
-    return `<div class="rl-cards-empty">
-      <b>No changes match &ldquo;${_ne(label)}&rdquo;.</b>
-      <span>${i18tn('ng_on_table_other_filters',changes.length,{n:changes.length,all:i18t('ng_all_changes')})}</span>
-    </div>`;
-  }
+  /* THE ORIGIN FILTER USED TO BE APPLIED HERE, narrowing this table to yours,
+     theirs, drafts or sent. It is gone with its dropdown — see RL_CARD_FILTERS
+     — so the column draws the whole table it was given, and the two empty
+     states that told a reader which filter was hiding their change are gone
+     with the filter that made them necessary. */
+  const shown = changes;
   return shown.map(ch => {
     const theirs = ch.authorSide !== side;
     /* ---- DRAFT / SENT, READ FROM THE RECORD ----

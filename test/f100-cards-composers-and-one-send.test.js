@@ -144,18 +144,29 @@ describe('F100b — the card is a handle, not a copy', () => {
     return { w, win, c, $, $$, again: () => win.renderRedline() };
   }
 
-  test('THE FIX: no card carries a copy of the wording', async () => {
+  /* ---- AND THE COPY CAME BACK, CLAMPED ----
+     The wording was taken off the card because the document beside it already
+     showed the change. True, and what was left read as a filing reference: an
+     id, a clause number and four buttons, nothing about the thing being
+     decided. It is back on the design's call (10 Aug 2026) as two clamped
+     lines — a summary you skim down the column, not a place to read a clause.
+     The document is still where the wording is read in its surroundings, and
+     it is still one click away. */
+  test('the card says what is being asked for, in two clamped lines', async () => {
     const p = await page();
     assert.ok(p.$$('#rl-changes .rl-card').length, 'there is a card to look at');
-    assert.equal(p.$('#rl-changes .rl-card-diff'), null);
-    assert.ok(!p.$('#rl-changes .rl-card').textContent.includes('forty-five'),
-      'the proposed wording belongs to the document, and to one place only');
+    const diff = p.$('#rl-changes .rl-card-diff');
+    assert.ok(diff, 'the card carries the delta');
+    assert.ok(diff.textContent.includes('forty-five'), 'and it is the real proposal');
+    const css = p.win.document.getElementById('redline-layout-css').textContent;
+    assert.match(css, /\.rl-card-diff\{[^}]*-webkit-line-clamp:2/,
+      'two lines — a summary, never a second copy of the clause');
   });
 
-  test('the document still carries it, so nothing was lost with the copy', async () => {
+  test('the document still carries it in full', async () => {
     const p = await page();
     assert.ok(p.$$('#rl-doc ins, #rl-doc del').length,
-      'the redline moved out of the card, it did not go');
+      'the clause reads with its marks, in its own surroundings');
   });
 
   test('a draft is open, because it has verbs to press', async () => {
