@@ -236,6 +236,71 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
       'a listener left behind is how a removed feature comes back');
   });
 
+  /* ---- THE SPACE ABOVE THE CONTRACT BELONGS TO THE CONTRACT ----
+     Reported off a screenshot with two full-width bands between the tab row
+     and the agreement: the status strip ("the contract as it stands — a clean
+     read…") and the template's provenance line ("Created from WH v1…").
+     "In documents tab, open this space up for the contract exclusively. Leave
+     the open negotiate to the right of the screen and it should be shaded like
+     the draft new agreement button" (Young, 10 Aug 2026).
+
+     Read from the source, like the rest of this block, because what changed is
+     exactly a line of it. */
+  test('the Document tab draws no strip above the contract', () => {
+    const s = code();
+    /* actionBarHtml returns nothing on this tab. The status is a chip beside
+       the contract's name on every tab, and the sentence described a reading
+       rule the page demonstrates by having no marks on it. */
+    assert.match(s, /if\(_wsTab==='docs'\) return '';/,
+      'the strip says nothing on the tab whose space it was taking');
+    /* And the empty element must not keep the row's height. Both the style AND
+       the attribute the collapse toggle restores from, or unfolding the header
+       puts the empty strip straight back. */
+    assert.match(s, /setAttribute\('data-ws-display',_has\?'flex':'none'\)/,
+      'the hide has to survive applyWsCollapse, which restores from that attribute');
+  });
+
+  test('the provenance line reads in the column, not over the paper', () => {
+    const s = code();
+    const scroll = s.slice(s.indexOf('id="doc-scroll"'), s.indexOf('id="doc-right"'));
+    assert.ok(!/templateProvenanceHtml\(c\)/.test(scroll),
+      'nothing between the tabs and the sheet but the sheet');
+    const rail = s.slice(s.indexOf('id="doc-right"'));
+    assert.match(rail, /templateProvenanceHtml\(c\)/,
+      'where this contract came from is a fact about the contract, and reads with the others');
+  });
+
+  test('the one door off the tab is at the right, and filled', () => {
+    const s = code();
+    /* On the tab row — the right-hand end of it, past the text-size stepper —
+       rather than on a band of its own. */
+    const row = s.slice(s.indexOf('class="room-tabrow"'), s.indexOf('id="ws-actionbar"'));
+    assert.match(row, /id="ws-to-nego"/, 'the door rides on the tab row');
+    assert.ok(row.indexOf('rlTypeStepHtml()') < row.indexOf('id="ws-to-nego"'),
+      'and at the far right of it');
+    /* Shaded like Draft new agreement — which is ui-btn-primary, the head's
+       own solid fill. Read against that button rather than against a colour,
+       so restyling the primary restyles both. */
+    assert.match(row, /id="ws-to-nego" class="ui-btn ui-btn-primary"/);
+    assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-primary/,
+      'the button it is drawn to match');
+    /* Only where there is a negotiation to open. */
+    assert.match(row, /c\.negotiation&&window\.negoChanges&&negoChanges\(c\)\.length/);
+  });
+
+  test('and it is wired with the row it sits on, exactly once', () => {
+    const s = code();
+    /* It used to be wired in wireActionBar, which runs again on every tab
+       change — and the tab row is not redrawn by one, so binding it there
+       would stack a handler per press. */
+    const bar = s.slice(s.indexOf('function wireActionBar'), s.indexOf('function focusKeyTerms'));
+    assert.ok(!/ws-to-nego/.test(bar), 'not on the strip\'s wiring, which re-runs per tab');
+    const tabs = s.slice(s.indexOf('function wireWsTabs'), s.indexOf('function ktReadValue'));
+    assert.match(tabs, /getElementById\('ws-to-nego'\)/, 'on the row\'s own wiring');
+    assert.match(tabs, /roomGoTab\(c,'redline'\)/,
+      'and through the room\'s router, so the landing rules apply however you arrived');
+  });
+
   test('the room has five tabs, built once for both shells', () => {
     /* WO N1 renamed the tab's LABEL from "Redline" to plain English; the
        internal key stays 'redline', so every route and stored state built on

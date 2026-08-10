@@ -279,6 +279,14 @@ WHAT STAYS IN #rl-banner: the wall line. It is not news — on the counterparty'
 
 AND THE THREE READING BUTTONS ARE WIRED BY DELEGATION, on `document`, for the reason js/aichart.js gives: two of them are in the toolbar (painted by renderRedline) and one is on the floating notice (painted into the mount a moment LATER). A listener bound while the page is being built reaches the first two and never the third, so "Back to redlined" was drawn, looked like a button and did nothing.
 
+THE DOCUMENT TAB'S SPACE BELONGS TO THE DOCUMENT (added 2026-08-10). Two full-width bands sat between the tab row and the agreement: the status strip and the template's provenance line. "In documents tab, open this space up for the contract exclusively."
+
+actionBarHtml RETURNS NOTHING ON 'docs'. It still speaks on Key terms, Signing and History, where it is the contract's next step rather than a description of the page. Two things had to move with it: the strip's own height (an empty flex row still costs the column its gap) and — the part that bit — `data-ws-display`, because applyWsCollapse restores every folding row from that attribute, so a style that said none under an attribute that said flex came back on the next unfold, which is the very next line of the render.
+
+The provenance line is a card in the right-hand column now. It is a fact about where the contract came from, not about the wording in front of you.
+
+THE ONE DOOR OFF THE TAB rides at the right of the TAB ROW, past the text-size stepper, drawn ui-btn-primary to match Draft new agreement — and wired in wireWsTabs, not in wireActionBar: that function re-runs on every tab change and the tab row does not, so a handler bound there stacks one per press. Pinned by f91.
+
 A CARD IS SHUT UNTIL SOMEBODY OPENS IT (added 2026-08-10). "The cards you only open when you click on them and you click again and they disappear." A plain toggle, and it replaced three rules that between them decided the state for the reader: a card carrying a verb opened itself, hovering peeked one open, and opening one shut every other. Each was answering a real problem — a round left a column of open cards to close one by one — and each cost more than it saved: a busy round arrived as a wall, the column moved under a passing pointer, and two changes could not be compared.
 
 ONLY THE HEAD TOGGLES. .rl-card-head wraps the id, the origin, the status and the two-line delta; everything below it is a control. That is what makes the old exemption unnecessary — a verb cannot fold the card away because the body is not a toggle at any depth — and it is the one property here worth guarding (f100e's last test, and 14b in redline-verify).

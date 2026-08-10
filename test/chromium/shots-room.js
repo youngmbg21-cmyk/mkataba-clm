@@ -146,6 +146,23 @@ async function shot(page, name, note){
       'a review handed back: bottom-right, over the page, with a way to clear it');
   }
 
+  /* ---- THE DOCUMENT TAB OF A CONTRACT THAT IS ACTUALLY BEING NEGOTIATED ----
+     The shot above is a fresh draft, which has no negotiation and therefore no
+     door to one. This is the state the door is drawn in: at the right of the
+     tab row, filled, with nothing between the tabs and the agreement. */
+  await page.evaluate(id => {
+    const c = window.state.contracts.find(x => x.id === id);
+    if (c) window.roomGoTab(c, 'docs');
+  }, negoId);
+  await pause(1400);
+  await shot(page, '02b-document-of-a-live-negotiation',
+    'nothing between the tabs and the contract, and the one door at the right');
+  await page.evaluate(id => {
+    const c = window.state.contracts.find(x => x.id === id);
+    if (c) window.roomGoTab(c, 'redline');
+  }, negoId);
+  await pause(1600);
+
   /* ---- THE THREE READINGS ----
      The same clauses, drawn as the wording stands today. Photographed because
      it is the one thing on this page that cannot be checked by reading the

@@ -1959,7 +1959,10 @@ function templateProvenanceHtml(c){
   const label=`${(live?live.name:name)||'a template'}${v?` v${v}`:''}`;
   const moved=live && v && liveV>v;
   const esc=x=>String(x||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  return `<div style="max-width:660px;margin:0 auto 10px;display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px">
+  /* A CARD IN THE COLUMN, not a band over the sheet. The 660px width and the
+     auto margins were centring it on the paper it sat above; here it takes the
+     column's width and wears the column's shape. */
+  return `<div style="display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:12px;padding:10px 13px">
     <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('copy','w-3.5 h-3.5')}</span>
     <span>${i18t('ct_created_from')} <b>${esc(label)}</b>.${moved
       ? ` That template has since been revised — it is now <b>v${liveV}</b>. <b>${i18t('ct_keeps_wording')}</b>; editing a template never changes a contract already made from it.`
@@ -2229,21 +2232,23 @@ function actionBarHtml(c){
      stand on Key terms being told to go to Negotiate by a bar describing a tab
      you had left. The button is gone and the strip repaints — see
      applyWsTabs. What is left here is the sentence that says WHY. */
-  /* ---- AND IT COMES BACK, NARROWLY ----
-     "Go to Negotiate →" was taken off this strip because it was a third
-     control claiming to say what happens next, on a bar that did not repaint
-     when the tab changed — so it followed the reader onto Key terms and
-     Signing, describing a tab they had left. The bar repaints now
-     (applyWsTabs), and the design asks for the door back (Young, 10 Aug 2026).
+  const tail='';
+  /* ---- THE DOCUMENT TAB SAYS NOTHING HERE AT ALL ----
+     This strip carried a status chip and a sentence — "the contract as it
+     stands, a clean read, proposed wording lives on the Negotiate tab" — as a
+     full-width band directly above the agreement. Asked for its removal
+     (Young, 10 Aug 2026): "open this space up for the contract exclusively."
 
-     It is drawn ONLY on the Document tab and ONLY where a negotiation is
-     actually running. On a fresh draft the head's own primary is the next act
-     and this would be a second answer to the same question; once wording is
-     being argued about, "the changes are over there" is the one thing this
-     sentence is missing. */
-  const tail=(_wsTab==='docs'&&c.negotiation&&window.negoChanges&&negoChanges(c).length)
-    ? `<button type="button" id="ws-to-nego" class="ui-btn" style="margin-left:auto;font-size:12.5px;padding:6px 13px">${i18t('ct_open_negotiate')}</button>`
-    : '';
+     Nothing is lost. The status is a chip beside the contract's name, two
+     lines up, on every tab. The sentence described the READING RULE, which the
+     page now demonstrates rather than announces: there are no marks on it. And
+     the door it pointed at is a button on the tab row, at the right of the
+     screen, where the reader will find it without a paragraph.
+
+     The other tabs keep the strip. On Key terms, Signing and History it is not
+     a description of the page, it is the contract's next step — which is what
+     this strip is for and why it repaints per tab (see applyWsTabs). */
+  if(_wsTab==='docs') return '';
   if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${i18t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
   if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
   /* On the Document tab the sentence is about READING, because that is what
@@ -2262,12 +2267,10 @@ function renderActionBar(c){
   wireActionBar(c);
 }
 function wireActionBar(c){
-  /* Through the room's own router, like every other tab press, so the landing
-     rules (see wsTabDefaults) apply however you arrived. */
-  document.getElementById('ws-to-nego')?.addEventListener('click',()=>{
-    if(window.roomGoTab) roomGoTab(c,'redline');
-    else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
-  });
+  /* ws-to-nego is NOT wired here. It moved onto the tab row (see
+     roomTabsHtml's row in renderWorkspace) and is wired with it — this
+     function runs again on every tab change, and the tab row is not redrawn
+     by one, so binding it here would stack a handler per tab press. */
   document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
   document.getElementById('ws-next-action')?.addEventListener('click',e=>{
     const kind=e.currentTarget.getAttribute('data-na');
@@ -2496,6 +2499,23 @@ function applyWsTabs(c){
      happened to be current at render time kept describing the room for as long
      as you stayed on the page. */
   if(typeof renderActionBar==='function') renderActionBar(c);
+  /* AN EMPTY STRIP TAKES NO ROOM. The Document tab draws nothing here now, and
+     an empty flex box still costs the column its own height and the 12px gap
+     above it — which is the very space this was asked to give back to the
+     contract.
+
+     THE ATTRIBUTE MOVES WITH THE STYLE, or the hide does not survive. The
+     collapse toggle restores every folding row to `data-ws-display` (see
+     applyWsCollapse), which it reads as the row's OWN display — so leaving
+     that saying "flex" while the style said "none" put the empty strip back
+     the moment the header was unfolded, which is on the very next line of the
+     render. */
+  const _bar=document.getElementById('ws-actionbar');
+  if(_bar){
+    const _has=!!_bar.innerHTML.trim();
+    _bar.setAttribute('data-ws-display',_has?'flex':'none');
+    _bar.style.display=_has?'flex':'none';
+  }
   /* ---- REDLINE IS A DOOR, NOT A PANE ----
      The redline needs the whole window — the document entire, with the changes
      and the discussion beside it — and the right-hand panel here is a third of
@@ -2544,6 +2564,16 @@ function roomGoTab(c,k){
 function wireWsTabs(c){
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>
     roomGoTab(c,b.getAttribute('data-ws-tab'))));
+  /* The one door off the Document tab rides on this row now, so it is wired
+     with the row. It went through the ACTION BAR's wiring while it lived on
+     that band — and that wiring runs again on every tab change, which would
+     have stacked a second handler onto a button the tab change does not
+     redraw. Through the room's own router, like every other tab press, so the
+     landing rules (wsTabDefaults) apply however you arrived. */
+  document.getElementById('ws-to-nego')?.addEventListener('click',()=>{
+    if(window.roomGoTab) roomGoTab(c,'redline');
+    else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+  });
   applyWsTabs(c);
 }
 /* ============ KEY TERMS ============
@@ -4028,11 +4058,22 @@ function renderWorkspace(){
     <div class="room-tabrow" style="display:flex;align-items:center;gap:14px;flex:none;border-bottom:1px solid var(--color-divider)">
       ${roomTabsHtml(c,_wsTab)}
       <span style="flex:1"></span>
-      ${''/* Only the text-size stepper rides here. Focus mode moved into the
-             "⋯" with the rest of the give-the-document-more-room verbs, so
-             this row is the tabs and one quiet control rather than the tabs
-             and a second toolbar. */}
+      ${''/* The text-size stepper, and — at the far right — the one door off
+             this tab. The band that used to carry that door is gone (see
+             actionBarHtml), so it rides here, where a reader looking for
+             somewhere to go already looks.
+
+             FILLED, LIKE DRAFT NEW AGREEMENT, on the owner's call (Young,
+             10 Aug 2026). It is a real act rather than a way of looking, and
+             on this head an act is drawn solid.
+
+             Only where a negotiation is actually running: on a fresh draft the
+             head's own primary is the next thing to do, and a second answer to
+             that question beside it is noise. */}
       ${(_wsTab==='docs'&&window.rlTypeStepHtml)?rlTypeStepHtml():''}
+      ${(_wsTab==='docs'&&c.negotiation&&window.negoChanges&&negoChanges(c).length)
+        ? `<button type="button" id="ws-to-nego" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:7px 14px">${i18t('ct_open_negotiate')}</button>`
+        : ''}
     </div>
 
     <!-- The quiet line under the tabs: where this contract stands, what it
@@ -4070,7 +4111,14 @@ function renderWorkspace(){
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>${i18t('ct_received_read_below')}</span></div>`
             :''}
-          ${templateProvenanceHtml(c)}
+          ${''/* THE PROVENANCE LINE HAS LEFT THE SPACE ABOVE THE PAPER. It read
+                 "Created from WH v1 — editing the template later does not
+                 change this contract", as a second full-width band between the
+                 tabs and the agreement. It is a fact about where this contract
+                 CAME FROM, not about the wording in front of you, so it reads
+                 with the contract's other facts in the right-hand column
+                 (Young, 10 Aug 2026: "open this space up for the contract
+                 exclusively"). Same builder, same words, one column across. */}
           <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px 40px 44px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:14px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
             ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docFillable(c)?docBodyStructured(c):readOnlyDocHtml(docBodyStructured(c))}</article>
@@ -4112,6 +4160,11 @@ function renderWorkspace(){
                so: see checksRowsHtml, which counts the unfilled fields. -->
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          ${''/* Where this contract came from. Quiet, because it is a thing you
+                 check once — and it says the one thing that is easy to get
+                 wrong, which is that a template revised later does not revise
+                 the contracts already made from it. */}
+          ${templateProvenanceHtml(c)}
           <section id="checks-card" style="${CARD};padding:13px 15px">
             <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_checks')}</h6>
             <p data-checks-note style="font-size:11.5px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">${checksNoteHtml(c)}</p>
