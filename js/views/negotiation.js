@@ -5721,6 +5721,25 @@ function redlineLayoutCss(){
   .redline-page .rl-notices .dk-notice{flex-wrap:wrap}
   .redline-page .rl-notices .dk-notice .dk-notice-txt{flex:1 1 100%;min-width:0}
   .redline-page .rl-notices .rv-banner [data-rv-act]{white-space:nowrap}
+  /* ---- THE BELL AND THE HIDE CHIP ----
+     The alerts fold to one small button (see rlFloatingNoticesHtml). Amber,
+     because that is this product's "something is waiting" colour, with a dot
+     riding the rim so a glance says there is news behind it. The Hide chip is
+     quiet — minimising is housekeeping, not an act. Both hug the corner
+     (flex-end) rather than stretching to the stack's width. */
+  .redline-page .rl-notices-fab{pointer-events:auto;align-self:flex-end;position:relative;
+    width:42px;height:42px;border-radius:999px;border:1px solid var(--st-amber-line);
+    background:var(--st-amber-bg);color:var(--st-amber-fg);cursor:pointer;font-size:17px;line-height:1;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
+  .redline-page .rl-notices-fab:hover{filter:brightness(.97)}
+  .redline-page .rl-fab-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;
+    border-radius:999px;background:var(--st-amber-dot);border:2px solid var(--color-surface)}
+  .redline-page .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--color-divider);
+    background:var(--color-surface);border-radius:999px;padding:5px 11px;font:inherit;font-size:11px;
+    font-weight:600;color:var(--color-neutral-600);cursor:pointer;
+    box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
+  .redline-page .rl-notices-min:hover{color:var(--color-text);border-color:var(--color-neutral-400)}
   /* Focus mode is the document and nothing else, and a floating card over it
      is the "nothing else". */
   .redline-page.rl-focus .rl-notices{display:none}
@@ -9513,15 +9532,72 @@ function rlOneNoticeHtml(c, opts = {}){
    ONE STACK, BUILT HERE rather than in renderRedline, so the counterparty's
    embed and the room get it too. Nothing in it is drawn twice: the page's own
    copy was removed when this arrived. */
+/* ---- AND THE ALERTS ARRIVE FOLDED, BEHIND A BELL ----
+   The next complaint in the same series (Young, 10 Aug 2026): "these alerts
+   should be in a small icon on the bottom right so you can summon them or
+   minimize them. They should not be sitting there visible constantly." A card
+   that floats clear of the sheet still sits on the screen for the whole
+   sitting, and a review that came back days ago does not need to.
+
+   So the review's and the desk's notices fold to one small bell, bottom-right.
+   Pressing the bell opens them; a Hide chip folds them again; the per-notice ✕
+   (the review's and the desk's own clears) still remove one for the sitting.
+   The fold is per contract, in memory, never persisted — same rules as the
+   clears, and for the same reason.
+
+   THE READING NOTICE IS NOT AN ALERT AND DOES NOT FOLD. "As agreed" quietly
+   hiding the document's strikes is the most expensive thing this page could
+   get wrong (see rlReadNoticeHtml — f84 pins it), it only exists because the
+   reader pressed a reading button seconds ago, and it vanishes the moment they
+   press back. It stays drawn whenever a non-default reading is on. */
+const _rlNoticeFold = new Map();
+function rlNoticesFolded(c){
+  const k = String((c && c.id) || '');
+  return _rlNoticeFold.has(k) ? !!_rlNoticeFold.get(k) : true;   // folded until summoned
+}
+function rlSetNoticesFolded(cOrId, v){
+  const k = (cOrId && typeof cOrId === 'object') ? String(cOrId.id || '') : String(cOrId || '');
+  _rlNoticeFold.set(k, !!v);
+}
+/* Wired ONCE, by delegation on the document — the same pattern (and reason) as
+   the reading buttons above: the stack is painted into the mount after the
+   page wires itself, and repainted by several paths, so an element-bound
+   listener is dropped by the first of them. */
+if (typeof document !== 'undefined' && !document._rlNoticeFoldWired){
+  document._rlNoticeFoldWired = true;
+  document.addEventListener('click', ev => {
+    const t = ev.target;
+    const open = t && t.closest && t.closest('[data-rl-notices-open]');
+    const shut = !open && t && t.closest && t.closest('[data-rl-notices-min]');
+    if (!open && !shut) return;
+    ev.preventDefault();
+    rlSetNoticesFolded(open ? open.getAttribute('data-rl-notices-open')
+      : shut.getAttribute('data-rl-notices-min'), !open);
+    /* Whichever surface is mounted — the same two doors the reading buttons
+       repaint through. */
+    if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
+    else if (window.renderNegotiationTab && window.getContract && window.state)
+      renderNegotiationTab(getContract(state.activeId) || null, {});
+  });
+}
 function rlFloatingNoticesHtml(c, opts = {}){
-  const rows = [
-    (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''),
-    rlReadNoticeHtml(),
-  ].filter(Boolean);
+  const alerts = (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : '') || '';
+  const note = rlReadNoticeHtml() || '';
   /* Empty means empty: an always-present container would sit over the bottom
-     corner of the contract catching clicks meant for the document. */
-  if (!rows.length) return '';
-  return `<div class="rl-notices" id="rl-notices">${rows.join('')}</div>`;
+     corner of the contract catching clicks meant for the document. No alerts
+     means NO BELL either — a bell with nothing behind it is furniture. */
+  if (!alerts && !note) return '';
+  const cid = _nea(String((c && c.id) || ''));
+  let stack;
+  if (!alerts) stack = note;
+  else if (rlNoticesFolded(c))
+    stack = note + `<button type="button" class="rl-notices-fab" data-rl-notices-open="${cid}"
+      aria-label="${_nea(i18t('ng_notices_fab'))}" title="${_nea(i18t('ng_notices_fab'))}">&#128276;<span class="rl-fab-dot"></span></button>`;
+  else
+    stack = `<button type="button" class="rl-notices-min" data-rl-notices-min="${cid}"
+      aria-label="${_nea(i18t('ng_notices_min_title'))}" title="${_nea(i18t('ng_notices_min_title'))}">${i18t('ng_notices_min')} &#9662;</button>`
+      + alerts + note;
+  return `<div class="rl-notices" id="rl-notices">${stack}</div>`;
 }
 /* ---- TWO REASONS THIS PERSON CANNOT REACH THE OTHER SIDE, ONE ANSWER ----
    A reviewer mid-review, and somebody who is not the lead of this negotiation.
@@ -10690,7 +10766,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
-  redlineCardIds, rlOneNoticeHtml, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
+  redlineCardIds, rlOneNoticeHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
+  rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, rlCardOpenState,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
