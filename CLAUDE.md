@@ -287,6 +287,14 @@ The provenance line is a card in the right-hand column now. It is a fact about w
 
 THE ONE DOOR OFF THE TAB rides at the right of the TAB ROW, past the text-size stepper, drawn ui-btn-primary to match Draft new agreement — and wired in wireWsTabs, not in wireActionBar: that function re-runs on every tab change and the tab row does not, so a handler bound there stacks one per press. Pinned by f91.
 
+AND THE NEGOTIATE TAB DID THE SAME THING (added 2026-08-10). "I want to do something similar with the negotiation tab. Move the buttons to the top right as highlighted." The tab row's right-hand half stood empty above a strip carrying every control, so the two share one line and the contract gets that whole band of height back.
+
+.rl-head IS NOW A GROUP INSIDE .rl-tabrow, after a .rl-tabrow-gap spacer that pushes it right — its own element rather than a margin, so the markup still reads left to right. It KEPT ITS CLASS NAME on purpose: half the suite reaches these controls through `.rl-head button`. What it lost is room-quiet, which is a BAND's clothes, and on a row it would be the second frame f89 has always been about.
+
+IT DROPS BACK TO A LINE OF ITS OWN BELOW 1700px. Five tabs and six controls need about 1670px of window between them — measured on the painted row, rounded up because Swedish runs longer than English. A row that merely overflowed would clip Publish Round off the right edge, and Publish Round is the far-right control by design, in the same place Open Negotiate sits on the Document tab.
+
+THE RULE UNDER THE TABS MOVES WITH IT. .room-tabrow carries the row's bottom border and the tabs pull their own underline down onto it, so a wrapped row draws that border under the CONTROLS and strands the active tab's underline in mid-air. The spacer is already a full-width, zero-height element sitting exactly between the two lines, so it carries the rule when the row wraps. f89 pins the position, the far-right primary and both halves of the wrap.
+
 A CARD IS SHUT UNTIL SOMEBODY OPENS IT (added 2026-08-10). "The cards you only open when you click on them and you click again and they disappear." A plain toggle, and it replaced three rules that between them decided the state for the reader: a card carrying a verb opened itself, hovering peeked one open, and opening one shut every other. Each was answering a real problem — a round left a column of open cards to close one by one — and each cost more than it saved: a busy round arrived as a wall, the column moved under a passing pointer, and two changes could not be compared.
 
 ONLY THE HEAD TOGGLES. .rl-card-head wraps the id, the origin, the status and the two-line delta; everything below it is a control. That is what makes the old exemption unnecessary — a verb cannot fold the card away because the body is not a toggle at any depth — and it is the one property here worth guarding (f100e's last test, and 14b in redline-verify).

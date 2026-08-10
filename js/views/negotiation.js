@@ -5493,8 +5493,38 @@ function redlineLayoutCss(){
      without one, with two round verbs and with none. Nothing left in it can
      wrap — the chip is capped and ellipsised, the rest are single-line
      buttons — so nowrap costs no content. */
-  .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:8px 12px;
-    margin:0 2px;flex:none;min-height:38px}
+  /* ---- THE HEAD IS PART OF THE TAB ROW NOW ----
+     It was a band of its own directly under the tabs, with the tab row's
+     right-hand half standing empty above it. Both jobs share one line
+     (Young, 10 Aug 2026), which gives the contract a whole band of height
+     back. No margin and no minimum height: the tabs set the row's height and
+     the controls sit centred in it. */
+  .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;
+    flex:none;align-self:center;padding-bottom:2px}
+  /* The gap that pushes them right. Its own element rather than margin-left on
+     the head, so the row still reads left-to-right in the markup. */
+  .redline-page .rl-tabrow-gap{flex:1;min-width:8px}
+  /* ---- AND IT DROPS TO A LINE OF ITS OWN WHEN IT HAS TO ----
+     Five tabs and six controls need about 1670px of window between them —
+     measured on the painted row, not guessed, and rounded up because the
+     labels are translated and Swedish runs longer than English. Above that they share a line, which is what was
+     asked for and what a full-size window gives. Below it they cannot, and a
+     row that merely overflows would clip Publish Round off the right edge, so
+     the head goes back to being a strip: the honest shape, and exactly where
+     it used to live.
+
+     THE RULE UNDER THE TABS MOVES WITH IT. .room-tabrow carries the row's
+     bottom border and the tabs pull their own underline down onto it — so once
+     the head wraps to a second line, the row's border is under the CONTROLS
+     and the active tab's underline is stranded in mid-air above them. The gap
+     is already a full-width, zero-height element sitting exactly between the
+     two lines, which makes it the honest place for that rule. */
+  @media (max-width:1700px){
+    .redline-page .rl-tabrow{flex-wrap:wrap;border-bottom:0}
+    .redline-page .rl-tabrow-gap{flex-basis:100%;min-width:0;height:0;
+      border-bottom:1px solid var(--color-divider)}
+    .redline-page .rl-head{flex-wrap:wrap;padding:9px 2px 2px;align-self:stretch;width:100%}
+  }
   /* The middle pane's head went with the head (see redlinePanesHtml). */
   .redline-page .rl-head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}
   /* WRAPS: this strip now carries tabs, round, stepper, focus, the contract
@@ -5515,7 +5545,7 @@ function redlineLayoutCss(){
      index.html, because the contract page draws the same row — all this line
      does is give it the same 2px side padding the strip below it has, so the
      first tab and the first verb start on the same vertical. */
-  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:center;gap:10px}
+  .redline-page .rl-tabrow{margin:0 2px 2px;flex:none;align-items:stretch;gap:10px}
   .redline-page .rl-tabrow #rl-contract-jump{align-self:center;max-width:260px}
   /* The tab group is the only thing in this row that stretches; the round tag
      rides at its centre rather than being pulled to the row's full height. */
@@ -6904,118 +6934,101 @@ function renderRedline(){
              one, and the round is a fact about the contract, so it reads with
              the other facts under the title — see roomHeadHtml's room-sub,
              which both this page and the contract page draw from. */}
+      ${''/* ---- THE CONTROLS RIDE ON THE TAB ROW ----
+             They had a strip of their own directly under it — a full-width
+             band between the tabs and the contract, with the tab row's own
+             right-hand half standing empty above it. Reported off exactly that
+             screenshot (Young, 10 Aug 2026: "move the buttons to the top right
+             as highlighted"), and it is the same complaint the Document tab
+             answered a moment earlier: the space above the agreement belongs to
+             the agreement.
+
+             So the row does both jobs. Tabs on the left, a gap, then what this
+             page can do — and the page gets a whole band of height back.
+
+             THE ORDER IS THE DOCUMENT TAB'S ORDER. Ways of LOOKING first (how
+             the contract reads, whose seat you are looking from), then the one
+             act, filled, at the far right — where Open Negotiate sits on the
+             other tab. A reader moving between the two finds the button in the
+             same place.
+
+             .rl-head keeps its name: it is still the head's controls, and half
+             the test suite reaches for them through it. What it does not keep
+             is room-quiet — that is a BAND's clothes, and this is not a band. */}
       <div class="room-tabrow rl-tabrow">
         ${(window.roomTabsHtml?roomTabsHtml(c,'redline'):'')}
-      </div>
-      ${''/* ---- ONE QUIET LINE, WHERE THERE WERE THREE ROWS ----
-             This page opened on a toolbar (stepper, focus, contract jump,
-             playbook pass, view toggle, Publish Round), then a wall banner,
-             then the counterparty-email prompt: three bands of chrome above a
-             negotiation. The send moved up beside the contract's name, where
-             the primary act belongs. What is left is one line saying where the
-             round stands and offering the one pass a reader starts from. */}
-      ${''/* ---- THE ROUND SENTENCE IS GONE, AND THE ROW HAS A FIXED HEIGHT ----
-             It read "Round 1 · 2 waiting on you, 1 waiting on Siginon. Nothing
-             new travels until you press Publish Round." — a paragraph in a
-             toolbar. It wrapped to two lines when the counts grew or the
-             window narrowed and to one when they shrank, so the strip changed
-             height as the negotiation moved and the panes below it jumped.
-             Nothing in it was unique: the round is a chip on the tab row, the
-             counts are the two pills on the sidebar, and Publish Round is a
-             foot from here saying what it does.
-             The presence chip takes the space instead — it is the one thing on
-             this row that is genuinely news, it cannot wrap (nowrap, capped,
-             ellipsis), and it disappears when nobody is there. */}
-      <section class="rl-head room-quiet">
-        <span id="rl-presence" class="rl-presence" hidden></span>
-        ${''/* ---- THE ACTS LEAD THE ROW; THE SET-ONCE CONTROLS DO NOT ----
-               The type-size stepper and the focus toggle held the first two
-               positions on this strip — the place the eye lands — and neither
-               is something anybody presses twice. They are set once and then
-               left alone for the life of the contract, so they now sit at the
-               quiet end of the row beside the view toggle, and the row opens
-               with the two verbs you actually press while reading.
-               Nothing has left the page: same controls, same ids, same
-               handlers, moved along the same strip. */}
-        <div class="rl-head-id">
-          ${''/* Not in Counterparty View: the playbook pass can FILE proposals,
-                 and that view is a window, not a chair (see the mount below).
-                 The counterparty never sees the playbook either way. */}
-          ${''/* AND NOT THE REVIEWER'S EITHER. The playbook pass runs across the
-                 WHOLE contract, writes its verdicts onto the record and files an
-                 audit line — an authoring act on the round, by somebody who was
-                 asked to look at one clause. Reported as distraction (Young,
-                 09 Aug 2026); it is more than that. */}
-          ${side !== 'counterparty' && !_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
-            title="${i18t('ng_review_every_clause')}">${i18t('ng_review_vs_playbook')}</button>` : ''}
-          ${''/* THE WAY IN, ALWAYS PRESENT. The review banner offers a request
-                 too, but only once there is something to say — and a person who
-                 wants a second pair of eyes before anyone has told them to needs
-                 a door that is there on an ordinary day. Its word follows the
-                 state, because the reviewer and the requester press the same
-                 place for opposite acts: one asks, the other hands it back. */}
-          ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the moment
-                 anything went out — a button that had stopped being a button,
-                 on the one control you need again the second you spot something
-                 else worth escalating. Who is holding what belongs on the cards,
-                 where the changes are; the toolbar's job is to open the door.
-                 Reported from the field (Young, 09 Aug 2026). */}
-          ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
-            const st = reviewState(c);
-            const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
-            return `<button type="button" data-rl-review class="rl-pb-btn"
-              data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100; ${_ne(label)}</button>`;
-          })() : ''}
-          ${''/* THE SEND STAYS ON THIS PAGE rather than moving into the shared
-                 head. The head is built by js/views/contract.js and a workbench
-                 rendered without that file — which some test stages do — would
-                 lose its Publish Round entirely. A page's own primary act must
-                 not depend on another page's module being present.
+        <span class="rl-tabrow-gap"></span>
+        <section class="rl-head">
+          <span id="rl-presence" class="rl-presence" hidden></span>
+          <div class="rl-head-id">
+            ${''/* Not in Counterparty View: the playbook pass can FILE
+                   proposals, and that view is a window, not a chair (see the
+                   mount below). The counterparty never sees the playbook either
+                   way. AND NOT THE REVIEWER'S EITHER: it runs across the WHOLE
+                   contract, writes its verdicts onto the record and files an
+                   audit line — an authoring act on the round, by somebody who
+                   was asked to look at one clause. */}
+            ${side !== 'counterparty' && !_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
+              title="${i18t('ng_review_every_clause')}">${i18t('ng_review_vs_playbook')}</button>` : ''}
+            ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the
+                   moment anything went out — a button that had stopped being a
+                   button, on the one control you need again the second you spot
+                   something else worth escalating. Who is holding what belongs
+                   on the cards, where the changes are; this row's job is to open
+                   the door. Its word follows the state, because the reviewer and
+                   the requester press the same place for opposite acts. */}
+            ${side !== 'counterparty' && (typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
+              const st = reviewState(c);
+              const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
+              return `<button type="button" data-rl-review class="rl-pb-btn"
+                data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100; ${_ne(label)}</button>`;
+            })() : ''}
+            ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
+                   Not a filter and not a mode the record knows about: the same
+                   clauses, drawn three ways. See rlReadMode for what each one
+                   means and why only LIVE proposals are affected. */}
+            <div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
+              title="${_nea(i18t('ng_read_group'))}">${
+              readSeg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}${
+              readSeg('agreed', i18t('ng_read_agreed'), i18t('ng_read_agreed_title'))}${
+              readSeg('proposed', i18t('ng_read_proposed'), i18t('ng_read_proposed_title'))}</div>
+            ${''/* ---- THE WAY INTO THE WORK ----
+                   A count of what is waiting on THIS reader, and a press that
+                   goes to the first of them. The number is the same set the
+                   queue calls "now" and the cards badge "awaiting you", so the
+                   three cannot disagree. Drawn only when it is not zero: a
+                   button reading "0 need you" has nothing to do. */}
+            ${needsYou.length ? `<button type="button" data-rl-needsyou="${_nea(needsYou[0])}" class="rl-needs"
+              title="${_nea(i18t('ng_needs_you_title'))}"><span class="rl-needs-dot"></span>${
+              i18tn('ng_needs_you', needsYou.length, { n: needsYou.length })}<span class="rl-needs-go">&rarr;</span></button>` : ''}
+          </div>
+          <div class="rl-actions">
+            ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about
+                   the round, and the round is not the reviewer's job. It also
+                   mounts a whole second surface for somebody whose task is one
+                   clause. */}
+            ${_rvPosture ? '' : `<div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
+            ${''/* ---- AND THE ONE ACT, AT THE FAR RIGHT ----
+                   Where Open Negotiate sits on the Document tab, drawn the same
+                   way: filled, because it is what this page is for.
 
-                 IT IS ALSO THE ONLY BATCH SEND LEFT. The Tracked Changes column
-                 used to draw its own copy beside the cards (the .rl-sendslot
-                 postbox) and this one proxied onto it; the column's copy is
-                 gone on the design's call (Young, 10 Aug 2026) and the engine's
-                 #nego-send survives, hidden, as the control this presses. */}
-          ${side === 'counterparty' || _rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-            ${_ne(sendLabel)}</button>`}
-          ${side === 'counterparty' ? '' : closer}
-          ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
-                 Not a filter and not a mode the record knows about: the same
-                 clauses, drawn three ways. See rlReadMode for what each one
-                 means and why only LIVE proposals are affected. */}
-          <div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
-            title="${_nea(i18t('ng_read_group'))}">${
-            readSeg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}${
-            readSeg('agreed', i18t('ng_read_agreed'), i18t('ng_read_agreed_title'))}${
-            readSeg('proposed', i18t('ng_read_proposed'), i18t('ng_read_proposed_title'))}</div>
-          ${''/* ---- THE WAY INTO THE WORK ----
-                 A count of what is waiting on THIS reader, and a press that goes
-                 to the first of them. The number is the same set the queue calls
-                 "now" and the cards draw as awaiting-you, so the three cannot
-                 disagree. Drawn only when it is not zero: a button reading
-                 "0 need you" is a button that has nothing to do. */}
-          ${needsYou.length ? `<button type="button" data-rl-needsyou="${_nea(needsYou[0])}" class="rl-needs"
-            title="${_nea(i18t('ng_needs_you_title'))}"><span class="rl-needs-dot"></span>${
-            i18tn('ng_needs_you', needsYou.length, { n: needsYou.length })}<span class="rl-needs-go">&rarr;</span></button>` : ''}
-        </div>
-        ${''/* The quiet end of the row: a way of LOOKING, which should never sit
-               in front of the acts. The type stepper and the focus button used
-               to ride here too — the stepper is on the Document tab, where the
-               design puts it, and focus mode is in the head's "⋯" menu with the
-               rest of the give-the-document-more-room verbs. */}
-        <div class="rl-actions">
-          ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about the
-                 round, and the round is not the reviewer's job. It also mounts a
-                 whole second surface for somebody whose task is one clause. */}
-          ${_rvPosture ? '' : `<div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
-        </div>
-      </section>
-      ${''/* The notices are built by redlinePanesHtml, not here: they float
-             over whichever mount is on screen, and the counterparty's embed and
-             the room need them as much as this page does. A second copy here
-             would draw the reading note twice. */}
+                   THE SEND STAYS ON THIS PAGE rather than moving into the shared
+                   head. The head is built by js/views/contract.js and a
+                   workbench rendered without that file — which some test stages
+                   do — would lose its Publish Round entirely. A page's own
+                   primary act must not depend on another page's module.
+
+                   IT IS ALSO THE ONLY BATCH SEND LEFT. The Tracked Changes
+                   column used to draw its own copy beside the cards and this one
+                   proxied onto it; the column's copy is gone and the engine's
+                   #nego-send survives, hidden, as the control this presses. */}
+            ${side === 'counterparty' || _rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+              ${_ne(sendLabel)}</button>`}
+            ${side === 'counterparty' ? '' : closer}
+          </div>
+        </section>
+      </div>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
       ${''/* The way out of focus mode. Always in the DOM, shown only by the
              .rl-focus rule, because the button that turned focus ON is inside

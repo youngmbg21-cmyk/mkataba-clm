@@ -81,24 +81,43 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await pause(250);
   await page.screenshot({ path: path.join(OUT, '01-workbench.png'), fullPage: false });
 
-  /* ---- 1. the header is a band ---- */
+  /* ---- 1. the head rides on the tab row ---- */
   const head = await page.evaluate(() => {
-    const s = getComputedStyle(document.querySelector('#view-redline .rl-head'));
     const el = document.querySelector('#view-redline .rl-head');
-    return { border: s.borderTopWidth, shadow: s.boxShadow, radius: s.borderTopLeftRadius,
-      bg: s.backgroundColor, isQuiet: el.classList.contains('room-quiet'),
-      hasShell: !!document.querySelector('#view-redline .rl-shell') };
+    const s = getComputedStyle(el);
+    const row = document.querySelector('#view-redline .rl-tabrow');
+    const acts = el.querySelector('.rl-actions');
+    const last = acts && acts.lastElementChild;
+    const rr = row.getBoundingClientRect(), hr = el.getBoundingClientRect();
+    return { border: s.borderTopWidth, shadow: s.boxShadow, bg: s.backgroundColor,
+      isQuiet: el.classList.contains('room-quiet'),
+      hasShell: !!document.querySelector('#view-redline .rl-shell'),
+      inRow: el.parentElement === row,
+      lastInRow: row.lastElementChild === el,
+      lastAct: last ? (last.matches('[data-redline-proxy]') ? 'publish' : last.className) : 'none',
+      /* wrapped or not, nothing may hang off the right edge of the row */
+      clipped: Math.round(hr.right) > Math.round(rr.right) + 1,
+      wrapped: Math.round(hr.top) >= Math.round(rr.top) + 10 };
   });
-  /* ONE FRAME, WHICH IS WHAT THIS ALWAYS MEANT. The strip was frameless
-     because a TITLE CARD sat above it and a second border read as a box inside
-     a box. That card is gone — the head is a plain title block now — so the
-     strip is the shared quiet bar the contract page also uses: one hairline,
-     one surface, no shadow. The failure being guarded against is a card inside
-     a card, and there is no card above it any more. */
-  check('1 header carries one hairline, not a card', head.border === '1px', head.border);
-  check('1 header has no card shadow', head.shadow === 'none', head.shadow);
-  check('1 header is the shared quiet bar, and the title card is gone',
-    head.isQuiet && !head.hasShell, `${head.bg} shell=${head.hasShell}`);
+  /* NO FRAME AT ALL, WHICH IS WHERE "one frame, not two" ENDED UP. The strip
+     was frameless because a TITLE CARD sat above it; the card went, so it
+     became the shared quiet bar. Now it is not a band either — the tab row's
+     right-hand half stood empty above it, so the controls moved onto that row
+     (Young, 10 Aug 2026) and the contract got the band of height back. A band's
+     clothes here would be exactly the second frame this check has always been
+     about. */
+  check('1 head draws no frame of its own', head.border === '0px' && !head.isQuiet,
+    `${head.border} quiet=${head.isQuiet}`);
+  check('1 head has no card shadow', head.shadow === 'none', head.shadow);
+  check('1 head sits at the right of the tab row, and the title card is gone',
+    head.inRow && head.lastInRow && !head.hasShell,
+    `inRow=${head.inRow} last=${head.lastInRow} shell=${head.hasShell}`);
+  check('1 Publish Round is the far-right control', head.lastAct === 'publish', head.lastAct);
+  /* This window is 1440 — under the 1700px the row needs to hold both — so the
+     head is expected on a second line. What must never happen at any width is
+     the controls running off the right edge. */
+  check('1 and nothing hangs off the right edge', !head.clipped,
+    `wrapped=${head.wrapped} clipped=${head.clipped}`);
 
   /* ---- 2. one sheet, not a sheet inside a panel ----
      Counted rather than asserted: the failure was two visible frames a few

@@ -143,24 +143,56 @@ async function page(opts = {}){
     } };
 }
 
-describe('F89 (1) — the header is a band, not a card inside a card', () => {
-  test('the strip is one quiet line, wearing the contract page\'s own clothes', async () => {
+describe('F89 (1) — the head is not a band at all: it rides on the tab row', () => {
+  test('the controls sit at the right of the tab row, and no band is left behind', async () => {
     /* WHAT THIS TEST WAS FOR HAS NOT CHANGED — one frame, not two. What it
-       pinned did: the row used to be a bare, frameless strip because the TITLE
-       CARD sat above it and a second border read as a box inside a box. The
-       title card is gone; the head is a plain title block now. So this strip
-       can be what it always should have been — the same quiet bar the contract
-       page puts under its tabs, .room-quiet, one surface with one border. The
-       failure being guarded against is two frames, and there is one. */
+       pinned did, twice. It first guarded a bare, frameless strip (the TITLE
+       CARD sat above it and a second border read as a box in a box); then, the
+       card gone, it required .room-quiet — the same quiet bar the contract page
+       puts under its tabs.
+
+       Now there is NO band. The tab row's right-hand half stood empty above a
+       strip carrying every control, so the two share one line (Young, 10 Aug
+       2026) and the contract gets that whole band of height back. So the frame
+       count this test has always been about is now ZERO extra frames: the head
+       is a group inside the row, and .room-quiet — a band's clothes — would be
+       exactly the second frame the original bug was. */
     const p = await page();
     const r = p.rule('.redline-page .rl-head');
     assert.ok(r, '.rl-head must still carry a rule');
-    assert.ok(p.$('.redline-page .rl-head').classList.contains('room-quiet'),
-      'it is the shared quiet bar, not a second design of the same thing');
+    const head = p.$('.redline-page .rl-head');
+    assert.ok(!head.classList.contains('room-quiet'),
+      'it is not a band any more, so it must not wear a band\'s clothes');
     assert.ok(!/border:1px/.test(r) && !/box-shadow:var\(--shadow/.test(r),
-      'the frame comes from .room-quiet alone — a second one here is the old bug');
+      'and it draws no frame of its own — the row it sits in carries the rule');
     assert.ok(!p.$('.redline-page .rl-shell'),
       'and the title card it used to sit under is gone');
+
+    /* WHERE IT SITS, which is the whole point of the change. */
+    const row = p.$('.redline-page .rl-tabrow');
+    assert.equal(head.parentElement, row, 'the head is a child of the tab row');
+    const kids = [...row.children];
+    assert.ok(kids.indexOf(p.$('.redline-page .rl-tabrow-gap')) < kids.indexOf(head),
+      'a spacer pushes it right, so the markup still reads left to right');
+    assert.equal(kids[kids.length - 1], head, 'and it is the last thing on the row');
+    /* The primary act is the far-right control, where Open Negotiate sits on
+       the Document tab — a reader moving between the two tabs finds the button
+       in the same place. */
+    const acts = [...head.querySelector('.rl-actions').children];
+    assert.ok(acts.length, 'the actions group is drawn');
+    assert.ok(acts[acts.length - 1].matches('[data-redline-proxy]'),
+      'Publish Round is the last control in the row');
+
+    /* AND IT DROPS TO ITS OWN LINE WHEN THE WINDOW CANNOT HOLD BOTH. Five
+       tabs and six controls need about 1670px between them; below that a row
+       that merely overflowed would clip Publish Round off the right edge. The
+       rule under the tabs moves onto the spacer with it, or the active tab's
+       underline is stranded above a border drawn under the controls. */
+    const wrap = /@media\s*\(max-width:1700px\)\s*\{([\s\S]*?rl-head[^}]*\})/.exec(p.css())?.[1];
+    assert.ok(wrap && /rl-tabrow\{[^}]*flex-wrap:wrap/.test(wrap),
+      'the row wraps on a narrower window rather than clipping');
+    assert.ok(/rl-tabrow-gap\{[^}]*border-bottom/.test(wrap),
+      'and the row\'s rule moves onto the spacer, between the two lines');
   });
 
   test('and the header is still the header', async () => {
