@@ -148,16 +148,20 @@ describe('f173 · a long note folds instead of growing the card', () => {
   });
 });
 
-describe('f173 · the column head is dressed like the queue\'s', () => {
-  test('caption type, a count pill, and the hairline', async () => {
+describe('f173 · the column head is a caption and a count', () => {
+  /* THIS TEST HAS MOVED ONCE. It first pinned a hairline under a transparent
+     head, which was the answer to "not professionally designed". The head was
+     then asked for as a COLOUR STRIP (Young, 10 Aug 2026), so the hairline is
+     gone and the band is the frame. What has not moved, and is what this test
+     was always about, is the type: the caption is the queue label's, and the
+     count is a chip rather than loose grey text. f175 owns the strip itself. */
+  test('caption type, and a count that sits in a chip', async () => {
     const p = await mounted();
     const css = p.css();
-    assert.ok(/\.rl-idx-head\{[^}]*border-bottom:1px solid var\(--color-divider\)/.test(css),
-      'the head carries the same hairline the queue\'s head does');
     assert.ok(/\.rl-idx-k\{[^}]*font-size:9\.5px;font-weight:800;letter-spacing:\.12em/.test(css),
       'the caption takes .rl-q-label\'s own type');
     assert.ok(/\.rl-idx-n\{[^}]*border-radius:999px/.test(css),
-      'and the count sits in a pill rather than floating as grey text');
+      'and the count sits in a chip rather than floating as grey text');
     assert.ok(p.$('.rl-idx-head .rl-idx-k') && p.$('.rl-idx-head .rl-idx-n'),
       'both parts are drawn');
   });

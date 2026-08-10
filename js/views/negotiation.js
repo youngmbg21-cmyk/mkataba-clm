@@ -5187,24 +5187,49 @@ async function negoConfirmCloseRound(c){
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
 const negoIsRedeciding = id => !!_negoRedeciding[id];
-function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlRead = 'marks'; negoSetComparePair('baseline', 'working'); }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlRead = 'marks'; _rlCardFilter = 'all'; negoSetComparePair('baseline', 'working'); }
 
-/* ---------- THE ORIGIN FILTER HAS GONE ----------
-   A dropdown at the head of the Tracked Changes column sliced the round —
-   yours, theirs, drafts, sent. It is off the page (Young, 10 Aug 2026): the
-   queue beside the document already answers "what is left", the column is a
-   handful of cards rather than a table, and a control that can hide a change
-   is a control that can lose one.
+/* ---------- WHOSE ASKS AM I LOOKING AT ----------
+   Asked for by name (Young, 10 Aug 2026): the column's strip "should also
+   contain a filter that shows which changes are from me, counterparty or all".
 
-   RL_CARD_FILTERS / rlCardFilter / rlSetCardFilter are kept as no-ops on the
-   module's export surface, because the stack of tests that stand this page up
-   set the filter to "all" before they read it — and a helper that vanishes
-   turns "this test no longer applies" into a crash halfway through a test
-   about something else. Nothing reads them any more: redlineChangeCardsHtml
-   draws the whole table it is given. */
-const RL_CARD_FILTERS = [['all', 'All Changes']];
-function rlCardFilter(){ return 'all'; }
-function rlSetCardFilter(){ return 'all'; }
+   IT WAS HERE AND IT WAS TAKEN OUT, so it comes back deliberately rather than
+   by accident. The dropdown that went in the redesign sliced four ways —
+   yours, theirs, drafts, sent — and the argument for removing it was that a
+   control which can hide a change is a control that can lose one. That
+   argument is answered rather than ignored:
+
+   - THREE OPTIONS, NOT FIVE. Drafts and Sent were states, not authors, and
+     the card already says which it is. Who asked is the one cut a reader
+     actually makes.
+   - EVERY OPTION CARRIES ITS OWN COUNT, so a filter can never hide a change
+     silently — "Theirs 3" is on screen while you are reading Mine.
+   - IT IS SEGMENTED, NOT A DROPDOWN. All three answers and the live one are
+     visible without opening anything, which is the whole difference between
+     a filter you can forget you set and one you cannot.
+
+   'mine' and 'theirs' are read against the SEAT, not against the company, so
+   the counterparty's own page and our preview of it both answer correctly:
+   their asks are "mine" on their screen. Held in memory for the sitting and
+   reset by negoResetView, like every other reading preference on this page —
+   a filter that outlived the tab is one somebody finds already applied. */
+const RL_CARD_FILTERS = [['all', 'ng_filter_all'], ['mine', 'ng_filter_mine'], ['theirs', 'ng_filter_theirs']];
+let _rlCardFilter = 'all';
+function rlCardFilter(){ return _rlCardFilter; }
+function rlSetCardFilter(v){
+  _rlCardFilter = RL_CARD_FILTERS.some(f => f[0] === v) ? v : 'all';
+  return _rlCardFilter;
+}
+/* THE ONE PREDICATE, asked by the card list AND by redlineCardIds — which is
+   the count above it. Two copies of this reading is exactly the fault
+   redlineCardIds exists to prevent: a pill that counts something other than
+   the list it labels. */
+function rlCardFilterPass(ch, side){
+  const f = rlCardFilter();
+  if (f === 'all' || !ch) return true;
+  const mine = ch.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner');
+  return f === 'mine' ? mine : !mine;
+}
 
 /* ---- THE REVIEWER'S DOCUMENT OPENS ON THEIR OWN CLAUSE ----
    Asked for as distraction (Young, 09 Aug 2026): a colleague handed one clause
@@ -6258,32 +6283,59 @@ function redlineLayoutCss(){
      at it. The same classes render in Counterparty View and on the portal, so
      all three screens change together.
 
-     AND IT SITS ON THE COLUMN'S OWN GROUND. .nego-index-head paints
-     var(--n-paper) — the ROOM's token, which resolves white — so on this page
-     the head was a white band lying across a grey pane, with the caption
-     jammed against one end of it and a grey pill against the other: two
-     grounds and no gutter, which is what read as unbalanced. The pane goes
-     transparent (the column "sits straight on the page", which is the rule
-     stated at .rl-col and was never true of this one) and the head with it,
-     so there is ONE surface and the cards are the objects on it.
+     AND IT IS A COLOUR STRIP, asked for by name (Young, 10 Aug 2026). It got
+     there in two steps and both are worth keeping straight. It began as a
+     WHITE band lying across a grey pane — .nego-index-head paints
+     var(--n-paper), the ROOM's token, which resolves white — with the caption
+     jammed against one end and a heavy grey pill against the other: two
+     grounds, no gutter, nobody's decision. That was the imbalance. It went
+     transparent, and then the strip was asked for deliberately.
+
+     THE DIFFERENCE BETWEEN THE TWO is the whole point: an accidental white
+     band is a rendering leak, and an accent strip with the column's caption,
+     its count and its filter in it is a header. The pane stays transparent so
+     the strip is an OBJECT sitting above the cards rather than the top edge
+     of a box around them — which is the rule stated at .rl-col, that the
+     change column is not a card.
 
      THE COUNT IS QUIETER THAN THE CAPTION, and it was the other way round: a
      10.5px/600 pill outweighed the 9.5px label it was answering to. Same type
-     as the caption now, in a chip that only earns colour when there is
-     actually something on the table — which is the product's own habit, that
-     colour means something. */
+     as the caption now, in a chip that only earns the deeper tint when there
+     is actually something on the table. */
   .redline-page .nego-pane.index{background:transparent}
   .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;
-    background:transparent;padding:9px 4px 10px;margin-bottom:9px;
-    border-bottom:1px solid var(--color-divider)}
+    background:var(--color-accent-100);border:1px solid var(--color-accent-300);
+    border-radius:11px;padding:9px 11px 10px;margin:0 2px 10px}
   .redline-page .rl-idx-head [hidden]{display:none!important}
   .redline-page .rl-idx-k{flex:1;min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--color-neutral-500)}
+    text-transform:uppercase;color:var(--color-accent-800)}
   .redline-page .rl-idx-n{flex:none;font-size:9.5px;font-weight:700;letter-spacing:.02em;
-    color:var(--color-neutral-500);background:var(--color-surface);
-    border:1px solid var(--color-divider);border-radius:999px;padding:3px 9px;line-height:1}
-  .redline-page .rl-idx-n.is-live{color:var(--color-accent-800);
-    background:var(--color-accent-100);border-color:var(--color-accent-300)}
+    color:var(--color-neutral-600);background:var(--color-surface);
+    border:1px solid var(--color-accent-300);border-radius:999px;padding:3px 9px;line-height:1}
+  .redline-page .rl-idx-n.is-live{color:var(--color-accent-800);font-weight:800}
+  /* ---- WHOSE ASKS: THE THREE-WAY CUT ----
+     A segmented control, not a dropdown, so all three answers and the live one
+     are readable without opening anything — the difference between a filter you
+     can forget you set and one you cannot. It takes a full line of the strip
+     (flex-basis:100%) because the column is narrow and a caption, a count and
+     three chips do not share 300px.
+
+     The tray is the SURFACE on the tint rather than the neutral tray .rl-segwrap
+     uses, because on an accent band a grey tray reads as a hole. */
+  .redline-page .rl-fsegwrap{flex-basis:100%;display:flex;gap:3px;padding:3px;
+    background:var(--color-surface);border:1px solid var(--color-accent-300);
+    border-radius:8px}
+  .redline-page .rl-fseg{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
+    gap:5px;border:0;background:none;font:inherit;font-size:10.5px;font-weight:600;
+    color:var(--color-neutral-600);padding:4px 6px;border-radius:6px;cursor:pointer;
+    white-space:nowrap;transition:background .12s,color .12s}
+  .redline-page .rl-fseg:hover{color:var(--color-text)}
+  .redline-page .rl-fseg.on{background:var(--color-accent-100);color:var(--color-accent-800);font-weight:700}
+  /* The count rides INSIDE its own chip: it is the thing that stops a filter
+     hiding a change quietly, so it must be readable on the resting face too. */
+  .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:9.5px;font-weight:700;
+    opacity:.62}
+  .redline-page .rl-fseg.on .rl-fseg-n{opacity:1}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
      is one the browser may refuse to focus or dispatch to, and Publish Round
      works by clicking this one. Taken out of the flow and out of the reader's
@@ -9524,7 +9576,13 @@ function redlineCardIds(c, opts = {}){
   const mineOnly = rlMyCardIds(c, opts);
   return all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
     || sentIds.has(x.id)) && !hidden.has(x.id)
-    && (!mineOnly || mineOnly.has(String(x.id)))).map(x => x.id);
+    && (!mineOnly || mineOnly.has(String(x.id)))
+    /* The reader's own cut, applied HERE as well as in the card list — this
+       function is what the count above the cards is drawn from, and a count
+       that ignored the filter would label a column it was not describing.
+       Not applied to a reviewer's narrowed column: opts.countAll lets the
+       chips ask for the unfiltered totals they print. */
+    && (opts.countAll || rlCardFilterPass(x, side))).map(x => x.id);
 }
 /* ---- YOU WERE ASKED TO LOOK AT A CLAUSE, NOT TO RUN THE ROUND ----
    While a review is open with this person, nothing they do on this contract
@@ -9660,6 +9718,25 @@ if (typeof document !== 'undefined' && !document._rlNoticeFoldWired){
       renderNegotiationTab(getContract(state.activeId) || null, {});
   });
 }
+/* ---- WHOSE ASKS: WIRED ONCE, ON THE DOCUMENT ----
+   The reading buttons' own pattern, and for the same reason: the chips are
+   painted into the mount by redlinePanesHtml, after the page has wired itself,
+   and several paths repaint that mount — an element-bound listener is dropped
+   by the first of them. The "show me all of them" button on the filtered-empty
+   state carries the same attribute, so it is the same door. */
+if (typeof document !== 'undefined' && !document._rlCardFilterWired){
+  document._rlCardFilterWired = true;
+  document.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-rl-cardfilter]');
+    if (!b) return;
+    ev.preventDefault();
+    rlSetCardFilter(b.getAttribute('data-rl-cardfilter'));
+    if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
+    else if (window.renderNegotiationTab && window.getContract && window.state)
+      renderNegotiationTab(getContract(state.activeId) || null, {});
+  });
+}
+
 /* ---- SHOW MORE / SHOW LESS ON A CLAMPED NOTE ----
    A pure DOM toggle wired once by delegation, the notice fold's own pattern:
    the cards are repainted by a dozen paths, and a class flip must not cost a
@@ -9849,7 +9926,11 @@ function redlineChangeCardsHtml(c, opts = {}){
   const mineOnly = rlMyCardIds(c, opts);
   const changes = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
     || sentIds.has(x.id)) && !hidden.has(x.id)
-    && (!mineOnly || mineOnly.has(String(x.id))));
+    && (!mineOnly || mineOnly.has(String(x.id)))
+    /* Whose asks the reader asked to see. The SAME predicate redlineCardIds
+       applies, so the count above this list and the list itself cannot
+       disagree — see rlCardFilterPass. */
+    && rlCardFilterPass(x, side));
   /* Named on the module so the tab pill above reads the same answer — see
      redlineCardIds directly below. */
   /* Which of OUR asks have never left the building. The engine already answers
@@ -9860,6 +9941,17 @@ function redlineChangeCardsHtml(c, opts = {}){
     : new Set((window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).map(x => x.id));
   if (!changes.length){
     const settled = all.filter(x => x.status === 'accepted' || x.status === 'rejected').length;
+    /* ---- AN EMPTY COLUMN MUST SAY WHICH EMPTINESS THIS IS ----
+       "No changes on the table" over a column the READER has just narrowed is
+       the exact fault the filter was removed for: a control that can lose a
+       change. So a filtered-empty column says it is filtered and offers the
+       way back, and only a genuinely empty one gives the how-to-start blurb. */
+    if (rlCardFilter() !== 'all')
+      return `<div class="rl-cards-empty">
+        <b>${_ne(i18t('ng_filter_none'))}</b>
+        <span>${_ne(i18t('ng_filter_none_sub'))}</span>
+        <span><button type="button" class="rl-cnote-more" data-rl-cardfilter="all">${_ne(i18t('ng_filter_show_all'))}</button></span>
+      </div>`;
     return `<div class="rl-cards-empty">
       <b>${i18t('ng_no_changes')}</b>
       <span>${opts.noAi
@@ -9868,11 +9960,8 @@ function redlineChangeCardsHtml(c, opts = {}){
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }
-  /* THE ORIGIN FILTER USED TO BE APPLIED HERE, narrowing this table to yours,
-     theirs, drafts or sent. It is gone with its dropdown — see RL_CARD_FILTERS
-     — so the column draws the whole table it was given, and the two empty
-     states that told a reader which filter was hiding their change are gone
-     with the filter that made them necessary. */
+  /* Already narrowed, up where the list was built, by the same predicate the
+     count above it uses. See rlCardFilterPass. */
   const shown = changes;
   return shown.map(ch => {
     const theirs = ch.authorSide !== side;
@@ -10714,6 +10803,34 @@ function redlinePanesHtml(c, opts = {}){
           <div class="nego-index-head rl-idx-head">
           <span class="rl-idx-k">${i18t('ng_tracked_changes_head')}</span>
           <span class="rl-idx-n${changeTotal ? ' is-live' : ''}" id="rl-chg-count-wrap">${i18t('ng_on_the_table',{n:changeTotal})}</span>
+          ${''/* ---- WHOSE ASKS ----
+                 Asked for by name (Young, 10 Aug 2026). Segmented rather than
+                 a dropdown, and every option carries its own count, so a
+                 filter can never hide a change quietly — the reason the old
+                 dropdown was removed, answered rather than ignored.
+
+                 NOT DRAWN FOR A REVIEWER whose column is already narrowed to
+                 the clauses they were handed: every setting gives the same
+                 answer once the column holds one person's work, and a control
+                 with one outcome is furniture. That rule predates this
+                 control; rlMyCardIds returning a set IS the narrowing. */}
+          ${rlMyCardIds(c, opts) ? '' : (() => {
+            const totals = redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden], countAll: true });
+            const bySide = k => totals.filter(id => {
+              const ch = (typeof negoChangeById === 'function') ? negoChangeById(c, id) : null;
+              if (!ch) return false;
+              const mine = ch.authorSide === (side === 'counterparty' ? 'counterparty' : 'owner');
+              return k === 'mine' ? mine : !mine;
+            }).length;
+            const n = k => (k === 'all' ? totals.length : bySide(k));
+            const tip = { all: 'ng_filter_all_t',
+              mine: 'ng_filter_mine_t', theirs: 'ng_filter_theirs_t' };
+            return `<div class="rl-fsegwrap" role="group" aria-label="${_nea(i18t('ng_filter_group'))}">${
+              RL_CARD_FILTERS.map(([k, key]) => `<button type="button" data-rl-cardfilter="${k}"
+                class="rl-fseg${rlCardFilter() === k ? ' on' : ''}" aria-pressed="${rlCardFilter() === k ? 'true' : 'false'}"
+                title="${_nea(i18t(tip[k], { who: c.counterparty || i18t('ng_the_counterparty') }))}">${
+                _ne(i18t(key))}<span class="rl-fseg-n">${n(k)}</span></button>`).join('')}</div>`;
+          })()}
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
@@ -10881,7 +10998,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
-  RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
+  RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
   redlineCardIds, rlOneNoticeHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
