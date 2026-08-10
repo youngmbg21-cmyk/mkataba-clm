@@ -5754,17 +5754,21 @@ function redlineLayoutCss(){
      line all the way across reads as a table header, a 46px rule reads as the
      flourish a printed agreement carries between its title and its first
      clause. */
-  .redline-page .rl-paper-head{text-align:center;padding-bottom:0;margin-bottom:22px}
-  .redline-page .rl-paper-head::after{content:"";display:block;width:46px;height:1px;
+  /* AT THE TOP LEVEL, not under .redline-page: the Document tab draws the same
+     head from the same builder (docPaperHeadHtml) and has no .redline-page
+     ancestor. contract.js loads this stylesheet, so one set of rules dresses
+     the front of the sheet on both screens. */
+  .rl-paper-head{text-align:center;padding-bottom:0;margin-bottom:22px}
+  .rl-paper-head::after{content:"";display:block;width:46px;height:1px;
     background:var(--color-doc-rule);margin:22px auto 0}
-  .redline-page .rl-paper-title{margin:10px 0 0;font-family:var(--font-heading);
+  .rl-paper-title{margin:10px 0 0;font-family:var(--font-heading);
     font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--color-doc-text)}
-  .redline-page .rl-paper-sub{margin:8px 0 0;font-size:13px;color:var(--color-doc-muted)}
+  .rl-paper-sub{margin:8px 0 0;font-size:13px;color:var(--color-doc-muted)}
   /* The kicker above the title — the Doc page's own line, in its clothes:
      mono, uppercase, wide tracking. Rendered from the document, not invented. */
-  .redline-page .rl-paper-kick,.redline-page .rl-paper-kick p{margin:0 0 6px;font-size:10px;
-    font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;
-    line-height:1.5;color:var(--color-neutral-600)}
+  .rl-paper-kick,.rl-paper-kick p{margin:0 0 6px;font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.18em;
+    line-height:1.5;color:var(--color-doc-muted)}
   /* The recital — the party/key-terms paragraph between the title and clause 1.
      The Doc page prints it, so this page does too, in the workbench's own type
      scale. Read-only: the terms in it are the Doc page's to edit. */

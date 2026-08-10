@@ -1343,12 +1343,34 @@ function applyMetadata(c, m){
 /* Working-text document body: shown once a contract carries edited wording
    (an owner edit or an accepted counterparty redline). This exact text is
    what versions/compare diff and what the seal will bind. */
+/* ---------- THE FRONT OF THE SHEET ----------
+   Every document body this tab renders opened differently: the generated one
+   with a centred kind/market/id line, the edited working text with a
+   left-aligned mono line and a rule all the way across. One agreement, two
+   faces, depending on whether anybody had edited it.
+
+   One head now, and it is the shape a deed has (Young, 10 Aug 2026): the
+   market it is governed by, the agreement's name, and who it is between —
+   from the contract's own record, with the parties line dropped rather than
+   invented where a counterparty has not been named. The short rule under it
+   is the flourish printed agreements carry; a full-width border reads as a
+   table header. Styled by .rl-paper-head in the workbench's stylesheet, which
+   this tab loads (see wireDocumentSync), so both screens draw one object. */
+function docPaperHeadHtml(c, opts={}){
+  const market=(typeof jxName==='function')?jxName():'';
+  const us=String((typeof window!=='undefined'&&window.FIRST_PARTY)||'').trim();
+  const them=String((c&&c.counterparty)||'').trim();
+  const between=(us&&them)?i18t('ct_between_parties',{us:esc(us),them:esc(them)}):'';
+  return `<header class="rl-paper-head">
+    ${market?`<div class="rl-paper-kick">${esc(market)}${opts.note?' · '+esc(opts.note):''}</div>`:''}
+    <h3 class="rl-paper-title">${esc((c&&c.name)||'')}</h3>
+    ${between?`<div class="rl-paper-sub">${between}</div>`:''}
+  </header>`;
+}
+
 function redlineDocBody(c){
   return `
-    <div class="mb-6 pb-5 border-b border-brand-100">
-      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${cKind(c)} · working text · ${c.id}</div>
-      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
-    </div>
+    ${docPaperHeadHtml(c,{note:i18t('ct_working_text_short')})}
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
       ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${i18t('ct_doc_carries')} <strong>${i18t('ct_edited_working')}</strong>. Use <strong>${i18t('act_edit')}</strong> ${i18t('ct_to_change_wording')} <strong>${i18t('ct_compare')}</strong> ${i18t('ct_review_between')}</span>
     </div>
@@ -1912,11 +1934,12 @@ function docBody(c){
   };
   const built=(BUILD[c.template]||BUILD.ND)();
   const title=built.title, recital=built.recital, clauses=built.clauses;
+  /* One head for every body this tab draws — see docPaperHeadHtml. The
+     template's own `title` is kept as the fallback for a contract with no name
+     of its own; the record's name is what the rest of the product calls this
+     agreement, so it leads. */
   return `
-    <div style="text-align:center;margin-bottom:18px">
-      <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · ${jxName()} · ${c.id}</div>
-      <h3 style="text-align:center;font-size:19px;margin:0;line-height:1.2">${title}</h3>
-    </div>
+    ${docPaperHeadHtml({...c, name:(c.name||title)},{note:t.kind})}
     <p class="text-[13px] leading-[1.7] mb-6 px-2 -mx-2 py-1" style="color:var(--color-doc-text)" data-anchor="recital">${recital}</p>
     ${clauses.join('')}
     ${signatureBlock(c)}`;
@@ -2053,9 +2076,23 @@ function signatureBlock(c){
       <div class="grid sm:grid-cols-2 gap-3 text-xs">${sofar.map(card).join('')}</div>
     </div>`;
   }
+  /* ---- AN UNSIGNED CONTRACT ENDS THE WAY PAPER ENDS ----
+     This was a dashed box with an icon in it reading "signature block pending",
+     which is a note about the software printed at the foot of an agreement. It
+     is two ruled lines and the parties' names now (Young, 10 Aug 2026) — the
+     shape every contract anybody has ever signed has — built by the same
+     rlPaperFootHtml the workbench, the counterparty's page and the phone use,
+     so one contract ends the same way on every screen it is read on.
+
+     STILL NOT A SIGNING SURFACE. Nothing here is pressable and nothing is
+     stamped: signing is the Signing tab's job, behind its own record and its
+     own seal. The anchor is kept, because the room scrolls to it by name. */
+  const foot=window.rlPaperFootHtml?rlPaperFootHtml(c):'';
+  if(foot) return `<div data-anchor="sig">${foot}</div>`;
+  /* No parties named yet — a contract with nothing to rule a line for. Say so
+     in a sentence rather than printing two empty rules. */
   return `
     <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
-      <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>
       <div class="text-sm font-medium text-brand-800/70">${i18t('ct_sig_block_pending')}</div>
       <div class="text-xs text-brand-800/65 mt-0.5">${i18t('ct_confirm_intent_panel')}</div>
     </div>`;
@@ -2192,7 +2229,21 @@ function actionBarHtml(c){
      stand on Key terms being told to go to Negotiate by a bar describing a tab
      you had left. The button is gone and the strip repaints — see
      applyWsTabs. What is left here is the sentence that says WHY. */
-  const tail='';
+  /* ---- AND IT COMES BACK, NARROWLY ----
+     "Go to Negotiate →" was taken off this strip because it was a third
+     control claiming to say what happens next, on a bar that did not repaint
+     when the tab changed — so it followed the reader onto Key terms and
+     Signing, describing a tab they had left. The bar repaints now
+     (applyWsTabs), and the design asks for the door back (Young, 10 Aug 2026).
+
+     It is drawn ONLY on the Document tab and ONLY where a negotiation is
+     actually running. On a fresh draft the head's own primary is the next act
+     and this would be a second answer to the same question; once wording is
+     being argued about, "the changes are over there" is the one thing this
+     sentence is missing. */
+  const tail=(_wsTab==='docs'&&c.negotiation&&window.negoChanges&&negoChanges(c).length)
+    ? `<button type="button" id="ws-to-nego" class="ui-btn" style="margin-left:auto;font-size:12.5px;padding:6px 13px">${i18t('ct_open_negotiate')}</button>`
+    : '';
   if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${i18t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
   if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
   /* On the Document tab the sentence is about READING, because that is what
@@ -2211,6 +2262,12 @@ function renderActionBar(c){
   wireActionBar(c);
 }
 function wireActionBar(c){
+  /* Through the room's own router, like every other tab press, so the landing
+     rules (see wsTabDefaults) apply however you arrived. */
+  document.getElementById('ws-to-nego')?.addEventListener('click',()=>{
+    if(window.roomGoTab) roomGoTab(c,'redline');
+    else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+  });
   document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
   document.getElementById('ws-next-action')?.addEventListener('click',e=>{
     const kind=e.currentTarget.getAttribute('data-na');
@@ -3916,8 +3973,16 @@ function renderWorkspace(){
     return;
   }
   const locked=c.status==='Signed';
-  // Industry design-system tokens — inline styles per the design handoff.
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
+  /* The sheet's own rules — the front matter, the parties' lines at the foot —
+     live with the workbench because both tabs draw them from one builder. The
+     call is idempotent and it is made BEFORE the paint, so the first render of
+     a contract is not a frame of unstyled front matter. */
+  if(window.redlineLayoutCss) redlineLayoutCss();
+  /* Industry design-system tokens — inline styles per the design handoff.
+     12px and a hairline lift, matching the change cards and the queue on the
+     Negotiate tab: the two tabs are one room and their objects should be the
+     same objects (Young, 10 Aug 2026). */
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:12px';
   const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
   const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:11.5px';
   const KKEY='color:var(--color-neutral-600);flex:none';
@@ -3979,10 +4044,18 @@ function renderWorkspace(){
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
     <div id="doc-grid" data-ws-pane="docs" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
 
-      <!-- LEFT: document -->
-      <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      <!-- LEFT: document
+           ---- THE SHEET SITS ON THE PAGE, NOT IN A CARD ----
+           This pane used to be a bordered white card holding a white sheet: a
+           box inside a box, and the reason the paper never read as paper. The
+           card chrome is off (Young, 10 Aug 2026) and the sheet carries the
+           whole of the object — warm ground, warm hairline, a long soft lift —
+           exactly as the negotiation workbench draws it, from the same tokens.
+           Same arrangement on both tabs, so switching moves the work and not
+           the furniture. -->
+      <section style="overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document body (scrolls within the left pane) -->
-        <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 24px;background:var(--color-bg)">
+        <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:4px 2px 24px">
           <!-- The page and its banners scale together to fill whatever width the
                divider gives them (see applyDocZoom), so a wider contract is a
                bigger contract rather than a wider margin. -->
@@ -3998,9 +4071,13 @@ function renderWorkspace(){
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>${i18t('ct_received_read_below')}</span></div>`
             :''}
           ${templateProvenanceHtml(c)}
-          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
-            ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
+          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px 40px 44px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:14px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+            ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docFillable(c)?docBodyStructured(c):readOnlyDocHtml(docBodyStructured(c))}</article>
+            ${''/* The parties' lines at the foot are NOT drawn here. Every
+                   document body this tab can render ends with signatureBlock,
+                   and that is where they are — one foot per contract, not two
+                   stacked because two files each thought it was theirs. */}
             ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
           </div>
           </div>
