@@ -209,6 +209,7 @@ button{font:inherit;cursor:pointer;}
 .worries{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
 @media (max-width:640px){ .worries{grid-template-columns:1fr;} }
 .worry{
+  color:var(--color-text);
   text-align:left;border:1.5px solid var(--color-divider);background:var(--color-surface);
   border-radius:11px;padding:11px 13px;display:flex;gap:10px;align-items:flex-start;
   transition:border-color .12s, background .12s;
@@ -339,6 +340,101 @@ button{font:inherit;cursor:pointer;}
   max-width:88vw;text-align:center;
 }
 .toast.show{opacity:1;}
+
+/* ---------- REPORT DEPTH: skinny · control tower · 360 ----------
+   Three sizes of the same report, chosen at onboarding and switchable later.
+   The front page is IDENTICAL in all three — depth adds tabs behind it, never
+   weight on top of it. That is the deal that keeps the deep version honest. */
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+@media (max-width:720px){ .tiers{grid-template-columns:1fr;} }
+.tier{
+  color:var(--color-text);
+  text-align:left;border:1.5px solid var(--color-divider);background:var(--color-surface);
+  border-radius:11px;padding:13px 14px;display:flex;flex-direction:column;gap:6px;
+  transition:border-color .12s, background .12s;
+}
+.tier:hover{border-color:var(--color-neutral-400);}
+.tier.on{border-color:var(--accent-solid);background:color-mix(in srgb,var(--accent-solid) 7%,var(--color-surface));}
+.tier .nm{font-family:var(--font-heading);font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:7px;}
+.tier .nm .badge{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;background:var(--st-steel-bg);color:var(--st-steel-fg);
+  border:1px solid var(--st-steel-line);}
+.tier .what{font-size:11px;color:var(--color-neutral-500);line-height:1.55;}
+.tier .fit{font-size:10.5px;font-weight:600;color:var(--color-neutral-600);
+  padding-top:7px;border-top:1px dashed var(--color-divider);margin-top:2px;}
+.tier .tabs-mini{display:flex;gap:3px;margin-top:2px;}
+.tier .tabs-mini i{height:5px;border-radius:3px;flex:1;background:var(--color-neutral-300);display:block;}
+.tier .tabs-mini i.hot{background:var(--color-accent-500);}
+
+/* the tab row inside the report — small folder tabs, same grammar as Insights */
+.rp-tabs{
+  display:flex;gap:3px;align-items:flex-end;padding:10px 26px 0;
+  background:var(--color-surface-2);border-bottom:3px solid var(--rtab-rail,var(--color-divider));
+  overflow-x:auto;
+}
+.rp-tab{
+  flex:none;border:0;border-radius:9px 9px 0 0;padding:6px 13px 7px;
+  font-size:11.5px;font-weight:600;white-space:nowrap;color:var(--tab-ink,#332d3f);
+  background:color-mix(in srgb,var(--rt-c) 55%,var(--color-surface-2));
+}
+.rp-tab:hover{background:color-mix(in srgb,var(--rt-c) 80%,var(--color-surface-2));}
+.rp-tab.on{background:var(--rt-c);padding:9px 15px 8px;font-weight:700;}
+:root{--rt-1:#c9ece4;--rt-2:#d2e6f7;--rt-3:#f1d8ef;--rt-4:#fbdfcc;}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--rt-1:#17453e;--rt-2:#153a54;--rt-3:#432344;--rt-4:#4d3220;--tab-ink:#ece7f4;}
+}
+:root[data-theme="dark"]{--rt-1:#17453e;--rt-2:#153a54;--rt-3:#432344;--rt-4:#4d3220;--tab-ink:#ece7f4;}
+
+/* ---------- deep-tab components, carried over from the workspace ---------- */
+.cur-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+@media (max-width:700px){ .cur-strip{grid-template-columns:repeat(2,1fr);} }
+.cur-mini{
+  color:var(--color-text);
+  text-align:left;border:1px solid var(--color-divider);background:var(--color-bg);
+  border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;
+}
+.cur-mini:hover{background:var(--color-surface-2);}
+.cur-mini.on{border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);
+  background:color-mix(in srgb,var(--accent-solid) 7%,transparent);}
+.cur-mini .k{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);}
+.cur-mini .v{font-family:var(--font-heading);font-size:17px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.cur-mini .d{font-size:10px;color:var(--color-neutral-500);}
+
+.exp-item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px dashed var(--color-divider);}
+.exp-item:last-child{border-bottom:0;}
+.exp-item .bd{flex:1;min-width:0;}
+.exp-item b{font-size:12.5px;font-weight:700;display:block;}
+.exp-item p{margin:2px 0 6px;font-size:11.5px;color:var(--color-neutral-500);max-width:62ch;}
+.exp-item .amt{flex:none;text-align:right;min-width:88px;}
+.exp-item .amt .m{font-family:var(--font-heading);font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+.exp-item .amt .u{font-size:10px;color:var(--color-neutral-500);}
+
+.fr-big{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--color-divider);}
+.fr-big:last-child{border-bottom:0;}
+.fr-big .n{font-family:var(--font-heading);font-size:26px;font-weight:800;letter-spacing:-.03em;
+  line-height:1;min-width:66px;font-variant-numeric:tabular-nums;}
+.fr-big .bd{flex:1;font-size:12px;line-height:1.6;color:var(--color-neutral-500);}
+.fr-big .bd b{color:var(--color-text);font-weight:700;}
+
+.cl-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(70px,1fr) 40px 42px;gap:9px;align-items:center;padding:4px 0;}
+.cl-row .nm{font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-row .track{display:block;height:8px;background:var(--color-surface-2);border-radius:5px;overflow:hidden;}
+.cl-row .fill{display:block;height:100%;border-radius:5px;background:var(--color-accent-600);}
+.cl-row .fill.flat{background:var(--color-neutral-300);}
+.cl-row .pc,.cl-row .rd{text-align:right;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+.cl-row .rd.up{color:var(--st-ruby-fg);}
+.cl-row .rd.dn{color:var(--st-green-fg);}
+
+.mini-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.mini-tbl th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding:6px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;}
+.mini-tbl td{padding:8px;border-bottom:1px solid var(--color-divider);}
+.mini-tbl tr:last-child td{border-bottom:0;}
+.mini-tbl td.num,.mini-tbl th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tblscroll{overflow-x:auto;}
+
+.deep-note{font-size:11px;color:var(--color-neutral-400);margin-top:12px;}
+
 </style>
 </head>
 <body>
@@ -504,11 +600,132 @@ var ORGS = {
 };
 
 /* ============================================================================
+   THE DEEP TABS. Three sizes of one report:
+     skinny — the front page alone;
+     medium — front page + Exposure (the control tower for an SME);
+     full   — + Negotiations + Portfolio (the 360 for a bigger organisation).
+   The front page is identical in all three. Depth adds tabs BEHIND it, never
+   weight on top of it — that is what keeps the deep versions honest.
+   Content below is carried over from the workspace prototype, compacted.
+   ========================================================================= */
+var TIERS = {
+  skinny:{nm:'Skinny', tabs:['week'],
+    what:'The front page alone. Five slots, one screen, done in two minutes.',
+    fit:'A small team, or anyone who wants only what needs acting on.'},
+  medium:{nm:'Control tower', tabs:['week','exposure'],
+    what:'The front page, plus an Exposure tab — your five kinds of risk with the largest items under each.',
+    fit:'An SME with someone who owns the contract book part-time.'},
+  full:{nm:'360', tabs:['week','exposure','nego','portfolio'],
+    what:'Four tabs: the front page, Exposure, how your negotiations behave, and the shape of the whole portfolio.',
+    fit:'A bigger organisation where several people share the book.'}
+};
+var RTABS = {week:'The week', exposure:'Exposure', nego:'Negotiations', portfolio:'Portfolio'};
+
+var CURR = {value:'Value', risk:'Risk', compliance:'Compliance', continuity:'Continuity', people:'People'};
+
+var DEEP = {
+  savanna:{
+    tier:'full',
+    expo:{
+      value:{v:'144M',u:'KES contracted at stake',items:[
+        {h:'Eleven price-adjustment rights never used',p:'KES 96M of contracted revenue carries an annual indexation right; none has ever been exercised here.',m:'96M',un:'contracted',src:'hati',cat:'Customer',tone:'amber'},
+        {h:'Seven supplier agreements with no ceiling on increases',p:'Any rise is permitted at renewal — no ceiling is written in at all.',m:'44M',un:'contracted spend',src:'doc',cat:'Supplier',tone:'ruby'},
+        {h:'Three contracts renewed themselves undecided',p:'Notice dates passed in July with nothing filed.',m:'4.2M',un:'committed',src:'hati',cat:'Supplier',tone:'ruby'}]},
+      risk:{v:'9',u:'findings open',items:[
+        {h:'Four customer contracts cap nothing you owe',p:'Unlimited liability, where every other customer contract caps it at twelve months of fees.',m:'4',un:'contracts',src:'doc',cat:'Customer',tone:'ruby'},
+        {h:'Three agreements let them leave and not you',p:'They hold termination-for-convenience; you hold none.',m:'3',un:'contracts',src:'doc',cat:'Customer',tone:'amber'}]},
+      compliance:{v:'5',u:'findings open',items:[
+        {h:'Two licences: seat limit stated, nothing filed against it',p:'50 seats licensed; actual use is in the vendor’s console, not here.',m:'2',un:'licences',src:'hati',cat:'Licence',tone:'amber'},
+        {h:'Insurance certificate not on file this year',p:'The produce supply agreement requires one annually.',m:'20 Aug',un:'due',src:'hati',cat:'Supplier',tone:'amber'}]},
+      continuity:{v:'4',u:'findings open',items:[
+        {h:'One customer holds 24% of contracted revenue',p:'The top three hold 51% between them; the largest renews in March.',m:'24%',un:'of revenue',src:'doc',cat:'Customer',tone:'amber'},
+        {h:'One sole-source supplier, no alternative named anywhere',p:'Cold storage. No second site exists in any agreement in the book.',m:'1',un:'supplier',src:'doc',cat:'Supplier',tone:'ruby'}]},
+      people:{v:'10',u:'findings open',items:[
+        {h:'Four probation periods reach their end date this month',p:'The dates are written into the contracts.',m:'4',un:'people',src:'doc',cat:'Employment',tone:'ruby'},
+        {h:'Nine contracts have no written notice period',p:'The clause is simply absent.',m:'9',un:'contracts',src:'doc',cat:'Employment',tone:'amber'}]}
+    },
+    nego:{
+      bigs:[
+        {n:'78%',t:'of negotiations get stuck on <b>limitation of liability</b> — and when they do, the deal takes <b>0.6 more rounds</b>. The single change worth making to your standard paper.'},
+        {n:'7',t:'changes are <b>refused and still open</b> — nobody withdrew them, so five deals wait on a decision somebody has to make.'},
+        {n:'2.6',t:'rounds per deal with <b>Serena Hotels</b>, against 1.8 across the book — and they accept <b>100%</b> of what you ask.'}],
+      clauses:[['Limitation of liability',78,0.6],['Payment terms',54,0.3],['Indemnity',44,0.5],['Termination for convenience',37,0.4],['Governing law',31,-0.2]],
+      parties:[['Serena Hotels',3,'2.6','slow'],['Java House Group',5,'2.1','slow'],['Naivas Supermarkets',9,'1.6','smooth'],['Cloudpoint Systems',6,'1.1','smooth']]
+    },
+    conc:'Your top three customers hold <b>51% of contracted revenue</b>, and the largest agreement renews in March. That is the single number a lender or investor will ask for.'
+  },
+
+  ubuntu:{
+    tier:'medium',
+    expo:{
+      value:{v:'26M',u:'KES contracted at stake',items:[
+        {h:'Three agreements renew or lapse with nothing filed',p:'No decision recorded against any of their dates.',m:'22M',un:'contracted',src:'hati',cat:'Supplier',tone:'amber'},
+        {h:'The fleet agreement renews itself with no decision point',p:'No notice provision and no review date anywhere in the document.',m:'4.1M',un:'a year',src:'doc',cat:'Supplier',tone:'amber'}]},
+      risk:{v:'6',u:'findings open',items:[
+        {h:'Two partners hold donor money with no audit right over them',p:'The funding agreement requires it; two partner agreements do not pass it on.',m:'2',un:'partners',src:'doc',cat:'Sub-grants',tone:'ruby'},
+        {h:'One supplier agreement caps nothing either way',p:'Medical equipment maintenance — no limitation clause at all.',m:'1',un:'agreement',src:'doc',cat:'Supplier',tone:'amber'}]},
+      compliance:{v:'15',u:'findings open — your heaviest',items:[
+        {h:'KES 118M of contracted funding carries a clawback condition',p:'Clause 14.2 across four agreements. Whether it will ever bite is not something HaTi can know.',m:'118M',un:'under clawback',src:'doc',cat:'Donor funding',tone:'ruby'},
+        {h:'Six donor reports fall due in 30 days',p:'Two narrative, four financial — all six dates from the agreements.',m:'6',un:'reports',src:'doc',cat:'Donor funding',tone:'amber'},
+        {h:'Two closed periods have nothing filed here',p:'If they went in by email, closing this takes one click.',m:'2',un:'periods',src:'hati',cat:'Donor funding',tone:'amber'}]},
+      continuity:{v:'6',u:'findings open',items:[
+        {h:'One funder holds 61% of contracted funding',p:'The agreement ends December 2027 with no renewal right — only an invitation to reapply.',m:'61%',un:'of funding',src:'doc',cat:'Donor funding',tone:'ruby'},
+        {h:'Nine posts end the same day as the grant funding them',p:'Extend one without the other and the delivery team ends anyway.',m:'9',un:'posts',src:'doc',cat:'Employment',tone:'amber'}]},
+      people:{v:'13',u:'findings open',items:[
+        {h:'Nine fixed terms end on 31 December',p:'The same day as the grant that funds them.',m:'9',un:'people',src:'doc',cat:'Employment',tone:'ruby'},
+        {h:'Fourteen contracts point at a policy not held here',p:'A travel policy named in the contracts; no such document filed.',m:'14',un:'contracts',src:'hati',cat:'Employment',tone:'amber'}]}
+    },
+    nego:{
+      bigs:[
+        {n:'41%',t:'of funding negotiations get stuck on <b>indirect cost recovery</b> — and it adds <b>0.8 rounds</b> when they do.'},
+        {n:'9%',t:'of donor agreements were signed on <b>your own template</b>. The other twenty are the donor’s paper, accepted nearly whole.'},
+        {n:'2.8',t:'rounds per agreement with <b>Nordic Development Agency</b>, against 2.1 across the book.'}],
+      clauses:[['Indirect cost recovery',41,0.8],['Budget reallocation margin',32,0.5],['Ownership of outputs',23,0.4],['Audit & flow-down',18,-0.1]],
+      parties:[['Nordic Development Agency',4,'2.8','slow'],['Global Health Fund',6,'2.4','slow'],['County Health Partnership',3,'1.6','smooth'],['Kilifi County Health',5,'1.4','smooth']]
+    },
+    conc:'One funder holds <b>61% of contracted funding</b> and the agreement carries no renewal right. The reporting burden and the concentration are the same fact.'
+  },
+
+  nordlund:{
+    tier:'skinny',
+    expo:{
+      value:{v:'4.9M',u:'SEK contracted at stake',items:[
+        {h:'Twelve fee-uplift rights never exercised',p:'Each letter allows an annual index adjustment; none has ever been filed.',m:'4.1M',un:'contracted fees',src:'hati',cat:'Client',tone:'amber'},
+        {h:'Three licences uplift automatically with no ceiling',p:'A fixed annual increase with no decision point written in.',m:'0.8M',un:'a year',src:'doc',cat:'Licence',tone:'amber'}]},
+      risk:{v:'8',u:'findings open — your heaviest',items:[
+        {h:'Eight engagement letters cap nothing you owe',p:'Every other engagement caps it at the fee paid for the matter.',m:'8',un:'engagements',src:'doc',cat:'Client',tone:'ruby'},
+        {h:'Two letters cap liability below the fee agreed',p:'Both figures are in the same document; the cap is the smaller.',m:'2',un:'engagements',src:'doc',cat:'Client',tone:'amber'}]},
+      compliance:{v:'4',u:'findings open',items:[
+        {h:'Return-or-destroy duties with no completion recorded',p:'Every engagement letter carries one; no closing step records it.',m:'21',un:'engagements',src:'hati',cat:'Confidentiality',tone:'amber'},
+        {h:'Two licences: seat limit stated, nothing filed against it',p:'40 seats licensed; actual use is in the vendor’s console.',m:'2',un:'licences',src:'hati',cat:'Licence',tone:'amber'}]},
+      continuity:{v:'2',u:'findings open — healthy',items:[
+        {h:'Largest client holds 18% of contracted fees',p:'Comfortable, and worth stating so the number is on the record.',m:'18%',un:'of fees',src:'doc',cat:'Client',tone:'green'},
+        {h:'Three licences renew in the month the lease break falls',p:'November carries more decisions than any other month this year.',m:'Nov',un:'clustered',src:'doc',cat:'Licence',tone:'amber'}]},
+      people:{v:'3',u:'findings open',items:[
+        {h:'Three fixed terms reach their stated end on 14 November',p:'HaTi reports the date and stops there.',m:'3',un:'people',src:'doc',cat:'Employment',tone:'ruby'},
+        {h:'Two cover contracts end before the leave they cover does',p:'Six weeks apart, both dates in the agreements.',m:'2',un:'people',src:'doc',cat:'Employment',tone:'amber'}]}
+    },
+    nego:{
+      bigs:[
+        {n:'52%',t:'of engagements get stuck on <b>limitation of liability</b> — it adds <b>0.7 rounds</b> when they do.'},
+        {n:'80%',t:'of matters on your <b>own letter</b> sign unchanged; on the client’s paper it is 33%.'},
+        {n:'2.0',t:'rounds per matter with <b>Hedberg AB</b>, against 1.3 across the book.'}],
+      clauses:[['Limitation of liability',52,0.7],['Scope of the engagement',38,0.4],['Fee basis and uplift',29,0.2],['Conflicts & confidentiality',14,-0.3]],
+      parties:[['Hedberg AB',4,'2.0','slow'],['Sundqvist Industri',3,'1.5','smooth'],['Fastighets AB Vasa',2,'1.0','smooth']]
+    },
+    conc:'Your largest client holds <b>18% of contracted fees</b> — comfortably spread, and worth having on the record.'
+  }
+};
+
+/* ============================================================================
    STATE + GENERATOR
    ========================================================================= */
 var org='savanna';
 var picks = ORGS[org].defaults.slice();
 var cadence='weekly';
+var tier = DEEP[org].tier;      // skinny | medium | full — set at onboarding, switchable
+var rtab = 'week';              // which report tab is open
+var curSel = 'value';           // selected currency on the Exposure tab
 var muted = {};              // per-org: finding ids the reader asked to see less of
 var view='onboard';
 
@@ -591,7 +808,24 @@ function renderOnboard(){
     '<div class="pickcount">Picked <b>'+picks.length+' of 3</b>'+
     (picks.length>=3?' — picking another swaps out your oldest choice':'')+'</div></div>'+
 
-    '<div class="card ob-sec"><span class="no">3</span><h3>Who reads it, and how often</h3>'+
+    '<div class="card ob-sec"><span class="no">3</span><h3>How deep should it go?</h3>'+
+    '<div class="why">Three sizes of the same report. The front page is identical in every one — '+
+    'depth adds tabs behind it, never weight on top of it. Change your mind any time.</div>'+
+    '<div class="tiers">'+Object.keys(TIERS).map(function(k){
+      var t=TIERS[k], on=tier===k;
+      return '<button class="tier'+(on?' on':'')+'" data-tier="'+k+'">'+
+        '<span class="nm">'+esc(t.nm)+(DEEP[org].tier===k?'<span class="badge">suggested</span>':'')+'</span>'+
+        '<span class="tabs-mini">'+TIERS.full.tabs.map(function(_,i){
+          return '<i class="'+(i<t.tabs.length?'hot':'')+'"></i>';}).join('')+'</span>'+
+        '<span class="what">'+esc(t.what)+'</span>'+
+        '<span class="fit">'+esc(t.fit)+'</span></button>';
+    }).join('')+'</div>'+
+    '<div class="pickcount" style="margin-top:10px;">Suggested from your book: <b>'+
+    esc(TIERS[DEEP[org].tier].nm)+'</b> — '+O().contracts+' contracts'+
+    (DEEP[org].tier==='full'?' is a lot to carry on one page':
+     DEEP[org].tier==='medium'?' deserves a second look each week':' reads comfortably on one page')+'.</div></div>'+
+
+    '<div class="card ob-sec"><span class="no">4</span><h3>Who reads it, and how often</h3>'+
     '<div class="why">One report for the organisation, sent by email. Nobody has to remember to log in.</div>'+
     '<div class="deliv"><div class="grp"><span class="lbl">Goes to</span><div class="chiprow">'+aud+
     '<button class="chip">+ Add</button></div></div>'+
@@ -603,6 +837,102 @@ function renderOnboard(){
     '<div class="ob-cta"><button class="btn btn-primary" id="go-report" style="padding:10px 20px;font-size:13px;">'+
     'Create my report →</button>'+
     '<span class="note">Built from your documents only — nothing to connect, nothing to import.</span></div>';
+}
+
+
+/* the five slots — unchanged in every tier; this IS the front page */
+function weekBody(o, chosen, stateLine, stateSub, dates, finds, quiet, drift){
+  return (
+
+
+    '<div class="slot"><div class="slot-h"><span class="k">01</span><h3>Where you stand</h3></div>'+
+    '<div class="state-line">'+stateLine+'</div>'+
+    '<div class="state-sub">'+esc(stateSub)+'</div></div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">02</span><h3>Dates you cannot miss</h3>'+
+    '<span class="note">never filtered by your picks</span></div>'+dates+'</div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">03</span><h3>Worth your attention</h3>'+
+    '<span class="note">ranked by what it costs to ignore</span></div>'+finds+quiet+drift+'</div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">04</span><h3>One thing that got better</h3></div>'+
+    '<div class="better"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg></span>'+
+    '<span><b>'+esc(o.win.h)+'</b><p>'+esc(o.win.p)+'</p></span></div></div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">05</span><h3>What we left out</h3></div>'+
+    '<div class="leftout">'+o.stale+' findings are open and unchanged since they last appeared. They will '+
+    'come back here only when something about them moves. <a href="#">See all of them in Insights →</a></div></div>'
+  );
+}
+
+/* ---- Exposure tab: the five currencies, largest items under the one open — */
+function expoBody(){
+  var e=DEEP[org].expo;
+  if(!e[curSel]) curSel='value';
+  var strip=Object.keys(CURR).map(function(k){
+    return '<button class="cur-mini'+(curSel===k?' on':'')+'" data-cur="'+k+'">'+
+      '<span class="k">'+CURR[k]+'</span><span class="v">'+esc(e[k].v)+'</span>'+
+      '<span class="d">'+esc(e[k].u)+'</span></button>';
+  }).join('');
+  var items=e[curSel].items.map(function(it){
+    return '<div class="exp-item"><div class="bd"><b>'+esc(it.h)+'</b><p>'+esc(it.p)+'</p>'+
+      '<span class="cat">'+esc(it.cat)+'</span> '+srcTag(it.src)+' '+
+      '<span class="pill '+it.tone+'"><span class="dot"></span>'+(it.tone==='ruby'?'act':it.tone==='green'?'fine':'watch')+'</span></div>'+
+      '<div class="amt"><div class="m">'+esc(it.m)+'</div><div class="u">'+esc(it.un)+'</div></div></div>';
+  }).join('');
+  return '<div class="slot"><div class="slot-h"><span class="k">EXPOSURE</span>'+
+    '<h3>Five kinds of risk, counted from your documents</h3>'+
+    '<span class="note">value is contracted value, not cash</span></div>'+
+    '<div class="cur-strip">'+strip+'</div>'+items+
+    '<div class="deep-note">Cash actually paid, volumes and usage live in your accounts and systems — '+
+    'this report never claims them. The front page stays the same size no matter what is in here.</div></div>';
+}
+
+/* ---- Negotiations tab: how the deals behave — HaTi's own record ---------- */
+function negoBody(){
+  var n=DEEP[org].nego;
+  var maxPct=Math.max.apply(null,n.clauses.map(function(c){return c[1];}));
+  return '<div class="slot"><div class="slot-h"><span class="k">NEGOTIATIONS</span>'+
+    '<h3>What slows your deals down</h3><span class="note">from HaTi’s own filing record</span></div>'+
+    n.bigs.map(function(b){return '<div class="fr-big"><span class="n">'+b.n+'</span><div class="bd">'+b.t+'</div></div>';}).join('')+
+    '</div>'+
+    '<div class="slot"><div class="slot-h"><span class="k">CLAUSES</span><h3>Where the arguments happen</h3>'+
+    '<span class="note">rounds each adds or saves</span></div>'+
+    n.clauses.map(function(c){
+      var up=c[2]>0;
+      return '<div class="cl-row"><span class="nm">'+esc(c[0])+'</span>'+
+        '<span class="track"><span class="fill'+(up?'':' flat')+'" style="width:'+Math.round(c[1]/maxPct*100)+'%"></span></span>'+
+        '<span class="pc">'+c[1]+'%</span><span class="rd '+(up?'up':'dn')+'">'+(up?'+':'−')+Math.abs(c[2]).toFixed(1)+'</span></div>';
+    }).join('')+
+    '<div class="deep-note">A teal bar costs you rounds; grey settles quickly anyway and is not worth rewriting.</div></div>'+
+    '<div class="slot"><div class="slot-h"><span class="k">COUNTERPARTIES</span><h3>Who is slow, who is smooth</h3></div>'+
+    '<div class="tblscroll"><table class="mini-tbl"><thead><tr><th>Counterparty</th><th class="num">Deals</th>'+
+    '<th class="num">Rounds</th><th></th></tr></thead><tbody>'+
+    n.parties.map(function(pr){
+      return '<tr><td style="font-weight:600;">'+esc(pr[0])+'</td><td class="num">'+pr[1]+'</td>'+
+        '<td class="num">'+pr[2]+'</td><td><span class="pill '+(pr[3]==='slow'?'amber':'green')+'">'+
+        '<span class="dot"></span>'+pr[3]+'</span></td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ---- Portfolio tab: the shape of the whole book -------------------------- */
+function portfolioBody(){
+  var o=O(), max=o.mix[0][1];
+  return '<div class="slot"><div class="slot-h"><span class="k">PORTFOLIO</span>'+
+    '<h3>The shape of your contract book</h3><span class="note">'+o.contracts+' contracts</span></div>'+
+    '<div class="mixline">'+o.mix.map(function(m){
+      return '<div class="row"><span class="nm">'+esc(m[0])+'</span>'+
+        '<span class="track"><span class="fill" style="width:'+Math.round(m[1]/max*100)+'%"></span></span>'+
+        '<span class="n">'+m[1]+'</span></div>';
+    }).join('')+'</div></div>'+
+    '<div class="slot"><div class="slot-h"><span class="k">CONCENTRATION</span><h3>How spread you are</h3></div>'+
+    '<div class="state-line" style="font-size:13.5px;">'+DEEP[org].conc+'</div></div>'+
+    '<div class="slot"><div class="slot-h"><span class="k">HEALTH</span><h3>The score, and what moved it</h3></div>'+
+    '<div class="fr-big"><span class="n">'+o.health.v+'</span><div class="bd">out of 100, <b>'+o.health.delta+
+    ' on July</b>. Weighted by the categories you actually hold — nobody is scored on paper they do not have. '+
+    'The workings live in Insights.</div></div>'+
+    '<div class="deep-note">'+o.stale+' findings are open and unchanged; they live on the front page as one line, '+
+    'and here as this sentence. Depth is not permission to pile.</div></div>';
 }
 
 /* ============================================================================
@@ -663,37 +993,38 @@ function renderReport(){
       '<button class="btn btn-ghost" style="font-size:11px;padding:5px 11px;" data-keep>Keep my picks</button></span></div>';
   }
 
+  /* the tab row — only when depth was chosen; the rail wears the active tint */
+  var tabs='';
+  if (TIERS[tier].tabs.length>1){
+    if (TIERS[tier].tabs.indexOf(rtab)<0) rtab='week';
+    tabs='<div class="rp-tabs" style="--rtab-rail:var(--rt-'+(TIERS[tier].tabs.indexOf(rtab)+1)+')">'+
+      TIERS[tier].tabs.map(function(k,i){
+        return '<button class="rp-tab'+(rtab===k?' on':'')+'" data-rtab="'+k+'" style="--rt-c:var(--rt-'+(i+1)+')">'+
+          esc(k==='week'?(cadence==='weekly'?'The week':'The month'):RTABS[k])+'</button>';
+      }).join('')+'</div>';
+  } else { rtab='week'; }
+
+  var body = rtab==='week' ? weekBody(o, chosen, stateLine, stateSub, dates, finds, quiet, drift)
+           : rtab==='exposure' ? expoBody()
+           : rtab==='nego' ? negoBody()
+           : portfolioBody();
+
   $('#s-report').innerHTML =
     '<div class="rp">'+
     '<div class="rp-mast"><span class="wm">HaTi <small>CLM</small></span>'+
     '<div class="side"><div class="cadence">'+
+    Object.keys(TIERS).map(function(k){
+      return '<button class="'+(tier===k?'on':'')+'" data-tier2="'+k+'">'+esc(TIERS[k].nm)+'</button>';
+    }).join('')+'</div>'+
+    '<div class="cadence">'+
     '<button class="'+(cadence==='weekly'?'on':'')+'" data-cad2="weekly">Weekly</button>'+
     '<button class="'+(cadence==='monthly'?'on':'')+'" data-cad2="monthly">Monthly</button></div></div>'+
     '<h2>'+(cadence==='weekly'?'Your week in contracts':'Your month in contracts')+'</h2>'+
     '<span class="sub">'+esc(o.name)+' · '+esc(o.kind)+', '+esc(o.market)+' · '+
     (cadence==='weekly'?'week of 10 August 2026':'August 2026')+'</span></div>'+
-
-    '<div class="rp-body">'+
-
-    '<div class="slot"><div class="slot-h"><span class="k">01</span><h3>Where you stand</h3></div>'+
-    '<div class="state-line">'+stateLine+'</div>'+
-    '<div class="state-sub">'+esc(stateSub)+'</div></div>'+
-
-    '<div class="slot"><div class="slot-h"><span class="k">02</span><h3>Dates you cannot miss</h3>'+
-    '<span class="note">never filtered by your picks</span></div>'+dates+'</div>'+
-
-    '<div class="slot"><div class="slot-h"><span class="k">03</span><h3>Worth your attention</h3>'+
-    '<span class="note">ranked by what it costs to ignore</span></div>'+finds+quiet+drift+'</div>'+
-
-    '<div class="slot"><div class="slot-h"><span class="k">04</span><h3>One thing that got better</h3></div>'+
-    '<div class="better"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg></span>'+
-    '<span><b>'+esc(o.win.h)+'</b><p>'+esc(o.win.p)+'</p></span></div></div>'+
-
-    '<div class="slot"><div class="slot-h"><span class="k">05</span><h3>What we left out</h3></div>'+
-    '<div class="leftout">'+o.stale+' findings are open and unchanged since they last appeared. They will '+
-    'come back here only when something about them moves. <a href="#">See all of them in Insights →</a></div></div>'+
-
-    '</div>'+
+    tabs+
+    '<div class="rp-body">'+ body +
+'</div>'+
     '<div class="rp-foot">Every figure comes from a signed document or HaTi’s own filing record. '+
     'Nothing is estimated or taken from another system.'+
     '<button class="re" id="back-onboard">Change my picks</button></div>'+
@@ -714,14 +1045,23 @@ function show(v){
 function renderAll(){ renderOnboard(); renderReport(); }
 
 document.addEventListener('click', function(ev){
-  var t=ev.target.closest('[data-org],[data-worry],[data-cad],[data-cad2],[data-aud],[data-less],[data-swap],[data-keep],#go-report,#back-onboard');
+  var t=ev.target.closest('[data-org],[data-worry],[data-cad],[data-cad2],[data-aud],[data-less],[data-swap],[data-keep],[data-tier],[data-tier2],[data-rtab],[data-cur],#go-report,#back-onboard');
   if(!t) return;
 
   if(t.dataset.org){
     org=t.dataset.org; picks=ORGS[org].defaults.slice();
+    tier=DEEP[org].tier; rtab='week'; curSel='value';
     document.querySelectorAll('.obtn').forEach(function(b){b.classList.toggle('on',b.dataset.org===org);});
     renderAll(); return;
   }
+  if(t.dataset.tier){ tier=t.dataset.tier; rtab='week'; renderAll(); return; }
+  if(t.dataset.tier2){
+    tier=t.dataset.tier2; if(TIERS[tier].tabs.indexOf(rtab)<0) rtab='week';
+    renderAll(); toast(TIERS[tier].nm+' — '+TIERS[tier].tabs.length+(TIERS[tier].tabs.length>1?' tabs':' page'));
+    return;
+  }
+  if(t.dataset.rtab){ rtab=t.dataset.rtab; renderReport(); return; }
+  if(t.dataset.cur){ curSel=t.dataset.cur; renderReport(); return; }
   if(t.dataset.worry){
     var k=t.dataset.worry, i=picks.indexOf(k);
     if(i>=0){ picks.splice(i,1); }
