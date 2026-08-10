@@ -879,9 +879,22 @@ function deskCardInsteadHtml(c, ch, opts = {}){
    against, so the caller draws the review banner first and this only where that
    came back empty. Most restrictive first: a review hold is a refusal you can
    act on, and it outranks "you are reading". */
+/* ---- IT CLEARS, LIKE THE REVIEW'S DOES ----
+   The band floats over the page now rather than sitting above the contract
+   (see rlFloatingNoticesHtml), and anything floating over a document has to be
+   dismissible or it is in the way for the rest of the sitting. Same shape as
+   the review's clear, and for the same reasons: in memory, per contract, never
+   persisted — a dismissal that outlived the tab is how somebody stops being
+   told they are only reading and never finds out why they have no verbs. */
+const _dkCleared = new Set();
+function deskNoticeCleared(c){ return !!(c && _dkCleared.has(String(c.id))); }
+function deskClearNotice(c){ if (c) _dkCleared.add(String(c.id)); }
+function deskUnclearNotice(c){ if (c) _dkCleared.delete(String(c.id)); }
+
 function deskNoticeHtml(c, opts = {}){
   if (!c || !deskSeatShowsDesk(opts)) return '';
   if (opts.readonly) return '';
+  if (deskNoticeCleared(c)) return '';
   const me = _dkMe();
   if (!me || !deskIsOpen(c)) return '';
   /* A REVIEWER IS NOT A STRANGER HERE. They were asked, by name, to rule on a
@@ -897,6 +910,8 @@ function deskNoticeHtml(c, opts = {}){
     ${asked
       ? `<span class="dk-notice-said">${_dkE(i18t('dk_asked_already'))}</span>`
       : `<button type="button" class="dk-notice-btn" data-dk-join="1">${_dkE(i18t('dk_ask_to_join'))}</button>`}
+    <button type="button" class="dk-notice-x" data-dk-clear="1"
+      aria-label="${_dkE(i18t('dk_clear_notice'))}" title="${_dkE(i18t('dk_clear_notice'))}">&times;</button>
   </div>`;
 }
 
@@ -931,6 +946,19 @@ function deskWireChip(){
     if (!c) return;
     ev.preventDefault();
     if (window.openDeskJoinAsk) window.openDeskJoinAsk(c);
+  });
+  /* And the ✕. Delegated for the same reason, and it repaints through whichever
+     renderer is on screen rather than assuming the workbench. */
+  document.addEventListener('click', ev => {
+    const el = ev.target && ev.target.closest && ev.target.closest('[data-dk-clear]');
+    if (!el) return;
+    const st = _dkState();
+    const c = (window.getContract && st) ? window.getContract(st.activeId) : null;
+    if (!c) return;
+    ev.preventDefault();
+    deskClearNotice(c);
+    const card = el.closest && el.closest('.dk-notice');
+    if (card && card.remove) card.remove();
   });
 }
 /* Claiming from the header. One press, no dialog: the person pressing is the
@@ -1206,6 +1234,7 @@ Object.assign(window, {
   deskJoinRequests, deskJoinPending, deskJoinPendingFor, deskRequestJoin,
   deskDeclineJoin, deskJoinInboxFor,
   deskSeatShowsDesk, deskInitials, deskChipHtml, deskNoticeHtml,
+  deskNoticeCleared, deskClearNotice, deskUnclearNotice,
   deskCardByHtml, deskCardInsteadHtml,
   deskWireChip, deskOpenFromChip,
   deskSheetHtml, openDeskSheet, openDeskHandover, openDeskJoinAsk,

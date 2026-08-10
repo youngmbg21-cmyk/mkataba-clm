@@ -2840,6 +2840,7 @@ const STRINGS = {
     /* The reader's band. It says who to ask, because a refusal with no route
        forward is how people stop using the product and start emailing. */
     dk_reading_tag: 'READING',
+    dk_clear_notice: 'Clear this notice',
     dk_reading: '{who} leads this negotiation. You can read everything here.',
     dk_ask_to_join: 'Ask to join',
     dk_asked_already: 'Your request is with them.',
@@ -5800,6 +5801,7 @@ const STRINGS = {
     dk_pending_n_one: '1 person vill vara med',
     dk_pending_n_other: '{n} personer vill vara med',
     dk_reading_tag: 'LÄSER',
+    dk_clear_notice: 'Dölj den här notisen',
     dk_reading: '{who} leder den här förhandlingen. Du kan läsa allt här.',
     dk_ask_to_join: 'Be att få vara med',
     dk_asked_already: 'Din förfrågan ligger hos dem.',

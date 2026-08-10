@@ -235,10 +235,28 @@ const READ = () => {
        card showed the whole paragraph. Asserted on the painted node: the
        clamped block genuinely overflows its two lines, Show more is offered
        because of that measurement, and pressing it unfolds. */
-    const clamp = await page.evaluate(() => {
-      const el = document.querySelector('[data-nego-card] .nego-why-clamp');
+    const clamp = await page.evaluate(async () => {
+      /* THE CARD HAS TO BE OPEN TO MEASURE ANYTHING ON IT. Cards arrive shut
+         now (10 Aug 2026) and a shut card's body is display:none, so
+         scrollHeight and clientHeight are both 0 — the clamp cannot overflow
+         and negoWireWhyClamp has nothing to measure. Opened first, the way a
+         reader reaches the reason at all.
+
+         AND THE CARD THAT CARRIES THE REASON, not the first card on the
+         column: they are not the same one, and opening the wrong card leaves
+         the measurement exactly where it started. */
+      const withReason = [...document.querySelectorAll('[data-nego-card]')]
+        .find(x => x.querySelector('.nego-why-clamp'));
+      if (!withReason) return null;
+      const id = withReason.getAttribute('data-nego-card');
+      const head = withReason.querySelector('.rl-card-head');
+      if (head){ head.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 500)); }
+      /* Re-queried: the press repaints the column. */
+      const card = document.querySelector(`[data-nego-card="${CSS.escape(id)}"]`);
+      const el = card && card.querySelector('.nego-why-clamp');
       if (!el) return null;
-      const btn = el.closest('[data-nego-card]').querySelector('.nego-why-more');
+      const btn = card.querySelector('.nego-why-more');
       const clamped = el.scrollHeight > el.clientHeight + 1;
       let opened = null;
       if (btn){ btn.click(); opened = el.scrollHeight <= el.clientHeight + 1; }

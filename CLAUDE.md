@@ -271,7 +271,23 @@ THREE READINGS OF ONE RECORD — rlReadMode: redlined, as agreed, with the chang
 
 THE CARD CARRIES THE WORDING AGAIN, clamped to two lines. That reverses an earlier removal; the argument for taking it off (the document beside it already shows the change) was true, and what was left read as a filing reference with nothing on it about the thing being decided.
 
-Tests: f84 and f89 are the design contract and were rewritten to it; f95 pins that the queue, the sheet and the cards share ONE radius, whichever number is current. f58, f59, f63, f92 and f37 kept their subject and moved where they look.
+NOTHING SITS ON TOP OF THE CONTRACT (added 2026-08-10). Every notice this page raises used to be a full-width band above the document — a review handed back, a desk you are only reading, the reading you switched to. Reported as "these pop ups should never appear on top of the contract. They can appear on the bottom right of the screen and have the ability to clear them off."
+
+rlFloatingNoticesHtml is the one stack and it is built in redlinePanesHtml, NOT in renderRedline — the counterparty's embed needs it as much as the page does, and a copy in both draws the reading note twice. The builders are unchanged (reviewBannerHtml, deskNoticeHtml); only their place moved, and the desk's band gained the ✕ the review's already had. Both clears are in memory, per contract, never persisted.
+
+WHAT STAYS IN #rl-banner: the wall line. It is not news — on the counterparty's page it is the sentence saying their decisions stay on the page until they press Send, and they have to read it before they start.
+
+AND THE THREE READING BUTTONS ARE WIRED BY DELEGATION, on `document`, for the reason js/aichart.js gives: two of them are in the toolbar (painted by renderRedline) and one is on the floating notice (painted into the mount a moment LATER). A listener bound while the page is being built reaches the first two and never the third, so "Back to redlined" was drawn, looked like a button and did nothing.
+
+A CARD IS SHUT UNTIL SOMEBODY OPENS IT (added 2026-08-10). "The cards you only open when you click on them and you click again and they disappear." A plain toggle, and it replaced three rules that between them decided the state for the reader: a card carrying a verb opened itself, hovering peeked one open, and opening one shut every other. Each was answering a real problem — a round left a column of open cards to close one by one — and each cost more than it saved: a busy round arrived as a wall, the column moved under a passing pointer, and two changes could not be compared.
+
+ONLY THE HEAD TOGGLES. .rl-card-head wraps the id, the origin, the status and the two-line delta; everything below it is a control. That is what makes the old exemption unnecessary — a verb cannot fold the card away because the body is not a toggle at any depth — and it is the one property here worth guarding (f100e's last test, and 14b in redline-verify).
+
+rlCardIsOpen answers from _rlCardChoice alone; the verb-derived state key no longer invalidates it, or answering a change would fold the card you were working in. Nothing outside the card changes it: pressing elsewhere on the page used to close every open card, and a card the reader opened now stays open until the reader closes it.
+
+TESTS THAT PRESS A CARD MUST PRESS ITS HEAD AND RE-QUERY AFTERWARDS. The press both jumps to the clause and toggles the card, and the toggle repaints — so a node held from before is detached, its class never changes and its rect is zero. Three checks failed that way while this was being written, each reporting a working behaviour as broken.
+
+Tests: f84 and f89 are the design contract and were rewritten to it; f95 pins that the queue, the sheet and the cards share ONE radius, whichever number is current; f100b/e/f carry the toggle. f58, f59, f63, f92 and f37 kept their subject and moved where they look. In the browser: redline-verify 14b (the toggle, including the press-a-verb case) and 14c (the notices float clear of the sheet and can be cleared).
 
 WHAT COUNTS AS A CLAUSE (added 2026-08-04)
 

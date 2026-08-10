@@ -5294,6 +5294,29 @@ function rlOpsAsSide(ops, which){
   return ops.filter(o => o && o.op !== drop)
     .map(o => (o.op === which ? { ...o, op: 'keep' } : o));
 }
+/* ---- WIRED ONCE, ON THE DOCUMENT ----
+   The same pattern (and the same reason) as the reviewer's fold control above:
+   two of these buttons live in the toolbar, which renderRedline paints, and one
+   lives on the floating notice, which redlinePanesHtml paints into the mount a
+   moment LATER. A listener bound while the page was being built reaches the
+   first two and never the third — so "Back to redlined" was drawn, looked like
+   a button, and did nothing. Bound to the document, it cannot be painted away. */
+if (typeof document !== 'undefined' && !document._rlReadWired){
+  document._rlReadWired = true;
+  document.addEventListener('click', ev => {
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-rl-read]');
+    if (!b) return;
+    ev.preventDefault();
+    rlSetReadMode(b.getAttribute('data-rl-read'));
+    /* Whichever surface is mounted. The workbench repaints itself; an embed
+       (the counterparty's page) repaints through its own host, which is what
+       renderNegotiationTab does when there is no #view-redline. */
+    if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
+    else if (window.renderNegotiationTab && window.getContract && window.state)
+      renderNegotiationTab(getContract(state.activeId) || null, {});
+  });
+}
+
 /* THE NOTICE IS OWED, NOT OPTIONAL. A document silently missing its strikes
    looks like a document with nothing on the table — the most expensive thing
    this page could get wrong — so a non-default reading always says so, and the
@@ -5564,6 +5587,22 @@ function redlineLayoutCss(){
     border-radius:8px;background:var(--color-surface);padding:0 12px;font:inherit;font-size:12px;
     font-weight:600;color:var(--color-accent-700);cursor:pointer}
   .redline-page .rl-note-btn:hover{border-color:var(--color-accent-700)}
+  /* ---- THE NOTICES THAT USED TO BE BANDS ----
+     The review's banner and the desk's reading band are built elsewhere (
+     js/review.js and js/desk.js) and carry their own colours, because those
+     colours mean something — amber is waiting, ruby is a refusal, green came
+     back cleared. What they do NOT carry any more is the shape of a band:
+     inside this stack they are cards, so the bottom margin they used to need
+     to clear the document comes off and the stack's own gap spaces them. */
+  .redline-page .rl-notices .rv-banner,
+  .redline-page .rl-notices .dk-notice{pointer-events:auto;margin:0;
+    box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
+  /* They were laid out as one wide row — tag, sentence, button, all on a line
+     that had the width of the page. In a 344px card that line has to wrap, and
+     the button belongs under the sentence rather than squeezed beside it. */
+  .redline-page .rl-notices .dk-notice{flex-wrap:wrap}
+  .redline-page .rl-notices .dk-notice .dk-notice-txt{flex:1 1 100%;min-width:0}
+  .redline-page .rl-notices .rv-banner [data-rv-act]{white-space:nowrap}
   /* Focus mode is the document and nothing else, and a floating card over it
      is the "nothing else". */
   .redline-page.rl-focus .rl-notices{display:none}
@@ -6000,28 +6039,20 @@ function redlineLayoutCss(){
      cards reads as unstable. */
   .redline-page .rl-card[data-rv-waiting]{box-shadow:inset 3px 0 0 var(--st-amber-dot)}
   .redline-page .rl-card[data-rv-held]{box-shadow:inset 3px 0 0 var(--st-ruby-dot)}
-  .redline-page .rl-card-shut{padding:9px 12px}
+  .redline-page .rl-card-shut{padding:11px 14px}
   .redline-page .rl-card-shut .rl-card-top{margin-bottom:3px}
-  /* ---- SHUT HIDES THE BODY; A PEEK PUTS IT BACK ----
+  /* ---- SHUT HIDES THE BODY ----
      display:none rather than height or opacity, so a hidden verb is out of the
-     tab order and out of the accessibility tree as well as off the screen. The
-     body is in the DOM either way — that is what lets a peek be a class on the
-     live node instead of a repaint (see _rlCardChoice). */
+     tab order and out of the accessibility tree as well as off the screen.
+
+     THE PEEK IS GONE. A shut card used to open under the pointer and shut
+     again a moment after it left, which meant the column moved while somebody
+     was crossing it and a card could be open without anybody having asked for
+     it. One press opens it now, and only a press closes it. */
   .redline-page .rl-card-shut .rl-card-body{display:none}
-  .redline-page .rl-card-shut.is-peek{padding:11px 12px}
-  .redline-page .rl-card-shut.is-peek .rl-card-body{display:block}
-  .redline-page .rl-card-shut.is-peek .rl-card-top{margin-bottom:5px}
-  /* A peek is a lighter state than a pin: it lifts, it does not ring. The ring
-     is .is-linked, which means "this is the change the document is showing". */
-  .redline-page .rl-card[data-rl-peek]{transition:box-shadow .12s,border-color .12s}
-  .redline-page .rl-card-shut.is-peek{border-color:var(--color-neutral-300);
-    box-shadow:0 1px 6px rgba(15,23,42,.07)}
-  html.dark .redline-page .rl-card-shut.is-peek{box-shadow:0 1px 6px rgba(0,0,0,.35)}
-  /* The caret earns a pointer only where there is something to fold. */
-  .redline-page .rl-card:not([data-rl-peek]) .rl-caret{opacity:.45;cursor:default}
-  @media (prefers-reduced-motion: reduce){
-    .redline-page .rl-card[data-rl-peek]{transition:none}
-  }
+  /* The head is the press target, so it says so — and only the head. */
+  .redline-page .rl-card-head{cursor:pointer}
+  .redline-page .rl-card-body{cursor:default}
   /* .rl-card-note is gone with the amber provenance bar it painted — see the
      card renderer for why the label is no longer on the card. */
   /* Compact pills, right-aligned: each verb is only as wide as its word, so the
@@ -6981,13 +7012,10 @@ function renderRedline(){
           ${_rvPosture ? '' : `<div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
         </div>
       </section>
-      ${''/* ---- THE NOTICES FLOAT; THEY DO NOT BAND ----
-             A playbook pass and a non-default reading are both things the reader
-             switched on a moment ago and can switch off. As full-width bands
-             above the contract they cost the document two strips of height for
-             the life of the sitting. They sit bottom-right, over the page,
-             dismissible, and they are the only two things drawn there. */}
-      <div class="rl-notices" id="rl-notices">${rlReadNoticeHtml()}</div>
+      ${''/* The notices are built by redlinePanesHtml, not here: they float
+             over whichever mount is on screen, and the counterparty's embed and
+             the room need them as much as this page does. A second copy here
+             would draw the reading note twice. */}
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
       ${''/* The way out of focus mode. Always in the DOM, shown only by the
              .rl-focus rule, because the button that turned focus ON is inside
@@ -7030,11 +7058,10 @@ function renderRedline(){
      ids now — ws-share, ws-import, ws-compare — wired just above. */
   host.querySelectorAll('[data-redline-side]').forEach(el =>
     el.addEventListener('click', () => { _redlineSide = el.getAttribute('data-redline-side'); renderRedline(); }));
-  /* The three readings. A repaint, because what changes is the DOCUMENT — the
-     same clauses drawn with their marks, without them, or with the proposals
-     folded in — and the cards' own runs follow the same rule. */
-  host.querySelectorAll('[data-rl-read]').forEach(el =>
-    el.addEventListener('click', () => { rlSetReadMode(el.getAttribute('data-rl-read')); renderRedline(); }));
+  /* The three readings are wired ONCE, by delegation on the document — see
+     the listener beside rlSetReadMode. Binding them here would catch the
+     toolbar's three and miss the "Back to redlined" on the floating notice,
+     which is painted into the mount AFTER this function has run. */
   /* "2 need you" goes to the first of them, through the page's own link-focus —
      the same route a queue row takes, so the card opens, the clause scrolls and
      the two stay joined. */
@@ -7886,40 +7913,32 @@ async function rlAiPropose(ctx){
    the clause has none yet this says so rather than filing an empty change to
    hang a note on — a fingerprint nobody proposed is worse than a message that
    explains itself. */
-/* ---- PEEK, PIN, AND THE ONE THING THAT MUST NEVER HAPPEN ----
-   Working through a round left a column of cards the reader had opened and now
-   had to close one by one. So a card you have merely LOOKED at closes itself,
-   and a card you have committed to stays:
+/* ---- OPEN, SHUT, AND NOTHING IN BETWEEN ----
+   A card is shut until somebody presses its head, and open until somebody
+   presses it again. That is the whole rule (Young, 10 Aug 2026: "the cards you
+   only open when you click on them and you click again and they disappear").
 
-     pointer in / focus in   → peek. Not remembered, not a decision.
-     pointer out / focus out → collapse again, after a short grace (see
-                               RL_CARD_PEEK_MS) so crossing the gap between the
-                               head and the buttons does not slam it shut.
-     click                   → PIN. Remembered, and still jumps to the change.
-     click elsewhere         → unpin. One pinned card at a time.
-     caret                   → collapse now, pinned or not.
+   WHAT IT REPLACED, because the reasoning is worth keeping even though the
+   behaviour is not. There used to be three states — peek, pin and an automatic
+   open for any card carrying a verb — built to solve a real problem: working
+   through a round left a column of cards the reader had opened and now had to
+   close one by one. The answer was to have the page decide, and the page
+   decided badly in three ways at once. It opened cards nobody had asked to
+   open, so a busy round arrived as a wall. It moved the column under a pointer
+   merely crossing it. And it shut one card when you opened another, so two
+   changes could not be compared.
 
-   THE EXEMPTION IS THE WHOLE SAFETY ARGUMENT. A card that has something for you
-   to press — Accept, Reject, Send, Retract, Undo, Withdraw — never peeks and
-   never auto-collapses. It is open on the rule and stays open.
-
-   Without that, this feature would fold a card away while the reader's mouse
-   was travelling toward the button on it. That is the same wound as the stale
-   open/shut choice we already shipped and fixed once (a card shut by hand
-   staying shut when Accept and Reject arrived on it), in a worse form: there,
-   the control was hidden before you looked; here it would vanish while you
-   watched. Which is why a peeked card only ever contains INERT verbs — Edit,
-   which navigates, and the disabled Sent, which is a label.
-
-   The peek is a CLASS on the live node, never a repaint. Re-rendering the
-   column on mouseenter would fight the pointer, lose a half-typed reply in the
-   Discussion panel beside it, and drop the very node the event came from. */
-const RL_CARD_PEEK_MS = 180;
-const _rlCardChoice = new Map();    // id -> { open, key } — the PINS
-/* Pins belong to the contract they were made on, and to this visit. Not
-   persisted (a working preference is not a setting) and dropped when the
-   reader moves to another contract, so a pin cannot arrive on a card the
-   reader has never seen. */
+   The exemption that made the old scheme safe — a card with something to press
+   never folds — is not needed here and would in fact break the rule: it would
+   mean some cards could not be closed. The safety it was protecting (a verb
+   must not vanish while the hand is travelling toward it) is now structural
+   instead: only the HEAD toggles, so nothing inside the body can fold the body
+   away, and nothing but a press changes the state at all. */
+const _rlCardChoice = new Map();    // id -> { open, key } — what the reader opened
+/* An open card belongs to the contract it was opened on, and to this visit.
+   Not persisted (a working preference is not a setting) and dropped when the
+   reader moves to another contract, so a card cannot arrive open on a change
+   the reader has never seen. */
 let _rlPinnedFor = null;
 /* rlTagInternalNote is gone with the two buttons that called it. It switched
    the sidebar to Discussion, nominated a change, pressed the visibility switch
@@ -7979,27 +7998,53 @@ const RL_CARD_INERT = /data-rl-edit|data-rl-sent|data-nego-redecide/;
 function rlCardNeedsYou(verbs){
   return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
 }
+/* ---- A CARD IS SHUT UNTIL SOMEBODY OPENS IT, AND OPEN UNTIL THEY SHUT IT ----
+   Asked for in one sentence (Young, 10 Aug 2026): "the cards you only open when
+   you click on them and you click again and they disappear."
+
+   That is a plain toggle, and it replaces three rules that between them decided
+   the state for the reader:
+
+   - cards carrying a verb OPENED THEMSELVES, on the argument that a move you
+     cannot see is a move you do not make. True, and the cost was a column that
+     arrived as a wall of open cards on any round with work in it — which is
+     the state the fold was introduced to prevent in the first place;
+   - hovering PEEKED one open, so the column moved under a pointer crossing it;
+   - opening one card SHUT every other, so a reader comparing two changes could
+     not hold both.
+
+   All three are gone. The reader opens what they want open and closes it the
+   same way, and nothing else on the page changes it. What they cannot see on a
+   shut card, they can see in one click — and the verbs are still reachable in
+   exactly the number of presses the old peek needed.
+
+   The choice is keyed on the change id alone. It used to be keyed on the card's
+   VERBS too, so a card whose buttons changed underneath the reader fell back to
+   the default — which mattered when the default could be "open" and is simply
+   wrong now: pressing Accept would have folded the card you were working in. */
 function rlCardIsOpen(ch, verbs){
   const id = ch && ch.id;
   const choice = id ? _rlCardChoice.get(id) : null;
-  if (choice && choice.key === rlCardStateKey(verbs)) return choice.open;
-  return rlCardNeedsYou(verbs);
+  return choice ? !!choice.open : false;
 }
-/* Pressing a collapsed card opens it; pressing the caret on an open one shuts
-   it. Deliberately NOT a toggle on the whole card: the card's click already
-   means "take me to this change in the contract", and a reader navigating to a
-   clause must not have the card fold up underneath them for doing it. */
+/* Pressing a card's head toggles it. Nothing else does: the verbs inside it,
+   the notes composer and the caret are all inside the card, and a reader
+   pressing Accept must not have the card fold up underneath them for it. */
 function rlCardSetOpen(id, open, stateKey){
   if (!id) return;
-  /* ONE PINNED CARD AT A TIME. Pinning a second is the reader saying they have
-     moved on from the first, and a column of pins is the pile this feature
-     exists to stop. */
-  if (open) _rlCardChoice.clear();
   _rlCardChoice.set(id, { open: !!open, key: String(stateKey == null ? '' : stateKey) });
 }
-/* Let go of every pin. The document-level click uses this: pressing anywhere
-   that is not a card is the reader moving on. Returns whether anything changed,
-   so the caller can skip a repaint nobody would see. */
+/* Whether this card is currently open, without the verbs — what the toggle
+   asks before it flips. */
+function rlCardOpenState(id){
+  const choice = id ? _rlCardChoice.get(id) : null;
+  return !!(choice && choice.open);
+}
+/* Close every open card. Nothing on the page calls this any more — pressing
+   outside the column used to, and that was the rule that made an open card
+   feel like something the page was lending you rather than something you had
+   set. Kept because the paint-time reset (a different contract arriving on the
+   bench) genuinely wants it: see rlCardForgetPins. */
 function rlCardUnpinAll(){
   if (!_rlCardChoice.size) return false;
   _rlCardChoice.clear();
@@ -8169,111 +8214,54 @@ function rlWireClauseTools(c, host, opts){
   /* ---- FOLDING THE QUEUE ---- */
   rlWireQueueMin(host);
 
-  /* ---- CARD → CONTRACT ----
-     Pressing anywhere on a card that is not one of its verbs. The verbs all
-     stop propagation, so Accept does not also drag the document somewhere on
-     its way to deciding a change. */
-  /* ---- PEEK: LOOKING AT A CARD IS NOT DECIDING ANYTHING ----
-     A class on the live node, never a repaint — see _rlCardChoice. Only cards
-     marked data-rl-peek take part: one carrying Accept, Reject, Send or Undo
-     is open on the rule and must not fold away while the reader's mouse is on
-     its way to the button.
+  /* ---- THE CARD IS A TOGGLE, AND ONLY ITS HEAD IS ----
+     One press opens it, the next shuts it (Young, 10 Aug 2026). What was here
+     before decided the state for the reader three ways over — a card with a
+     verb opened itself, a hover peeked one open, and opening one shut the rest
+     — and all three are gone. See rlCardIsOpen for why.
 
-     The close is delayed and cancellable because a card is not one rectangle
-     to a pointer: crossing from the head to the verbs can leave the element
-     for a frame, and an undelayed collapse slams shut mid-reach. */
-  let _peekTimer = null;
-  const peekOff = card => { if (card && card.classList) card.classList.remove('is-peek'); };
-  const peekOn = card => {
-    if (!card || !card.classList) return;
-    if (_peekTimer){ clearTimeout(_peekTimer); _peekTimer = null; }
-    /* One at a time, so moving down the column does not leave a trail open. */
-    host.querySelectorAll('#rl-changes .rl-card.is-peek').forEach(o => { if (o !== card) peekOff(o); });
-    card.classList.add('is-peek');
-  };
-  const peekLater = card => {
-    if (_peekTimer) clearTimeout(_peekTimer);
-    _peekTimer = setTimeout(() => { _peekTimer = null; peekOff(card); }, RL_CARD_PEEK_MS);
-  };
-  host.querySelectorAll('#rl-changes [data-nego-card][data-rl-peek]').forEach(card => {
-    card.addEventListener('mouseenter', () => peekOn(card));
-    card.addEventListener('mouseleave', () => peekLater(card));
-    /* Keyboard gets the same affordance: there is no hover on a tab key, and
-       the cards are focusable. A focus moving INSIDE the card (to Edit) is not
-       a focus leaving it. */
-    card.addEventListener('focusin', () => peekOn(card));
-    card.addEventListener('focusout', ev => {
-      const to = ev && ev.relatedTarget;
-      if (to && card.contains && card.contains(to)) return;
-      peekLater(card);
-    });
-  });
+     ONLY THE HEAD. The body holds the verbs and the notes composer, and a
+     press on Accept, on Send, or into the note box must not fold the card up
+     underneath the hand doing it. So the listener sits on .rl-card-head and
+     the body is not a toggle at any depth.
 
-  host.querySelectorAll('#rl-changes [data-nego-card]').forEach(card =>
-    card.addEventListener('click', () => {
+     AND IT STILL NAVIGATES. Pressing a card has always meant "take me to this
+     change in the contract", and that is the more valuable of the two things
+     the press does — so it happens on every press, opening or shutting. */
+  host.querySelectorAll('#rl-changes [data-nego-card] .rl-card-head').forEach(headEl =>
+    headEl.addEventListener('click', ev => {
+      const card = headEl.closest('[data-nego-card]');
+      if (!card) return;
+      /* The caret is inside the head and has its own handler; without this the
+         two would fight and the card would flip twice for one press. */
+      if (ev.target && ev.target.closest && ev.target.closest('[data-rl-caret]')) return;
       const id = card.getAttribute('data-nego-card');
-      /* A COLLAPSED CARD OPENS ON THE SAME PRESS THAT NAVIGATES. Two presses to
-         reach the verbs on a card you have just scrolled to would be one press
-         too many, and the reader has already said which change they mean. An
-         open card is left open — see rlCardSetOpen for why this is not a
-         toggle. */
-      if (card.getAttribute('data-rl-open') === '0'){
-        /* A click is a commitment where a hover was not: this one stays open
-           until the reader pins another or presses somewhere else. */
-        rlCardSetOpen(id, true, card.getAttribute('data-rl-state'));
-        again();
-        /* The card was re-rendered underneath us, so the focus runs against the
-           new one rather than the node this handler was bound to. */
-        rlLinkFocus(c, id, 'card');
-        return;
-      }
+      rlCardSetOpen(id, !rlCardOpenState(id), card.getAttribute('data-rl-state'));
+      again();
+      /* The card was re-rendered underneath us, so the focus runs against the
+         new one rather than the node this handler was bound to. */
       rlLinkFocus(c, id, 'card');
     }));
 
-  /* ---- AND THE CARET SHUTS IT AGAIN ----
-     Its own control, and the only one that closes: it stops propagation so
-     collapsing a card does not also drag the document to that clause, which is
-     the opposite of what somebody tidying a column wants. */
+  /* ---- AND THE CARET IS THE SAME TOGGLE, SAID OUT LOUD ----
+     It is the affordance: the one thing on a shut card that says there is more
+     under it. It stops propagation so it does not also run the head's handler,
+     and it does NOT drag the document to the clause — somebody tidying a
+     column is not asking to be taken anywhere. */
   host.querySelectorAll('#rl-changes [data-rl-caret]').forEach(btn =>
     btn.addEventListener('click', ev => {
       ev.preventDefault(); ev.stopPropagation();
       const id = btn.getAttribute('data-rl-caret');
       const card = btn.closest ? btn.closest('[data-nego-card]') : null;
-      /* The caret on a card that cannot fold is inert — it is drawn faded for
-         exactly that reason. Pressing it must not pin the card shut and take
-         Accept and Reject off the screen. */
-      if (card && !card.hasAttribute('data-rl-peek')) return;
-      peekOff(card);
-      rlCardSetOpen(id, btn.getAttribute('aria-expanded') !== 'true',
-        card && card.getAttribute('data-rl-state'));
+      rlCardSetOpen(id, !rlCardOpenState(id), card && card.getAttribute('data-rl-state'));
       again();
     }));
 
-  /* ---- PRESSING ANYWHERE ELSE LETS THE PIN GO ----
-     Bound once per mount, on the document, because "somewhere else" is by
-     definition outside the column. Capture is deliberate: a handler inside the
-     page that stops propagation (the clause tools do) would otherwise leave a
-     pin standing after the reader had plainly moved on.
-
-     THE COLUMN IS THIS MOUNT'S, AND SO IS THE REPAINT. Read by id off the
-     document, "outside the column" would be answered by whichever #rl-changes
-     the document happened to hold first; repainted with renderRedline, the
-     unpin would paint the OWNER's workbench from inside the counterparty's
-     portal — the mistake this function's own `again` exists to prevent (see the
-     top of rlWireClauseTools). On that page the visible fault was the plain
-     one: the pin was released in the record and the card stayed open on screen,
-     because the page that had to redraw it was never asked to. */
-  if (!host._rlUnpinBound){
-    host._rlUnpinBound = true;
-    document.addEventListener('click', ev => {
-      const col = host.querySelector && host.querySelector('#rl-changes');
-      /* Gone from the page — a repaint into another view. Nothing to do. */
-      if (!col || !col.isConnected) return;
-      const t = ev && ev.target;
-      if (t && col.contains && col.contains(t)) return;
-      if (rlCardUnpinAll()) again();
-    }, true);
-  }
+  /* PRESSING ANYWHERE ELSE USED TO CLOSE THEM ALL, on the reasoning that a
+     press outside the column was the reader moving on. It is gone with the
+     rest of the automatic state: a card the reader opened stays open until the
+     reader closes it, and clicking into the document to read a clause is not a
+     request to lose your place in the column. */
 
   /* ---- CONTRACT → CARD ----
      And the same in reverse, from the clause. Two things are deliberately not
@@ -9383,6 +9371,34 @@ function rlOneNoticeHtml(c, opts = {}){
   if (rv) return rv;
   return (window.deskNoticeHtml ? deskNoticeHtml(c, opts) : '') || '';
 }
+
+/* ---------- AND NONE OF IT SITS ON TOP OF THE CONTRACT ----------
+   Every notice this page raises used to be a full-width band above the
+   document: a review handed back, a desk you are only reading, the reading
+   you have switched to. Reported as exactly that (Young, 10 Aug 2026) — "these
+   pop ups should never appear on top of the contract" — and it is the right
+   complaint. A band is permanent furniture, it pushes the agreement down the
+   screen for the whole sitting, and the thing it is announcing is usually
+   news: true for a minute, then just a thing in the way.
+
+   So they float, bottom-right, over the page rather than above it, and every
+   one of them can be cleared. They are the same builders — the review's banner
+   is still reviewBannerHtml, with its own ✕ and its own rules about who may
+   see it — only their place on the screen has moved.
+
+   ONE STACK, BUILT HERE rather than in renderRedline, so the counterparty's
+   embed and the room get it too. Nothing in it is drawn twice: the page's own
+   copy was removed when this arrived. */
+function rlFloatingNoticesHtml(c, opts = {}){
+  const rows = [
+    (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''),
+    rlReadNoticeHtml(),
+  ].filter(Boolean);
+  /* Empty means empty: an always-present container would sit over the bottom
+     corner of the contract catching clicks meant for the document. */
+  if (!rows.length) return '';
+  return `<div class="rl-notices" id="rl-notices">${rows.join('')}</div>`;
+}
 /* ---- TWO REASONS THIS PERSON CANNOT REACH THE OTHER SIDE, ONE ANSWER ----
    A reviewer mid-review, and somebody who is not the lead of this negotiation.
    They are different facts with the same consequence — no publishing, no
@@ -9805,15 +9821,8 @@ function redlineChangeCardsHtml(c, opts = {}){
        only affordance saying there is more, so it is drawn on every card that
        can collapse rather than on hover. */
     const open = rlCardIsOpen(ch, verbs);
-    /* A card with something to press never peeks and never folds itself away —
-       see the comment on _rlCardChoice for why that exemption is the whole
-       safety argument for this behaviour. */
-    const mayPeek = !rlCardNeedsYou(verbs);
-    /* THE BODY IS ALWAYS RENDERED, and hidden by CSS when the card is shut.
-       A peek can then be a class on the live node rather than a repaint of the
-       column — repainting on mouseenter would fight the pointer and drop the
-       node the event came from. Safe only because of the exemption above: a
-       card that can be in the hidden state carries nothing but inert verbs. */
+    /* THE BODY IS ALWAYS RENDERED, and hidden by CSS when the card is shut, so
+       the open/shut flip costs one class rather than a rebuild of the column. */
     /* The reviewer's verdict, and — on the reviewer's own screen — the buttons
        that set it. Both come from js/review.js so this card and the contract
        tab's card cannot disagree about what the boss said. */
@@ -9898,14 +9907,22 @@ function redlineChangeCardsHtml(c, opts = {}){
       rvHeld ? ' data-rv-held="1"' : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
       ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}"${
-      mayPeek ? ' data-rl-peek="1"' : ''}${
-      ''/* What the reader's open/shut choice was made ABOUT — see rlCardSetOpen. */
+      ''/* What the reader's open/shut choice was made ABOUT. The choice no
+             longer turns on it — see rlCardIsOpen — but it is what the tests
+             and the wiring name the card's shape by, so it is still stamped. */
       } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
-      <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
-        ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
-        ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}</div>
-      <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
-      ${diff}
+      ${''/* ---- THE HEAD IS THE TOGGLE ----
+             Wrapped, so the press that opens and shuts the card has an element
+             of its own and the body underneath it has none. Everything in here
+             is a LABEL — the id, whose ask it is, where it stands, what is
+             being asked for — and everything below is a control. */}
+      <div class="rl-card-head">
+        <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
+          ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
+          ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}</div>
+        <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
+        ${diff}
+      </div>
       ${body}
     </article>`;
   }).join('');
@@ -10303,15 +10320,18 @@ function redlinePanesHtml(c, opts = {}){
      are undefined and the clause tools render as transparent boxes with white
      text on a white page. */
   return `<div id="nego-root" class="rl-root">
-    <div id="rl-banner">${''/* THE INTERNAL REVIEW LINE COMES FIRST, and it is not
-           behind opts.bannerHtml. That override exists so the portal can supply
-           its own wall line; a review is the one thing on this page the portal
-           must never be told about, so it is drawn outside the override and
-           reviewBannerHtml itself returns nothing in PORTAL_MODE or read-only.
-           Two locks, because the cost of getting this one wrong is telling the
-           counterparty that we are arguing about their wording internally. */
-      }${window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''}${
-      opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
+    <div id="rl-banner">${''/* THE INTERNAL REVIEW LINE HAS LEFT THIS SLOT. It was
+           drawn here, first, as a full-width band — and a band above the
+           document is the one thing this page had been asked repeatedly not to
+           do. It floats bottom-right now with the rest of the notices; see
+           rlFloatingNoticesHtml at the foot of this builder, which is also
+           where the note about the portal never learning of a review has gone.
+
+           What is left in this slot is the WALL LINE, which is not news: on the
+           counterparty's page it is the sentence explaining that their
+           decisions stay on the page until they press Send, and it belongs
+           where they will read it before they start. */
+      }${opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
       ''/* THE SET-ONCE EMAIL STRIP USED TO SIT HERE, and it was the last full
            width band between the top of this page and the first word of the
            contract. The address is a fact about the counterparty, so it is a
@@ -10424,6 +10444,10 @@ function redlinePanesHtml(c, opts = {}){
         </div>
       </aside>
     </div>
+    ${''/* OVER THE PAGE, NOT ABOVE IT — see rlFloatingNoticesHtml. Last in the
+           markup and position:fixed, so it floats clear of the grid rather than
+           taking a row from it. */}
+    ${rlFloatingNoticesHtml(c, opts)}
   </div>`;
 }
 
@@ -10543,7 +10567,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
   redlineCardIds, rlOneNoticeHtml, rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
-  rlCardForgetPins, RL_CARD_PEEK_MS,
+  rlCardForgetPins, rlCardOpenState,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlRestoreScroll,
   redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,

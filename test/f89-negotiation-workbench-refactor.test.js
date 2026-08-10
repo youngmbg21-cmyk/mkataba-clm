@@ -758,9 +758,11 @@ describe('F89 (14) — the card says what the change is, in two lines', () => {
   });
 
   test('and pressing the card still takes you to it', async () => {
+    /* THE HEAD IS THE PRESS TARGET. A card is a toggle now (10 Aug 2026) and
+       only its head carries the listener, so the body — the verbs, the note
+       box — cannot fold the card away underneath the hand using it. */
     const p = await page();
-    const card = p.$('#rl-changes .rl-card');
-    card.click();
+    p.$('#rl-changes .rl-card .rl-card-head').click();
     assert.ok(p.$('#rl-doc .rl-clause.is-linked'),
       'the card is a handle: the press is how you reach the wording it stands for');
   });
@@ -814,12 +816,25 @@ describe('F89 (15) — a clause and its card are one thing shown twice', () => {
   test('clicking the card lights and reaches its clause', async () => {
     const p = await page();
     const ch = p.win.negoChanges(p.c)[0];
-    const clause = p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"]`);
+    /* RE-QUERIED AFTER THE PRESS. The head both jumps and toggles, and the
+       toggle repaints the page — so a node held from before is detached
+       afterwards, its class never changes, and the assertion reads false for a
+       reason that has nothing to do with the pairing under test. The stub is
+       put on the prototype's own element each time it is looked up. */
+    const clauseNow = () => p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"]`);
     let scrolled = null;
-    clause.scrollIntoView = o => { scrolled = o; };
-    p.$(`#rl-changes [data-nego-card="${ch.id}"]`).click();
-    assert.ok(clause.classList.contains('is-linked'));
-    assert.ok(scrolled && scrolled.behavior === 'smooth', 'the clause is scrolled to, smoothly');
+    const stub = o => { scrolled = o; };
+    clauseNow().scrollIntoView = stub;
+    /* The repaint replaces the node, so the stub has to survive it: patch the
+       prototype for the length of this test rather than one element. */
+    const proto = p.win.Element.prototype;
+    const real = proto.scrollIntoView;
+    proto.scrollIntoView = stub;
+    try {
+      p.$(`#rl-changes [data-nego-card="${ch.id}"] .rl-card-head`).click();
+      assert.ok(clauseNow().classList.contains('is-linked'));
+      assert.ok(scrolled && scrolled.behavior === 'smooth', 'the clause is scrolled to, smoothly');
+    } finally { proto.scrollIntoView = real; }
   });
 
   test('the end that was clicked is not yanked out from under the pointer', async () => {
@@ -890,12 +905,10 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
       'the fact stays on the head, which is the part that never folds');
     const card = p.$('#rl-changes .rl-card');
     assert.equal(card.getAttribute('data-rl-open'), '0');
-    /* The body is in the DOM and hidden by the shut class rather than removed —
-       that is what lets a hover peek be a class flip instead of a repaint of
-       the whole column. Safe because only cards with nothing to press can be
-       in this state; see _rlCardChoice. */
+    /* The body is in the DOM and hidden by the shut class rather than removed,
+       so opening it is a class flip rather than a rebuild of the column. */
     assert.ok(card.classList.contains('rl-card-shut'), 'and the body folds away with it');
-    assert.ok(card.hasAttribute('data-rl-peek'), 'a sent card is one the reader may peek at');
+    assert.ok(card.querySelector('.rl-card-head'), 'with the head that opens it again');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 
@@ -904,7 +917,7 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
-    p.$('#rl-changes .rl-card').click();
+    p.$('#rl-changes .rl-card .rl-card-head').click();
     p.win.renderRedline();
     const sent = p.$('#rl-changes button.rl-sent');
     assert.ok(sent, 'the verb is where it was rather than gone');

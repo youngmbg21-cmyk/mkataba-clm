@@ -282,12 +282,21 @@ describe('F93 (4) — a card and its clause are one thing shown twice', () => {
   test('clicking a card lights and reaches the clause', async () => {
     const p = await page({ myChange: true });
     const id = p.$('#rl-changes [data-rl-origin="them"]').getAttribute('data-nego-card');
-    const clause = p.$(`#rl-doc [data-nego-card-anchor="${id}"]`);
+    /* THE HEAD IS THE PRESS TARGET (10 Aug 2026), and the nodes are re-queried
+       after it: the press both jumps and toggles the card, and the toggle
+       repaints — so anything held from before is detached and every assertion
+       about it reads false for the wrong reason. The scroll stub goes on the
+       prototype for the same reason. */
+    const clauseNow = () => p.$(`#rl-doc [data-nego-card-anchor="${id}"]`);
     let scrolled = null;
-    clause.scrollIntoView = o => { scrolled = o; };
-    p.$(`#rl-changes [data-nego-card="${id}"]`).click();
-    assert.ok(clause.classList.contains('is-linked'), 'the clause lights');
-    assert.ok(scrolled && scrolled.behavior === 'smooth', 'and is scrolled to, smoothly');
+    const proto = p.win.Element.prototype;
+    const real = proto.scrollIntoView;
+    proto.scrollIntoView = o => { scrolled = o; };
+    try {
+      p.$(`#rl-changes [data-nego-card="${id}"] .rl-card-head`).click();
+      assert.ok(clauseNow().classList.contains('is-linked'), 'the clause lights');
+      assert.ok(scrolled && scrolled.behavior === 'smooth', 'and is scrolled to, smoothly');
+    } finally { proto.scrollIntoView = real; }
   });
 
   test('clause → card sync works the other way round too', async () => {

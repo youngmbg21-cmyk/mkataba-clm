@@ -112,6 +112,40 @@ async function shot(page, name, note){
     await pause(2600);
     await shot(page, '03-negotiate-workbench', 'the redline: the sheet on the left, the cards on the right');
 
+  /* ---- A NOTICE THAT DOES NOT SIT ON THE CONTRACT ----
+     Photographed because the complaint was about WHERE it was, and a place on
+     the screen is the one thing prose is worst at. A review handed back used
+     to be a full-width green band above the agreement; it is a card in the
+     bottom-right corner with a ✕ on it. */
+  const askedFor = await page.evaluate(() => {
+    const c = window.state.contracts.find(x => x.id === window.state.activeId);
+    if (!c || !window.reviewAsk) return { why: 'no contract or no reviewAsk' };
+    const me = window.currentUser && window.currentUser();
+    const other = (window.getUsers ? window.getUsers() : []).find(u => u && me && u.id !== me.id);
+    const live = (window.negoChanges ? window.negoChanges(c) : []).filter(x => x.status === 'pending');
+    if (!other || !live.length) return { why: 'other=' + !!other + ' live=' + live.length };
+    /* Asked, then handed straight back — the state in the report. */
+    /* `ids`, and it returns the review itself — reviewAsk's own contract. */
+    const rv = window.reviewAsk(c, { reviewer: other, ids: [live[0].id] });
+    if (!rv) return { why: 'reviewAsk refused' };
+    window.reviewMark(c, live[0].id, 'cleared', { by: other.name });
+    window.reviewReturn(c, { reviewId: rv.id, by: other.name });
+    /* NOT PERSISTED. This drives the model directly to reach a state that
+       normally takes two people and two sittings, and the server — correctly —
+       refuses a verdict on a review it has already seen closed. Saving would
+       put a red refusal over the very corner being photographed, about the
+       set-up rather than about the page. The shot is of the screen. */
+    return true;
+  });
+  if (askedFor && askedFor.why) console.log('  (no review shot: ' + askedFor.why + ')');
+  if (askedFor === true){
+    await page.evaluate(() => window.renderRedline());
+    await pause(700);
+
+    await shot(page, '03c-a-notice-floats-clear-of-the-contract',
+      'a review handed back: bottom-right, over the page, with a way to clear it');
+  }
+
   /* ---- THE THREE READINGS ----
      The same clauses, drawn as the wording stands today. Photographed because
      it is the one thing on this page that cannot be checked by reading the

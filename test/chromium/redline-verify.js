@@ -389,13 +389,103 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
   check('14 the card says it can fold', delta.caret);
 
+  /* ---- 14b. THE CARD IS A TOGGLE ----
+     Asked for in one sentence (Young, 10 Aug 2026): "the cards you only open
+     when you click on them and you click again and they disappear." A jsdom
+     test can read data-rl-open, but only a browser can prove the three things
+     that make it usable: that it starts shut, that the same press closes it,
+     and — the one that would hurt — that pressing a VERB inside an open card
+     does not fold the card away underneath the hand pressing it. */
+  const toggle = await page.evaluate(async () => {
+    const settle = () => new Promise(r => setTimeout(r, 260));
+    /* FOLLOWED BY ID, not by position. Every press below repaints the column,
+       and a verb that settles a change takes its card out of it — so "the first
+       card" would silently become a different change halfway through and the
+       test would be measuring something else. */
+    const ID = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
+    const card = () => document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(ID)}"]`);
+    const press = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const state = () => card().getAttribute('data-rl-open');
+    const bodyShown = () => {
+      const b = card().querySelector('.rl-card-body');
+      return !!b && getComputedStyle(b).display !== 'none';
+    };
+    const start = { open: state(), body: bodyShown() };
+    press(card().querySelector('.rl-card-head')); await settle();
+    const opened = { open: state(), body: bodyShown() };
+    press(card().querySelector('.rl-card-head')); await settle();
+    const shut = { open: state(), body: bodyShown() };
+    /* Open it again, then press INTO THE NOTE BOX — the realistic version of
+       the risk this guards: a reader reaching for the composer inside an open
+       card must not have the card fold up under the pointer. Deliberately not
+       Accept or Send: those settle the change and take the card out of the
+       column, so a fold could not be told from a decision. */
+    press(card().querySelector('.rl-card-head')); await settle();
+    const inner = card().querySelector('.rl-card-body textarea, .rl-card-body .rl-cnote-add');
+    const innerWhat = inner ? (inner.outerHTML || '').slice(0, 90) : '';
+    if (inner) press(inner);
+    await settle();
+    const afterInner = { open: state(), body: bodyShown(), pressed: !!inner, innerWhat };
+    /* And hovering must do nothing at all. */
+    press(card().querySelector('.rl-card-head')); await settle();   // back to shut
+    card().dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    card().dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    await settle();
+    const hovered = { open: state(), body: bodyShown() };
+    return { start, opened, shut, afterInner, hovered };
+  });
+  check('14b a card arrives shut', toggle.start.open === '0' && !toggle.start.body,
+    JSON.stringify(toggle.start));
+  check('14b one press opens it', toggle.opened.open === '1' && toggle.opened.body,
+    JSON.stringify(toggle.opened));
+  check('14b and the next press shuts it again',
+    toggle.shut.open === '0' && !toggle.shut.body, JSON.stringify(toggle.shut));
+  check('14b pressing a verb inside it does NOT fold it away',
+    toggle.afterInner.pressed && toggle.afterInner.open === '1' && toggle.afterInner.body,
+    JSON.stringify(toggle.afterInner));
+  check('14b and hovering opens nothing — the peek is gone',
+    toggle.hovered.open === '0' && !toggle.hovered.body, JSON.stringify(toggle.hovered));
+
+  /* ---- 14c. THE NOTICES NEVER SIT ON THE CONTRACT ----
+     "these pop ups should never appear on top of the contract. They can appear
+     on the bottom right of the screen and have the ability to clear them off."
+     Measured as geometry, which is the only way to prove it: a band above the
+     sheet and a card floating over the corner are the same markup at different
+     coordinates. */
+  const notices = await page.evaluate(() => {
+    const box = document.querySelector('.rl-notices');
+    const sheet = document.querySelector('.rl-paper');
+    const banner = document.getElementById('rl-banner');
+    const out = { inBanner: !!(banner && banner.querySelector('.rv-banner, .dk-notice')) };
+    if (!box) return { ...out, present: false };
+    const n = box.getBoundingClientRect(), s = sheet.getBoundingClientRect();
+    return { ...out, present: true,
+      fixed: getComputedStyle(box).position === 'fixed',
+      overlapsSheet: !(n.right < s.left || n.left > s.right || n.bottom < s.top || n.top > s.bottom),
+      bottomRight: n.right > window.innerWidth * 0.6 && n.bottom > window.innerHeight * 0.6,
+      clears: box.querySelectorAll('[data-rv-act="rv-clear"], [data-dk-clear], .rl-note-btn').length };
+  });
+  check('14c no notice is drawn as a band above the document', !notices.inBanner);
+  if (notices.present){
+    check('14c the notices float, bottom-right, clear of the sheet',
+      notices.fixed && notices.bottomRight && !notices.overlapsSheet, JSON.stringify(notices));
+    check('14c and every one of them can be cleared', notices.clears > 0, notices.clears);
+  }
+
   /* ---- 15. clause <-> card, both directions, with real scrolling ---- */
   const sync = await page.evaluate(async () => {
     const id = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
-    const clause = document.querySelector(`#rl-doc [data-nego-card-anchor="${CSS.escape(id)}"]`);
-    const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
-    const docScroll = document.getElementById('nego-scroll-work');
-    const colScroll = document.getElementById('nego-cards');
+    /* ---- RE-QUERIED AFTER EVERY PRESS, NEVER HELD ----
+       Pressing a card's head both jumps AND toggles it, and the toggle
+       repaints the column. A node captured before the press is detached
+       afterwards: its class never changes and its rect is zero, so every
+       assertion about it reads false for a reason that has nothing to do with
+       the behaviour under test. Held nodes are how this check reported "the
+       jump does not scroll" on a jump that worked. */
+    const clauseEl = () => document.querySelector(`#rl-doc [data-nego-card-anchor="${CSS.escape(id)}"]`);
+    const cardEl = () => document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
+    const docScroll = () => document.getElementById('nego-scroll-work');
+    const colScroll = () => document.getElementById('nego-cards');
     const seen = (el, box) => {
       const b = el.getBoundingClientRect(), v = box.getBoundingClientRect();
       return b.top < v.bottom && b.bottom > v.top;
@@ -412,26 +502,36 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        travelled 8px of 781 while the card column beside it, which carries no
        scroll-behavior, had gone the whole way. */
     const top = el => el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
-    top(docScroll); top(colScroll);
+    top(docScroll()); top(colScroll());
     await new Promise(r => setTimeout(r, 120));
-    const hidBefore = { clause: !seen(clause, docScroll), card: !seen(card, colScroll) };
+    const hidBefore = { clause: !seen(clauseEl(), docScroll()), card: !seen(cardEl(), colScroll()) };
 
-    card.click();
+    /* THE HEAD IS THE PRESS TARGET, not the article. A card is a toggle now
+       (see 14b) and only its head carries the listener, so clicking the
+       article does nothing at all — which is what this check was doing, and
+       silently reporting as "the jump does not scroll". */
+    cardEl().querySelector('.rl-card-head').click();
     await new Promise(r => setTimeout(r, 700));
-    const fromCard = { clauseLit: clause.classList.contains('is-linked'),
-      cardLit: card.classList.contains('is-linked'), clauseSeen: seen(clause, docScroll) };
+    const fromCard = { clauseLit: clauseEl().classList.contains('is-linked'),
+      cardLit: cardEl().classList.contains('is-linked'),
+      clauseSeen: seen(clauseEl(), docScroll()) };
 
-    top(docScroll); top(colScroll);
+    top(docScroll()); top(colScroll());
     await new Promise(r => setTimeout(r, 120));
-    clause.click();
+    clauseEl().click();
     await new Promise(r => setTimeout(r, 700));
-    const fromClause = { cardLit: card.classList.contains('is-linked'),
-      cardSeen: seen(card, colScroll) };
+    const fromClause = { cardLit: cardEl().classList.contains('is-linked'),
+      cardSeen: seen(cardEl(), colScroll()) };
     return { hidBefore, fromCard, fromClause,
       lit: document.querySelectorAll('#view-redline .is-linked').length };
   });
-  check('15 both ends were genuinely out of view first',
-    sync.hidBefore.clause && sync.hidBefore.card, JSON.stringify(sync.hidBefore));
+  /* ONLY THE CLAUSE HAS TO BE HIDDEN FIRST. It used to demand both ends, and
+     the card end stopped being demandable when cards began arriving shut: a
+     column of two-line cards does not fill its pane, so there is nowhere to
+     push a card out of view TO. What the check is for is the document's jump,
+     and that precondition still holds. */
+  check('15 the clause was genuinely out of view first',
+    sync.hidBefore.clause, JSON.stringify(sync.hidBefore));
   check('15 card -> contract lights both ends', sync.fromCard.clauseLit && sync.fromCard.cardLit);
   check('15 card -> contract scrolls the clause into view', sync.fromCard.clauseSeen);
   check('15 contract -> card lights and scrolls the card', sync.fromClause.cardLit && sync.fromClause.cardSeen);
