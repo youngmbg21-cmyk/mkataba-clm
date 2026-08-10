@@ -1606,9 +1606,20 @@ function negoDocHtml(c, opts){
      sub-paragraphs instead of collapsing into one paragraph. That collapse was
      worst exactly where it hurt most: the clause a reader is being asked to
      decide about. */
-  const redline = ch => (window.redlineOpsBlocksHtml && Array.isArray(ch.ops) && ch.ops.length)
-    ? redlineOpsBlocksHtml(ch.ops)
-    : (window.negoChangeHtml ? negoChangeHtml(ch) : _ne(ch.newText || ''));
+  /* ---- AND IT HONOURS THE READING THE PERSON CHOSE ----
+     The three readings are switched on the workbench (see rlReadMode), and the
+     choice is one module-level value rather than one per surface. This
+     renderer has no switch of its own, but it must not contradict the one that
+     does: a reader who set "As agreed" on the workbench and then opened this
+     room would otherwise be shown the marks again with nothing saying why.
+     Same predicate, same ops transform — THE MAP's rule that both renderers
+     draw a pending change the same way. */
+  const redline = ch => {
+    const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
+    return (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
+      ? redlineOpsBlocksHtml(ops)
+      : (window.negoChangeHtml ? negoChangeHtml(ch) : _ne(ch.newText || ''));
+  };
   /* The adopted wording, in the same blocks. Built off the ops with the
      deletions dropped, so an accepted clause reads as the document rather than
      as the redline minus its red. */
