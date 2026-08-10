@@ -3774,7 +3774,23 @@ function roomHeadHtml(c,opts={}){
         <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c)
           :(window.statusChip?statusChip(c.status):esc(c.status||''))}</span>
       </div>
-      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
+      ${''/* ---- THE ROUND READS WITH THE OTHER FACTS ABOUT THE CONTRACT ----
+             It used to be an amber chip at the end of the workbench's tab row,
+             which is navigation furniture, and it appeared on one of the five
+             tabs. Where a negotiation is actually running the round is a fact
+             about this agreement exactly like its stream and its value, so it
+             reads here — on every tab, from one line (Young, 10 Aug 2026).
+             Drawn only where there IS a negotiation: "Round 1" over a draft
+             nobody has redlined is a number about nothing. */}
+      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${
+        (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
+        ''/* `typeof`, not window: fmtMoney is a top-level const in
+              js/jurisdiction.js and a const is a LEXICAL binding, not a
+              property of window — the trap THE MAP records against currentUser
+              and friends. A bare call from a stage that has not loaded that
+              file is a ReferenceError that takes the whole head down. */}${
+        (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(fmtMoney(c.value)):''}${
+        c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
     </div>
     <div class="room-acts">
       ${''/* ---- THE DESK, AND IT COSTS THE PAGE ONE CONTROL ----

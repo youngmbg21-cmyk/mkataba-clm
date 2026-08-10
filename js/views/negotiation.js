@@ -5176,7 +5176,7 @@ async function negoConfirmCloseRound(c){
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
 const negoIsRedeciding = id => !!_negoRedeciding[id];
-function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlCardFilter = 'all'; negoSetComparePair('baseline', 'working'); }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlCardFilter = 'all'; _rlRead = 'marks'; negoSetComparePair('baseline', 'working'); }
 
 /* ---------- WHICH CARDS THE TRACKED CHANGES COLUMN SHOWS ----------
    A view choice, not a data change: the cards it hides are still on the
@@ -5230,6 +5230,77 @@ if (typeof document !== 'undefined' && !document._rlRvDocWired){
 function rlSetCardFilter(v){
   _rlCardFilter = RL_CARD_FILTERS.some(([k]) => k === v) ? v : 'all';
   return _rlCardFilter;
+}
+
+/* ---------- HOW THE CONTRACT IS BEING READ ----------
+   THREE READINGS OF ONE RECORD, and not one of them changes it. The workbench
+   has always drawn the marked-up reading — every live proposal shown as a
+   strike and an insertion — which is the right default and a hard read once a
+   round carries eight of them. Two more were asked for (Young, 10 Aug 2026):
+
+   - AGREED  — the wording as it stands today, proposals NOT applied. What the
+               contract says if nobody does anything.
+   - PROPOSED— every live proposal folded in, read as one clean contract. What
+               the contract would say if this round were accepted whole.
+
+   Settled changes are not affected by any of this: an accepted insertion is
+   the wording, a rejected one is not, in all three readings. Only the LIVE
+   ones — the ones still being argued about — read differently, because they
+   are the only ones whose outcome is still a question.
+
+   Per sitting and in memory. A reading is a posture for an afternoon, not a
+   setting about a contract, and a colleague opening the same page must not be
+   shown a document silently missing its marks. negoResetView clears it. */
+const RL_READS = ['marks', 'agreed', 'proposed'];
+let _rlRead = 'marks';
+function rlReadMode(){ return _rlRead; }
+function rlSetReadMode(v){
+  _rlRead = RL_READS.includes(v) ? v : 'marks';
+  return _rlRead;
+}
+/* The sentence the floating notice prints, and the one place that decides
+   whether a notice is owed at all — an empty string means the page is on its
+   ordinary reading and has nothing to explain. */
+function rlReadNote(){
+  return _rlRead === 'proposed'
+    ? i18t('ng_read_note_proposed')
+    : _rlRead === 'agreed' ? i18t('ng_read_note_agreed') : '';
+}
+/* ---- WHICH SIDE OF A CHANGE A READING SHOWS ----
+   'marks' means draw it as a redline; 'del' means draw the wording it would
+   replace; 'ins' means draw the wording it proposes. A SETTLED change answers
+   the same in all three readings, because its outcome is no longer a question:
+   an accepted change IS the wording, a rejected or withdrawn one is not. Only
+   the live ones follow the switch. One function, so the document, the cards
+   and anything drawn later cannot answer it three different ways. */
+function rlReadSideOf(ch, mode){
+  if (!ch) return 'marks';
+  if (ch.status === 'accepted') return 'ins';
+  if (ch.status === 'rejected' || ch.withdrawn) return 'del';
+  const m = mode || rlReadMode();
+  return m === 'agreed' ? 'del' : m === 'proposed' ? 'ins' : 'marks';
+}
+/* The ops array as one side of itself: the kept runs stay, the wanted side
+   becomes ordinary text, the other side goes. Never mutates — the record's own
+   ops are what the fingerprint is taken over. */
+function rlOpsAsSide(ops, which){
+  if (which === 'marks' || !Array.isArray(ops)) return ops;
+  const drop = which === 'ins' ? 'del' : 'ins';
+  return ops.filter(o => o && o.op !== drop)
+    .map(o => (o.op === which ? { ...o, op: 'keep' } : o));
+}
+/* THE NOTICE IS OWED, NOT OPTIONAL. A document silently missing its strikes
+   looks like a document with nothing on the table — the most expensive thing
+   this page could get wrong — so a non-default reading always says so, and the
+   way back is on the notice itself rather than only in the toolbar. */
+function rlReadNoticeHtml(){
+  const note = rlReadNote();
+  if (!note) return '';
+  return `<div class="rl-note-card" id="rl-read-note">
+    <div class="rl-note-k"><span class="rl-note-dot"></span>${i18t('ng_read_note_k')}</div>
+    <p class="rl-note-t">${_ne(note)}</p>
+    <button type="button" data-rl-read="marks" class="rl-note-btn">${i18t('ng_read_back')}</button>
+  </div>`;
 }
 
 /* ---------- THE REDLINE PAGE ----------
@@ -5396,13 +5467,7 @@ function redlineLayoutCss(){
      buttons — so nowrap costs no content. */
   .redline-page .rl-head{display:flex;flex-wrap:nowrap;align-items:center;gap:8px 12px;
     margin:0 2px;flex:none;min-height:38px}
-  /* The middle pane's name and its count of marks. */
-  .redline-page .rl-doc-head{display:flex;align-items:center;gap:8px;flex:none;
-    padding:9px 14px;border-bottom:1px solid var(--color-divider);font-size:12.5px}
-  .redline-page .rl-doc-marked{margin-left:auto;display:inline-flex;align-items:center;gap:6px;
-    font-size:10.5px;font-weight:600;color:var(--color-neutral-600);
-    background:var(--color-neutral-100);border-radius:999px;padding:2px 9px}
-  .redline-page .rl-doc-dot{width:6px;height:6px;border-radius:50%;background:var(--st-amber-dot)}
+  /* The middle pane's head went with the head (see redlinePanesHtml). */
   .redline-page .rl-head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}
   /* WRAPS: this strip now carries tabs, round, stepper, focus, the contract
      jump, the playbook pass and the presence pill — on a laptop width they
@@ -5450,11 +5515,53 @@ function redlineLayoutCss(){
   html.dark .rl-type-step button{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:#cbd5e1}
   html.dark .rl-type-step button:hover{background:rgba(15,23,42,.75)}
   html.dark .rl-type-step .rl-type-out{color:#cbd5e1}
-  .redline-page .rl-segwrap{display:flex;align-items:center;gap:2px;background:var(--color-neutral-100);
-    border:1px solid var(--color-divider);padding:3px;border-radius:9px}
-  .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:11px;font-weight:600;padding:4px 10px;
-    border-radius:6px;cursor:pointer;color:var(--color-neutral-500);white-space:nowrap}
-  .redline-page .rl-seg.on{background:var(--accent-solid);color:#fff;box-shadow:0 1px 3px rgba(15,23,42,.18)}
+  /* ---- ONE SHELL FOR EVERY CONTROL ON THIS ROW ----
+     34px tall, 9px radius, on the hairline. Colour is reserved for the one
+     primary act (Publish Round) and for small status dots, so the strip reads
+     as one object rather than as five competing buttons. The pressed face of a
+     segmented pair is RAISED — white on the tray with a shadow under it —
+     rather than filled with the accent: two accent fills on one row would
+     compete with the act. */
+  .redline-page .rl-segwrap{display:flex;align-items:center;gap:3px;background:var(--color-neutral-100);
+    border:1px solid var(--color-divider);padding:3px;border-radius:9px;height:34px;flex:none}
+  .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:12px;font-weight:500;
+    height:26px;padding:0 12px;border-radius:7px;cursor:pointer;color:var(--color-neutral-500);
+    white-space:nowrap;transition:background .12s,color .12s}
+  .redline-page .rl-seg.on{background:var(--color-surface);color:var(--color-text);font-weight:600;
+    box-shadow:0 1px 2px rgba(15,23,42,.08)}
+  html.dark .redline-page .rl-seg.on{background:var(--color-neutral-200);box-shadow:none}
+  /* ---- WHAT IS WAITING ON YOU ----
+     A quiet button with an amber dot: the dot is the news, the words are the
+     count and the arrow says it goes somewhere. Deliberately NOT filled — it
+     is a way into the work, not the act that ends the round. */
+  .redline-page .rl-needs{display:flex;align-items:center;gap:8px;height:34px;flex:none;
+    border:1px solid var(--color-divider);background:var(--color-surface);border-radius:9px;
+    padding:0 13px;font:inherit;font-size:12px;font-weight:500;color:var(--color-neutral-700);
+    cursor:pointer;white-space:nowrap}
+  .redline-page .rl-needs:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
+  .redline-page .rl-needs-dot{width:7px;height:7px;border-radius:999px;background:var(--st-amber-dot);flex:none}
+  .redline-page .rl-needs-go{color:var(--color-neutral-400)}
+  /* ---- THE FLOATING NOTICES ----
+     Bottom-right, over the page, never a band above the contract. See the note
+     at the markup for why. Capped so a long sentence cannot become a panel,
+     and pointer-events only on the cards themselves so the empty column below
+     them does not swallow clicks on the document. */
+  .redline-page .rl-notices{position:fixed;right:22px;bottom:22px;z-index:55;display:flex;
+    flex-direction:column;gap:9px;width:344px;max-width:calc(100vw - 44px);pointer-events:none}
+  .redline-page .rl-note-card{pointer-events:auto;border:1px solid var(--color-divider);
+    background:var(--color-surface);border-radius:12px;padding:12px 14px;
+    box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
+  .redline-page .rl-note-k{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)}
+  .redline-page .rl-note-dot{width:6px;height:6px;border-radius:999px;background:var(--color-neutral-400);flex:none}
+  .redline-page .rl-note-t{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:var(--color-neutral-600)}
+  .redline-page .rl-note-btn{margin-top:10px;height:29px;border:1px solid var(--color-divider);
+    border-radius:8px;background:var(--color-surface);padding:0 12px;font:inherit;font-size:12px;
+    font-weight:600;color:var(--color-accent-700);cursor:pointer}
+  .redline-page .rl-note-btn:hover{border-color:var(--color-accent-700)}
+  /* Focus mode is the document and nothing else, and a floating card over it
+     is the "nothing else". */
+  .redline-page.rl-focus .rl-notices{display:none}
   .redline-page .rl-btn{border:1px solid transparent;font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;
     border-radius:9px;cursor:pointer;white-space:nowrap}
   .redline-page .rl-btn:disabled{opacity:.45;cursor:not-allowed}
@@ -5617,8 +5724,15 @@ function redlineLayoutCss(){
      shape: a bounded measure, centred, white, with the sheet's own shadow —
      and the column behind it drops to the page background (see .rl-doc) so
      the gutters read as page, not as card. */
-  .redline-page .rl-paper{padding:30px 36px 36px;max-width:720px;
-    background:var(--color-surface);border:0;border-radius:2px;box-shadow:var(--shadow-md);margin:0 auto}
+  /* ---- THE SHEET ----
+     Warm ground, a warm hairline round it, a 14px radius and a long soft lift:
+     paper on a desk rather than a fourth white card on a white page. The three
+     values are tokens (index.html) because the Document tab, the counterparty's
+     page and the phone paint the SAME sheet, and because the dark theme has to
+     be able to answer differently — cream on a dark page is a stain. */
+  .redline-page .rl-paper{padding:34px 40px 44px;max-width:720px;
+    background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);
+    border-radius:14px;box-shadow:var(--shadow-paper);margin:0 auto}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
      The engine reserves it — padding-left:100px on .nego-pane.working
      .nego-doc — because in the room the fingerprint badges hang there, outside
@@ -5635,10 +5749,17 @@ function redlineLayoutCss(){
   @media (max-width:1023px){
     .redline-page .nego-pane.working .rl-paper{padding-left:20px;padding-right:20px}
   }
-  .redline-page .rl-paper-head{text-align:center;border-bottom:1px solid var(--color-divider);
-    padding-bottom:14px;margin-bottom:18px}
-  .redline-page .rl-paper-title{margin:0;font-size:19px;font-weight:700;letter-spacing:.01em}
-  .redline-page .rl-paper-sub{margin:5px 0 0;font-size:11.5px;color:var(--color-neutral-500)}
+  /* ---- THE FRONT MATTER READS LIKE A DEED ----
+     Centred, with a short rule under it rather than a full-width border: a
+     line all the way across reads as a table header, a 46px rule reads as the
+     flourish a printed agreement carries between its title and its first
+     clause. */
+  .redline-page .rl-paper-head{text-align:center;padding-bottom:0;margin-bottom:22px}
+  .redline-page .rl-paper-head::after{content:"";display:block;width:46px;height:1px;
+    background:var(--color-doc-rule);margin:22px auto 0}
+  .redline-page .rl-paper-title{margin:10px 0 0;font-family:var(--font-heading);
+    font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--color-doc-text)}
+  .redline-page .rl-paper-sub{margin:8px 0 0;font-size:13px;color:var(--color-doc-muted)}
   /* The kicker above the title — the Doc page's own line, in its clothes:
      mono, uppercase, wide tracking. Rendered from the document, not invented. */
   .redline-page .rl-paper-kick,.redline-page .rl-paper-kick p{margin:0 0 6px;font-size:10px;
@@ -5647,6 +5768,18 @@ function redlineLayoutCss(){
   /* The recital — the party/key-terms paragraph between the title and clause 1.
      The Doc page prints it, so this page does too, in the workbench's own type
      scale. Read-only: the terms in it are the Doc page's to edit. */
+  /* ---- THE FOOT OF THE SHEET ----
+     Two ruled lines and the parties under them. Defined at the top level, not
+     under .redline-page, because the Document tab and the counterparty's page
+     print the same foot from the same builder (rlPaperFootHtml) and contract.js
+     calls redlineLayoutCss() before it draws. */
+  .rl-paper-foot{display:flex;gap:40px;margin-top:52px;padding-top:22px;
+    border-top:1px solid var(--color-doc-rule)}
+  .rl-sigline{flex:1;min-width:0}
+  .rl-sigrule{display:block;height:36px;border-bottom:1px solid var(--color-doc-rule)}
+  .rl-sigfor{display:block;margin-top:8px;font-size:11.5px;color:var(--color-doc-muted);
+    overflow-wrap:anywhere}
+  @media (max-width:560px){ .rl-paper-foot{flex-direction:column;gap:22px} }
   .redline-page .rl-recital{margin:0 0 16px}
   .redline-page .rl-recital p{margin:0 0 8px;font-size:var(--rl-doc-type);line-height:1.75;
     color:var(--color-text)}
@@ -5733,11 +5866,15 @@ function redlineLayoutCss(){
   .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,#10b981 7%,transparent);
     border-color:color-mix(in srgb,#10b981 34%,transparent)}
   .redline-page .rl-clause-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  .redline-page .rl-asktag{flex:none;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;
-    background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-asktag{flex:none;font-size:10.5px;font-weight:600;letter-spacing:.04em;
+    padding:3px 9px;border-radius:999px;white-space:nowrap;
+    background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)}
 
   /* the design's change cards */
-  .redline-page .rl-cards{padding:12px}
+  /* No padding: the cards sit straight on the page like the sheet does, and
+     a little room down the right so their shadows are not clipped by the
+     scroller. */
+  .redline-page .rl-cards{padding:0 2px 2px}
   .redline-page .rl-cards-empty{padding:6px 2px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500);
     display:flex;flex-direction:column;gap:6px}
   .redline-page .rl-cards-empty b{color:var(--color-text)}
@@ -5748,9 +5885,17 @@ function redlineLayoutCss(){
      theirs, green and grey once it is settled — which is the one fact the eye
      can take without stopping. The id is a chip rather than loose bold text,
      for the same reason a reference number on any other screen is. */
-  .redline-page .rl-card{border:1px solid var(--color-divider);border-radius:2px;padding:11px 12px;
-    margin-bottom:10px;background:var(--color-surface);cursor:pointer;
+  /* ---- AND IT IS A CARD, NOT A RULED BOX ----
+     12px radius and a lifted shadow, matching the queue and the paper beside
+     it, so the three columns read as one set of objects (Young, 10 Aug 2026).
+     The spine survives the reshape at 3px on the left — it is the fastest fact
+     on the card and the radius does not soften it. */
+  .redline-page .rl-card{border:1px solid #e8ecf1;border-radius:12px;padding:13px 15px;
+    margin-bottom:11px;background:var(--color-surface);cursor:pointer;
+    box-shadow:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.06);
+    transition:box-shadow .2s ease,border-color .2s ease;
     border-left:3px solid var(--accent-solid,var(--color-accent))}
+  html.dark .redline-page .rl-card{border-color:var(--color-divider);box-shadow:0 1px 2px rgba(0,0,0,.3)}
   .redline-page .rl-card[data-rl-origin="them"]{border-left-color:var(--st-amber-dot)}
   .redline-page .rl-card[data-contested]{border-left-color:var(--st-ruby-dot)}
   .redline-page .rl-card:focus-visible{outline:2px solid var(--color-accent)}
@@ -5763,11 +5908,12 @@ function redlineLayoutCss(){
      card carried over from an earlier round says so without being opened. */
   .redline-page .rl-card-round{font-family:var(--font-mono);font-size:10px;font-weight:700;
     color:var(--color-neutral-500);flex:none;margin-left:6px}
-  .redline-page .rl-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
-  .redline-page .rl-badge-sent{background:var(--st-steel-bg);color:var(--st-steel-fg)}
-  .redline-page .rl-badge-draft{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .redline-page .rl-badge-ok{background:var(--st-green-bg);color:var(--st-green-fg)}
-  .redline-page .rl-badge-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  .redline-page .rl-badge{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;
+    border:1px solid transparent}
+  .redline-page .rl-badge-sent{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line)}
+  .redline-page .rl-badge-draft{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line)}
+  .redline-page .rl-badge-ok{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line)}
+  .redline-page .rl-badge-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line)}
   /* ---- WHOSE ASK: THE ORIGIN PAIR ----
      Emerald for your side, indigo for theirs — the same families as the verbs
      each side's cards carry (your asks travel on green Sends; theirs arrive
@@ -5791,7 +5937,7 @@ function redlineLayoutCss(){
      reads in full and only a genuinely long one is cut. min-width:0 is what
      makes that possible at all: a flex item will not shrink below its content
      without it, and the ellipsis would never appear. */
-  .redline-page .rl-origin{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;
+  .redline-page .rl-origin{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;
     white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
   .redline-page .rl-origin-us{background:#d1fae5;color:#065f46;border:1px solid rgba(5,150,105,.35)}
   .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
@@ -5873,7 +6019,7 @@ function redlineLayoutCss(){
      card's information leads and the actions follow. flex:1 stretched them into
      a wall of colour that outweighed the change itself. */
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-top:9px}
-  .redline-page .rl-card-verbs button{border:0;border-radius:999px;padding:3px 11px;font:inherit;
+  .redline-page .rl-card-verbs button{border:0;border-radius:8px;padding:6px 13px;font:inherit;
     font-size:10px;font-weight:700;line-height:1.6;cursor:pointer;transition:filter .15s}
   /* washes darken a touch on hover in light, lift in dark — a brightness
      bump on a near-white tint is invisible */
@@ -5922,15 +6068,23 @@ function redlineLayoutCss(){
   .redline-page .rl-card.is-linked{box-shadow:0 0 0 2px var(--accent-solid);
     border-color:var(--accent-solid)}
 
-  /* Tracked Changes head, and the discussion column */
-  /* WRAPS, and two things now depend on it. It stops the title collapsing to
-     zero when the row is over-subscribed, and it is what lets the send slot
-     below take flex-basis:100% and break onto a line of its own — on a nowrap
-     row that basis cannot break anything, it only makes the slot ask for the
-     whole width and shrink back, which is the crowding it is there to end. */
-  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 14px;
-    border-bottom:1px solid var(--color-divider)}
+  /* ---- THE COLUMN'S HEAD IS A CAPTION AND A COUNT ----
+     It used to be a toolbar: a filter, two bulk verbs and a second send. All
+     of those are gone, so what is left is the design's own two-part line —
+     what this column is on the left, how much is in it on the right — and it
+     no longer needs to wrap, because nothing in it can grow. */
+  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;padding:0 2px 10px;
+    border-bottom:0}
   .redline-page .rl-idx-head [hidden]{display:none!important}
+  .redline-page .rl-idx-k{flex:1;min-width:0;font-size:11px;font-weight:600;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--color-neutral-500)}
+  .redline-page .rl-idx-n{flex:none;font-size:11.5px;color:var(--color-neutral-400)}
+  /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
+     is one the browser may refuse to focus or dispatch to, and Publish Round
+     works by clicking this one. Taken out of the flow and out of the reader's
+     way instead, the way a skip link is. */
+  .redline-page .rl-sendslot-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
   /* The reveal chip and the collapse chevron went with the fold they drove —
      the sidebar tabs are the one switch now, so their rules go too. */
   /* ---- THE ORIGIN FILTER ----
@@ -5947,10 +6101,6 @@ function redlineLayoutCss(){
     border-radius:6px;padding:3px 10px;border:1px solid var(--color-divider);
     background:var(--color-surface);color:var(--color-accent-800)}
   .rl-rv-docnote button:hover{border-color:var(--color-accent-800)}
-  .redline-page .rl-card-filter{border:1px solid var(--color-divider);background:var(--color-neutral-100);
-    border-radius:7px;padding:3px 6px;font:inherit;font-size:10px;font-weight:700;
-    color:var(--color-neutral-600);cursor:pointer;flex:none;max-width:100%}
-  .redline-page .rl-card-filter.on{border-color:var(--accent-solid);color:var(--accent-solid)}
   .redline-page .rl-sendslot:empty{display:none}
   /* ---- THE SEND SLOT GETS ITS OWN LINE ----
      #nego-send is hidden on this page (the design carries that act in the page
@@ -5968,46 +6118,50 @@ function redlineLayoutCss(){
      resolve on this page, so it was never painting anything anyway. */
   .redline-page .rl-sendslot .nego-index-send{margin-top:0;padding-top:0;border-top:0}
 
-  .redline-page .rl-thread{border:1px solid var(--color-divider);border-radius:10px;padding:11px 12px;
-    margin-bottom:10px;background:var(--color-surface)}
-  .redline-page .rl-thread.is-internal{background:color-mix(in srgb,#f59e0b 6%,transparent);
-    border-color:color-mix(in srgb,#f59e0b 30%,transparent)}
-  .redline-page .rl-thread-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
-  .redline-page .rl-vis{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px}
-  .redline-page .rl-vis.sh{background:var(--st-steel-bg);color:var(--st-steel-fg)}
-  .redline-page .rl-vis.int{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .redline-page .rl-thread-state{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;
-    background:var(--color-neutral-100);color:var(--color-neutral-600)}
-  .redline-page .rl-thread-ref{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:8px;
-    overflow-wrap:anywhere}
+  /* ---- THE NOTES, INSIDE THE CARD THEY ARE ABOUT ----
+     What the Discussion column's thread rules used to dress. The column is
+     gone (see redlinePanesHtml); the conversation reads on the change. It is
+     the last block in an open card, under a dashed rule, so a card being
+     skimmed reads as wording-then-verbs and a card being worked on carries the
+     argument as well. */
+  .redline-page .rl-cnotes{margin-top:12px;border-top:1px dashed var(--color-divider);padding-top:10px}
+  .redline-page .rl-cnotes-k{font-size:9.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--color-neutral-400)}
   /* Long sentences wrap inside the card, and so does a long unbroken run — a
      URL or a word typed without spaces would otherwise set the card's width
      and push the column wider than its pane. min-width:0 on the author cell
      for the same reason: a flex child will not shrink below its content
      without it, so the timestamp was the first thing to go. */
-  .redline-page .rl-msg{margin-bottom:9px;min-width:0}
-  .redline-page .rl-msg-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
-    font-size:11px;margin-bottom:2px}
-  .redline-page .rl-msg-top b{min-width:0;overflow-wrap:anywhere}
-  .redline-page .rl-msg-top span{color:var(--color-neutral-500);font-size:10px;flex:none}
-  .redline-page .rl-msg p{margin:0;font-size:11.5px;line-height:1.6;color:var(--color-text);
+  .redline-page .rl-cnote{margin-top:8px;min-width:0;padding:8px 10px;border-radius:9px;
+    background:var(--color-bg);border:1px solid var(--color-divider)}
+  /* A message that went to the other side wears the steel wash, so the two
+     kinds are tellable apart at a glance in a thread that mixes them. Nothing
+     new can be written shared from here — the composer is internal-only — but
+     the record keeps what it was written as. */
+  .redline-page .rl-cnote.is-shared{background:var(--st-steel-bg);border-color:var(--st-steel-line)}
+  .redline-page .rl-cnote-top{display:flex;align-items:baseline;gap:7px;
+    font-size:10.5px;margin-bottom:2px;color:var(--color-neutral-400)}
+  .redline-page .rl-cnote-top b{min-width:0;overflow-wrap:anywhere;font-weight:600;color:var(--color-neutral-600)}
+  .redline-page .rl-cnote-int{margin-left:auto;flex:none;border:1px solid var(--color-divider);
+    border-radius:999px;padding:1px 7px;font-size:9.5px;font-weight:600;color:var(--color-neutral-500)}
+  .redline-page .rl-cnote p{margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-700);
     white-space:pre-wrap;overflow-wrap:anywhere}
-  .redline-page .rl-reply,.redline-page .rl-starter{margin-top:9px}
-  .redline-page .rl-starter{border-top:1px solid var(--color-divider);padding:11px 14px;flex:none}
-  /* flex-end, not centre: the composer is a textarea that grows now, and a
-     send button centred against a five-line box floats in the middle of it. */
-  .redline-page .rl-reply-row{display:flex;align-items:flex-end;gap:6px}
-  .redline-page .rl-reply-row input,.redline-page .rl-reply-row textarea{flex:1;min-width:0;
-    border:1px solid var(--color-divider);
-    background:var(--color-neutral-100);border-radius:8px;padding:6px 10px;font:inherit;font-size:11.5px;
-    color:inherit;outline:none}
-  .redline-page .rl-reply-row input:focus,.redline-page .rl-reply-row textarea:focus{border-color:var(--color-accent-500)}
-  .redline-page .rl-reply-row button{flex:none;width:28px;height:28px;border:0;border-radius:8px;
-    background:var(--accent-solid);color:#fff;cursor:pointer;font-size:13px}
+  .redline-page textarea.rl-cnote-in{width:100%;margin-top:9px;border:1px solid var(--color-divider);
+    border-radius:9px;padding:8px 10px;font:inherit;font-size:11.5px;line-height:1.5;
+    color:inherit;background:var(--color-surface);outline:none;box-sizing:border-box}
+  .redline-page textarea.rl-cnote-in:focus{border-color:var(--color-accent-500)}
+  .redline-page .rl-cnote-foot{display:flex;align-items:center;gap:9px;margin-top:7px}
+  .redline-page .rl-cnote-add{flex:none;border:1px solid var(--color-divider);border-radius:8px;
+    background:var(--color-surface);padding:5px 12px;font:inherit;font-size:11.5px;font-weight:500;
+    color:var(--color-neutral-700);cursor:pointer}
+  .redline-page .rl-cnote-add:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
+  /* The promise under the button. It is the whole of what this composer is,
+     so it is drawn beside it rather than in a tooltip. */
+  .redline-page .rl-cnote-hint{font-size:10.5px;color:var(--color-neutral-400);min-width:0}
   /* The shared composer look, repeated inside this page's own stylesheet
      because the workbench also mounts as an EMBED on the counterparty portal,
      which does not carry the shell's head. Same declarations as index.html. */
-  .redline-page textarea.chat-field{resize:none;overflow-y:auto;max-height:7.5em;line-height:1.5;
+  .redline-page textarea.chat-field{resize:vertical;overflow-y:auto;max-height:7.5em;line-height:1.5;
     white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;box-sizing:border-box}
   .redline-page .nego-visswitch{display:flex;gap:4px;margin-bottom:6px}
   .redline-page .nego-visswitch button{border:1px solid var(--color-divider);background:var(--color-surface);
@@ -6015,10 +6169,6 @@ function redlineLayoutCss(){
     color:var(--color-neutral-600)}
   .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
-  .redline-page .rl-starter-head{font-family:var(--n-font-mono,ui-monospace);font-size:10px;font-weight:700;
-    letter-spacing:.04em;color:var(--n-ink-soft);margin-bottom:5px;overflow:hidden;
-    text-overflow:ellipsis;white-space:nowrap}
-  .rl-starter-note{margin:7px 0 0;font-size:10px;line-height:1.5;color:var(--color-neutral-500)}
   /* ---- TWO PANES AND A HANDLE ----
      The twelve-column deal is gone: the document takes the left pane (two
      thirds by default, the Doc tab's own split) and everything else lives in
@@ -6137,39 +6287,15 @@ function redlineLayoutCss(){
   /* The count reads under the bar it belongs to, in the head. */
   .redline-page .rl-q-foot{margin:6px 0 0;font-size:11px;color:var(--color-neutral-500)}
   .redline-page .rl-q-foot b{color:var(--color-text)}
-  /* ---- THE SIDEBAR IS ONE CARD WITH TWO FACES ----
-     Tracked Changes OR Discussion — data-rl-side-mode on the workbench root
-     decides, and this pair is the whole mechanism: the panels stay mounted
-     (a half-typed reply survives the switch), only visibility moves, and
-     because exactly one attribute value exists at a time the two can never
-     render side by side. */
+  /* ---- THE SIDEBAR IS ONE COLUMN NOW ----
+     It used to be one card with two faces — Tracked Changes or Discussion,
+     switched by a pair of tabs, with data-rl-side-mode on the workbench root
+     deciding which showed. The Discussion face is gone (see redlinePanesHtml)
+     and the tabs, the tray they sat in and the exclusivity pair have gone with
+     it. rlSideMode still answers, permanently, "changes", so an old root
+     carrying the other value cannot hide this column. */
   .redline-page .rl-side{min-width:0}
-  .redline-page #rl-changes-col,.redline-page #rl-disc-col{flex:1;min-height:0;
-    display:flex;flex-direction:column}
-  .redline-page[data-rl-side-mode="changes"] #rl-disc-col{display:none}
-  .redline-page[data-rl-side-mode="disc"] #rl-changes-col{display:none}
-  /* ---- THE SWITCHER WEARS ITS COLOURS ----
-     A slate tray (the reference's bg-slate-100 p-1.5 rounded-xl) holding two
-     tinted buttons: emerald for Tracked Changes, indigo for Discussion — the
-     same families the origin badges speak — with the live count as a solid
-     pill on each. Fixed hex for the dark-mode reason every colour on this
-     page is: a switch that re-maps with the theme is a switch misread. The
-     active face deepens its tint and takes the full border; the idle one
-     stays in its colour rather than fading to grey, because both destinations
-     exist whether or not you are standing on them. */
-  /* flex-wrap so the pair stacks rather than clipping their labels: both are
-     nowrap and both name a destination, so neither can be shortened. */
-  /* ---- TWO DESTINATIONS, ONE OF THEM STANDING ----
-     Both tabs used to be filled tints — a green pill and an indigo pill, side
-     by side, permanently — so the pair read as two lit buttons and neither
-     looked more current than the other. The colours stay, because they are the
-     same families the origin badges and the card spines speak, but they now
-     live in the TEXT. The tab you are standing on is the one raised onto the
-     surface with a shadow under it. Both are still named, still counted, still
-     in their own colour: the rule that "both destinations exist whether or not
-     you are standing on them" is kept, and only the shouting has gone. */
-  .redline-page .rl-side-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;margin:8px 8px 0;flex:none;
-    background:var(--color-neutral-100);border-radius:11px}
+  .redline-page #rl-changes-col{flex:1;min-height:0;display:flex;flex-direction:column}
 
   /* ---- A SHORT WINDOW SPENDS ITS HEIGHT ON THE WORK ----
      Placed AFTER the rules it argues with: these are the same two classes
@@ -6178,40 +6304,17 @@ function redlineLayoutCss(){
 
      Measured on a 1080p laptop at 150% scaling (a 590px page): the change list
      was given 83px of height for a 110px card, so the reader saw a sliver of
-     one decision with the bulk buttons pressed against it. The shell, the tab
-     strip and the heading are furniture; the list and the contract are the
-     page. On a short window the furniture gives way. Nothing is hidden. */
+     one decision. The shell, the tab strip and the heading are furniture; the
+     list and the contract are the page. On a short window the furniture gives
+     way. Nothing is hidden. */
   @media (max-height:820px){
-    .redline-page .rl-idx-head{padding:9px 12px;gap:6px}
-    .redline-page .rl-side-tabs{margin:6px 8px 0;padding:4px}
-    .redline-page .rl-side-tab{padding:5px 8px}
-    .redline-page .rl-paper{padding:20px 30px 26px}
+    .redline-page .rl-idx-head{padding:0 2px 8px;gap:6px}
+    .redline-page .rl-paper{padding:26px 30px 30px}
   }
   @media (max-height:680px){
-    .redline-page .rl-idx-head{padding:7px 10px;gap:5px}
-    .redline-page .rl-side-tabs{margin:4px 7px 0;padding:3px}
-    .redline-page .rl-side-tab{padding:4px 7px}
-    .redline-page .rl-paper{padding:16px 26px 20px}
+    .redline-page .rl-idx-head{padding:0 2px 6px;gap:5px}
+    .redline-page .rl-paper{padding:20px 26px 24px}
   }
-  .redline-page .rl-side-tab{flex:1;border:1px solid transparent;border-radius:9px;cursor:pointer;
-    font:inherit;font-size:11px;font-weight:700;padding:6px 8px;
-    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
-    transition:background .12s,color .12s,border-color .12s,box-shadow .12s}
-  .redline-page .rl-side-tab .rl-tab-n{font-size:9.5px;font-weight:700;padding:1px 7px;
-    border-radius:999px;color:#fff}
-  .redline-page .rl-tab-changes{background:none;color:#047857}
-  .redline-page .rl-tab-disc{background:none;color:#4338ca}
-  .redline-page .rl-side-tab.on{background:var(--color-surface);
-    box-shadow:0 1px 3px rgba(15,23,42,.14)}
-  .redline-page .rl-tab-changes.on{color:#065f46}
-  .redline-page .rl-tab-disc.on{color:#3730a3}
-  .redline-page .rl-tab-changes .rl-tab-n{background:#059669}
-  .redline-page .rl-tab-disc .rl-tab-n{background:#4f46e5}
-  html.dark .redline-page .rl-tab-changes{color:#6ee7b7}
-  html.dark .redline-page .rl-tab-disc{color:#c7d2fe}
-  html.dark .redline-page .rl-side-tab.on{background:var(--color-neutral-200);box-shadow:none}
-  html.dark .redline-page .rl-tab-changes.on{color:#a7f3d0}
-  html.dark .redline-page .rl-tab-disc.on{color:#e0e7ff}
   /* ---- THE HANDLE ----
      Absolutely positioned over the gap (rlLayoutResizer keeps its left edge
      on the split), the Doc tab's own grip. Hidden where the panes stack. */
@@ -6351,17 +6454,22 @@ function redlineLayoutCss(){
       box-shadow:none;z-index:auto}
     .redline-page #nego-drawer{display:none!important}
   }
-  /* 2px, per the note on --n-r-md: a hair off the join, not a rounded card. */
+  /* ---- ONE CARD, NOT THREE ----
+     The queue is a card, because it is a list of rows and rows need a surface.
+     The document column and the change column are NOT: the sheet is its own
+     object with its own lift, and each change card is its own object too, so
+     wrapping either in a second bordered box is the box-inside-a-box the
+     header gave up years ago. Both sit straight on the page (Young, 10 Aug
+     2026) — which is also what finally lets the warm paper read as paper,
+     since a cream sheet on a white card is just a slightly grubby card. */
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
-    border-radius:2px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
-  /* The document column is the canvas the sheet floats on — page background,
-     so the gutters either side of .rl-paper read the way the Doc page's do.
-     The sheet itself (.rl-paper above) carries the paper shadow. */
-  .redline-page .rl-doc{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:2px;
-    box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;
+    border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.05);min-height:0;overflow:hidden;
     display:flex;flex-direction:column}
+  .redline-page .rl-side{background:none;border:0;box-shadow:none;border-radius:0;overflow:visible}
+  .redline-page .rl-doc{background:none;border:0;border-radius:14px;box-shadow:none;min-height:0;
+    overflow:hidden;display:flex;flex-direction:column}
   html.dark .redline-page .rl-paper{box-shadow:0 10px 30px rgba(0,0,0,.45)}
-  .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:20px 24px 28px}
+  .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:4px 2px 28px}
   /* The quiet end of the toolbar: separated by a hairline so the row reads as
      "what this does" then "how it is set", rather than as one undifferentiated
      line of nine controls. */
@@ -6381,33 +6489,10 @@ function redlineLayoutCss(){
      NOWHERE. jsdom cannot see display:none, which is why every test stayed
      green while the screen went dark. The embed styling is now the base
      styling: one look, every mount. */
-  .redline-page .nego-bulk{display:flex;gap:6px;flex-basis:100%;margin-top:0}
-  .redline-page .nego-bulk button{flex:1;border:0;border-radius:7px;padding:6px 9px;
-    font:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
-  .redline-page .nego-bulk .b-acc{background:#059669;color:#fff}
-  .redline-page .nego-bulk .b-rej{background:#e2e8f0;color:#1e293b}
-  html.dark .redline-page .nego-bulk .b-rej{background:#cbd5e1;color:#0f172a}
-  .redline-page .nego-bulk button:disabled{opacity:.45;cursor:not-allowed}
-
-  .redline-page .rl-disc-head{display:flex;align-items:center;gap:8px;padding:13px 14px 9px;
-    border-bottom:1px solid var(--color-divider);flex:none}
-  .redline-page .rl-disc-head h3{margin:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-    color:var(--color-neutral-500);font-weight:700}
-  .redline-page .rl-disc-n{font-size:10.5px;font-weight:700;color:var(--color-accent-600)}
-  .redline-page .rl-disc-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px}
-  /* A thread card is a jump target like a change card — same ring, same
-     meaning: this and the clause on the left are one thing shown twice. */
-  .redline-page .rl-thread{cursor:pointer}
-  .redline-page .rl-thread.is-linked{box-shadow:0 0 0 2px var(--accent-solid);
-    border-color:var(--accent-solid)}
-  .redline-page .rl-disc-empty{padding:14px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500)}
-  /* The line between what has been said and what has not. A rule with its
-     count on it, not a heading — the composers below are a to-do, and a to-do
-     with no number on it is a list you have to count yourself. */
-  .redline-page .rl-starter-sep{display:flex;align-items:center;gap:8px;margin:16px 0 10px;
-    font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--color-neutral-400)}
-  .redline-page .rl-starter-sep::after{content:"";flex:1;height:1px;background:var(--color-divider)}
+  /* The bulk verbs' rules went with the bulk verbs, and the Discussion
+     column's with the Discussion column (see redlinePanesHtml for both). What
+     the engine still emits under .nego-bulk on OTHER surfaces — the room's own
+     index — is styled by negoStyleHtml, not from here. */
   `;
   document.head.appendChild(s);
 }
@@ -6635,6 +6720,30 @@ function renderRedline(){
   }
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
+  /* The same pill, asked a different question: which of the three readings the
+     document is drawn in. aria-pressed rather than a tab role — nothing is
+     being switched between, one surface is being drawn differently. */
+  const readSeg = (v, label, tip) => `<button type="button" data-rl-read="${v}"
+    class="rl-seg${rlReadMode() === v ? ' on' : ''}" aria-pressed="${rlReadMode() === v ? 'true' : 'false'}"
+    title="${_nea(tip)}">${_ne(label)}</button>`;
+  /* ---- WHAT IS WAITING ON THIS READER ----
+     The other side's live asks, in the order the document carries them, minus
+     anything walled off from this seat and minus the clauses a reviewer was not
+     handed. Exactly the set the queue marks "now" and the cards badge "awaiting
+     you", read from the same predicates, so a toolbar saying two and a column
+     showing three cannot happen. */
+  const needsYou = (() => {
+    /* Not in Counterparty View. That is a window onto their page, read-only by
+       decision, and "2 need you" there would be counting somebody else's work
+       and offering a jump to a card with no verbs on it. */
+    if (side === 'counterparty') return [];
+    const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
+    const wall = rlHiddenFrom(c, side);
+    const mine = rlMyCardIds(c, { side, readonly: false });
+    return all.filter(x => x && x.status === 'pending' && !x.withdrawn
+      && x.authorSide !== side && !wall.has(x.id)
+      && (!mine || mine.has(String(x.id)))).map(x => x.id);
+  })();
   /* ---- THE BATCH SEND ----
      Drawn only when there is something behind the wall, and labelled with how
      much. It is a proxy onto #nego-send like Publish Round is — the same one
@@ -6739,15 +6848,15 @@ function renderRedline(){
              round and the verbs. Underline tabs cannot share a wrapping row:
              each wrapped line has its own height, so a tab on the first line
              would leave its rule stranded in the middle of the strip. */}
+      ${''/* ---- THE TAB ROW CARRIES THE TABS AND NOTHING ELSE ----
+             It used to end with a contract switcher and a round chip. Both are
+             gone on the design's call (Young, 10 Aug 2026): the switcher is a
+             jump to a DIFFERENT agreement sitting on the row that names this
+             one, and the round is a fact about the contract, so it reads with
+             the other facts under the title — see roomHeadHtml's room-sub,
+             which both this page and the contract page draw from. */}
       <div class="room-tabrow rl-tabrow">
         ${(window.roomTabsHtml?roomTabsHtml(c,'redline'):'')}
-        <span style="flex:1"></span>
-        ${''/* The contract switcher rides HERE, with the tabs, because that is
-               what it is: navigation to another contract, not a tool for
-               working this one. It was on the strip below, where it took a
-               quarter of the width and pushed that row onto two lines. */}
-        ${rlJumpHtml(c)}
-        <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
       </div>
       ${''/* ---- ONE QUIET LINE, WHERE THERE WERE THREE ROWS ----
              This page opened on a toolbar (stepper, focus, contract jump,
@@ -6808,35 +6917,59 @@ function renderRedline(){
             return `<button type="button" data-rl-review class="rl-pb-btn"
               data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100; ${_ne(label)}</button>`;
           })() : ''}
-        </div>
-        ${''/* The send stays on THIS page rather than moving into the shared
-               head. The head is built by js/views/contract.js and a workbench
-               rendered without that file — which some test stages do — would
-               lose its Publish Round entirely. A page's own primary act must
-               not depend on another page's module being present. */}
-        ${''/* The round's verbs lead, the view toggle follows. Publish and Close
-               are what this row is FOR; the toggle is a way of looking, and a
-               way of looking should not sit in front of the act. */}
-        <div class="rl-actions">
+          ${''/* THE SEND STAYS ON THIS PAGE rather than moving into the shared
+                 head. The head is built by js/views/contract.js and a workbench
+                 rendered without that file — which some test stages do — would
+                 lose its Publish Round entirely. A page's own primary act must
+                 not depend on another page's module being present.
+
+                 IT IS ALSO THE ONLY BATCH SEND LEFT. The Tracked Changes column
+                 used to draw its own copy beside the cards (the .rl-sendslot
+                 postbox) and this one proxied onto it; the column's copy is
+                 gone on the design's call (Young, 10 Aug 2026) and the engine's
+                 #nego-send survives, hidden, as the control this presses. */}
           ${side === 'counterparty' || _rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             ${_ne(sendLabel)}</button>`}
           ${side === 'counterparty' ? '' : closer}
+          ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
+                 Not a filter and not a mode the record knows about: the same
+                 clauses, drawn three ways. See rlReadMode for what each one
+                 means and why only LIVE proposals are affected. */}
+          <div class="rl-segwrap rl-readwrap" role="group" aria-label="${_nea(i18t('ng_read_group'))}"
+            title="${_nea(i18t('ng_read_group'))}">${
+            readSeg('marks', i18t('ng_read_marks'), i18t('ng_read_marks_title'))}${
+            readSeg('agreed', i18t('ng_read_agreed'), i18t('ng_read_agreed_title'))}${
+            readSeg('proposed', i18t('ng_read_proposed'), i18t('ng_read_proposed_title'))}</div>
+          ${''/* ---- THE WAY INTO THE WORK ----
+                 A count of what is waiting on THIS reader, and a press that goes
+                 to the first of them. The number is the same set the queue calls
+                 "now" and the cards draw as awaiting-you, so the three cannot
+                 disagree. Drawn only when it is not zero: a button reading
+                 "0 need you" is a button that has nothing to do. */}
+          ${needsYou.length ? `<button type="button" data-rl-needsyou="${_nea(needsYou[0])}" class="rl-needs"
+            title="${_nea(i18t('ng_needs_you_title'))}"><span class="rl-needs-dot"></span>${
+            needsYou.length === 1 ? i18t('ng_needs_you_one') : i18t('ng_needs_you_n', { n: needsYou.length })}<span class="rl-needs-go">&rarr;</span></button>` : ''}
+        </div>
+        ${''/* The quiet end of the row: a way of LOOKING, which should never sit
+               in front of the acts. The type stepper and the focus button used
+               to ride here too — the stepper is on the Document tab, where the
+               design puts it, and focus mode is in the head's "⋯" menu with the
+               rest of the give-the-document-more-room verbs. */}
+        <div class="rl-actions">
           ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about the
                  round, and the round is not the reviewer's job. It also mounts a
                  whole second surface for somebody whose task is one clause. */}
           ${_rvPosture ? '' : `<div class="rl-segwrap">${seg('owner', i18t('ng_internal_view'))}${seg('counterparty', i18t('ng_counterparty_view'))}</div>`}
-          ${''/* The quiet end: how the page is SET, rather than what it does.
-                 Both keep the ids and the classes they have always had, so
-                 rlWireTypeStep and the focus handlers bind exactly as before. */}
-          <span class="rl-setwrap">
-            ${rlTypeStepHtml()}
-            <button type="button" data-rl-focus class="rl-focus-btn${_rlFocus ? ' on' : ''}" aria-pressed="${_rlFocus ? 'true' : 'false'}" title="${i18t('ng_focus_mode')}" aria-label="${_rlFocus ? 'Exit focus mode' : 'Enter focus mode'}">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-            </button>
-          </span>
         </div>
       </section>
+      ${''/* ---- THE NOTICES FLOAT; THEY DO NOT BAND ----
+             A playbook pass and a non-default reading are both things the reader
+             switched on a moment ago and can switch off. As full-width bands
+             above the contract they cost the document two strips of height for
+             the life of the sitting. They sit bottom-right, over the page,
+             dismissible, and they are the only two things drawn there. */}
+      <div class="rl-notices" id="rl-notices">${rlReadNoticeHtml()}</div>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
       ${''/* The way out of focus mode. Always in the DOM, shown only by the
              .rl-focus rule, because the button that turned focus ON is inside
@@ -6879,6 +7012,16 @@ function renderRedline(){
      ids now — ws-share, ws-import, ws-compare — wired just above. */
   host.querySelectorAll('[data-redline-side]').forEach(el =>
     el.addEventListener('click', () => { _redlineSide = el.getAttribute('data-redline-side'); renderRedline(); }));
+  /* The three readings. A repaint, because what changes is the DOCUMENT — the
+     same clauses drawn with their marks, without them, or with the proposals
+     folded in — and the cards' own runs follow the same rule. */
+  host.querySelectorAll('[data-rl-read]').forEach(el =>
+    el.addEventListener('click', () => { rlSetReadMode(el.getAttribute('data-rl-read')); renderRedline(); }));
+  /* "2 need you" goes to the first of them, through the page's own link-focus —
+     the same route a queue row takes, so the card opens, the clause scrolls and
+     the two stay joined. */
+  host.querySelectorAll('[data-rl-needsyou]').forEach(el =>
+    el.addEventListener('click', () => rlLinkFocus(c, el.getAttribute('data-rl-needsyou'), 'needsyou')));
   /* THE HEAD'S REVIEW BUTTON. One control, three acts, chosen from the state
      rather than from three buttons: the requester asks, the reviewer hands
      back, and anyone looking at a review already out gets the banner's Cancel
@@ -8210,10 +8353,15 @@ function rlWireClauseTools(c, host, opts){
    Remembered per browser, like the fold it replaces: a negotiator who lives
    in the discussion should land in it on every contract they open. */
 const RL_SIDE_KEY = 'hati.v1.rlSideMode';
-function rlSideMode(){
-  try { return localStorage.getItem(RL_SIDE_KEY) === 'disc' ? 'disc' : 'changes'; }
-  catch (e) { return 'changes'; }
-}
+/* ---- AND NOW THERE IS ONE MODE ----
+   The Discussion face is gone (see redlinePanesHtml), so this answers
+   "changes" and nothing else. It is NOT reading the stored preference any
+   more, deliberately: anybody whose browser holds 'disc' from before would
+   otherwise land on a workbench whose CSS hid the card column to make room for
+   a panel that is no longer built — an empty right-hand side, on every
+   contract, until they cleared their storage. The key is left unread rather
+   than deleted so nothing has to migrate. */
+function rlSideMode(){ return 'changes'; }
 function rlApplySideMode(root, m){
   root.setAttribute('data-rl-side-mode', m);
   root.querySelectorAll('[data-rl-mode]').forEach(b => {
@@ -8222,27 +8370,25 @@ function rlApplySideMode(root, m){
     b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
 }
-function rlSetSideMode(mode){
-  const m = mode === 'disc' ? 'disc' : 'changes';
+/* Setting it can only ever settle on "changes" now, and it still paints —
+   an old root left carrying data-rl-side-mode="disc" is corrected rather than
+   left with its card column hidden. */
+function rlSetSideMode(){
+  const m = 'changes';
   try { localStorage.setItem(RL_SIDE_KEY, m); } catch (e) {}
-  /* Every mounted workbench root — the page or an embed — so a preference
-     set on one is what any other paints with. */
+  /* Every mounted workbench root — the page or an embed. */
   document.querySelectorAll('.redline-page').forEach(root => rlApplySideMode(root, m));
-  /* The face that just appeared has composers in it that could not be measured
-     while it was hidden — see chatFieldGrow. */
   if (window.chatFieldWire) document.querySelectorAll('.redline-page').forEach(r => chatFieldWire(r));
   return m;
 }
 /* The old fold's name, kept as the compatibility surface: the master design
    calls rlToggleDiscussion by name from an `onclick=` attribute, so the NAME
-   is part of the contract this page is held to.
-   force=true meant "discussion off", which is now the Tracked Changes mode;
-   force=false meant "discussion on", now the Discussion mode. The return
-   value keeps the old contract: true = discussion is not showing. */
-function rlToggleDiscussion(force){
-  const off = force == null ? rlSideMode() === 'disc' : !!force;
-  rlSetSideMode(off ? 'changes' : 'disc');
-  return off;
+   is part of the contract this page is held to. There is no discussion panel
+   to toggle any longer, so it settles the page on the one mode there is and
+   keeps its old return contract: true = discussion is not showing. */
+function rlToggleDiscussion(){
+  rlSetSideMode();
+  return true;
 }
 
 /* ---------- THE SPLIT, DRAGGED ----------
@@ -8613,7 +8759,14 @@ function redlineDocHtml(c, opts = {}){
      swapped for the editor and the rest stranded outside what got saved. */
   const richBody = cl => `<div class="nego-body">${
     (typeof negoRichBody === 'function') ? negoRichBody(cl) : `<p>${_ne(cl.text || '')}</p>`}</div>`;
+  /* How this page is being read — see rlReadMode. Resolved once for the whole
+     document so every clause on it answers the same question. */
+  const readMode = rlReadMode();
   const redlineBody = ch => {
+    /* A CLEAN READING IS A CLEAN CLAUSE. Under "As agreed" or "With changes"
+       the marks come off and the clause reads as ordinary wording — one side of
+       the ops, chosen by rlReadSideOf. Nothing about the record moves. */
+    const which = rlReadSideOf(ch, readMode);
     /* ---- WHO LAST TOUCHED THIS EDIT ----
        Carried on every marked span in the clause as a title, so hovering a
        struck or inserted phrase says whose hand it was. The record already
@@ -8630,13 +8783,19 @@ function redlineDocHtml(c, opts = {}){
        formatting, visible, and the ask tag says what kind of ask it is. Same
        rule as negoDocHtml's fmtBody — both renderers, one behaviour, or the
        portal and the room disagree about what is being asked. */
+    /* A FORMATTING-ONLY ASK UNDER A CLEAN READING. "As agreed" is the clause as
+       it stands, which is the ordinary rich body; "With changes" is the
+       proposed formatting, drawn plainly. Only the redlined reading needs the
+       chip beside it to say the words did not move. */
+    if (ch.formattingOnly && which === 'del') return null;
     if (ch.formattingOnly && ch.bodyHtml && window.sanitizeRich)
-      return `<div class="nego-body nego-fmt-only"${tip ? ` title="${_nea(tip)}"` : ''}>${sanitizeRich(ch.bodyHtml)}</div>`;
-    if (window.redlineOpsBlocksHtml && Array.isArray(ch.ops) && ch.ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ch.ops, { title: tip })}</div>`;
-    if (window.redlineOpsHtml && ch.ops)
-      return `<div class="nego-body"><p>${redlineOpsHtml(ch.ops, { title: tip })}</p></div>`;
-    return `<div class="nego-body"><p>${_ne(ch.proposedText || ch.newText || '')}</p></div>`;
+      return `<div class="nego-body${which === 'marks' ? ' nego-fmt-only' : ''}"${tip ? ` title="${_nea(tip)}"` : ''}>${sanitizeRich(ch.bodyHtml)}</div>`;
+    const ops = rlOpsAsSide(ch.ops, which);
+    if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip })}</div>`;
+    if (window.redlineOpsHtml && ops)
+      return `<div class="nego-body"><p>${redlineOpsHtml(ops, { title: tip })}</p></div>`;
+    return `<div class="nego-body"><p>${_ne(which === 'del' ? (ch.oldText || '') : (ch.proposedText || ch.newText || ''))}</p></div>`;
   };
   /* The added clause itself. Marked as an addition and never as settled text:
      until it is accepted it is a PROPOSAL, and a reader deciding whether to
@@ -8645,6 +8804,20 @@ function redlineDocHtml(c, opts = {}){
      wording carries the insertion marks the rest of the document uses. */
   const insertBlock = ch => {
     const theirs = ch.authorSide !== side;
+    /* A CLAUSE NOBODY HAS AGREED TO IS NOT IN THE AGREED READING. Under "As
+       agreed" a live insertion simply is not there — that is what "the wording
+       as it stands" means — and under "With changes" it is there as ordinary
+       text rather than as a marked-up proposal. */
+    const which = rlReadSideOf(ch, readMode);
+    if (which === 'del') return '';
+    if (which === 'ins'){
+      const cleanText = String(ch.proposedText || ch.newText || '');
+      const cleanLabel = String(ch.headingText || '').trim();
+      return `<section class="nego-clause rl-clause" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
+        ${cleanLabel ? `<h4 class="rl-clause-h">${_ne(cleanLabel)}</h4>` : ''}
+        <div class="nego-body"><p>${_ne(cleanText)}</p></div>
+      </section>`;
+    }
     const st = ch.status === 'accepted' ? ' &middot; &#10003; adopted'
       : ch.status === 'rejected' ? ' &middot; &#10007; refused' : '';
     const tagTip = ch.status === 'rejected' && ch.reply ? ` title="${_nea(ch.reply)}"` : '';
@@ -8674,6 +8847,24 @@ function redlineDocHtml(c, opts = {}){
     const ch = byClause.get(cl.clauseId);
     if (ch){
       const theirs = ch.authorSide !== side;
+      /* ---- A CLEAN READING CARRIES NO MARKERS EITHER ----
+         Under "As agreed" and "With changes" the clause loses its amber box and
+         its ask tag along with its strikes. The point of those readings is a
+         contract you can read as a contract; a page that removed the marks and
+         kept the highlight would be pointing at wording that no longer says
+         anything different. What is on the table is still said, twice over, in
+         the queue and in the cards beside it. */
+      const which = rlReadSideOf(ch, readMode);
+      const marked = which === 'marks';
+      const clean = redlineBody(ch);
+      if (!marked){
+        return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
+          ${heading(cl)}
+          ${''/* A formatting-only ask read "as agreed" is simply the clause. */}
+          ${clean == null ? richBody(cl) : clean}
+          ${tools(cl, ch)}
+        </section>${after}`;
+      }
       /* The decision rides on the tag, because the card leaves the column once
          a change is settled: without this the document showed the marks and
          nothing said the argument about them was over. The refusal's reason —
@@ -8690,7 +8881,7 @@ function redlineDocHtml(c, opts = {}){
           ${heading(cl)}
           <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}${st}</span>${fmtChip}
         </div>
-        ${redlineBody(ch)}
+        ${clean == null ? richBody(cl) : clean}
         ${tools(cl, ch)}
       </section>${after}`;
     }
@@ -8737,7 +8928,32 @@ function redlineDocHtml(c, opts = {}){
       offer: side === 'owner' && (typeof window.canEdit !== 'function' || window.canEdit()) })}
     ${rlRvDocNoticeHtml(c, opts, _rvHidden)}
     ${body || `<p class="rl-clause-p">${i18t('ng_no_clause_structure')}</p>`}
+    ${rlPaperFootHtml(c)}
   </article>`;
+}
+
+/* ---------- WHERE THE NAMES GO ----------
+   A contract ends with two ruled lines and the parties under them, and every
+   agreement anybody has ever signed on paper looks like this. The sheet used
+   to stop at the last clause, which read as a document that had been cut off.
+
+   NOT A SIGNING SURFACE. Nothing here is clickable and nothing is stamped:
+   signing is the Signing tab's job, with its own record and its own seal. This
+   is the shape of the page — and it is drawn from the REAL parties, ours from
+   FIRST_PARTY and theirs from the contract, with a dash where a counterparty
+   has not been named yet rather than an invented one.
+
+   Shared, and deliberately so: the Document tab, the workbench, the
+   counterparty's page and the phone all print the same foot. */
+function rlPaperFootHtml(c){
+  const us = String((typeof window !== 'undefined' && window.FIRST_PARTY) || '').trim();
+  const them = String((c && c.counterparty) || '').trim();
+  if (!us && !them) return '';
+  const line = who => `<div class="rl-sigline">
+      <span class="rl-sigrule"></span>
+      <span class="rl-sigfor">${who ? i18t('ng_signed_for', { who: _ne(who) }) : '&mdash;'}</span>
+    </div>`;
+  return `<div class="rl-paper-foot" aria-hidden="true">${line(us)}${line(them)}</div>`;
 }
 
 /* ---------- THE TRACKED CHANGES COLUMN ----------
@@ -9175,6 +9391,49 @@ function rlMayRedline(c, opts = {}){
   if (typeof window.deskMayRedline !== 'function') return true;
   try{ return deskMayRedline(c); }catch(_){ return true; }
 }
+/* ---------- THE NOTES ON A CHANGE ----------
+   What the Discussion column used to draw, drawn on the change itself. Same
+   engine underneath and deliberately so: the message list is negoMergedThread
+   filtered by rlMsgVisible, and the composer carries the three attributes
+   wireNegotiationTab binds — id="nego-ti-<id>", data-nego-send and a
+   data-nego-vis marker — so nothing about posting, validating or walling a
+   message is reimplemented here.
+
+   THE VISIBILITY MARKER IS PRESENT AND UNPRESSABLE. It is not decoration: the
+   send handler resolves visibility by finding the pressed data-nego-vis button
+   for this change and DEFAULTS TO SHARED when it finds none. A card with no
+   marker at all would therefore post every internal note to the counterparty —
+   the exact opposite of what the line under the button promises. */
+function rlCardNotesHtml(c, ch, opts, side){
+  const canComment = opts.canComment != null ? !!opts.canComment : !opts.readonly;
+  const msgs = ((window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch.thread || [])) || [])
+    .filter(m => rlMsgVisible(m, side));
+  /* Nothing said and nothing to say with: no block at all. An empty heading
+     over an empty list is a card claiming there is a conversation. */
+  if (!msgs.length && !canComment) return '';
+  const who = side === 'counterparty'
+    ? (opts.org || window.FIRST_PARTY || i18t('ng_the_counterparty'))
+    : (c.counterparty || i18t('ng_the_counterparty'));
+  const list = msgs.map(m => `<div class="rl-cnote${m.visibility === 'shared' ? ' is-shared' : ''}">
+      <div class="rl-cnote-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhen(m.at))}</span>${
+      m.visibility === 'shared' ? '' : `<span class="rl-cnote-int">${i18t('ng_internal_only')}</span>`}</div>
+      <p>${_ne(m.text || '')}</p>
+    </div>`).join('');
+  const composer = canComment ? `
+    <span class="rl-vis-set" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="true" hidden></span>
+    <textarea class="chat-field rl-cnote-in" rows="2" id="nego-ti-${_ne(ch.id)}"
+      placeholder="${_nea(i18t('ng_card_note_ph'))}"
+      aria-label="${_nea(i18t('ng_start_thread_aria',{id:ch.id}))}"></textarea>
+    <div class="rl-cnote-foot">
+      <button type="button" class="rl-cnote-add" data-nego-send="${_ne(ch.id)}">${i18t('ng_card_note_add')}</button>
+      <span class="rl-cnote-hint">${i18t('ng_card_note_never',{who:_ne(who)})}</span>
+    </div>` : '';
+  return `<div class="rl-cnotes">
+    <div class="rl-cnotes-k">${msgs.length ? i18t('ng_card_notes_n',{n:msgs.length}) : i18t('ng_card_notes')}</div>
+    ${list}${composer}
+  </div>`;
+}
+
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const held = rlActorHeld(c, opts);
@@ -9568,9 +9827,41 @@ function redlineChangeCardsHtml(c, opts = {}){
        verbs, because it is about the gap where a verb would have been. */
     const dkBy = window.deskCardByHtml ? deskCardByHtml(c, ch, opts) : '';
     const dkInstead = window.deskCardInsteadHtml ? deskCardInsteadHtml(c, ch, opts) : '';
+    /* ---- THE CONVERSATION LIVES ON THE CHANGE IT IS ABOUT ----
+       A thread hangs off a change. It used to be drawn in a Discussion column
+       beside this one — the same list of changes, in a different order, behind
+       a tab — so reading what your team said about clause 6.1 meant leaving the
+       card for clause 6.1. It reads here now (Young, 10 Aug 2026), inside the
+       card, where the wording and the verbs are.
+
+       AND IT IS INTERNAL. The column it replaces carried an internal/shared
+       switch, so a message could be written FOR the counterparty; this box has
+       no switch and says so under the button. The hidden marker below is what
+       tells the engine's send handler which it is — see the visBtn lookup in
+       wireNegotiationTab, which reads the pressed state rather than assuming a
+       default. Messages already on the record are still shown whichever way
+       they were written, because hiding them would rewrite the history. */
+    /* ---- THE CARD CARRIES THE WORDING AGAIN, AND THAT IS A REVERSAL ----
+       It was taken off on the argument that the document beside it already
+       shows the change, so a clamped copy on the card was the same words twice.
+       True, and the card that was left read as a filing reference: an id, a
+       clause number and four buttons, with nothing on it about the thing being
+       decided. Restored on the design's call (Young, 10 Aug 2026).
+
+       Two lines, clamped, marks and all — it is a summary you skim down the
+       column, not a place to read a clause. The full wording in its own
+       surroundings is one click away and always has been (rlLinkFocus). */
+    const diff = (() => {
+      const ops = rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode()));
+      if (window.redlineOpsHtml && Array.isArray(ops) && ops.length)
+        return `<div class="rl-card-diff">${redlineOpsHtml(ops)}</div>`;
+      const t = String(ch.proposedText || ch.newText || '').trim();
+      return t ? `<div class="rl-card-diff">${_ne(t)}</div>` : '';
+    })();
+    const notes = rlCardNotesHtml(c, ch, opts, side);
     const body = `<div class="rl-card-body">${dkBy}${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${rvStuckBlock}${
       verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${dkInstead}${
-      window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}</div>`;
+      window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}${notes}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"
         title="${open ? 'Collapse this card' : 'Open this card'}"
@@ -9589,6 +9880,7 @@ function redlineChangeCardsHtml(c, opts = {}){
         ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
         ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}</div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
+      ${diff}
       ${body}
     </article>`;
   }).join('');
@@ -10023,73 +10315,65 @@ function redlinePanesHtml(c, opts = {}){
       <!-- keeps the nego-pane working classes: the engine's clause tools
            (Change, Delete, the fingerprint margin) are styled through them, and
            without them they render as unlabelled empty boxes -->
+      ${''/* ---- THE MIDDLE COLUMN IS THE SHEET, AND NOTHING ELSE ----
+             It used to open with a head reading "The contract" and a count of
+             the marks on it. Both are gone (Young, 10 Aug 2026): the name was
+             labelling the most self-evident object on the page, and the count
+             is said better one column to the right, where the cards it counts
+             actually are ("N on the table"). What is left is the paper, on the
+             page, which is the whole point of the column. */}
       <section id="rl-doc" class="rl-doc nego-pane working" aria-label="${_nea(i18t('ng_doc_aria'))}">
-        ${''/* The middle pane had no name, so three columns read as a queue, a
-               page and a list of cards rather than as one contract seen three
-               ways. A head naming it, and counting the marks on it, is what
-               ties the outer two to the middle. */}
-        <div class="rl-doc-head">
-          <b>${i18t('ng_the_contract')}</b>
-          ${''/* Counts the marks IN THE DOCUMENT AS DRAWN. With a reviewer's
-                 document folded to their own clause, the contract's total is a
-                 number about a page they are not looking at. */}
-          <span class="rl-doc-marked">${(() => { const only = rlMyCardIds(c, opts);
-            const n = (typeof negoChanges === 'function' ? negoChanges(c) : [])
-            .filter(x => x && x.status !== 'superseded' && !x.withdrawn && x.status !== 'rejected'
-              && (!only || rlRvFullDoc() || only.has(String(x.id)))).length;
-            return n ? `<span class="rl-doc-dot"></span>${n} marked` : 'no marks'; })()}</span>
-        </div>
         <div class="nego-scroll" id="nego-scroll-work">${redlineDocHtml(c, opts)}</div>
       </section>
 
       <div id="rl-resizer" class="rl-resizer" role="separator" aria-orientation="vertical"
         title="${_nea(i18t('ng_drag_width'))}"><span></span></div>
 
-      <aside class="rl-col rl-side" id="rl-side" aria-label="${i18t('ng_tracked_and_discussion')}">
-        <!-- The two faces wear their own colours — emerald for the redlines,
-             indigo for the conversation, the same pair the origin badges use —
-             and each carries its live count as a solid pill. A switch that is
-             two grey words is a switch nobody notices they are standing on. -->
-        <div class="rl-side-tabs" role="tablist" aria-label="${i18t('ng_what_sidebar_shows')}">
-          <button type="button" class="rl-side-tab rl-tab-changes${mode === 'changes' ? ' on' : ''}" data-rl-mode="changes"
-            role="tab" aria-selected="${mode === 'changes' ? 'true' : 'false'}" aria-controls="rl-changes-col">&#128221; Tracked Changes
-            <span class="rl-tab-n" id="rl-chg-count">${changeTotal}</span></button>
-          <button type="button" class="rl-side-tab rl-tab-disc${mode === 'disc' ? ' on' : ''}" data-rl-mode="disc"
-            role="tab" aria-selected="${mode === 'disc' ? 'true' : 'false'}" aria-controls="rl-disc-col">&#128172; Discussion
-            <span class="rl-tab-n" id="rl-rail-count">${threadTotal}</span></button>
-        </div>
+      ${''/* ---- ONE COLUMN NOW, NOT TWO FACES OF ONE ----
+             This card used to carry a [Tracked Changes | Discussion] switch, a
+             filter dropdown, two bulk verbs and a second copy of the batch
+             send, above the cards. All four are gone on the design's call
+             (Young, 10 Aug 2026):
 
-        <div class="nego-pane index" id="rl-changes-col" role="tabpanel" aria-label="${i18t('ng_tracked_changes')}">
+             - the DISCUSSION column, because a thread hangs off a change and
+               now reads on that change's own card;
+             - the FILTER, because the queue beside the document already answers
+               "what is left" and a column of five cards does not need slicing;
+             - ACCEPT ALL / REJECT ALL, because deciding the other side's
+               wording in one press is the one act on this page that should cost
+               a reader one press per clause;
+             - the column's own SEND ALL, because Publish Round on the toolbar
+               is the same act and two buttons for one act is one too many.
+
+             What survives is the engine's own #nego-send, kept mounted and
+             visually hidden: it is the control Publish Round presses. */}
+      <aside class="rl-col rl-side" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
+        <div class="nego-pane index" id="rl-changes-col" aria-label="${i18t('ng_tracked_changes')}">
           <div class="nego-index-head rl-idx-head">
-          ${''/* NOTHING TO FILTER. Every option here slices the round — yours,
-                 theirs, drafts, sent — and a reviewer's column holds one thing:
-                 the clauses they were handed. A control whose every setting
-                 gives the same answer is furniture. */}
-          ${rlActorHeld(c, opts) ? '' : `<select id="rl-card-filter" class="rl-card-filter${rlCardFilter() === 'all' ? '' : ' on'}"
-            aria-label="${i18t('ng_filter_tracked')}" title="${_nea(i18t('ng_filter_title'))}">${
-            RL_CARD_FILTERS.map(([k, label]) =>
-              `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}>${label}</option>`).join('')}</select>`}
+          <span class="rl-idx-k">${i18t('ng_tracked_changes_head')}</span>
+          <span class="rl-idx-n" id="rl-chg-count-wrap">${i18t('ng_on_the_table',{n:changeTotal})}</span>
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
+          <span class="rl-tab-n" id="rl-chg-count" hidden>${changeTotal}</span>
+          <span class="rl-tab-n" id="rl-rail-count" hidden>${threadTotal}</span>
           <button class="nego-fold" id="nego-fold" hidden>${i18t('ng_hide')}</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
           <div id="nego-progress" hidden>${i18t('ng_resolved_short',{done:p.done,total:p.total})}</div>
-          ${''/* Owner-only risk verb, and verbs named from the reader's chair —
-                 see the note at the room's bulk bar for why. */}
-          ${canAct ? `<div class="nego-bulk">
-            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
-            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
-          </div>` : (opts.readonlyWhy
-            /* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule
-               the counterparty's action bar has carried for a while, applied
-               here because this is where the owner's verbs were. An executed
-               contract used to render this column silently: no bulk verbs, no
-               Direct Edit, and nothing anywhere saying the wording is sealed,
-               which reads as a page that failed to load rather than a record
-               that is closed. */
-            ? `<div class="nego-why" id="nego-readonly-why">${_ne(opts.readonlyWhy)}</div>` : '')}
-          <div class="rl-sendslot">${negoIndexSendHtml(c, opts)}</div>
+          ${''/* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule
+                 the counterparty's action bar has carried for a while. An
+                 executed contract used to render this column silently, which
+                 reads as a page that failed to load rather than a record that
+                 is closed. It outlived the bulk verbs it was written for
+                 because it was never about them: it is about the whole column
+                 being inert. */}
+          ${!canAct && opts.readonlyWhy ? `<div class="nego-why" id="nego-readonly-why">${_ne(opts.readonlyWhy)}</div>` : ''}
+          ${''/* THE POSTBOX, MOUNTED AND UNSEEN. #nego-send is the engine's one
+                 send; Publish Round on the toolbar is a proxy that clicks it
+                 (see redlineSyncProxies, which also reads its disabled state to
+                 decide whether the proxy may act). Removing it would leave the
+                 toolbar pressing nothing. */}
+          <div class="rl-sendslot rl-sendslot-hidden" aria-hidden="true">${negoIndexSendHtml(c, opts)}</div>
           </div>
           <!-- TWO IDS, NESTED, BOTH LOAD-BEARING. #nego-cards is the scroll box
                the engine and the counterparty portal both reach for by name;
@@ -10097,10 +10381,6 @@ function redlinePanesHtml(c, opts = {}){
                different things — a scroller and its contents — so nesting is the
                honest arrangement rather than a trick to satisfy both. -->
           <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, opts)}</div></div>
-        </div>
-
-        <div class="rl-disc" id="rl-disc-col" role="tabpanel" aria-label="${i18t('ng_discussion')}">
-          ${redlineDiscussionHtml(c, opts)}
         </div>
       </aside>
     </div>

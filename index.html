@@ -220,6 +220,17 @@
        literal #fbfbfc — so the document joins the theme flip. Print pins it
        back to white (see @media print). */
     --color-doc-surface:#fbfbfc;
+    /* ---- THE PAPER IS WARM ----
+       Asked for on 10 Aug 2026: the contract sheet reads as paper rather than
+       as another white card on a white page. A cream ground and a warm hairline
+       to frame it, named here so the Document tab, the negotiation workbench,
+       the counterparty's page and the phone all paint the same sheet — and so
+       the dark theme can answer differently below instead of every view
+       carrying a literal #fdfcf9. */
+    --color-doc-warm:#fdfcf9; --color-doc-warm-line:#e8e4dc;
+    /* The lift under the sheet. Softer and longer than --shadow-md: a page
+       resting on a desk, not a card floating over one. */
+    --shadow-paper:0 1px 2px rgba(38,55,74,.05), 0 18px 44px -22px rgba(38,55,74,.28);
 
     --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
     --radius-sm:8px; --radius-md:12px; --radius-lg:12px;
@@ -282,6 +293,10 @@
     --color-doc-muted:#94a3b8;
     --color-doc-rule:#334155;
     --color-doc-surface:#0f172a;
+    /* No cream in the dark: warm paper on a dark page is a stain. The sheet is
+       the surface it always was, and the hairline is the divider. */
+    --color-doc-warm:#0f172a; --color-doc-warm-line:#1e293b;
+    --shadow-paper:0 1px 2px rgba(0,0,0,.4), 0 18px 44px -22px rgba(0,0,0,.6);
 
     --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
     --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#94a3b8;
@@ -1835,6 +1850,9 @@
     html.dark,html.dark #print-root,#print-root{
       --color-doc-text:#15181a; --color-doc-muted:#4a4f54; --color-doc-rule:#c9ccd1;
       --color-doc-surface:#fff; --color-bg:#fff; --color-surface:#fff;
+      /* Paper prints white, warm or not — cream is a screen affordance and an
+         inkjet would render it as a grey wash across every page. */
+      --color-doc-warm:#fff; --color-doc-warm-line:#e2e8f0; --shadow-paper:none;
       --color-text:#1e293b; --color-divider:#e2e8f0;
       --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
       --color-neutral-400:#94a3b8; --color-neutral-500:#64748b; --color-neutral-600:#475569;
