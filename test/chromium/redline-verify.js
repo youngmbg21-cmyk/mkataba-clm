@@ -137,8 +137,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      rewritten as "whatever the stylesheet says" — each one still has to be
      capable of failing. The sheet is paper on canvas: bounded, centred, its own
      shadow, its own background. */
-  check('2 the sheet carries no border — it is paper, edged by shadow',
-    sheet.paperBorder === '0px', sheet.paperBorder);
+  /* IT HAS A BORDER NOW, and that is the point of the 10 Aug 2026 design: the
+     sheet is warm paper with a warm hairline round it, not white paper edged
+     by shadow alone. A cream sheet with no edge on a slate page reads as a
+     stain rather than as a page. */
+  check('2 the sheet is warm paper with its own hairline',
+    sheet.paperBorder === '1px', sheet.paperBorder);
   check('2 and it does carry that shadow', sheet.paperShadow !== 'none' && !!sheet.paperShadow,
     sheet.paperShadow);
   check('2 the sheet reads as paper against the column behind it',
@@ -357,21 +361,31 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     cards.acc && cards.rej ? `${cards.acc.fg} vs ${cards.rej.fg}` : 'missing');
 
   /* ---- 14. the card is a handle, not a second copy of the wording ----
-     It used to carry the redline clamped to two lines, beside a document pane
-     already showing the same words in full. The copy is gone; what has to hold
-     is that the wording is still reachable and the card still points at it. */
+     It carries the redline clamped to two lines again — taken off once as a
+     duplicate of the document pane, restored on the 10 Aug 2026 design because
+     the card that was left read as a filing reference with nothing on it about
+     the thing being decided. What has to hold is that it stays a SUMMARY: two
+     lines, clamped, never a second full copy of the clause. */
   const delta = await page.evaluate(() => {
     const card = document.querySelector('#rl-changes .rl-card');
     const clause = document.querySelector('#rl-doc .rl-clause.is-changed .nego-body').textContent;
     const sq = s => s.replace(/\s+/g, ' ').trim();
     const phrase = sq(clause).split(' ').slice(3, 9).join(' ');
-    return { noDiff: !document.querySelector('#rl-changes .rl-card-diff'),
-      repeatsClause: phrase.length > 0 && sq(card.textContent).includes(phrase),
+    const diff = document.querySelector('#rl-changes .rl-card-diff');
+    const ds = diff && getComputedStyle(diff);
+    return { hasDiff: !!diff,
+      clampLines: ds && ds.webkitLineClamp,
+      /* MEASURED, not read off the stylesheet: a clamp that stopped applying
+         would let the card grow to the whole clause and this is the only
+         place that would notice. */
+      clampedShort: !!diff && diff.scrollHeight >= diff.clientHeight,
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
       caret: !!card.querySelector('[data-rl-caret]'),
       sample: sq(card.textContent).slice(0, 70) };
   });
-  check('14 the card carries no copy of the wording', delta.noDiff && !delta.repeatsClause, delta.sample);
+  check('14 the card carries the delta, clamped to two lines',
+    delta.hasDiff && delta.clampLines === '2' && delta.clampedShort,
+    `${delta.clampLines} lines — ${delta.sample}`);
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
   check('14 the card says it can fold', delta.caret);
 
@@ -450,18 +464,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { text: b.textContent.replace(/\s+/g, ' ').trim(), bg: s.backgroundColor,
       anim: s.animationName, inHeader: b.getBoundingClientRect().top < headBox.bottom + 1,
       inChangesCol: !!col && col.contains(b),
-      /* Above the cards, not buried under them: the complaint that moved it was
-         that the only send was below the fold. */
-      aboveTheCards: !!cards && b.getBoundingClientRect().bottom <= cards.getBoundingClientRect().top + 1,
+      /* IT IS NO LONGER SEEN AT ALL. The column's own copy of the batch send is
+         gone (10 Aug 2026) and Publish Round on the toolbar is the one act;
+         #nego-send survives clipped out of the layout because that proxy
+         clicks it. So what is checked is that it is still IN the column (the
+         proxy has something to press) and still out of the reader's way. */
+      clippedAway: !!b.closest('.rl-sendslot-hidden'),
       headerCopies: document.querySelectorAll('.rl-head [data-rl-blast]').length,
+      proxies: document.querySelectorAll('[data-redline-proxy="nego-send"]').length,
       unsent: negoUnsentAsks(CONTRACT, 'owner').length };
   });
-  check('13 the batch send sits with the drafts it publishes',
-    !!blast && blast.inChangesCol && blast.aboveTheCards,
-    blast && `in the column: ${blast.inChangesCol}, above the cards: ${blast.aboveTheCards}`);
-  check('13 and the toolbar proxy has not come back',
-    !!blast && !blast.inHeader && blast.headerCopies === 0,
-    blast && `${blast.headerCopies} in the header`);
+  check('13 the engine\'s send is mounted in the column, out of the way',
+    !!blast && blast.inChangesCol && blast.clippedAway,
+    blast && `in the column: ${blast.inChangesCol}, clipped: ${blast.clippedAway}`);
+  check('13 and it is the toolbar\'s Publish Round that presses it',
+    !!blast && blast.headerCopies === 0 && blast.proxies === 1,
+    blast && `${blast.headerCopies} copies, ${blast.proxies} proxies`);
   check('13 it counts the unsent drafts',
     !!blast && blast.text.indexOf(`(${blast.unsent})`) >= 0, blast && blast.text);
   check('13 it is animated', !!blast && blast.anim === 'rlBlast', blast && blast.anim);
@@ -491,12 +509,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       split: document.getElementById('rl-doc').getBoundingClientRect().width
         + document.getElementById('rl-side').getBoundingClientRect().width,
       chg: vis(document.getElementById('rl-changes-col')),
-      disc: vis(document.getElementById('rl-disc-col')) });
+      /* The Discussion face is gone (10 Aug 2026) — nothing can be flipped to
+         and nothing can hide the cards. Reported rather than measured, so a
+         column reappearing would fail here rather than pass quietly. */
+      disc: !!document.getElementById('rl-disc-col'),
+      modeTabs: document.querySelectorAll('[data-rl-mode]').length });
     const changes = w();
     rlSetSideMode('disc');
-    const disc = w();
-    rlSetSideMode('changes');
-    return { changes, disc };
+    const after = w();
+    return { changes, after };
   });
   const ratio = (a, b) => a / b;
   check('9 the document takes two thirds of the row',
@@ -505,13 +526,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('9 the one sidebar takes the other third',
     Math.abs(ratio(panes.changes.side, panes.changes.split) - 1 / 3) < 0.04,
     ratio(panes.changes.side, panes.changes.split).toFixed(3));
-  check('9 changes mode shows the cards and not the discussion',
-    panes.changes.chg && !panes.changes.disc, JSON.stringify(panes.changes));
-  check('9 discussion mode shows the threads and not the cards',
-    panes.disc.disc && !panes.disc.chg, JSON.stringify(panes.disc));
-  check('9 the split does not move when the face flips',
-    Math.abs(panes.disc.doc - panes.changes.doc) < 2,
-    `${panes.changes.doc} vs ${panes.disc.doc}`);
+  check('9 there is one face, and it is the cards',
+    panes.changes.chg && !panes.changes.disc && !panes.changes.modeTabs,
+    JSON.stringify(panes.changes));
+  check('9 nothing can flip it away — an old stored preference included',
+    panes.after.chg && !panes.after.disc, JSON.stringify(panes.after));
+  check('9 and the split does not move when it is asked to',
+    Math.abs(panes.after.doc - panes.changes.doc) < 2,
+    `${panes.changes.doc} vs ${panes.after.doc}`);
 
   /* ---- 9b. the handle really drags the split ---- */
   const drag = await page.evaluate(async () => {
