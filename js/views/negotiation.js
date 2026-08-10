@@ -5468,12 +5468,27 @@ function rlFitTabRow(){
   const tabs = row.firstElementChild;
   if (!head || !tabs || tabs === head) return;
   row.classList.remove('rl-tabrow-wrap');
+  row.classList.remove('rl-tabrow-tight');
   /* jsdom has no layout: every rect is zero, so every row would read as
      unwrapped. That is the right answer there — the class is a painting
      detail — but say so rather than letting a zero fall through by luck. */
-  const hr = head.getBoundingClientRect(), tr = tabs.getBoundingClientRect();
-  if (!hr.height && !tr.height) return;
-  if (hr.top > tr.top + 6) row.classList.add('rl-tabrow-wrap');
+  const dropped = () => {
+    const hr = head.getBoundingClientRect(), tr = tabs.getBoundingClientRect();
+    if (!hr.height && !tr.height) return null;
+    return hr.top > tr.top + 6;
+  };
+  if (!dropped()) return;
+  /* It does not fit with the full words. TIGHTEN BEFORE WRAPPING — a ThinkPad
+     window is the ordinary corporate laptop, and a second line there is a band
+     taken straight out of the contract (Young, 10 Aug 2026). The tight class
+     folds the repeated words down to glyphs and counts; measure again with it
+     ON, because whether IT fits is the question being asked. */
+  row.classList.add('rl-tabrow-tight');
+  if (!dropped()) return;
+  /* Genuinely too narrow even compressed — the honest second line, with the
+     full words back on: a row of its own has room for them. */
+  row.classList.remove('rl-tabrow-tight');
+  row.classList.add('rl-tabrow-wrap');
 }
 function rlWireFitTabRow(){
   if (_rlFitWired || typeof window === 'undefined' || !window.addEventListener) return;
@@ -5565,6 +5580,31 @@ function redlineLayoutCss(){
      full-width, zero-height element sitting exactly between the two lines,
      which makes it the honest place for that rule. */
   .redline-page .rl-tabrow{flex-wrap:wrap}
+  /* ---- BUT BEFORE IT WRAPS, IT TIGHTENS ----
+     Reported off two laptops side by side (Young, 10 Aug 2026): on a ThinkPad
+     the controls dropped to a second line below the tabs, and that line comes
+     straight out of the contract's height — "the space for the contract has to
+     be maintained at all times". ThinkPad-class screens (1366–1536px of window)
+     are the ordinary corporate laptop, not an edge case, so the second line
+     cannot be the ordinary answer there.
+
+     So rlFitTabRow tries a middle step first: .rl-tabrow-tight, where every
+     control keeps its box and its press but the words that repeat what a
+     tooltip already says stand down — the two purple buttons fold to their
+     glyphs, Publish Round keeps the verb and drops the counts (the title
+     carries the full sentence either way), and the pills give back a little
+     padding. Only if the row STILL does not fit does the wrap happen, with the
+     full words back — a row of its own has room for them. The words are spans
+     precisely so this is a paint decision: textContent never changes, which is
+     also why every test that reads the labels still can. */
+  .redline-page .rl-glyph{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-word{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-glyph{display:inline}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn{padding:6px 9px}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-send-detail{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-head{gap:5px}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-seg{padding:0 7px}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-needs{padding:0 9px;gap:6px}
   .redline-page .rl-tabrow.rl-tabrow-wrap{border-bottom:0}
   .redline-page .rl-tabrow.rl-tabrow-wrap .rl-tabrow-gap{flex-basis:100%;min-width:0;height:0;
     border-bottom:1px solid var(--color-divider)}
@@ -6908,8 +6948,12 @@ function renderRedline(){
      are named separately rather than folded into one number: "held" is a person
      having said no, "in review" is a person not having answered yet, and a
      reader deciding whether to chase somebody needs to know which. */
-  const sendLabel = (side === 'owner' ? 'Publish Round' : 'Send Response')
-    + (_goes ? ` · ${_goes} unsent` : '')
+  /* The verb and its counts are separate spans: on a tight row (a ThinkPad
+     window) the counts stand down and the verb stays, with the title still
+     carrying the whole sentence. Both remain in textContent either way, which
+     is what the tests read. */
+  const sendVerb = side === 'owner' ? 'Publish Round' : 'Send Response';
+  const sendCounts = (_goes ? ` · ${_goes} unsent` : '')
     + (_held ? ` · ${_held} held` : '')
     + (_wait ? ` · ${_wait} in review` : '');
   const sendTip = side === 'owner'
@@ -7016,8 +7060,12 @@ function renderRedline(){
                    contract, writes its verdicts onto the record and files an
                    audit line — an authoring act on the round, by somebody who
                    was asked to look at one clause. */}
+            ${''/* THE WORD IS A SPAN so the tight row can stand it down. On a
+                   ThinkPad-width window (Young, 10 Aug 2026: "the highlight
+                   buttons do not descend to a second line") the row compresses
+                   to glyphs before it ever wraps — the title says the rest. */}
             ${side !== 'counterparty' && !_rvPosture && (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" data-rl-pbreview class="rl-pb-btn"
-              title="${i18t('ng_review_every_clause')}">${i18t('ng_review_vs_playbook')}</button>` : ''}
+              title="${i18t('ng_review_every_clause')}"><span class="rl-word">${i18t('ng_review_vs_playbook')}</span><span class="rl-glyph" aria-hidden="true">&#10022;</span></button>` : ''}
             ${''/* ALWAYS A WAY IN. This used to become "With John Wayne" the
                    moment anything went out — a button that had stopped being a
                    button, on the one control you need again the second you spot
@@ -7029,7 +7077,7 @@ function renderRedline(){
               const st = reviewState(c);
               const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
               return `<button type="button" data-rl-review class="rl-pb-btn"
-                data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100; ${_ne(label)}</button>`;
+                data-rv-phase="${_nea(st.phase)}" title="${_nea(i18t('rv_head_title'))}">&#128100;<span class="rl-word"> ${_ne(label)}</span></button>`;
             })() : ''}
             ${''/* ---- HOW THE CONTRACT READS, AS THREE WORDS ----
                    Not a filter and not a mode the record knows about: the same
@@ -7078,7 +7126,7 @@ function renderRedline(){
                    #nego-send survives, hidden, as the control this presses. */}
             ${side === 'counterparty' || _rvPosture ? '' : `<button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-              ${_ne(sendLabel)}</button>`}
+              ${_ne(sendVerb)}<span class="rl-send-detail">${_ne(sendCounts)}</span></button>`}
             ${side === 'counterparty' ? '' : closer}
           </div>
         </section>

@@ -215,6 +215,35 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     assert.ok(on > read, 'and puts it back only after reading');
   });
 
+  test('and it tightens before it wraps — a ThinkPad window keeps one line', async () => {
+    /* Reported off two laptops side by side (Young, 10 Aug 2026): on a
+       ThinkPad the controls dropped to a second line below the tabs, and that
+       line comes straight out of the contract's height. So the observer has a
+       middle step: compress the row (words down to glyphs and counts, the
+       tooltips already say the rest) and only wrap if even THAT does not fit. */
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const fn = /function rlFitTabRow\(\)\{[\s\S]*?\n\}/.exec(src)?.[0] || '';
+    const tightOff = fn.indexOf("classList.remove('rl-tabrow-tight')");
+    const tightOn = fn.indexOf("classList.add('rl-tabrow-tight')");
+    const wrapOn = fn.indexOf("classList.add('rl-tabrow-wrap')");
+    assert.ok(tightOn > -1, 'the tight step exists');
+    assert.ok(tightOff > -1 && tightOff < tightOn, 'measured with its own class off, like the wrap');
+    assert.ok(wrapOn > tightOn, 'and the wrap is the LAST resort, tried after tight');
+
+    /* The words are spans so standing them down is a paint decision — the
+       textContent every other test reads never changes. */
+    const p = await page({ myChange: true });
+    assert.ok(p.$('.rl-pb-btn .rl-word'), 'the purple buttons carry their words in a span');
+    const send = p.$('[data-redline-proxy]');
+    assert.ok(send.querySelector('.rl-send-detail'), 'Publish Round carries its counts in a span');
+    assert.match(send.textContent, /unsent/, 'and the counts are still in the text');
+    assert.ok(/rl-tabrow-tight .rl-pb-btn .rl-word\{display:none/.test(p.css()),
+      'tight folds the purple buttons to their glyphs');
+    assert.ok(/rl-tabrow-tight .rl-send-detail\{display:none/.test(p.css()),
+      'and Publish Round to its verb');
+  });
+
   test('and the header is still the header', async () => {
     // flattening a container must not flatten what is in it
     const p = await page();
