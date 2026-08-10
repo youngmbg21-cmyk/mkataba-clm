@@ -5,7 +5,7 @@
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "test": "node --test test/*.test.js",
+    "test": "node --test --test-timeout=60000 test/*.test.js",
     "test:browser": "node test/chromium/redline-verify.js",
     "test:selection": "node test/chromium/selection-verify.js",
     "test:parity": "node test/chromium/parity-verify.js",
