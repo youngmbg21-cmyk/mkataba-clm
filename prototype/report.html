@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HaTi — the weekly report</title>
+<!-- The real HaTi typefaces, already inlined as data URIs in the repo. -->
+<link rel="stylesheet" href="../fonts/fonts.css" />
+<style>
+/* ============================================================================
+   HaTi — THE REPORT. A looks-only prototype of two screens:
+
+     1 · a 90-second onboarding — HaTi proposes who you are from the contract
+         mix, you pick THREE worries from seven cards, choose who gets the
+         report and how often;
+     2 · the one-page report those choices produce — five slots that never
+         grow, ranked by your picks, with three guardrails personalisation
+         cannot break.
+
+   The point of the demo is that the two screens are WIRED: change the worry
+   cards and slot three re-ranks in front of you. Three example organisations
+   share the one generator.
+
+   The rules the report obeys, all visible on screen:
+     · dates are never filtered by preference;
+     · a critical finding enters the report even if it matches none of your
+       picks, and says so;
+     · a finding that has not changed does not reappear — it collapses into
+       one honest line at the bottom;
+     · an under-full report says so plainly instead of padding.
+
+   Every figure is invented, and every figure is one HaTi could read from a
+   signed document or its own filing record — the same honesty rule as the
+   workspace prototype (prototype/analyst.html), which these screens sit in
+   front of, not instead of.
+   ========================================================================= */
+
+:root{
+  --color-bg:#f8fafc;
+  --color-surface:#ffffff;
+  --color-surface-2:#f1f5f9;
+  --color-text:#1e293b;
+  --color-divider:#e2e8f0;
+  --color-neutral-100:#f1f5f9; --color-neutral-300:#cbd5e1; --color-neutral-400:#94a3b8;
+  --color-neutral-500:#64748b; --color-neutral-600:#475569; --color-neutral-700:#334155;
+  --color-accent-100:#ccfbf1; --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6;
+  --color-accent-600:#0d9488; --color-accent-700:#0f766e; --color-accent-800:#115e59;
+  --accent-solid:var(--color-accent-600);
+  --accent-ink:var(--color-accent-800);
+  --brand-cyan:#06b6d4; --brand-cyan-700:#0aa2b8;
+  --brand-hero-deep:#0b3d3a;
+  --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
+  --brand-hero-sub:#bde7e1;
+  --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
+  --font-body:Inter,system-ui,sans-serif;
+  --radius:12px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+  --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+  --focus:0 0 0 2px color-mix(in srgb,var(--accent-solid) 45%,transparent);
+  --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-line:#cbd5e1;  --st-gray-dot:#94a3b8;
+  --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-line:#e0c48a; --st-amber-dot:#f59e0b;
+  --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-line:#a8cbb8; --st-green-dot:#10b981;
+  --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-line:#e6c9c1;  --st-ruby-dot:#f43f5e;
+  --st-steel-bg:var(--color-accent-100); --st-steel-fg:var(--color-accent-800); --st-steel-line:#99f6e4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --color-bg:#020617; --color-surface:#0f172a; --color-surface-2:#111f36;
+    --color-text:#e2e8f0; --color-divider:#1e293b;
+    --color-neutral-100:#1e293b; --color-neutral-300:#334155; --color-neutral-400:#64748b;
+    --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1; --color-neutral-700:#e2e8f0;
+    --accent-ink:var(--color-accent-400);
+    --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+    --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+    --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+    --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+    --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --color-bg:#020617; --color-surface:#0f172a; --color-surface-2:#111f36;
+  --color-text:#e2e8f0; --color-divider:#1e293b;
+  --color-neutral-100:#1e293b; --color-neutral-300:#334155; --color-neutral-400:#64748b;
+  --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1; --color-neutral-700:#e2e8f0;
+  --accent-ink:var(--color-accent-400);
+  --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+  --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+  --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+  --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+  --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+  --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--color-bg);color:var(--color-text);
+  font-family:var(--font-body);font-size:13.5px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-heading);margin:0;text-wrap:balance;}
+button{font:inherit;cursor:pointer;}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+.wrap{max-width:820px;margin:0 auto;padding:20px 18px 60px;}
+
+.proto-note{
+  margin-bottom:18px;padding:11px 14px;border-radius:var(--radius);
+  background:var(--st-amber-bg);border:1px solid var(--st-amber-line);
+  color:var(--st-amber-fg);font-size:12px;font-weight:500;
+}
+.proto-note b{font-weight:700;}
+
+/* ---------- top strip: org switch + stepper ---------- */
+.demo-strip{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px;}
+.demo-strip .cap{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-500);}
+.obtn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 12px;
+  font-size:11.5px;font-weight:600;
+}
+.obtn:hover{background:var(--color-surface-2);}
+.obtn.on{background:var(--brand-hero);border-color:transparent;color:#fff;}
+.stepper{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:11.5px;font-weight:600;color:var(--color-neutral-500);}
+.stepper b{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;
+  font-weight:700;color:var(--color-neutral-500);background:var(--color-surface);
+  border:1px solid var(--color-divider);
+}
+.stepper b.on{color:var(--accent-ink);background:var(--st-steel-bg);border-color:var(--st-steel-line);}
+.stepper .sep{color:var(--color-neutral-400);}
+
+.screen{display:none;}
+.screen.on{display:block;}
+
+/* ---------- shared bits ---------- */
+.btn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-700);border-radius:10px;padding:8px 14px;
+  font-size:12px;font-weight:600;
+}
+.btn:hover{background:var(--color-surface-2);}
+.btn-primary{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
+.btn-primary:hover{background:var(--color-accent-700);}
+.btn-ghost{border-color:transparent;background:none;color:var(--accent-ink);}
+.btn-ghost:hover{background:var(--color-surface-2);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+  padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;}
+.pill .dot{width:6px;height:6px;border-radius:50%;flex:none;}
+.pill.gray{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+.pill.gray .dot{background:var(--st-gray-dot);}
+.pill.amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+.pill.amber .dot{background:var(--st-amber-dot);}
+.pill.green{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line);}
+.pill.green .dot{background:var(--st-green-dot);}
+.pill.ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+.pill.ruby .dot{background:var(--st-ruby-dot);}
+.pill.steel{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
+.pill.steel .dot{background:var(--color-accent-500);}
+
+.cat{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;
+  padding:2px 8px;border-radius:6px;white-space:nowrap;
+  border:1px solid var(--color-neutral-300);color:var(--color-neutral-600);background:var(--color-surface);}
+.cat:before{content:"";width:5px;height:5px;border-radius:1px;flex:none;
+  background:var(--color-neutral-400);transform:rotate(45deg);}
+
+.src{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:5px;
+  border:1px solid;white-space:nowrap;vertical-align:middle;}
+.src.doc{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
+.src.hati{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+
+.card{background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);}
+
+/* ---------- ONBOARDING ---------- */
+.ob-head{margin-bottom:20px;}
+.ob-head h1{font-size:23px;font-weight:800;letter-spacing:-.02em;}
+.ob-head p{margin:6px 0 0;color:var(--color-neutral-500);font-size:13px;max-width:64ch;}
+
+.ob-sec{margin-bottom:18px;}
+.ob-sec .no{
+  display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:var(--accent-solid);color:#fff;font-size:11.5px;font-weight:800;
+  font-family:var(--font-heading);margin-right:9px;vertical-align:-4px;
+}
+.ob-sec h3{display:inline;font-size:15px;font-weight:700;}
+.ob-sec .why{margin:6px 0 12px 31px;font-size:12px;color:var(--color-neutral-500);max-width:66ch;}
+
+.mixline{display:flex;flex-direction:column;gap:8px;}
+.mixline .row{display:grid;grid-template-columns:170px 1fr 34px;gap:10px;align-items:center;font-size:12px;}
+.mixline .row .nm{font-weight:600;}
+.mixline .track{display:block;height:8px;background:var(--color-surface-2);border-radius:5px;overflow:hidden;}
+.mixline .fill{display:block;height:100%;background:var(--color-accent-600);border-radius:5px;}
+.mixline .n{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;}
+.detect{
+  margin-top:14px;padding:11px 13px;border-radius:9px;font-size:12.5px;
+  background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg);
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.detect b{font-weight:700;}
+.detect .btn{margin-left:auto;}
+
+.worries{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;}
+@media (max-width:640px){ .worries{grid-template-columns:1fr;} }
+.worry{
+  text-align:left;border:1.5px solid var(--color-divider);background:var(--color-surface);
+  border-radius:11px;padding:11px 13px;display:flex;gap:10px;align-items:flex-start;
+  transition:border-color .12s, background .12s;
+}
+.worry:hover{border-color:var(--color-neutral-400);}
+.worry.on{border-color:var(--accent-solid);background:color-mix(in srgb,var(--accent-solid) 7%,var(--color-surface));}
+.worry .tick{
+  width:18px;height:18px;border-radius:6px;flex:none;margin-top:1px;
+  border:1.5px solid var(--color-neutral-300);display:grid;place-items:center;color:#fff;
+}
+.worry.on .tick{background:var(--accent-solid);border-color:var(--accent-solid);}
+.worry b{display:block;font-size:12.5px;font-weight:700;}
+.worry span{display:block;font-size:11px;color:var(--color-neutral-500);margin-top:1px;}
+.pickcount{margin-top:10px;font-size:11.5px;font-weight:600;color:var(--color-neutral-500);}
+.pickcount b{color:var(--accent-ink);}
+
+.deliv{display:flex;gap:22px;flex-wrap:wrap;}
+.deliv .grp{display:flex;flex-direction:column;gap:7px;}
+.deliv .lbl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);}
+.chiprow{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:600;}
+.chip:hover{background:var(--color-surface-2);}
+.chip.on{background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
+  border-color:color-mix(in srgb,var(--accent-solid) 32%,transparent);color:var(--accent-ink);}
+
+.ob-cta{display:flex;align-items:center;gap:12px;margin-top:22px;}
+.ob-cta .note{font-size:11.5px;color:var(--color-neutral-500);}
+
+/* ---------- THE REPORT ---------- */
+.rp{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:14px;box-shadow:var(--shadow-md);overflow:hidden;
+}
+.rp-mast{
+  background:var(--brand-hero);color:#fff;padding:20px 26px 18px;
+  display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;
+}
+.rp-mast .wm{font-family:var(--font-heading);font-weight:800;font-size:15px;letter-spacing:-.01em;}
+.rp-mast .wm small{font-weight:600;font-size:10px;opacity:.8;margin-left:6px;letter-spacing:.05em;}
+.rp-mast h2{font-size:20px;font-weight:800;letter-spacing:-.02em;width:100%;}
+.rp-mast .sub{font-size:12px;color:var(--brand-hero-sub);}
+.rp-mast .side{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.cadence{display:flex;background:rgba(255,255,255,.14);border-radius:999px;padding:2px;}
+.cadence button{border:0;background:none;color:#e6fffb;font-size:11px;font-weight:700;
+  padding:4px 11px;border-radius:999px;}
+.cadence button.on{background:#fff;color:var(--brand-hero-deep);}
+
+.rp-body{padding:6px 26px 22px;}
+.slot{padding:18px 0;border-bottom:1px solid var(--color-divider);}
+.slot:last-child{border-bottom:0;}
+.slot-h{display:flex;align-items:baseline;gap:9px;margin-bottom:11px;}
+.slot-h .k{
+  font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--color-neutral-400);font-family:var(--font-heading);
+}
+.slot-h h3{font-size:14.5px;font-weight:700;}
+.slot-h .note{margin-left:auto;font-size:10.5px;color:var(--color-neutral-400);font-weight:600;white-space:nowrap;}
+
+.state-line{font-size:15.5px;line-height:1.6;max-width:60ch;}
+.state-line b{font-weight:700;}
+.state-sub{margin-top:6px;font-size:11.5px;color:var(--color-neutral-500);}
+
+.dateline{display:flex;gap:12px;align-items:baseline;padding:9px 0;border-bottom:1px dashed var(--color-divider);}
+.dateline:last-child{border-bottom:0;}
+.dateline .d{width:56px;flex:none;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;}
+.dateline .t{flex:1;font-size:12.5px;}
+.dateline .t em{display:block;font-style:normal;font-size:11px;color:var(--color-neutral-500);}
+
+.find{
+  border:1px solid var(--color-divider);border-radius:11px;padding:13px 15px;
+  margin-bottom:9px;background:var(--color-bg);
+}
+.find:last-child{margin-bottom:0;}
+.find .top{display:flex;gap:8px;align-items:baseline;}
+.find .rank{
+  font-family:var(--font-heading);font-weight:800;font-size:15px;color:var(--color-neutral-400);
+  flex:none;width:18px;
+}
+.find b{font-size:13px;font-weight:700;flex:1;}
+.find p{margin:4px 0 8px 26px;font-size:12px;color:var(--color-neutral-500);max-width:64ch;}
+.find .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:26px;}
+.find .why{
+  font-size:10.5px;font-weight:600;color:var(--accent-ink);
+  background:var(--st-steel-bg);border:1px solid var(--st-steel-line);
+  padding:2px 8px;border-radius:999px;
+}
+.find .why.guard{color:var(--st-ruby-fg);background:var(--st-ruby-bg);border-color:var(--st-ruby-line);}
+.find .less{
+  margin-left:auto;border:0;background:none;font-size:10.5px;font-weight:600;
+  color:var(--color-neutral-400);text-decoration:underline;text-underline-offset:2px;
+}
+.find .less:hover{color:var(--color-neutral-600);}
+.quietline{font-size:12px;color:var(--color-neutral-500);padding:4px 0 0;}
+
+.better{display:flex;gap:12px;align-items:flex-start;}
+.better .ic{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
+  background:var(--st-green-bg);color:var(--st-green-fg);}
+.better b{display:block;font-size:13px;font-weight:700;margin-bottom:2px;}
+.better p{margin:0;font-size:12px;color:var(--color-neutral-500);max-width:62ch;}
+
+.leftout{font-size:12px;color:var(--color-neutral-500);}
+.leftout a{color:var(--accent-ink);font-weight:600;text-decoration:none;}
+.leftout a:hover{text-decoration:underline;}
+
+.rp-foot{
+  padding:12px 26px;background:var(--color-surface-2);
+  font-size:10.5px;color:var(--color-neutral-500);
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.rp-foot .re{margin-left:auto;border:0;background:none;font-size:10.5px;font-weight:700;
+  color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px;}
+
+/* the drift nudge — the feedback loop made visible */
+.drift{
+  margin-top:14px;padding:12px 15px;border-radius:11px;font-size:12px;
+  background:var(--color-surface);border:1px dashed var(--color-neutral-400);
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--color-neutral-500);
+}
+.drift b{color:var(--color-text);font-weight:700;}
+.drift .acts{margin-left:auto;display:flex;gap:6px;}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+  background:var(--color-neutral-700);color:var(--color-bg);
+  padding:9px 16px;border-radius:999px;font-size:12px;font-weight:600;
+  box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:opacity .25s;
+  max-width:88vw;text-align:center;
+}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="proto-note">
+    <b>Prototype — pictures only.</b> Every figure is invented. This is the report design: a 90-second
+    set-up, then one page a week. The two screens are wired — change the worry cards and watch the
+    report re-rank itself. Switch organisation to see the same frame carry three different weeks.
+  </div>
+
+  <div class="demo-strip">
+    <span class="cap">Example organisation</span>
+    <button class="obtn on" data-org="savanna">Savanna Foods</button>
+    <button class="obtn" data-org="ubuntu">Ubuntu Health Trust</button>
+    <button class="obtn" data-org="nordlund">Nordlund Advokatbyrå</button>
+    <div class="stepper">
+      <b id="step1" class="on">1 · Set up</b><span class="sep">→</span><b id="step2">2 · Your report</b>
+    </div>
+  </div>
+
+  <section class="screen on" id="s-onboard"></section>
+  <section class="screen" id="s-report"></section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================
+   THE SEVEN WORRIES. Plain-English cards, not metrics. Each maps to the
+   finding tags the engine already produces — picking three sets the ranking
+   weights and nothing else. Universality lives here: a law firm and a hauler
+   pick from the SAME seven cards and get different reports because their
+   contracts differ, not because the product does.
+   ========================================================================= */
+var WORRIES = {
+  leak:         {t:'Money leaking through unused terms',      d:'Rights you hold and never use, renewals nobody decided'},
+  risk:         {t:'Being exposed if something goes wrong',   d:'Uncapped liability, one-way clauses, missing protections'},
+  deadline:     {t:'Missing a deadline that locks us in',     d:'Notice periods, break options, windows that close quietly'},
+  speed:        {t:'Deals taking too long to sign',           d:'Where negotiations stall and who has gone silent'},
+  concentration:{t:'Depending too much on one counterparty',  d:'A customer, supplier or funder who is too big to lose'},
+  compliance:   {t:'Keeping funders and regulators satisfied',d:'Reports due, conditions carried, evidence on file'},
+  people:       {t:'Employment dates and duties slipping',    d:'Probations, fixed terms, notice clauses, policy gaps'}
+};
+
+/* ============================================================================
+   THE DATA. Findings carry severity, novelty and worry-tags; the generator
+   picks. Everything else on the report is fixed by the frame.
+     sev: crit | high | med      nov: new | changed   (stale never enters the
+     pool — it is only a count, which IS the anti-pile rule)
+   ========================================================================= */
+var ORGS = {
+  savanna:{
+    name:'Savanna Foods Ltd', kind:'Food manufacturer', market:'Kenya · KES',
+    contracts:148,
+    mix:[['Customer & revenue',63],['Supplier & services',41],['Employment',28],['Licences',7],['Leases',6],['Confidentiality',3]],
+    detected:'a company that mostly sells and buys — customer and supplier paper is 70% of the book',
+    defaults:['leak','deadline','speed'],
+    audience:['Young (owner)','Finance lead','Sales lead'], audDefault:[0,1],
+    stale:28, health:{v:74,delta:'+3'},
+    win:{h:'The rebate claim was filed — first time ever',
+         p:'KES 820,000 under clause 6.5 of the haulage framework, a tier that had sat unclaimed since 2025. Filed Thursday by Amina.'},
+    dates:[
+      {d:'20 Aug',days:12,tone:'amber',t:'Insurance certificate due from a produce supplier',e:'Annual obligation, clause 8.6 — nothing filed yet'},
+      {d:'31 Aug',days:23,tone:'amber',t:'Four probation periods reach their end date',e:'The dates are written into the contracts'},
+      {d:'2 Sep',days:25,tone:'ruby',t:'Last day to give notice — Rift Valley Logistics',e:'Renews itself 31 Oct · KES 24.6M a year contracted · nothing filed'}
+    ],
+    findings:[
+      {id:'sv1',sev:'crit',nov:'new',w:['risk','leak'],cat:'Supplier',src:'doc',
+       h:'A rate on file exceeds the ceiling the agreement allows',
+       p:'The 2024 variation raised the rate 8.1% where clause 6.3 permits 7%. Every increase since compounds on it — the schedule in force is KES 340,000 a year above what was agreed.'},
+      {id:'sv2',sev:'high',nov:'new',w:['leak','deadline'],cat:'Supplier',src:'hati',
+       h:'Three contracts renewed themselves with no decision recorded',
+       p:'Notice dates passed in July and nothing was filed. KES 4.2M of contracted value committed for another year.'},
+      {id:'sv3',sev:'high',nov:'new',w:['risk'],cat:'Customer',src:'doc',
+       h:'Four customer contracts cap nothing you owe',
+       p:'Unlimited liability, where every other customer contract in the book caps it at twelve months of fees.'},
+      {id:'sv4',sev:'med',nov:'new',w:['leak'],cat:'Customer',src:'hati',
+       h:'Eleven price-adjustment rights have never been used',
+       p:'KES 96M of contracted revenue carries an annual indexation right. HaTi has never recorded one being exercised.'},
+      {id:'sv5',sev:'high',nov:'changed',w:['speed'],cat:'Customer',src:'hati',
+       h:'Serena Hotels has gone quiet — 11 days without movement',
+       p:'A distribution agreement mid-negotiation, and nobody is recorded as chasing it. Java House is 6 days quiet behind it.'},
+      {id:'sv6',sev:'med',nov:'new',w:['concentration'],cat:'Customer',src:'doc',
+       h:'One customer holds 24% of contracted revenue',
+       p:'Naivas Supermarkets. The top three together hold 51%, and the largest agreement renews in March.'},
+      {id:'sv7',sev:'med',nov:'new',w:['people','risk'],cat:'Employment',src:'doc',
+       h:'Nine contracts have no written notice period at all',
+       p:'The clause is simply absent. Whatever applies instead is not written down anywhere.'},
+      {id:'sv8',sev:'med',nov:'new',w:['compliance'],cat:'Licence',src:'hati',
+       h:'Two licences state a seat limit with nothing filed against it',
+       p:'50 seats licensed; no usage evidence has ever been filed here. Actual use is in the vendor’s console.'}
+    ],
+    drift:{have:'speed',want:'risk',
+      line:'Over six weeks you opened <b>liability findings nine times</b> and deal-speed findings once — but <b>Deals taking too long</b> is one of your picks and <b>Being exposed</b> is not.'}
+  },
+
+  ubuntu:{
+    name:'Ubuntu Health Trust', kind:'Health charity', market:'Kenya · KES',
+    contracts:96,
+    mix:[['Employment',41],['Donor funding',22],['Supplier & services',18],['Leases',9],['Sub-grants',4],['Confidentiality',2]],
+    detected:'an organisation run on people and grants — employment and donor paper is 66% of the book',
+    defaults:['compliance','deadline','concentration'],
+    audience:['Grace (director)','Grants lead','Finance lead'], audDefault:[0,1],
+    stale:35, health:{v:62,delta:'−2'},
+    win:{h:'The Kilifi partnership MoU was signed',
+         p:'Eight days from first draft to signature — the fastest agreement this organisation has closed this year.'},
+    dates:[
+      {d:'31 Aug',days:23,tone:'amber',t:'Six probation periods reach their end date',e:'The dates are written into the contracts'},
+      {d:'14 Sep',days:37,tone:'ruby',t:'Global Health Fund quarterly report due',e:'Narrative and financial annex · clause 8.3 · one late submission already noted this year'},
+      {d:'30 Sep',days:53,tone:'ruby',t:'No-cost extension deadline — WASH programme',e:'Clause 7.6 · after this date the unspent balance returns to the donor'}
+    ],
+    findings:[
+      {id:'ub1',sev:'crit',nov:'new',w:['compliance','risk'],cat:'Sub-grants',src:'doc',
+       h:'Two partner agreements are missing the funder’s audit condition',
+       p:'Clause 11.4 requires the audit right to reach everyone holding Fund money. Two of your four partner agreements do not contain it — visible by reading the two documents side by side.'},
+      {id:'ub2',sev:'high',nov:'new',w:['compliance'],cat:'Donor funding',src:'hati',
+       h:'Two closed reporting periods have nothing filed here',
+       p:'If the reports went in by email, closing this takes one click. If they did not, this is the finding that matters most this month.'},
+      {id:'ub3',sev:'high',nov:'changed',w:['concentration'],cat:'Donor funding',src:'doc',
+       h:'One funder now holds 61% of contracted funding',
+       p:'Global Health Fund, up from 55% after the March variation. The agreement ends December 2027 with no renewal right — only an invitation to reapply.'},
+      {id:'ub4',sev:'high',nov:'new',w:['people','concentration'],cat:'Employment',src:'doc',
+       h:'Nine fixed terms end the same day as the grant that funds them',
+       p:'31 December. Extend the funding without extending the contracts and the delivery team ends anyway.'},
+      {id:'ub5',sev:'med',nov:'new',w:['leak','deadline'],cat:'Supplier',src:'doc',
+       h:'The fleet agreement renews itself with no decision point',
+       p:'No notice provision and no review date anywhere in the document. KES 4.1M a year, last reviewed 2023.'},
+      {id:'ub6',sev:'med',nov:'new',w:['people'],cat:'Employment',src:'hati',
+       h:'Fourteen contracts point at a policy not held here',
+       p:'They name a travel policy. No document of that name has ever been filed in HaTi.'}
+    ],
+    drift:null
+  },
+
+  nordlund:{
+    name:'Nordlund Advokatbyrå', kind:'Law firm', market:'Sverige · SEK',
+    contracts:74,
+    mix:[['Employment',34],['Client engagements',21],['Licences',9],['Leases',5],['Supplier & services',4],['Confidentiality',1]],
+    detected:'a firm built on people and clients — employment and engagement paper is 74% of the book',
+    defaults:['risk','people','leak'],
+    audience:['Erik (partner)','Office manager'], audDefault:[0],
+    stale:18, health:{v:83,delta:'+3'},
+    win:{h:'Three software licences renegotiated with a ceiling added',
+         p:'The automatic 8% annual uplift is now capped at 3% on all three — a finding from June’s report, closed this week.'},
+    dates:[
+      {d:'30 Sep',days:53,tone:'amber',t:'Probation period ends — A. Lindqvist',e:'Clause 2.4 · the date is in the contract'},
+      {d:'14 Nov',days:98,tone:'gray',t:'Three fixed terms reach the end of their stated period',e:'Clause 2.7 in each contract'},
+      {d:'30 Nov',days:114,tone:'gray',t:'Office lease break option lapses',e:'Six months notice · miss it and the term runs to 2031'}
+    ],
+    /* A QUIET WEEK ON PURPOSE. One finding clears the bar. The report says so
+       instead of padding — that state is designed, not an embarrassment. */
+    findings:[
+      {id:'nd1',sev:'high',nov:'new',w:['risk'],cat:'Client',src:'hati',
+       h:'Two matters are open with no engagement letter on file',
+       p:'HaTi knows there is no letter in HaTi. Whether one exists in a drawer is a question for the partner — but until it is filed, scope and liability rest on nothing written.'},
+      {id:'nd2',sev:'med',nov:'new',w:['compliance'],cat:'Confidentiality',src:'hati',
+       h:'Return-or-destroy duties with no completion recorded',
+       p:'Every engagement letter carries one; no closing step records that it happened.'}
+    ],
+    drift:null
+  }
+};
+
+/* ============================================================================
+   STATE + GENERATOR
+   ========================================================================= */
+var org='savanna';
+var picks = ORGS[org].defaults.slice();
+var cadence='weekly';
+var muted = {};              // per-org: finding ids the reader asked to see less of
+var view='onboard';
+
+var $=function(s){return document.querySelector(s);};
+var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');};
+function O(){ return ORGS[org]; }
+function mutedSet(){ if(!muted[org]) muted[org]={}; return muted[org]; }
+
+function srcTag(k){
+  return '<span class="src '+k+'">'+(k==='doc'?'Contract':'HaTi')+'</span>';
+}
+function toast(msg){
+  var t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');},2600);
+}
+
+/* THE RANKING. Severity beats preference; your picks decide among the rest.
+   Critical findings cannot be muted or out-ranked — that is the smoke-alarm
+   rule, and the report says on its face when it has applied it. */
+function score(f){
+  var s = f.sev==='crit'?5 : f.sev==='high'?3 : 1.5;
+  if (f.w.some(function(w){return picks.indexOf(w)>=0;})) s+=3;
+  s += f.nov==='new'?1:0.5;
+  return s;
+}
+function selectFindings(){
+  var pool = O().findings.filter(function(f){ return f.sev==='crit' || !mutedSet()[f.id]; });
+  var ranked = pool.map(function(f){return {f:f,s:score(f)};})
+                   .sort(function(a,b){return b.s-a.s;});
+  var chosen = ranked.filter(function(r){ return r.f.sev==='crit' || r.s>=4.5; }).slice(0,3);
+  // criticals always in, even if the top three filled without them
+  O().findings.forEach(function(f){
+    if(f.sev==='crit' && !chosen.some(function(c){return c.f.id===f.id;})){
+      chosen.pop(); chosen.unshift({f:f,s:score(f)});
+    }
+  });
+  return chosen.map(function(c){return c.f;});
+}
+
+/* ============================================================================
+   SCREEN 1 · ONBOARDING
+   ========================================================================= */
+function renderOnboard(){
+  var o=O(), max=o.mix[0][1];
+  var mixRows = o.mix.map(function(m){
+    return '<div class="row"><span class="nm">'+esc(m[0])+'</span>'+
+      '<span class="track"><span class="fill" style="width:'+Math.round(m[1]/max*100)+'%"></span></span>'+
+      '<span class="n">'+m[1]+'</span></div>';
+  }).join('');
+
+  var cards = Object.keys(WORRIES).map(function(k){
+    var on = picks.indexOf(k)>=0;
+    return '<button class="worry'+(on?' on':'')+'" data-worry="'+k+'">'+
+      '<span class="tick">'+(on?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>':'')+'</span>'+
+      '<span><b>'+esc(WORRIES[k].t)+'</b><span>'+esc(WORRIES[k].d)+'</span></span></button>';
+  }).join('');
+
+  var aud = o.audience.map(function(a,i){
+    return '<button class="chip'+(o.audDefault.indexOf(i)>=0?' on':'')+'" data-aud>'+esc(a)+'</button>';
+  }).join('');
+
+  $('#s-onboard').innerHTML =
+    '<div class="ob-head"><h1>Set up your report</h1>'+
+    '<p>Ninety seconds, three steps. HaTi already read your contracts, so most of this is confirming, '+
+    'not typing. You can change any of it later — and the report itself will suggest changes when your '+
+    'reading habits drift from your picks.</p></div>'+
+
+    '<div class="card ob-sec"><span class="no">1</span><h3>Who you are — we read it, you confirm it</h3>'+
+    '<div class="why">Nobody answers a questionnaire about their industry. The mix of the '+o.contracts+
+    ' contracts already in HaTi says what kind of organisation this is.</div>'+
+    '<div class="mixline">'+mixRows+'</div>'+
+    '<div class="detect"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>'+
+    '<span>Reads like <b>'+esc(o.detected)+'</b>.</span>'+
+    '<button class="btn" style="font-size:11px;padding:5px 10px;">Adjust</button></div></div>'+
+
+    '<div class="card ob-sec"><span class="no">2</span><h3>What keeps you awake — pick three</h3>'+
+    '<div class="why">Worries, not metrics. These set what leads your report each week; they never '+
+    'hide a legal deadline or a critical finding — those come through regardless.</div>'+
+    '<div class="worries">'+cards+'</div>'+
+    '<div class="pickcount">Picked <b>'+picks.length+' of 3</b>'+
+    (picks.length>=3?' — picking another swaps out your oldest choice':'')+'</div></div>'+
+
+    '<div class="card ob-sec"><span class="no">3</span><h3>Who reads it, and how often</h3>'+
+    '<div class="why">One report for the organisation, sent by email. Nobody has to remember to log in.</div>'+
+    '<div class="deliv"><div class="grp"><span class="lbl">Goes to</span><div class="chiprow">'+aud+
+    '<button class="chip">+ Add</button></div></div>'+
+    '<div class="grp"><span class="lbl">Cadence</span><div class="chiprow">'+
+    '<button class="chip'+(cadence==='weekly'?' on':'')+'" data-cad="weekly">Weekly · Monday morning</button>'+
+    '<button class="chip'+(cadence==='monthly'?' on':'')+'" data-cad="monthly">Monthly · the 1st</button>'+
+    '</div></div></div></div>'+
+
+    '<div class="ob-cta"><button class="btn btn-primary" id="go-report" style="padding:10px 20px;font-size:13px;">'+
+    'Create my report →</button>'+
+    '<span class="note">Built from your documents only — nothing to connect, nothing to import.</span></div>';
+}
+
+/* ============================================================================
+   SCREEN 2 · THE REPORT — five slots that never grow
+   ========================================================================= */
+function renderReport(){
+  var o=O(), chosen=selectFindings();
+  var crit = o.findings.filter(function(f){return f.sev==='crit';}).length;
+
+  /* slot 1 — one sentence of state, assembled from counts */
+  var stateLine;
+  if (crit>0){
+    stateLine='Your contract book is in '+(o.health.delta[0]==='+'?'better':'worse')+
+      ' shape than last '+(cadence==='weekly'?'month':'month')+' — <b>except for one thing</b>, and it is first on the list below.';
+  } else if (chosen.length<=1){
+    stateLine='<b>A quiet '+(cadence==='weekly'?'week':'month')+'.</b> '+
+      (chosen.length===1?'One new finding needs a look; nothing is critical.':'Nothing new needs you.')+
+      ' Your '+o.stale+' known issues are unchanged.';
+  } else {
+    stateLine='A steady '+(cadence==='weekly'?'week':'month')+': '+o.dates.length+
+      ' dates need a decision and '+chosen.length+' findings are worth your attention. Nothing is critical.';
+  }
+  var stateSub = 'Health '+o.health.v+'/100, '+o.health.delta+' on July · '+o.contracts+
+    ' contracts · every figure from your documents or HaTi’s own record';
+
+  /* slot 2 — dates, never filtered */
+  var dates = o.dates.map(function(d){
+    return '<div class="dateline"><span class="d">'+esc(d.d)+'</span>'+
+      '<span class="t"><b>'+esc(d.t)+'</b><em>'+esc(d.e)+'</em></span>'+
+      '<span class="pill '+d.tone+'"><span class="dot"></span>'+d.days+' days</span></div>';
+  }).join('');
+
+  /* slot 3 — the ranked three */
+  var finds = chosen.map(function(f,i){
+    var matched = f.w.filter(function(w){return picks.indexOf(w)>=0;});
+    var why = f.sev==='crit' && matched.length===0
+      ? '<span class="why guard">critical — shown regardless of your picks</span>'
+      : matched.length
+        ? '<span class="why">here because you picked: '+esc(WORRIES[matched[0]].t.toLowerCase())+'</span>'
+        : '<span class="why">next most serious open finding</span>';
+    return '<div class="find"><div class="top"><span class="rank">'+(i+1)+'</span><b>'+esc(f.h)+'</b></div>'+
+      '<p>'+esc(f.p)+'</p>'+
+      '<div class="meta"><span class="cat">'+esc(f.cat)+'</span>'+srcTag(f.src)+why+
+      (f.sev!=='crit'?'<button class="less" data-less="'+f.id+'">show me less like this</button>':'')+
+      '</div></div>';
+  }).join('');
+  var quiet = chosen.length<3
+    ? '<div class="quietline">Only '+(chosen.length===1?'one thing':'two things')+' cleared the bar this '+
+      (cadence==='weekly'?'week':'month')+'. We don’t pad this report — a short list means a short list.</div>'
+    : '';
+
+  /* the drift nudge — behaviour disagreeing with picks, surfaced honestly */
+  var drift='';
+  var d=o.drift;
+  if (d && picks.indexOf(d.have)>=0 && picks.indexOf(d.want)<0){
+    drift='<div class="drift"><span>'+d.line+' Swap them?</span>'+
+      '<span class="acts"><button class="btn" style="font-size:11px;padding:5px 11px;" data-swap>Swap</button>'+
+      '<button class="btn btn-ghost" style="font-size:11px;padding:5px 11px;" data-keep>Keep my picks</button></span></div>';
+  }
+
+  $('#s-report').innerHTML =
+    '<div class="rp">'+
+    '<div class="rp-mast"><span class="wm">HaTi <small>CLM</small></span>'+
+    '<div class="side"><div class="cadence">'+
+    '<button class="'+(cadence==='weekly'?'on':'')+'" data-cad2="weekly">Weekly</button>'+
+    '<button class="'+(cadence==='monthly'?'on':'')+'" data-cad2="monthly">Monthly</button></div></div>'+
+    '<h2>'+(cadence==='weekly'?'Your week in contracts':'Your month in contracts')+'</h2>'+
+    '<span class="sub">'+esc(o.name)+' · '+esc(o.kind)+', '+esc(o.market)+' · '+
+    (cadence==='weekly'?'week of 10 August 2026':'August 2026')+'</span></div>'+
+
+    '<div class="rp-body">'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">01</span><h3>Where you stand</h3></div>'+
+    '<div class="state-line">'+stateLine+'</div>'+
+    '<div class="state-sub">'+esc(stateSub)+'</div></div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">02</span><h3>Dates you cannot miss</h3>'+
+    '<span class="note">never filtered by your picks</span></div>'+dates+'</div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">03</span><h3>Worth your attention</h3>'+
+    '<span class="note">ranked by what it costs to ignore</span></div>'+finds+quiet+drift+'</div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">04</span><h3>One thing that got better</h3></div>'+
+    '<div class="better"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg></span>'+
+    '<span><b>'+esc(o.win.h)+'</b><p>'+esc(o.win.p)+'</p></span></div></div>'+
+
+    '<div class="slot"><div class="slot-h"><span class="k">05</span><h3>What we left out</h3></div>'+
+    '<div class="leftout">'+o.stale+' findings are open and unchanged since they last appeared. They will '+
+    'come back here only when something about them moves. <a href="#">See all of them in Insights →</a></div></div>'+
+
+    '</div>'+
+    '<div class="rp-foot">Every figure comes from a signed document or HaTi’s own filing record. '+
+    'Nothing is estimated or taken from another system.'+
+    '<button class="re" id="back-onboard">Change my picks</button></div>'+
+    '</div>';
+}
+
+/* ============================================================================
+   PLUMBING — one delegated listener, screens redrawn from data
+   ========================================================================= */
+function show(v){
+  view=v;
+  $('#s-onboard').classList.toggle('on', v==='onboard');
+  $('#s-report').classList.toggle('on', v==='report');
+  $('#step1').classList.toggle('on', v==='onboard');
+  $('#step2').classList.toggle('on', v==='report');
+  window.scrollTo(0,0);
+}
+function renderAll(){ renderOnboard(); renderReport(); }
+
+document.addEventListener('click', function(ev){
+  var t=ev.target.closest('[data-org],[data-worry],[data-cad],[data-cad2],[data-aud],[data-less],[data-swap],[data-keep],#go-report,#back-onboard');
+  if(!t) return;
+
+  if(t.dataset.org){
+    org=t.dataset.org; picks=ORGS[org].defaults.slice();
+    document.querySelectorAll('.obtn').forEach(function(b){b.classList.toggle('on',b.dataset.org===org);});
+    renderAll(); return;
+  }
+  if(t.dataset.worry){
+    var k=t.dataset.worry, i=picks.indexOf(k);
+    if(i>=0){ picks.splice(i,1); }
+    else { if(picks.length>=3) picks.shift(); picks.push(k); }   // oldest pick makes room
+    renderAll();
+    if(view==='report') toast('Report re-ranked around your new picks');
+    return;
+  }
+  if(t.dataset.cad||t.dataset.cad2){ cadence=t.dataset.cad||t.dataset.cad2; renderAll(); return; }
+  if(t.dataset.aud!==undefined){ t.classList.toggle('on'); return; }
+  if(t.dataset.less){
+    mutedSet()[t.dataset.less]=true; renderReport();
+    toast('Noted. In the real product this retunes your picks over time.');
+    return;
+  }
+  if(t.dataset.swap!==undefined){
+    var d=O().drift;
+    picks.splice(picks.indexOf(d.have),1); picks.push(d.want);
+    renderAll(); toast('Swapped — the report now leads with what you actually act on');
+    return;
+  }
+  if(t.dataset.keep!==undefined){ O().drift=null; renderReport(); return; }
+  if(t.id==='go-report'){ renderReport(); show('report'); return; }
+  if(t.id==='back-onboard'){ show('onboard'); return; }
+});
+
+renderAll();
+</script>
+</body>
+</html>
