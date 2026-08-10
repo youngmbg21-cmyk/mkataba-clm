@@ -6283,36 +6283,57 @@ function redlineLayoutCss(){
      at it. The same classes render in Counterparty View and on the portal, so
      all three screens change together.
 
-     AND IT IS A COLOUR STRIP, asked for by name (Young, 10 Aug 2026). It got
-     there in two steps and both are worth keeping straight. It began as a
-     WHITE band lying across a grey pane — .nego-index-head paints
-     var(--n-paper), the ROOM's token, which resolves white — with the caption
-     jammed against one end and a heavy grey pill against the other: two
-     grounds, no gutter, nobody's decision. That was the imbalance. It went
-     transparent, and then the strip was asked for deliberately.
+     AND THEN THE STRIP CAME OFF AGAIN (Young, 10 Aug 2026, "A · Rule — the
+     quiet ledger"). It got there in three steps and all three are worth
+     keeping straight, because two of them were tried and rejected.
 
-     THE DIFFERENCE BETWEEN THE TWO is the whole point: an accidental white
-     band is a rendering leak, and an accent strip with the column's caption,
-     its count and its filter in it is a header. The pane stays transparent so
-     the strip is an OBJECT sitting above the cards rather than the top edge
-     of a box around them — which is the rule stated at .rl-col, that the
-     change column is not a card.
+     It began as a WHITE band lying across a grey pane — .nego-index-head
+     paints var(--n-paper), the ROOM's token, which resolves white — with the
+     caption jammed against one end and a heavy grey pill against the other:
+     two grounds, no gutter, nobody's decision. That was the imbalance. It went
+     transparent, and then an ACCENT BAND was asked for deliberately: a tinted
+     box with a border, the caption and count inside it and the filter on a
+     tray of its own below them.
 
-     THE COUNT IS QUIETER THAN THE CAPTION, and it was the other way round: a
-     10.5px/600 pill outweighed the 9.5px label it was answering to. Same type
-     as the caption now, in a chip that only earns the deeper tint when there
-     is actually something on the table. */
+     THE BAND IS NOW A RULE. Same two-part line, same reason for it, but the
+     box is gone: a caption on the left, the count on the right, a hairline
+     under both, and the filter as tabs hanging off that hairline. What the box
+     was buying was separation from the cards, and a rule buys the same thing
+     without putting a second bordered object in a column whose whole content
+     is bordered objects — three nested frames (band, card, card body) is what
+     made the head read as heavy at 300px.
+
+     IT IS STILL AN OBJECT ABOVE THE CARDS, not the top edge of a box around
+     them: the pane stays transparent and the rule stops at the head's own
+     bottom. That is the rule stated at .rl-col — the change column is not a
+     card — and it survives the restyle intact.
+
+     THE COUNT IS QUIETER THAN THE CAPTION, and it was once the other way
+     round: a 10.5px/600 pill outweighed the 9.5px label it was answering to.
+     It is mono now rather than a chip. Mono is not decoration here — it is the
+     one piece of the head that is a NUMBER, it changes under the reader as
+     cards are filed and decided, and tabular figures stop "1 on the table"
+     and "11 on the table" shifting the words beside them. It earns the accent
+     only when there is actually something on the table. */
   .redline-page .nego-pane.index{background:transparent}
-  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;
-    background:var(--color-accent-100);border:1px solid var(--color-accent-300);
-    border-radius:11px;padding:9px 11px 10px;margin:0 2px 10px}
+  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;
+    background:none;border:0;border-bottom:1px solid var(--color-divider);
+    border-radius:0;padding:0 2px 9px;margin:0 2px 10px}
+  /* The tabs carry their own bottom padding down to the rule, so the head must
+     not carry it too. :has() and not a class because the filter's absence is
+     decided in the renderer (a reviewer's column has no filter — see the note
+     at the control) and the head should not need telling twice. Where :has()
+     does not resolve, the fallback is the padding above: tabs sitting 9px
+     clear of the rule rather than on it, which is a worse line and not a
+     broken one. */
+  .redline-page .rl-idx-head:has(.rl-fsegwrap){padding-bottom:0}
   .redline-page .rl-idx-head [hidden]{display:none!important}
   .redline-page .rl-idx-k{flex:1;min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--color-accent-800)}
-  .redline-page .rl-idx-n{flex:none;font-size:9.5px;font-weight:700;letter-spacing:.02em;
-    color:var(--color-neutral-600);background:var(--color-surface);
-    border:1px solid var(--color-accent-300);border-radius:999px;padding:3px 9px;line-height:1}
-  .redline-page .rl-idx-n.is-live{color:var(--color-accent-800);font-weight:800}
+    text-transform:uppercase;color:var(--color-neutral-600)}
+  .redline-page .rl-idx-n{flex:none;font-family:var(--font-mono);font-size:10px;font-weight:700;
+    letter-spacing:.01em;font-variant-numeric:tabular-nums;color:var(--color-neutral-500);
+    background:none;border:0;border-radius:0;padding:0;line-height:1.2}
+  .redline-page .rl-idx-n.is-live{color:var(--color-accent-800)}
   /* ---- WHOSE ASKS: THE THREE-WAY CUT ----
      A segmented control, not a dropdown, so all three answers and the live one
      are readable without opening anything — the difference between a filter you
@@ -6320,22 +6341,39 @@ function redlineLayoutCss(){
      (flex-basis:100%) because the column is narrow and a caption, a count and
      three chips do not share 300px.
 
-     The tray is the SURFACE on the tint rather than the neutral tray .rl-segwrap
-     uses, because on an accent band a grey tray reads as a hole. */
-  .redline-page .rl-fsegwrap{flex-basis:100%;display:flex;gap:3px;padding:3px;
-    background:var(--color-surface);border:1px solid var(--color-accent-300);
-    border-radius:8px}
-  .redline-page .rl-fseg{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
-    gap:5px;border:0;background:none;font:inherit;font-size:10.5px;font-weight:600;
-    color:var(--color-neutral-600);padding:4px 6px;border-radius:6px;cursor:pointer;
-    white-space:nowrap;transition:background .12s,color .12s}
+     NO TRAY AT ALL, now that there is no band to sit it on. A tray is how you
+     say "these three belong together" when they float on open ground; hung off
+     the head's own rule they are already grouped by it, and a bordered tray
+     inside a bordered head was one frame too many. The live cut is marked the
+     way a tab is marked — a 2px accent underline overlapping the rule, so the
+     hairline reads as the resting state of the control rather than as a
+     separate line the control happens to sit near.
+
+     THE TABS TAKE THEIR NATURAL WIDTH (flex:none, not flex:1). Stretched to
+     thirds they read as three buttons; at their own width with a real gap they
+     read as three labels, which is what a filter is. It still takes a full
+     line of the strip — a caption, a count and three labels do not share
+     300px. */
+  .redline-page .rl-fsegwrap{flex-basis:100%;display:flex;gap:16px;padding:0;margin-top:3px;
+    background:none;border:0;border-radius:0}
+  .redline-page .rl-fseg{flex:none;min-width:0;display:flex;align-items:center;
+    gap:5px;border:0;border-bottom:2px solid transparent;background:none;font:inherit;
+    font-size:11px;font-weight:600;color:var(--color-neutral-500);padding:0 0 8px;
+    margin-bottom:-1px;border-radius:0;cursor:pointer;white-space:nowrap;
+    transition:color .12s,border-color .12s}
   .redline-page .rl-fseg:hover{color:var(--color-text)}
-  .redline-page .rl-fseg.on{background:var(--color-accent-100);color:var(--color-accent-800);font-weight:700}
-  /* The count rides INSIDE its own chip: it is the thing that stops a filter
+  .redline-page .rl-fseg.on{background:none;color:var(--color-text);font-weight:700;
+    border-bottom-color:var(--accent-solid)}
+  /* A borderless button gets no focus ring from the browser worth having, and
+     the underline it would otherwise be confused with is the PRESSED state,
+     not the focused one. */
+  .redline-page .rl-fseg:focus-visible{outline:2px solid var(--color-accent);
+    outline-offset:2px;border-radius:3px}
+  /* The count rides INSIDE its own tab: it is the thing that stops a filter
      hiding a change quietly, so it must be readable on the resting face too. */
   .redline-page .rl-fseg-n{flex:none;font-family:var(--font-mono);font-size:9.5px;font-weight:700;
     opacity:.62}
-  .redline-page .rl-fseg.on .rl-fseg-n{opacity:1}
+  .redline-page .rl-fseg.on .rl-fseg-n{opacity:1;color:var(--color-accent-800)}
   /* MOUNTED, UNSEEN, AND STILL CLICKABLE. Not display:none — a hidden control
      is one the browser may refuse to focus or dispatch to, and Publish Round
      works by clicking this one. Taken out of the flow and out of the reader's
@@ -6759,19 +6797,12 @@ function redlineLayoutCss(){
      NOWHERE. jsdom cannot see display:none, which is why every test stayed
      green while the screen went dark. The embed styling is now the base
      styling: one look, every mount. */
-  /* ---- THE BULK PAIR, ON THE COUNTERPARTY'S SEAT ONLY ----
-     Off our own column by design (see redlinePanesHtml); still drawn on theirs,
-     where answering the whole round in one press is a real answer and there is
-     no Publish Round to do it with. The rules stay because that seat renders
-     through this same stylesheet — the portal mounts the workbench as an
-     embed. The Discussion column's rules went with the column itself. */
-  .redline-page .nego-bulk{display:flex;gap:6px;flex-basis:100%;margin-top:0}
-  .redline-page .nego-bulk button{flex:1;border:0;border-radius:8px;padding:6px 9px;
-    font:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
-  .redline-page .nego-bulk .b-acc{background:#059669;color:#fff}
-  .redline-page .nego-bulk .b-rej{background:#e2e8f0;color:#1e293b}
-  html.dark .redline-page .nego-bulk .b-rej{background:#cbd5e1;color:#0f172a}
-  .redline-page .nego-bulk button:disabled{opacity:.45;cursor:not-allowed}
+  /* ---- THE BULK PAIR'S RULES WENT WITH THE PAIR ----
+     They dressed .nego-bulk on the counterparty's seat, the last place this
+     page drew it. That block is gone from redlinePanesHtml (see the note
+     there), so the rules would style nothing — and dead rules for a removed
+     control are how a control comes back by accident. The classic negotiation
+     tab still draws .nego-bulk and still has its own rules, above. */
   `;
   document.head.appendChild(s);
 }
@@ -7052,13 +7083,18 @@ function renderRedline(){
     : (c.counterparty || 'the counterparty');
   /* ---- THE HEADER CARRIES ONE VERB, NOT THREE ----
      "Send All" and "Accept All Non-Risk" used to render here as PROXIES onto
-     the engine's own controls — which ALSO render, both of them, at the head
+     the engine's own controls — which ALSO rendered, both of them, at the head
      of the Tracked Changes column (the .nego-bulk pair and the .rl-sendslot
      postbox). Two copies of every batch verb crowded this strip until the
-     contract dropdown clipped mid-word. The column's copies are the ones
-     beside the cards they act on, so they are the ones that stay; the header
-     keeps only Publish Round — the act that closes the strip's own story —
-     and Close Round when it is earned. */
+     contract dropdown clipped mid-word. The column's copies were the ones
+     beside the cards they act on, so they were the ones that stayed; the
+     header keeps only Publish Round — the act that closes the strip's own
+     story — and Close Round when it is earned.
+
+     THE BULK PAIR HAS SINCE GONE FROM THE COLUMN TOO, on both seats, so the
+     only survivor of that argument is the hidden .rl-sendslot postbox Publish
+     Round presses. The rule the argument settled still holds: a batch verb
+     belongs beside the cards it acts on, and there is one of it. */
   /* THE COUNT RIDES ON THE BUTTON THAT ACTS ON IT. The wall bar used to
      announce "1 unsent draft stays behind when you share" as a band above the
      page; it is one word on the verb that sends them instead, at the moment
@@ -10839,21 +10875,28 @@ function redlinePanesHtml(c, opts = {}){
           <button class="nego-fold" id="nego-fold" hidden>${i18t('ng_hide')}</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
           <div id="nego-progress" hidden>${i18t('ng_resolved_short',{done:p.done,total:p.total})}</div>
-          ${''/* ---- ONE EXCEPTION TO THE BULK VERBS GOING, AND IT IS THEIRS ----
-                 Accept All / Reject All are gone from OUR column: deciding the
-                 other side's wording in one press is the act that should cost a
-                 press per clause, and we have Publish Round for the batch.
+          ${''/* ---- AND NOW THE BULK VERBS ARE GONE FROM BOTH SEATS ----
+                 They left OUR column first: deciding the other side's wording
+                 in one press is the act that should cost a press per clause,
+                 and we have Publish Round for the batch. The counterparty's own
+                 seat kept the pair a while longer under D2, on the argument
+                 that they have no Publish Round and "I agree to all of it" is a
+                 real answer.
 
-                 THE COUNTERPARTY HAS NO PUBLISH ROUND. Their whole answer to a
-                 round is a set of decisions on OUR asks, and "I agree to all of
-                 it" is a real answer — withholding the button withholds nothing
-                 but their time. So their seat keeps the pair, named from their
-                 chair (D2), and our preview of their seat does not, because the
-                 preview is read-only and decides nothing. */}
-          ${canAct && side === 'counterparty' ? `<div class="nego-bulk">
-            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept all</button>
-            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject all</button>
-          </div>` : ''}
+                 REMOVED FROM THEIRS TOO (Young, 10 Aug 2026), with the head
+                 restyled as a rule rather than a band. The argument for keeping
+                 them was about their TIME, and the argument against is about
+                 what the press MEANS: Accept all on their seat disposes of
+                 every ask we filed in one click, from a header, with no clause
+                 in front of the reader while they press it. The per-card verbs
+                 are still one press each and the count in the head says how
+                 many are left, so nothing is unreachable — it is six presses
+                 instead of one, and six is the point.
+
+                 Nothing else was touched. #nego-bulk-acc / #nego-bulk-rej
+                 remain wired in wireNegotiationTab (they are the classic
+                 negotiation tab's ids too, still rendered there), so restoring
+                 this block is the whole of the way back. */}
           ${''/* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule
                  the counterparty's action bar has carried for a while. An
                  executed contract used to render this column silently, which

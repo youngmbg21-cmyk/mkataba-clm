@@ -263,16 +263,20 @@ const CARD_EDIT = async () => {
      signals. So the assertion is about what the button says it does. */
   check('8 no risk-derived bulk verb on their side',
     !/Non-Risk/i.test(cp.bulkLabels.join(' ')), cp.bulkLabels.join(' | ') || 'none');
-  check('8 but they DO keep a plain Accept all',
-    /Accept all/i.test(cp.bulkLabels.join(' ')), cp.bulkLabels.join(' | ') || 'MISSING');
-  /* THE OWNER NO LONGER HAS ONE AT ALL. Accept All / Reject All were removed
-     from our column on the 10 Aug 2026 design — deciding the other side's
-     wording is a press per clause now, and Publish Round is our batch act.
-     Their seat keeps the plain pair because it is their only way to answer a
-     whole round. So the parity claim inverts: the risk-sorted verb must exist
-     on NEITHER side. */
-  check('8 and the owner has no bulk verb either',
-    owner.bulkLabels.length === 0, owner.bulkLabels.join(' | ') || 'none');
+  /* AND NOW NEITHER SIDE HAS ONE. The verbs left our column first (10 Aug
+     2026) — deciding the other side's wording is a press per clause, and
+     Publish Round is our batch act. Their seat kept the plain pair a while
+     longer as their only way to answer a whole round; it went the same day the
+     head was restyled as a rule, because the press disposes of every ask we
+     filed from a header with no clause in front of the reader.
+
+     THE PARITY CLAIM IS THEREFORE SYMMETRIC NOW, which is the strongest form
+     it has taken: no bulk verb on either seat, risk-sorted or plain. Check 8
+     above still earns its place — it is the one that would fire if the
+     risk-sorted verb ever crossed over. */
+  check('8 and NEITHER seat carries a bulk verb',
+    cp.bulkLabels.length === 0 && owner.bulkLabels.length === 0,
+    `theirs: ${cp.bulkLabels.join(' | ') || 'none'} · ours: ${owner.bulkLabels.join(' | ') || 'none'}`);
 
   /* ---- 9. the edit route behaves the same on both seats ---- */
   if (cpEdit.error || ownerEdit.error){

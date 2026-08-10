@@ -72,6 +72,18 @@ async function theyProposed(c, win, num = '5'){
     { side: 'counterparty', author: 'Erik Lindqvist', summary: F.PROTO_ASKS[num].summary });
 }
 
+/* ANSWERING THE WHOLE ROUND, NOW THAT ONE PRESS CANNOT DO IT.
+   Their seat carried Accept all until 10 Aug 2026, when it went the way ours
+   had (see the note on the test that used to press it). Most of the tests
+   below were never ABOUT that button — they needed every ask decided so there
+   was something to send, and the bulk verb was the short way there. This is
+   the same setup at the price the reader now pays: a press per card. Kept as
+   one helper so the next change to how a decision is made lands in one place
+   rather than in nine. */
+async function acceptEvery(v, filed){
+  for (const ch of filed) await v.press(`[data-nego-accept="${ch.id}"]`);
+}
+
 /* STEP 2 — the counterparty opens the link they were sent. Built from a payload
    the product really produces, opened the way portalEntry opens it. */
 function theirLink(c, o = {}){
@@ -200,8 +212,14 @@ describe('the link they were sent is the workbench, and there is no room', () =>
       assert.equal(v.$('#pt-nego [id="' + id + '"]'), null, id + ' is ours');
     assert.ok(!/AI Assist/.test(v.$('#pt-nego').textContent),
       'no Copilot panel on their page, so no AI Assist pointing at one');
-    assert.ok(v.$('#pt-nego [id="nego-bulk-acc"]'), '"I agree to all of it" is a real answer');
-    assert.ok(v.$('#pt-nego [id="nego-bulk-rej"]'));
+    /* AND THE BULK PAIR IS NOT THEIRS EITHER, as of 10 Aug 2026. It used to be
+       asserted here as the one batch verb their seat kept — "I agree to all of
+       it" is a real answer. It is still a real answer; it is now six presses,
+       because the one press disposed of every ask we filed from a header with
+       no clause in front of the reader. What they keep is the per-card pair,
+       which is asserted a few tests down. */
+    assert.equal(v.$('#pt-nego [id="nego-bulk-acc"]'), null, 'no bulk Accept on their seat');
+    assert.equal(v.$('#pt-nego [id="nego-bulk-rej"]'), null, 'and no bulk Reject');
   });
 
   /* The button that did nothing. It is not disabled or relabelled — it is not
@@ -251,10 +269,17 @@ describe('they work through the changes', () => {
     assert.equal(v.last(), null, 'and nothing has actually left yet');
   });
 
-  test('Accept All answers every one of our asks at once', async () => {
+  /* THIS USED TO PRESS #nego-bulk-acc, AND THAT BUTTON IS GONE (10 Aug 2026).
+     Their seat was the last one carrying Accept all / Reject all; the head is
+     a rule now and carries neither. The CLAIM has not changed — every one of
+     our asks can be answered, and the send counts all of them — only the price
+     has: a press per card instead of one press for the lot. So the test walks
+     the cards, which is what a reader does now. */
+  test('every one of our asks can be answered, a card at a time', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    assert.equal(v.$('#nego-bulk-acc'), null, 'and there is no one-press way to do it');
+    for (const ch of filed) await v.press(`[data-nego-accept="${ch.id}"]`);
     assert.match(v.$('#nego-send-decisions').textContent,
       new RegExp(`Send ${filed.length} decisions`));
   });
@@ -276,10 +301,14 @@ describe('they work through the changes', () => {
        the embedded mount is skipped and every id is unique again. */
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    assert.equal(v.$$('[id="nego-bulk-acc"]').length, 1,
+    /* The probe was #nego-bulk-acc until that button was removed. Any id the
+       room draws exactly once will do — the claim is about DUPLICATION, not
+       about which control does the proving — so it is the card's own Accept,
+       which is the control the press below actually uses. */
+    assert.equal(v.$$(`[data-nego-accept="${filed[0].id}"]`).length, 1,
       'exactly one negotiation on the page');
     assert.equal(v.$$('[id="nego-cards"]').length, 1, 'and one change index');
-    await v.press('#nego-bulk-acc');
+    await acceptEvery(v, filed);
     assert.match(v.$('#nego-send-decisions').textContent,
       new RegExp(`Send ${filed.length} decisions`), 'the press must reach the room');
   });
@@ -334,11 +363,16 @@ describe('they work through the changes', () => {
     assert.ok(v.$('#pt-nego [id="rl-changes-col"]'), 'and the cards are still drawn');
   });
 
-  test('Reject All does too, and leaves the deal contested rather than settled', async () => {
-    const { c } = await ownerProposed();
+  /* REJECTING EVERYTHING, ONE CARD AT A TIME. #nego-bulk-rej went with its
+     twin (10 Aug 2026). The claim is untouched and is not about the button:
+     refusing every ask leaves the deal CONTESTED, so Ready to sign must not be
+     pressable. It only matters that every ask really was refused, which is why
+     the loop walks `filed` rather than pressing whatever happens to be first. */
+  test('refusing every ask leaves the deal contested rather than settled', async () => {
+    const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     v.win.promptDialog = async () => 'Net-30 stands.';
-    await v.press('#nego-bulk-rej');
+    for (const ch of filed) await v.press(`[data-nego-reject="${ch.id}"]`);
     assert.ok(v.readyBtn().disabled, 'refusing everything is not agreeing to anything');
   });
 });
@@ -462,7 +496,7 @@ describe('Ready to sign posts the decisions and the readiness together', () => {
   test('one request carries both', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await acceptEvery(v, filed);
     await v.press('#pt-nego-ready');
     assert.equal(v.sent().length, 1, 'ONE call — not "send, then remember to say you are done"');
     const r = v.last();
@@ -473,17 +507,17 @@ describe('Ready to sign posts the decisions and the readiness together', () => {
   });
 
   test('it goes down the existing respond route — no new endpoint', async () => {
-    const { c } = await ownerProposed();
+    const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await acceptEvery(v, filed);
     await v.press('#pt-nego-ready');
     assert.match(v.p.log.sent[0].pathname, /^shares\/tok_test\/respond$/);
   });
 
   test('the button reports itself spent, and says nothing was signed', async () => {
-    const { c } = await ownerProposed();
+    const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await acceptEvery(v, filed);
     await v.press('#pt-nego-ready');
     assert.match(v.readyBtn().textContent, /Readiness sent/);
     assert.equal(v.readyBtn().disabled, true, 'pressing it again is not a second fact');
@@ -885,7 +919,7 @@ describe('the awkward cases', () => {
   test('sent decisions stay answered on their screen, and say they were sent', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await acceptEvery(v, filed);
     await v.press('#nego-send-decisions');
     assert.equal(v.last().action, 'decisions');
     for (const f of filed){
@@ -904,7 +938,7 @@ describe('the awkward cases', () => {
   test('but changing their mind is still allowed, behind Change decision', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-bulk-acc');
+    await acceptEvery(v, filed);
     await v.press('#nego-send-decisions');
     assert.equal(v.$(`[data-nego-reject="${filed[0].id}"]`), null,
       'a sent decision is a decision, not a question still on the table');
@@ -1027,8 +1061,12 @@ describe('the awkward cases', () => {
   test('a failed send says so, and keeps the decisions to try again', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
+    /* The network is broken AFTER the decisions are made, not before. It used
+       to be broken first because the one press that made them touched nothing
+       — now they are made a card at a time, and a card-level failure is a
+       different test from a failed SEND, which is the one being written. */
+    await acceptEvery(v, filed);
     v.win.api = async () => { throw new Error('Network unreachable'); };
-    await v.press('#nego-bulk-acc');
     await v.press('#nego-send-decisions');
     assert.match(v.toasts(), /Network unreachable/);
     assert.ok(v.$('#nego-send-decisions'), 'the decisions are still there to send');

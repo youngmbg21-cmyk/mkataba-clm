@@ -131,21 +131,32 @@ describe('f175 · every dialog in the feature wears the same head', () => {
   });
 });
 
-describe('f175 · the Tracked Changes head is a deliberate colour strip', () => {
-  /* TWO STEPS, AND THE DIFFERENCE BETWEEN THEM IS THE POINT. The head began as
-     a WHITE band lying across a grey pane — .nego-index-head paints the room's
-     --n-paper — which was a rendering leak nobody chose. It went transparent,
-     and the strip was then asked for deliberately (Young, 10 Aug 2026:
-     "change it to a color strip"). So what is pinned here is that the pane is
-     still not a box, and that the band is an accent object rather than a leak. */
-  test('an accent strip above the cards, and the pane still is not a card', async () => {
+describe('f175 · the Tracked Changes head is a rule, not a box', () => {
+  /* THREE STEPS, AND THE DIFFERENCE BETWEEN THEM IS THE POINT. The head began
+     as a WHITE band lying across a grey pane — .nego-index-head paints the
+     room's --n-paper — which was a rendering leak nobody chose. It went
+     transparent. A COLOUR STRIP was then asked for deliberately (Young,
+     10 Aug 2026: "change it to a color strip"), and the band was the frame.
+
+     IT IS A RULE NOW ("A · Rule — the quiet ledger", same day): caption left,
+     count right, a hairline under both, and the filter hanging off it. The
+     band bought separation from the cards; a rule buys the same separation
+     without putting a bordered box in a column whose whole content is bordered
+     boxes.
+
+     SO WHAT IS PINNED HERE IS THE PART THAT SURVIVED ALL THREE: the pane is
+     not a box, the head is not a box, and neither of them is ever the room's
+     white token — which is the leak the whole sequence started from. */
+  test('a rule above the cards, and neither the pane nor the head is a card', async () => {
     const p = await stage();
     const css = p.css();
     assert.ok(/\.redline-page \.nego-pane\.index\{background:transparent\}/.test(css),
       'the column sits straight on the page, like .rl-col says both non-card columns do');
     const head = /\.rl-idx-head\{([^}]*)\}/.exec(css)[1];
-    assert.match(head, /background:var\(--color-accent-100\)/, 'the strip carries the accent tint');
-    assert.match(head, /border-radius:11px/, 'as its own object, not the top edge of a box');
+    assert.match(head, /border-bottom:1px solid var\(--color-divider\)/,
+      'the head is drawn by its rule');
+    assert.match(head, /background:none/, 'and by nothing else — no band');
+    assert.match(head, /border-radius:0/, 'a rule has no corners to round');
     assert.ok(!/--n-paper/.test(head), 'and never the room\'s white token');
   });
 
@@ -155,15 +166,17 @@ describe('f175 · the Tracked Changes head is a deliberate colour strip', () => 
     const k = /\.rl-idx-k\{([^}]*)\}/.exec(css)[1];
     const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
     assert.match(k, /font-size:9\.5px/, 'the caption is the queue label\'s type');
-    assert.match(n, /font-size:9\.5px/, 'and the count is the same size, not larger');
-    assert.match(n, /border-radius:999px/, 'still a chip');
+    assert.match(n, /font-size:10px/,
+      'and the count is a hair larger only because mono runs small at the same size');
+    assert.match(n, /color:var\(--color-neutral-500\)/,
+      'set below the caption in ink, which is what keeps it quieter');
   });
 
-  test('the chip earns colour only when something is on the table', async () => {
+  test('the count earns colour only when something is on the table', async () => {
     const p = await stage();
     assert.ok(p.$('.rl-idx-n.is-live'), 'one ask outstanding — the count is live');
     assert.ok(/\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-800\)/.test(p.css()),
-      'and live means the deeper ink (the chip already sits on the strip\'s tint)');
+      'and live means the accent ink, against the resting grey');
 
     /* THE STATE IN THE REPORT: nothing on the table at all. Driven by opening
        the bench on a contract with no changes, rather than by deciding this
@@ -237,10 +250,10 @@ describe('f175 · the strip filters by who asked', () => {
     const ours = p.win.negoChanges(p.c).filter(x => x.authorSide === 'owner').map(x => x.id);
     assert.deepEqual(p.win.redlineCardIds(p.c, { side: 'owner' }), ours,
       'the list is ours alone');
-    /* The pill above the cards is drawn from redlineCardIds, so it cannot
+    /* The count above the cards is drawn from redlineCardIds, so it cannot
        label a column it is not describing — the fault that function exists to
        prevent. */
-    assert.match(p.$('.rl-idx-n').textContent, /1/, 'and the pill says one');
+    assert.match(p.$('.rl-idx-n').textContent, /1/, 'and the count says one');
     assert.equal(p.win.document.querySelectorAll('#rl-changes [data-nego-card]').length, 1,
       'one card on screen');
   });

@@ -1,0 +1,304 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Segmented controls — solid green on the pressed face</title>
+<style>
+:root{
+  --color-surface:#fff; --color-bg:#f6f7f8; --color-text:#16211d;
+  --color-neutral-100:#eef1f4; --color-neutral-200:#e2e7ea;
+  --color-neutral-400:#9aa3a0; --color-neutral-500:#6f7b77; --color-neutral-600:#5a6663;
+  --color-neutral-700:#414b48; --color-divider:#e4e8e6;
+  --color-accent:#2fa37f; --color-accent-100:#d8f2e8; --color-accent-200:#bde7d8;
+  --color-accent-300:#9adcc6; --color-accent-500:#4bb694; --color-accent-800:#0f6a52;
+  --accent-solid:#2fa37f;
+  --st-green-bg:#dcfce7; --st-green-fg:#166534; --st-green-line:#bbf7d0;
+  --st-amber-dot:#f59e0b;
+  --font-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+html.dark{
+  --color-surface:#1a211f; --color-bg:#121816; --color-text:#e8efec;
+  --color-neutral-100:#212a28; --color-neutral-200:#2f3a37;
+  --color-neutral-400:#6b7772; --color-neutral-500:#8b9995; --color-neutral-600:#a3b0ac;
+  --color-neutral-700:#c2ccc9; --color-divider:#2b3634;
+  --color-accent-100:rgba(47,163,127,.16); --color-accent-200:rgba(47,163,127,.24);
+  --color-accent-300:rgba(47,163,127,.38); --color-accent-800:#6ee7b7;
+  --st-green-bg:rgba(34,197,94,.18); --st-green-fg:#86efac; --st-green-line:rgba(34,197,94,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;padding:26px 24px 70px;background:var(--color-bg);color:var(--color-text);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif}
+h1{font-size:17px;font-weight:700;margin:0 0 4px}
+h3{font-size:12.5px;font-weight:700;margin:0 0 3px}
+.sub{font-size:12.5px;color:var(--color-neutral-600);margin:0 0 24px;max-width:76ch;line-height:1.6}
+.note{font-size:11.5px;line-height:1.6;color:var(--color-neutral-600);margin:0 0 12px}
+#mode{position:fixed;top:16px;right:20px;font:inherit;font-size:11.5px;font-weight:600;
+  border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-text);
+  border-radius:999px;padding:5px 13px;cursor:pointer;z-index:5}
+.band{border-top:1px solid var(--color-divider);padding-top:18px;margin-top:30px}
+.band > h2{font-size:14px;font-weight:700;margin:0 0 3px}
+.band > p{font-size:12px;color:var(--color-neutral-600);margin:0 0 18px;max-width:76ch;line-height:1.6}
+.row{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+.cell{min-width:0}
+.bar{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:10px;
+  padding:12px 14px;display:inline-flex;gap:10px;align-items:center}
+
+/* ================= THE TRAY, AS IT SHIPS ================= */
+.segwrap{display:flex;align-items:center;gap:3px;background:var(--color-neutral-100);
+  border:1px solid var(--color-divider);padding:3px;border-radius:9px;height:34px;flex:none}
+.seg{border:0;background:none;font:inherit;font-size:12px;font-weight:500;height:26px;
+  padding:0 12px;border-radius:7px;cursor:pointer;color:var(--color-neutral-500);
+  white-space:nowrap;transition:background .12s,color .12s}
+.seg:hover{color:var(--color-text)}
+/* NOW — raised white */
+.seg.on{background:var(--color-surface);color:var(--color-text);font-weight:600;
+  box-shadow:0 1px 2px rgba(15,23,42,.08)}
+html.dark .seg.on{background:var(--color-neutral-200);box-shadow:none}
+
+/* ---- G1 · SOLID FILL ---- */
+.g1 .seg.on{background:var(--accent-solid);color:#fff;font-weight:600;box-shadow:none}
+html.dark .g1 .seg.on{background:var(--color-accent-800);color:#0b1a16}
+/* ---- G2 · SOLID FILL, TINTED TRAY ---- */
+.g2{background:var(--color-accent-100);border-color:var(--color-accent-300)}
+.g2 .seg{color:var(--color-accent-800);opacity:.72}
+.g2 .seg:hover{opacity:1}
+.g2 .seg.on{background:var(--accent-solid);color:#fff;font-weight:600;box-shadow:none;opacity:1}
+html.dark .g2 .seg.on{background:var(--color-accent-800);color:#0b1a16}
+/* ---- G3 · DEEP FILL ---- */
+.g3 .seg.on{background:var(--color-accent-800);color:#fff;font-weight:600;box-shadow:none}
+html.dark .g3 .seg.on{background:var(--color-accent-800);color:#0b1a16}
+
+.seg i{font-style:normal;font-family:var(--font-mono);font-size:10px;font-weight:700;
+  opacity:.6;margin-left:5px}
+.seg.on i{opacity:.85}
+
+/* ================= THE COLUMN ================= */
+.stage{background:var(--color-bg);border:1px dashed var(--color-divider);border-radius:14px;
+  padding:14px 12px;width:330px}
+.c{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:11px;
+  padding:12px 14px 13px 12px;position:relative;overflow:hidden}
+.c::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--st-amber-dot)}
+.c-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.c-id{font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--color-neutral-600);
+  background:var(--color-bg);border:1px solid var(--color-divider);border-radius:5px;padding:2px 6px;flex:none}
+.c-org{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;
+  flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
+html.dark .c-org{background:rgba(99,102,241,.2);color:#c7d2fe}
+.c-badge{margin-left:auto;flex:none;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px;
+  white-space:nowrap;background:var(--st-green-bg);color:var(--st-green-fg);border:1px solid var(--st-green-line)}
+.c-meta{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5}
+.c-text{font-size:12.5px;line-height:1.6;margin-top:7px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* head: shorter tray, full width, because the column is 300px not a toolbar */
+.h-seg{height:30px;width:100%}
+.h-seg .seg{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;padding:0 6px;height:24px}
+.h-seg .seg i{font-size:9.5px;margin-left:4px}
+
+.A-head{padding:0 2px 10px;margin:0 2px 8px;border-bottom:1px solid var(--color-divider)}
+.A-line{display:flex;align-items:baseline;gap:8px;margin-bottom:9px}
+.A-k{flex:1;min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--color-neutral-600)}
+.A-n{flex:none;font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--color-accent-800)}
+.A-n .u{font-weight:600;color:var(--color-neutral-500)}
+.A-verbs{display:flex;gap:16px;padding:0 4px 10px}
+.A-verb{border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;cursor:pointer;
+  color:var(--color-accent-800);text-decoration:underline;text-underline-offset:3px}
+.A-verb.mute{color:var(--color-neutral-500)}
+
+.B-head{background:var(--color-accent-100);border:1px solid var(--color-accent-300);
+  border-radius:11px;padding:9px 10px 10px;margin:0 2px 10px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.B-k{flex:1;min-width:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--color-accent-800)}
+.B-n{flex:none;font-size:9.5px;font-weight:800;color:var(--color-accent-800);
+  background:var(--color-surface);border:1px solid var(--color-accent-300);
+  border-radius:999px;padding:3px 9px;line-height:1}
+.B-verbs{flex-basis:100%;display:flex;gap:6px}
+.B-verbs button{flex:1;border:0;border-radius:7px;padding:6px 10px;font:inherit;font-size:11px;
+  font-weight:700;cursor:pointer}
+.B-ok{background:var(--accent-solid);color:#fff}
+html.dark .B-ok{background:var(--color-accent-800);color:#0b1a16}
+.B-no{background:var(--color-surface);color:var(--color-neutral-600);
+  border:1px solid var(--color-divider)!important}
+
+.C-panel{background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:13px;overflow:hidden}
+.C-head{padding:12px 13px}
+.C-line{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.C-num{flex:none;font-size:24px;font-weight:800;line-height:1;letter-spacing:-.02em;
+  color:var(--accent-solid);font-variant-numeric:tabular-nums}
+html.dark .C-num{color:var(--color-accent-800)}
+.C-k{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--color-neutral-600);display:block}
+.C-sub{font-size:11px;color:var(--color-neutral-500);display:block;margin-top:2px}
+.C-verbs{display:flex;align-items:center;gap:14px;padding:9px 13px;
+  border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider)}
+.C-verbs button{border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;
+  cursor:pointer;color:var(--color-accent-800)}
+.C-verbs button.mute{color:var(--color-neutral-500)}
+.C-verbs .sp{margin-left:auto;font-size:10.5px;color:var(--color-neutral-500)}
+.C-panel .c{border:0;border-radius:0;padding:12px 13px 13px 16px}
+</style>
+
+<button id="mode" type="button">Dark</button>
+
+<h1>The pressed face, filled green</h1>
+<p class="sub">Same tray you already ship — <code>.rl-segwrap</code> / <code>.rl-seg</code> at
+34px on a neutral tray. Only the <code>.on</code> face changes. Three fills below, then the
+Tracked Changes head rebuilt around whichever one you pick.</p>
+
+<div class="band" style="border-top:0;padding-top:0;margin-top:0">
+  <h2>1 · The fill, on the reading control</h2>
+  <p>Top row is what ships. The three under it are the candidates.</p>
+  <div class="row">
+    <div class="cell">
+      <h3>Now — raised white</h3>
+      <p class="note">Reads as "this one is lifted". Quiet enough to sit beside Publish Round.</p>
+      <div class="bar"><div class="segwrap">
+        <button class="seg on">Redlined</button>
+        <button class="seg">As agreed</button>
+        <button class="seg">With changes</button>
+      </div></div>
+    </div>
+    <div class="cell">
+      <h3>G1 — solid accent on the grey tray</h3>
+      <p class="note">The closest to what you asked for. Grey tray untouched, pressed face filled.</p>
+      <div class="bar"><div class="segwrap g1">
+        <button class="seg on">Redlined</button>
+        <button class="seg">As agreed</button>
+        <button class="seg">With changes</button>
+      </div></div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:26px">
+    <div class="cell">
+      <h3>G2 — solid accent on a tinted tray</h3>
+      <p class="note">Tray goes accent-100, resting labels go accent-800 at 72%. The whole control
+      reads as one green object rather than a green chip in a grey box.</p>
+      <div class="bar"><div class="segwrap g2">
+        <button class="seg on">Redlined</button>
+        <button class="seg">As agreed</button>
+        <button class="seg">With changes</button>
+      </div></div>
+    </div>
+    <div class="cell">
+      <h3>G3 — deep accent</h3>
+      <p class="note">accent-800 instead of accent-500. Heavier, better contrast on white text,
+      and it stops the control competing with a mid-green primary button on the same row.</p>
+      <div class="bar"><div class="segwrap g3">
+        <button class="seg on">Redlined</button>
+        <button class="seg">As agreed</button>
+        <button class="seg">With changes</button>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<div class="band">
+  <h2>2 · The same control at the head of the column</h2>
+  <p>All three use G1. The tray drops to 30px and goes full width, because 300px will not carry a
+  34px toolbar tray with three labels and their counts.</p>
+  <div class="row">
+
+    <div class="cell">
+      <h3>A · Rule</h3>
+      <p class="note">Caption, count, hairline, tray. No band. The green is the only colour in the head.</p>
+      <div class="stage">
+        <div class="A-head">
+          <div class="A-line">
+            <span class="A-k">Tracked changes</span>
+            <span class="A-n">1 <span class="u">on the table</span></span>
+          </div>
+          <div class="segwrap g1 h-seg">
+            <button class="seg on">All <i>1</i></button>
+            <button class="seg">Mine <i>0</i></button>
+            <button class="seg">Theirs <i>1</i></button>
+          </div>
+        </div>
+        <div class="A-verbs">
+          <button class="A-verb">Accept all</button>
+          <button class="A-verb mute">Reject all</button>
+        </div>
+        <div class="c">
+          <div class="c-top"><span class="c-id">CHG-001</span><span class="c-org">Young's ask</span><span class="c-badge">Accepted · sent</span></div>
+          <div class="c-meta">AND · Young Mbagaya · Young</div>
+          <div class="c-text">2. SAVANNAH CONSUMER GOODS LIMITED, a limited liability company incorporated under the Companies Act, 2015 of the…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <h3>B · Strip</h3>
+      <p class="note">Your current band, with the tray swapped in. Accept all takes the same green,
+      so the head has two green fills — the reason to prefer G3 for the tray if you keep this one.</p>
+      <div class="stage">
+        <div class="B-head">
+          <span class="B-k">Tracked changes</span>
+          <span class="B-n">1 on the table</span>
+          <div class="segwrap g1 h-seg" style="flex-basis:100%;background:var(--color-surface);border-color:var(--color-accent-300)">
+            <button class="seg on">All <i>1</i></button>
+            <button class="seg">Mine <i>0</i></button>
+            <button class="seg">Theirs <i>1</i></button>
+          </div>
+          <div class="B-verbs">
+            <button class="B-ok">Accept all</button>
+            <button class="B-no">Reject all</button>
+          </div>
+        </div>
+        <div class="c">
+          <div class="c-top"><span class="c-id">CHG-001</span><span class="c-org">Young's ask</span><span class="c-badge">Accepted · sent</span></div>
+          <div class="c-meta">AND · Young Mbagaya · Young</div>
+          <div class="c-text">2. SAVANNAH CONSUMER GOODS LIMITED, a limited liability company incorporated under the Companies Act, 2015 of the…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cell">
+      <h3>C · Panel</h3>
+      <p class="note">Head and cards in one box. Count as a numeral, tray under it, verbs on their
+      own row so a bulk decision is never adjacent to the filter.</p>
+      <div class="stage">
+        <div class="C-panel">
+          <div class="C-head">
+            <div class="C-line">
+              <span class="C-num">1</span>
+              <span>
+                <span class="C-k">Tracked changes</span>
+                <span class="C-sub">on the table · round 3</span>
+              </span>
+            </div>
+            <div class="segwrap g1 h-seg">
+              <button class="seg on">All <i>1</i></button>
+              <button class="seg">Mine <i>0</i></button>
+              <button class="seg">Theirs <i>1</i></button>
+            </div>
+          </div>
+          <div class="C-verbs">
+            <button>Accept all</button>
+            <button class="mute">Reject all</button>
+            <span class="sp">theirs only</span>
+          </div>
+          <div class="c">
+            <div class="c-top"><span class="c-id">CHG-001</span><span class="c-org">Young's ask</span><span class="c-badge">Accepted · sent</span></div>
+            <div class="c-meta">AND · Young Mbagaya · Young</div>
+            <div class="c-text">2. SAVANNAH CONSUMER GOODS LIMITED, a limited liability company incorporated under the Companies Act, 2015 of the…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var b=document.getElementById('mode');
+b.onclick=function(){var d=document.documentElement.classList.toggle('dark');b.textContent=d?'Light':'Dark';};
+document.querySelectorAll('.segwrap').forEach(function(w){
+  w.addEventListener('click',function(e){
+    var t=e.target.closest('.seg'); if(!t) return;
+    w.querySelectorAll('.seg').forEach(function(s){s.classList.remove('on');});
+    t.classList.add('on');
+  });
+});
+</script>

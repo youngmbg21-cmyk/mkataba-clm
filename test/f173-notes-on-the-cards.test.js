@@ -149,19 +149,28 @@ describe('f173 · a long note folds instead of growing the card', () => {
 });
 
 describe('f173 · the column head is a caption and a count', () => {
-  /* THIS TEST HAS MOVED ONCE. It first pinned a hairline under a transparent
-     head, which was the answer to "not professionally designed". The head was
-     then asked for as a COLOUR STRIP (Young, 10 Aug 2026), so the hairline is
-     gone and the band is the frame. What has not moved, and is what this test
-     was always about, is the type: the caption is the queue label's, and the
-     count is a chip rather than loose grey text. f175 owns the strip itself. */
-  test('caption type, and a count that sits in a chip', async () => {
+  /* THIS TEST HAS MOVED TWICE, and both moves were the head's frame changing
+     under it. It first pinned a hairline under a transparent head, the answer
+     to "not professionally designed". The head was then asked for as a COLOUR
+     STRIP (Young, 10 Aug 2026), so the hairline went and the band was the
+     frame. It is a RULE again now ("A · Rule — the quiet ledger", same day),
+     so the hairline is back and the band is gone.
+
+     WHAT HAS NEVER MOVED, and is what this test was always about, is the TYPE:
+     the caption is the queue label's, and the count is set apart from it
+     rather than reading as more of the same grey sentence. Only the way it is
+     set apart has changed — a chip once, mono figures now. f175 owns the
+     frame; this owns the type. */
+  test('caption type, and a count set apart from it', async () => {
     const p = await mounted();
     const css = p.css();
     assert.ok(/\.rl-idx-k\{[^}]*font-size:9\.5px;font-weight:800;letter-spacing:\.12em/.test(css),
       'the caption takes .rl-q-label\'s own type');
-    assert.ok(/\.rl-idx-n\{[^}]*border-radius:999px/.test(css),
-      'and the count sits in a chip rather than floating as grey text');
+    const n = /\.rl-idx-n\{([^}]*)\}/.exec(css)[1];
+    assert.match(n, /font-family:var\(--font-mono\)/,
+      'and the count is mono — it is the one part of the head that is a number');
+    assert.match(n, /font-variant-numeric:tabular-nums/,
+      'in tabular figures, so 1 and 11 do not shift the words beside them');
     assert.ok(p.$('.rl-idx-head .rl-idx-k') && p.$('.rl-idx-head .rl-idx-n'),
       'both parts are drawn');
   });

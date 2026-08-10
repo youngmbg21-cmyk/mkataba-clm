@@ -2058,10 +2058,13 @@ function renderShareViewer(p, opts={}){
    the owner drives rounds; and no back arrow, because there is no page behind
    theirs (negoRoomHasExit already encodes exactly that rule).
 
-   WHAT THEY KEEP that might look surprising: Accept all and Reject all. Those
-   act on OUR asks, and "I agree to all of it" is a real and common answer —
-   withholding the button would not withhold the decision, only make them press
-   Accept six times to say the same thing. */
+   AND NO BULK VERBS EITHER, as of 10 Aug 2026. This seat kept Accept all and
+   Reject all longest, on the argument that "I agree to all of it" is a real and
+   common answer and withholding the button withholds only their time. They are
+   gone now: the press disposes of every ask we filed at once, from a header,
+   with no clause in front of the reader. The per-card verbs are unchanged and
+   the head counts what is left, so the answer is still reachable — six presses
+   instead of one. See redlinePanesHtml, which is where it was drawn. */
 function portalWorkbenchStyle(){
   if(document.getElementById('pw-style')) return;
   const el=document.createElement('style'); el.id='pw-style';

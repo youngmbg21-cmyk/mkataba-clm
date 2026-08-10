@@ -193,14 +193,27 @@ describe('what is ours stays ours', () => {
     ]) assert.equal(v.$('#nego-room #' + id), null, `${id} must not be on their page — ${why}`);
   });
 
-  /* Nearly removed, and it would have been wrong. */
-  test('but they DO get the bulk verbs — those act on OUR asks', async () => {
+  /* NEARLY REMOVED, KEPT, AND THEN REMOVED ANYWAY — worth the three lines,
+     because the two arguments are about different things and both are right.
+
+     The argument for KEEPING was about their time: "I agree to all of it" is a
+     real answer, and withholding the button withholds nothing but the six
+     presses it takes to say the same thing. That held while the question was
+     whether their seat may answer in bulk at all.
+
+     The argument for REMOVING (10 Aug 2026, with the head restyled as a rule)
+     is about what the press MEANS: it disposes of every ask we filed, from a
+     header, with no clause in front of the reader while they press it. Their
+     time is worth less than their attention on wording they are agreeing to.
+     Nothing became unreachable — the per-card verbs are unchanged and the
+     count in the head says how many are left. */
+  test('and not the bulk verbs either — a decision is a press per clause', async () => {
     const { c } = await negotiated();
     const v = theirPage(c);
-    assert.ok(v.$('#pt-nego [id="nego-bulk-acc"]'),
-      '"I agree to all of it" is a real answer; withholding the button withholds '
-      + 'nothing but their time');
-    assert.ok(v.$('#pt-nego [id="nego-bulk-rej"]'));
+    assert.equal(v.$('#pt-nego [id="nego-bulk-acc"]'), null, 'no bulk Accept');
+    assert.equal(v.$('#pt-nego [id="nego-bulk-rej"]'), null, 'no bulk Reject');
+    assert.ok(v.$('#pt-nego [data-nego-accept]'),
+      'but their per-card Accept is untouched — the answer is still theirs to give');
   });
 
   test('our filing structure is nowhere on their page', async () => {
