@@ -1525,6 +1525,61 @@ function openReviewAskModal(c, opts = {}){
   });
 }
 
+/* ---- THE TOOLBAR'S DOOR OPENS ON A CHOICE ----
+   Asked for directly (Young, 10 Aug 2026): pressing "Internal review" should
+   start the internal collaboration, and there are two ways a colleague joins
+   one — as a CONTRIBUTOR (the desk: they redline alongside you for the whole
+   negotiation) or as a REVIEWER (the ask: they rule on named changes and hand
+   them back). Two different features answer those, and burying one behind the
+   other made the desk invisible from the one button labelled with the word
+   people reach for.
+
+   So the door asks. Two options, each saying in a sentence what it does, and
+   the existing dialogs unchanged behind them. The hand-back posture is NOT
+   routed through here — a reviewer pressing the same button is returning a
+   job, not starting one, and a chooser in front of that is a question with one
+   answer. The per-card ask (data-rl-ask-review) stays direct for the same
+   reason: it is scoped to the change under your eye, and the desk has nothing
+   to say about a single clause.
+
+   ON A STAGE WITHOUT THE DESK MODULE there is nothing to choose between, so
+   the door falls straight through to the ask dialog — which is also what every
+   caller written before this did. */
+function openReviewEntryChooser(c, opts = {}){
+  if (!window.openModal || !c) return;
+  if (!window.openDeskSheet){ openReviewAskModal(c, opts); return; }
+  const opt = (act, label, sub) => `
+    <button type="button" data-rv-entry="${_rvE(act)}" class="ui-btn"
+      style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;
+      text-align:left;padding:12px 14px;margin-top:8px;height:auto">
+      <span style="font-weight:600">${_rvE(label)}</span>
+      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:normal;line-height:1.5">${_rvE(sub)}</span>
+    </button>`;
+  window.openModal(`
+    <div style="padding:18px 20px 16px">
+      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">${_rvE(i18t('rv_entry_title'))}</h2>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 6px;line-height:1.55">${_rvE(i18t('rv_entry_sub'))}</p>
+      ${opt('desk', i18t('rv_entry_desk'), i18t('rv_entry_desk_sub'))}
+      ${opt('ask', i18t('rv_entry_ask'), i18t('rv_entry_ask_sub'))}
+      <div style="display:flex;justify-content:flex-end;margin-top:14px">
+        <button id="rv-entry-cancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      </div>
+    </div>`, { maxWidth: '26rem' });
+  document.getElementById('rv-entry-cancel')?.addEventListener('click', () => window.closeModal());
+  document.querySelectorAll('[data-rv-entry]').forEach(b => b.addEventListener('click', () => {
+    if (b.getAttribute('data-rv-entry') === 'desk'){
+      /* Nobody has claimed the desk yet → pressing "assign contributors" IS
+         claiming it. The sheet needs a lead to hang the roster on, and the
+         person pressing is exactly who their first redline would have stamped
+         — the same one-press rule deskOpenFromChip states for the header. */
+      if (window.deskIsOpen && !deskIsOpen(c) && window.deskOpenFromChip) deskOpenFromChip(c);
+      openDeskSheet(c, { after: opts.after });
+      return;
+    }
+    openReviewAskModal(c, opts);
+  }));
+}
+
 /* ---- ONE DOOR, AND IT ASKS WHICH ----
    Two reviews open with the same person drew two rows, each with its own
    "Hand it back", and a third copy sat in the toolbar: three controls, two of
@@ -1711,7 +1766,8 @@ Object.assign(window, {
   reviewBannerCleared, reviewClearBanner, reviewUnclearBanner,
   reviewSearchPeople, reviewResolvePerson, reviewPersonRowHtml, reviewPickerListHtml,
   RV_FLD, RV_LBL, reviewWirePicker,
-  reviewAskModalHtml, openReviewAskModal, openReviewReturnModal, openReviewReturnPicker,
+  reviewAskModalHtml, openReviewAskModal, openReviewEntryChooser,
+  openReviewReturnModal, openReviewReturnPicker,
   reviewTagsFor, openReviewNoteModal,
   reviewWireCards,
 });

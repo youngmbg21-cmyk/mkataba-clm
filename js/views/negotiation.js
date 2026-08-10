@@ -7148,6 +7148,11 @@ function renderRedline(){
          straight through. The banner rows no longer carry a button of their
          own — see reviewBannerHtml. */
       if (st.phase === 'yours') openReviewReturnPicker(c, { after: () => renderRedline() });
+      /* Otherwise the door opens on a CHOICE — assign contributors (the desk)
+         or send for review (the ask). See openReviewEntryChooser for why the
+         hand-back is not routed through it. Falls back to the ask dialog on a
+         stage without the chooser, which is what this handler always did. */
+      else if (window.openReviewEntryChooser) openReviewEntryChooser(c, { after: () => renderRedline() });
       else openReviewAskModal(c, { after: () => renderRedline() });
     }));
   /* Focus in, focus out — ONE button, toggling. A class flip, not a repaint —
