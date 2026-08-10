@@ -36,7 +36,12 @@ const { startHati, seedWorkspace } = require('./helpers');
 const branding = require('../js/branding.js');
 
 describe('f145 — the structure catalogue and the body transform (pure)', () => {
-  const IDS = ['standard-flow', 'margin-numbers', 'two-column', 'ruled-clauses', 'contents-first'];
+  /* 'contents-first' has left this list (Young, 10 Aug 2026). It prepended a
+     page and left the body alone, so it was never a layout — and being ON the
+     list made it exclusive with the four that are, which meant a two-column
+     booklet could not have a contents page at all. It is a flag now; the tests
+     for it are in their own section below. */
+  const IDS = ['standard-flow', 'margin-numbers', 'two-column', 'ruled-clauses'];
 
   test('stable ids, and Standard Flow is the default', () => {
     assert.deepEqual(branding.DOC_STRUCTURES.map(s => s.id), IDS);
@@ -45,7 +50,10 @@ describe('f145 — the structure catalogue and the body transform (pure)', () =>
       'the default is first in the list the picker draws');
     for (const s of branding.DOC_STRUCTURES) {
       assert.ok(s.name && s.blurb && s.bestFor, s.id + ' can be described to a customer');
-      assert.ok(['none', 'css', 'prepend'].includes(s.device), s.id + ' declares how it works');
+      /* 'prepend' has gone with the structure that was the only one to use it:
+         every remaining layout is pure CSS over an untouched body, which is the
+         property that lets five render surfaces share one document. */
+      assert.ok(['none', 'css'].includes(s.device), s.id + ' declares how it works');
     }
   });
 
@@ -61,7 +69,10 @@ describe('f145 — the structure catalogue and the body transform (pure)', () =>
     const attr = id => branding.docDesignPaperAttr(
       branding.normalizeDesignBranding({ designId: 'modern-minimal', structureId: id }));
     assert.ok(attr('two-column').includes('data-doc-structure="two-column"'));
-    assert.ok(attr('contents-first').includes('data-doc-structure="contents-first"'));
+    assert.ok(attr('ruled-clauses').includes('data-doc-structure="ruled-clauses"'));
+    /* The retired id emits nothing — it names no layout, and the contents page
+       it used to mean travels on the body, not on the paper div. */
+    assert.ok(!attr('contents-first').includes('data-doc-structure'));
     assert.ok(!attr('standard-flow').includes('data-doc-structure'),
       'Standard Flow IS the absence of a structure — no attribute, no CSS');
     assert.ok(!attr(null).includes('data-doc-structure'));
@@ -87,6 +98,50 @@ describe('f145 — the structure catalogue and the body transform (pure)', () =>
     }
     assert.equal(branding.docStructureBodyHtml(null, BODY), BODY, 'no branding at all, no transform');
     assert.equal(branding.docStructureBodyHtml(undefined, BODY), BODY);
+  });
+
+  /* ============================================================
+     THE CONTENTS PAGE IS ITS OWN CHOICE (Young, 10 Aug 2026)
+     ============================================================
+     Asked for as: either a contents page at the front or none, chosen
+     separately, OFF unless asked for. Three claims carry that, and the third
+     is the one that protects customers who already published: */
+  test('off unless asked for — a design that says nothing gets no contents page', () => {
+    const b = branding.normalizeDesignBranding({ designId: 'formal-legal', structureId: 'two-column' });
+    assert.equal(b.contents, null, 'a record that has not answered claims nothing');
+    assert.equal(branding.docStructureBodyHtml(b, BODY), BODY, 'and no page is added');
+    const off = branding.normalizeDesignBranding({ designId: 'formal-legal', contents: false });
+    assert.equal(off.contents, false, 'a deliberate no is recorded as one, not as silence');
+    assert.equal(branding.docStructureBodyHtml(off, BODY), BODY);
+  });
+
+  test('it composes with every layout — the thing being exclusive was the bug', () => {
+    for (const id of IDS) {
+      const b = branding.normalizeDesignBranding(
+        { designId: 'modern-minimal', structureId: id, contents: true });
+      const out = branding.docStructureBodyHtml(b, BODY);
+      assert.ok(out.startsWith('<nav data-doc-contents'), id + ' can carry a contents page');
+      assert.ok(out.endsWith(BODY), id + ' still gets its body verbatim');
+      /* And the layout it chose is still the layout it chose — the contents
+         page rides on the body, so it cannot displace the paper attribute. */
+      const attr = branding.docDesignPaperAttr(b);
+      assert.equal(attr.includes('data-doc-structure="' + id + '"'), id !== 'standard-flow');
+    }
+  });
+
+  test('a record saved as Contents First keeps its contents page', () => {
+    /* The migration, and the reason it is not optional: this id was a real
+       published choice. Read as "no structure and no flag" it would be a
+       document silently losing a page it went out with. */
+    const b = branding.normalizeDesignBranding(
+      { designId: 'formal-legal', structureId: 'contents-first' });
+    assert.equal(b.contents, true, 'the old id is read as the flag it always was');
+    assert.equal(b.structureId, null, 'and it claims no layout, because it never was one');
+    assert.ok(branding.docStructureBodyHtml(b, BODY).startsWith('<nav data-doc-contents'));
+    /* Raw, too: the sealed copy is rendered from the snapshot on the record and
+       does not always come back through normalize first. */
+    assert.ok(branding.docStructureBodyHtml({ structureId: 'contents-first' }, BODY)
+      .startsWith('<nav data-doc-contents'), 'even un-normalised, straight off a sealed record');
   });
 
   test('Contents First only prepends: the document it was given survives verbatim, in order', () => {

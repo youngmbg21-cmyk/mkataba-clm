@@ -86,11 +86,21 @@ const docDesignById = id => DOC_DESIGNS.find(d => d.id === id) || null;
    against `data-clause-id` on the heading that opens a clause, and moving that
    heading re-points every change filed against it (see js/clausemodel.js).
 
-   That rule is why four of the five below are pure CSS, keyed off
+   That rule is why every structure below is pure CSS, keyed off
    `data-doc-structure` on the paper div exactly as the designs key off
    `data-doc-body`. Nothing about the document HTML changes, so the five render
    surfaces, the sealed copy and the PDF all pick the structure up for free.
-   `contents-first` is the one that emits anything, and it only PREPENDS. */
+
+   THERE WAS A FIFTH, AND IT WAS NOT A STRUCTURE. `contents-first` prepended a
+   contents page and left the body alone — so choosing it meant giving up
+   Margin Numbers, Two Columns or Ruled Clauses to get one, and wanting a
+   contents page ON a two-column policy booklet was simply not expressible.
+   That is a symptom of a wrong shape: a contents page is not a way of laying
+   the body out, it is a thing that is either in front of the document or not.
+
+   IT IS ITS OWN FLAG NOW (`contents`, Young 10 Aug 2026), off unless asked
+   for, and it composes with all four layouts. normalizeDesignBranding migrates
+   the old id, so a document saved as Contents First keeps its contents page. */
 const DOC_STRUCTURES = [
   { id: 'standard-flow', name: 'Standard Flow',
     blurb: 'One column, top to bottom — the layout every contract uses today.',
@@ -108,11 +118,9 @@ const DOC_STRUCTURES = [
     blurb: 'A rule above every clause and room around it, so no clause can be skimmed past.',
     bestFor: 'Procurement teams comparing supplier terms',
     device: 'css' },
-  { id: 'contents-first', name: 'Contents First',
-    blurb: 'A contents page built from the clause headings, in front of the document. It rebuilds itself if a clause is added.',
-    bestFor: 'Agreements over about ten clauses',
-    device: 'prepend' },
 ];
+/* The retired id, kept by name because records still carry it. */
+const LEGACY_CONTENTS_STRUCTURE = 'contents-first';
 const docStructureById = id => DOC_STRUCTURES.find(s => s.id === id) || null;
 const DEFAULT_STRUCTURE = 'standard-flow';
 
@@ -265,9 +273,25 @@ function normalizeDesignBranding(b) {
          "standard flow" and silently override a company default of, say, Two
          Columns on every draft shared before today. */
   const structure = docStructureById(b.structureId);
+  /* ---- THE CONTENTS PAGE: TRUE, FALSE, OR NOT SAID ----
+     Three states, not two, and the third is the load-bearing one — same reason
+     structureId is null rather than 'standard-flow' above. brCompact() carries
+     every non-null snapshot field over the org default, so a flat boolean would
+     make EVERY record saved before this feature assert `contents: false` and
+     silently strip the contents page from a company whose default has one on.
+     Null means "this record does not say", which is the truth about all of
+     them, and the org default answers.
+
+     AND THE OLD ID STILL MEANS WHAT IT MEANT. A record saved as Contents First
+     names a structure this build no longer has; left alone it would resolve to
+     no structure and no contents page, which is a document quietly losing a
+     page it was published with. Read as the flag it always really was. */
+  const legacyContents = String(b.structureId) === LEGACY_CONTENTS_STRUCTURE;
   return {
     designId: design ? design.id : null,
     structureId: structure ? structure.id : null,
+    contents: (b.contents === true || legacyContents) ? true
+      : b.contents === false ? false : null,
     logoUrl: BR_LOGO_OK(b.logoUrl) ? b.logoUrl : null,
     companyName: String(b.companyName || '').slice(0, 200),
     registrationNumber: String(b.registrationNumber || '').slice(0, 100),
@@ -613,7 +637,11 @@ const brStripTags = s => String(s).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').
 
 function docStructureBodyHtml(b, bodyHtml) {
   const html = bodyHtml == null ? '' : String(bodyHtml);
-  if (!b || b.structureId !== 'contents-first') return html;
+  /* The flag, or the id it replaced. Both are tested here rather than relying
+     on normalizeDesignBranding having run, because this function is called
+     from five surfaces and the server, and a sealed document rendered from a
+     raw snapshot must not lose the page it was executed with. */
+  if (!b || !(b.contents === true || b.structureId === LEGACY_CONTENTS_STRUCTURE)) return html;
 
   const heads = [];
   let m;

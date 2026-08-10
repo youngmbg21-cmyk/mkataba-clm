@@ -89,7 +89,10 @@ const MEASURE = () => {
   };
 };
 
-const STRUCTURES = ['standard-flow', 'margin-numbers', 'two-column', 'ruled-clauses', 'contents-first'];
+/* Four layouts. The contents page left this list on 10 Aug 2026 — it is a flag
+   that composes with all of them now, not a fifth thing you pick instead. It
+   is driven below as the third argument to MOUNT. */
+const STRUCTURES = ['standard-flow', 'margin-numbers', 'two-column', 'ruled-clauses'];
 const IDS = ['cl_0001', 'cl_0002', 'cl_0003', 'cl_0004', 'cl_0005', 'cl_0006', 'cl_0007'];
 
 async function main(){
@@ -105,8 +108,8 @@ async function main(){
   await page.waitForFunction(() => window.READY === true, { timeout: 15000 });
 
   const shot = async name => page.screenshot({ path: path.join(OUT, name + '.png') });
-  const mount = async (design, structure) => {
-    await page.evaluate(([d, s]) => window.MOUNT(d, s), [design, structure]);
+  const mount = async (design, structure, contents) => {
+    await page.evaluate(([d, s, k]) => window.MOUNT(d, s, k), [design, structure, contents === true]);
     return page.evaluate(MEASURE);
   };
 
@@ -180,15 +183,25 @@ async function main(){
     `border-top ${flow.headBorderTop}px → ${ruled.headBorderTop}px`);
   await shot('ruled-clauses');
 
-  /* ---- 5 · contents first ---- */
-  const contents = await mount('modern-minimal', 'contents-first');
-  check('5 · Contents First puts a contents page first', contents.hasContents && contents.contentsFirst);
+  /* ---- 5 · the contents page ---- */
+  check('5 · off unless asked for', (await mount('modern-minimal', 'standard-flow')).hasContents === false);
+  const contents = await mount('modern-minimal', 'standard-flow', true);
+  check('5 · asked for, it goes in front', contents.hasContents && contents.contentsFirst);
   check('5 · the contents page lists every clause, and not the title',
     contents.contentsLinks.length === 7
       && contents.contentsLinks[0].startsWith('1.')
       && !contents.contentsLinks.some(t => /Distribution Agreement/.test(t)),
     `${contents.contentsLinks.length} entries`);
-  await shot('contents-first');
+  await shot('contents-page');
+
+  /* THE POINT OF MAKING IT A FLAG: it must work ON a layout, not instead of
+     one. Two Columns is the sharpest case — it was the pairing a customer
+     could not express at all while the contents page was a structure. */
+  const both = await mount('modern-minimal', 'two-column', true);
+  check('5 · it composes with a layout rather than replacing one',
+    both.hasContents && both.contentsFirst && both.columnCount === '2',
+    `contents=${both.hasContents} columns=${both.columnCount}`);
+  await shot('contents-plus-two-column');
 
   /* ---- 6 & 7 · clause identity and body bytes, across every structure ---- */
   let idsOk = true, bytesOk = true, textOk = true;
@@ -199,27 +212,34 @@ async function main(){
     const sameText = JSON.stringify(m.clauseText) === JSON.stringify(flow.clauseText);
     if (!sameIds) { idsOk = false; detail.push(`${s} ids=${m.clauseIds.join(',')}`); }
     if (!sameText) { textOk = false; detail.push(`${s} headings changed`); }
-    if (s !== 'contents-first' && m.bodyHtml !== flow.bodyHtml) { bytesOk = false; detail.push(`${s} markup differs`); }
+    if (m.bodyHtml !== flow.bodyHtml) { bytesOk = false; detail.push(`${s} markup differs`); }
   }
   check('6 · every clause id survives every structure, once each, in order', idsOk, detail.join(' | ') || `${IDS.length} ids`);
   check('6 · no structure alters a single clause heading', textOk);
-  check('7 · every CSS structure leaves the markup byte-identical', bytesOk,
-    'only Contents First emits anything, and only in front');
+  /* No exception any more. Every LAYOUT is now pure CSS over an untouched
+     body — the one that emitted markup was the contents page, and it is not a
+     layout. What it prepends is checked at 5 and 9 instead. */
+  check('7 · every structure leaves the markup byte-identical', bytesOk,
+    detail.join(' | ') || 'four layouts, one document');
 
   /* ---- 8 · every allowed pairing holds up ---- */
   const designs = await page.evaluate(() => DOC_DESIGNS.map(d => d.id));
   let pairOk = true; const pairFail = [];
-  for (const d of designs) for (const s of STRUCTURES){
+  /* Every pairing is now driven TWICE, with the contents page off and on —
+     the flag doubled the matrix and a pairing that only holds without it is
+     not a pairing that holds. */
+  for (const d of designs) for (const s of STRUCTURES) for (const k of [false, true]){
     const blocked = await page.evaluate(([a, b]) => !!structureBlockedReason(a, b), [d, s]);
     if (blocked) continue;
-    const m = await mount(d, s);
+    const m = await mount(d, s, k);
     const ok = JSON.stringify(m.clauseIds) === JSON.stringify(IDS)
       && m.surfaceW > 200
       && (s !== 'two-column' || m.columnCount === '2')
-      && (s !== 'contents-first' || m.hasContents);
-    if (!ok) { pairOk = false; pairFail.push(`${d}×${s}`); }
+      && m.hasContents === k;
+    if (!ok) { pairOk = false; pairFail.push(`${d}×${s}${k ? '+contents' : ''}`); }
   }
-  check('8 · every allowed design × structure pairing renders intact', pairOk, pairFail.join(', ') || 'all pairings');
+  check('8 · every allowed design × structure pairing renders intact, with and without contents',
+    pairOk, pairFail.join(', ') || 'all pairings');
 
   /* ---- 9 · print-honest: the structures must survive onto paper ----
      DESIGN-contract-designer.md makes print-honesty a condition of the
@@ -228,9 +248,11 @@ async function main(){
   await page.emulateMedia({ media: 'print' });
   const printed = {};
   for (const s of STRUCTURES){
-    await page.evaluate(([d, x]) => window.MOUNT_PRINT(d, x), ['modern-minimal', s]);
+    await page.evaluate(([d, x]) => window.MOUNT_PRINT(d, x, false), ['modern-minimal', s]);
     printed[s] = await page.evaluate(() => window.MEASURE_PRINT());
   }
+  await page.evaluate(() => window.MOUNT_PRINT('modern-minimal', 'standard-flow', true));
+  printed.contents = await page.evaluate(() => window.MEASURE_PRINT());
   await page.screenshot({ path: path.join(OUT, 'print-two-column.png') });
   await page.emulateMedia({ media: 'screen' });
 
@@ -242,7 +264,7 @@ async function main(){
     `heading ${printed['margin-numbers'].headLeft}px vs body ${printed['margin-numbers'].bodyLeft}px`);
   check('9 · Ruled Clauses survives onto paper', printed['ruled-clauses'].headBorderTop > 0,
     `border-top ${printed['ruled-clauses'].headBorderTop}px in print`);
-  check('9 · Contents First survives onto paper', printed['contents-first'].hasContents === true);
+  check('9 · the contents page survives onto paper', printed.contents.hasContents === true);
   check('9 · Standard Flow stays plain on paper',
     printed['standard-flow'].columnCount === 'auto' && !(printed['standard-flow'].headBorderTop > 0));
 

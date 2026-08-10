@@ -64,6 +64,12 @@ const READ = () => {
   return {
     structures: document.querySelectorAll('[data-ds-structure]').length,
     styles: document.querySelectorAll('[data-ds-pick]').length,
+    contentsBtns: document.querySelectorAll('[data-ds-contents]').length,
+    contentsOn: !!document.querySelector('[data-ds-contents="1"][aria-pressed="true"]'),
+    /* Measured on the PREVIEW, not on the button. Whether the control looks
+       pressed and whether the document actually gained a contents page are two
+       different claims, and only the second one is the feature. */
+    previewContents: !!document.querySelector('#ds-zoom [data-doc-contents]'),
     railHeading: (document.querySelector('[data-ds-step-title]') || {}).textContent
       ? document.querySelector('[data-ds-step-title]').textContent.trim() : '',
     /* Read off the rail's own hook rather than fished out by text: the footer
@@ -210,8 +216,28 @@ const READ = () => {
   await page.evaluate(() => document.getElementById('ds-next').click());
   await page.waitForTimeout(500);
   const two = await page.evaluate(READ);
+  /* FOUR, not five: the contents page stopped being a structure card on
+     10 Aug 2026 and is a yes/no above the list. Its own checks are at 5c. */
   check('5b · Next moves to structure, and only structure is offered',
-    two.structures === 5 && two.styles === 0, `${two.structures} structures, ${two.styles} styles`);
+    two.structures === 4 && two.styles === 0, `${two.structures} structures, ${two.styles} styles`);
+  /* ---- 5c · the contents page is a choice of its own, off by default ---- */
+  check('5c · the pair is drawn, and it opens on "not included"',
+    two.contentsBtns === 2 && two.contentsOn === false && two.previewContents === false,
+    `${two.contentsBtns} buttons, on=${two.contentsOn}, in preview=${two.previewContents}`);
+  await page.evaluate(() => document.querySelector('[data-ds-contents="1"]').click());
+  await page.waitForTimeout(400);
+  const withC = await page.evaluate(READ);
+  check('5c · choosing it puts a contents page on the document',
+    withC.contentsOn === true && withC.previewContents === true && withC.structures === 4,
+    `on=${withC.contentsOn}, in preview=${withC.previewContents}, layouts still ${withC.structures}`);
+  await page.screenshot({ path: path.join(OUT, 'step2-contents.png') });
+  await page.evaluate(() => document.querySelector('[data-ds-contents="0"]').click());
+  await page.waitForTimeout(400);
+  const noC = await page.evaluate(READ);
+  check('5c · and it can be taken off again',
+    noC.contentsOn === false && noC.previewContents === false,
+    `on=${noC.contentsOn}, in preview=${noC.previewContents}`);
+
   check('5b · and the screen says so — step label, heading and button all change',
     /Step 2 of 2/.test(two.stepLabel) && /Choose a structure/i.test(two.railHeading)
       && two.publishBtn && !two.nextBtn && /Back to style/i.test(two.backLabel),
