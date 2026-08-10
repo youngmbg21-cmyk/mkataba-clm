@@ -7358,6 +7358,28 @@ function renderRedline(){
       : null,
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
+    /* ---- AN ANSWER HAS TO REACH THE PAGE IT IS AN ANSWER TO ----
+       Reported exactly as it happens (Young, 10 Aug 2026): the owner accepts
+       the counterparty's ask, our column says "adopted", and their link still
+       shows it open with Accept all / Reject all on it.
+
+       Their copy of the negotiation is not this one — it is the payload on
+       their share link — and `decide` says so in its own words: whoever mounts
+       this component is responsible for what a decision costs on the other
+       side. THE ROOM SUPPLIED THESE TWO HOOKS AND THIS PAGE NEVER DID, and
+       every owner route now lands here rather than in the room, so nothing was
+       catching the live link up at all. That is this codebase's own
+       duplication rule, walked again: a fix in one renderer is not a fix in
+       the other.
+
+       ONLY ANSWERS TRAVEL THIS WAY — a decision, or an ask taken back. Wording
+       we have newly PROPOSED is not pushed down a live link (holdUnsent inside
+       refreshLiveShareQuietly enforces it): what the reader is being asked to
+       look at changes when somebody presses Publish Round, never as a side
+       effect. Silent, and fire-and-forget: the record is right either way and
+       the link catches up on the next one. */
+    onDecided(){ if (window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
+    onWithdraw(){ if (window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
     /* Highlighting wording on this page drives the SIDE PANEL, never a
        standalone popover with a dialog behind it. rlSelMenu is the only floating
        layer left here, and it is a three-item menu that dismisses itself the

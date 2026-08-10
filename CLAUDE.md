@@ -156,6 +156,12 @@ WHAT THIS MEANS FOR THE BROWSER'S COPY: it is now cosmetics, like folderScopeFor
 
 Tests: f154 (the model, the gate, the wall, both renderers, the real payload), f155 (the notification route) f156 (the picker, and a guard against broken encoding) f157 (the chosen subset, the two colours, the warning), f158 (who rewrote the wording), f159 (two reviews at once, and the ask on the card) f161 (who may see a review, who may cancel it, and what a reviewer may not do), f162 (the server's own refusals, against raw responses) and f164 (a finished review stops talking). NOT f152/f153 — those numbers were already taken by the counterparty-view and monthly-report tests.
 
+AN ANSWER HAS TO REACH THE PAGE IT IS AN ANSWER TO (added 2026-08-10). Their copy of the negotiation is NOT ours — it is the payload on their share link — so a decision made here changes nothing they can see until that link is caught up. refreshLiveShareQuietly (js/core.js) is the one function that does it, and `decide` in wireNegotiationTab states the rule: WHOEVER MOUNTS THE COMPONENT supplies onDecided / onWithdraw, because only the mount knows whether there is a link on the other side (the owner has one, the counterparty has none).
+
+The room supplied both hooks and THE WORKBENCH NEVER DID — and every owner route now lands on the workbench, so nothing was catching the link up at all. Reported with both screens side by side (Young, 10 Aug 2026): our column said "Their ask · ✓ adopted, 0 on the table" while their page, open at that moment, still showed the same change live with Accept all / Reject all on it. The room's own comment describes that exact symptom, which is what makes this the duplication rule walked again rather than a new fault. Their page polls, so with the hooks in place it catches up without a reload.
+
+ONLY ANSWERS GO DOWN A LIVE LINK — a decision, or an ask taken back. Newly PROPOSED wording does not: holdUnsent inside refreshLiveShareQuietly enforces it, and what the reader is asked to look at must change when somebody presses Publish Round, never as a side effect of a background sync. Tests: f174.
+
 REMAINING SIDE DOORS — check on every change-related fix
 
 js/views/portal.js ~1096 — the portal pushes into c.changes directly when rebuilding a counterparty reader's session. This is legitimate re-insertion of ALREADY-FILED changes (the comment above it explains why). But verify it after any change to the shape of a change object, because it copies objects wholesale.
