@@ -106,7 +106,7 @@ button{font:inherit;cursor:pointer;}
 :focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px;}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
 
-.wrap{max-width:820px;margin:0 auto;padding:20px 18px 60px;}
+.wrap{max-width:1480px;margin:0 auto;padding:20px 22px 60px;}
 
 .proto-note{
   margin-bottom:18px;padding:11px 14px;border-radius:var(--radius);
@@ -434,6 +434,66 @@ button{font:inherit;cursor:pointer;}
 .tblscroll{overflow-x:auto;}
 
 .deep-note{font-size:11px;color:var(--color-neutral-400);margin-top:12px;}
+
+
+/* ---------- THE WIDE LAYOUT ----------
+   Below 1100px the report reads as the email does: one column, slots divided
+   by rules. From 1100px up the SAME slots become a dashboard grid — the state
+   line leads full-width, dates and the win sit left, the ranked findings take
+   the tall right column, and the left-out line closes full-width. Nothing is
+   added or removed by width; the frame only re-arranges. */
+@media (min-width:1100px){
+  .rp-body{
+    display:grid;gap:14px;padding:20px 26px 26px;
+    grid-template-columns:5fr 7fr;
+  }
+  .rp-body .slot{
+    border:1px solid var(--color-divider);border-radius:12px;
+    padding:16px 19px;background:var(--color-bg);margin:0;
+  }
+  .rp-body .find{background:var(--color-surface);}
+  .rp-body .cur-mini{background:var(--color-surface);}
+  .rp-body .cur-mini.on{background:color-mix(in srgb,var(--accent-solid) 7%,var(--color-surface));}
+  .rp-body .drift{background:var(--color-surface);}
+
+  /* the front page */
+  .sl-state {grid-column:1/-1;}
+  .sl-dates {grid-column:1;grid-row:2;}
+  .sl-finds {grid-column:2;grid-row:2/span 2;}
+  .sl-better{grid-column:1;grid-row:3;}
+  .sl-left  {grid-column:1/-1;}
+  .state-line{font-size:17px;max-width:none;}
+
+  /* exposure: one slot, items in two columns */
+  .sl-expo{grid-column:1/-1;}
+  .exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 30px;}
+
+  /* negotiations: headline numbers as a row, then clauses beside counterparties */
+  .sl-nego-a{grid-column:1/-1;}
+  .sl-nego-b{grid-column:1;}
+  .sl-nego-c{grid-column:2;}
+  .bigrow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .bigrow .fr-big{border-bottom:0;padding:4px 0;}
+
+  /* portfolio: the mix holds the left column, concentration and health stack right */
+  .sl-port-a{grid-column:1;grid-row:1/span 2;}
+  .sl-port-b{grid-column:2;grid-row:1;}
+  .sl-port-c{grid-column:2;grid-row:2;}
+}
+
+/* onboarding goes two-up at the same breakpoint: identity beside the worry
+   cards, then depth and delivery full-width — the reading order is unchanged */
+@media (min-width:1100px){
+  #s-onboard.on{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start;}
+  #s-onboard .ob-head{grid-column:1/-1;}
+  #s-onboard > :nth-child(2){grid-column:1;}
+  #s-onboard > :nth-child(3){grid-column:2;}
+  #s-onboard > :nth-child(4){grid-column:1/-1;}
+  #s-onboard > :nth-child(5){grid-column:1/-1;}
+  #s-onboard .ob-cta{grid-column:1/-1;}
+  .worries{grid-template-columns:1fr 1fr;}
+  .tiers .tier{padding:15px 17px;}
+}
 
 </style>
 </head>
@@ -845,21 +905,21 @@ function weekBody(o, chosen, stateLine, stateSub, dates, finds, quiet, drift){
   return (
 
 
-    '<div class="slot"><div class="slot-h"><span class="k">01</span><h3>Where you stand</h3></div>'+
+    '<div class="slot sl-state"><div class="slot-h"><span class="k">01</span><h3>Where you stand</h3></div>'+
     '<div class="state-line">'+stateLine+'</div>'+
     '<div class="state-sub">'+esc(stateSub)+'</div></div>'+
 
-    '<div class="slot"><div class="slot-h"><span class="k">02</span><h3>Dates you cannot miss</h3>'+
+    '<div class="slot sl-dates"><div class="slot-h"><span class="k">02</span><h3>Dates you cannot miss</h3>'+
     '<span class="note">never filtered by your picks</span></div>'+dates+'</div>'+
 
-    '<div class="slot"><div class="slot-h"><span class="k">03</span><h3>Worth your attention</h3>'+
+    '<div class="slot sl-finds"><div class="slot-h"><span class="k">03</span><h3>Worth your attention</h3>'+
     '<span class="note">ranked by what it costs to ignore</span></div>'+finds+quiet+drift+'</div>'+
 
-    '<div class="slot"><div class="slot-h"><span class="k">04</span><h3>One thing that got better</h3></div>'+
+    '<div class="slot sl-better"><div class="slot-h"><span class="k">04</span><h3>One thing that got better</h3></div>'+
     '<div class="better"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg></span>'+
     '<span><b>'+esc(o.win.h)+'</b><p>'+esc(o.win.p)+'</p></span></div></div>'+
 
-    '<div class="slot"><div class="slot-h"><span class="k">05</span><h3>What we left out</h3></div>'+
+    '<div class="slot sl-left"><div class="slot-h"><span class="k">05</span><h3>What we left out</h3></div>'+
     '<div class="leftout">'+o.stale+' findings are open and unchanged since they last appeared. They will '+
     'come back here only when something about them moves. <a href="#">See all of them in Insights →</a></div></div>'
   );
@@ -880,10 +940,10 @@ function expoBody(){
       '<span class="pill '+it.tone+'"><span class="dot"></span>'+(it.tone==='ruby'?'act':it.tone==='green'?'fine':'watch')+'</span></div>'+
       '<div class="amt"><div class="m">'+esc(it.m)+'</div><div class="u">'+esc(it.un)+'</div></div></div>';
   }).join('');
-  return '<div class="slot"><div class="slot-h"><span class="k">EXPOSURE</span>'+
+  return '<div class="slot sl-expo"><div class="slot-h"><span class="k">EXPOSURE</span>'+
     '<h3>Five kinds of risk, counted from your documents</h3>'+
     '<span class="note">value is contracted value, not cash</span></div>'+
-    '<div class="cur-strip">'+strip+'</div>'+items+
+    '<div class="cur-strip">'+strip+'</div><div class="exp-grid">'+items+'</div>'+
     '<div class="deep-note">Cash actually paid, volumes and usage live in your accounts and systems — '+
     'this report never claims them. The front page stays the same size no matter what is in here.</div></div>';
 }
@@ -892,11 +952,11 @@ function expoBody(){
 function negoBody(){
   var n=DEEP[org].nego;
   var maxPct=Math.max.apply(null,n.clauses.map(function(c){return c[1];}));
-  return '<div class="slot"><div class="slot-h"><span class="k">NEGOTIATIONS</span>'+
+  return '<div class="slot sl-nego-a"><div class="slot-h"><span class="k">NEGOTIATIONS</span>'+
     '<h3>What slows your deals down</h3><span class="note">from HaTi’s own filing record</span></div>'+
-    n.bigs.map(function(b){return '<div class="fr-big"><span class="n">'+b.n+'</span><div class="bd">'+b.t+'</div></div>';}).join('')+
+    '<div class="bigrow">'+n.bigs.map(function(b){return '<div class="fr-big"><span class="n">'+b.n+'</span><div class="bd">'+b.t+'</div></div>';}).join('')+'</div>'+
     '</div>'+
-    '<div class="slot"><div class="slot-h"><span class="k">CLAUSES</span><h3>Where the arguments happen</h3>'+
+    '<div class="slot sl-nego-b"><div class="slot-h"><span class="k">CLAUSES</span><h3>Where the arguments happen</h3>'+
     '<span class="note">rounds each adds or saves</span></div>'+
     n.clauses.map(function(c){
       var up=c[2]>0;
@@ -905,7 +965,7 @@ function negoBody(){
         '<span class="pc">'+c[1]+'%</span><span class="rd '+(up?'up':'dn')+'">'+(up?'+':'−')+Math.abs(c[2]).toFixed(1)+'</span></div>';
     }).join('')+
     '<div class="deep-note">A teal bar costs you rounds; grey settles quickly anyway and is not worth rewriting.</div></div>'+
-    '<div class="slot"><div class="slot-h"><span class="k">COUNTERPARTIES</span><h3>Who is slow, who is smooth</h3></div>'+
+    '<div class="slot sl-nego-c"><div class="slot-h"><span class="k">COUNTERPARTIES</span><h3>Who is slow, who is smooth</h3></div>'+
     '<div class="tblscroll"><table class="mini-tbl"><thead><tr><th>Counterparty</th><th class="num">Deals</th>'+
     '<th class="num">Rounds</th><th></th></tr></thead><tbody>'+
     n.parties.map(function(pr){
@@ -918,16 +978,16 @@ function negoBody(){
 /* ---- Portfolio tab: the shape of the whole book -------------------------- */
 function portfolioBody(){
   var o=O(), max=o.mix[0][1];
-  return '<div class="slot"><div class="slot-h"><span class="k">PORTFOLIO</span>'+
+  return '<div class="slot sl-port-a"><div class="slot-h"><span class="k">PORTFOLIO</span>'+
     '<h3>The shape of your contract book</h3><span class="note">'+o.contracts+' contracts</span></div>'+
     '<div class="mixline">'+o.mix.map(function(m){
       return '<div class="row"><span class="nm">'+esc(m[0])+'</span>'+
         '<span class="track"><span class="fill" style="width:'+Math.round(m[1]/max*100)+'%"></span></span>'+
         '<span class="n">'+m[1]+'</span></div>';
     }).join('')+'</div></div>'+
-    '<div class="slot"><div class="slot-h"><span class="k">CONCENTRATION</span><h3>How spread you are</h3></div>'+
+    '<div class="slot sl-port-b"><div class="slot-h"><span class="k">CONCENTRATION</span><h3>How spread you are</h3></div>'+
     '<div class="state-line" style="font-size:13.5px;">'+DEEP[org].conc+'</div></div>'+
-    '<div class="slot"><div class="slot-h"><span class="k">HEALTH</span><h3>The score, and what moved it</h3></div>'+
+    '<div class="slot sl-port-c"><div class="slot-h"><span class="k">HEALTH</span><h3>The score, and what moved it</h3></div>'+
     '<div class="fr-big"><span class="n">'+o.health.v+'</span><div class="bd">out of 100, <b>'+o.health.delta+
     ' on July</b>. Weighted by the categories you actually hold — nobody is scored on paper they do not have. '+
     'The workings live in Insights.</div></div>'+
