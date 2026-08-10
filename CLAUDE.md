@@ -245,6 +245,34 @@ Because renderRedline calls a function declared in js/views/contract.js, any tes
 
 THE DOCUMENT TAB IS A CLEAN READ. docFillable(c) decides: a DRAFT keeps its editable blanks (for several body terms it is the only place they exist), and from Under Review onward the page renders readOnlyDocHtml() — every field replaced by the text it holds, an em-dash where empty, the same projection the counterparty's page and the exports use. Wording changes from that point go through Negotiate, where each is a tracked change with a fingerprint. Do not put a second editor on the Document tab.
 
+DOCUMENT AND NEGOTIATE TOOK A NEW DESIGN (added 2026-08-10)
+
+Both pages were rebuilt to a mockup the owner supplied. Most of it is shape — one radius, one sheet, one set of cards — but several controls LEFT, and the two pages now share objects they used to draw separately. What follows is what a later change has to know.
+
+ONE SHEET, DRAWN FROM TOKENS, ON FOUR SCREENS. The contract is warm paper on the page rather than white paper inside a white card: --color-doc-warm / --color-doc-warm-line / --shadow-paper in index.html, so the dark theme answers differently (no cream on a dark page) and print pins it to white. The Document tab, the workbench, the counterparty's page and the phone all paint it. The phone loads redlineLayoutCss() for exactly this reason — without it the title block it now renders would arrive unstyled.
+
+TWO BUILDERS EVERY DOCUMENT BODY GOES THROUGH. docPaperHeadHtml (js/views/contract.js) is the front matter — the market, the agreement's name, "Between A and B" — and rlPaperFootHtml (js/views/negotiation.js) is the two ruled lines with the parties under them. The foot is drawn by signatureBlock, ONCE, so nothing stacks two of them; it is not a signing surface and nothing on it is pressable.
+
+WHAT LEFT THE NEGOTIATE PAGE, and none of it is hiding anywhere:
+
+- the Discussion column. A thread hangs off a change and now reads on that change's own card (rlCardNotesHtml). redlineDiscussionHtml is deleted. On OUR seat the composer is internal-only and says so; on the COUNTERPARTY's it keeps the shared/internal switch, because their page is the only channel they have and an internal-only box there reaches nobody.
+- Accept All / Reject All, from our column only. Their seat keeps them: we answer a round with Publish Round, they answer it with decisions on our asks, and "I agree to all of it" is a real answer.
+- the column's own Send All. #nego-send survives MOUNTED AND VISUALLY HIDDEN (.rl-sendslot-hidden — clipped, never display:none) because Publish Round is a proxy that clicks it.
+- the origin filter. RL_CARD_FILTERS / rlCardFilter / rlSetCardFilter are no-op shims kept only because a stack of tests set the filter before reading the column.
+- the text-size stepper (it is on the Document tab, where the design puts it) and the fullscreen button (focus mode is #ws-focus in the room head's "⋯").
+- the contract switcher and the round chip. The round reads in room-sub with the contract's other facts, so it appears on all five tabs from one line.
+
+rlSideMode() ANSWERS "changes" AND NOTHING ELSE, and deliberately does not read its stored preference: a browser holding 'disc' from before would otherwise land on a workbench whose CSS hid the card column to make room for a panel that is no longer built.
+
+THREE READINGS OF ONE RECORD — rlReadMode: redlined, as agreed, with the changes folded in. rlReadSideOf(ch, mode) decides which side of a change to draw and rlOpsAsSide filters the ops WITHOUT mutating them (the fingerprint is taken over the stored ops). Two rules are load-bearing:
+
+- A SETTLED CHANGE ANSWERS THE SAME IN ALL THREE READINGS. Both document branches ask "is this still being argued about" BEFORE asking the reading, because an accepted or refused change's marks are the record of what was decided and its tag is the only place the page says the argument is over. Reading the mode first is how a REFUSED inserted clause vanished off the page instead of being struck through — f96 caught it.
+- A NON-DEFAULT READING ALWAYS SAYS SO, on the floating notice bottom-right, with the way back on it. A document quietly missing its strikes looks like a document with nothing on the table, which is the most expensive thing this page could get wrong.
+
+THE CARD CARRIES THE WORDING AGAIN, clamped to two lines. That reverses an earlier removal; the argument for taking it off (the document beside it already shows the change) was true, and what was left read as a filing reference with nothing on it about the thing being decided.
+
+Tests: f84 and f89 are the design contract and were rewritten to it; f95 pins that the queue, the sheet and the cards share ONE radius, whichever number is current. f58, f59, f63, f92 and f37 kept their subject and moved where they look.
+
 WHAT COUNTS AS A CLAUSE (added 2026-08-04)
 
 Every screen that draws "a window per clause" — the negotiation workbench on desktop and phone, the contract tab, the room, the counterparty's page — gets its list from ONE place: clauseSegment() in js/clausemodel.js. Nothing re-splits a document for itself. So a document that reads wrong on one of those screens reads wrong on all of them, and the fix belongs in clausemodel.js, not in the screen.
