@@ -444,8 +444,11 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'no bulk Accept from the window');
     assert.equal(p.doc.getElementById('nego-bulk-rej'), null,
       'no bulk Reject either');
-    assert.match(p.doc.getElementById('nego-readonly-why').textContent,
-      /window onto exactly what/, 'the column says why it has no verbs');
+    /* The column used to say why it has no verbs, in a paragraph. That notice
+       is gone (Young, 10 Aug 2026) — the seat switch says which seat this is
+       and the missing verbs say the rest. See f152 for the argument. */
+    assert.equal(p.doc.getElementById('nego-readonly-why'), null,
+      'and it does not explain the absence in a paragraph');
   });
 
   test('ONE send on the page, and the proxy points at it', async () => {
@@ -478,8 +481,12 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'no header proxy onto their postbox');
     assert.equal(p.doc.getElementById('nego-send-decisions'), null,
       'and no postbox for it to point at');
-    assert.match(p.doc.getElementById('nego-readonly-why').textContent, /read-only/,
-      'the column says what this seat is, rather than going quiet');
+    /* This used to add "the column says what this seat is, rather than going
+       quiet" — the read-only paragraph. It is gone (Young, 10 Aug 2026) and the
+       column IS quiet now, deliberately: the seat switch names the seat. The
+       claim this test carries is about the send, and it stands on its own. */
+    assert.equal(p.doc.getElementById('nego-readonly-why'), null,
+      'and no paragraph explaining the seat');
   });
 
   test('flipping back restores the owner\'s own words', async () => {

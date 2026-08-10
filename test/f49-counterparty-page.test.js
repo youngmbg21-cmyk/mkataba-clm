@@ -216,6 +216,48 @@ describe('what is ours stays ours', () => {
       'but their per-card Accept is untouched — the answer is still theirs to give');
   });
 
+  /* ---- A CONTROL THAT SETS ITS STATE AND REPAINTS NOTHING IS A DEAD CONTROL ----
+     Reported by Young, 10 Aug 2026: on the counterparty's LINK the All / Mine /
+     Theirs tabs did nothing. They were drawn, they were pressable, and the
+     filter really was being set — what never happened was the repaint, so the
+     column kept every card and the press looked ignored.
+
+     THE CAUSE IS WORTH THE TEST. The tabs are wired by a DELEGATED listener on
+     the document (they get painted into the mount after the page has wired
+     itself, so an element-bound listener would be dropped by the first
+     repaint). A document-level listener has no mount in scope, so it worked out
+     which surface to repaint — and it only knew the owner's two: #view-redline,
+     else the contract tab. Their page is neither.
+
+     SO THE ASSERTION IS ABOUT THE COLUMN, NOT THE BUTTON. Checking that the
+     tab gained its `on` class, or that rlCardFilter() returned 'mine', would
+     have PASSED throughout the fault — both were already true. Only the number
+     of cards on screen tells the truth, which is why it is what is counted. */
+  test('the whose-asks tabs really narrow their column, not just their own state', async () => {
+    const { win, c } = await negotiated();
+    /* One ask from each side, so 'mine' and 'theirs' are different answers on
+       their seat — a filter cannot be shown to work on a column where every
+       setting gives the same column back. */
+    const cl = win.negoClauseList(c).find(x => x.num === '5');
+    await win.negoEditClause(c, cl.clauseId, '<p>Prices may be revised each quarter.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist' });
+    const v = theirPage(c);
+    const cards = () => v.$$('#pt-nego [data-nego-card]').length;
+    const tab = k => v.$(`#pt-nego [data-rl-cardfilter="${k}"]`);
+    const press = k => tab(k).dispatchEvent(
+      new v.win.Event('click', { bubbles: true, cancelable: true }));
+
+    assert.ok(tab('mine'), 'the tabs are drawn on their page at all');
+    const all = cards();
+    assert.equal(all, 3, 'three asks on the table to begin with');
+    press('mine');
+    assert.equal(cards(), 1, 'Mine leaves only the one they asked for');
+    press('theirs');
+    assert.equal(cards(), 2, 'Theirs leaves the two we asked for');
+    press('all');
+    assert.equal(cards(), all, 'and All puts the column back');
+  });
+
   test('our filing structure is nowhere on their page', async () => {
     const { c } = await negotiated();
     const v = theirPage(c);

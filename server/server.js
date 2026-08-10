@@ -1018,16 +1018,23 @@ const clientIp = req => (req.ip || null);
 // NOTE: in-memory + single-instance — this map (and the daily counter below)
 // would need a shared store (Redis/DB) if HaTi is ever run on multiple nodes.
 const rlHits = new Map();
-/* ---------- WHO IS LOOKING, RIGHT NOW ----------
-   contract_id → { name, at }: the last counterparty read of a live share
-   link, written by GET /api/shares/:token and read back by the owner's
-   /state probe. Ephemeral by design — presence that survives a restart is
-   stale by definition — and single-instance like rlHits above. */
-const presenceMap = new Map();
-setInterval(() => {
-  const cut = Date.now() - 10 * 60 * 1000;
-  for (const [k, v] of presenceMap) if (!v || v.at < cut) presenceMap.delete(k);
-}, 600000).unref?.();
+/* ---------- WHO IS LOOKING, RIGHT NOW — REMOVED ----------
+   There was a presenceMap here: contract_id → { name, at }, the last
+   counterparty read of a live share link, written by GET /api/shares/:token
+   and read back by the owner's /state probe, which the bench painted as a
+   green-dot pill — "<them> · viewing their copy now".
+
+   KILLED ON 10 AUG 2026 (Young). It watched a counterparty who never asked to
+   be watched and never saw the pill their reading was drawing on somebody
+   else's screen. Nothing in the product acted on it: it told the owner nothing
+   they could do anything with, at the cost of reporting one party's attention
+   to the other in real time.
+
+   WHAT IS DELIBERATELY KEPT is the engagement record — the 'open' row and
+   first_opened_at, written on the same request. That is the audit fact that a
+   link WAS opened, which the share panel and the timeline show and which a
+   negotiation genuinely turns on. The difference is live surveillance versus a
+   record of delivery, and only the first one was the problem. */
 function rateLimit(bucket, max, windowMs, opts = {}) {
   const limitOf = typeof max === 'function' ? max : () => max;
   const keyFn = opts.keyFn;
@@ -1888,14 +1895,17 @@ app.get('/api/contracts/:id', auth, (req, res) => {
 
 /* The owner's cheap "did anything move?" probe: version and clock only, no
    payload — so the Redline bench can poll every few seconds without shipping
-   the whole record each time. `viewing` is the presence read: the last live
-   share-link open inside 90s, name and time, nothing else. */
+   the whole record each time.
+
+   IT USED TO CARRY `viewing` TOO — the counterparty's live presence, read off
+   presenceMap, which the bench painted as a green-dot pill saying "<them> ·
+   viewing their copy now". The whole feature is gone (Young, 10 Aug 2026): see
+   the note where presenceMap used to be declared. This route answers about the
+   RECORD, and now only about the record. */
 app.get('/api/contracts/:id/state', auth, (req, res) => {
   const r = db.prepare('SELECT version, updated_at, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
-  const p = presenceMap.get(req.params.id);
-  const viewing = p && (Date.now() - p.at) < 90000 ? { name: p.name, at: p.at } : null;
-  res.json({ version: r.version, updatedAt: r.updated_at || null, viewing });
+  res.json({ version: r.version, updatedAt: r.updated_at || null });
 });
 
 /* ---------- executed records are immutable ----------
@@ -5390,10 +5400,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     const cid = payload && payload.contract && payload.contract.id;
     if (cid) db.prepare('INSERT INTO engagement (contract_id,token,kind,at,ip,ua) VALUES (?,?,?,?,?,?)')
       .run(cid, req.params.token, 'open', now(), clientIp(req), String(req.get('user-agent') || '').slice(0, 300));
-    /* Presence: the portal polls this GET every 10–45s while its reader has
-       the page open, so the read itself IS the heartbeat — no new call from
-       the portal, nothing stored beyond a name and a clock. */
-    if (cid) presenceMap.set(cid, { name: s.recipient_name || 'Counterparty', at: Date.now() });
+    /* The presence heartbeat was written here — this GET is polled every
+       10–45s while their page is open, so the read itself was the beat. Gone
+       with the rest of the feature; see the note where presenceMap was
+       declared. The engagement row above stays: it records that the link was
+       opened, which is a fact about delivery, not a live watch. */
     /* STAMPED, NOT ANNOUNCED. first_opened_at is what the owner's share panel
        and the engagement timeline read to show "opened" on the page, so the
        fact is still recorded and still visible — it just no longer sends an

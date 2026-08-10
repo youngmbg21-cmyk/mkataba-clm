@@ -94,9 +94,15 @@ describe('the sign — the window renders no verbs', () => {
     assert.equal(t.doc.getElementById('nego-send-decisions'), null, 'no hand-back postbox');
     assert.ok(!t.$('[data-nego-send]'), 'no thread composer send');
     assert.ok(!t.$('[data-rl-pbreview]'), 'no Review vs Playbook — it can file proposals');
-    assert.match(t.doc.getElementById('nego-readonly-why').textContent,
-      /window onto exactly what Kabras Sugar sees/,
-      'the column explains the missing verbs, naming the party');
+    /* AND IT DOES NOT EXPLAIN ITSELF IN A PARAGRAPH. This used to assert the
+       opposite — a four-line notice at the top of the column naming the party
+       and saying nothing could be decided from here. Removed (Young, 10 Aug
+       2026): the reader pressed "Counterparty" on a switch that is still on
+       screen and still reading Counterparty, and the paragraph pushed the
+       cards it was introducing below the fold. What proves the view is
+       read-only is the absence asserted above, not a sentence about it. */
+    assert.equal(t.doc.getElementById('nego-readonly-why'), null,
+      'and no paragraph restating the view the reader just switched to');
   });
 
   test('flipping back to Internal View restores every owner verb', async () => {

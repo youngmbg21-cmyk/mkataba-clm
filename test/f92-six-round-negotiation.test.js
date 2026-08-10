@@ -167,8 +167,8 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.ok(!t.card(ask1).querySelector('.rl-sent'),
       'the amber Sent state is the AUTHOR\'s, not the decider\'s');
     assert.ok(!t.$('[data-nego-edit]'), 'no Direct Edit from the preview');
-    assert.match(t.$('#nego-readonly-why').textContent, /window onto exactly what/,
-      'the column says why it has no verbs');
+    assert.equal(t.$('#nego-readonly-why'), null,
+      'and the column does not explain the absence in a paragraph (removed 10 Aug 2026)');
     /* The Copilot provenance label is not painted on a card at all now (F137),
        so it cannot cross the toggle. Asserted on the TEXT rather than on the
        old .rl-card-note element, which would pass by simply not existing. */

@@ -5319,6 +5319,39 @@ function rlOpsAsSide(ops, which){
   return ops.filter(o => o && o.op !== drop)
     .map(o => (o.op === which ? { ...o, op: 'keep' } : o));
 }
+/* ---- WHERE A DELEGATED CONTROL SENDS ITS REPAINT ----
+   A control wired per-mount closes over its host's rerender and repaints the
+   right page without being told. A control wired ONCE ON THE DOCUMENT — the
+   pattern below, and the right one for buttons that get painted into a mount
+   after the page has wired itself — has no mount in scope, so it has to work
+   out which surface it was pressed on.
+
+   IT USED TO GUESS, AND IT GUESSED THE OWNER'S. #view-redline, else the
+   contract tab. Both are the owner's; the counterparty's link is neither, and
+   `state` does not even exist on that page, so the second door is shut as well
+   as wrong. The result was a control that set its state correctly and repainted
+   nothing — drawn, pressable, and apparently dead. It cost the whose-asks
+   filter on the counterparty's link (Young, 10 Aug 2026), and the two controls
+   beside it had the same fault waiting.
+
+   SO IT ASKS THE PAGE INSTEAD OF GUESSING. Walk up from whatever was pressed:
+   inside a mount there is an .rl-embed root carrying the host's own rerender
+   (see redlineEmbed), and that is the only correct answer there. Outside one,
+   the two owner doors are still right. The order matters — an embed can be
+   mounted on a page that also has #view-redline (the owner's preview of their
+   seat), and repainting the workbench from a press inside the embed would
+   paint the wrong page over the right one. */
+function rlRepaintFrom(node){
+  const embed = node && node.closest && node.closest('.rl-embed');
+  if (embed && typeof embed._rlRerender === 'function'){ embed._rlRerender(); return true; }
+  if (document.getElementById('view-redline') && window.renderRedline){ renderRedline(); return true; }
+  if (window.renderNegotiationTab && window.getContract && window.state){
+    renderNegotiationTab(getContract(state.activeId) || null, {});
+    return true;
+  }
+  return false;
+}
+
 /* ---- WIRED ONCE, ON THE DOCUMENT ----
    The same pattern (and the same reason) as the reviewer's fold control above:
    two of these buttons live in the toolbar, which renderRedline paints, and one
@@ -5333,12 +5366,7 @@ if (typeof document !== 'undefined' && !document._rlReadWired){
     if (!b) return;
     ev.preventDefault();
     rlSetReadMode(b.getAttribute('data-rl-read'));
-    /* Whichever surface is mounted. The workbench repaints itself; an embed
-       (the counterparty's page) repaints through its own host, which is what
-       renderNegotiationTab does when there is no #view-redline. */
-    if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
-    else if (window.renderNegotiationTab && window.getContract && window.state)
-      renderNegotiationTab(getContract(state.activeId) || null, {});
+    rlRepaintFrom(b);
   });
 }
 
@@ -5637,13 +5665,13 @@ function redlineLayoutCss(){
     align-self:stretch;width:100%}
   /* The middle pane's head went with the head (see redlinePanesHtml). */
   .redline-page .rl-head-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:none}
-  /* WRAPS: this strip now carries tabs, round, stepper, focus, the contract
-     jump, the playbook pass and the presence pill — on a laptop width they
-     over-subscribe one row, and nowrap answered that by clipping the jump
-     mid-word and printing the pill over it. A second line is the honest
-     shape. The pill may shrink to ellipsis but never to nothing. */
+  /* WRAPS: this strip carries tabs, round, stepper, focus, the contract jump
+     and the playbook pass — on a laptop width they over-subscribe one row, and
+     nowrap answered that by clipping the jump mid-word. A second line is the
+     honest shape. (It carried the presence pill too, which was the widest item
+     on it and the reason the wrap was written; the pill is gone and the wrap
+     stays, because the remaining six still over-subscribe a 1366px row.) */
   .redline-page .rl-head-id{display:flex;align-items:center;gap:9px 8px;min-width:0;flex:1;flex-wrap:nowrap}
-  .redline-page .rl-presence{min-width:0;max-width:260px;overflow:hidden;text-overflow:ellipsis}
   /* ---- THE SHELL'S OWN STYLES HAVE GONE WITH THE SHELL ----
      This page used to draw its own title card — back arrow, name, status,
      Share/Import/Compare — and roughly forty lines of CSS dressed it. Both
@@ -5847,13 +5875,9 @@ function redlineLayoutCss(){
   .redline-page .rl-pb-btn:disabled{opacity:.6;cursor:wait}
   html.dark .redline-page .rl-pb-btn{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.35);color:#c4b5fd}
   html.dark .redline-page .rl-pb-btn:hover{background:rgba(139,92,246,.25)}
-  /* Presence: who is reading their copy right now. A statement, not a control. */
-  .redline-page .rl-presence{display:inline-flex;align-items:center;gap:7px;flex:none;
-    border:1px solid var(--color-divider);background:var(--color-surface);border-radius:999px;
-    padding:4px 12px;font-size:11px;font-weight:600;color:var(--color-neutral-600);white-space:nowrap}
-  .redline-page .rl-presence[hidden]{display:none}
-  .redline-page .rl-live-dot{width:7px;height:7px;border-radius:99px;background:#10b981;
-    box-shadow:0 0 0 3px rgba(16,185,129,.2);flex:none}
+  /* The presence pill's rules were here — .rl-presence and its green
+     .rl-live-dot. Gone with the feature (10 Aug 2026); dead rules for a removed
+     control are how one comes back by accident. */
   .redline-page .rl-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:nowrap}
   .redline-page .rl-btn{display:inline-flex;align-items:center;gap:6px}
   /* The wrap point is a fallback for genuinely narrow windows, not the
@@ -6936,6 +6960,22 @@ function redlineEmbed(host, c, opts = {}){
     ${redlinePanesHtml(c, o)}
   </div>`;
   if (!el.id) el.id = 'rl-embed-' + (++_rlEmbedSeq);
+  /* ---- THE MOUNT PUBLISHES HOW IT REPAINTS ----
+     Most of this component's controls are wired per-mount and close over
+     `o.rerender`, so they repaint the right page without being told. A few are
+     DELEGATED listeners on the document, registered once at load — and a
+     document-level listener has no mount in scope. Those had to guess, and
+     they guessed the owner's two surfaces: #view-redline, else the contract
+     tab. On the counterparty's link neither exists, so the state changed and
+     nothing repainted — the control looked dead while working perfectly.
+     (Reported by Young, 10 Aug 2026, against the whose-asks filter.)
+
+     So the repaint is hung on the mount's own root where a delegated listener
+     can find it by walking up from whatever was clicked. That is the same rule
+     stated at rlWireClauseTools — "a mount repaints however its host says" —
+     made reachable from outside the closure rather than restated in it. */
+  const embedRoot = el.firstElementChild;
+  if (embedRoot) embedRoot._rlRerender = typeof o.rerender === 'function' ? o.rerender : null;
   wireNegotiationTab(c, { ...o, hostId: el.id });
   negoAfterPaint(c, o, el);
   rlWireClauseTools(c, el, o);
@@ -7216,7 +7256,6 @@ function renderRedline(){
         ${(window.roomTabsHtml?roomTabsHtml(c,'redline'):'')}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
-          <span id="rl-presence" class="rl-presence" hidden></span>
           <div class="rl-head-id">
             ${''/* Not in Counterparty View: the playbook pass can FILE
                    proposals, and that view is a window, not a chair (see the
@@ -7455,12 +7494,25 @@ function renderRedline(){
        document's own edit affordances already read this flag, so one answer
        here reaches all of them. */
     canEdit: rlMayRedline(c, { side, readonly: previewing }),
-    /* The more specific reason wins, same rule as the portal: "executed" tells
-       the reader what to do next; the preview line only explains the absence
-       of verbs. */
+    /* ---- THE PREVIEW EXPLAINS ITSELF BY BEING OBVIOUS, NOT BY TALKING ----
+       Counterparty View used to open a four-line grey paragraph at the top of
+       the Tracked Changes column: what the view is, that nothing can be entered
+       from it, where to go instead, and where their answers come from. Removed
+       (Young, 10 Aug 2026).
+
+       IT WAS ANSWERING A QUESTION NOBODY ASKS TWICE. The reader got here by
+       pressing "Counterparty" on a two-state switch that is still on screen
+       and still reading Counterparty; the seat is named at the top of the page
+       and the verbs are visibly absent. A paragraph restating that is a note
+       from the product to itself, and it cost the column its first screen —
+       the cards it exists to show started below the fold.
+
+       EXECUTED STILL SPEAKS, and the distinction is the whole rule: a sealed
+       contract is a FACT about the deal that the screen cannot otherwise
+       convey and that changes what the reader should do next. "You are in the
+       view you just switched to" is neither. */
     readonlyWhy: ((typeof negoExecuted === 'function') && negoExecuted(c))
       ? 'This contract is executed — its wording is sealed. Record an amendment instead.'
-      : previewing ? i18t('ng_preview_window_why', { who: c.counterparty || i18t('ng_the_counterparty') })
       : null,
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
@@ -7644,11 +7696,16 @@ function renderRedline(){
 /* ---------- THE BENCH STAYS CURRENT ----------
    While the Redline page is open, a light probe every few seconds asks the
    server two things it can answer without shipping the record: has the
-   contract's version moved, and is the counterparty reading their copy right
-   now. A moved version repaints the bench with the fresh record and says so
-   out loud; presence paints a pill and nothing else. Silent in local mode
-   and on the test stage — no server, no probe. Self-terminating: the first
-   tick after the reader leaves the page clears the timer. */
+   contract's version moved. A moved version repaints the bench with the fresh
+   record and says so out loud. Silent in local mode and on the test stage — no
+   server, no probe. Self-terminating: the first tick after the reader leaves
+   the page clears the timer.
+
+   IT ASKED THE SERVER TWO THINGS ONCE. The second was whether the counterparty
+   was reading their copy right now, painted as a green-dot pill on the toolbar.
+   That is gone (Young, 10 Aug 2026) — the pill, the painter and the server's
+   presence map with it. The probe is about the RECORD moving, which is the half
+   that changes what the reader sees. */
 const RL_LIVE_MS = 12000;
 let _rlLiveTimer = null, _rlLiveBusy = false;
 function rlStartLivePoll(c){
@@ -7669,7 +7726,6 @@ function rlStartLivePoll(c){
     _rlLiveBusy = true;
     try{
       const st = await api('contracts/' + id + '/state');
-      rlPaintPresence(st && st.viewing);
       const cur = window.getContract ? getContract(id) : null;
       /* Our own saves move the version too — but persist writes the new
          version back onto the record (c._v), so only SOMEBODY ELSE's write
@@ -7685,15 +7741,8 @@ function rlStartLivePoll(c){
     _rlLiveBusy = false;
   }, RL_LIVE_MS);
 }
-function rlPaintPresence(v){
-  if (typeof document === 'undefined') return;
-  const el = document.getElementById('rl-presence');
-  if (!el) return;
-  if (v && v.name){
-    el.hidden = false;
-    el.innerHTML = `<span class="rl-live-dot"></span>${_ne(v.name)} &middot; viewing their copy now`;
-  } else el.hidden = true;
-}
+/* rlPaintPresence lived here and painted #rl-presence. Removed with the
+   feature — see the note on the poll above. */
 
 /* ============================================================
    THE WORKBENCH'S THREE ACTIONS ON A PASSAGE
@@ -9747,11 +9796,7 @@ if (typeof document !== 'undefined' && !document._rlNoticeFoldWired){
     ev.preventDefault();
     rlSetNoticesFolded(open ? open.getAttribute('data-rl-notices-open')
       : shut.getAttribute('data-rl-notices-min'), !open);
-    /* Whichever surface is mounted — the same two doors the reading buttons
-       repaint through. */
-    if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
-    else if (window.renderNegotiationTab && window.getContract && window.state)
-      renderNegotiationTab(getContract(state.activeId) || null, {});
+    rlRepaintFrom(open || shut);
   });
 }
 /* ---- WHOSE ASKS: WIRED ONCE, ON THE DOCUMENT ----
@@ -9767,9 +9812,7 @@ if (typeof document !== 'undefined' && !document._rlCardFilterWired){
     if (!b) return;
     ev.preventDefault();
     rlSetCardFilter(b.getAttribute('data-rl-cardfilter'));
-    if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
-    else if (window.renderNegotiationTab && window.getContract && window.state)
-      renderNegotiationTab(getContract(state.activeId) || null, {});
+    rlRepaintFrom(b);
   });
 }
 
