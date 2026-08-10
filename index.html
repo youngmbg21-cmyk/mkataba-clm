@@ -1045,6 +1045,37 @@
   .kt-row.is-open{ background:var(--color-bg); }
   .kt-none{ color:var(--color-neutral-400); font-weight:400; }
 
+  /* ---- THE OBLIGATIONS LIST ---- see the note at its markup (js/obligations.js).
+     The cap is on the ROWS so the head and the two buttons stay put. 322px is
+     four rows and the top of a fifth: a list that ends flush at its boundary
+     looks finished, and one that is visibly cut mid-row says "keep going". */
+  .ob-list{ max-height:322px; overflow-y:auto; padding-right:4px; }
+  /* The obligation's own sentence — see the note at the field (js/obligations.js).
+     resize:vertical, not both: the dialog is a two-column grid and a textarea
+     dragged wider would push the Due date and Recurring pair out of it.
+
+     THREE LINES AT REST, not two. Two showed a sliver of the third — which is
+     an honest overflow cue on a long list and reads as broken on a single
+     sentence, because the eye takes a half-height row of letters as clipping
+     rather than as an invitation. Three holds the common obligation whole:
+     the ones in the panel run to about 150 characters. */
+  .of-desc{ resize:vertical; min-height:79px; max-height:140px; line-height:1.5;
+    overflow-y:auto; font:inherit; font-size:13.5px; }
+  /* 11px, not 10, and neutral-600 rather than an opacity — opacity multiplies
+     against whatever is behind it, and these rows sit on white inside a card
+     inside a page, which is three chances to end up paler than intended. */
+  .ob-meta{ font-size:11px; line-height:1.5; color:var(--color-neutral-600); }
+  .ob-due{ font-size:10.5px; color:var(--color-neutral-600); }
+  .ob-acts button{ font-size:11px; font-weight:600; color:var(--accent-ink); cursor:pointer; }
+  .ob-acts button:hover{ text-decoration:underline; text-underline-offset:2px; }
+  .ob-acts button.is-del{ color:var(--st-ruby-fg,#be123c); }
+  /* The quote is the EVIDENCE — the wording the obligation was read out of —
+     so it is the last thing that should be hard to read. Kept italic and
+     indented so it still reads as quoted rather than as more of the row. */
+  .ob-quote{ font-size:11px; line-height:1.55; font-style:italic;
+    color:var(--color-neutral-700); border-left:2px solid var(--color-divider);
+    padding-left:8px; }
+
   /* ---- THE OBLIGATIONS PAIR ---- see the note at their markup (js/obligations.js).
      Written here rather than as utility classes because what they needed was a
      resting FILL, and the utilities that were on them only ever set a border. */
