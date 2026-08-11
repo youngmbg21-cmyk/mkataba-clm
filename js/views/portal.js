@@ -2161,6 +2161,20 @@ function portalWorkbenchStyle(){
        columns — which is the whole difference between this and the card. */
     .pw-mount{flex:1;min-height:0;display:flex;flex-direction:column;}
     .pw-mount>*{flex:1;min-height:0;}
+    /* THE DEAL-LEVEL VERBS ARE A BAR ON THE PAGE, AND IT IS VISIBLE. Send,
+       Ready to sign and Decline live in #pt-nego-foot (portalNegoFootHtml) —
+       acts about the WHOLE deal, so they belong to the page, not to a card.
+       This bar shipped with [hidden] on it: correct on the day, because the
+       workbench's change column still drew its own pulsing send beside the
+       cards — and wrong the day the new design took that visible send away
+       (the owner got Publish Round on their toolbar; this page has no
+       toolbar). The counterparty's every deal verb was unreachable pixels
+       while every test passed, pressing buttons no reader could see. The bar
+       is styled here and NEVER hidden on this page; f180 pins it visible. */
+    .pw-foot{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      padding:10px 14px;background:var(--color-surface);border:1px solid var(--color-divider);
+      border-radius:8px;box-shadow:var(--shadow-sm);}
+    .pw-foot:empty{display:none;}
     @media (max-width:1024px){
       /* Below the three-column width the page is allowed to grow and scroll:
          a fixed-height flex layout on a phone is how a document becomes
@@ -2253,7 +2267,11 @@ function renderShareWorkbench(p, opts={}){
       ${msg}
     </div>
     <div class="pw-mount"><div id="pt-nego"></div></div>
-    <div id="pt-nego-foot" hidden></div>
+    ${''/* NOT hidden. This bar is the page's only visible Send / Ready to
+           sign / Decline — see the .pw-foot note in portalWorkbenchStyle for
+           the week it spent as [hidden] and what that cost. wirePortalNego
+           fills it and refills it on every decision. */}
+    <div id="pt-nego-foot" class="pw-foot"></div>
   </div>`;
   /* The reading controls: the stepper presses the shared rlSetDocType (which
      updates every mounted workbench root, this embed included), and focus is
