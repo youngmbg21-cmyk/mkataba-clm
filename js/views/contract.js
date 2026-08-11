@@ -3957,9 +3957,33 @@ function roomHeadHtml(c,opts={}){
              both from one line. See the note above deskChipHtml for the space
              budget this is drawn to. */}
       ${(window.deskChipHtml?deskChipHtml(c,opts):'')}
+      ${''/* ---- A CONTROL HAS TO LOOK LIKE ONE, AND SAY WHAT IT OPENS ----
+             Reported (Young, 11 Aug 2026): "it is not clear to a user what
+             that button is for or it is even a button."
+
+             TWO FAULTS IN ONE 34px SQUARE, and only one of them was the
+             styling. A bare glyph on a hairline square, sitting beside two
+             filled buttons that plainly are buttons, reads as a separator or
+             a decoration — nothing said it could be pressed. And even once
+             pressed, nothing had said what was behind it: ⋯ is a promise of
+             "more" to somebody who already knows the convention and a
+             punctuation mark to everybody else. The menu behind it holds the
+             import, the exports, focus mode and Delete — none of which anyone
+             would go looking for behind three dots.
+
+             SO IT IS LABELLED. "More" beside the glyph costs the row about
+             40px and answers both questions at once; the chevron is the
+             ordinary sign that a menu drops from it, and it turns over when
+             the menu is open (see wireRoomHead). The word is a <span> so a
+             narrow row can fold it back to the glyph the way the workbench's
+             purple buttons fold, without the button changing identity — its
+             id, its title and its textContent-based tests are untouched. */}
       <div style="position:relative;flex:none">
-        <button id="ws-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
-          title="${i18t('ct_everything_else')}" style="width:34px;height:34px;padding:0;font-size:15px;line-height:1">&#8943;</button>
+        <button id="ws-more" class="ui-btn ws-more-btn" aria-haspopup="true" aria-expanded="false"
+          title="${i18t('ct_everything_else')}">
+          <span aria-hidden="true" style="font-size:15px;line-height:1">&#8943;</span>
+          <span class="ws-more-word">${i18t('ct_more')}</span>
+          <span class="ws-more-caret" aria-hidden="true">${icon('chevD','w-3 h-3')}</span></button>
         ${''/* WRITTEN OUT, not built by a loop. Every id below is the id the
                control had on the old toolbar, and half the test suite reaches
                for them by name in this file's SOURCE — a helper that assembled

@@ -780,13 +780,39 @@ function deskChipHtml(c, opts = {}){
     : role === 'contributor' ? i18t('dk_you_contribute', { who: lead.name })
     : i18t('dk_who_leads', { who: lead.name });
   const pending = deskMayManage(c, me) ? deskJoinPending(c).length : 0;
-  return `<button type="button" id="dk-chip" class="dk-chip" data-dk-manage="1"
-    data-dk-role="${_dkE(role || '')}" aria-haspopup="dialog"
+  /* ---- IT SAYS WHO, AND THAT IS ALL IT DOES ----
+     Asked for directly (Young, 11 Aug 2026): "that button should not be the
+     trigger for assigning contributors. It should just highlight who has been
+     assigned what and nothing more. Assigning jobs will be triggered by
+     internal review button which is already in place."
+
+     WHY IT WAS A BUTTON, AND WHY THAT WAS THE WRONG SHAPE. It opened the desk
+     sheet, which is where seats are handed out — so the one place the product
+     STATED a fact was also the one place it was changed. That reads as a
+     status pill until you press it, and the header is a row of facts (the
+     reference, the stream, the round, the value). A fact you can press is a
+     fact somebody presses by accident.
+
+     THE DOOR DID NOT MOVE, it was already elsewhere: "Internal review" on the
+     workbench opens the chooser whose first option is Assign contributors, and
+     that route claims the desk for the presser when nobody holds it. This chip
+     stopping being a second door leaves one door rather than none.
+
+     A SPAN, NOT A DISABLED BUTTON. Disabled says "this control is unavailable
+     to you"; the truth is that it was never a control. It keeps its title, so
+     the full sentence is still on hover, and drops aria-haspopup, which
+     promised a dialog it no longer opens.
+
+     THE PENDING PIP STAYS AND IS STILL ONLY NEWS. It counts colleagues waiting
+     to join, which is the thing most likely to send the lead to the desk — it
+     reports, and Internal review is where it is answered. */
+  return `<span id="dk-chip" class="dk-chip dk-chip-static"
+    data-dk-role="${_dkE(role || '')}"
     title="${_dkE(i18t('dk_chip_title', { who: lead.name }))}">
     <span class="dk-faces">${faces}</span>
     <span class="dk-who">${who}</span>
     ${pending ? `<span class="dk-pip" title="${_dkE(i18tn('dk_pending_n', pending, { n: pending }))}">${pending}</span>` : ''}
-  </button>`;
+  </span>`;
 }
 
 /* ---- WHOSE HAND WROTE THIS ----

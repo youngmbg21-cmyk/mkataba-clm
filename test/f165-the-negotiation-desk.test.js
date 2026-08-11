@@ -188,8 +188,16 @@ describe('f165 · the desk is drawn once, in the header', () => {
     await mine(win, c, 4, '<p>Payable within forty-five (45) days.</p>');
 
     const own = win.deskChipHtml(c, {});
-    assert.match(own, /data-dk-manage/);
     assert.match(own, /You lead/);
+    /* ---- AND IT IS A LABEL, NOT A DOOR (Young, 11 Aug 2026) ----
+       It used to carry data-dk-manage and open the desk sheet, so the one
+       place the product STATED who leads was also the place seats were handed
+       out. Assigning is reached through Internal review, which was already the
+       door; this chip stopping being a second one leaves one rather than none. */
+    assert.ok(!/data-dk-manage/.test(own), 'the chip no longer opens the desk sheet');
+    assert.ok(!/<button/.test(own), 'and is not a button at all — disabled would say the wrong thing');
+    assert.ok(!/aria-haspopup/.test(own), 'it promises no dialog, because it opens none');
+    assert.match(own, /dk-chip-static/, 'and says so in its class, which is what stands the hover down');
 
     const { win: w2 } = world({ user: GRACE });
     const hers = w2.deskChipHtml(c, {});
