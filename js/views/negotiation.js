@@ -11149,6 +11149,23 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlCardForgetPins, rlCardOpenState,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlRestoreScroll,
+  /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
+     Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
+     in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls
+     back to a dashed placeholder reading "Signature block — pending execution ·
+     Confirm intent to sign from the panel on the right." That fallback is for a
+     contract with NO parties named. It has been the only branch anybody has
+     ever seen: the function is declared in this file, this file is a module,
+     and nothing ever put it on window — so the two ruled lines with the parties
+     under them, which THE MAP describes as drawn on four screens, have never
+     appeared on any of them.
+
+     It surfaced on the read-only copy because there the sentence is not merely
+     misplaced but false: that page has no panel on the right and the reader
+     cannot sign at all. Exporting it is the whole fix, and it restores the same
+     ending on every screen that draws a document — which is what the shared
+     builder was for. */
+  rlPaperFootHtml,
   redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,

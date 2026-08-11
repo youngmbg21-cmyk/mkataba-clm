@@ -455,6 +455,13 @@ function viewerPayload(payload, s){
        it, who ruled on it, when, and why are all internal: they are the
        negotiation's story, and the story belongs to the parties. */
     redlineText: c.redlineText || c.body || null,
+    /* THE SAME WORDING, FOR A CONTRACT THAT KEEPS NONE. A template-drafted
+       contract has no stored body — it is rendered from the template and the
+       record's fields, neither of which belongs in this trim — so the owner's
+       side renders it once at share time and sends the finished document. It
+       is the wording and nothing else: exactly what redlineText would have
+       been had the contract stored any. See buildSharePayload. */
+    viewBody: c.viewBody || null,
     format: c.format || 'text',
     changes: Array.isArray(c.changes) ? c.changes.map(ch => ({
       id: ch.id || null,
