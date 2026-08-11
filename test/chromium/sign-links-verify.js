@@ -114,26 +114,41 @@ const ROUTE = [
       shown.there && shown.hidden === false && shown.rows === 2,
       `${shown.rows} pickable`);
 
-    /* picking fills the recipient from the row */
-    await page.evaluate(() => document.querySelector('[data-share-signer="sg_pat"]').click());
-    await page.waitForTimeout(500);
-    const picked = await page.evaluate(() => ({
+    /* THE SIGNER WHOSE TURN IT IS ARRIVES ALREADY CHOSEN (11 Aug 2026, f182).
+       This block used to open with nothing picked and press sg_pat to bind it.
+       The dialog now reads the route BEFORE it draws, fills the recipient from
+       the signer whose turn it is, and opens with that row chosen — so the
+       press this test used to make is now the press that RELEASES it. The verbs
+       are the same, the starting point moved, and what is asserted here is the
+       pair: it opens bound, and pressing is still a way back. */
+    const opened = await page.evaluate(() => ({
       name: (document.getElementById('sh-name') || {}).value,
       email: (document.getElementById('sh-email') || {}).value,
       marked: (document.querySelector('[data-share-signer="sg_pat"]') || {}).textContent || '',
     }));
-    check('picking a signer fills the recipient from their row',
-      picked.name === 'Patrick Wesamba Were' && picked.email === 'patrick@juno.co.ke',
-      `${picked.name} · ${picked.email}`);
-    check('and the row says it is the one this link is for',
-      /this link/i.test(picked.marked));
+    check('the dialog opens filled from the signer whose turn it is',
+      opened.name === 'Patrick Wesamba Were' && opened.email === 'patrick@juno.co.ke',
+      `${opened.name} · ${opened.email}`);
+    check('and that row says it is the one this link is for',
+      /this link/i.test(opened.marked));
 
-    /* pressing it again takes the binding off */
+    /* pressing it takes the binding off */
     await page.evaluate(() => document.querySelector('[data-share-signer="sg_pat"]').click());
     await page.waitForTimeout(400);
-    check('pressing it again releases the binding',
+    check('pressing it releases the binding',
       !/this link/i.test(await page.evaluate(() =>
         (document.querySelector('[data-share-signer="sg_pat"]') || {}).textContent || '')));
+
+    /* and pressing another row binds to that one, filling the box from it */
+    await page.evaluate(() => document.querySelector('[data-share-signer="sg_pat"]').click());
+    await page.waitForTimeout(400);
+    const picked = await page.evaluate(() => ({
+      email: (document.getElementById('sh-email') || {}).value,
+      marked: (document.querySelector('[data-share-signer="sg_pat"]') || {}).textContent || '',
+    }));
+    check('picking a signer fills the recipient from their row',
+      picked.email === 'patrick@juno.co.ke' && /this link/i.test(picked.marked),
+      picked.email);
 
     /* it belongs to the Sign purpose alone */
     await page.evaluate(() => {
