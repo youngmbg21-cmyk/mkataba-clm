@@ -2074,6 +2074,27 @@ function defaultSharePurpose(c){
      wants a review round picks Negotiate consciously. The one state that
      still preselects Negotiate is an OPEN negotiation — a signing link over
      unresolved changes is the mistake the room exists to prevent. */
+  /* ---- AND SIGN IS NOT PRESELECTED WHERE IT CANNOT BE SENT ----
+     Naming the signers is what opens signing (11 Aug 2026), so a Sign link on
+     a contract with no route is refused — by this dialog, and by the server
+     behind it. Preselecting it there made the QUIET PATH THROUGH THE FORM A
+     BLOCKED ONE: open Share on a clean contract, take the default, fill in the
+     recipient, press Send, and only then be told no. Reported the day the rule
+     shipped, with the reasonable question "how am I supposed to send a
+     contract that is just for the counterparty to read?"
+
+     So the default follows what the contract can actually do. Sign stays FIRST
+     in the picker and stays one press away — it is still the commonest intent
+     — but choosing it is now the deliberate act the rule was asked for, and
+     the amber block beside it says what naming the signers is for. */
+  /* signingRouteOpen (js/approvals.js) is the authority and is asked first.
+     The fallback is its one line rather than an optimistic `true`, because a
+     default that quietly reverts to the refused answer wherever that module
+     has not loaded is a rule that works everywhere except where it is tested. */
+  const routed=(typeof window!=='undefined' && window.signingRouteOpen)
+    ? signingRouteOpen(c)
+    : (Array.isArray(c.signerPlan)?c.signerPlan:[]).some(s=>s && s.party==='counterparty');
+  if(!routed) return 'negotiate';
   if(!live.length) return 'sign';
   const settled=live.every(x=>x.status==='accepted'||(x.status==='rejected'&&x.withdrawn));
   return settled?'sign':'negotiate';
@@ -2164,8 +2185,17 @@ function sharePurposePickerHtml(c, sel){
          2026). The default SELECTION still follows the contract's reality —
          defaultSharePurpose keeps Negotiate preselected while changes are
          open, because a signing link over an unresolved argument is the
-         mistake the rest of the product exists to prevent. */}
-    <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('sign')}${btn('negotiate')}</div>
+         mistake the rest of the product exists to prevent.
+
+         VIEW ONLY IS THE THIRD, AND IT WAS BUILT AND NOT OFFERED. The purpose
+         existed, the server enforced it, the counterparty's page honoured it
+         and the PHONE offered all three — this dialog offered two. Reported by
+         the owner (11 Aug 2026): "I am trying to send the contract without
+         signers just for viewing", pressed Send on a Sign link and was refused
+         with no third door on the screen to take instead. That is the
+         duplication rule walked again: a control that exists on one shell and
+         not the other. It is last because it is the rarest of the three. */}
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('sign')}${btn('negotiate')}${btn('view')}</div>
   </div>`;
 }
 

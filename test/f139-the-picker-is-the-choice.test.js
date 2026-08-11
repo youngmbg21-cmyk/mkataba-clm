@@ -40,11 +40,20 @@ const assert = require('node:assert/strict');
 const { buildPortal } = require('./portalworld');
 
 /* Round one. Nothing has been proposed by anybody — the state
-   defaultSharePurpose answers 'sign' for, and the state the report came from. */
+   defaultSharePurpose answers 'sign' for, and the state the report came from.
+
+   THE SIGNING ROUTE IS PART OF THAT STATE NOW (11 Aug 2026). Since naming the
+   signers is what opens signing, the default only reaches 'sign' on a contract
+   where somebody has been named — otherwise it answers 'negotiate', because a
+   default the send would refuse is not a default. This file is about the
+   picker overriding a Sign default, so the route is what keeps that scenario
+   reachable rather than a change of subject. */
 const cleanContract = (over = {}) => ({
   id: 'MK-278', name: 'Mutual Non-Disclosure Agreement', counterparty: 'Juno Limited',
   template: 'NDA', status: 'Draft', folder: 'corp', fields: {}, metadata: {},
   audit: [], rounds: [], versions: [], signatures: [], comments: [],
+  signerPlan: [{ id: 'sg1', party: 'counterparty', order: 1, name: 'Juno Director',
+    email: 'director@juno.example', signed: false }],
   value: 0, valueType: 'none', format: 'rich',
   redlineText: '<h1>MUTUAL NON-DISCLOSURE AGREEMENT</h1>'
     + '<h2>1. Purpose</h2><p>The Parties wish to explore a potential business relationship.</p>'
