@@ -52,6 +52,7 @@ function mContractHeadHtml(c){
             ${mPill(c)}
             <span style="flex:1;min-width:0;font-size:14px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.id)} · ${mEsc(party)}</span>
           </div>
+          ${mDeskLineHtml(c)}
         </div>
         <button class="m-head-btn" data-m-act="overflow" aria-label="${i18t('mc_more_actions')}">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>
@@ -73,7 +74,93 @@ function mContractHeadHtml(c){
    negoRenumberBlocked answers that — 'locked' for an executed contract (and for
    a contract that numbers live), 'table' while there are changes on the table —
    and this reads its answer rather than guessing from the status. */
+/* ---- THE INTERNAL REVIEW, ON A PHONE ----
+   READ ONLY, AND IT SAYS SO. The phone shell files no changes of its own — that
+   is deliberate and documented — and a verdict is a change to what may leave
+   the building, so it belongs on the same side of that line. What a phone MUST
+   carry is the fact: a person who opens a contract on the train has to be able
+   to see that three of their redlines are sitting with their boss, and that two
+   more are being held back and will not go out. A screen that stayed silent
+   about a hold would have them believe they had sent something they had not.
+
+   Drawn from reviewState and reviewHeldIds — the same two functions the
+   workbench reads, so the phone and the desk cannot disagree. */
+function mReviewNoticeHtml(c){
+  if(!window.reviewState) return '';
+  /* Clearable here too, and by the same session-only rule — the phone has less
+     room than the desk, not more. reviewBannerCleared is the one flag, so a
+     notice cleared on the desk is cleared here for that sitting. */
+  if(window.reviewBannerCleared && reviewBannerCleared(c)) return '';
+  let st=null; try{ st=reviewState(c); }catch(_){ return ''; }
+  const held=(window.reviewHeldIds?reviewHeldIds(c).size:0);
+  if(st.phase!=='yours' && st.phase!=='waiting' && !held) return '';
+  /* NAMED ONLY WHERE THIS READER IS IN THAT REVIEW — the same rule the desk
+     applies. `st.rv` is whichever review leads; on the waiting side that can be
+     somebody else's, and the phone was printing their reviewer's name to
+     anyone. */
+  const seen = !window.reviewMaySee || reviewMaySee(st.rv);
+  const line = st.phase==='yours' ? i18t('rv_phone_yours',{who:st.rv.by})
+    : st.phase==='waiting' ? (seen ? i18t('rv_phone_waiting',{who:st.rv.reviewer.name})
+                                   : i18t('rv_waiting_title_anon'))
+    : '';
+  const bits=[];
+  if(line) bits.push(`<div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${mEsc(line)}</div>`);
+  if(held) bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18tn('rv_phone_held',held,{n:held}))}</div>`);
+  if(st.phase==='yours') bits.push(`<div class="m-note" style="margin-top:3px">${mEsc(i18t('rv_phone_desktop'))}</div>`);
+  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:8px;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
+    <span style="flex:1;min-width:0">${bits.join('')}</span>
+    <button type="button" data-m-rv-clear aria-label="${mEsc(i18t('rv_clear_banner'))}"
+      style="flex:none;font:inherit;font-size:19px;line-height:1;border:0;background:transparent;color:inherit;opacity:.65;padding:2px 4px">&times;</button>
+  </div>`;
+}
+
+/* ---- THE DESK, ON THE SCREEN WITH THE LEAST ROOM ON IT ----
+   One line and one face under the contract's name, and no way to manage
+   anything: rearranging a desk is a desk-sized job. What a phone must carry is
+   the FACT — that this negotiation belongs to somebody, and whether that
+   somebody is you — because a person who opens a contract on the train and
+   finds the verbs missing needs the sentence, not a mystery.
+
+   A lead and a contributor get the quiet line. A reader gets the amber one with
+   the one button they have, exactly as the workbench does; mDeskNoticeHtml is
+   the phone's own drawing of deskNoticeHtml's state, sharing the model rather
+   than the markup, because the two shells legitimately look different. */
+function mDeskLineHtml(c){
+  if(!window.deskIsOpen || !deskIsOpen(c)) return '';
+  const role=window.deskRole?deskRole(c):null;
+  const lead=deskLead(c)||{name:''};
+  if(!role) return '';
+  const word=role==='lead'?i18t('dk_you_lead')
+    :role==='contributor'?i18t('dk_you_contribute',{who:lead.name})
+    :i18t('dk_who_leads',{who:lead.name});
+  return `<div class="m-note" style="display:flex;align-items:center;gap:6px;margin-top:2px">
+    <span class="dk-face" style="width:18px;height:18px;font-size:8px">${mEsc(deskInitials(lead.name))}</span>
+    <span>${mEsc(word)}</span></div>`;
+}
+function mDeskNoticeHtml(c){
+  if(!window.deskIsOpen || !deskIsOpen(c)) return '';
+  if(!window.deskIsMember || deskIsMember(c)) return '';
+  const lead=deskLead(c)||{name:''};
+  const asked=window.deskJoinPendingFor?deskJoinPendingFor(c):null;
+  return `<div class="m-notice" style="display:flex;align-items:flex-start;gap:8px;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
+    <span style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:600;color:var(--st-amber-fg)">${mEsc(i18t('dk_reading',{who:lead.name}))}</div>
+      <div class="m-note" style="margin-top:3px">${mEsc(asked?i18t('dk_asked_already'):i18t('dk_phone_ask'))}</div>
+    </span>
+    ${asked?'':`<button type="button" data-dk-join="1" style="flex:none;font:inherit;font-size:13px;font-weight:700;
+      border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:7px;padding:5px 11px">${mEsc(i18t('dk_ask_to_join'))}</button>`}
+  </div>`;
+}
+
 function mDocNoticesHtml(c){
+  /* The review line rides ABOVE the numbering notices and outside the early
+     returns below: an executed contract has no review to run, but a contract
+     whose numbers are live still very much can, and the old structure would
+     have swallowed the notice on the first branch that matched. */
+  /* The desk's band shares the review's slot here too — same rule as the
+     workbench (rlOneNoticeHtml), and the phone has less room than the desk, not
+     more. Most restrictive first: a review hold is a refusal you can act on. */
+  const rv = mLocked(c) ? '' : (mReviewNoticeHtml(c) || mDeskNoticeHtml(c));
   if(mLocked(c)) return `
     <div class="m-notice" style="background:var(--st-gray-bg);border-color:var(--st-gray-line)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -81,19 +168,19 @@ function mDocNoticesHtml(c){
     </div>`;
 
   const blocked = (typeof negoRenumberBlocked==='function') ? negoRenumberBlocked(c) : 'locked';
-  if(blocked==='locked' && typeof negoLiveNumbered==='function' && negoLiveNumbered(c)) return `
+  if(blocked==='locked' && typeof negoLiveNumbered==='function' && negoLiveNumbered(c)) return rv + `
     <div class="m-notice" style="background:var(--st-steel-bg);border-color:var(--st-steel-line)">
       <span style="width:8px;height:8px;border-radius:50%;background:var(--st-steel-dot);flex:none"></span>
       <span style="font-size:14px;color:var(--st-steel-fg);line-height:1.45">${i18t('mc_numbers_live')}</span>
     </div>`;
-  if(blocked) return '';
+  if(blocked) return rv;
 
   let plan = null;
   try{ plan = (typeof negoRenumberPlan==='function') ? negoRenumberPlan(c) : null; }catch(_){ plan=null; }
   const moves = plan && Array.isArray(plan.moves) ? plan.moves.filter(mv=>mv && mv.from!==mv.to) : [];
-  if(!moves.length) return '';
+  if(!moves.length) return rv;
   const refs = (plan && Array.isArray(plan.refs) ? plan.refs.length : 0);
-  return `
+  return rv + `
     <div class="m-notice" style="display:block;background:var(--st-amber-bg);border-color:var(--st-amber-line)">
       <div style="font-size:16px;font-weight:600;color:var(--st-amber-fg)">${i18t('mc_numbering_gap')}</div>
       <div class="m-note" style="margin-top:3px">${moves.length} heading${moves.length===1?'':'s'} still read at their old number${refs?`, and ${refs} cross-reference${refs===1?'':'s'} point${refs===1?'s':''} at them`:''}.</div>
@@ -245,10 +332,15 @@ function mActionBarHtml(c){
     : viewer ? 'You have viewer access — this is read-only.'
     : c.status==='Declined' ? 'Closed — this contract is a record now.'
     : 'All key terms are set.';
+  /* A next action can carry a sentence and no button — the intent-to-sign
+     branch does, since the desktop dropped its "Review & sign below" primary
+     (10 Aug 2026). Honoured here for the same reason the phone reads
+     wsNextAction at all: one authority, or the two shells drift. */
+  const btn = na && !na.noButton;
   return `
     <div class="m-actionbar">
-      <div class="m-note" style="margin-bottom:${na?'8px':'0'}">${guide}</div>
-      ${na?`<button class="m-btn m-btn-primary" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`:''}
+      <div class="m-note" style="margin-bottom:${btn?'8px':'0'}">${guide}</div>
+      ${btn?`<button class="m-btn m-btn-primary" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`:''}
     </div>`;
 }
 

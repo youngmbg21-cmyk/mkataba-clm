@@ -81,24 +81,43 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await pause(250);
   await page.screenshot({ path: path.join(OUT, '01-workbench.png'), fullPage: false });
 
-  /* ---- 1. the header is a band ---- */
+  /* ---- 1. the head rides on the tab row ---- */
   const head = await page.evaluate(() => {
-    const s = getComputedStyle(document.querySelector('#view-redline .rl-head'));
     const el = document.querySelector('#view-redline .rl-head');
-    return { border: s.borderTopWidth, shadow: s.boxShadow, radius: s.borderTopLeftRadius,
-      bg: s.backgroundColor, isQuiet: el.classList.contains('room-quiet'),
-      hasShell: !!document.querySelector('#view-redline .rl-shell') };
+    const s = getComputedStyle(el);
+    const row = document.querySelector('#view-redline .rl-tabrow');
+    const acts = el.querySelector('.rl-actions');
+    const last = acts && acts.lastElementChild;
+    const rr = row.getBoundingClientRect(), hr = el.getBoundingClientRect();
+    return { border: s.borderTopWidth, shadow: s.boxShadow, bg: s.backgroundColor,
+      isQuiet: el.classList.contains('room-quiet'),
+      hasShell: !!document.querySelector('#view-redline .rl-shell'),
+      inRow: el.parentElement === row,
+      lastInRow: row.lastElementChild === el,
+      lastAct: last ? (last.matches('[data-redline-proxy]') ? 'publish' : last.className) : 'none',
+      /* wrapped or not, nothing may hang off the right edge of the row */
+      clipped: Math.round(hr.right) > Math.round(rr.right) + 1,
+      wrapped: Math.round(hr.top) >= Math.round(rr.top) + 10 };
   });
-  /* ONE FRAME, WHICH IS WHAT THIS ALWAYS MEANT. The strip was frameless
-     because a TITLE CARD sat above it and a second border read as a box inside
-     a box. That card is gone — the head is a plain title block now — so the
-     strip is the shared quiet bar the contract page also uses: one hairline,
-     one surface, no shadow. The failure being guarded against is a card inside
-     a card, and there is no card above it any more. */
-  check('1 header carries one hairline, not a card', head.border === '1px', head.border);
-  check('1 header has no card shadow', head.shadow === 'none', head.shadow);
-  check('1 header is the shared quiet bar, and the title card is gone',
-    head.isQuiet && !head.hasShell, `${head.bg} shell=${head.hasShell}`);
+  /* NO FRAME AT ALL, WHICH IS WHERE "one frame, not two" ENDED UP. The strip
+     was frameless because a TITLE CARD sat above it; the card went, so it
+     became the shared quiet bar. Now it is not a band either — the tab row's
+     right-hand half stood empty above it, so the controls moved onto that row
+     (Young, 10 Aug 2026) and the contract got the band of height back. A band's
+     clothes here would be exactly the second frame this check has always been
+     about. */
+  check('1 head draws no frame of its own', head.border === '0px' && !head.isQuiet,
+    `${head.border} quiet=${head.isQuiet}`);
+  check('1 head has no card shadow', head.shadow === 'none', head.shadow);
+  check('1 head sits at the right of the tab row, and the title card is gone',
+    head.inRow && head.lastInRow && !head.hasShell,
+    `inRow=${head.inRow} last=${head.lastInRow} shell=${head.hasShell}`);
+  check('1 Publish Round is the far-right control', head.lastAct === 'publish', head.lastAct);
+  /* Whether it wrapped here depends on this fixture's controls, and that is
+     the point — the row wraps on content, not on a guessed width. What must
+     never happen at any width is the controls running off the right edge. */
+  check('1 and nothing hangs off the right edge', !head.clipped,
+    `wrapped=${head.wrapped} clipped=${head.clipped}`);
 
   /* ---- 2. one sheet, not a sheet inside a panel ----
      Counted rather than asserted: the failure was two visible frames a few
@@ -137,8 +156,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      rewritten as "whatever the stylesheet says" — each one still has to be
      capable of failing. The sheet is paper on canvas: bounded, centred, its own
      shadow, its own background. */
-  check('2 the sheet carries no border — it is paper, edged by shadow',
-    sheet.paperBorder === '0px', sheet.paperBorder);
+  /* IT HAS A BORDER NOW, and that is the point of the 10 Aug 2026 design: the
+     sheet is warm paper with a warm hairline round it, not white paper edged
+     by shadow alone. A cream sheet with no edge on a slate page reads as a
+     stain rather than as a page. */
+  check('2 the sheet is warm paper with its own hairline',
+    sheet.paperBorder === '1px', sheet.paperBorder);
   check('2 and it does carry that shadow', sheet.paperShadow !== 'none' && !!sheet.paperShadow,
     sheet.paperShadow);
   check('2 the sheet reads as paper against the column behind it',
@@ -357,31 +380,131 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     cards.acc && cards.rej ? `${cards.acc.fg} vs ${cards.rej.fg}` : 'missing');
 
   /* ---- 14. the card is a handle, not a second copy of the wording ----
-     It used to carry the redline clamped to two lines, beside a document pane
-     already showing the same words in full. The copy is gone; what has to hold
-     is that the wording is still reachable and the card still points at it. */
+     It carries the redline clamped to two lines again — taken off once as a
+     duplicate of the document pane, restored on the 10 Aug 2026 design because
+     the card that was left read as a filing reference with nothing on it about
+     the thing being decided. What has to hold is that it stays a SUMMARY: two
+     lines, clamped, never a second full copy of the clause. */
   const delta = await page.evaluate(() => {
     const card = document.querySelector('#rl-changes .rl-card');
     const clause = document.querySelector('#rl-doc .rl-clause.is-changed .nego-body').textContent;
     const sq = s => s.replace(/\s+/g, ' ').trim();
     const phrase = sq(clause).split(' ').slice(3, 9).join(' ');
-    return { noDiff: !document.querySelector('#rl-changes .rl-card-diff'),
-      repeatsClause: phrase.length > 0 && sq(card.textContent).includes(phrase),
+    const diff = document.querySelector('#rl-changes .rl-card-diff');
+    const ds = diff && getComputedStyle(diff);
+    return { hasDiff: !!diff,
+      clampLines: ds && ds.webkitLineClamp,
+      /* MEASURED, not read off the stylesheet: a clamp that stopped applying
+         would let the card grow to the whole clause and this is the only
+         place that would notice. */
+      clampedShort: !!diff && diff.scrollHeight >= diff.clientHeight,
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
       caret: !!card.querySelector('[data-rl-caret]'),
       sample: sq(card.textContent).slice(0, 70) };
   });
-  check('14 the card carries no copy of the wording', delta.noDiff && !delta.repeatsClause, delta.sample);
+  check('14 the card carries the delta, clamped to two lines',
+    delta.hasDiff && delta.clampLines === '2' && delta.clampedShort,
+    `${delta.clampLines} lines — ${delta.sample}`);
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
   check('14 the card says it can fold', delta.caret);
+
+  /* ---- 14b. THE CARD IS A TOGGLE ----
+     Asked for in one sentence (Young, 10 Aug 2026): "the cards you only open
+     when you click on them and you click again and they disappear." A jsdom
+     test can read data-rl-open, but only a browser can prove the three things
+     that make it usable: that it starts shut, that the same press closes it,
+     and — the one that would hurt — that pressing a VERB inside an open card
+     does not fold the card away underneath the hand pressing it. */
+  const toggle = await page.evaluate(async () => {
+    const settle = () => new Promise(r => setTimeout(r, 260));
+    /* FOLLOWED BY ID, not by position. Every press below repaints the column,
+       and a verb that settles a change takes its card out of it — so "the first
+       card" would silently become a different change halfway through and the
+       test would be measuring something else. */
+    const ID = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
+    const card = () => document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(ID)}"]`);
+    const press = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const state = () => card().getAttribute('data-rl-open');
+    const bodyShown = () => {
+      const b = card().querySelector('.rl-card-body');
+      return !!b && getComputedStyle(b).display !== 'none';
+    };
+    const start = { open: state(), body: bodyShown() };
+    press(card().querySelector('.rl-card-head')); await settle();
+    const opened = { open: state(), body: bodyShown() };
+    press(card().querySelector('.rl-card-head')); await settle();
+    const shut = { open: state(), body: bodyShown() };
+    /* Open it again, then press INTO THE NOTE BOX — the realistic version of
+       the risk this guards: a reader reaching for the composer inside an open
+       card must not have the card fold up under the pointer. Deliberately not
+       Accept or Send: those settle the change and take the card out of the
+       column, so a fold could not be told from a decision. */
+    press(card().querySelector('.rl-card-head')); await settle();
+    const inner = card().querySelector('.rl-card-body textarea, .rl-card-body .rl-cnote-add');
+    const innerWhat = inner ? (inner.outerHTML || '').slice(0, 90) : '';
+    if (inner) press(inner);
+    await settle();
+    const afterInner = { open: state(), body: bodyShown(), pressed: !!inner, innerWhat };
+    /* And hovering must do nothing at all. */
+    press(card().querySelector('.rl-card-head')); await settle();   // back to shut
+    card().dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    card().dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    await settle();
+    const hovered = { open: state(), body: bodyShown() };
+    return { start, opened, shut, afterInner, hovered };
+  });
+  check('14b a card arrives shut', toggle.start.open === '0' && !toggle.start.body,
+    JSON.stringify(toggle.start));
+  check('14b one press opens it', toggle.opened.open === '1' && toggle.opened.body,
+    JSON.stringify(toggle.opened));
+  check('14b and the next press shuts it again',
+    toggle.shut.open === '0' && !toggle.shut.body, JSON.stringify(toggle.shut));
+  check('14b pressing a verb inside it does NOT fold it away',
+    toggle.afterInner.pressed && toggle.afterInner.open === '1' && toggle.afterInner.body,
+    JSON.stringify(toggle.afterInner));
+  check('14b and hovering opens nothing — the peek is gone',
+    toggle.hovered.open === '0' && !toggle.hovered.body, JSON.stringify(toggle.hovered));
+
+  /* ---- 14c. THE NOTICES NEVER SIT ON THE CONTRACT ----
+     "these pop ups should never appear on top of the contract. They can appear
+     on the bottom right of the screen and have the ability to clear them off."
+     Measured as geometry, which is the only way to prove it: a band above the
+     sheet and a card floating over the corner are the same markup at different
+     coordinates. */
+  const notices = await page.evaluate(() => {
+    const box = document.querySelector('.rl-notices');
+    const sheet = document.querySelector('.rl-paper');
+    const banner = document.getElementById('rl-banner');
+    const out = { inBanner: !!(banner && banner.querySelector('.rv-banner, .dk-notice')) };
+    if (!box) return { ...out, present: false };
+    const n = box.getBoundingClientRect(), s = sheet.getBoundingClientRect();
+    return { ...out, present: true,
+      fixed: getComputedStyle(box).position === 'fixed',
+      overlapsSheet: !(n.right < s.left || n.left > s.right || n.bottom < s.top || n.top > s.bottom),
+      bottomRight: n.right > window.innerWidth * 0.6 && n.bottom > window.innerHeight * 0.6,
+      clears: box.querySelectorAll('[data-rv-act="rv-clear"], [data-dk-clear], .rl-note-btn').length };
+  });
+  check('14c no notice is drawn as a band above the document', !notices.inBanner);
+  if (notices.present){
+    check('14c the notices float, bottom-right, clear of the sheet',
+      notices.fixed && notices.bottomRight && !notices.overlapsSheet, JSON.stringify(notices));
+    check('14c and every one of them can be cleared', notices.clears > 0, notices.clears);
+  }
 
   /* ---- 15. clause <-> card, both directions, with real scrolling ---- */
   const sync = await page.evaluate(async () => {
     const id = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
-    const clause = document.querySelector(`#rl-doc [data-nego-card-anchor="${CSS.escape(id)}"]`);
-    const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
-    const docScroll = document.getElementById('nego-scroll-work');
-    const colScroll = document.getElementById('nego-cards');
+    /* ---- RE-QUERIED AFTER EVERY PRESS, NEVER HELD ----
+       Pressing a card's head both jumps AND toggles it, and the toggle
+       repaints the column. A node captured before the press is detached
+       afterwards: its class never changes and its rect is zero, so every
+       assertion about it reads false for a reason that has nothing to do with
+       the behaviour under test. Held nodes are how this check reported "the
+       jump does not scroll" on a jump that worked. */
+    const clauseEl = () => document.querySelector(`#rl-doc [data-nego-card-anchor="${CSS.escape(id)}"]`);
+    const cardEl = () => document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
+    const docScroll = () => document.getElementById('nego-scroll-work');
+    const colScroll = () => document.getElementById('nego-cards');
     const seen = (el, box) => {
       const b = el.getBoundingClientRect(), v = box.getBoundingClientRect();
       return b.top < v.bottom && b.bottom > v.top;
@@ -398,26 +521,36 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        travelled 8px of 781 while the card column beside it, which carries no
        scroll-behavior, had gone the whole way. */
     const top = el => el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
-    top(docScroll); top(colScroll);
+    top(docScroll()); top(colScroll());
     await new Promise(r => setTimeout(r, 120));
-    const hidBefore = { clause: !seen(clause, docScroll), card: !seen(card, colScroll) };
+    const hidBefore = { clause: !seen(clauseEl(), docScroll()), card: !seen(cardEl(), colScroll()) };
 
-    card.click();
+    /* THE HEAD IS THE PRESS TARGET, not the article. A card is a toggle now
+       (see 14b) and only its head carries the listener, so clicking the
+       article does nothing at all — which is what this check was doing, and
+       silently reporting as "the jump does not scroll". */
+    cardEl().querySelector('.rl-card-head').click();
     await new Promise(r => setTimeout(r, 700));
-    const fromCard = { clauseLit: clause.classList.contains('is-linked'),
-      cardLit: card.classList.contains('is-linked'), clauseSeen: seen(clause, docScroll) };
+    const fromCard = { clauseLit: clauseEl().classList.contains('is-linked'),
+      cardLit: cardEl().classList.contains('is-linked'),
+      clauseSeen: seen(clauseEl(), docScroll()) };
 
-    top(docScroll); top(colScroll);
+    top(docScroll()); top(colScroll());
     await new Promise(r => setTimeout(r, 120));
-    clause.click();
+    clauseEl().click();
     await new Promise(r => setTimeout(r, 700));
-    const fromClause = { cardLit: card.classList.contains('is-linked'),
-      cardSeen: seen(card, colScroll) };
+    const fromClause = { cardLit: cardEl().classList.contains('is-linked'),
+      cardSeen: seen(cardEl(), colScroll()) };
     return { hidBefore, fromCard, fromClause,
       lit: document.querySelectorAll('#view-redline .is-linked').length };
   });
-  check('15 both ends were genuinely out of view first',
-    sync.hidBefore.clause && sync.hidBefore.card, JSON.stringify(sync.hidBefore));
+  /* ONLY THE CLAUSE HAS TO BE HIDDEN FIRST. It used to demand both ends, and
+     the card end stopped being demandable when cards began arriving shut: a
+     column of two-line cards does not fill its pane, so there is nowhere to
+     push a card out of view TO. What the check is for is the document's jump,
+     and that precondition still holds. */
+  check('15 the clause was genuinely out of view first',
+    sync.hidBefore.clause, JSON.stringify(sync.hidBefore));
   check('15 card -> contract lights both ends', sync.fromCard.clauseLit && sync.fromCard.cardLit);
   check('15 card -> contract scrolls the clause into view', sync.fromCard.clauseSeen);
   check('15 contract -> card lights and scrolls the card', sync.fromClause.cardLit && sync.fromClause.cardSeen);
@@ -450,18 +583,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { text: b.textContent.replace(/\s+/g, ' ').trim(), bg: s.backgroundColor,
       anim: s.animationName, inHeader: b.getBoundingClientRect().top < headBox.bottom + 1,
       inChangesCol: !!col && col.contains(b),
-      /* Above the cards, not buried under them: the complaint that moved it was
-         that the only send was below the fold. */
-      aboveTheCards: !!cards && b.getBoundingClientRect().bottom <= cards.getBoundingClientRect().top + 1,
+      /* IT IS NO LONGER SEEN AT ALL. The column's own copy of the batch send is
+         gone (10 Aug 2026) and Publish Round on the toolbar is the one act;
+         #nego-send survives clipped out of the layout because that proxy
+         clicks it. So what is checked is that it is still IN the column (the
+         proxy has something to press) and still out of the reader's way. */
+      clippedAway: !!b.closest('.rl-sendslot-hidden'),
       headerCopies: document.querySelectorAll('.rl-head [data-rl-blast]').length,
+      proxies: document.querySelectorAll('[data-redline-proxy="nego-send"]').length,
       unsent: negoUnsentAsks(CONTRACT, 'owner').length };
   });
-  check('13 the batch send sits with the drafts it publishes',
-    !!blast && blast.inChangesCol && blast.aboveTheCards,
-    blast && `in the column: ${blast.inChangesCol}, above the cards: ${blast.aboveTheCards}`);
-  check('13 and the toolbar proxy has not come back',
-    !!blast && !blast.inHeader && blast.headerCopies === 0,
-    blast && `${blast.headerCopies} in the header`);
+  check('13 the engine\'s send is mounted in the column, out of the way',
+    !!blast && blast.inChangesCol && blast.clippedAway,
+    blast && `in the column: ${blast.inChangesCol}, clipped: ${blast.clippedAway}`);
+  check('13 and it is the toolbar\'s Publish Round that presses it',
+    !!blast && blast.headerCopies === 0 && blast.proxies === 1,
+    blast && `${blast.headerCopies} copies, ${blast.proxies} proxies`);
   check('13 it counts the unsent drafts',
     !!blast && blast.text.indexOf(`(${blast.unsent})`) >= 0, blast && blast.text);
   check('13 it is animated', !!blast && blast.anim === 'rlBlast', blast && blast.anim);
@@ -491,12 +628,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       split: document.getElementById('rl-doc').getBoundingClientRect().width
         + document.getElementById('rl-side').getBoundingClientRect().width,
       chg: vis(document.getElementById('rl-changes-col')),
-      disc: vis(document.getElementById('rl-disc-col')) });
+      /* The Discussion face is gone (10 Aug 2026) — nothing can be flipped to
+         and nothing can hide the cards. Reported rather than measured, so a
+         column reappearing would fail here rather than pass quietly. */
+      disc: !!document.getElementById('rl-disc-col'),
+      modeTabs: document.querySelectorAll('[data-rl-mode]').length });
     const changes = w();
     rlSetSideMode('disc');
-    const disc = w();
-    rlSetSideMode('changes');
-    return { changes, disc };
+    const after = w();
+    return { changes, after };
   });
   const ratio = (a, b) => a / b;
   check('9 the document takes two thirds of the row',
@@ -505,13 +645,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('9 the one sidebar takes the other third',
     Math.abs(ratio(panes.changes.side, panes.changes.split) - 1 / 3) < 0.04,
     ratio(panes.changes.side, panes.changes.split).toFixed(3));
-  check('9 changes mode shows the cards and not the discussion',
-    panes.changes.chg && !panes.changes.disc, JSON.stringify(panes.changes));
-  check('9 discussion mode shows the threads and not the cards',
-    panes.disc.disc && !panes.disc.chg, JSON.stringify(panes.disc));
-  check('9 the split does not move when the face flips',
-    Math.abs(panes.disc.doc - panes.changes.doc) < 2,
-    `${panes.changes.doc} vs ${panes.disc.doc}`);
+  check('9 there is one face, and it is the cards',
+    panes.changes.chg && !panes.changes.disc && !panes.changes.modeTabs,
+    JSON.stringify(panes.changes));
+  check('9 nothing can flip it away — an old stored preference included',
+    panes.after.chg && !panes.after.disc, JSON.stringify(panes.after));
+  check('9 and the split does not move when it is asked to',
+    Math.abs(panes.after.doc - panes.changes.doc) < 2,
+    `${panes.changes.doc} vs ${panes.after.doc}`);
 
   /* ---- 9b. the handle really drags the split ---- */
   const drag = await page.evaluate(async () => {

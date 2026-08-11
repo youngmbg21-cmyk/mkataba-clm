@@ -164,8 +164,10 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
     b.win.rlSetFocus(true);
     const view = b.$('#view-redline');
     assert.ok(view.classList.contains('rl-focus'));
-    // the grid and both sidebar faces are still on the page, un-hidden by class
-    for (const id of ['rl-grid', 'rl-doc', 'rl-side', 'rl-changes-col', 'rl-disc-col'])
+    /* the grid and the one sidebar face are still on the page, un-hidden by
+       class. #rl-disc-col has left this list with the Discussion column
+       itself (10 Aug 2026). */
+    for (const id of ['rl-grid', 'rl-doc', 'rl-side', 'rl-changes-col'])
       assert.ok(b.$('#' + id), `#${id} must survive focus mode`);
     b.win.rlSetFocus(false);
   });
@@ -181,12 +183,15 @@ describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench
   test('the other header controls survive the removal', async () => {
     const b = bench(['MK-1']);
     b.win.openRedlineWorkbench('MK-1');
-    const labels = [...b.$('#view-redline').querySelectorAll('.rl-actions button')]
+    /* The whole strip, not just .rl-actions: the acts lead the row and the
+       view toggle sits at its quiet end, so "what does this page offer" is the
+       two together (10 Aug 2026). */
+    const labels = [...b.$('#view-redline').querySelectorAll('.rl-head button')]
       .map(x => x.textContent.trim()).join(' | ');
-    for (const want of ['Internal View', 'Counterparty View', 'Publish Round'])
+    for (const want of ['Internal', 'Counterparty', 'Publish Round'])
       assert.ok(labels.includes(want), `${want} must still be there — got ${labels}`);
     assert.ok(!labels.includes('Non-Risk'),
-      'the batch verbs moved to the Tracked Changes column head — no second copy here');
+      'the batch verbs are gone from the page entirely — not moved, removed');
   });
 });
 
@@ -229,6 +234,71 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
       'a bespoke listener bypasses the anchoring and fights the delegated toggle');
     assert.ok(!/getElementById\('ws-ai'\)/.test(s),
       'a listener left behind is how a removed feature comes back');
+  });
+
+  /* ---- THE SPACE ABOVE THE CONTRACT BELONGS TO THE CONTRACT ----
+     Reported off a screenshot with two full-width bands between the tab row
+     and the agreement: the status strip ("the contract as it stands — a clean
+     read…") and the template's provenance line ("Created from WH v1…").
+     "In documents tab, open this space up for the contract exclusively. Leave
+     the open negotiate to the right of the screen and it should be shaded like
+     the draft new agreement button" (Young, 10 Aug 2026).
+
+     Read from the source, like the rest of this block, because what changed is
+     exactly a line of it. */
+  test('the Document tab draws no strip above the contract', () => {
+    const s = code();
+    /* actionBarHtml returns nothing on this tab. The status is a chip beside
+       the contract's name on every tab, and the sentence described a reading
+       rule the page demonstrates by having no marks on it. */
+    assert.match(s, /if\(_wsTab==='docs'\) return '';/,
+      'the strip says nothing on the tab whose space it was taking');
+    /* And the empty element must not keep the row's height. Both the style AND
+       the attribute the collapse toggle restores from, or unfolding the header
+       puts the empty strip straight back. */
+    assert.match(s, /setAttribute\('data-ws-display',_has\?'flex':'none'\)/,
+      'the hide has to survive applyWsCollapse, which restores from that attribute');
+  });
+
+  test('the provenance line reads in the column, not over the paper', () => {
+    const s = code();
+    const scroll = s.slice(s.indexOf('id="doc-scroll"'), s.indexOf('id="doc-right"'));
+    assert.ok(!/templateProvenanceHtml\(c\)/.test(scroll),
+      'nothing between the tabs and the sheet but the sheet');
+    const rail = s.slice(s.indexOf('id="doc-right"'));
+    assert.match(rail, /templateProvenanceHtml\(c\)/,
+      'where this contract came from is a fact about the contract, and reads with the others');
+  });
+
+  test('the one door off the tab is at the right, and filled', () => {
+    const s = code();
+    /* On the tab row — the right-hand end of it, past the text-size stepper —
+       rather than on a band of its own. */
+    const row = s.slice(s.indexOf('class="room-tabrow"'), s.indexOf('id="ws-actionbar"'));
+    assert.match(row, /id="ws-to-nego"/, 'the door rides on the tab row');
+    assert.ok(row.indexOf('rlTypeStepHtml()') < row.indexOf('id="ws-to-nego"'),
+      'and at the far right of it');
+    /* Shaded like Draft new agreement — which is ui-btn-primary, the head's
+       own solid fill. Read against that button rather than against a colour,
+       so restyling the primary restyles both. */
+    assert.match(row, /id="ws-to-nego" class="ui-btn ui-btn-primary"/);
+    assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-primary/,
+      'the button it is drawn to match');
+    /* Only where there is a negotiation to open. */
+    assert.match(row, /c\.negotiation&&window\.negoChanges&&negoChanges\(c\)\.length/);
+  });
+
+  test('and it is wired with the row it sits on, exactly once', () => {
+    const s = code();
+    /* It used to be wired in wireActionBar, which runs again on every tab
+       change — and the tab row is not redrawn by one, so binding it there
+       would stack a handler per press. */
+    const bar = s.slice(s.indexOf('function wireActionBar'), s.indexOf('function focusKeyTerms'));
+    assert.ok(!/ws-to-nego/.test(bar), 'not on the strip\'s wiring, which re-runs per tab');
+    const tabs = s.slice(s.indexOf('function wireWsTabs'), s.indexOf('function ktReadValue'));
+    assert.match(tabs, /getElementById\('ws-to-nego'\)/, 'on the row\'s own wiring');
+    assert.match(tabs, /roomGoTab\(c,'redline'\)/,
+      'and through the room\'s router, so the landing rules apply however you arrived');
   });
 
   test('the room has five tabs, built once for both shells', () => {

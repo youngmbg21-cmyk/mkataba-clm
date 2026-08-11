@@ -235,9 +235,18 @@ function renderTeam(){
             <input id="tm-name" type="text" placeholder="${esc(i18t('set_ph_full_name'))}" style="${inputStyle}"/>
             <input id="tm-email" type="email" placeholder="${esc(i18t('set_ph_work_email'))}" style="${inputStyle}"/>
             <input id="tm-title" type="text" placeholder="${esc(i18t('set_ph_title'))}" style="${inputStyle}"/>
+            ${''/* THE SAFE ONE IS THE DEFAULT. This opened on Editor — edit &
+                   sign — so an admin who filled in a name and an email and did
+                   not think about the dropdown had granted the right to redline
+                   and to SIGN. The quietest path through a form must never be
+                   the widest grant; it is the same rule the access dropdown
+                   below already follows. Viewer reads and nothing more, so a
+                   skipped answer costs a follow-up rather than an authority
+                   nobody meant to hand over. Reported from the field (Young,
+                   09 Aug 2026). */}
             <select id="tm-role" style="${inputStyle}">
+              <option value="viewer" selected>${i18t('set_role_viewer')}</option>
               <option value="legal">${i18t('set_role_legal')}</option>
-              <option value="viewer">${i18t('set_role_viewer')}</option>
               <option value="admin">${i18t('set_role_admin')}</option>
             </select>
             <input id="tm-pass" type="password" placeholder="${esc(i18t('set_ph_temp_pass'))}" style="${inputStyle}"/>
@@ -281,6 +290,38 @@ function renderTeam(){
           <div id="approval-rules"></div>
           ${isAdmin()?`<button id="ar-add" style="margin-top:8px;${secondaryBtn}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>`
             :`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
+        </section>
+
+        ${''/* ---- THE OTHER GATE, AND IT IS DELIBERATELY NEXT TO THIS ONE ----
+               The rules above decide who has to say yes before a contract may
+               be SIGNED. This one decides who has to look before a redline may
+               be SENT. They are the same shape of question asked at two
+               different moments, and the moment is the whole difference: an
+               approval that arrives after the wording is with the counterparty
+               is an approval of something already done. Sitting them side by
+               side is how an admin sees that they are two settings and not one.
+
+               OFF BY DEFAULT, and the copy says so. A gate that appeared after
+               an update and stopped everybody's sends would be an outage. */}
+        <section style="${cardStyle}">
+          <h4 style="${h4Style}">${i18t('rv_set_title')}</h4>
+          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('rv_set_sub')}</p>
+          <div id="rv-gate-panel"></div>
+          ${isAdmin()?'':`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
+        </section>
+
+        ${''/* ---- THE THIRD GATE, AND IT ASKS AN EARLIER QUESTION THAN BOTH ----
+               The approval rules decide who says yes before a contract is
+               SIGNED. The review gate decides who looks before a redline is
+               SENT. This decides who may WRITE one at all — so it belongs with
+               them, and it belongs last, because it is the widest of the three
+               and the one an admin should read the other two before switching
+               on. OFF by default, and the copy says so. */}
+        <section style="${cardStyle}">
+          <h4 style="${h4Style}">${i18t('dk_set_title')}</h4>
+          <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('dk_set_sub')}</p>
+          <div id="dk-rule-panel"></div>
+          ${isAdmin()?'':`<p style="margin-top:6px;font-size:11px;color:var(--color-neutral-600)">${i18t('set_only_admin_approval')}</p>`}
         </section>
 
         <section style="${cardStyle}">
@@ -949,7 +990,22 @@ function renderTeam(){
   document.querySelectorAll('[data-remove-user]').forEach(b=>b.addEventListener('click',async()=>{
     const us=getUsers(); const u=us.find(x=>x.id===b.getAttribute('data-remove-user'));
     if(!u) return;
-    if(!await confirmDialog({title:`Remove ${u.name}?`, message:`${u.name} will lose access to this workspace. You can re-invite them later.`, confirmLabel:'Remove member', danger:true})) return;
+    /* ---- SOMEBODY LEAVING TAKES THEIR NEGOTIATIONS WITH THEM ----
+       A desk whose lead has no account is a negotiation with no door out:
+       nobody can publish a round, and the one person who could hand it over is
+       gone. Said BEFORE the removal, while there is still somebody to ask about
+       it — this is the leaver check the whole one-lead design makes necessary.
+       It warns rather than refuses: an admin removing somebody who left the
+       company on Friday must not be stuck, and the desks can be reassigned
+       afterwards by any admin. */
+    let leads='';
+    if(window.deskLedBy){
+      const led=deskLedBy(state.contracts||[],u.id);
+      if(led.length) leads=`\n\n${i18t('dk_leaver_title',{who:u.name,n:led.length})} — `
+        +led.slice(0,5).map(c=>c.name).join(', ')+(led.length>5?`, +${led.length-5}`:'')
+        +`\n${i18t('dk_leaver_sub')}`;
+    }
+    if(!await confirmDialog({title:`Remove ${u.name}?`, message:`${u.name} will lose access to this workspace. You can re-invite them later.${leads}`, confirmLabel:'Remove member', danger:true})) return;
     if(API_MODE()){
       try{ await api('users/'+u.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==u.id); }
       catch(e){ toast(e.message,'err'); return; }
@@ -958,6 +1014,8 @@ function renderTeam(){
   }));
   renderApprovalRules();
   document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
+  renderReviewGatePanel();
+  renderDeskRulePanel();
   document.getElementById('bk-export')?.addEventListener('click',()=>{
     downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
       JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
@@ -1223,6 +1281,90 @@ function openApprovalRuleEditor(idx){
   });
 }
 
+/* ---- the internal-review gate (Admin) ----
+   THREE CONTROLS AND NO SAVE BUTTON. Each one writes on change, because a gate
+   that is armed only if you remember to press Save is a gate that is off when
+   it matters. saveReviewGateCfg is the single writer (js/review.js); this panel
+   never touches state.settings itself. */
+function renderReviewGatePanel(){
+  const host=document.getElementById('rv-gate-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.reviewGateCfg?reviewGateCfg():{on:false,when:'deviation',value:0});
+  const dis=admin?'':' disabled';
+  const money=(window.jxCurrency?jxCurrency():'');
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
+      <input id="rv-gate-on" type="checkbox"${cfg.on?' checked':''}${dis} style="margin-top:2px"/>
+      <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_on')}</span>
+    </label>
+    <div id="rv-gate-more"${cfg.on?'':' hidden'}>
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_when')}</label>
+      <select id="rv-gate-when"${dis} style="${window.RV_FLD||''}margin-bottom:9px">
+        <option value="always"${cfg.when==='always'?' selected':''}>${i18t('rv_set_when_always')}</option>
+        <option value="deviation"${cfg.when==='deviation'?' selected':''}>${i18t('rv_set_when_deviation')}</option>
+        <option value="value"${cfg.when==='value'?' selected':''}>${i18t('rv_set_when_value')}</option>
+      </select>
+      <div id="rv-gate-valwrap"${cfg.when==='value'?'':' hidden'}>
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_value')}${money?` (${money})`:''}</label>
+        <input id="rv-gate-value" type="number" min="0" step="1000"${dis} value="${Number(cfg.value||0)}" style="${window.RV_FLD||''}"/>
+      </div>
+    </div>`;
+  if(!admin) return;
+  const write=()=>{
+    const on=!!document.getElementById('rv-gate-on').checked;
+    const when=document.getElementById('rv-gate-when')?.value||'deviation';
+    const value=Number(document.getElementById('rv-gate-value')?.value||0);
+    saveReviewGateCfg({on,when,value});
+    toast(i18t('rv_set_saved'));
+    renderReviewGatePanel();
+  };
+  document.getElementById('rv-gate-on')?.addEventListener('change',write);
+  document.getElementById('rv-gate-when')?.addEventListener('change',write);
+  document.getElementById('rv-gate-value')?.addEventListener('change',write);
+}
+
+/* ---- who may redline a negotiation (Admin) ----
+   ONE control, written on change, for the reason the review gate's panel gives
+   directly above: a rule that is armed only if you remember to press Save is a
+   rule that is off when it matters. saveDeskCfg is the single writer
+   (js/desk.js); this panel never touches state.settings itself.
+
+   The paragraph under the switch is not decoration. Switching this on changes
+   what colleagues can do on contracts they could work on yesterday, and an
+   admin should be able to read exactly what happens without leaving the row. */
+function renderDeskRulePanel(){
+  const host=document.getElementById('dk-rule-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.deskCfg?deskCfg():{on:false});
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'}">
+      <input id="dk-rule-on" type="checkbox"${cfg.on?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+      <span style="font-weight:600;color:var(--color-text)">${i18t('dk_set_on')}</span>
+    </label>
+    <p style="font-size:11px;color:var(--color-neutral-600);margin:8px 0 0;line-height:1.6">${i18t('dk_set_detail')}</p>
+    ${''/* ---- THE PRICE OF ONE DOOR OUT, AND IT IS SET HERE ----
+           Independent of the switch above on purpose: a deal going quiet
+           because the lead is on leave is worth knowing about whether or not
+           the rule is enforced, and the flag is ours alone — the counterparty
+           is never told we noticed. Too short and it becomes noise people learn
+           to scroll past; too long and it fires after they have already
+           chased. Five working days is the default. */}
+    <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:11px">
+      <label for="dk-stale" style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('dk_set_stale')}</label>
+      <input id="dk-stale" type="number" min="1" max="60" step="1"${admin?'':' disabled'}
+        value="${Number(cfg.staleDays||5)}" style="${window.RV_FLD||''}max-width:120px"/>
+    </div>`;
+  if(!admin) return;
+  const write=()=>{
+    saveDeskCfg({on:!!document.getElementById('dk-rule-on').checked,
+      staleDays:Number(document.getElementById('dk-stale')?.value||5)});
+    toast(i18t('dk_set_saved'));
+    renderDeskRulePanel();
+  };
+  document.getElementById('dk-rule-on')?.addEventListener('change',write);
+  document.getElementById('dk-stale')?.addEventListener('change',write);
+}
+
 /* ---- E8-T3 active sessions ---- */
 async function loadSessions(){
   const host=document.getElementById('sessions-list'); if(!host) return;
@@ -1244,4 +1386,4 @@ async function loadSessions(){
   }catch(e){ host.innerHTML=`<p style="font-size:11px;color:var(--color-neutral-500)">${i18t('set_could_not_load_sessions')}</p>`; }
 }
 
-Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel,loadSessions});
+Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions});

@@ -143,24 +143,105 @@ async function page(opts = {}){
     } };
 }
 
-describe('F89 (1) — the header is a band, not a card inside a card', () => {
-  test('the strip is one quiet line, wearing the contract page\'s own clothes', async () => {
+describe('F89 (1) — the head is not a band at all: it rides on the tab row', () => {
+  test('the controls sit at the right of the tab row, and no band is left behind', async () => {
     /* WHAT THIS TEST WAS FOR HAS NOT CHANGED — one frame, not two. What it
-       pinned did: the row used to be a bare, frameless strip because the TITLE
-       CARD sat above it and a second border read as a box inside a box. The
-       title card is gone; the head is a plain title block now. So this strip
-       can be what it always should have been — the same quiet bar the contract
-       page puts under its tabs, .room-quiet, one surface with one border. The
-       failure being guarded against is two frames, and there is one. */
+       pinned did, twice. It first guarded a bare, frameless strip (the TITLE
+       CARD sat above it and a second border read as a box in a box); then, the
+       card gone, it required .room-quiet — the same quiet bar the contract page
+       puts under its tabs.
+
+       Now there is NO band. The tab row's right-hand half stood empty above a
+       strip carrying every control, so the two share one line (Young, 10 Aug
+       2026) and the contract gets that whole band of height back. So the frame
+       count this test has always been about is now ZERO extra frames: the head
+       is a group inside the row, and .room-quiet — a band's clothes — would be
+       exactly the second frame the original bug was. */
     const p = await page();
     const r = p.rule('.redline-page .rl-head');
     assert.ok(r, '.rl-head must still carry a rule');
-    assert.ok(p.$('.redline-page .rl-head').classList.contains('room-quiet'),
-      'it is the shared quiet bar, not a second design of the same thing');
+    const head = p.$('.redline-page .rl-head');
+    assert.ok(!head.classList.contains('room-quiet'),
+      'it is not a band any more, so it must not wear a band\'s clothes');
     assert.ok(!/border:1px/.test(r) && !/box-shadow:var\(--shadow/.test(r),
-      'the frame comes from .room-quiet alone — a second one here is the old bug');
+      'and it draws no frame of its own — the row it sits in carries the rule');
     assert.ok(!p.$('.redline-page .rl-shell'),
       'and the title card it used to sit under is gone');
+
+    /* WHERE IT SITS, which is the whole point of the change. */
+    const row = p.$('.redline-page .rl-tabrow');
+    assert.equal(head.parentElement, row, 'the head is a child of the tab row');
+    const kids = [...row.children];
+    assert.ok(kids.indexOf(p.$('.redline-page .rl-tabrow-gap')) < kids.indexOf(head),
+      'a spacer pushes it right, so the markup still reads left to right');
+    assert.equal(kids[kids.length - 1], head, 'and it is the last thing on the row');
+    /* The primary act is the far-right control, where Open Negotiate sits on
+       the Document tab — a reader moving between the two tabs finds the button
+       in the same place. */
+    const acts = [...head.querySelector('.rl-actions').children];
+    assert.ok(acts.length, 'the actions group is drawn');
+    assert.ok(acts[acts.length - 1].matches('[data-redline-proxy]'),
+      'Publish Round is the last control in the row');
+
+    /* AND IT DROPS TO ITS OWN LINE ONLY WHEN IT REALLY DOES NOT FIT. This was
+       a width rule — one number, measured on one screen, and wrong on every
+       other one: a round with no reviewer button and no "N needs you" is 300px
+       narrower and sat on two lines for no reason. The row wraps on CONTENT
+       now, which is plain flex-wrap, and the class only records what the
+       browser decided so the two things CSS cannot express can follow it. */
+    assert.ok(!/@media\s*\(max-width:1700px\)/.test(p.css()),
+      'the guessed width rule is gone');
+    assert.ok(/\.rl-tabrow\{[^}]*flex-wrap:wrap/.test(p.css()),
+      'the row wraps when the content does not fit, at any width');
+    assert.ok(/rl-tabrow-wrap .rl-tabrow-gap\{[^}]*border-bottom/.test(p.css()),
+      'and on a wrapped row the rule moves onto the spacer, between the two lines');
+    assert.equal(typeof p.win.rlFitTabRow, 'function',
+      'something has to read the wrap back — CSS cannot');
+  });
+
+  test('the wrap is observed, never assumed — and it measures with its own class off', () => {
+    /* THE TRAP THIS GUARDS. Once the spacer is a full-width line the head is
+       wrapped BY DEFINITION, so an observer that measured with the class still
+       on would confirm its own effect and a row that had grown room again
+       could never come back to one line. */
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const fn = /function rlFitTabRow\(\)\{[\s\S]*?\n\}/.exec(src)?.[0] || '';
+    assert.ok(fn, 'rlFitTabRow is in the file');
+    const off = fn.indexOf("classList.remove('rl-tabrow-wrap')");
+    const read = fn.indexOf('getBoundingClientRect()');
+    const on = fn.indexOf("classList.add('rl-tabrow-wrap')");
+    assert.ok(off > -1 && read > off, 'it takes the class off before it measures');
+    assert.ok(on > read, 'and puts it back only after reading');
+  });
+
+  test('and it tightens before it wraps — a ThinkPad window keeps one line', async () => {
+    /* Reported off two laptops side by side (Young, 10 Aug 2026): on a
+       ThinkPad the controls dropped to a second line below the tabs, and that
+       line comes straight out of the contract's height. So the observer has a
+       middle step: compress the row (words down to glyphs and counts, the
+       tooltips already say the rest) and only wrap if even THAT does not fit. */
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const fn = /function rlFitTabRow\(\)\{[\s\S]*?\n\}/.exec(src)?.[0] || '';
+    const tightOff = fn.indexOf("classList.remove('rl-tabrow-tight')");
+    const tightOn = fn.indexOf("classList.add('rl-tabrow-tight')");
+    const wrapOn = fn.indexOf("classList.add('rl-tabrow-wrap')");
+    assert.ok(tightOn > -1, 'the tight step exists');
+    assert.ok(tightOff > -1 && tightOff < tightOn, 'measured with its own class off, like the wrap');
+    assert.ok(wrapOn > tightOn, 'and the wrap is the LAST resort, tried after tight');
+
+    /* The words are spans so standing them down is a paint decision — the
+       textContent every other test reads never changes. */
+    const p = await page({ myChange: true });
+    assert.ok(p.$('.rl-pb-btn .rl-word'), 'the purple buttons carry their words in a span');
+    const send = p.$('[data-redline-proxy]');
+    assert.ok(send.querySelector('.rl-send-detail'), 'Publish Round carries its counts in a span');
+    assert.match(send.textContent, /unsent/, 'and the counts are still in the text');
+    assert.ok(/rl-tabrow-tight .rl-pb-btn .rl-word\{display:none/.test(p.css()),
+      'tight folds the purple buttons to their glyphs');
+    assert.ok(/rl-tabrow-tight .rl-send-detail\{display:none/.test(p.css()),
+      'and Publish Round to its verb');
   });
 
   test('and the header is still the header', async () => {
@@ -168,14 +249,19 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
     const p = await page();
     const head = p.$('#view-redline .rl-head');
     assert.ok(head, 'the header section survives');
-    /* The round tag rides on the TAB ROW now, not on the verb strip: the tabs
-       became underline tabs and could not share a wrapping row without leaving
-       their rule stranded, so they took a line of their own and the round tag
-       — the one label that says which round you are looking at — went with
-       them. It is still one line above the same strip. */
+    /* The tab row carries the tabs and nothing else now. The round tag that
+       used to ride at the end of it has moved to where the contract's other
+       facts read — the subtitle under its name, drawn by roomHeadHtml, which
+       both this page and the contract page use — so it appears on all five
+       tabs from one line rather than on this one (10 Aug 2026). The contract
+       switcher that sat beside it has gone: it is navigation to a DIFFERENT
+       agreement, on the row that names this one. */
     const tabrow = p.$('#view-redline .rl-tabrow');
     assert.ok(tabrow, 'the tab row is its own line');
-    assert.ok(tabrow.querySelector('.rl-round'), 'the round tag stays, on the tab row');
+    assert.equal(tabrow.querySelector('.rl-round'), null, 'no round tag on the tab row');
+    assert.equal(p.$('#rl-contract-jump'), null, 'and no contract switcher');
+    assert.match(p.$('.room-sub').textContent, /Round \d/,
+      'the round reads with the contract\'s other facts instead');
     /* The page's TITLE moved up into the Doc page's shell — same name, same
        status chip, same back arrow on both tabs — and the head now carries
        the [Docs][Negotiate] switcher in its place (the tab was labelled
@@ -220,16 +306,26 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
     assert.ok(r, '.rl-paper must carry a rule');
     assert.match(r, /max-width:720px/, 'the Doc page bounds the contract\'s measure; so does this one');
     assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly as the window widens');
-    assert.match(r, /background:var\(--color-surface\)/, 'the sheet is paper, not the column behind it');
-    assert.match(r, /box-shadow:var\(--shadow-md\)/, 'and it carries the paper shadow itself');
+    /* WARM PAPER, ON ITS OWN TOKENS. Not --color-surface any more: the sheet
+       and the cards beside it were the same white, so the paper never read as
+       paper. The three values are named in index.html because the Document
+       tab, the counterparty's page and the phone paint the same sheet — and
+       because the dark theme has to answer differently. */
+    assert.match(r, /background:var\(--color-doc-warm\)/, 'the sheet is paper, not another card');
+    assert.match(r, /border:1px solid var\(--color-doc-warm-line\)/, 'with a warm hairline round it');
+    assert.match(r, /box-shadow:var\(--shadow-paper\)/, 'and it carries the paper shadow itself');
   });
 
-  test('the column is the canvas behind the sheet, not a second sheet', async () => {
+  test('the column is nothing at all — the sheet is the object', async () => {
     const p = await page();
     const r = p.rule('.redline-page .rl-doc', 'box-shadow');
     assert.ok(r, '.rl-doc must have a paint rule of its own, split from .rl-col');
-    assert.match(r, /background:var\(--color-bg\)/, 'the gutters read as page, not as card');
-    // the other two columns are still cards — this is not a global de-framing
+    /* It used to be the page-coloured canvas the sheet floated on, inside a
+       bordered column. Both went (10 Aug 2026): a cream sheet inside a white
+       card inside a bordered column is three frames for one document. */
+    assert.match(r, /background:none/, 'no canvas of its own');
+    assert.match(r, /border:0/, 'and no frame');
+    // the QUEUE is still a card — this is not a global de-framing
     assert.match(p.rule('.redline-page .rl-col') || '', /border:1px solid/);
   });
 
@@ -606,17 +702,31 @@ describe('F89 (8) — a marked phrase says whose hand it was', () => {
   });
 });
 
-describe('F89 (9) — one sidebar, and the discussion is a mode of it, not a third column', () => {
-  test('the sidebar swaps faces; the two panels never share the row', async () => {
+describe('F89 (9) — one sidebar, and one face left in it', () => {
+  /* THE SECOND FACE HAS GONE. The Discussion column was a second list of the
+     same changes, in a different order, behind a tab — so reading what your
+     team said about clause 6.1 meant leaving the card for clause 6.1. The
+     conversation reads on the change now (10 Aug 2026) and the switcher, the
+     tray it sat in and the pair of rules that hid one column to show the other
+     went with it. */
+  test('there is one column, and nothing can hide it', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page\[data-rl-side-mode="changes"\] #rl-disc-col\{display:none\}/);
-    assert.match(p.css(), /\.redline-page\[data-rl-side-mode="disc"\] #rl-changes-col\{display:none\}/);
-    assert.ok(p.$('#rl-side').contains(p.$('#rl-disc-col')), 'the discussion lives inside the one card');
+    assert.equal(p.$('#rl-disc-col'), null, 'no second panel');
+    assert.equal(p.$$('#rl-side [data-rl-mode]').length, 0, 'and nothing to switch with');
+    assert.doesNotMatch(p.css(), /#rl-changes-col\{display:none\}/,
+      'no rule may take the cards off the page');
     p.win.rlSetSideMode('disc');
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
-    p.win.rlSetSideMode('changes');
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'changes',
-      'the tabs are the way back — no reveal chip, no chevron');
+    assert.equal(p.win.rlSideMode(), 'changes', 'there is only one mode to be in');
+    assert.ok(p.$('#rl-changes-col'), 'and the cards are still drawn');
+  });
+
+  test('the conversation moved onto the card, it did not disappear', async () => {
+    const p = await page();
+    const card = p.$('#rl-changes [data-nego-card]');
+    assert.ok(card.querySelector('.rl-cnotes'), 'the notes block is on the change');
+    const id = card.getAttribute('data-nego-card');
+    assert.ok(card.querySelector(`[id="nego-ti-${id}"]`), 'with the engine\'s own composer');
+    assert.ok(card.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
   });
 });
 
@@ -702,23 +812,24 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 
 });
 
-describe('F89 (14) — the card is a handle on the change, not a copy of it', () => {
-  /* IT USED TO BE A COPY. The card carried the redline clamped to two lines,
-     which put the changed wording on screen twice — once in the document pane
-     being read, and again beside it in the lesser version: cut mid-sentence,
-     stripped of its clause, nothing to act on. The scoping engine below is
-     kept and still tested, because ops are rendered wherever a delta is shown;
-     what has gone is the second copy in the sidebar. */
-  test('the card carries no copy of the wording', async () => {
+describe('F89 (14) — the card says what the change is, in two lines', () => {
+  /* AND THAT IS A REVERSAL. The wording was taken OFF the card on the argument
+     that the document beside it already shows the change, so a clamped copy
+     was the same words twice. True, and the card that was left read as a
+     filing reference: an id, a clause number and four buttons, with nothing on
+     it about the thing being decided. It is back on the design's call (10 Aug
+     2026) — clamped to two lines, marks and all, a summary you skim down the
+     column rather than a place to read a clause. The full wording in its own
+     surroundings is one click away and always has been (rlLinkFocus). */
+  test('the card carries the delta, clamped', async () => {
     const p = await page();
-    assert.equal(p.$('#rl-changes .rl-card-diff'), null,
-      'the wording lives in the document, and in exactly one place');
-    const body = p.$('#rl-doc .rl-clause.is-changed .nego-body').textContent.replace(/\s+/g, ' ').trim();
-    const card = p.$('#rl-changes .rl-card').textContent.replace(/\s+/g, ' ').trim();
-    const phrase = body.split(' ').slice(2, 8).join(' ');
-    assert.ok(phrase.length, 'the fixture clause has a body to quote from');
-    assert.ok(!card.includes(phrase),
-      'a card repeating the clause is the copy this change removed');
+    const diff = p.$('#rl-changes .rl-card-diff');
+    assert.ok(diff, 'the card says what is being asked for');
+    assert.ok(diff.textContent.trim().length, 'and says it in words');
+    const r = p.rule('.redline-page .rl-card-diff');
+    assert.match(r, /-webkit-line-clamp:2/,
+      'two lines: a summary, not a second copy of the clause');
+    assert.match(r, /overflow:hidden/);
   });
 
   test('but the document still marks it, so nothing was lost with the copy', async () => {
@@ -728,9 +839,11 @@ describe('F89 (14) — the card is a handle on the change, not a copy of it', ()
   });
 
   test('and pressing the card still takes you to it', async () => {
+    /* THE HEAD IS THE PRESS TARGET. A card is a toggle now (10 Aug 2026) and
+       only its head carries the listener, so the body — the verbs, the note
+       box — cannot fold the card away underneath the hand using it. */
     const p = await page();
-    const card = p.$('#rl-changes .rl-card');
-    card.click();
+    p.$('#rl-changes .rl-card .rl-card-head').click();
     assert.ok(p.$('#rl-doc .rl-clause.is-linked'),
       'the card is a handle: the press is how you reach the wording it stands for');
   });
@@ -784,12 +897,25 @@ describe('F89 (15) — a clause and its card are one thing shown twice', () => {
   test('clicking the card lights and reaches its clause', async () => {
     const p = await page();
     const ch = p.win.negoChanges(p.c)[0];
-    const clause = p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"]`);
+    /* RE-QUERIED AFTER THE PRESS. The head both jumps and toggles, and the
+       toggle repaints the page — so a node held from before is detached
+       afterwards, its class never changes, and the assertion reads false for a
+       reason that has nothing to do with the pairing under test. The stub is
+       put on the prototype's own element each time it is looked up. */
+    const clauseNow = () => p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"]`);
     let scrolled = null;
-    clause.scrollIntoView = o => { scrolled = o; };
-    p.$(`#rl-changes [data-nego-card="${ch.id}"]`).click();
-    assert.ok(clause.classList.contains('is-linked'));
-    assert.ok(scrolled && scrolled.behavior === 'smooth', 'the clause is scrolled to, smoothly');
+    const stub = o => { scrolled = o; };
+    clauseNow().scrollIntoView = stub;
+    /* The repaint replaces the node, so the stub has to survive it: patch the
+       prototype for the length of this test rather than one element. */
+    const proto = p.win.Element.prototype;
+    const real = proto.scrollIntoView;
+    proto.scrollIntoView = stub;
+    try {
+      p.$(`#rl-changes [data-nego-card="${ch.id}"] .rl-card-head`).click();
+      assert.ok(clauseNow().classList.contains('is-linked'));
+      assert.ok(scrolled && scrolled.behavior === 'smooth', 'the clause is scrolled to, smoothly');
+    } finally { proto.scrollIntoView = real; }
   });
 
   test('the end that was clicked is not yanked out from under the pointer', async () => {
@@ -860,12 +986,10 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
       'the fact stays on the head, which is the part that never folds');
     const card = p.$('#rl-changes .rl-card');
     assert.equal(card.getAttribute('data-rl-open'), '0');
-    /* The body is in the DOM and hidden by the shut class rather than removed —
-       that is what lets a hover peek be a class flip instead of a repaint of
-       the whole column. Safe because only cards with nothing to press can be
-       in this state; see _rlCardChoice. */
+    /* The body is in the DOM and hidden by the shut class rather than removed,
+       so opening it is a class flip rather than a rebuild of the column. */
     assert.ok(card.classList.contains('rl-card-shut'), 'and the body folds away with it');
-    assert.ok(card.hasAttribute('data-rl-peek'), 'a sent card is one the reader may peek at');
+    assert.ok(card.querySelector('.rl-card-head'), 'with the head that opens it again');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 
@@ -874,7 +998,7 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
-    p.$('#rl-changes .rl-card').click();
+    p.$('#rl-changes .rl-card .rl-card-head').click();
     p.win.renderRedline();
     const sent = p.$('#rl-changes button.rl-sent');
     assert.ok(sent, 'the verb is where it was rather than gone');

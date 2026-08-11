@@ -890,10 +890,42 @@ function directoryLookup(nameOrEmail){
 }
 // A user's folder access: '*' = every stream (the default, and always for admins),
 // otherwise an array of folder ids they are restricted to.
+/* TWO PLACES CARRY THIS ANSWER, AND ONLY ONE OF THEM REACHES A RESTRICTED
+   MEMBER'S OWN BROWSER.
+
+   state.settings.folderAccess is the whole workspace's map. It is the admin's
+   editing surface — and the server DELIBERATELY strips it from the bootstrap of
+   anyone who is not an admin, because it discloses who is fenced off from what.
+   So on a restricted member's own screen that map is simply absent, every read
+   of it came back undefined, and this function answered "every stream". The
+   server went on filtering their data correctly, so nothing leaked; but the
+   screen drew the whole workspace's stream switcher and the member was told
+   they had access they did not have. Reported from the field (Young, 09 Aug
+   2026): "I assign one stream, I log in, I still see all of them."
+
+   The server already sends each person their OWN scope on the user record
+   (publicUser → folderScopeFor). That is the authority when the map is silent.
+
+   ORDER MATTERS. The map wins WHEN IT HAS AN ENTRY, because an admin editing
+   access sees the change take effect on their own screen before the save
+   round-trips. Absence falls through to the record. And a workspace with no
+   server at all has neither an entry nor a record, so it answers '*' exactly as
+   it always did. */
 function userFolderAccess(u){
   u=u||currentUser(); if(!u) return '*'; if(u.role==='admin') return '*';
-  const v=(((state.settings||{}).folderAccess)||{})[u.id];
-  return (v==null||v==='*'||(Array.isArray(v)&&v.length===0))?'*':v;
+  const map=((state.settings||{}).folderAccess)||{};
+  if(u.id in map){
+    /* The map's own quirk, kept: an admin who ticks nothing has not locked
+       somebody out of the whole workspace, they have said nothing. */
+    const v=map[u.id];
+    return (v==null||v==='*'||(Array.isArray(v)&&v.length===0))?'*':v;
+  }
+  /* The server's answer for this person, taken literally — an empty list there
+     is a deliberate deny-all (see folderScopeFor), and the server is already
+     filtering on exactly that. A screen that disagreed would offer streams the
+     data never arrives for. */
+  const own=u.folderAccess;
+  return (own==null||own==='*'||!Array.isArray(own))?'*':own;
 }
 function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
 
@@ -1892,6 +1924,32 @@ function contractReadiness(c){
         `Internal approval is outstanding: “${ap.next?ap.next.name:'approval'}” is waiting on ${ap.approverLabel||'an approver'}. This contract cannot go out for signature until it clears.`);
     }
   }catch(_){ /* a readiness list that cannot be built is not a reason to block */ }
+  /* AND THE OTHER GATE, THE EARLIER ONE. Approval above governs SIGNING; this
+     governs the redlines going out at all. It is a block rather than a warning
+     for the reason the refusal case above is: the workspace has said in its own
+     settings that wording of this kind does not leave without being looked at,
+     and a warning is something a sender ticks past. */
+  try{
+    /* The reader's own posture blocks first: it is about THEM rather than about
+       the contract, so it is true even where the gate is off, and it is the
+       more useful sentence when both apply. */
+    /* Not being the lead of this negotiation belongs on the readiness list for
+       the same reason the reviewer's posture does: the panel exists to say why
+       the send will refuse before somebody fills in a form that was never going
+       to go anywhere. */
+    if(window.deskSendBlock){
+      const dm=deskSendBlock(c);
+      if(dm) add('block','desk',dm);
+    }
+    if(window.reviewActorBlockMessage){
+      const am=reviewActorBlockMessage(c);
+      if(am) add('block','review',am);
+    }
+    if(window.reviewGateMessage){
+      const rm=reviewGateMessage(c);
+      if(rm) add('block','review',rm);
+    }
+  }catch(_){ /* same: an unreadable gate must not take the panel down with it */ }
   if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
   const sig=(c.signatories||c.signers||[]).filter(s=>s&&(s.name||s.email));
   if(window.SIGN_ROUTE_ON && !sig.length) add('warn','signatory','No named signatory is set on the signature block.');
@@ -2286,7 +2344,24 @@ function shareVersions(c, org){
 const SHARE_PURPOSE = p => (['sign','negotiate','view','history'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
-  const sharedBy=(who&&who.sharedBy)||currentUser().name;
+  /* ---- ONE NAMED CONTACT, AND IT IS THE LEAD ----
+     `sharedBy` is who the counterparty is told to reply to: the portal prints
+     it on the header, on the response screen, on the signing screen and in the
+     nudge email. So it is a CONTACT, not an audit field — and taking it from
+     whoever happened to press the button meant a contributor doing something
+     administrative surfaced as a change of contact on the other side.
+
+     Where a negotiation has a desk, the contact is its lead. That is stable
+     across a lead's tenure, it is the person who can actually answer, and when
+     it does change the counterparty is told in a sentence rather than left to
+     notice (see deskAnnouncement). Where there is no desk this is exactly what
+     it always was.
+
+     THE CONTRIBUTORS ARE STILL INTERNAL. One name travels because a deal has a
+     contact; the roster does not, and neither does the fact that a desk exists. */
+  const _deskLead=(window.deskIsOpen&&window.deskIsOpen(c)&&window.deskLead)?deskLead(c):null;
+  const sharedBy=(who&&who.sharedBy)||(_deskLead&&_deskLead.name)||currentUser().name;
+  const leadNotice=(window.deskAnnouncement)?deskAnnouncement(c):null;
   const shareUpload = u => u ? { fileName:u.fileName, size:u.size, mime:u.mime,
     fileHash:u.fileHash, dataUrl:u.dataUrl, extractedText:u.extractedText } : undefined;
   /* The negotiation history, trimmed to what the other side is entitled to
@@ -2326,6 +2401,26 @@ function buildSharePayload(c, docHash, who, opts){
      holdUnsent note at the quiet-refresh call site. */
   const heldBack = (opts && opts.holdUnsent && window.negoUnsentAsks)
     ? new Set(negoUnsentAsks(c, 'owner').map(x => x.id)) : new Set();
+  /* AND WHAT AN INTERNAL REVIEWER HELD BACK, on every route, unconditionally.
+
+     Not behind an opts flag like holdUnsent above: this payload is built by
+     three callers and only one of them passes options. reshareToLastRecipient —
+     the round-send that every negotiation after the first travels on — passes
+     none at all, so a flag-gated filter would have let a change the reviewer
+     refused reach the counterparty on the ordinary path while blocking it on
+     the rare one. The whole worth of a hold is that it is not conditional.
+
+     reviewHeldIds is itself limited to UNSENT asks (see its own note): wording
+     the other side already holds cannot be recalled, and a payload that quietly
+     dropped it would read to them as us editing what we had already said. */
+  if (window.reviewWithheldIds){
+    /* HELD **AND** STILL BEING LOOKED AT. Both stay behind, for the same
+       reason: wording sent while a colleague is midway through reading it makes
+       their verdict worthless — it arrives about something the counterparty has
+       already seen. The screens tell the two apart (ruby for a refusal, amber
+       for in flight); the payload does not need to. */
+    try{ for (const id of reviewWithheldIds(c)) heldBack.add(id); }catch(_){}
+  }
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
     .filter(x => x.status !== 'superseded' && !heldBack.has(x.id))
     .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,
@@ -2425,6 +2520,9 @@ function buildSharePayload(c, docHash, who, opts){
   const purpose = purposeChosen || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
+    /* One courtesy sentence, on the round after the contact changed and on that
+       round only. The entire visible consequence of everything the desk does. */
+    leadNotice:leadNotice||undefined,
     purpose:purpose, purposeChosen:purposeChosen,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
       /* THE MARKS ALREADY TAKEN travel with the copy. The owner signing first
@@ -2609,8 +2707,91 @@ function shareRememberRecipient(c, info){
   if (name && !String(c.counterpartyName || '').trim()) c.counterpartyName = name;
   return true;
 }
+/* ---- ONE DOOR-CHECK FOR THE INTERNAL REVIEW GATE ----
+
+   Written once and called from every send, for the reason the view-only guard
+   on the server is written once: the route this has to survive is the FOURTH
+   one, added later by someone who never read this comment. Today the doors are
+   the share dialog, the round-send onto a standing link, and the workbench's
+   own button — and all three land here.
+
+   IT DOES NOT BRANCH ON PURPOSE. A negotiation link carries our unsent asks; so
+   does a signing link, so does a read-only adviser link, and so does the
+   history. Every one of them puts wording in front of somebody outside this
+   company, which is the thing the gate exists to hold. Where nothing of ours is
+   unsent the gate is satisfied by definition, so a link on a settled contract
+   is untouched whatever it is for.
+
+   Returns TRUE when the send must not proceed, having already said why. */
+/* THE TWO REFUSALS A SEND CAN MEET, and they are different questions.
+
+   The GATE is about the CONTRACT: is there wording here that nobody has looked
+   at yet. It is a setting and is off unless an admin turns it on.
+
+   THE POSTURE is about the PERSON: you were asked to review a clause and have
+   not handed it back, so on this contract you are a reviewer and nothing you do
+   reaches the counterparty. That is not a setting — it follows from having
+   accepted the job, and it lifts the moment you hand back.
+
+   Both are asked here so that every door gets both, and neither door has to
+   remember which one it was supposed to ask. */
+function reviewActorSendBlock(c){
+  if(!window.reviewActorBlockMessage) return false;
+  let msg=null;
+  try{ msg=reviewActorBlockMessage(c); }catch(_){ return false; }
+  if(!msg) return false;
+  toast(msg,'err');
+  return true;
+}
+/* THE DESK'S OWN REFUSAL, asked by the same doors and first. Reaching the
+   counterparty is the lead's act; a contributor who is not the lead is refused
+   here whatever their review posture is, and the sentence they get says so
+   rather than talking about a review they do not have. Where the desk rule is
+   off this answers false and nothing changes — see deskMaySend. */
+function deskSendBlockToast(c){
+  if(!window.deskSendBlock) return false;
+  let msg=null;
+  try{ msg=deskSendBlock(c); }catch(_){ return false; }
+  if(!msg) return false;
+  toast(msg,'err');
+  return true;
+}
+function reviewSendBlock(c){
+  if(deskSendBlockToast(c)) return true;
+  if(reviewActorSendBlock(c)) return true;
+  if(!window.reviewGateMessage) return false;
+  let msg=null;
+  try{ msg=reviewGateMessage(c); }catch(_){ return false; }
+  if(!msg) return false;
+  toast(msg,'err');
+  return true;
+}
 async function reshareToLastRecipient(c, opts={}){
   if(!canEdit()) throw new Error('Viewers cannot share contracts');
+  /* THE ROUND-SEND IS A SEND. This is the route every negotiation after the
+     first travels on — it refreshes the copy behind the counterparty's standing
+     link — and it never opens the share dialog, so the check there would never
+     have run. Thrown rather than toasted: the callers await this and report
+     what comes back, and a silent false would have them announce a send that
+     did not happen. */
+  /* The reviewer's posture first, then the gate — same order, same sentences as
+     reviewSendBlock. Thrown rather than toasted for the reason below. */
+  /* The desk first, then the reviewer's posture, then the gate — the same order
+     and the same sentences reviewSendBlock uses. This route never opens the
+     share dialog, so a check that lived only there would never run on the path
+     every round after the first actually travels. */
+  if(window.deskSendBlock){
+    let msg=null; try{ msg=deskSendBlock(c); }catch(_){ msg=null; }
+    if(msg) throw new Error(msg);
+  }
+  if(window.reviewActorBlockMessage){
+    let msg=null; try{ msg=reviewActorBlockMessage(c); }catch(_){ msg=null; }
+    if(msg) throw new Error(msg);
+  }
+  if(window.reviewGateMessage){
+    let msg=null; try{ msg=reviewGateMessage(c); }catch(_){ msg=null; }
+    if(msg) throw new Error(msg);
+  }
   const shares=opts.shares||await contractShares(c);
   const last=counterpartyContact(c, shares);
   if(!last) throw new Error('This contract has not been shared with anyone yet');
@@ -2730,6 +2911,73 @@ async function issueSigningRouteLinks(c){
    opts.handOver — when set, the dialog says on step 1 that sending closes the
    sender's turn, because that is a consequence they should see before they
    press the button rather than discover afterwards. */
+/* Which open is current. A counter rather than a boolean: two presses in quick
+   succession both run to completion, and what matters is that only the LAST one
+   is allowed to paint. See the note in openShareModal. */
+let _shareOpenSeq = 0;
+/* THE FIRST PAINT IS THE REAL FIRST QUESTION.
+   It began as a skeleton — the heading over two grey boxes — which fixed the
+   dead press but bought a flicker instead, and the flicker is measurable: the
+   panel came up at 266px holding placeholders and jumped to 309px holding the
+   real cards ~30ms later on localhost, longer against a real server. A dialog
+   that arrives, resizes and changes its contents is three events where the
+   reader asked for one.
+
+   NOTHING IN THIS STEP NEEDS THE SERVER. "What are you sharing?" is answered
+   from the contract in hand: shareKindStepHtml takes only the record and the
+   current purpose, both of which exist the instant the button is pressed. The
+   awaits below are for the PAYLOAD and the recipient's details, which belong
+   to the screens after this one. So the same markup the settled dialog uses is
+   painted first, and the fill that follows replaces identical pixels — same
+   wrapper, same step, same height; the later steps are `hidden` and cost
+   nothing.
+
+   THE ONE THING THAT CAN LEGITIMATELY CHANGE is whether the history option is
+   offered: negoAllChanges reads the round history, and ensureFull is what
+   fetches it for a record opened from a list. On such a record the second card
+   corrects itself from "nothing proposed yet" to offered. That is a correction
+   the reader should see, and it is one card's state rather than the whole
+   dialog changing shape. */
+function shareOpeningHtml(c, purposeSel){
+  return `<div style="padding:22px 24px;">${shareKindStepHtml(c, purposeSel)}</div>`;
+}
+/* AND IT IS LIVE FROM THAT FIRST FRAME. The real wiring cannot be attached
+   until the full markup is in, so without this the cards and Next would be
+   drawn, look pressable and do nothing for as long as the fetches take —
+   which is the fault the skeleton was introduced to fix, moved rather than
+   removed. Presses are held and replayed once the dialog settles.
+
+   ABORTED BEFORE THE FILL, never left behind: the listener sits on #modal-root
+   and the fill only replaces the panel's contents, so a surviving copy would
+   handle every later press a second time alongside the real handlers. */
+function shareWireOpening(pending, c, get, set, signal){
+  const root = document.getElementById('modal-root');
+  if (!root || !root.addEventListener) return;
+  root.addEventListener('click', e => {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const card = t.closest('[data-share-kind]');
+    if (card && !card.disabled){
+      pending.kind = card.getAttribute('data-share-kind');
+      set(pending.kind);
+      const wrap = root.querySelector('#share-kind');
+      if (wrap) wrap.outerHTML = shareKindOptionsHtml(c, get());
+      return;
+    }
+    if (t.closest('#share-kind-next')){ pending.next = true; return; }
+    if (t.closest('#share-close-kind')) closeModal();
+  }, signal ? { signal } : false);
+}
+/* Into the frame that is already up, rather than a second dialog. openModal
+   replaces #modal-root wholesale, which re-runs .modal-in's 200ms entry
+   animation — a dialog that arrives, and then arrives again, is a worse answer
+   to "it comes with a delay" than the delay was. Falls back to opening one if
+   the frame is not there, so this is safe for any caller. */
+function shareFillModal(html){
+  const panel=document.querySelector('#modal-root .modal-in');
+  if(panel){ panel.innerHTML=html; return; }
+  openModal(html);
+}
 async function openShareModal(c, opts={}){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
@@ -2737,10 +2985,46 @@ async function openShareModal(c, opts={}){
     toast(i18t('co_upload_share_server'),'err');
     return;
   }
+  /* ---- THE DIALOG OPENS ON THE PRESS, NOT WHEN THE WORK IS DONE ----
+     Reported (Young, 10 Aug 2026): "it comes with a delay". Everything below
+     this line used to run first — ensureFull fetches the whole record,
+     canonicalDoc is hashed, a version is captured and persisted, and
+     contractShares asks the server who this went to last time. Four round
+     trips, and only then was any pixel drawn. On a real server that is a press
+     that appears to do nothing, which is the shape of a broken button.
+
+     THE FRAME COMES UP IMMEDIATELY and fills in. Nothing here is a decision the
+     reader can make early — the first question genuinely does depend on the
+     record — so what is shown is the dialog itself with its own title and a
+     quiet line, and the content replaces it when it is ready. The perceived
+     delay goes because the press is answered; the work takes exactly as long
+     as it did.
+
+     TWO GUARDS, because an await is a window in which anything can happen:
+     _shareOpenSeq catches a second press landing while the first is preparing
+     (the later one wins, and the earlier one must not paint over it), and the
+     missing scrim catches the reader closing the frame or pressing Escape
+     while it prepares — reopening a dialog somebody has just dismissed is
+     worse than the delay this fixes. */
+  const _openSeq = ++_shareOpenSeq;
+  const _superseded = () => _openSeq !== _shareOpenSeq || !document.getElementById('modal-scrim');
+  /* The purpose is settled before the first paint because the first screen
+     draws it — see the note on shareOpeningHtml. It stays a live value: the
+     placeholder's own handler moves it, and the payload below is built from
+     wherever it has got to by then. */
+  let purposeSel = SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c);
+  const _pending = { kind: null, next: false };
+  const _openAbort = (typeof AbortController === 'function') ? new AbortController() : null;
+  openModal(shareOpeningHtml(c, purposeSel));
+  shareWireOpening(_pending, c, () => purposeSel,
+    k => { purposeSel = k === 'history' ? 'history'
+      : (SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c)); },
+    _openAbort ? _openAbort.signal : null);
   // A share copies the contract out of the building, so it must be copied
   // whole: a record loaded for a list view carries neither its uploaded file's
   // bytes nor its round history, and both are things the payload publishes.
   try{ await ensureFull(c); }catch(_){}
+  if(_superseded()) return;
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
@@ -2778,13 +3062,16 @@ async function openShareModal(c, opts={}){
      opinion, otherwise what the contract's own state says. It is a live value —
      the picker on step 1 changes it, and everything downstream reads it from
      here rather than from the payload built a moment ago. */
-  let purposeSel=SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c);
+  /* purposeSel was settled before the first paint and may have MOVED since —
+     the reader can answer the first question while the fetches are in flight.
+     The payload is built from where it has got to, not from the default. */
   const payloadObj=buildSharePayload(c, docHash, null, { purpose:purposeSel });
   const server=API_MODE();
   // Who this went to last time. Fetched before the dialog is built so the
   // fields open already filled rather than filling themselves a moment later
   // under the user's cursor.
   const priorShares=await contractShares(c);
+  if(_superseded()) return;
   const pre=shareModalPrefill(priorShares, c);
   /* WO N4 — the one-question send. Offered only when nothing needs asking:
      the email channel works end to end (server mode), somebody to send to is
@@ -2805,7 +3092,10 @@ async function openShareModal(c, opts={}){
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;
   let ch=pre.channel||'email';
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
-  openModal(`
+  /* The opening handler stands down the instant the real one is about to go
+     in — both live long enough to overlap otherwise. */
+  if (_openAbort) _openAbort.abort();
+  shareFillModal(`
     <div style="padding:22px 24px;">
       ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
       ${shareKindStepHtml(c, purposeSel)}
@@ -2988,6 +3278,13 @@ async function openShareModal(c, opts={}){
   const askKind = !(opts.handOver || SHARE_PURPOSE(opts.purpose));
   document.getElementById('share-back-kind')?.classList.toggle('hidden', !askKind);
   step(askKind ? 'kind' : 1);
+  /* WHAT THE READER DID WHILE IT WAS LOADING, honoured now. The markup above
+     was already built from the purpose they chose, so setKind is here to bring
+     the payload and the second screen's copy into line with it rather than to
+     repaint the cards; the press of Next is replayed last so it lands on a
+     dialog that is fully wired. */
+  if (_pending.kind) setKind(_pending.kind);
+  if (_pending.next && askKind) step(1);
   const setCh=k=>{ ch=k;
     document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
       b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
@@ -3065,6 +3362,16 @@ async function openShareModal(c, opts={}){
         return false;
       }
     }
+    /* AND THE REDLINES' OWN GATE, WHICH BITES EARLIER AND ON THE OTHER PURPOSE.
+
+       The block above deliberately lets a negotiation link past an outstanding
+       approval, because sending a draft out for comment is what happens BEFORE
+       approval. That reasoning is right about approval and says nothing about
+       review: the whole point of an internal review is that it happens before
+       the wording travels, so the link it governs is exactly the one approval
+       waves through. Not acknowledgeable, for the same reason — a redline
+       cannot be recalled either. */
+    if(reviewSendBlock(c)) return false;
     // A share cannot be recalled, so an incomplete contract needs an explicit
     // acknowledgement rather than a toast that scrolls away.
     const ack=document.getElementById('sh-ack');
@@ -3775,7 +4082,24 @@ async function applyResponse(c, r, opts={}){
     const withdrew=applyNegoWithdrawals(c, r, who);
     if(!done.length && !filed.length && !withdrew.length){
       if(!opts.background) toast(i18t('co_no_decisions'),'err');
-      return false;
+      /* WORDING THAT CANNOT LAND MUST STILL STOP ARRIVING. Reported unhandled,
+         the poller re-fetches this same response every cycle and re-applies
+         nothing, for ever — which is precisely how a counterparty's redline came
+         to disappear with no error on either screen (f163). So a response whose
+         whole content was PROPOSED WORDING none of which could be placed is
+         reported handled: applyNegoProposals has just written their exact words
+         into the trail, and the owner is told once here.
+
+         Only wording. A refused DECISION — ruling on their own ask, or naming a
+         fingerprint this contract has never had — stays unhandled and unapplied,
+         because that is a refusal rather than a delivery, and f37 pins it. */
+      const proposed=Array.isArray(r.negoProposed)?r.negoProposed.length:0;
+      const decided=Array.isArray(r.negoDecisions)?r.negoDecisions.length:0;
+      const withdrawn=Array.isArray(r.negoWithdrawn)?r.negoWithdrawn.length:0;
+      if(!proposed || decided || withdrawn) return false;
+      c.lastAction=todayStr(); persist(c);
+      toast(`${r.name||'The counterparty'} sent wording that does not match any clause on ${c.id} — nothing was filed. Their exact words are in this contract's history.`,'err');
+      return true;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
     const said=[done.length?`${acc} of ${done.length} proposed changes accepted (${done.map(x=>'#'+x.id).join(', ')})`:'',
@@ -4045,11 +4369,31 @@ async function applyNegoProposals(c, r, who){
   const list=Array.isArray(r.negoProposed)?r.negoProposed.slice(0,200):[];
   if(!list.length || !window.negoFileChange) return [];
   const filed=[];
+  const unplaced=[];
   for(const p of list){
-    if(!p || !p.clauseId) continue;
+    if(!p || !p.clauseId){ if(p) unplaced.push(p); continue; }
     const type=p.changeType==='deleteClause'||p.changeType==='insertClause'?p.changeType:'modify';
-    const cl=window.negoClauseById?negoClauseById(c, String(p.clauseId)):null;
-    if(!cl && type!=='insertClause') continue;      // a clause we do not have
+    /* ---- FINDING THE CLAUSE THEY MEANT, AND SAYING SO WHEN WE CANNOT ----
+       The id is the answer and is tried first. But an id can be stale — a link
+       minted before clauseCarryIds existed carries ids our baseline has since
+       re-minted — and this used to `continue` on a miss, in silence: nothing
+       filed, applyResponse returned false, the poller never marked the response
+       handled, and it re-applied the same impossible answer every cycle for
+       ever. The counterparty's wording was simply gone, with no line anywhere
+       saying so. So the miss is recovered from where it honestly can be, by the
+       wording they were editing and then by the clause's own label, and
+       RECORDED when it cannot. */
+    let cl=window.negoClauseById?negoClauseById(c, String(p.clauseId)):null;
+    if(!cl && type!=='insertClause' && window.negoClauseList){
+      const norm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase();
+      const clauses=negoClauseList(c)||[];
+      const want=norm(p.oldText);
+      cl=(want && clauses.find(x=>norm(x.text)===want))
+        || (p.clauseLabel && window.negoClauseLabel
+            && clauses.find(x=>norm(negoClauseLabel(x))===norm(p.clauseLabel)))
+        || null;
+    }
+    if(!cl && type!=='insertClause'){ unplaced.push(p); continue; }
     const newText=String(p.newText==null?'':p.newText);
     /* Already here. A durable link can send the same round twice and the poller
        retries anything it could not mark applied, so the same ask must not
@@ -4061,12 +4405,17 @@ async function applyNegoProposals(c, r, who){
        proposal as a duplicate. Canonical comparison, so serialisation noise
        does not un-duplicate a genuine retry. */
     const canonB=h=>{ try{ return window.canonicalRich?canonicalRich(String(h||'')):String(h||''); }catch(_){ return String(h||''); } };
-    if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===p.clauseId
+    /* OUR id for the clause, never theirs. Where the ask arrived on a stale id
+       and was recovered by its wording above, filing it under the id they sent
+       would anchor the change on a clause this contract does not have — the
+       same invisible hole one step further along. */
+    const clauseId=String((cl&&cl.clauseId)||p.clauseId);
+    if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===clauseId
         && x.status==='pending' && String(x.newText||'')===newText
         && (!p.bodyHtml || canonB(x.bodyHtml)===canonB(p.bodyHtml)))) continue;
     let ch=null;
     try{
-      ch=await negoFileChange(c, { clauseId:String(p.clauseId), changeType:type,
+      ch=await negoFileChange(c, { clauseId, changeType:type,
         oldText: cl?cl.text:String(p.oldText||''), newText,
         bodyHtml: p.bodyHtml?(window.sanitizeRich?sanitizeRich(p.bodyHtml):null):null,
         headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
@@ -4079,12 +4428,21 @@ async function applyNegoProposals(c, r, who){
         { side:'counterparty', author:who, why:p.why||null, note:p.note||null, quiet:true,
           via:`their link${p.id?` as ${p.id}`:''}` });
     }catch(e){ ch=null; }
-    if(!ch) continue;
+    if(!ch){ unplaced.push(p); continue; }
     filed.push(ch.id);
     logAudit(c,'Negotiation',`#${ch.id} proposed by ${who} through their link — “${ch.summary}”`
       +` on ${ch.clauseLabel||ch.clauseId} · fingerprint ${ch.hash}`
       +` (the counterparty's wording, recorded in their name${p.id&&p.id!==ch.id?`; their copy called it ${p.id}`:''})`);
   }
+  /* WORDING THAT ARRIVED AND COULD NOT BE PLACED IS NEWS, not a no-op. It used
+     to vanish: nothing filed, nothing logged, and the poller re-fetching the
+     same response every cycle because it had never been reported handled. The
+     text they wrote is kept verbatim in the trail, so the round is recoverable
+     by hand rather than lost. */
+  if(unplaced.length)
+    logAudit(c,'Negotiation',`${unplaced.length} change${unplaced.length===1?'':'s'} proposed by ${who}`
+      +` through their link could NOT be matched to a clause on this contract and ${unplaced.length===1?'was':'were'} not filed`
+      +` — ${unplaced.map(p=>`${p.clauseLabel||p.clauseId||'an unnamed clause'}: “${String(p.newText||'').slice(0,300)}”`).join(' | ')}`);
   return filed;
 }
 
@@ -4160,7 +4518,18 @@ async function pollThreadMessages(){
        reply box they were typing into with it. */
     if(next.length!==before){
       const painted=window.negoRepaintOpenRoom ? negoRepaintOpenRoom(c) : false;
-      if(!painted && window.renderDiscussSection) renderDiscussSection(c);
+      /* The WORKBENCH reads these threads too (rlCardNotesHtml), and it was
+         not on this repaint list — so a counterparty note arrived in
+         c._messages and the cards on screen never changed (Young, 10 Aug
+         2026). Never while the reader is mid-sentence: a repaint rebuilds the
+         composer and takes a half-typed note with it; the next tick catches
+         up the moment they pause. */
+      if(!painted && document.getElementById('view-redline') && window.renderRedline){
+        const el=document.activeElement;
+        const typing=el && el.tagName==='TEXTAREA' && String(el.value||'').trim();
+        if(!typing) renderRedline();
+      }
+      else if(!painted && window.renderDiscussSection) renderDiscussSection(c);
     }
   }catch(e){ /* transient — the next tick retries */ }
 }
@@ -4179,4 +4548,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

@@ -103,7 +103,9 @@ describe('while there is something to negotiate, the link is the room', () => {
     assert.ok(v.$('#pt-nego .rl-embed'), 'the workbench embed is what they land on');
     assert.ok(v.$('#pt-nego [id="rl-doc"]'), 'the document, with the marks on it');
     assert.ok(v.$('#pt-nego [id="rl-changes-col"]'), 'the tracked changes beside it');
-    assert.ok(v.$('#pt-nego [id="rl-disc-col"]'), 'and the discussion beside those');
+    /* The Discussion column is gone from both seats (10 Aug 2026); the
+       conversation reads on the change's own card. */
+    assert.ok(v.$('#pt-nego .rl-cnotes'), 'and the conversation, on the change it is about');
   });
 
   test('it is the same component the owner reads', async () => {
@@ -191,14 +193,69 @@ describe('what is ours stays ours', () => {
     ]) assert.equal(v.$('#nego-room #' + id), null, `${id} must not be on their page — ${why}`);
   });
 
-  /* Nearly removed, and it would have been wrong. */
-  test('but they DO get the bulk verbs — those act on OUR asks', async () => {
+  /* NEARLY REMOVED, KEPT, AND THEN REMOVED ANYWAY — worth the three lines,
+     because the two arguments are about different things and both are right.
+
+     The argument for KEEPING was about their time: "I agree to all of it" is a
+     real answer, and withholding the button withholds nothing but the six
+     presses it takes to say the same thing. That held while the question was
+     whether their seat may answer in bulk at all.
+
+     The argument for REMOVING (10 Aug 2026, with the head restyled as a rule)
+     is about what the press MEANS: it disposes of every ask we filed, from a
+     header, with no clause in front of the reader while they press it. Their
+     time is worth less than their attention on wording they are agreeing to.
+     Nothing became unreachable — the per-card verbs are unchanged and the
+     count in the head says how many are left. */
+  test('and not the bulk verbs either — a decision is a press per clause', async () => {
     const { c } = await negotiated();
     const v = theirPage(c);
-    assert.ok(v.$('#pt-nego [id="nego-bulk-acc"]'),
-      '"I agree to all of it" is a real answer; withholding the button withholds '
-      + 'nothing but their time');
-    assert.ok(v.$('#pt-nego [id="nego-bulk-rej"]'));
+    assert.equal(v.$('#pt-nego [id="nego-bulk-acc"]'), null, 'no bulk Accept');
+    assert.equal(v.$('#pt-nego [id="nego-bulk-rej"]'), null, 'no bulk Reject');
+    assert.ok(v.$('#pt-nego [data-nego-accept]'),
+      'but their per-card Accept is untouched — the answer is still theirs to give');
+  });
+
+  /* ---- A CONTROL THAT SETS ITS STATE AND REPAINTS NOTHING IS A DEAD CONTROL ----
+     Reported by Young, 10 Aug 2026: on the counterparty's LINK the All / Mine /
+     Theirs tabs did nothing. They were drawn, they were pressable, and the
+     filter really was being set — what never happened was the repaint, so the
+     column kept every card and the press looked ignored.
+
+     THE CAUSE IS WORTH THE TEST. The tabs are wired by a DELEGATED listener on
+     the document (they get painted into the mount after the page has wired
+     itself, so an element-bound listener would be dropped by the first
+     repaint). A document-level listener has no mount in scope, so it worked out
+     which surface to repaint — and it only knew the owner's two: #view-redline,
+     else the contract tab. Their page is neither.
+
+     SO THE ASSERTION IS ABOUT THE COLUMN, NOT THE BUTTON. Checking that the
+     tab gained its `on` class, or that rlCardFilter() returned 'mine', would
+     have PASSED throughout the fault — both were already true. Only the number
+     of cards on screen tells the truth, which is why it is what is counted. */
+  test('the whose-asks tabs really narrow their column, not just their own state', async () => {
+    const { win, c } = await negotiated();
+    /* One ask from each side, so 'mine' and 'theirs' are different answers on
+       their seat — a filter cannot be shown to work on a column where every
+       setting gives the same column back. */
+    const cl = win.negoClauseList(c).find(x => x.num === '5');
+    await win.negoEditClause(c, cl.clauseId, '<p>Prices may be revised each quarter.</p>',
+      { side: 'counterparty', author: 'Erik Lindqvist' });
+    const v = theirPage(c);
+    const cards = () => v.$$('#pt-nego [data-nego-card]').length;
+    const tab = k => v.$(`#pt-nego [data-rl-cardfilter="${k}"]`);
+    const press = k => tab(k).dispatchEvent(
+      new v.win.Event('click', { bubbles: true, cancelable: true }));
+
+    assert.ok(tab('mine'), 'the tabs are drawn on their page at all');
+    const all = cards();
+    assert.equal(all, 3, 'three asks on the table to begin with');
+    press('mine');
+    assert.equal(cards(), 1, 'Mine leaves only the one they asked for');
+    press('theirs');
+    assert.equal(cards(), 2, 'Theirs leaves the two we asked for');
+    press('all');
+    assert.equal(cards(), all, 'and All puts the column back');
   });
 
   test('our filing structure is nowhere on their page', async () => {
@@ -330,11 +387,34 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     const others = v.$('#pt-other');
     assert.ok(others, 'the alternatives are on the page');
     assert.ok(others.className.includes('hidden'), 'but not competing with the signature');
-    for (const id of ['pt-accept', 'pt-redline', 'pt-changes', 'pt-decline'])
+    for (const id of ['pt-accept', 'pt-changes', 'pt-decline'])
       assert.ok(v.$('#' + id), `${id} must still exist and still work`);
-    for (const label of ['Change the wording yourself', 'Tell them what you want changed',
-                         'Decline this contract'])
+    for (const label of ['Tell them what you want changed', 'Decline this contract'])
       assert.ok(others.textContent.includes(label), `"${label}" names the act, not the mechanism`);
+    /* ---- AND NOT "CHANGE THE WORDING YOURSELF" ----
+       This list used to carry it, and this test used to require it. It stopped
+       being true when W6 removed #portal-redline from a link ISSUED for
+       signature (f113 pins that a signing link carries no redline surface), and
+       nothing removed the button that opens it — so it threw on a null element
+       and did nothing at all, on the one control a reader presses when they
+       want changes. Reported by Young, 09 Aug 2026.
+
+       A verb that cannot work must not be drawn, and the route that IS open has
+       to say what happens next — which is the owner's own process: they tell us,
+       we send a negotiation link, they redline on that. */
+    assert.equal(v.$('#pt-redline'), null,
+      'a button whose panel this link deliberately does not build must not be drawn');
+    assert.ok(!others.textContent.includes('Change the wording yourself'));
+    assert.match(others.textContent, /cannot be edited on it/,
+      'and the reader is told why, and what to do instead');
+  });
+
+  /* The redline route is not gone from the product — it is gone from the link
+     that closed the negotiation. A link nobody issued for signature keeps it. */
+  test('a link that was NOT issued for signature keeps the redline route', async () => {
+    const v = theirPage(contract());
+    assert.ok(v.$('#pt-redline'), 'the verb');
+    assert.ok(v.$('#portal-redline'), 'and the editor it opens');
   });
 
   /* The fallback, kept because links created before purposes existed are still

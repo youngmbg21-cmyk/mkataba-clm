@@ -394,7 +394,7 @@ function aiSeriesCatalogText(){
    an answer stays exactly what it is. */
 const AI_CHART_FENCE = /```+\s*hati-chart\s*\n([\s\S]*?)```+/gi;
 const _acKindRe = () => new RegExp('"kind"\\s*:\\s*"(' +
-  Object.keys(AI_CHART_RECIPES).concat(['quoted', 'custom']).join('|') + ')"');
+  Object.keys(AI_CHART_RECIPES).concat(['quoted', 'custom', 'breakdown']).join('|') + ')"');
 function aiExtractCharts(src, msgIdx){
   const blocks = [];
   const take = body => {
@@ -548,17 +548,43 @@ function aiChartWireActions(){
 }
 aiChartWireActions();
 
+/* ---- A SLICE COLOUR PER SLICE, HOWEVER MANY THERE ARE ----
+   A doughnut used to be handed a fixed list of six. Chart.js CYCLES a short
+   colour array, so a seven-slice chart drew slice 7 in slice 1's colour and a
+   twelve-slice chart drew two pairs — on a parts-of-a-whole chart, where the
+   colour IS the label, two slices the same colour is two readings of one
+   number. Ten come from the house tokens; past that they are walked round the
+   hue circle by the golden angle (137.5°), which is the standard way to get
+   an arbitrary number of colours nobody can confuse with their neighbours.
+   Deterministic, so the same portfolio draws the same chart twice. */
+function _acSliceColors(n){
+  const base = [AC_ACCENT, AC_GOOD, AC_WARN, AC_BAD, AC_MUTED,
+    _acVar('--st-amber-fg', '#b45309'), _acVar('--color-accent-700', '#0f766e'),
+    _acVar('--st-ruby-fg', '#be123c'), _acVar('--st-green-fg', '#166534'),
+    _acVar('--st-steel-fg', '#475569')];
+  const out = [];
+  for (let i = 0; i < Number(n || 0); i++)
+    out.push(i < base.length ? base[i]
+      : `hsl(${Math.round((i * 137.508) % 360)} 58% 47%)`);
+  return out;
+}
+
 /* One labelled series, house-styled, from ANY caller's own aggregates — the
    Reports cards and the health report draw through this so a chart is one
-   look everywhere. kind: 'bar' | 'hbar' | 'line' | 'doughnut'. */
+   look everywhere. kind: 'bar' | 'hbar' | 'line' | 'doughnut' | 'pie'.
+
+   PIE JOINED THE LIST (Young, 10 Aug 2026). _acConfig has always handled the
+   type — parts-of-a-whole is parts-of-a-whole, and a pie is a doughnut with no
+   hole — but nothing could ask for one, so a reader who said "a pie chart" got
+   whatever shape the recipe happened to be baked with. */
 function aiSimpleChart(kind, labels, values, opts = {}){
   if (!Array.isArray(labels) || !labels.length) return null;
   _acRefreshPalette();
   const money = opts.unit === 'money';
   const color = opts.color || AC_ACCENT;
-  if (kind === 'doughnut')
-    return _acConfig('doughnut', { labels, datasets: [{ label: opts.label || '', data: values,
-      backgroundColor: opts.colors || [AC_ACCENT, AC_GOOD, AC_WARN, AC_BAD, AC_MUTED, _acVar('--st-amber-fg', '#b45309')],
+  if (kind === 'doughnut' || kind === 'pie')
+    return _acConfig(kind, { labels, datasets: [{ label: opts.label || '', data: values,
+      backgroundColor: opts.colors || _acSliceColors(labels.length),
       borderWidth: 0 }] }, { unit: opts.unit });
   const cfg = _acConfig(kind === 'line' ? 'line' : 'bar',
     { labels, datasets: [{ label: opts.label || '', data: values,
@@ -573,6 +599,130 @@ function aiSimpleChart(kind, labels, values, opts = {}){
     };
   }
   return cfg;
+}
+
+/* ---------- `breakdown` — the reader picks the shape ----------
+   THE GAP IT CLOSES. Every other kind bakes its shape into its recipe:
+   statusBreakdown is a doughnut because parts-of-a-whole is what it means,
+   valueByCounterparty runs horizontally because names are words. That is right
+   for "how is my portfolio doing" and wrong the moment somebody asks for a
+   shape by name. Ask for "a pie chart of the value under management" and the
+   old catalogue had nothing to answer with: only two kinds were round and both
+   counted contracts, so the model picked the nearest recipe and drew a bar.
+
+   THREE INDEPENDENT CHOICES, and the model makes all three — WHAT TO SLICE BY,
+   WHAT TO MEASURE, WHAT SHAPE TO DRAW. It supplies no figures whatsoever; this
+   function computes every number from live state through the same helpers the
+   fixed recipes use, so the safety rule at the top of this file is untouched.
+   The model is choosing a QUESTION and a PICTURE, which is exactly the part a
+   reader's words should decide.
+
+   WHY THIS IS NOT JUST "ADD A PIE KIND". A pie of what? The shape is a
+   property of the drawing, the group is a property of the question, and the
+   measure is a property of the answer. Baking any two together is how the
+   catalogue got into this state — eight kinds, none of which could be asked
+   for a different shape. */
+const AC_BD_GROUPS = ['stream', 'counterparty', 'status', 'risk', 'month'];
+const AC_BD_SHAPES = ['pie', 'doughnut', 'bar', 'hbar', 'line'];
+const AC_BD_MEASURES = ['value', 'count'];
+/* Counterparties are unbounded — a workspace can hold hundreds, and a pie with
+   two hundred slices is a coloured circle. The tail is FOLDED rather than
+   dropped, because a top-ten that silently loses 40% of the portfolio is a
+   chart that lies by omission. */
+const AC_BD_TOPN = 10;
+const AC_BD_GROUP_LABEL = { stream: 'value stream', counterparty: 'counterparty',
+  status: 'status', risk: 'risk band', month: 'expiry month' };
+const AC_BD_MEASURE_LABEL = { value: 'Contract value', count: 'Contracts' };
+
+/* The rows, before anything is drawn. null = this stage cannot answer (no
+   FOLDERS, no contractRisk); [] and all-zero are handled by the caller. */
+function _acBreakdownRows(group, measure){
+  const val = measure === 'value'
+    ? (cs => cs.reduce((s, c) => s + _acVal(c), 0))
+    : (cs => cs.length);
+  if (group === 'stream'){
+    const F = (typeof window.FOLDERS === 'object' && FOLDERS) || {};
+    const ids = Object.keys(F);
+    if (!ids.length) return null;
+    const cs = _acContracts();
+    return ids.map(id => ({ label: (F[id] && F[id].name) || id,
+      value: val(cs.filter(c => c.folder === id)) }));
+  }
+  if (group === 'counterparty'){
+    const by = new Map();
+    for (const c of _acContracts()){
+      const k = (c.counterparty || '').trim() || 'Unnamed';
+      if (!by.has(k)) by.set(k, []);
+      by.get(k).push(c);
+    }
+    const rows = [...by.entries()].map(([k, cs]) => ({ label: k, value: val(cs) }))
+      .filter(r => r.value > 0).sort((a, b) => b.value - a.value);
+    if (rows.length <= AC_BD_TOPN) return rows;
+    const top = rows.slice(0, AC_BD_TOPN);
+    const rest = rows.slice(AC_BD_TOPN).reduce((s, r) => s + r.value, 0);
+    if (rest) top.push({ label: 'Other', value: rest });
+    return top;
+  }
+  if (group === 'status'){
+    /* _acAll, not _acContracts: Declined IS one of the statuses being broken
+       down, and the chart that leaves it out is answering a different
+       question. Every other group reads the LIVE portfolio, where a declined
+       contract is not part of the total. statusBreakdown draws the same line. */
+    const cs = _acAll();
+    return ['Draft', 'Under Review', 'Signed', 'Declined']
+      .map(s => ({ label: s, value: val(cs.filter(c => c.status === s)) }));
+  }
+  if (group === 'risk'){
+    if (typeof window.contractRisk !== 'function') return null;
+    const bands = { Low: [], Medium: [], High: [] };
+    for (const c of _acContracts()){
+      const r = Number(contractRisk(c)) || 0;
+      bands[r >= 70 ? 'High' : r >= 40 ? 'Medium' : 'Low'].push(c);
+    }
+    return Object.keys(bands).map(k => ({ label: k, value: val(bands[k]) }));
+  }
+  if (group === 'month'){
+    const months = _acMonthsAhead(12);
+    const cs = _acContracts();
+    return months.map(m => ({ label: _acMonthLabel(m),
+      value: val(cs.filter(c => String(_acExpiry(c) || '').slice(0, 7) === m)) }));
+  }
+  return null;
+}
+
+function aiBreakdownConfig(spec){
+  const group = String((spec && spec.group) || '');
+  const measure = String((spec && spec.measure) || 'value');
+  const shape = String((spec && spec.shape) || 'bar');
+  if (!AC_BD_GROUPS.includes(group))
+    return { error: `A breakdown needs "group" to be one of: ${AC_BD_GROUPS.join(', ')}.` };
+  if (!AC_BD_MEASURES.includes(measure))
+    return { error: `A breakdown needs "measure" to be "value" or "count".` };
+  if (!AC_BD_SHAPES.includes(shape))
+    return { error: `A breakdown needs "shape" to be one of: ${AC_BD_SHAPES.join(', ')}.` };
+  let rows = null;
+  try{ rows = _acBreakdownRows(group, measure); }catch(e){ rows = null; }
+  if (!rows || !rows.length) return { empty: true };
+  const round = shape === 'pie' || shape === 'doughnut';
+  /* A ZERO IS A SLICE OF NOTHING AND A BAR OF SOMETHING. On a pie an empty
+     category is invisible but still takes a legend row, which reads as a
+     category that exists and was measured at nothing you can see. On a
+     timeline an empty month is the point — expiryTimeline's own comment says
+     a chart that skips empty months tells the reader the deals are evenly
+     spread when they are not. So round shapes drop them and the rest keep
+     them. */
+  if (round) rows = rows.filter(r => Number(r.value) > 0);
+  if (!rows.length || !rows.some(r => Number(r.value) > 0)) return { empty: true };
+  const unit = measure === 'value' ? 'money' : '';
+  const cfg = aiSimpleChart(shape, rows.map(r => r.label), rows.map(r => Number(r.value) || 0), {
+    unit, label: AC_BD_MEASURE_LABEL[measure],
+    colors: round ? _acSliceColors(rows.length) : undefined,
+  });
+  if (!cfg) return { empty: true };
+  return { config: cfg,
+    /* A default title, because this kind's whole point is that the reader
+       asked for something specific and the card should say what it is. */
+    title: `${AC_BD_MEASURE_LABEL[measure]} by ${AC_BD_GROUP_LABEL[group]}` };
 }
 
 /* `quoted` — the ONE kind carrying the model's own numbers. Bounded hard: 2–12
@@ -591,6 +741,22 @@ function aiQuotedConfig(spec){
     data.push(v);
   }
   const money = /kes|value|amount|money/i.test(String(spec.unit || ''));
+  /* AND IT TAKES A SHAPE TOO (Young, 10 Aug 2026). "Draw those three figures
+     as a pie" is the same request as the one `breakdown` answers, about numbers
+     the model has already stated rather than about the record. Refusing the
+     shape here would leave one narrow case where naming a shape still did
+     nothing. Unknown or absent falls back to the bar it has always been. */
+  const shape = AC_BD_SHAPES.includes(String(spec.shape || '')) ? String(spec.shape) : 'bar';
+  if (shape !== 'bar'){
+    const cfg = aiSimpleChart(shape, labels, data, { unit: money ? 'money' : '',
+      label: String(spec.label || 'Stated in this answer'),
+      /* Amber on every slice: the card says these are the model's own figures,
+         and the colour is the second place that difference is stated. A round
+         shape needs one colour per slice, so the family is kept and the wheel
+         supplies the rest. */
+      color: AC_WARN });
+    if (cfg) return cfg;
+  }
   return _acConfig('bar', { labels, datasets: [{ label: String(spec.label || 'Stated in this answer'),
     data, backgroundColor: AC_WARN, borderRadius: 4, _unit: money ? 'money' : '' }] },
     { legend: false, unit: money ? 'money' : '' });
@@ -643,6 +809,16 @@ function aiChartHtml(block){
     if (r.empty) return aiChartNote('There is no data in your portfolio for that chart yet.');
     block.config = r.config;
     return aiChartCard(title, `<div class="ai-chart-canvas"><canvas></canvas></div>`, block.key);
+  }
+  /* The same three outcomes as `custom`, and the same no-data SENTENCE as every
+     fixed recipe — a reader who asked for a pie of an empty portfolio gets the
+     friendly card, never a blank circle. */
+  if (kind === 'breakdown'){
+    const r = aiBreakdownConfig(spec);
+    if (r.error) return aiChartNote(r.error);
+    if (r.empty) return aiChartNote('There is no data in your portfolio for that chart yet.');
+    block.config = r.config;
+    return aiChartCard(title || r.title, `<div class="ai-chart-canvas"><canvas></canvas></div>`, block.key);
   }
   const recipe = AI_CHART_RECIPES[kind];
   if (!recipe) return aiChartNote(`“${kind}” is not a chart HaTi knows how to draw.`);
@@ -704,6 +880,22 @@ Kinds:
               "items":[{"label":"…","value":123}] }
             2–12 items, plain numbers, same currency and period as your text.
 
+  breakdown — the kind to use whenever the reader names a SHAPE, or asks for a
+            split the eight kinds above do not already cover. You choose three
+            things and HaTi computes every figure from the live record:
+            { "kind":"breakdown", "title":"…",
+              "group":"stream|counterparty|status|risk|month",
+              "measure":"value|count",
+              "shape":"pie|doughnut|bar|hbar|line" }
+            group  — what to slice by. "month" is expiries over the next 12
+                     months. "counterparty" keeps the top 10 and folds the rest
+                     into "Other".
+            measure— "value" is money (KES); "count" is a number of contracts.
+            shape  — how to draw it. Use exactly the shape the reader asked for.
+            Supply NO numbers, labels or arrays. Use "hbar" for a bar chart of
+            counterparties or streams (their names are words, and vertical bars
+            turn them into rotated stubs).
+
   custom  — { "kind":"custom", "title":"…", "stacked":false,
               "datasets":[{"series":"<key>","display":"line|bar|area","label":"…"}] }
             1–6 datasets. Every dataset must share the same unit; never mix KES
@@ -712,6 +904,24 @@ Kinds:
 ${aiSeriesCatalogText()}
 
 Rules:
+  · WHEN THE READER NAMES A SHAPE, THEY GET THAT SHAPE. "a pie chart", "as a
+    line", "show it as a donut", "in bars" — you MUST answer with "breakdown"
+    carrying that exact shape. Do not substitute a different shape because a
+    fixed kind looks close enough; do not answer in prose with no chart because
+    no fixed kind is round. The eight kinds above have their shapes baked in
+    and cannot honour a request like this — breakdown exists for it.
+      "a pie chart of the value of my money under management"
+        → { "kind":"breakdown", "group":"counterparty", "measure":"value",
+            "shape":"pie" }
+      "show my contracts by stream as a doughnut"
+        → { "kind":"breakdown", "group":"stream", "measure":"count",
+            "shape":"doughnut" }
+      "plot expiries over the next year as a line"
+        → { "kind":"breakdown", "group":"month", "measure":"count",
+            "shape":"line" }
+  · If the reader names a shape but not what to slice by, choose the group that
+    best fits their words — money under management, exposure or "who we do
+    business with" is "counterparty"; "by department/team/area" is "stream".
   · A narrow question gets at most ONE chart — the single most useful one.
   · A BROAD portfolio question ("how is my portfolio doing", "give me an
     overview/report") may use up to FOUR charts, each a different kind, each
@@ -741,6 +951,15 @@ Examples:
   "How long does a contract take to get signed?" →
 \`\`\`hati-chart
 { "kind": "cycleTime", "title": "Average days per stage" }
+\`\`\`
+  "Give me a pie chart of the value of my money under management." →
+\`\`\`hati-chart
+{ "kind": "breakdown", "group": "counterparty", "measure": "value",
+  "shape": "pie", "title": "Value under management, by counterparty" }
+\`\`\`
+  "Split the portfolio by value stream — as a doughnut." →
+\`\`\`hati-chart
+{ "kind": "breakdown", "group": "stream", "measure": "value", "shape": "doughnut" }
 \`\`\`
   "Chart value expiring against renewal decisions due." →
 \`\`\`hati-chart
@@ -787,5 +1006,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   aiChartLib, aiChartDestroy, aiChartDestroyAll, aiChartSweep,
   aiExtractCharts, aiPlaceCharts, aiChartHtml, aiHydrateCharts, aiChartCard, aiChartNote,
   aiChartActionsHtml, aiChartExportCanvas, aiChartCsv, aiChartWireActions, aiSimpleChart, _acRefreshPalette,
-  aiQuotedConfig, aiCustomConfig, aiAllSeries, aiDynamicSeries, aiSeriesCatalogText, aiSeriesSlug,
+  aiQuotedConfig, aiCustomConfig, aiBreakdownConfig, _acBreakdownRows, _acSliceColors,
+  AC_BD_GROUPS, AC_BD_SHAPES, AC_BD_MEASURES,
+  aiAllSeries, aiDynamicSeries, aiSeriesCatalogText, aiSeriesSlug,
   AI_CHART_RULES, AI_TONE_RULES });

@@ -76,7 +76,13 @@ describe('F137a — the label is not painted', () => {
     const p = await page();
     const body = p.column().querySelector('.rl-card-body');
     assert.ok(body, 'the card has a body');
-    assert.ok(!/\u{1F512}/u.test(body.textContent),
+    /* The note composer's visibility switch legitimately wears a padlock on
+       its Internal face (10 Aug 2026 — both seats choose who reads a note).
+       That is a control, not the provenance label this test buried, so it is
+       taken out of the reading before the assertion. */
+    const sans = body.cloneNode(true);
+    sans.querySelectorAll('.nego-visswitch').forEach(n => n.remove());
+    assert.ok(!/\u{1F512}/u.test(sans.textContent),
       'the padlock promised secrecy about a label that is no longer shown');
   });
 });

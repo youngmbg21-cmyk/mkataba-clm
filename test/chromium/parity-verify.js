@@ -20,7 +20,7 @@
      1  the contract pane, both sides, within tolerance
      2  the change index, both sides
      3  the page does not scroll — the columns scroll inside themselves
-     4  both sidebar tabs are fully inside the panel and clickable
+     4  the sidebar has one face on both seats, and the notes are on the cards
      5  no label is truncated (badge, tab, card identifier)
      6  exactly one document surface on the counterparty's page
      7  the owner's distribution and round controls are absent from their seat
@@ -99,6 +99,8 @@ const MEASURE = () => {
     pageH: document.documentElement.scrollHeight,
     winH: window.innerHeight,
     tabs,
+    /* The conversation moved onto the cards when the Discussion face went. */
+    cardNotes: document.querySelectorAll('#rl-changes .rl-cnotes').length,
     clippedLabels: clipped('.rl-side-tab, .nego-origin, .nego-chip, .nego-card-id'),
     /* Counted across BOTH renderings of a contract: .doc-surface is the plain
        document (the old #pt-doc, and the viewer's sheet) and .nego-doc is the
@@ -108,7 +110,7 @@ const MEASURE = () => {
     docSurfaces: document.querySelectorAll('.doc-surface, .nego-doc').length,
     ids: ['pt-doc', 'portal-redline', 'portal-plain', 'pt-name', 'pt-sign', 'pt-accept',
       'nego-copilot', 'nego-insert-lib', 'nego-save-draft', 'nego-bulk-acc',
-      'nego-exit', 'nego-publish-round', 'nego-close-round']
+      'nego-send', 'nego-exit', 'nego-publish-round', 'nego-close-round']
       .filter(id => !!document.getElementById(id)),
     bulkLabels: Array.from(document.querySelectorAll('.nego-bulk button'))
       .map(el => (el.textContent || '').trim()),
@@ -221,11 +223,14 @@ const CARD_EDIT = async () => {
   check('3 counterparty page does not scroll either',
     cp.pageH <= cp.winH + 2, `${cp.pageH}px in ${cp.winH}px`);
 
-  /* ---- 4. both tabs reachable ---- */
-  check('4 counterparty has both sidebar tabs', cp.tabs.length === 2, cp.tabs.length);
-  check('4 neither tab is clipped at the panel edge',
-    cp.tabs.length === 2 && cp.tabs.every(t => t.inside && t.visible),
-    JSON.stringify(cp.tabs.map(t => ({ t: t.text, in: t.inside, w: t.w }))));
+  /* ---- 4. one sidebar face, on both seats ----
+     This checked that BOTH sidebar tabs reached the counterparty's panel
+     un-clipped. The Discussion face is gone from both seats (10 Aug 2026) and
+     the conversation reads on the change's own card, so parity is now the
+     absence of the switcher plus the presence of the notes. */
+  check('4 no sidebar switcher on their page', cp.tabs.length === 0, cp.tabs.length);
+  check('4 and the conversation is on the change instead',
+    cp.cardNotes > 0, `${cp.cardNotes} cards carry their notes`);
 
   /* ---- 5. nothing truncated ---- */
   check('5 no label truncated on the counterparty\'s page',
@@ -258,10 +263,20 @@ const CARD_EDIT = async () => {
      signals. So the assertion is about what the button says it does. */
   check('8 no risk-derived bulk verb on their side',
     !/Non-Risk/i.test(cp.bulkLabels.join(' ')), cp.bulkLabels.join(' | ') || 'none');
-  check('8 but they DO keep a plain Accept all',
-    /Accept all/i.test(cp.bulkLabels.join(' ')), cp.bulkLabels.join(' | ') || 'MISSING');
-  check('8 and the owner still gets the risk-sorted one',
-    /Non-Risk/i.test(owner.bulkLabels.join(' ')), owner.bulkLabels.join(' | ') || 'MISSING');
+  /* AND NOW NEITHER SIDE HAS ONE. The verbs left our column first (10 Aug
+     2026) — deciding the other side's wording is a press per clause, and
+     Publish Round is our batch act. Their seat kept the plain pair a while
+     longer as their only way to answer a whole round; it went the same day the
+     head was restyled as a rule, because the press disposes of every ask we
+     filed from a header with no clause in front of the reader.
+
+     THE PARITY CLAIM IS THEREFORE SYMMETRIC NOW, which is the strongest form
+     it has taken: no bulk verb on either seat, risk-sorted or plain. Check 8
+     above still earns its place — it is the one that would fire if the
+     risk-sorted verb ever crossed over. */
+  check('8 and NEITHER seat carries a bulk verb',
+    cp.bulkLabels.length === 0 && owner.bulkLabels.length === 0,
+    `theirs: ${cp.bulkLabels.join(' | ') || 'none'} · ours: ${owner.bulkLabels.join(' | ') || 'none'}`);
 
   /* ---- 9. the edit route behaves the same on both seats ---- */
   if (cpEdit.error || ownerEdit.error){
@@ -353,9 +368,12 @@ const CARD_EDIT = async () => {
   }
 
   /* The owner's side is the control: if these were absent there too, every
-     assertion above would be passing for the wrong reason. */
+     assertion above would be passing for the wrong reason.
+     nego-bulk-acc is no longer one of them — it is gone from our column by
+     design — so the control is the send, which is the act our seat has and
+     theirs does not. */
   check('control — the owner DOES have the controls being checked for',
-    owner.ids.includes('nego-copilot') || owner.ids.includes('nego-bulk-acc'),
+    owner.ids.includes('nego-copilot') || owner.ids.includes('nego-send'),
     owner.ids.join(', ') || 'none');
 
   await browser.close();

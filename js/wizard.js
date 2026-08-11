@@ -94,6 +94,14 @@ function openWizard(preTid){
       /* Company standard templates stay pinned on top — the whole point of
          publishing one is that it becomes the team's one-click default. */
       const lib=(typeof tplLibPublished==='function'&&canEdit())?tplLibPublished():[];
+      /* ---- AND THE WORKSPACE'S OWN SAVED TEMPLATES, WHICH WERE NOT HERE ----
+         "Save as template" on a contract writes to customTemplates(), and the
+         only two doors to those were the Templates page and a row in the
+         new-contract menu. That menu's template list is gone (Young, 09 Aug
+         2026: they already sit under the draft-from-template option) — which is
+         true of the company standards and the built-in papers, and was not true
+         of these. Now it is. */
+      const mine=(typeof customTemplates==='function'&&canEdit())?customTemplates():[];
       const industry=workspaceIndustry();
       const admin=(typeof isAdmin==='function')&&isAdmin();
       openModal(`<div style="padding:22px 24px;">
@@ -106,6 +114,13 @@ function openWizard(preTid){
               <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent);color:#fff;flex:none;">${icon('copy','w-3.5 h-3.5')}</span>
               <span style="font-size:13px;font-weight:600;color:var(--color-text);">${String(t.name||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span></span>
               <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);">v${t.publishedVersion} · pre-filled &amp; branded</span></button>`).join('')}</div>
+          </div>`:''}
+          ${mine.length?`<div style="margin-bottom:14px">
+            <span style="${EYE}">${i18t('wz_saved_templates')}</span>
+            <div style="${GRID}">${mine.map(t=>`<button data-wz-mine="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;">
+              <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon('copy','w-3.5 h-3.5')}</span>
+              <span style="font-size:13px;font-weight:600;color:var(--color-text);">${String(t.name||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span></span>
+              <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);">${(typeof FOLDERS!=='undefined'&&FOLDERS[t.folder]?.name)||''}</span></button>`).join('')}</div>
           </div>`:''}
           ${curated?`<div style="margin-bottom:12px">
             <span style="${EYE}">${i18t('wz_for_you')}${industry?` · ${INDUSTRY_LABEL[industry]}`:''}</span>
@@ -130,6 +145,8 @@ function openWizard(preTid){
       pick.addEventListener('click',e=>{
         const lb=e.target.closest('[data-wz-lib]');
         if(lb){ closeModal(); if(window.tplLibNewContract) tplLibNewContract(lb.getAttribute('data-wz-lib')); return; }
+        const mn=e.target.closest('[data-wz-mine]');
+        if(mn){ closeModal(); if(window.createFromCustomTemplate) createFromCustomTemplate(mn.getAttribute('data-wz-mine')); return; }
         const b=e.target.closest('[data-wz-tid]');
         if(b){ tid=b.getAttribute('data-wz-tid'); renderStep(); }
       });
@@ -261,6 +278,8 @@ function createFromWizard(tid, vars, opts){
   if(t.valueType==='none'){ c.value=0; c.valueType='none'; }
   c._loaded=true; c._light=false; c._v=0;
   state.contracts.unshift(c); state.activeId=c.id;
+  /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see wsTabDefaults. */
+  if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
   persist(c); closeModal();
   toast(`Draft created — ${t.kind}`);
   setView('workspace'); renderSideFolders&&renderSideFolders();

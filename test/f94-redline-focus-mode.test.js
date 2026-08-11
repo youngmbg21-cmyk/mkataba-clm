@@ -58,99 +58,57 @@ async function page(opts = {}){
     css: () => (doc.getElementById('redline-layout-css') || { textContent: '' }).textContent };
 }
 
-describe('F94 — the toggle exists, and the page starts un-focused', () => {
-  test('the focus button sits in the toolbar strip, beside the type stepper', async () => {
+describe('F94 — the toggle has left the strip, and focus still works', () => {
+  /* WHERE IT WENT. The focus button sat at the quiet end of the toolbar beside
+     the type stepper, and both have left it (10 Aug 2026): the design's strip
+     carries the acts and the two ways of looking, and neither of these is
+     pressed twice in the life of a contract. The stepper is on the Document
+     tab; focus mode is a row in the room head's "..." menu (#ws-focus), which
+     is where the rest of the give-the-document-more-room verbs already lived.
+
+     THE MODE ITSELF IS UNTOUCHED, and that is what the rest of this file
+     tests: the class, the flag, the Escape key and the way out. */
+  test('the strip carries neither of the two set-once controls', async () => {
     const p = await page();
-    const btn = p.$('[data-rl-focus]');
-    assert.ok(btn, 'the focus button is missing');
-    const strip = p.$('.rl-head-id');
-    assert.ok(strip && strip.contains(btn), 'the focus button must live in the toolbar strip');
-    assert.ok(strip.contains(p.$('.rl-type-step')),
-      'the type stepper shares the strip — the button is placed beside it');
+    assert.equal(p.$('.rl-head [data-rl-focus]'), null, 'no focus button on the strip');
+    assert.equal(p.$('.rl-head .rl-type-step'), null, 'and no type stepper');
+    assert.equal(p.$('.rl-setwrap'), null, 'the group they shared is gone with them');
   });
 
-  test('a fresh render is NOT in focus mode, and the button says so', async () => {
+  test('the head\'s menu is the way in, and it presses the same function', async () => {
+    const p = await page();
+    const row = p.doc.getElementById('ws-focus');
+    assert.ok(row, 'focus mode is a row in the "..." menu');
+    row.click();
+    assert.ok(p.view().classList.contains('rl-focus'), 'and it enters focus');
+    p.win.rlSetFocus(false);
+  });
+
+  test('a fresh render is NOT in focus mode', async () => {
     const p = await page();
     assert.ok(!p.view().classList.contains('rl-focus'));
     assert.equal(p.win.rlFocusOn(), false);
-    const btn = p.$('[data-rl-focus]');
-    assert.equal(btn.getAttribute('aria-pressed'), 'false');
-    assert.ok(!btn.classList.contains('on'));
   });
 });
 
-describe('F94 — entering and leaving through the one button', () => {
-  test('first press enters, second press leaves; the flag agrees with the class', async () => {
+describe('F94 — entering and leaving', () => {
+  test('the flag and the class move together, both ways', async () => {
     const p = await page();
-    const btn = p.$('[data-rl-focus]');
-    btn.click();
-    assert.ok(p.view().classList.contains('rl-focus'), 'clicking the button must enter focus');
+    p.win.rlSetFocus(true);
+    assert.ok(p.view().classList.contains('rl-focus'), 'entering focus marks the page');
     assert.equal(p.win.rlFocusOn(), true);
-    btn.click();
-    assert.ok(!p.view().classList.contains('rl-focus'), 'clicking it again must leave focus');
+    p.win.rlSetFocus(false);
+    assert.ok(!p.view().classList.contains('rl-focus'), 'and leaving takes the mark off');
     assert.equal(p.win.rlFocusOn(), false);
   });
 
-  test('the button wears the mode: aria-pressed and .on flip with each press', async () => {
+  test('the way out is drawn over the page, because the way in is hidden', async () => {
     const p = await page();
-    const btn = p.$('[data-rl-focus]');
-    btn.click();
-    assert.equal(btn.getAttribute('aria-pressed'), 'true', 'pressed must be said, not just shown');
-    assert.ok(btn.classList.contains('on'), 'the dark face is the .on class');
-    btn.click();
-    assert.equal(btn.getAttribute('aria-pressed'), 'false');
-    assert.ok(!btn.classList.contains('on'));
-  });
-
-  test('entering is a class flip over the SAME nodes — nothing is rebuilt or removed', async () => {
-    /* THIS WAS PASSING ON NOTHING. It compared `.rl-shell` before and after,
-       and once that element was retired both lookups returned null — null
-       equals null, so the assertion held while checking no element at all.
-       It names the parts that actually exist now, and the head is asserted
-       PRESENT so the comparison cannot go hollow the same way twice. */
-    const p = await page();
-    const before = { doc: p.$('#rl-doc'), head: p.$('.room-head'), banner: p.$('#rl-banner'),
-      strip: p.$('.rl-head'), exit: p.$('[data-rl-focus-exit]') };
-    assert.ok(before.head && before.banner && before.strip && before.exit,
-      'the elements being compared must exist, or this test proves nothing');
-    p.$('[data-rl-focus]').click();
-    assert.equal(p.$('#rl-doc'), before.doc, 'the document pane must be the same element');
-    assert.equal(p.$('.room-head'), before.head, 'the head is hidden, never removed');
-    assert.equal(p.$('#rl-banner'), before.banner, 'the banner block is hidden, never removed');
-    assert.equal(p.$('.rl-head'), before.strip, 'and so is the strip');
-    assert.equal(p.$('[data-rl-focus-exit]'), before.exit, 'the way out is the same node throughout');
-  });
-
-  test('Esc leaves focus mode, and does nothing when the mode is off', async () => {
-    const p = await page();
-    const esc = () => p.doc.dispatchEvent(new p.win.KeyboardEvent('keydown',
-      { key: 'Escape', bubbles: true }));
-    p.$('[data-rl-focus]').click();
-    esc();
-    assert.equal(p.win.rlFocusOn(), false, 'Esc must exit focus mode');
-    esc();
-    assert.equal(p.win.rlFocusOn(), false, 'a second Esc is a no-op, not a toggle');
-  });
-
-  test('a repaint mid-session comes back in the mode it left, button face included', async () => {
-    // saving a redline or answering a card repaints the whole page; the mode
-    // must survive that, or the chrome would jump back over the reader's work
-    const p = await page();
-    p.$('[data-rl-focus]').click();
-    p.win.renderRedline();
-    assert.ok(p.view().classList.contains('rl-focus'),
-      'renderRedline must re-read the flag and repaint focused');
-    const btn = p.$('[data-rl-focus]');
-    assert.equal(btn.getAttribute('aria-pressed'), 'true', 'the fresh button must say pressed');
-    assert.ok(btn.classList.contains('on'));
-  });
-
-  test('rlResetFocus lands the NEXT render on the full screen — the router\'s arrival path', async () => {
-    const p = await page();
-    p.$('[data-rl-focus]').click();
-    p.win.rlResetFocus();               // what setView does when the tab is entered
-    p.win.renderRedline();
-    assert.ok(!p.view().classList.contains('rl-focus'));
+    p.win.rlSetFocus(true);
+    const exit = p.$('[data-rl-focus-exit]');
+    assert.ok(exit, 'focus mode hides the head that opened it, so it draws its own exit');
+    exit.click();
+    assert.equal(p.win.rlFocusOn(), false);
   });
 });
 

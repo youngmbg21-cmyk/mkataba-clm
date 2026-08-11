@@ -416,27 +416,12 @@ describe('what the column renders', () => {
       'a closed seat must not be invited back into a negotiation it cannot join');
   });
 
-  /* Not the queue's own rule, but the same failure and the same column: a
-     flex:1 scroller cannot share a parent with content that is not in it. */
-  test('the discussion composers are INSIDE the thread scroller', async () => {
-    const { win } = buildWorld({ negotiationView: true });
-    const c = contract();
-    win.negoInit(c);
-    for (const n of ['2', '4', '6']){
-      await ask(win, c, n, `<p>Amended wording for clause ${n}.</p>`);
-    }
-    const html = win.redlineDiscussionHtml(c, { side: 'owner' });
-    const open = html.indexOf('id="rl-threads"');
-    const close = html.indexOf('</div>', html.lastIndexOf('rl-starter-note'));
-    assert.ok(open >= 0, 'the scroller is there');
-    assert.ok(html.indexOf('rl-starter') > open,
-      'every composer is written after the scroller opens');
-    /* The scroller must not be closed before the composers: that is the whole
-       fault — they became siblings and took the list\'s height away. */
-    const bodyClose = html.indexOf('</div>', open);
-    assert.ok(html.indexOf('rl-starter') < close && bodyClose < html.indexOf('rl-starter-note'),
-      'and they are enclosed by it rather than following it');
-  });
+  /* THE TEST THAT STOOD HERE was about the Discussion column's composers
+     being inside its scroller rather than siblings of it — the same failure
+     as the queue's, in the column next door. That column is gone (10 Aug
+     2026) and its renderer with it; the conversation is a block inside each
+     change card now, which cannot reproduce the fault because there is no
+     flex:1 scroller for it to be a sibling of. */
 
   test('the panel is on the negotiation grid, ahead of the contract', async () => {
     const { win } = buildWorld({ negotiationView: true });

@@ -105,7 +105,10 @@ describe('F63 — answers held on the page survive a reload', () => {
   test('answers to several changes all come back', async () => {
     const { c, filed } = await ownerProposed();
     const b = theirBrowser(c);
-    await b.press('#nego-bulk-acc');
+    /* Accepted one card at a time: the column's bulk "Accept all" is gone by
+       design (10 Aug 2026) and this test wants the state that follows from
+       every change being answered, not the button that used to get there. */
+    for (const f of filed) await b.press(`[data-nego-accept="${f.id}"]`);
     b.open();
     for (const f of filed) assert.ok(b.$(`[data-unsent="${f.id}"]`), `#${f.id} came back`);
     assert.match(b.$('#nego-send-decisions').textContent, /Send 2 decisions/);
@@ -124,7 +127,10 @@ describe('F63 — answers held on the page survive a reload', () => {
   test('sending clears the draft, so a later reload does not resurrect it', async () => {
     const { c, filed } = await ownerProposed();
     const b = theirBrowser(c);
-    await b.press('#nego-bulk-acc');
+    /* Accepted one card at a time: the column's bulk "Accept all" is gone by
+       design (10 Aug 2026) and this test wants the state that follows from
+       every change being answered, not the button that used to get there. */
+    for (const f of filed) await b.press(`[data-nego-accept="${f.id}"]`);
     await b.press('#nego-send-decisions');
     assert.equal(b.last().action, 'decisions');
     assert.equal(b.stored(), null, 'it has gone; it is not a draft any more');

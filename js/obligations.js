@@ -267,31 +267,63 @@ function renderObligationsSection(c){
       </div>
       ${dd?`<div class="mb-3 rounded-lg border ${daysUntil(dd)<0?'border-rose-200 bg-rose-50':'border-gold-500/25 bg-gold-500/8'} px-3 py-2 text-[11px]">
         <span class="font-600 text-ink">Renewal decision by ${dd}</span> <span class="text-ink/60">· ${daysUntil(dd)<0?'passed':daysUntil(dd)+' days'}${c.metadata&&c.metadata.noticePeriodDays?` (expiry ${(c.metadata.expiryDate||c.expiry)} − ${c.metadata.noticePeriodDays}d notice)`:''}</span></div>`:''}
-      ${obs.length?`<div class="space-y-1.5 mb-2">${obs.map((o,i)=>{ const st=obState(o); return `
+      ${''/* ---- THE LIST IS BOUNDED, AND THE ROWS ARE LEGIBLE ----
+             Both reported together (Young, 10 Aug 2026): "make the obligations
+             card be a set size which obligations are scrollable within", and
+             "make them readable as they are currently very faint".
+
+             BOUNDED BY THE LIST, NOT BY THE CARD. The cap sits on the rows so
+             the head, the renewal note and the two buttons stay put while the
+             obligations scroll under them — a card-level max-height would put
+             Add obligation below a scroll nobody knew was there. It is a
+             max-height rather than a fixed one: three obligations should not
+             leave a third of a card empty to prove a rule about six.
+
+             FAINT WAS A STACK OF SMALL DECISIONS, not one. The meta line ran
+             at 10px on ink/55, the quote at 10px on ink/50 and italic, and both
+             sat on white — each defensible alone, and together the two lines
+             carrying WHOSE it is, WHO owns it and WHAT THE CONTRACT SAYS were
+             the least readable things in the panel. The quote especially: it is
+             the evidence for the obligation existing at all. Sized and inked
+             through .ob-* below, in tokens, so dark mode is not a second guess. */}
+      ${obs.length?`<div class="ob-list scroll-thin space-y-1.5 mb-2">${obs.map((o,i)=>{ const st=obState(o); return `
         <div class="rounded-lg border border-line bg-white px-3 py-2">
           <div class="flex items-center gap-2 text-[12px]">
             <span class="inline-block rounded-full border ${chip(st)} px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wide">${st}</span>
-            <span class="text-ink font-500 truncate">${(o.desc||'').replace(/</g,'&lt;')}</span>
-            <span class="ml-auto shrink-0 text-[10px] font-mono text-ink/55">${o.due||'no date'}</span>
+            <span class="text-ink font-600 truncate">${(o.desc||'').replace(/</g,'&lt;')}</span>
+            <span class="ob-due ml-auto shrink-0 font-mono">${o.due||'no date'}</span>
           </div>
-          <div class="mt-1 flex items-center gap-2 text-[10px] text-ink/55">
+          <div class="ob-meta mt-1 flex items-center gap-2">
             ${o.recurring&&o.recurring!=='none'?`<span>${(OBLIG_RECUR.find(r=>r[0]===o.recurring)||[])[1]}</span>·`:''}
             ${''/* Ours or theirs, said on the row rather than inferred from a
                    name. "Wanjiku Kamau" reads as a job; "Kabras Sugar" beside
                    it would read as one too unless the row says which it is. */}
             <span class="inline-block rounded border px-1 py-px text-[9px] font-mono uppercase tracking-wide ${obligationIsTheirs(o)?'border-gold-500/30 bg-gold-500/10 text-gold-700':'border-brand-200 bg-brand-50 text-brand-600'}">${obligationIsTheirs(o)?'theirs':'ours'}</span>
             <span>${String(obligationOwner(o,c)).replace(/</g,'&lt;')}</span>
-            ${editable?`<span class="ml-auto flex gap-2">
-              <button data-ob-toggle="${i}" class="text-brand-600 hover:text-brand-800 font-600">${o.status==='done'?'reopen':'done'}</button>
-              <button data-ob-edit="${i}" class="text-brand-600 hover:text-brand-800">edit</button>
-              <button data-ob-del="${i}" class="text-rose-500 hover:text-rose-700">remove</button></span>`:''}
+            ${editable?`<span class="ob-acts ml-auto flex gap-2">
+              <button data-ob-toggle="${i}">${o.status==='done'?'reopen':'done'}</button>
+              <button data-ob-edit="${i}">edit</button>
+              <button data-ob-del="${i}" class="is-del">remove</button></span>`:''}
           </div>
-          ${o.quote?`<div class="mt-1 text-[10px] text-ink/50 italic border-l-2 border-line pl-2">“${o.quote.replace(/</g,'&lt;')}”</div>`:''}
+          ${o.quote?`<div class="ob-quote mt-1">“${o.quote.replace(/</g,'&lt;')}”</div>`:''}
         </div>`; }).join('')}</div>`
       :`<p class="text-[11px] text-ink/60 mb-2">${i18t('ob_none_tracked')}</p>`}
+      ${''/* ---- A BUTTON THAT CANNOT BE SEEN IS NOT A BUTTON ----
+             Reported (Young, 10 Aug 2026): "the buttons are almost
+             transparent". They were outlines only — border-brand-200 is a pale
+             mint and border-gold-500/30 is amber at three-tenths — with no fill
+             behind them, on a white card. At rest they read as two labels
+             floating in the empty state's whitespace.
+
+             THE FILL IS THE FIX, not a heavier border. Each takes the tint of
+             its own family (accent for the manual add, amber for the Copilot
+             sweep, which is the colour every AI act on this page wears), so the
+             pair stays quiet against the primary actions elsewhere on the
+             screen while being unmistakably pressable. Hover deepens the same
+             tint rather than introducing a new one. */}
       ${editable?`<div class="flex flex-wrap gap-2">
-        <button id="ob-add" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('plus','w-3 h-3')} Add obligation</button>
-        <button id="ob-find" class="flex items-center gap-1.5 rounded-lg border border-gold-500/30 text-gold-600 px-3 py-1.5 text-[11px] font-600 hover:bg-gold-500/10 transition">${icon('sparkle','w-3 h-3')} Find obligations</button>
+        <button id="ob-add" class="ob-btn ob-btn-add">${icon('plus','w-3 h-3')} Add obligation</button>
+        <button id="ob-find" class="ob-btn ob-btn-find">${icon('sparkle','w-3 h-3')} Find obligations</button>
       </div>`:''}
     </div>`;
   host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>
@@ -313,8 +345,30 @@ function openObligationForm(c, seed){
   openModal(`
     <div class="p-6">
       <h3 class="font-serif font-600 text-lg text-ink mb-3">${seed._i!=null?'Edit':'Add'} obligation</h3>
+      ${''/* ---- THE DESCRIPTION WRAPS ----
+              Reported (Young, 10 Aug 2026): an obligation read out of a clause
+              is a sentence, and a single-line <input> showed about a third of
+              it with the rest scrolled off to the right. You could not read
+              what you were editing, which on the one field that IS the
+              obligation is the whole control being useless.
+
+              A TEXTAREA, THREE ROWS, AND A HANDLE. Three rows holds the common
+              obligation whole — the ones the Copilot reads out of clauses run
+              to about 150 characters — and the dialog still comes out SHORTER
+              than the one being replaced, because the fields below it did not
+              move. Beyond that the reader drags the
+              corner — resize:vertical, so the width cannot be pulled out of
+              the grid — and it is capped at 140px, which with the panel's own
+              88vh ceiling keeps the dialog inside the size it is now, the
+              condition the report attached to the fix. Past the cap the
+              textarea scrolls, so a very long clause is still all reachable. */}
       <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_description')}</span>
-        <input id="of-desc" value="${(seed.desc||'').replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>
+        ${''/* Ampersand FIRST, then the angle bracket — the other order turns
+                the &lt; it just wrote into &amp;lt; and a clause about "Fees &
+                Charges" comes back reading its own source code. Escaped as
+                element content rather than as an attribute value, which is what
+                moving from <input value=""> to <textarea> changes. */}
+        <textarea id="of-desc" rows="3" class="of-desc mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(seed.desc||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></label>
       <div class="grid grid-cols-2 gap-3 mb-2.5">
         <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_due_date')}</span>
           <input id="of-due" type="date" value="${seed.due||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>

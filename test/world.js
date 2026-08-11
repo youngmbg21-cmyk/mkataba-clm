@@ -29,6 +29,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 const { JSDOM } = require('jsdom');
+const { runFileInContext } = require('./vmcache');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -46,6 +47,19 @@ const MODULES = [
   'js/versioning.js',
   'js/discuss.js',
   'js/negotiation.js',
+  /* The internal review sits directly on top of the change model and is read by
+     it nowhere — it annotates changes, it never rewrites them — so it loads
+     straight after and needs nothing else. approvals.js is NOT pulled in with
+     it: reviewGateApplies asks contractHasDeviation through `window` and reads
+     "no deviation" when the playbook module is absent, which is the right
+     answer on a stage that has no playbook. */
+  'js/review.js',
+  /* The desk sits on the same shelf as the review: it annotates the contract
+     with who is working it and never touches the change model, so it loads
+     straight after and needs nothing else. negoFileChange calls into it through
+     `window`, so a stage without it files changes exactly as before — which is
+     the behaviour every test written before this feature is asserting. */
+  'js/desk.js',
   'js/wordflow.js',
 ];
 /* js/views/contract.js is loaded ONLY on request (buildWorld({contractView:true})).
@@ -112,6 +126,14 @@ function buildWorld(opts = {}) {
   win.console = console;
   win.setTimeout = (fn) => { try { fn(); } catch (_) {} return 0; };   // run deferred UI work at once
   win.clearTimeout = () => {};
+  /* An interval never fires — the same gap portalworld.js documents at length.
+     setTimeout was stubbed here and setInterval was not, so js/core.js's own
+     pollers (refreshShareOverview and refreshWaitingQuestions on 60s,
+     refreshAiUsage on 30s, and schedulePolling's _pollTimer) armed real jsdom
+     timers in every world this harness builds. Nothing asserts on a poll
+     arriving by itself; the tests that care call the refresh directly. */
+  win.setInterval = () => 0;
+  win.clearInterval = () => {};
   if (!win.URL.createObjectURL) win.URL.createObjectURL = () => 'blob:stub';
   if (!win.URL.revokeObjectURL) win.URL.revokeObjectURL = () => {};
 
@@ -277,7 +299,7 @@ function buildWorld(opts = {}) {
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3
-    vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: rel });
+    runFileInContext(abs, ctx, rel);              // compiled once per process, see test/vmcache.js
     loaded.push(rel);
   }
   installDownloadRecorder();

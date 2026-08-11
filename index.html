@@ -220,6 +220,17 @@
        literal #fbfbfc — so the document joins the theme flip. Print pins it
        back to white (see @media print). */
     --color-doc-surface:#fbfbfc;
+    /* ---- THE PAPER IS WARM ----
+       Asked for on 10 Aug 2026: the contract sheet reads as paper rather than
+       as another white card on a white page. A cream ground and a warm hairline
+       to frame it, named here so the Document tab, the negotiation workbench,
+       the counterparty's page and the phone all paint the same sheet — and so
+       the dark theme can answer differently below instead of every view
+       carrying a literal #fdfcf9. */
+    --color-doc-warm:#fdfcf9; --color-doc-warm-line:#e8e4dc;
+    /* The lift under the sheet. Softer and longer than --shadow-md: a page
+       resting on a desk, not a card floating over one. */
+    --shadow-paper:0 1px 2px rgba(38,55,74,.05), 0 18px 44px -22px rgba(38,55,74,.28);
 
     --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
     --radius-sm:8px; --radius-md:12px; --radius-lg:12px;
@@ -282,6 +293,10 @@
     --color-doc-muted:#94a3b8;
     --color-doc-rule:#334155;
     --color-doc-surface:#0f172a;
+    /* No cream in the dark: warm paper on a dark page is a stain. The sheet is
+       the surface it always was, and the hairline is the divider. */
+    --color-doc-warm:#0f172a; --color-doc-warm-line:#1e293b;
+    --shadow-paper:0 1px 2px rgba(0,0,0,.4), 0 18px 44px -22px rgba(0,0,0,.6);
 
     --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
     --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#94a3b8;
@@ -721,6 +736,143 @@
     overflow-wrap:anywhere; }
   .room-head .room-acts{ display:flex; align-items:center; gap:8px; flex:none; }
   .room-back{ width:34px; height:34px; padding:0; flex:none; margin-top:2px; }
+  /* ---- THE NEGOTIATION DESK, IN THE HEADER AND NOWHERE ELSE ----
+     Who leads a negotiation is a fact about the contract, so it rides with the
+     contract's other facts. This is the whole visual cost of the feature: one
+     pill, no new row, ~34px matching every other control on the strip. A band
+     is drawn only where something actually refuses (see deskNoticeHtml), and
+     that band shares the review banner's single slot. */
+  .dk-chip{ display:inline-flex; align-items:center; gap:7px; flex:none; cursor:pointer;
+    height:34px; padding:0 11px 0 4px; border-radius:99px; font:inherit; font-size:12px;
+    border:1px solid var(--color-divider); background:var(--color-bg); color:var(--color-text);
+    max-width:min(46vw,260px); }
+  .dk-chip.dk-chip-empty{ padding:0 12px; color:var(--color-neutral-600); }
+  .dk-chip:hover{ border-color:var(--color-accent); background:var(--color-accent-100); }
+  .dk-chip:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
+  /* ---- THE CLAIMED CHIP IS A LABEL, AND HAS TO LOOK LIKE ONE ----
+     It stopped being a door (see deskChipHtml). A thing that lights up under
+     the pointer is a thing a reader will try to press, so the hover the shared
+     rule gives every .dk-chip is taken back here — the cursor stays an arrow,
+     the border stays put, and nothing invites a press that does nothing. The
+     EMPTY chip is untouched: "Start negotiation" is a real act and keeps its
+     hover, its pointer and its press. */
+  .dk-chip.dk-chip-static{ cursor:default; }
+  .dk-chip.dk-chip-static:hover{ border-color:var(--color-divider); background:var(--color-bg); }
+  .dk-chip .dk-faces{ display:inline-flex; flex:none; }
+  .dk-chip .dk-who{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dk-face{ width:24px; height:24px; border-radius:50%; flex:none; display:inline-flex;
+    align-items:center; justify-content:center; font-family:var(--font-mono); font-size:9.5px;
+    font-weight:700; letter-spacing:.02em; background:var(--color-accent-100);
+    color:var(--color-accent-800); border:1px solid var(--color-divider);
+    box-shadow:0 0 0 2px var(--color-bg); }
+  .dk-face-lead{ background:var(--color-accent); color:#fff; border-color:var(--color-accent); }
+  /* Below the tablet break the header is already wrapping; the name goes and
+     the faces stay, because a face still says "somebody owns this" and a
+     truncated name says nothing at all. */
+  @media (max-width:720px){ .dk-chip .dk-who{ display:none; } .dk-chip{ padding:0 4px; } }
+  .dk-face-more{ background:var(--color-bg); color:var(--color-neutral-600); font-size:9px; }
+  .dk-pip{ flex:none; min-width:17px; height:17px; padding:0 4px; border-radius:99px;
+    background:var(--st-amber-fg); color:var(--color-surface); font-family:var(--font-mono);
+    font-size:9.5px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+  /* ---- THE ONE NOTICE, AND ONLY FOR SOMEBODY WHO CANNOT ACT ----
+     It shares the review banner's slot rather than opening a second one; see
+     rlOneNoticeHtml. A lead and a contributor never see it at all.
+
+     It is no longer a BAND on the desktop workbench: it floats bottom-right
+     with the other notices (rlFloatingNoticesHtml) so it is never over the
+     contract. The phone still stacks it inline, where a floating card would
+     cover the very document it is talking about. */
+  .dk-notice{ display:flex; align-items:center; gap:10px; padding:9px 13px; margin:0 0 10px;
+    border-radius:9px; border:1px solid var(--st-amber-line); background:var(--st-amber-bg);
+    color:var(--st-amber-fg); font-size:11.5px; line-height:1.5; }
+  /* The dismiss. Quiet, in the notice's own ink, and the same shape as the
+     review banner's — two notices in one corner should not close two ways. */
+  .dk-notice-x{ flex:none; align-self:flex-start; font:inherit; font-size:15px; line-height:1;
+    cursor:pointer; border:0; background:transparent; color:inherit; opacity:.65;
+    padding:1px 2px; margin:-1px -3px 0 2px; }
+  .dk-notice-x:hover{ opacity:1; }
+  .dk-notice-tag{ flex:none; font-family:var(--font-mono); font-size:9px; font-weight:700;
+    letter-spacing:.07em; border:1px solid currentColor; border-radius:5px; padding:2px 6px; }
+  .dk-notice-txt{ flex:1; min-width:0; }
+  .dk-notice-said{ flex:none; opacity:.8; font-style:italic; }
+  .dk-notice-btn{ flex:none; font:inherit; font-size:11px; font-weight:700; cursor:pointer;
+    border-radius:6px; padding:4px 10px; border:1.5px solid currentColor; background:transparent;
+    color:inherit; }
+  /* Rows in the desk sheet. */
+  .dk-row{ display:flex; align-items:center; gap:9px; border:1px solid var(--color-divider);
+    border-radius:7px; padding:7px 10px; margin-bottom:6px; background:var(--color-surface); }
+  .dk-row-id{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .dk-row-name{ font-size:12.5px; font-weight:600; color:var(--color-text); }
+  .dk-row-sub{ font-size:11px; color:var(--color-neutral-600); overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; }
+  .dk-row-ask{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
+  /* The row that is the dialog's SUBJECT rather than one of a list — the
+     desk's lead. Image 3's selected card, in the same tint. */
+  .dk-row-lead{ border-color:var(--color-accent-300); background:var(--color-accent-100); }
+
+  /* ---- ONE SET OF CLOTHES FOR THIS FEATURE'S DIALOGS ----
+     The desk sheet, the review ask, the entry chooser, the hand-back and the
+     two pickers were eight bare white boxes: a heading, a grey sentence, a
+     stack of fields. Reported as exactly that (Young, 10 Aug 2026) — "add
+     some light color and character to the pop ups ... They are currently very
+     bland" — beside a screenshot of the SHARE dialog, which has a coloured
+     heading, an accent-tinted chosen card and green status chips.
+
+     So the vocabulary is QUOTED FROM THAT DIALOG rather than invented: its
+     accent tint for the chosen purpose (--color-accent-100 over
+     --color-accent-300) becomes the head band, and .rvd-note is its
+     #share-hist-note. Nothing here is a new colour; both are combinations the
+     product already ships, which is also why they answer correctly on the
+     navy brand — the ramp changes, the relationship does not.
+
+     WRITTEN ONCE AND USED BY BOTH FILES. Eight dialogs dressed eight times is
+     the duplication this codebase's own map opens with, and it is how six of
+     them end up updated and two do not. js/review.js builds the head
+     (reviewDialogHeadHtml) and js/desk.js calls it. */
+  .rvd-head{ display:flex; align-items:flex-start; gap:11px; padding:15px 20px 13px;
+    background:var(--color-accent-100); border-bottom:1px solid var(--color-accent-300); }
+  .rvd-ico{ flex:none; width:30px; height:30px; border-radius:9px; display:grid;
+    place-items:center; font-size:14px; line-height:1; background:var(--color-surface);
+    border:1px solid var(--color-accent-300); box-shadow:0 1px 2px rgba(15,23,42,.06); }
+  .rvd-htxt{ flex:1; min-width:0; }
+  .rvd-title{ font-family:var(--font-heading); font-weight:600; font-size:16.5px; margin:0;
+    line-height:1.3; color:var(--color-accent-800); }
+  .rvd-sub{ font-size:11.5px; line-height:1.55; margin:3px 0 0; color:var(--color-accent-800);
+    opacity:.82; }
+  .rvd-body{ padding:15px 20px 2px; }
+  /* The actions sit on the quiet ground with a rule above them, so a dialog
+     ends on a shelf rather than trailing off. */
+  .rvd-foot{ display:flex; gap:8px; justify-content:flex-end; align-items:center;
+    padding:12px 20px 14px; margin-top:14px; border-top:1px solid var(--color-divider);
+    background:var(--color-bg); }
+  /* The one line a dialog ends on that is a FACT rather than a control — what
+     the counterparty is told, what the reviewer will be looking at. */
+  .rvd-note{ border:1px solid var(--color-accent-300); background:var(--color-accent-100);
+    color:var(--color-accent-800); border-radius:8px; padding:10px 12px;
+    font-size:11.5px; line-height:1.55; }
+  /* The entry chooser's two big options. */
+  .rvd-opt{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%;
+    text-align:left; padding:12px 14px; margin-top:9px; border-radius:9px; cursor:pointer;
+    font:inherit; border:1.5px solid var(--color-divider); background:var(--color-surface);
+    transition:border-color .12s, background .12s; }
+  .rvd-opt:hover{ border-color:var(--color-accent); background:var(--color-accent-100); }
+  .rvd-opt b{ font-size:12.5px; font-weight:700; color:var(--color-text); }
+  .rvd-opt:hover b{ color:var(--color-accent-800); }
+  .rvd-opt span{ font-size:11.5px; line-height:1.5; color:var(--color-neutral-600);
+    white-space:normal; }
+  /* ---- ON THE CARD ----
+     Who wrote it, and the sentence where a verb would have been. Both are the
+     smallest type on the card on purpose: the wording is the subject and these
+     are the two questions a SHARED draft adds to it, not new subjects of their
+     own. */
+  .dk-card-by{ display:flex; align-items:center; gap:6px; font-size:10.5px;
+    color:var(--color-neutral-600); margin:0 0 7px; min-width:0; }
+  .dk-card-by span:last-child{ min-width:0; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; }
+  .dk-face-sm{ width:18px; height:18px; font-size:8px; box-shadow:none; }
+  .dk-card-instead{ font-size:11px; line-height:1.5; color:var(--color-neutral-700);
+    background:var(--color-bg); border:1px solid var(--color-divider);
+    border-radius:6px; padding:6px 9px; margin-top:7px; }
   /* Draft new agreement. Solid green, by the owner's call: starting the next
      agreement is a first-class act here, not a second thought beside whatever
      this one contract happens to need. .ui-btn-primary carries the fill; this
@@ -728,6 +880,21 @@
   .room-new{ flex:none; }
   /* The overflow menu. Its items keep the ids they had on the old toolbar, so
      every handler and every test presses exactly the control it always did. */
+  /* ---- THE "MORE" BUTTON ---- see the note at its markup (js/views/contract.js).
+     It was a bare glyph on a hairline square beside two filled buttons, which
+     is how a control comes to read as punctuation. A word, a chevron and a
+     border that is actually visible; the caret turns over with the menu. */
+  .ws-more-btn{ height:34px; padding:0 10px; gap:6px; font-size:12.5px;
+    border-color:var(--color-neutral-300); }
+  .ws-more-btn:hover{ border-color:var(--color-accent); color:var(--color-accent-800); }
+  .ws-more-btn .ws-more-caret{ display:inline-flex; transition:transform .15s; }
+  .ws-more-btn[aria-expanded="true"]{ border-color:var(--color-accent);
+    background:var(--color-accent-100); color:var(--color-accent-800); }
+  .ws-more-btn[aria-expanded="true"] .ws-more-caret{ transform:rotate(180deg); }
+  /* The word folds away before the button does — a narrow header keeps the
+     control and loses the label, never the other way round. */
+  @media (max-width:1180px){ .ws-more-btn .ws-more-word{ display:none; }
+    .ws-more-btn{ padding:0 8px; } }
   .room-menu{ position:absolute; right:0; top:calc(100% + 6px); z-index:60; min-width:252px;
     background:var(--color-surface); border:1px solid var(--color-divider); border-radius:11px;
     box-shadow:0 10px 30px rgba(15,23,42,.16); padding:6px; }
@@ -867,15 +1034,33 @@
      in a table rather than as three things waiting to be filled in. Nobody
      hovers over what they have already decided is a label.
      The box is now there at rest. Filled rows get a quiet one; EMPTY rows get
-     a dashed accent one, because those are the ones with something to do. */
-  .kt-row.is-editable .kt-read{ border:1px solid var(--color-divider); background:var(--color-bg);
+     a dashed accent one, because those are the ones with something to do.
+
+     AND AN EMPTY BOX IS FIELD-SIZED, not word-sized (Young, 10 Aug 2026:
+     "it should be clear that the boxes are entry fields"). The first pass gave
+     the empty read a border and stopped — but a border shrink-wrapped around
+     the two words "Not set" is a TAG, and tags are what the rest of this panel
+     puts values in. What says "type here" is a box with room in it that the
+     content does not fill: min-width holds that room open, and the cue icon
+     sits at the far end of it, so the eye reads a field with a prompt in it
+     rather than a label with a line round it. */
+  .kt-row.is-editable .kt-read{ display:inline-flex; align-items:center; gap:6px;
+    justify-content:flex-end;
+    border:1px solid var(--color-divider); background:var(--color-bg);
     cursor:pointer; font:inherit; font-size:11.5px; font-weight:600; color:inherit;
     padding:3px 7px; margin:-3px -7px; border-radius:5px; text-align:right;
     transition:border-color .12s, background .12s; }
   .kt-row.is-editable .kt-read[data-kt-empty]{ border-style:dashed;
+    min-width:138px; justify-content:space-between;
     border-color:color-mix(in srgb,var(--color-accent) 55%,var(--color-divider));
     background:color-mix(in srgb,var(--color-accent) 5%,var(--color-bg)); }
-  .kt-row.is-editable .kt-read[data-kt-empty] .kt-none{ color:var(--accent-ink); font-weight:500; }
+  .kt-row.is-editable .kt-read[data-kt-empty] .kt-none{ color:var(--accent-ink); font-weight:600; }
+  /* The cue leads, because it is answering "what goes in here?" and that
+     question is asked before the prompt is read. Softer than the words so it
+     stays a mark and does not become a second label. */
+  .kt-cue{ flex:none; display:inline-flex; color:var(--accent-ink); opacity:.7; }
+  .kt-row.is-editable:hover .kt-read[data-kt-empty] .kt-cue,
+  .kt-row.is-editable .kt-read[data-kt-empty]:hover .kt-cue{ opacity:1; }
   .kt-row.is-editable:hover .kt-read,
   .kt-row.is-editable .kt-read:hover{ border-style:solid; border-color:var(--color-accent);
     background:var(--color-surface); }
@@ -883,6 +1068,61 @@
   .kt-row .kt-field{ flex:none; min-width:0; max-width:66%; width:100%; }
   .kt-row.is-open{ background:var(--color-bg); }
   .kt-none{ color:var(--color-neutral-400); font-weight:400; }
+
+  /* ---- THE OBLIGATIONS LIST ---- see the note at its markup (js/obligations.js).
+     The cap is on the ROWS so the head and the two buttons stay put. 322px is
+     four rows and the top of a fifth: a list that ends flush at its boundary
+     looks finished, and one that is visibly cut mid-row says "keep going". */
+  /* Key terms and Obligations square off — see renderKeyTermsSide. The card
+     fills the column it was given; the list inside it takes whatever is left
+     after the head and the two buttons, and scrolls. */
+  .terms-grid{ align-items:stretch; }
+  .kt-side-card{ display:flex; flex-direction:column; min-height:0; flex:1; }
+  .kt-side-card > div{ display:flex; flex-direction:column; min-height:0; flex:1; }
+  .ob-list{ flex:1; min-height:120px; max-height:322px; overflow-y:auto; padding-right:4px; }
+  /* The obligation's own sentence — see the note at the field (js/obligations.js).
+     resize:vertical, not both: the dialog is a two-column grid and a textarea
+     dragged wider would push the Due date and Recurring pair out of it.
+
+     THREE LINES AT REST, not two. Two showed a sliver of the third — which is
+     an honest overflow cue on a long list and reads as broken on a single
+     sentence, because the eye takes a half-height row of letters as clipping
+     rather than as an invitation. Three holds the common obligation whole:
+     the ones in the panel run to about 150 characters. */
+  .of-desc{ resize:vertical; min-height:79px; max-height:140px; line-height:1.5;
+    overflow-y:auto; font:inherit; font-size:13.5px; }
+  /* 11px, not 10, and neutral-600 rather than an opacity — opacity multiplies
+     against whatever is behind it, and these rows sit on white inside a card
+     inside a page, which is three chances to end up paler than intended. */
+  .ob-meta{ font-size:11px; line-height:1.5; color:var(--color-neutral-600); }
+  .ob-due{ font-size:10.5px; color:var(--color-neutral-600); }
+  .ob-acts button{ font-size:11px; font-weight:600; color:var(--accent-ink); cursor:pointer; }
+  .ob-acts button:hover{ text-decoration:underline; text-underline-offset:2px; }
+  .ob-acts button.is-del{ color:var(--st-ruby-fg,#be123c); }
+  /* The quote is the EVIDENCE — the wording the obligation was read out of —
+     so it is the last thing that should be hard to read. Kept italic and
+     indented so it still reads as quoted rather than as more of the row. */
+  .ob-quote{ font-size:11px; line-height:1.55; font-style:italic;
+    color:var(--color-neutral-700); border-left:2px solid var(--color-divider);
+    padding-left:8px; }
+
+  /* ---- THE OBLIGATIONS PAIR ---- see the note at their markup (js/obligations.js).
+     Written here rather than as utility classes because what they needed was a
+     resting FILL, and the utilities that were on them only ever set a border. */
+  .ob-btn{ display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+    font:inherit; font-size:11px; font-weight:600; line-height:1.2;
+    border:1px solid; border-radius:8px; padding:6px 12px;
+    transition:background .15s, border-color .15s; }
+  .ob-btn-add{ color:var(--accent-ink);
+    border-color:color-mix(in srgb,var(--color-accent) 45%,var(--color-divider));
+    background:color-mix(in srgb,var(--color-accent) 9%,var(--color-surface)); }
+  .ob-btn-add:hover{ border-color:var(--color-accent);
+    background:color-mix(in srgb,var(--color-accent) 16%,var(--color-surface)); }
+  .ob-btn-find{ color:var(--st-amber-fg,#b45309);
+    border-color:var(--st-amber-line,#fcd34d);
+    background:var(--st-amber-bg,#fef3c7); }
+  .ob-btn-find:hover{ border-color:var(--st-amber-fg,#b45309);
+    background:color-mix(in srgb,var(--st-amber-line,#fcd34d) 45%,var(--st-amber-bg,#fef3c7)); }
 
   .kt-read-row{ padding:6px 0; border-top:1px solid var(--color-divider); }
   .kt-read-row:first-of-type{ border-top:0; }
@@ -1772,6 +2012,9 @@
     html.dark,html.dark #print-root,#print-root{
       --color-doc-text:#15181a; --color-doc-muted:#4a4f54; --color-doc-rule:#c9ccd1;
       --color-doc-surface:#fff; --color-bg:#fff; --color-surface:#fff;
+      /* Paper prints white, warm or not — cream is a screen affordance and an
+         inkjet would render it as a grey wash across every page. */
+      --color-doc-warm:#fff; --color-doc-warm-line:#e2e8f0; --shadow-paper:none;
       --color-text:#1e293b; --color-divider:#e2e8f0;
       --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
       --color-neutral-400:#94a3b8; --color-neutral-500:#64748b; --color-neutral-600:#475569;
@@ -1922,7 +2165,7 @@
         the server scrapes these rules out of this file by regex to style the
         executed copy (docBodyDesignCss in server/server.js), and a rule nested
         inside a media query would be lifted out of its wrapper. -- */
-  [data-doc-structure="contents-first"] .doc-surface [data-doc-contents]{break-inside:avoid;}
+  .doc-surface [data-doc-contents]{break-inside:avoid;}
 </style>
 
 

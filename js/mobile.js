@@ -349,12 +349,26 @@ const M_CSS = `
      not be mistaken for part of it. Type comes down one step from the desktop's
      measure and no further: 15px is the floor at which a contract still reads
      as a contract rather than as a caption. */
+  /* The same sheet the desktop draws, on the same tokens: warm ground, warm
+     hairline, the paper lift and a 14px radius. A phone reading a contract
+     should be reading the same object, not a plainer one (Young, 10 Aug 2026).
+     The document BODY comes from docBody, which both shells share, so the
+     centred front matter and the parties' lines at the foot arrive here for
+     free. */
   .m-paper{
-    background:var(--color-doc-surface,var(--color-surface));
+    background:var(--color-doc-warm,var(--color-doc-surface,var(--color-surface)));
     color:var(--color-doc-text,var(--color-text));
-    border:1px solid var(--color-divider); border-radius:4px; box-shadow:var(--shadow-sm);
-    padding:22px 16px; font-size:15px; line-height:1.7; overflow-wrap:anywhere;
+    border:1px solid var(--color-doc-warm-line,var(--color-divider));
+    border-radius:14px; box-shadow:var(--shadow-paper,var(--shadow-sm));
+    padding:26px 18px 32px; font-size:15px; line-height:1.7; overflow-wrap:anywhere;
   }
+  /* The title block keeps its hierarchy at phone size. The KICKER is
+     deliberately left alone: the desktop sets it at 10px, and the paper's
+     inherit rule above lifts it to the sheet's own 15px here, which is what
+     the phone's readability floor requires. Forcing the desktop's 10px back
+     was the one thing this block must not do — phone-verify catches it. */
+  .m-paper .rl-paper-title{ font-size:19px!important; }
+  .m-paper .rl-paper-kick{ letter-spacing:.16em; }
   /* A FLOOR ON THE DOCUMENT'S TYPE, NOT A REDESIGN OF IT.
      The document body is drawn by the same renderer the desktop uses, and it
      carries a desktop's type scale — 13px paragraphs, a 10px mono kicker, 12px
@@ -517,6 +531,13 @@ function mInjectCss(){
   el.id = 'm-css';
   el.textContent = M_CSS;
   document.head.appendChild(el);
+  /* THE SHEET'S OWN RULES COME FROM ONE PLACE. The phone draws the document
+     with docBody, the same builder the desktop uses, so the front matter
+     (.rl-paper-head) and the parties' lines at the foot (.rl-paper-foot)
+     arrive here as markup — and without this call they would arrive unstyled,
+     as a stack of bare text where a title block should be. Idempotent, and it
+     is loaded AFTER M_CSS so the phone's own type floor still wins. */
+  if (window.redlineLayoutCss) redlineLayoutCss();
   _mCssDone = true;
 }
 
@@ -823,6 +844,13 @@ function mWire(){
   }));
   root.querySelectorAll('[data-m-desk]').forEach(b=>b.addEventListener('click',()=>{
     mGo('handoff',{ deskView:b.getAttribute('data-m-desk') });
+  }));
+  /* The review notice's clear. Session-only and shared with the desk — see
+     reviewClearBanner. A refresh brings it back, which is the point. */
+  root.querySelectorAll('[data-m-rv-clear]').forEach(b=>b.addEventListener('click',()=>{
+    const c = (typeof mContract==='function') ? mContract() : null;
+    if(c && window.reviewClearBanner) reviewClearBanner(c);
+    mRender();
   }));
   /* The sheet stays OPEN after a language change, unlike the market: you tick a
      language to see the app in it, and closing the sheet would hide the one

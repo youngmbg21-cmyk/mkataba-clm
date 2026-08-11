@@ -642,7 +642,15 @@ function negoFreshenBaseline(c){
   if ((c.changes || []).length) return false;         // something is on the table
   if ((n.rounds || []).length || n.round !== 1) return false;  // history exists
   if (n.chainHead) return false;                      // a hash has cited this baseline
-  const body = negoStampContract(c);
+  /* THE RE-READ MUST NOT RENAME THE CLAUSES. A template contract stores no body
+     of its own, so negoStampContract has nowhere to write its ids back to and
+     mints fresh ones every call — which made this function replace the baseline
+     on every paint, with a new set of clause ids each time. Any id already given
+     to the other side was dead within seconds. See clauseCarryIds. */
+  let body = negoStampContract(c);
+  if (body && n.baselineBody && window.clauseCarryIds){
+    try { body = clauseCarryIds(n.baselineBody, body); } catch (_){ /* keep the fresh stamp */ }
+  }
   if (!body || body === n.baselineBody) return false;
   const text = window.richToText ? richToText(body) : '';
   n.baselineBody = body;
@@ -981,6 +989,44 @@ async function negoFileChange(c, draft, opts = {}){
   }
   negoInit(c);
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
+  /* ---------- STARTING WORK CLAIMS THE NEGOTIATION ----------
+     The first change filed on our side opens a desk and records who opened it.
+     HERE, in the funnel, for the reason the executed-contract guard above gives
+     in its own words: negoEditClause, negoInsertClause and negoDeleteClause all
+     arrive here, and so do the routes that skip the wrappers entirely — the
+     Copilot shortcut in js/core.js, both playbook entrances and the Word
+     round-trip. A claim written into any one of those would be a claim the
+     other four never make.
+
+     Quiet by design, and it never refuses: filing a redline is the act the
+     person meant to perform, and stage 1 of this feature stamps a name without
+     changing what anybody may do. */
+  if (window.deskClaimOnFile){ try{ deskClaimOnFile(c, side); }catch(_){} }
+  /* ---------- AND WHERE THE RULE IS ON, IT REFUSES HERE ----------
+     THE LOCK, not the sign. js/views/negotiation.js stops OFFERING the verbs to
+     somebody who is only reading, and that is the right thing for a screen to
+     do — but a hidden button is a decision about pixels. The side doors this
+     codebase already names in its own map (the Copilot shortcut in core.js,
+     both playbook entrances, the Word round-trip, an inbound link) reach this
+     function without passing any screen at all, and a rule they can walk around
+     is decoration.
+
+     AFTER the claim, deliberately: the first person to work an unclaimed
+     contract claims it and is then a member, so the rule never refuses the act
+     that would have created the desk.
+
+     OUR SIDE ONLY. The counterparty's own proposals arrive through here too and
+     have nothing to do with who sits at our desk; their wall is the transport,
+     which is a different mechanism. deskMayRedline answers true in PORTAL_MODE
+     for the same reason. */
+  if (side === 'owner' && window.deskBlockMessage){
+    let why = null;
+    try{ why = deskBlockMessage(c); }catch(_){ why = null; }
+    if (why){
+      if (window.toast) toast(why, 'err');
+      return null;
+    }
+  }
   const author = String(opts.author || (side === 'owner'
     ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
     : (c.counterparty || 'The counterparty'))).trim();
@@ -1077,6 +1123,32 @@ async function negoFileChange(c, draft, opts = {}){
     live.formattingOnly = formattingOnly;
     live.createdAt = at;
     live.updatedAt = at;
+    /* ---------- WHO ACTUALLY WROTE THE WORDING THAT IS THERE NOW ----------
+       A revision keeps the change's id, its slot and its AUTHOR — the ask is
+       still the person's who raised it. What it did not keep was any record on
+       the change itself of who had rewritten it, so a colleague reviewing a
+       redline could open the clause, retype it, and the card would go on
+       attributing their words to the original author. The audit line named them
+       correctly; the thing anybody actually looks at did not.
+
+       That matters most in exactly the case it was found in: an internal
+       reviewer correcting the wording they are being asked to clear. "Who wrote
+       this" is not a detail on a document heading for signature.
+
+       Recorded HERE, in the funnel, so every route inherits it — the direct
+       edit, the clause library, Copilot, the playbook and the Word round-trip
+       all arrive at this line without knowing they need to.
+
+       CLEARED when the author revises their own ask again: the wording is
+       theirs once more, and a stale "revised by" would be a claim about the
+       present that stopped being true. */
+    if (String(author) !== String(live.author)){
+      live.revisedBy = author;
+      live.revisedAt = at;
+    } else {
+      delete live.revisedBy;
+      delete live.revisedAt;
+    }
     live.summary = String(opts.summary || '').trim()
       || (formattingOnly ? NEGO_FMT_ONLY_SUMMARY : negoSummariseOps(draft.changeType, ops, oldText, newText));
     await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });

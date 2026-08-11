@@ -21,6 +21,8 @@ import './negotiation.js'; // the fingerprinted change model every intake path c
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';
+import './review.js';       // internal review: the step between writing a redline and sending it
+import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
 import './signature.js';
 import './wizard.js';
 import './views/calendar.js';
@@ -456,6 +458,10 @@ function createFromTemplate(tid){
     signatures:[] };
   c._loaded=true; c._light=false; c._v=0;
   state.contracts.unshift(c);
+  /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
+     wsTabDefaults. Registered at every creation site because there is no
+     single funnel for creating a contract. */
+  if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
   state.activeId=c.id; state.selId=c.id;
   persist(c);
   toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
@@ -465,35 +471,37 @@ function createFromTemplate(tid){
 /* ============================================================ NEW-CONTRACT MENU (command bar) */
 function renderNewMenu(){
   const menu=document.getElementById('new-menu'); if(!menu) return;
-  const creatable=(window.myCreatableTemplates?myCreatableTemplates():Object.values(TEMPLATES));
   const item=(ic,bg,fg,title,sub,attrs='')=>`
     <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:8px;text-align:left;color:inherit;" onmouseover="this.style.background='rgb(var(--color-accent-600-rgb)/.09)'" onmouseout="this.style.background='none'">
       <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:4px;background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
       <span style="min-width:0;"><span style="display:block;font-size:12px;font-weight:600;">${title}</span><span style="display:block;font-size:10px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
-  const myTpls=(window.customTemplates&&canEdit())?customTemplates():[];
-  /* Company standard templates (the versioned library) sit above the built-in
-     papers: the whole point of publishing one is that it becomes the team's
-     one-click default. Served from the library cache; a background refresh
-     re-renders the open menu when the list has moved. */
-  const libTpls=(window.tplLibPublished&&canEdit())?tplLibPublished():[];
   /* WO N1: the three ways a contract gets INTO HaTi, in one menu, named for
      what they do. "Import many at once" reaches the same bulk-import page the
      sidebar's own "Import contracts" door does — deliberately two doors, since
      this menu is where you go to START one and the sidebar is where you go to
-     RESUME one. */
+     RESUME one.
+
+     ---- AND THE TEMPLATE LIST UNDER THEM IS GONE (Young, 09 Aug 2026) ----
+     This menu used to print every company standard, every saved template and
+     every built-in paper underneath those three, one row each. On a workspace
+     with a real library that is a long scrolling column of contract names
+     sitting under a heading that asks how a contract gets in here — and every
+     one of those rows is the FIRST door, "Draft from a template", opened one
+     level down. The owner's words: they already sit under the draft-from-
+     template option.
+
+     So the menu answers its own question and stops: three ways in. The picker
+     behind the first one is where you choose which paper, and it carries all
+     three groups (see openWizard, which gained the saved-templates group in the
+     same change) so nothing lost its route.
+
+     THE HANDLERS BELOW STAY. data-new / data-newlib / data-newtpl cost nothing
+     when no row carries them, and they are what a future menu row would need. */
   menu.innerHTML=`
     ${item('sparkle','var(--tile-steel-bg)','var(--tile-steel-fg)','Draft from a template','Pick a template &amp; answer a few questions','id="menu-wizard"')}
     ${item('upload','var(--tile-amber-bg)','var(--tile-amber-fg)','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
-    ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Import many at once','Bring a whole back-catalogue in one go','id="menu-migrate"')}
-    ${libTpls.length?`
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_company_standards')}</div>
-    ${libTpls.map(t=>item('copy','var(--tile-emerald-bg)','var(--tile-emerald-fg)',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
-    ${myTpls.length?`
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_cp_templates')}</div>
-    ${myTpls.map(t=>item('copy','var(--tile-steel-bg)','var(--tile-steel-fg)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">${i18t('ap_hati_templates')}</div>
-    ${creatable.map(t=>item(t.ic,'var(--color-bg)','var(--color-accent-700)',t.name,'Template '+t.id,`data-new="${t.id}"`)).join('')}`;
+    ${item('box','var(--tile-steel-bg)','var(--tile-steel-fg)','Import many at once','Bring a whole back-catalogue in one go','id="menu-migrate"')}`;
   // A built-in template opens the SAME guided fill the Templates page opens.
   // It used to create an empty draft on the spot from here, so the identical
   // action produced two different experiences depending on where you started —
@@ -502,7 +510,11 @@ function renderNewMenu(){
   menu.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(el.getAttribute('data-new')); }));
   menu.querySelectorAll('[data-newtpl]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromCustomTemplate(el.getAttribute('data-newtpl')); }));
   menu.querySelectorAll('[data-newlib]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); tplLibNewContract(el.getAttribute('data-newlib')); }));
-  if(API_MODE()&&window.tplLibRefresh) tplLibRefresh().then(changed=>{ if(changed&&!menu.classList.contains('hidden')) renderNewMenu(); });
+  /* Still warmed here even though no row reads it any more: the wizard's picker
+     draws the published library from this same cache, synchronously, and this
+     menu is the commonest way anybody reaches that picker. Dropping the refresh
+     with the rows would leave the picker showing yesterday's standards. */
+  if(API_MODE()&&window.tplLibRefresh) tplLibRefresh();
   menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
@@ -544,7 +556,10 @@ function exportWorkingSetCsv(){
 function commandPaletteResults(q){
   q=(q||'').trim().toLowerCase();
   const out=[];
-  const folders=Object.values(FOLDERS||{});
+  /* The reader's own streams. openFolder() below refuses one they are not
+     granted, so listing it here offers a door that answers "no access" — and
+     names a stream they were not meant to know about. */
+  const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));

@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HaTi — Internal review, clickable</title>
+<!-- A clickable prototype of the internal-review step. Self-contained: no
+     network, no storage, nothing saved. The model in the script mirrors
+     js/review.js — same order of questions, same refusals. -->
+</head>
+<body>
+<style>
+  /* Same palette as the written walkthrough, so the two read as one set:
+     petrol-blue stamp ink for the platform's voice, oxblood for held,
+     deep green for cleared. Every colour is defined on bare :root and only
+     re-pointed in the two dark blocks. */
+  :root{
+    --paper:#F6F6F3; --surface:#FFFFFF; --surface-2:#F0F0EC; --surface-3:#E7E7E2;
+    --ink:#15171C; --ink-soft:#4E535D; --ink-faint:#767B85;
+    --rule:#DEDED8; --rule-soft:#E9E9E4;
+    --accent:#1F4E5F; --accent-soft:#E3EDF0; --accent-line:#B9D2D9;
+    --hold:#8F2A2A; --hold-soft:#F7E9E7; --hold-line:#E2BCB6;
+    --clear:#2C6248; --clear-soft:#E5F0E9; --clear-line:#B7D5C4;
+    --warn:#7A5310; --warn-soft:#FAF0DC; --warn-line:#E5CE9C;
+    --on-fill:#FFFFFF;
+    --shadow:0 1px 2px rgba(21,23,28,.06), 0 8px 24px -12px rgba(21,23,28,.16);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1115; --surface:#171A20; --surface-2:#1E222A; --surface-3:#252A33;
+      --ink:#E7E8EB; --ink-soft:#A8AEB9; --ink-faint:#7C838F;
+      --rule:#2A2F38; --rule-soft:#232830;
+      --accent:#79BACD; --accent-soft:#16323C; --accent-line:#2C5666;
+      --hold:#E79891; --hold-soft:#37201F; --hold-line:#5E3130;
+      --clear:#87C9A5; --clear-soft:#172C23; --clear-line:#2E5442;
+      --warn:#DFB768; --warn-soft:#332714; --warn-line:#5A4520;
+      --on-fill:#0F1115;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1115; --surface:#171A20; --surface-2:#1E222A; --surface-3:#252A33;
+    --ink:#E7E8EB; --ink-soft:#A8AEB9; --ink-faint:#7C838F;
+    --rule:#2A2F38; --rule-soft:#232830;
+    --accent:#79BACD; --accent-soft:#16323C; --accent-line:#2C5666;
+    --hold:#E79891; --hold-soft:#37201F; --hold-line:#5E3130;
+    --clear:#87C9A5; --clear-soft:#172C23; --clear-line:#2E5442;
+    --warn:#DFB768; --warn-soft:#332714; --warn-line:#5A4520;
+    --on-fill:#0F1115;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  button{font:inherit}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+  .page{max-width:78rem;margin:0 auto;padding:28px 20px 80px}
+
+  /* ---- intro ---- */
+  .intro{max-width:44rem;margin-bottom:26px}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin:0 0 10px}
+  .intro h1{font-family:var(--serif);font-weight:600;font-size:clamp(26px,4vw,36px);line-height:1.15;letter-spacing:-.015em;margin:0 0 10px;text-wrap:balance}
+  .intro p{font-family:var(--serif);font-size:17px;line-height:1.6;color:var(--ink-soft);margin:0}
+
+  /* ---- the seat switcher: the whole point of the prototype ---- */
+  .seats{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:24px 0 14px}
+  .seats-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint);margin-right:4px}
+  .seat{
+    display:flex;flex-direction:column;gap:1px;text-align:left;cursor:pointer;
+    border:1.5px solid var(--rule);background:var(--surface);border-radius:10px;padding:8px 14px;color:var(--ink-soft);
+    transition:border-color .12s ease, background .12s ease, color .12s ease;
+  }
+  .seat:hover{border-color:var(--accent-line)}
+  .seat[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+  .seat b{font-size:13.5px;font-weight:650;color:inherit}
+  .seat span{font-size:11px;color:var(--ink-faint)}
+  .seat[aria-pressed="true"] span{color:inherit;opacity:.8}
+
+  /* ---- layout ---- */
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) 22rem;gap:20px;align-items:start}
+  @media (max-width:960px){ .cols{grid-template-columns:minmax(0,1fr)} }
+
+  .app{
+    background:var(--surface-2);border:1px solid var(--rule);border-radius:16px;padding:16px;
+    display:flex;flex-direction:column;gap:12px;min-width:0;
+  }
+  .apphead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+  .apphead .nm{font-family:var(--serif);font-size:19px;font-weight:600}
+  .apphead .id{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+  .apphead .who{margin-left:auto;font-size:11.5px;color:var(--ink-faint);font-family:var(--mono)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  .btn{
+    border:1.5px solid var(--rule);background:var(--surface);color:var(--ink-soft);
+    border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:650;cursor:pointer;
+    transition:border-color .12s ease, color .12s ease, background .12s ease;
+  }
+  .btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn-accent{border-color:var(--accent);background:var(--accent);color:var(--on-fill)}
+  .btn-accent:hover:not(:disabled){filter:brightness(1.1);color:var(--on-fill)}
+  .btn-send{border-color:var(--clear);background:var(--clear);color:var(--on-fill)}
+  .btn-send:hover:not(:disabled){filter:brightness(1.1);color:var(--on-fill)}
+  .btn-ghost{background:transparent}
+
+  .banner{
+    display:flex;align-items:flex-start;gap:12px;padding:12px 15px;border-radius:10px;
+    border:1px solid var(--warn-line);background:var(--warn-soft);color:var(--warn);font-size:13px;line-height:1.5;
+  }
+  .banner.ok{border-color:var(--clear-line);background:var(--clear-soft);color:var(--clear)}
+  .banner.info{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+  .banner .g{flex:1;min-width:0}
+  .banner b{font-weight:650}
+  .banner .btn{border-color:currentColor;color:inherit;background:transparent;flex:none}
+  .banner .btn:hover:not(:disabled){background:var(--surface);color:inherit}
+  /* One row per open review — see bannerHtml. */
+  .rvrows{display:flex;flex-direction:column;gap:10px}
+  .rvrow{display:flex;align-items:flex-start;gap:12px;width:100%}
+  .rvrow + .rvrow{padding-top:10px;border-top:1px solid color-mix(in srgb, currentColor 22%, transparent)}
+  .rvfoot{font-size:12px;opacity:.85}
+
+  .cards{display:flex;flex-direction:column;gap:11px}
+  .card{
+    background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:13px 15px;
+    display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow);
+    border-left:3px solid var(--rule);
+  }
+  .card.ours{border-left-color:var(--accent-line)}
+  .card.theirs{border-left-color:var(--ink-faint)}
+  .card.is-held{border-left-color:var(--hold)}
+  .card.is-waiting{border-left-color:var(--warn)}
+  .card.is-cleared{border-left-color:var(--clear)}
+  .card-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .cid{font-family:var(--mono);font-size:10.5px;font-weight:650;color:var(--accent);border:1.5px solid var(--accent-line);border-radius:99px;padding:1px 8px}
+  .origin{font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+  .origin.them{background:var(--surface-3);color:var(--ink-soft)}
+  /* SENTENCE CASE, and small. A reviewer's name goes in here, and a name set in
+     capitals is both shouting and wider than the card — "WITH ACHIENG OTIENO"
+     was reported off a real screen. Matches what the product actually draws:
+     9px, weight 700, no transform, the same as the "Your ask" beside it. */
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.01em;border-radius:5px;padding:2px 7px;border:1px solid currentColor}
+  .chip.held{background:var(--hold-soft);color:var(--hold)}
+  .chip.waiting{background:var(--warn-soft);color:var(--warn)}
+  .chip.cleared{background:var(--clear-soft);color:var(--clear)}
+  .chip.advice{background:var(--surface-2);color:var(--ink-soft)}
+  .chip.draft{background:var(--surface-2);color:var(--ink-faint)}
+  .chip.sent{background:var(--clear-soft);color:var(--clear)}
+  .chip.stale{background:var(--warn-soft);color:var(--warn)}
+  .card h4{font-size:14px;font-weight:650;margin:0;line-height:1.35}
+  .card .meta{font-size:11.5px;color:var(--ink-faint)}
+  .diff{font-family:var(--mono);font-size:11.5px;line-height:1.6;background:var(--surface-2);border-radius:7px;padding:8px 10px;overflow-x:auto}
+  .diff del{color:var(--hold);text-decoration:line-through;text-decoration-thickness:1px}
+  .diff ins{color:var(--clear);text-decoration:none;font-weight:650}
+  .said{border-left:2px solid var(--warn-line);background:var(--warn-soft);border-radius:0 6px 6px 0;padding:7px 10px;font-size:12.5px;line-height:1.45;color:var(--ink)}
+  .revby{font-size:12px;color:var(--ink-faint);display:flex;gap:6px;align-items:baseline}
+  /* Holds a name — "Achieng Otieno said" — so it is not set in capitals. */
+  .said b{display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;color:var(--warn);margin-bottom:2px}
+  .verbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-top:9px;border-top:1px dashed var(--rule)}
+  .verbs-k{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint)}
+  .vbtn{border:1.5px solid var(--rule);background:var(--surface);color:var(--ink-soft);border-radius:7px;padding:3px 10px;font-size:11.5px;font-weight:650;cursor:pointer}
+  .vbtn:hover{border-color:currentColor}
+  .vbtn.clear{color:var(--clear)}
+  .vbtn.hold{color:var(--hold)}
+  .vbtn[aria-pressed="true"].clear{border-color:var(--clear);background:var(--clear-soft)}
+  .vbtn[aria-pressed="true"].hold{border-color:var(--hold);background:var(--hold-soft)}
+  .vbtn[aria-pressed="true"]{border-color:currentColor;background:var(--surface-2)}
+
+  .sendbar{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--rule)}
+  .sendbar .why{font-size:12px;color:var(--ink-faint);flex:1;min-width:180px}
+
+  /* ---- right rail ---- */
+  .rail{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .panel{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .panel h3{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 10px}
+  .panel p{font-size:12.5px;line-height:1.5;color:var(--ink-soft);margin:0 0 9px}
+  .panel p:last-child{margin-bottom:0}
+
+  .try{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+  .try li{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.45;padding:5px 0;color:var(--ink-soft)}
+  .try li .tick{
+    flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--rule);
+    display:grid;place-items:center;font-size:10px;color:transparent;margin-top:2px;
+  }
+  .try li.done{color:var(--ink-faint)}
+  .try li.done .tick{border-color:var(--clear);background:var(--clear);color:var(--on-fill)}
+  .try li.done .t{text-decoration:line-through;text-decoration-color:var(--rule)}
+
+  .gate-row{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.45;cursor:pointer;margin-bottom:9px}
+  .gate-row input{margin-top:3px;accent-color:var(--accent);flex:none}
+  select{
+    width:100%;border:1px solid var(--rule);background:var(--surface-2);color:var(--ink);
+    border-radius:7px;padding:6px 9px;font-size:12.5px;
+  }
+
+  .log{list-style:none;margin:0;padding:0;max-height:290px;overflow-y:auto}
+  .log li{font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--ink-soft);padding:7px 0;border-bottom:1px solid var(--rule-soft)}
+  .log li:last-child{border-bottom:0}
+  .log li .w{color:var(--ink);font-weight:600}
+  .log .empty{font-family:var(--sans);font-size:12.5px;color:var(--ink-faint);padding:2px 0;border:0}
+
+  /* ---- counterparty view ---- */
+  .cp-note{border:1px dashed var(--rule);border-radius:10px;padding:11px 14px;font-size:12.5px;line-height:1.5;color:var(--ink-soft);background:var(--surface)}
+  details.payload{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:10px 13px}
+  details.payload summary{cursor:pointer;font-size:12px;font-weight:650;color:var(--accent)}
+  details.payload pre{
+    font-family:var(--mono);font-size:11px;line-height:1.55;overflow-x:auto;margin:10px 0 0;
+    background:var(--surface-2);border-radius:7px;padding:10px;color:var(--ink-soft);
+  }
+  details.payload mark{background:var(--clear-soft);color:var(--clear);border-radius:3px;padding:0 2px}
+
+  /* ---- modal ---- */
+  .scrim{position:fixed;inset:0;background:rgba(21,23,28,.5);display:grid;place-items:center;padding:18px;z-index:50}
+  .modal{
+    background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:20px 22px;
+    width:100%;max-width:30rem;max-height:88vh;overflow-y:auto;box-shadow:0 24px 60px -20px rgba(0,0,0,.5);
+    display:flex;flex-direction:column;gap:11px;
+  }
+  .modal h3{font-family:var(--serif);font-size:20px;font-weight:600;margin:0}
+  .modal .sub{font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin:0}
+  .fld{display:flex;flex-direction:column;gap:4px}
+  .fld label{font-size:11px;font-weight:650;color:var(--ink-soft)}
+  .fld input,.fld textarea{
+    border:1px solid var(--rule);background:var(--surface-2);color:var(--ink);
+    border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;width:100%;
+  }
+  .fld textarea{resize:vertical;min-height:64px}
+  .scope{border:1px solid var(--rule);border-radius:10px;background:var(--surface-2);padding:11px 13px;display:flex;flex-direction:column;gap:6px}
+  .scope .k{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint)}
+  .scope .r{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;line-height:1.4}
+  .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+  #m-who-list{
+    list-style:none;margin:2px 0 0;padding:0;position:absolute;left:0;right:0;top:100%;z-index:5;
+    max-height:216px;overflow-y:auto;background:var(--surface);border:1px solid var(--rule);
+    border-radius:8px;box-shadow:var(--shadow);
+  }
+  #m-who-list li{display:flex;gap:9px;align-items:baseline;padding:7px 11px;cursor:pointer;font-size:12.5px}
+  #m-who-list li:hover{background:var(--accent-soft)}
+  #m-who-list li b{font-weight:650;flex:none}
+  #m-who-list li .em{flex:1;min-width:0;font-family:var(--mono);font-size:11px;color:var(--ink-faint);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #m-who-list li .ro{flex:none;font-size:10.5px;color:var(--ink-faint)}
+  #m-who-list li.more{position:sticky;bottom:0;background:var(--surface-2);color:var(--ink-faint);
+    font-size:11px;cursor:default;border-top:1px solid var(--rule)}
+  #m-who-list li.more:hover{background:var(--surface-2)}
+  .pickrow{display:flex;gap:9px;align-items:flex-start;cursor:pointer;padding:3px 0}
+  .pickrow input{margin-top:3px;flex:none;accent-color:var(--accent)}
+  .linkish{border:0;background:none;padding:0;font:inherit;font-size:11px;font-weight:600;
+    color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+  .pick-say{font-size:11.5px;line-height:1.45;margin-top:5px;color:var(--ink-faint)}
+  .pick-say.ok{color:var(--clear)}
+  .pick-say.no{color:var(--warn)}
+
+  /* ---- toast ---- */
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    max-width:min(38rem,92vw);border-radius:10px;padding:12px 17px;font-size:13.5px;line-height:1.5;
+    box-shadow:0 16px 40px -14px rgba(0,0,0,.5);z-index:60;
+    border:1px solid var(--clear-line);background:var(--clear-soft);color:var(--clear);
+  }
+  .toast.err{border-color:var(--hold-line);background:var(--hold-soft);color:var(--hold)}
+  @media (prefers-reduced-motion: no-preference){
+    .toast{animation:rise .18s ease-out}
+    @keyframes rise{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+  }
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+
+<div class="page">
+  <div class="intro">
+    <p class="kicker">HaTi · clickable prototype</p>
+    <h1>Sit in each chair and watch what the other one can see.</h1>
+    <p>This is the internal review running for real — the same rules as the code on the branch, in one page with nothing behind it. Switch seats at the top. Everything you press changes the record, and the record is what the counterparty's page is built from.</p>
+  </div>
+
+  <div class="seats" role="group" aria-label="Whose screen you are looking at">
+    <span class="seats-k">You are</span>
+    <button class="seat" data-seat="you" aria-pressed="true">
+      <b>Wanjiru Kamau</b><span>wrote the redlines</span>
+    </button>
+    <button class="seat" data-seat="boss" aria-pressed="false">
+      <b>Achieng Otieno</b><span>sales</span>
+    </button>
+    <button class="seat" data-seat="proc" aria-pressed="false">
+      <b>Björn Nordin</b><span>procurement</span>
+    </button>
+    <button class="seat" data-seat="cp" aria-pressed="false">
+      <b>Nordfrakt Logistik AB</b><span>the counterparty</span>
+    </button>
+  </div>
+
+  <div class="cols">
+    <main class="app" id="app" aria-live="polite"></main>
+    <aside class="rail">
+      <section class="panel">
+        <h3>Try this</h3>
+        <ul class="try" id="try"></ul>
+      </section>
+      <section class="panel">
+        <h3>The rule (Settings)</h3>
+        <label class="gate-row">
+          <input type="checkbox" id="gate-on"/>
+          <span>Require an internal review before changes are sent</span>
+        </label>
+        <div id="gate-when-wrap" hidden>
+          <select id="gate-when" aria-label="Which contracts the rule applies to">
+            <option value="always">Every contract</option>
+            <option value="deviation">Only contracts that deviate from the playbook</option>
+          </select>
+        </div>
+        <p style="margin-top:9px">Off by default. This gates <b>sending</b>; the approval rules gate <b>signing</b>.</p>
+      </section>
+      <section class="panel">
+        <h3>What got recorded</h3>
+        <ul class="log" id="log"></ul>
+      </section>
+      <section class="panel">
+        <h3>Start again</h3>
+        <p>Nothing here is saved anywhere.</p>
+        <button class="btn" id="reset" type="button">Reset the prototype</button>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ==========================================================
+     THE MODEL — deliberately the same shape as js/review.js.
+     A change is ours or theirs; ours is UNSENT until a round is
+     published. A verdict is stamped with the wording it was given
+     for, so a revision makes it stale. A stale CLEAR stops being a
+     clear; a stale HOLD is still a hold. Nothing leaves on doubt.
+     ========================================================== */
+  var PEOPLE = { you:'Wanjiru Kamau', boss:'Achieng Otieno', proc:'Björn Nordin',
+                 cp:'Nordfrakt Logistik AB' };
+  /* The seats that can hold a review. Everything that used to say "the boss"
+     asks this instead, because there is no longer one reviewer. */
+  var REVIEWER_SEATS = ['boss', 'proc'];
+  function seatOf(name){
+    for (var k = 0; k < REVIEWER_SEATS.length; k++)
+      if (PEOPLE[REVIEWER_SEATS[k]] === name) return REVIEWER_SEATS[k];
+    return null;
+  }
+  var meNow = function(){ return PEOPLE[S.seat]; };
+
+  /* A workspace the size of a real one. The picker is the point: at this many
+     people a dropdown is a control you cannot use, so it takes typing and
+     matches on the address as well as the name. */
+  var STAFF = [
+    { id:'u_boss', name:'Achieng Otieno', email:'achieng@wanjiru.co.ke', role:'Admin' },
+    { id:'u_proc', name:'Björn Nordin',   email:'bjorn@wanjiru.co.ke',   role:'Editor' },
+    { id:'u_twin', name:'Achieng Wafula', email:'a.wafula@wanjiru.co.ke', role:'Editor' },
+    { id:'u_leg',  name:'Brian Mutiso',   email:'brian@wanjiru.co.ke',   role:'Editor' },
+    { id:'u_fin',  name:'Grace Njeri',    email:'grace@wanjiru.co.ke',   role:'Editor' },
+  ];
+  for (var _i = 0; _i < 296; _i++)
+    STAFF.push({ id:'u' + _i, name:'Person Number ' + _i, email:'p' + _i + '@wanjiru.co.ke', role:'Editor' });
+
+  function staffSearch(q){
+    var s = String(q || '').trim().toLowerCase();
+    if (!s) return { hits: STAFF.slice(0, 8), total: STAFF.length };
+    var rank = function(u){
+      var n = u.name.toLowerCase(), e = u.email.toLowerCase();
+      if (n === s || e === s) return 0;
+      if (n.indexOf(s) === 0 || e.indexOf(s) === 0) return 1;
+      if (n.indexOf(s) >= 0 || e.indexOf(s) >= 0) return 2;
+      return 9;
+    };
+    var hits = STAFF.map(function(u){ return { u:u, r:rank(u) }; })
+      .filter(function(x){ return x.r < 9; })
+      .sort(function(a, b){ return a.r - b.r || a.u.name.localeCompare(b.u.name); })
+      .map(function(x){ return x.u; });
+    return { hits: hits.slice(0, 8), total: hits.length };
+  }
+  /* Who a typed string actually IS. A reviewer has to be somebody with a seat —
+     they clear or hold each change, and only they can lift a hold — so an
+     address with nobody behind it is refused rather than posted into the void. */
+  function staffResolve(q){
+    var raw = String(q || '').trim();
+    if (!raw) return { ok:false, why:'Choose who should review this.' };
+    var typed = raw.indexOf('<') >= 0 ? raw.slice(raw.indexOf('<') + 1).replace('>', '').trim() : raw;
+    var s = typed.toLowerCase();
+    var hit = STAFF.filter(function(u){ return u.email.toLowerCase() === s || u.name.toLowerCase() === s; })[0];
+    if (!hit){
+      var near = STAFF.filter(function(u){
+        return u.name.toLowerCase().indexOf(s) >= 0 || u.email.toLowerCase().indexOf(s) >= 0; });
+      if (near.length === 1) hit = near[0];
+      else if (near.length > 1) return { ok:false,
+        why:'That matches ' + near.length + ' people. Keep typing, or paste the exact email address.' };
+    }
+    if (!hit) return { ok:false, why: /^[^\s@]+@[^\s@.]+\.[^\s@.]+$/.test(typed)
+      ? typed + ' is not a member of this workspace. A reviewer needs a HaTi seat — only they can lift a hold.'
+      : 'Nobody in this workspace matches that. Check the spelling, or paste their email address.' };
+    return { ok:true, user:hit };
+  }
+
+  function seed(){
+    return {
+      seat:'you',
+      gate:{ on:false, when:'always' },
+      deviates:true,          // the playbook says clause 6 is off-piste
+      published:false,        // has a round left the building
+      reviews:[],             // the OPEN requests — several run at once
+      nextRv:1,
+      history:[],             // returned requests
+      log:[],
+      done:{},
+      changes:[
+        { id:'CHG-004', side:'ours', clause:'Clause 4 · Payment Terms',
+          summary:'Payment terms extended from Net-30 to Net-45',
+          was:'payable within thirty (30) days', now:'payable within forty-five (45) days',
+          sent:false, hash:'a1', review:null, author:'Wanjiru Kamau' },
+        { id:'CHG-005', side:'ours', clause:'Clause 6 · Liability',
+          summary:'Liability cap removed',
+          was:'capped at the fees paid in the preceding twelve months', now:'unlimited',
+          sent:false, hash:'b1', review:null, author:'Wanjiru Kamau' },
+        { id:'CHG-006', side:'ours', clause:'Clause 10 · Sourcing',
+          summary:'Cane may be sourced from any certified estate',
+          was:'sourced from the named estates only', now:'sourced from any certified estate',
+          sent:false, hash:'d1', review:null, author:'Wanjiru Kamau' },
+        { id:'CHG-003', side:'theirs', clause:'Clause 5 · Storage Conditions',
+          summary:'Storage term reduced to 90 days with extended-stay premium',
+          was:'stored for up to one hundred and eighty (180) days', now:'stored for up to ninety (90) days',
+          sent:true, hash:'c1', review:null, author:'Erik Lindqvist' },
+      ],
+    };
+  }
+  var S = seed();
+
+  var ours       = function(){ return S.changes.filter(function(c){ return c.side==='ours'; }); };
+  var theirsOpen = function(){ return S.changes.filter(function(c){ return c.side==='theirs'; }); };
+  var unsent     = function(){ return ours().filter(function(c){ return !c.sent; }); };
+  /* WHAT IS STILL FREE TO ASK ABOUT. Everything outstanding, minus anything
+     already sitting with somebody — a change with sales cannot also go to
+     procurement, and offering it would invite exactly that. */
+  var scope      = function(){
+    return unsent().concat(theirsOpen()).filter(function(c){ return !openFor(c); });
+  };
+  var outstanding = function(){ return unsent().concat(theirsOpen()); };
+
+  function stale(c){ return !!(c.review && c.review.hash && c.review.hash !== c.hash); }
+  function held(c){ return !!(c.review && c.review.verdict === 'held'); }          // sticky: survives an edit
+  function cleared(c){ return !!(c.review && c.review.verdict === 'cleared' && !stale(c)); }
+  function heldIds(){ return unsent().filter(held).map(function(c){ return c.id; }); }
+  /* OUT WITH A COLLEAGUE and not yet answered. Different from held: held is a
+     refusal (ruby), this is in flight (amber). Both stay behind when you send —
+     wording read by the counterparty while your reviewer is midway through it
+     makes their verdict worthless. */
+  /* THE REVIEW THIS CHANGE IS IN, not "the" review. With several open, asking
+     the contract for its review picks an arbitrary one — which is how sales
+     ends up able to rule on procurement's clause. Every question below is
+     asked through here. */
+  function openFor(c){
+    for (var i = 0; i < S.reviews.length; i++)
+      if (S.reviews[i].ids.indexOf(c.id) >= 0) return S.reviews[i];
+    return null;
+  }
+  function inOpen(c){ return !!openFor(c); }
+  function outFor(c){ var rv = openFor(c); return (rv && !c.review) ? rv.reviewer : null; }
+  function waiting(){ return unsent().filter(function(c){ return !!outFor(c); }); }
+  /* The open reviews this seat is the named reviewer of. */
+  function myReviews(){
+    var me = meNow();
+    return S.reviews.filter(function(rv){ return rv.reviewer === me; });
+  }
+  function rvById(id){ return S.reviews.filter(function(rv){ return rv.id === id; })[0] || null; }
+  function rvChanges(rv){
+    return outstanding().filter(function(c){ return rv.ids.indexOf(c.id) >= 0; });
+  }
+  /* Who is holding our unsent wording right now — a list, because it can be two
+     people, and "your reviewer" would be a lie about both of them. */
+  function waitingNames(){
+    var seen = [];
+    waiting().forEach(function(c){
+      var w = outFor(c); if (w && seen.indexOf(w) < 0) seen.push(w);
+    });
+    if (!seen.length) return 'a colleague';
+    if (seen.length === 1) return seen[0];
+    return seen.slice(0, -1).join(', ') + ' and ' + seen[seen.length - 1];
+  }
+  function heldNames(){
+    var seen = [];
+    unsent().filter(held).forEach(function(c){
+      var w = c.review.by; if (seen.indexOf(w) < 0) seen.push(w);
+    });
+    if (!seen.length) return 'your reviewer';
+    if (seen.length === 1) return seen[0];
+    return seen.slice(0, -1).join(', ') + ' and ' + seen[seen.length - 1];
+  }
+  function sendable(){ return unsent().filter(function(c){ return !held(c) && !outFor(c); }); }
+
+  /* The gate, in the same order of questions the real one asks. */
+  function gate(){
+    var u = unsent();
+    if (!u.length) return { required:false, ok:true, reason:'nothing-unsent' };
+    var required = S.gate.on && (S.gate.when === 'always' || S.deviates);
+    /* HELD ONLY, on purpose. The question below is asked in order — "is there
+       anything left to send?" before "is any of it out for review?" — so this
+       set must exclude refusals and nothing else. Built from the send-ready set
+       instead (which also drops what is being read) and a contract whose every
+       change is with a colleague reports "all held back by Achieng": a refusal
+       naming a decision nobody made. */
+    var s = unsent().filter(function(c){ return !held(c); });
+    var unreviewed = s.filter(function(c){ return !cleared(c); });
+    if (!required) return { required:false, ok:true, reason:'not-required', held:heldIds() };
+    if (!s.length) return { required:true, ok:false, reason:'all-held' };
+    if (s.some(outFor)) return { required:true, ok:false, reason:'with-reviewer' };
+    if (unreviewed.length) return { required:true, ok:false,
+      reason: S.history.length ? 'not-cleared' : 'never-requested', n:unreviewed.length };
+    return { required:true, ok:true, reason:'cleared' };
+  }
+  function gateMessage(){
+    var g = gate();
+    if (g.ok) return null;
+    if (g.reason === 'all-held')
+      return 'Every unsent change is held back by ' + heldNames() + ', so there is nothing to send.';
+    if (g.reason === 'with-reviewer')
+      return 'These changes are with ' + waitingNames() + ' for internal review. They go out once the review comes back.';
+    if (g.reason === 'never-requested')
+      return 'This contract needs an internal review before changes go out — ' + g.n
+        + ' change' + (g.n === 1 ? ' has' : 's have') + ' not been looked at.';
+    return g.n + ' change' + (g.n === 1 ? ' has' : 's have') + ' not been cleared by an internal reviewer'
+      + ' — ' + (g.n === 1 ? 'it was' : 'they were') + ' either never looked at, or the wording has moved since.';
+  }
+
+  /* ---- the record ---- */
+  function record(who, text){ S.log.push({ who:who, text:text }); }
+  var toastTimer = null;
+  function toast(msg, kind){
+    var root = document.getElementById('toast-root');
+    root.innerHTML = '<div class="toast' + (kind === 'err' ? ' err' : '') + '" role="status">' + esc(msg) + '</div>';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ root.innerHTML = ''; }, 5200);
+  }
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function(ch){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[ch];
+    });
+  }
+
+  /* ==========================================================
+     THE ACTS
+     ========================================================== */
+  /* NO ONE-AT-A-TIME RULE. Sales gets clause 6 while you are still reading;
+     procurement gets clause 10 twenty minutes later; neither waits for the
+     other. What is still refused is one CHANGE in two reviews, which scope()
+     enforces by not offering it and the filter below enforces if it is named
+     anyway. */
+  function askReview(note, due, who, ids){
+    var free = scope();
+    if (!free.length){ toast('There is nothing left to review — everything outstanding is already with somebody.', 'err'); return; }
+    var freeIds = free.map(function(c){ return c.id; });
+    var want = (ids && ids.length)
+      ? ids.filter(function(id){ return freeIds.indexOf(id) >= 0; })
+      : freeIds;
+    if (!want.length){ toast('Those changes are already with a colleague — a change can only be with one person.', 'err'); return; }
+    var rv = { id:'REV-' + (S.nextRv++), by:PEOPLE.you, reviewer:who || PEOPLE.boss,
+               note:note || null, due:due || null, ids:want };
+    S.reviews.push(rv);
+    var mineIn = want.filter(function(id){
+      return unsent().some(function(c){ return c.id === id; }); }).length;
+    record(PEOPLE.you, 'Internal review ' + rv.id + ' requested from ' + rv.reviewer + ' — ' + mineIn
+      + ' of our unsent change(s) and ' + (want.length - mineIn) + ' of theirs in scope'
+      + (due ? ', due ' + due : '') + (note ? '; “' + note + '”' : ''));
+    S.done.asked = true;
+    if (S.reviews.length > 1) S.done.twoAtOnce = true;
+    toast('Sent to ' + rv.reviewer + ' — it is on their dashboard in HaTi. No email went out in this prototype.');
+    render();
+  }
+
+  function mark(id, verdict){
+    var c = S.changes.filter(function(x){ return x.id === id; })[0];
+    if (!c) return;
+    /* THE REVIEW THIS CHANGE IS IN. Resolve it per contract instead and the
+       check below tests the wrong person — sales could rule on procurement's
+       clause. Two different refusals, because "nobody was asked about this" and
+       "somebody else was asked about this" are different mistakes. */
+    var rv = openFor(c);
+    if (!rv){
+      toast(S.reviews.length
+        ? 'Change ' + id + ' is not part of any review you were asked about.'
+        : 'No internal review is open on this contract.', 'err');
+      return;
+    }
+    if (meNow() !== rv.reviewer){ toast('Only ' + rv.reviewer + ' can rule on ' + id + '.', 'err'); return; }
+    c.review = { verdict:verdict, by:rv.reviewer, hash:c.hash, rv:rv.id,
+                 note:(c.review && c.review.note) || null };
+    var word = { cleared:'cleared to send', held:'held back',
+      'advise-accept':'advises accepting', 'advise-reject':'advises rejecting',
+      'advise-discuss':'advises discussing' }[verdict];
+    record(rv.reviewer, '#' + id + ' ' + word + ' by ' + rv.reviewer + ' in ' + rv.id + ' — “' + c.summary + '”');
+    if (verdict === 'held') S.done.held = true;
+    if (verdict === 'cleared') S.done.cleared = true;
+    render();
+  }
+
+  function noteOn(id, text){
+    var c = S.changes.filter(function(x){ return x.id === id; })[0];
+    if (!c || !c.review) return;
+    c.review.note = String(text || '').trim() || null;
+    record(meNow(), '#' + id + ' note — “' + c.review.note + '”');
+    render();
+  }
+
+  /* A REVIEWER CLOSES THEIR OWN, AND ONLY THEIR OWN. And it checks only its own
+     changes: an unmarked change sitting in somebody else's review must not stop
+     this one being handed back, or sales would be waiting on procurement for no
+     reason. */
+  function handBack(rvId){
+    var mine = myReviews();
+    var rv = rvId ? rvById(rvId) : (mine.length === 1 ? mine[0] : null);
+    if (!rv){
+      toast(mine.length ? 'Which review? Use the button on the one you mean.'
+                        : 'No internal review of yours is open on this contract.', 'err');
+      return;
+    }
+    if (meNow() !== rv.reviewer){ toast('Only ' + rv.reviewer + ' can hand ' + rv.id + ' back.', 'err'); return; }
+    var inRv = rvChanges(rv);
+    var unmarked = inRv.filter(function(c){ return c.side === 'ours' && !c.review; });
+    if (unmarked.length){
+      toast(unmarked.length + ' change' + (unmarked.length === 1 ? ' of theirs has' : 's of theirs have')
+        + ' no verdict yet. Clear or hold each one before handing the review back.', 'err');
+      return;
+    }
+    var oursIn = inRv.filter(function(c){ return c.side === 'ours'; });
+    var t = { cleared:oursIn.filter(cleared).length, held:oursIn.filter(held).length,
+              advised:inRv.filter(function(c){ return c.side === 'theirs' && !!c.review; }).length };
+    S.history.push({ by:rv.reviewer, to:rv.by, tally:t });
+    S.reviews = S.reviews.filter(function(x){ return x !== rv; });
+    record(rv.reviewer, 'Internal review ' + rv.id + ' returned to ' + rv.by + ' — ' + t.cleared
+      + ' cleared to send, ' + t.held + ' held back, ' + t.advised + ' of the counterparty’s asks advised on');
+    S.done.handedBack = true;
+    toast('Handed back to ' + rv.by + '.');
+    render();
+  }
+
+  /* ---- WHO REWROTE IT ----
+     The review itself is feedback only: clear, hold, advise, note. But a
+     reviewer is an ordinary colleague with editing rights, and correcting the
+     cap beats writing "make it 24 months" and waiting a round. When they do,
+     the change keeps its number AND ITS AUTHOR — the ask is still the person's
+     who raised it — and gains a note of who rewrote the words. Without that the
+     card goes on attributing their wording to you. */
+  function revise(id, by){
+    var c = S.changes.filter(function(x){ return x.id === id; })[0];
+    if (!c || c.sent) return;
+    var who = by || PEOPLE.you;
+    if (seatOf(who)){
+      c.now = c.id === 'CHG-006' ? 'sourced from any estate on the certified register'
+            : 'capped at twenty-four (24) months of fees';
+      c.summary = c.id === 'CHG-006' ? 'Sourcing widened to the certified register only'
+            : 'Liability cap set at 24 months, not removed';
+    } else {
+      c.now = c.id === 'CHG-005' ? 'unlimited, save for wilful misconduct'
+            : c.id === 'CHG-006' ? 'sourced from any certified or provisionally certified estate'
+            : 'payable within ninety (90) days';
+      c.summary = c.id === 'CHG-005' ? 'Liability cap removed, with a carve-out for wilful misconduct'
+            : c.id === 'CHG-006' ? 'Sourcing widened to provisionally certified estates too'
+            : 'Payment terms extended from Net-30 to Net-90';
+    }
+    c.hash = c.hash + '+';
+    /* Cleared when the author takes the wording back — a stale "revised by"
+       would be a claim about the present that stopped being true. */
+    if (who !== c.author) c.revisedBy = who; else delete c.revisedBy;
+    if (seatOf(who)) S.done.bossEdited = true;
+    record(who, '#' + id + ' revised by ' + who + ' — “' + c.summary + '”');
+    S.done.revised = true;
+    /* Both directions are the same principle — when in doubt, nothing leaves —
+       so both are said in the colour that means "look at this again". */
+    if (c.review && stale(c)){
+      toast(c.review.verdict === 'held'
+        ? 'Revised — and it is STILL held. A hold survives an edit; only ' + c.review.by + ' can lift it.'
+        : 'Revised — the clearance has lapsed. ' + c.review.by + ' approved wording that is no longer there.',
+        'err');
+    }
+    render();
+  }
+
+  function publish(force){
+    var msg = gateMessage();
+    if (msg){ toast(msg, 'err'); S.done.blocked = true; render(); return; }
+    var w = waiting();
+    if (w.length && !force){ warnModal(w); return; }
+    var going = sendable();
+    if (!going.length){ toast('There is nothing waiting to send.', 'err'); return; }
+    going.forEach(function(c){ c.sent = true; });
+    S.published = true;
+    var n = going.length, h = heldIds().length;
+    record(PEOPLE.you, 'Round sent to ' + PEOPLE.cp + ' — ' + n + ' change' + (n === 1 ? '' : 's')
+      + ' travelled' + (h ? '; ' + h + ' held back by the internal review did not' : ''));
+    S.done.published = true;
+    toast('Sent to ' + PEOPLE.cp + ' — ' + n + ' change' + (n === 1 ? '' : 's') + ' travelled'
+      + (h ? ', ' + h + ' stayed behind.' : '.'));
+    render();
+  }
+
+  /* ==========================================================
+     THE PAYLOAD — what actually travels. Built by allow-list, so
+     what leaks is nothing rather than whatever nobody remembered
+     to delete. Held changes are excluded unconditionally.
+     ========================================================== */
+  function payload(){
+    var out = { contract:{ id:'MK-R1', name:'Cane Supply Agreement', sharedBy:'Wanjiru Catering Ltd', changes:[] } };
+    S.changes.forEach(function(c){
+      if (c.side === 'ours' && !c.sent) return;                    // not sent yet
+      if (c.side === 'ours' && heldIds().indexOf(c.id) >= 0) return; // held: never travels
+      if (c.side === 'ours' && outFor(c)) return;                    // still being read
+      out.contract.changes.push({ id:c.id, clause:c.clause, summary:c.summary,
+        was:c.was, now:c.now, from:(c.side === 'ours' ? 'Wanjiru Catering Ltd' : 'Nordfrakt Logistik AB') });
+    });
+    return out;
+  }
+
+  /* ==========================================================
+     DRAWING
+     ========================================================== */
+  function diffHtml(c){
+    return '<div class="diff">…&nbsp;<del>' + esc(c.was) + '</del>&nbsp;<ins>' + esc(c.now) + '</ins>&nbsp;…</div>';
+  }
+
+  function chipFor(c){
+    var out = [];
+    /* WAITING IS NOT REFUSED. Ruby means "your reviewer stopped this"; amber
+       means "they have not answered yet". Painting both red would hide the one
+       that matters among the ones that do not. */
+    if (S.seat !== 'cp' && outFor(c))
+      out.push('<span class="chip waiting">&#8987; With ' + esc(outFor(c)) + '</span>');
+    if (S.seat !== 'cp' && c.review){
+      var v = c.review.verdict;
+      var label = { cleared:'✓ Cleared to send', held:'⏹ Held back',
+        'advise-accept':'💬 Advise: accept', 'advise-reject':'💬 Advise: reject',
+        'advise-discuss':'💬 Advise: discuss' }[v];
+      var cls = v === 'held' ? 'held' : v === 'cleared' ? 'cleared' : 'advice';
+      out.push('<span class="chip ' + cls + '">' + esc(label) + '</span>');
+      if (stale(c)) out.push('<span class="chip stale">wording moved since</span>');
+    }
+    if (c.side === 'ours') out.push(c.sent
+      ? '<span class="chip sent">sent</span>'
+      : (S.seat !== 'cp' && (held(c) || outFor(c)) ? '' : '<span class="chip draft">🔒 draft</span>'));
+    return out.join('');
+  }
+
+  function cardHtml(c){
+    var mine = c.side === 'ours';
+    var cls = 'card ' + (mine ? 'ours' : 'theirs')
+      + (S.seat !== 'cp' && held(c) ? ' is-held' : '')
+      + (S.seat !== 'cp' && outFor(c) ? ' is-waiting' : '')
+      + (S.seat !== 'cp' && cleared(c) ? ' is-cleared' : '');
+    var bits = [];
+    bits.push('<div class="' + cls + '">');
+    bits.push('<div class="card-top"><span class="cid">' + esc(c.id) + '</span>'
+      + '<span class="origin' + (mine ? '' : ' them') + '">'
+      + (S.seat === 'cp'
+          ? (mine ? esc('Wanjiru Catering Ltd’s ask') : 'Your ask')
+          : (mine ? 'Your ask' : esc(PEOPLE.cp + '’s ask')))
+      + '</span>' + chipFor(c) + '</div>');
+    bits.push('<h4>' + esc(c.summary) + '</h4>');
+    bits.push('<div class="meta">' + esc(c.clause) + '</div>');
+    bits.push(diffHtml(c));
+
+    /* The reviewer's note is internal. It is drawn on our seats and on
+       neither of the counterparty's — the same predicate the real
+       reviewSeatShowsReview() applies. */
+    if (S.seat !== 'cp' && c.review && c.review.note)
+      bits.push('<div class="said"><b>' + esc(c.review.by) + ' said</b>' + esc(c.review.note) + '</div>');
+    /* An internal name, so it never appears on the counterparty's seat. */
+    if (S.seat !== 'cp' && c.revisedBy && c.revisedBy !== c.author)
+      bits.push('<div class="revby">&#9998; ' + esc(c.revisedBy) + ' rewrote this wording — '
+        + esc(c.author) + ' proposed the change</div>');
+
+    var verbs = [];
+    /* THE VERDICT BUTTONS BELONG TO THE REVIEWER THIS CHANGE IS WITH. Sales
+       sees them on clause 6 and not on clause 10; procurement, the reverse. */
+    var rvHere = openFor(c);
+    if (rvHere && meNow() === rvHere.reviewer){
+      verbs.push('<span class="verbs-k">Your verdict</span>');
+      if (mine){
+        verbs.push(vb(c, 'cleared', 'Cleared to send', 'clear'));
+        verbs.push(vb(c, 'held', 'Held back', 'hold'));
+      } else {
+        verbs.push(vb(c, 'advise-accept', 'Advise: accept', ''));
+        verbs.push(vb(c, 'advise-reject', 'Advise: reject', ''));
+        verbs.push(vb(c, 'advise-discuss', 'Advise: discuss', ''));
+      }
+      verbs.push('<button class="vbtn" data-note="' + esc(c.id) + '" type="button">Note</button>');
+      /* Not part of the review — this is the ordinary editing right any
+         colleague has, shown here because it is the question everybody asks
+         about this feature. */
+      if (mine) verbs.push('<button class="vbtn" data-revise-boss="' + esc(c.id) + '" type="button">Rewrite it yourself</button>');
+    } else if (S.seat === 'you' && mine && !c.sent){
+      verbs.push('<span class="verbs-k">Your ask</span>');
+      verbs.push('<button class="vbtn" data-revise="' + esc(c.id) + '" type="button">Rewrite the wording</button>');
+      /* ---- THE WAY IN, ON THE CHANGE ITSELF ----
+         A door on the toolbar is fine at the end of a read and useless in the
+         middle of one. You are on clause 10, you want procurement to see THIS,
+         and you should not have to remember it until you reach the bottom. It
+         goes once somebody has it: a change is with one person, never two. */
+      if (!held(c) && !outFor(c))
+        verbs.push('<button class="vbtn" data-ask-one="' + esc(c.id) + '" type="button">👤 Review</button>');
+      if (held(c)) verbs.push('<span style="font-size:11.5px;color:var(--hold)">Held by ' + esc(c.review.by) + ' — it will not be sent.</span>');
+      else if (outFor(c)) verbs.push('<span style="font-size:11.5px;color:var(--warn)">With ' + esc(outFor(c)) + ' — it will not be sent until they answer.</span>');
+    }
+    if (verbs.length) bits.push('<div class="verbs">' + verbs.join('') + '</div>');
+    bits.push('</div>');
+    return bits.join('');
+  }
+  function vb(c, verdict, label, cls){
+    var on = !!(c.review && c.review.verdict === verdict);
+    return '<button class="vbtn ' + cls + '" type="button" data-mark="' + esc(c.id)
+      + '" data-verdict="' + esc(verdict) + '" aria-pressed="' + (on ? 'true' : 'false') + '">'
+      + esc(label) + '</button>';
+  }
+
+  function bannerHtml(){
+    if (S.seat === 'cp') return '';
+    /* ---- ONE ROW PER REVIEW ----
+       Several can be open at once, so a single sentence cannot describe the
+       state: sales has clause 6, procurement has clause 10, and each has its
+       own due date and its own way out. Each row's button NAMES the review it
+       acts on — with two open, "cancel the review" is a question rather than an
+       instruction. The reader's own rows lead: one you owe a verdict on is
+       work, one somebody else owes is news. */
+    if (S.reviews.length){
+      var me = meNow();
+      var rows = S.reviews.slice().sort(function(a, b){
+        return (b.reviewer === me) - (a.reviewer === me);
+      }).map(function(rv){
+        if (rv.reviewer === me){
+          var inRv = rvChanges(rv);
+          var left = inRv.filter(function(c){ return !c.review; }).length;
+          return '<div class="rvrow"><span class="g"><b>' + esc(rv.by) + ' asked you to review this.</b> '
+            + (rv.note ? '“' + esc(rv.note) + '” ' : '')
+            + left + ' of ' + inRv.length + ' still need' + (left === 1 ? 's' : '') + ' your verdict.'
+            + (rv.due ? ' <b>Due ' + esc(rv.due) + '.</b>' : '')
+            + '</span><button class="btn" data-act="handback" data-rv="' + esc(rv.id)
+            + '" type="button">Hand it back</button></div>';
+        }
+        return '<div class="rvrow"><span class="g"><b>With ' + esc(rv.reviewer) + '.</b> '
+          + rv.ids.length + ' change' + (rv.ids.length === 1 ? '' : 's') + ' went to them.'
+          + (rv.due ? ' <b>Due ' + esc(rv.due) + '.</b>' : '')
+          + '</span><button class="btn" data-act="cancel" data-rv="' + esc(rv.id)
+          + '" type="button">Cancel</button></div>';
+      }).join('');
+      return '<div class="banner"><span class="g rvrows">' + rows
+        + (gate().required && S.reviews.some(function(rv){ return rv.reviewer !== me; })
+            ? '<span class="rvfoot">Nothing goes to the counterparty until the reviews come back.</span>' : '')
+        + '</span></div>';
+    }
+    if (S.history.length){
+      var h = S.history[S.history.length - 1];
+      return '<div class="banner ' + (h.tally.held ? '' : 'ok') + '"><span class="g"><b>'
+        + esc(h.by) + ' has reviewed this.</b> ' + h.tally.cleared + ' cleared to send, '
+        + h.tally.held + ' held back, ' + h.tally.advised + ' of the counterparty’s asks advised on.'
+        + '</span><button class="btn" data-act="ask" type="button">Ask again</button></div>';
+    }
+    var g = gate();
+    if (g.required && !g.ok)
+      return '<div class="banner"><span class="g"><b>Internal review needed.</b> ' + esc(gateMessage())
+        + '</span><button class="btn" data-act="ask" type="button">Ask for review</button></div>';
+    return '';
+  }
+
+  function ownerView(){
+    var g = gate(), h = heldIds().length, n = sendable().length, w = waiting().length;
+    var out = [];
+    out.push('<div class="apphead"><span class="nm">Cane Supply Agreement</span>'
+      + '<span class="id">MK-R1 · Nordfrakt Logistik AB</span>'
+      + '<span class="who">' + esc(PEOPLE[S.seat]) + '</span></div>');
+    out.push('<div class="toolbar">'
+      /* ALWAYS A WAY IN. This used to become "With Achieng Otieno" the moment
+         anything went out — a button that had stopped being a button, on the
+         one control you need again the second you spot something else worth
+         escalating. Who is holding what belongs on the cards, where the
+         changes are; the toolbar's job is to open the door. */
+      + (S.seat === 'you'
+        ? '<button class="btn btn-accent" data-act="ask" type="button">👤 Internal review</button>'
+        : '<button class="btn btn-accent" data-act="handback" type="button"'
+            + (myReviews().length ? '' : ' disabled') + '>Hand review back</button>')
+      + '</div>');
+    var b = bannerHtml(); if (b) out.push(b);
+    out.push('<div class="cards">' + S.changes.map(cardHtml).join('') + '</div>');
+
+    if (S.seat === 'you'){
+      out.push('<div class="sendbar">'
+        + '<button class="btn btn-send" data-act="publish" type="button">Publish Round'
+        + (n ? ' · ' + n + ' unsent' : '') + (h ? ' · ' + h + ' held' : '')
+        + (w ? ' · ' + w + ' in review' : '') + '</button>'
+        + '<span class="why">'
+        + (h ? h + ' held back by ' + esc(heldNames()) + ' will not travel. ' : '')
+        + (w ? w + ' still being read and will not travel yet. ' : '')
+        + (g.required && !g.ok ? 'The rule is on, so this is locked.' : 'Nothing reaches ' + esc(PEOPLE.cp) + ' until you press this.')
+        + '</span></div>');
+    }
+    return out.join('');
+  }
+
+  function cpView(){
+    var p = payload(), json = JSON.stringify(p, null, 2);
+    var leaks = ['review', 'held', 'Achieng', 'Björn', 'cleared'].filter(function(w){
+      return json.toLowerCase().indexOf(w.toLowerCase()) >= 0;
+    });
+    var out = [];
+    out.push('<div class="apphead"><span class="nm">Cane Supply Agreement</span>'
+      + '<span class="id">shared by Wanjiru Catering Ltd</span>'
+      + '<span class="who">' + esc(PEOPLE.cp) + ' · no account needed</span></div>');
+    out.push('<div class="banner info"><span class="g">This is their page, built from the copy that actually travels. '
+      + 'There is no seat switcher here in real life — this is the only screen they get.</span></div>');
+    var shown = S.changes.filter(function(c){ return c.side === 'theirs' || c.sent; });
+    out.push(shown.length
+      ? '<div class="cards">' + shown.map(cardHtml).join('') + '</div>'
+      : '<div class="cp-note">Nothing has been sent to them yet. Go back to Wanjiru’s seat and press <b>Publish Round</b>.</div>');
+    var hid = heldIds().length + waiting().length,
+        undone = sendable().length;
+    out.push('<div class="cp-note">'
+      + (hid ? '<b>' + hid + ' change' + (hid === 1 ? ' is' : 's are') + ' being kept back internally — held, or still being read — and nothing on this page says so.</b> '
+             : '')
+      + (undone ? undone + ' more ' + (undone === 1 ? 'is' : 'are') + ' written but not yet sent. ' : '')
+      + 'No verdict, no reviewer’s name, and no hint that a review happened at all — not even that one exists.</div>');
+    out.push('<details class="payload"><summary>Look at the copy that travelled</summary>'
+      + '<pre>' + esc(json) + '</pre>'
+      + '<p style="font-size:12px;color:var(--ink-soft);margin:9px 0 0">'
+      + (leaks.length
+          ? '⚠️ Found: ' + esc(leaks.join(', '))
+          : '<mark>Checked for “review”, “held”, “cleared” and both reviewers’ names — none of them are in there.</mark>')
+      + '</p></details>');
+    return out.join('');
+  }
+
+  var TRY = [
+    { k:'asked',      t:'As Wanjiru, press <b>👤 Review</b> on the liability change and send that one to Achieng.' },
+    { k:'twoAtOnce',  t:'Still as Wanjiru, press <b>👤 Review</b> on the sourcing change and send it to <b>Björn</b> — Achieng does not have to finish first.' },
+    { k:'held',       t:'Switch to <b>Achieng</b> and hold the liability change back. Notice the sourcing change has no buttons for them.' },
+    { k:'cleared',    t:'Clear something, then <b>hand it back</b> — Björn’s review stays open.' },
+    { k:'published',  t:'Back as <b>Wanjiru</b>, press <b>Publish Round</b>.' },
+    { k:'sawCp',      t:'Switch to <b>Nordfrakt</b> and look for the held change.' },
+    { k:'blocked',    t:'Turn the rule on in the panel below, then try to send with something unreviewed.' },
+    { k:'revised',    t:'Rewrite a held change and watch the hold survive it.' },
+    { k:'bossEdited', t:'As a reviewer, press <b>Rewrite it yourself</b> and see who the card credits.' },
+  ];
+
+  function renderTry(){
+    document.getElementById('try').innerHTML = TRY.map(function(s){
+      var done = !!S.done[s.k];
+      return '<li class="' + (done ? 'done' : '') + '"><span class="tick" aria-hidden="true">✓</span>'
+        + '<span class="t">' + s.t + '</span>'
+        + '<span class="sr">' + (done ? 'done' : 'not done yet') + '</span></li>';
+    }).join('');
+  }
+
+  function renderLog(){
+    var el = document.getElementById('log');
+    el.innerHTML = S.log.length
+      ? S.log.slice().reverse().map(function(l){ return '<li><span class="w">' + esc(l.who) + '</span> · ' + esc(l.text) + '</li>'; }).join('')
+      : '<li class="empty">Every request, verdict and send is written to the contract’s audit trail. Nothing yet.</li>';
+  }
+
+  function render(){
+    if (S.seat === 'cp') S.done.sawCp = true;
+    document.getElementById('app').innerHTML = S.seat === 'cp' ? cpView() : ownerView();
+    document.querySelectorAll('.seat').forEach(function(b){
+      b.setAttribute('aria-pressed', b.getAttribute('data-seat') === S.seat ? 'true' : 'false');
+    });
+    document.getElementById('gate-on').checked = S.gate.on;
+    document.getElementById('gate-when-wrap').hidden = !S.gate.on;
+    document.getElementById('gate-when').value = S.gate.when;
+    renderTry();
+    renderLog();
+  }
+
+  /* ---- modals ---- */
+  function closeModal(){ document.getElementById('modal-root').innerHTML = ''; }
+  /* `only` is set when the ask came from a change's own button: the dialog
+     opens narrowed to that one, because that is what you pressed. */
+  function askModal(only){
+    var free = scope();
+    if (!free.length){ toast('Everything outstanding is already with somebody.', 'err'); return; }
+    /* ONE TICK PER CHANGE, all on to start with: "all of it" is the common case
+       and a dialog that opens empty makes you work to get back to the default.
+       What matters is that unticking is possible — you are uneasy about the
+       indemnity, not about all five redlines. */
+    var rows = free.map(function(c){
+      return '<label class="r pickrow"><input type="checkbox" class="pickch" data-ch="' + esc(c.id) + '"'
+        + (!only || only === c.id ? ' checked' : '') + '/>'
+        + '<span class="cid">' + esc(c.id) + '</span><span><b>' + esc(c.summary)
+        + '</b><br><span style="color:var(--ink-faint)">' + esc(c.clause)
+        + (c.side === 'theirs' ? ' — from the counterparty, undecided' : '') + '</span></span></label>';
+    }).join('');
+    document.getElementById('modal-root').innerHTML =
+      '<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Ask a colleague to review this">'
+      + '<h3>Ask a colleague to review this</h3>'
+      + '<p class="sub">They see every change below, clear or hold each one, and hand it back to you. '
+      + 'Nothing reaches the counterparty while it is with them.</p>'
+      + '<div class="fld"><label for="m-who">Who should review it</label>'
+      + '<div style="position:relative"><input id="m-who" autocomplete="off" role="combobox" aria-expanded="false"'
+      + ' placeholder="Type a name, or paste their email address"/>'
+      + '<ul id="m-who-list" role="listbox" hidden></ul></div>'
+      + '<div id="m-who-say" class="pick-say">Start typing to search everyone in this workspace — by name or by email.</div></div>'
+      + '<div class="fld"><label for="m-note">What do you want them to look at?</label>'
+      + '<textarea id="m-note">I am not comfortable with the liability cap — is this defensible?</textarea></div>'
+      + '<div class="fld"><label for="m-due">Needed by</label><input id="m-due" type="date" value="2026-08-12"/></div>'
+      + '<div class="scope"><span class="k" style="display:flex;align-items:center;gap:8px">'
+      + '<span style="flex:1">What they will be looking at</span>'
+      + '<button type="button" id="m-pick-all" class="linkish">Select none</button></span>' + rows + '</div>'
+      + '<div class="acts"><button class="btn" data-close type="button">Cancel</button>'
+      + '<button class="btn btn-accent" id="m-send" type="button">Send for review</button></div>'
+      + '</div></div>';
+    wirePicker();
+    var boxes = function(){ return [].slice.call(document.querySelectorAll('.pickch')); };
+    var chosen = function(){ return boxes().filter(function(b){ return b.checked; })
+      .map(function(b){ return b.getAttribute('data-ch'); }); };
+    var recount = function(){
+      var n = chosen().length, all = boxes().length;
+      var btn = document.getElementById('m-send');
+      if (btn){ btn.textContent = (n && n < all) ? ('Send ' + n + ' for review') : 'Send for review';
+                btn.disabled = !n; }
+      var a = document.getElementById('m-pick-all');
+      if (a) a.textContent = (n === all) ? 'Select none' : 'Select all';
+    };
+    boxes().forEach(function(b){ b.addEventListener('change', recount); });
+    document.getElementById('m-pick-all')?.addEventListener('click', function(){
+      var on = chosen().length !== boxes().length;
+      boxes().forEach(function(b){ b.checked = on; });
+      recount();
+    });
+    window.__chosen = chosen;
+    recount();
+    document.getElementById('m-who').focus();
+  }
+
+  /* The same shape as the real one: the box holds what was typed, `picked`
+     holds who that is, and it is recomputed on every keystroke — so pasting an
+     address and pressing Send works without ever opening the list. */
+  var picked = null;
+  function wirePicker(){
+    var box = document.getElementById('m-who');
+    var list = document.getElementById('m-who-list');
+    var say = document.getElementById('m-who-say');
+    if (!box) return;
+    var open = false;
+    function paint(){
+      var r = staffSearch(box.value);
+      var more = r.total - r.hits.length;
+      list.innerHTML = r.hits.length
+        ? r.hits.map(function(u){
+            return '<li data-pick="' + u.id + '"><b>' + esc(u.name) + '</b>'
+              + '<span class="em">' + esc(u.email) + '</span>'
+              + '<span class="ro">' + esc(u.role) + '</span></li>'; }).join('')
+            + (more > 0 ? '<li class="more">' + more + ' more — keep typing to narrow it down</li>' : '')
+        : '<li class="more">No match</li>';
+      list.hidden = !open;
+      box.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function tell(){
+      if (!String(box.value || '').trim()){
+        picked = null;
+        say.textContent = 'Start typing to search everyone in this workspace — by name or by email.';
+        say.className = 'pick-say'; return;
+      }
+      var r = staffResolve(box.value);
+      picked = r.ok ? r.user : null;
+      say.textContent = r.ok ? ('Sending to ' + r.user.name + ' · ' + r.user.email) : r.why;
+      say.className = 'pick-say ' + (r.ok ? 'ok' : 'no');
+    }
+    box.addEventListener('input', function(){ open = true; tell(); paint(); });
+    box.addEventListener('focus', function(){ open = true; paint(); });
+    box.addEventListener('blur', function(){ setTimeout(function(){ open = false; paint(); }, 120); });
+    list.addEventListener('mousedown', function(ev){
+      var li = ev.target.closest && ev.target.closest('[data-pick]');
+      if (!li) return;
+      ev.preventDefault();
+      var u = STAFF.filter(function(x){ return x.id === li.getAttribute('data-pick'); })[0];
+      box.value = u.name + ' <' + u.email + '>';
+      open = false; tell(); paint(); box.focus();
+    });
+    box.addEventListener('keydown', function(ev){ if (ev.key === 'Escape' && open){ ev.stopPropagation(); open = false; paint(); } });
+    tell(); paint();
+  }
+  /* Three answers, because there are three sensible things to do. */
+  function warnModal(w){
+    var rest = sendable().length;
+    document.getElementById('modal-root').innerHTML =
+      '<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true">'
+      + '<h3>Some of this is still being looked at</h3>'
+      + '<p class="sub">' + w.length + ' change' + (w.length === 1 ? ' is' : 's are') + ' with '
+      + esc(waitingNames())
+      + ' and ' + (w.length === 1 ? 'has' : 'have') + ' not been answered yet. Sending now makes the review '
+      + 'pointless — the verdict would arrive about wording ' + esc(PEOPLE.cp) + ' has already read.</p>'
+      + '<div class="scope">' + w.map(function(c){
+          return '<div class="r"><span class="cid">' + esc(c.id) + '</span><span>' + esc(c.summary) + '</span></div>';
+        }).join('') + '</div>'
+      + '<div class="acts"><button class="btn" data-close type="button">Wait for the review</button>'
+      + '<button class="btn btn-accent" id="m-warn-rest" type="button"' + (rest ? '' : ' disabled') + '>'
+      + 'Send the other ' + rest + ' now</button></div>'
+      + '</div></div>';
+  }
+
+  function noteModal(id){
+    var c = S.changes.filter(function(x){ return x.id === id; })[0];
+    document.getElementById('modal-root').innerHTML =
+      '<div class="scrim" id="scrim"><div class="modal" role="dialog" aria-modal="true" aria-label="Your note">'
+      + '<h3>Your note on ' + esc(id) + '</h3>'
+      + '<p class="sub">Internal only — the counterparty never sees this.</p>'
+      + '<div class="fld"><textarea id="m-cnote">' + esc((c.review && c.review.note) || '') + '</textarea></div>'
+      + '<div class="acts"><button class="btn" data-close type="button">Cancel</button>'
+      + '<button class="btn btn-accent" id="m-cok" data-for="' + esc(id) + '" type="button">Save</button></div>'
+      + '</div></div>';
+    document.getElementById('m-cnote').focus();
+  }
+
+  /* ---- one delegated listener ---- */
+  document.addEventListener('click', function(ev){
+    var t = ev.target.closest ? ev.target : null;
+    if (!t) return;
+    var seat = t.closest('.seat');
+    if (seat){ S.seat = seat.getAttribute('data-seat'); render(); return; }
+
+    if (t.closest('[data-close]') || t.id === 'scrim'){ closeModal(); return; }
+    if (t.id === 'm-send'){
+      var box = document.getElementById('m-who');
+      if (!picked){ toast(staffResolve(box ? box.value : '').why, 'err'); if (box) box.focus(); return; }
+      var note = (document.getElementById('m-note') || {}).value || '';
+      var due = (document.getElementById('m-due') || {}).value || '';
+      var who = picked.name;
+      var ids = window.__chosen ? window.__chosen() : null;
+      closeModal(); askReview(note.trim(), due, who, ids); return;
+    }
+    if (t.id === 'm-cok'){
+      var forId = t.getAttribute('data-for');
+      var txt = (document.getElementById('m-cnote') || {}).value || '';
+      closeModal(); noteOn(forId, txt); return;
+    }
+    if (t.id === 'm-warn-rest'){ closeModal(); publish(true); return; }
+    if (t.id === 'reset'){ S = seed(); closeModal(); toast('Back to the beginning.'); render(); return; }
+
+    var act = t.closest('[data-act]');
+    if (act){
+      var a = act.getAttribute('data-act');
+      var which = act.getAttribute('data-rv');
+      if (a === 'ask') askModal();
+      else if (a === 'handback') handBack(which);
+      else if (a === 'publish') publish();
+      else if (a === 'cancel'){
+        /* NAMED. With two open, cancelling "the review" would quietly kill the
+           wrong person's. */
+        var rv = which ? rvById(which) : (S.reviews.length === 1 ? S.reviews[0] : null);
+        if (!rv){ toast('Which review? Use the button on the row you mean.', 'err'); return; }
+        S.reviews = S.reviews.filter(function(x){ return x !== rv; });
+        record(PEOPLE.you, 'Internal review ' + rv.id + ' cancelled — it was with ' + rv.reviewer);
+        toast('Review cancelled — ' + rv.reviewer + ' no longer has it.'); render();
+      }
+      return;
+    }
+    var one = t.closest('[data-ask-one]');
+    if (one){ askModal(one.getAttribute('data-ask-one')); return; }
+    var m = t.closest('[data-mark]');
+    if (m){ mark(m.getAttribute('data-mark'), m.getAttribute('data-verdict')); return; }
+    var nt = t.closest('[data-note]');
+    if (nt){ noteModal(nt.getAttribute('data-note')); return; }
+    var rv = t.closest('[data-revise]');
+    if (rv){ revise(rv.getAttribute('data-revise')); return; }
+    var rb = t.closest('[data-revise-boss]');
+    if (rb){ revise(rb.getAttribute('data-revise-boss'), meNow()); return; }
+  });
+
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+
+  document.getElementById('gate-on').addEventListener('change', function(e){
+    S.gate.on = !!e.target.checked;
+    record('Settings', 'Internal review before sending turned ' + (S.gate.on ? 'ON' : 'off')
+      + (S.gate.on ? ' — applies to ' + (S.gate.when === 'always' ? 'every contract' : 'contracts that deviate from the playbook') : ''));
+    render();
+  });
+  document.getElementById('gate-when').addEventListener('change', function(e){
+    S.gate.when = e.target.value;
+    record('Settings', 'The rule now applies to '
+      + (S.gate.when === 'always' ? 'every contract' : 'contracts that deviate from the playbook'));
+    render();
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

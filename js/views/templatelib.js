@@ -353,6 +353,10 @@ async function tplLibCreate(id, essentials) {
     const c = typeof migrateContract === 'function' ? migrateContract(r.contract) : r.contract;
     c._loaded = true;
     state.contracts.unshift(c);
+  /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
+     wsTabDefaults. Registered at every creation site because there is no
+     single funnel for creating a contract. */
+  if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
     toast(`${c.id} created from “${c.templateForm ? c.templateForm.templateName : 'template'}” — company details arrived pre-filled`);
     openWorkspace(c.id);
   } catch (e) { toast(e.message, 'err'); }

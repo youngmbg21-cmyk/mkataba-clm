@@ -658,6 +658,51 @@ const ADMIN_SCOPE = '*';
    Deliberately identical to userFolderAccess() in js/core.js, including the
    "empty array means unrestricted" quirk — an admin who ticks nothing has not
    locked a member out of the entire workspace. */
+/* ---------- THE NEGOTIATION DESK, SERVER SIDE ----------
+   The browser's copy of these answers is for DRAWING — it decides which buttons
+   exist. This copy decides what is written, and it is the one that matters. The
+   pair is the same arrangement folderScopeFor already has with
+   userFolderAccess, and it is repeated here rather than shared because there is
+   no module boundary between them: the client file cannot be required, and a
+   rule expressed twice in twenty lines is safer than a rule expressed once and
+   shipped to the person it is meant to restrain.
+
+   Every one of these answers the SAFE way when it cannot tell: no desk, no
+   rule, no claim means the behaviour this product had before the feature. */
+const deskRuleOn = () => !!((getSetting('appSettings') || {}).deskRule || {}).on;
+const deskOfRow = c => (c && c.desk && typeof c.desk === 'object' && !Array.isArray(c.desk)) ? c.desk : null;
+const deskIsClaimed = c => { const d = deskOfRow(c); return !!(d && d.leadId && !d.closedAt); };
+const deskLeadName = c => (deskOfRow(c) || {}).leadName || 'the lead';
+function deskSeatOf(c, user) {
+  const d = deskOfRow(c);
+  if (!d || !user) return null;
+  if (String(d.leadId) === String(user.id)) return 'lead';
+  if ((d.contributors || []).some(p => p && String(p.id) === String(user.id))) return 'contributor';
+  return 'reader';
+}
+/* Did this save move the roster? Compared as a stable projection rather than
+   field by field, so a reordering is not a change and an added field is. */
+const deskRosterStamp = c => {
+  const d = deskOfRow(c) || {};
+  return JSON.stringify([String(d.leadId || ''),
+    (d.contributors || []).map(p => String((p && p.id) || '')).sort()]);
+};
+const rosterMoved = (prev, next) => deskRosterStamp(prev) !== deskRosterStamp(next);
+/* Did this save add, remove or reword one of OUR changes? Their proposals are
+   not this rule's business — those arrive through the share routes, which have
+   their own wall — so only owner-side records are compared. The hash is the
+   change model's own fingerprint over its wording, so "reworded" is a string
+   comparison rather than a judgement. */
+function ourChangesTouched(prev, next) {
+  const ours = c => new Map((Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && x.authorSide !== 'counterparty')
+    .map(x => [String(x.id), String(x.hash || '') + '|' + String(x.status || '')]));
+  const a = ours(prev), b = ours(next);
+  if (a.size !== b.size) return true;
+  for (const [id, stamp] of b) if (a.get(id) !== stamp) return true;
+  return false;
+}
+
 function folderScopeFor(user) {
   if (!user) return [];
   if (user.role === 'admin') return ADMIN_SCOPE;
@@ -675,6 +720,134 @@ function folderScopeFor(user) {
 }
 const scopeIsAll = s => s === ADMIN_SCOPE;
 const inScope = (scope, folder) => scopeIsAll(scope) || scope.includes(String(folder || ''));
+
+/* ============================================================
+   THE INTERNAL REVIEW, AS THE SERVER READS IT
+   ============================================================
+   js/review.js owns the model and the screens. Until now the SERVER stored it
+   without understanding a word of it: the review lives inside the contract's
+   JSON blob, and every rule about it — a held change never travels, a verdict
+   is the named reviewer's alone, a reviewer does not publish the round — was
+   enforced in the browser and nowhere else. Good enough against mistakes; not
+   a wall.
+
+   What follows is the server's own reading of the same record, deliberately
+   identical to js/review.js and deliberately READ-ONLY. It never writes a
+   review; it answers questions about the stored one so the two routes that
+   matter can refuse:
+
+     POST /api/shares          — the moment wording leaves the building
+     PUT  /api/contracts/:id   — the moment a verdict is written down
+
+   WHERE THE ANSWER COMES FROM MATTERS. Every question here is asked of the
+   STORED contract, never of the request body. A client that has been told a
+   change is held can simply not send that field; a client that decides it is
+   the reviewer can say so. The stored record is the only thing neither can
+   edit on the way past. */
+const rvReviews = c => (c && c.review && Array.isArray(c.review.requests)) ? c.review.requests : [];
+const rvOpenList = c => rvReviews(c).filter(r => r && r.status === 'open');
+const rvSame = (a, b) => a != null && b != null && String(a) === String(b);
+/* Id first, name second — the same match js/review.js makes, and for the same
+   reason: two people share a name, and an old record may carry no id. */
+const rvIsReviewer = (rv, u) => {
+  if (!rv || !u) return false;
+  const r = rv.reviewer || {};
+  return r.id ? rvSame(r.id, u.id) : rvSame(r.name, u.name);
+};
+const rvIsRequester = (rv, u) => {
+  if (!rv || !u) return false;
+  return rv.byId ? rvSame(rv.byId, u.id) : rvSame(rv.by, u.name);
+};
+const rvMaySeeReview = (rv, u) => !!u && (u.role === 'admin' || rvIsReviewer(rv, u) || rvIsRequester(rv, u));
+/* The review a given change is sitting in, or null. With several open at once
+   this is the only safe question — see the note in js/review.js. */
+const rvOpenFor = (c, id) => rvOpenList(c).find(r => (r.changeIds || []).some(x => rvSame(x, id))) || null;
+const rvChangeById = (c, id) => (Array.isArray(c && c.changes) ? c.changes : []).find(x => x && rvSame(x.id, id)) || null;
+/* A verdict is given to particular wording. A revision re-hashes the change, so
+   an approval that outlived the words it was given for is a claim nobody made:
+   a stale CLEAR is not a clear. A stale HOLD is still a hold — somebody said
+   this must not go out, and rewriting it is not permission to overrule them. */
+const rvVerdict = ch => (ch && ch.review && ch.review.verdict) ? ch.review : null;
+const rvStale = ch => { const v = rvVerdict(ch); return !!(v && v.hash && ch.hash && String(v.hash) !== String(ch.hash)); };
+const rvHeld = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'held'); };
+const rvCleared = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'cleared' && !rvStale(ch)); };
+
+/* OUR OWN ASKS THE OTHER SIDE HAS NEVER SEEN. The only population a review
+   governs: what has already gone cannot be recalled, and pretending otherwise
+   would let a hold rewrite history the counterparty is holding. */
+function rvUnsentOurs(c){
+  /* THE SAME ARITHMETIC negoUnsentAsks does, and it must stay the same: unsent
+     is measured against the hand-over that actually happened. With no turnAt at
+     all nothing has ever gone, so every pending ask of ours is unsent. Invent a
+     different definition here and the server would withhold changes the browser
+     believes it sent, or pass ones it believes it is holding. */
+  const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  return (Array.isArray(c && c.changes) ? c.changes : []).filter(x =>
+    x && x.status === 'pending' && x.authorSide !== 'counterparty'
+    && (at ? String(x.createdAt || '') > String(at) : true));
+}
+/* TWO REASONS A CHANGE STAYS BEHIND, and they are one answer here. HELD is a
+   refusal. OUT is in flight — wording read by the counterparty while a
+   colleague is midway through it makes their verdict worthless. */
+function rvWithheldIds(c){
+  const out = new Set();
+  for (const ch of rvUnsentOurs(c)){
+    if (rvHeld(ch)) { out.add(String(ch.id)); continue; }
+    if (!rvVerdict(ch) && rvOpenFor(c, ch.id)) out.add(String(ch.id));
+  }
+  return out;
+}
+/* ---------- A REVIEW WITH NOTHING LEFT IN IT IS OVER ----------
+   The same reading js/review.js makes, and it has to be here or the two
+   disagree at the only door that matters: the browser would draw the round back
+   for a reviewer whose asks had all been decided, and this file would answer 403
+   when they pressed Send. Every clause the review covered has been decided or
+   retracted; nobody closed it, and there is nothing left to close it about.
+
+   THE STRUCTURAL GUARDS BELOW DO NOT USE THIS, deliberately. rvOpenList stays
+   the raw list for them: a spent review whose scope and reviewer could be
+   rewritten on a save is a spent review that can be re-pointed at a live change
+   by whoever wants to rule on it. What a spent review loses is its hold on the
+   PERSON, which is the thing that was never load-bearing. */
+const rvInPlay = (c, rv) => {
+  const ids = new Set((((rv && rv.changeIds) || [])).map(String));
+  if (!ids.size) return [];
+  return (Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && ids.has(String(x.id)) && String(x.status || 'pending') === 'pending');
+};
+const rvSpent = (c, rv) => !!rv && rv.status === 'open'
+  && Array.isArray(rv.changeIds) && !!rv.changeIds.length && rvInPlay(c, rv).length === 0;
+/* The open reviews this person owes a verdict on. Being asked narrows you: on
+   this contract, until you hand back, nothing you do reaches the counterparty. */
+const rvActorHeld = (c, u) => rvOpenList(c).filter(r => rvIsReviewer(r, u) && !rvSpent(c, r));
+
+/* THE GATE IS A SETTING, and off unless an admin turned it on. Read from the
+   same appSettings blob the browser reads, so the two cannot disagree about
+   whether the rule is even running. */
+function rvGateCfg(){
+  const s = (getSetting('appSettings') || {}).reviewGate;
+  const g = (s && typeof s === 'object') ? s : {};
+  return { on: !!g.on, when: ['always', 'deviation', 'value'].includes(g.when) ? g.when : 'deviation',
+    value: Number(g.value || 0) };
+}
+function rvGateApplies(c){
+  const g = rvGateCfg();
+  if (!g.on) return false;
+  if (g.when === 'always') return true;
+  if (g.when === 'value') return Number((c && c.value) || 0) >= g.value;
+  /* 'deviation' — the playbook says this contract is off-piste. */
+  const pb = c && c.playbook;
+  return !!(pb && Array.isArray(pb.verdicts) && pb.verdicts.some(v => v && v.verdict === 'deviation'));
+}
+/* Which of our unsent asks the gate has not been satisfied about. A cleared
+   verdict that has gone stale counts as unreviewed, which is the whole point of
+   the staleness rule. */
+function rvUnreviewedIds(c){
+  if (!rvGateApplies(c)) return new Set();
+  const out = new Set();
+  for (const ch of rvUnsentOurs(c)) if (!rvHeld(ch) && !rvCleared(ch)) out.add(String(ch.id));
+  return out;
+}
 
 /* SQL fragment builders. Two flavours because the queries below are split
    between positional (?) and named (@x) parameters; both return '' when the
@@ -845,16 +1018,23 @@ const clientIp = req => (req.ip || null);
 // NOTE: in-memory + single-instance — this map (and the daily counter below)
 // would need a shared store (Redis/DB) if HaTi is ever run on multiple nodes.
 const rlHits = new Map();
-/* ---------- WHO IS LOOKING, RIGHT NOW ----------
-   contract_id → { name, at }: the last counterparty read of a live share
-   link, written by GET /api/shares/:token and read back by the owner's
-   /state probe. Ephemeral by design — presence that survives a restart is
-   stale by definition — and single-instance like rlHits above. */
-const presenceMap = new Map();
-setInterval(() => {
-  const cut = Date.now() - 10 * 60 * 1000;
-  for (const [k, v] of presenceMap) if (!v || v.at < cut) presenceMap.delete(k);
-}, 600000).unref?.();
+/* ---------- WHO IS LOOKING, RIGHT NOW — REMOVED ----------
+   There was a presenceMap here: contract_id → { name, at }, the last
+   counterparty read of a live share link, written by GET /api/shares/:token
+   and read back by the owner's /state probe, which the bench painted as a
+   green-dot pill — "<them> · viewing their copy now".
+
+   KILLED ON 10 AUG 2026 (Young). It watched a counterparty who never asked to
+   be watched and never saw the pill their reading was drawing on somebody
+   else's screen. Nothing in the product acted on it: it told the owner nothing
+   they could do anything with, at the cost of reporting one party's attention
+   to the other in real time.
+
+   WHAT IS DELIBERATELY KEPT is the engagement record — the 'open' row and
+   first_opened_at, written on the same request. That is the audit fact that a
+   link WAS opened, which the share panel and the timeline show and which a
+   negotiation genuinely turns on. The difference is live surveillance versus a
+   record of delivery, and only the first one was the problem. */
 function rateLimit(bucket, max, windowMs, opts = {}) {
   const limitOf = typeof max === 'function' ? max : () => max;
   const keyFn = opts.keyFn;
@@ -1483,7 +1663,15 @@ app.get('/api/bootstrap', auth, (req, res) => {
   res.json({
     org: getSetting('org'),
     me: publicUser(req.user),
-    users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(publicUser),
+    /* M-3, second half. Stripping folderAccess from the settings blob above
+       achieved nothing while this list handed the same map back one record at a
+       time — every member's scope, to every signed-in member. A non-admin gets
+       their own scope on `me` and nobody else's here. */
+    users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(u => {
+      const p = publicUser(u);
+      if (req.user.role !== 'admin' && u.id !== req.user.id) delete p.folderAccess;
+      return p;
+    }),
     uid: getSetting('uid') || 100,
     settings,
     count: db.prepare(`SELECT COUNT(*) n FROM contracts ${whereOf(f.sql)}`).get(...f.args).n,
@@ -1707,14 +1895,17 @@ app.get('/api/contracts/:id', auth, (req, res) => {
 
 /* The owner's cheap "did anything move?" probe: version and clock only, no
    payload — so the Redline bench can poll every few seconds without shipping
-   the whole record each time. `viewing` is the presence read: the last live
-   share-link open inside 90s, name and time, nothing else. */
+   the whole record each time.
+
+   IT USED TO CARRY `viewing` TOO — the counterparty's live presence, read off
+   presenceMap, which the bench painted as a green-dot pill saying "<them> ·
+   viewing their copy now". The whole feature is gone (Young, 10 Aug 2026): see
+   the note where presenceMap used to be declared. This route answers about the
+   RECORD, and now only about the record. */
 app.get('/api/contracts/:id/state', auth, (req, res) => {
   const r = db.prepare('SELECT version, updated_at, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
-  const p = presenceMap.get(req.params.id);
-  const viewing = p && (Date.now() - p.at) < 90000 ? { name: p.name, at: p.at } : null;
-  res.json({ version: r.version, updatedAt: r.updated_at || null, viewing });
+  res.json({ version: r.version, updatedAt: r.updated_at || null });
 });
 
 /* ---------- executed records are immutable ----------
@@ -1838,6 +2029,39 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      with no account (a counterparty signer, an internal name typed by hand) is
      not bound to a member and is not this rule's business; W7/W8 are what bind
      those, through the link and the code sent to the invited address. */
+  /* ---------- A NEGOTIATION IS WORKED BY THE PEOPLE ON ITS DESK ----------
+     The browser stops OFFERING the verbs to somebody who is not on a desk, and
+     negoFileChange refuses the write. Both of those live in the client, which
+     makes them a sign and a lock on a door anybody can walk around: an ordinary
+     contract save carries the whole record, so a caller that never loaded the
+     page can post redlines under any name it likes. Enforcement is here or it
+     is nowhere — the rule folderScopeFor already follows.
+
+     ASKED AS A DIFFERENCE, exactly like the reserved-signing-step guard below
+     it: not "is this user on the desk" — a save that touches nothing about the
+     negotiation would fail that, and a reader legitimately edits key terms,
+     metadata and obligations all day — but "does this save ADD or ALTER a
+     change on our side, and is the caller entitled to do that". Everything else
+     passes untouched.
+
+     THE DESK ITSELF IS NOT WRITABLE BY A NON-MEMBER either, or the rule would
+     be one request wide: post yourself onto c.desk.contributors, then post the
+     redline. The roster may only be moved by the lead or an admin, which is
+     what deskMayManage says in the browser. */
+  if (prev && deskRuleOn() && deskIsClaimed(prev)) {
+    const seat = deskSeatOf(prev, req.user);
+    if (seat !== 'lead' && rosterMoved(prev, c) && !(seat === 'lead' || req.user.role === 'admin'))
+      return res.status(403).json({
+        error: `Only ${deskLeadName(prev)} — or an admin — can change who is on this negotiation.` });
+    if (seat === 'reader') {
+      const touched = ourChangesTouched(prev, c);
+      if (touched)
+        return res.status(403).json({
+          error: `You are not on this negotiation. ${deskLeadName(prev)} leads it — ask them to add you.`,
+          desk: 'not-a-member' });
+    }
+  }
+
   if (prev && Array.isArray(prev.signerPlan) && Array.isArray(c.signerPlan)) {
     const was = new Map(prev.signerPlan.map(s => [String(s && s.id || s && s.order), s]));
     const stolen = c.signerPlan.find(s => {
@@ -1852,6 +2076,102 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           + 'Only they can sign it.',
         reservedFor: stolen.name || null,
       });
+    }
+  }
+
+  /* ---------- THE INTERNAL REVIEW, GUARDED ON THE WAY IN ----------
+     Asked as a DIFFERENCE, exactly like the signing-step guard above it, and
+     for the same reason: this route receives the whole contract on every save,
+     so the question is never "is this person a reviewer" — a save that touches
+     nothing about a review would fail that — but "does this save change
+     something about a review, and was this caller entitled to change it".
+     Every save that moves nothing here passes untouched.
+
+     WHY IT MATTERS THAT IT IS HERE. A verdict is the thing the wall reads. Any
+     client that could write one could clear its own wording and send it, and
+     until now the only thing stopping that was the browser choosing not to. */
+  if (prev){
+    const wasOpen = new Map(rvOpenList(prev).map(r => [String(r.id), r]));
+    const nowAll = new Map(rvReviews(c).map(r => [String(r.id), r]));
+
+    /* 1. A REVIEW'S SCOPE AND ITS REVIEWER ARE FIXED ONCE IT IS OPEN. Editing
+       either would let a sender quietly re-point somebody else's escalation —
+       drop the clause they were holding, or make themselves the reviewer of it
+       and clear it on the next save. */
+    for (const [id, before] of wasOpen){
+      const after = nowAll.get(id);
+      if (!after) continue;                                   // removal is handled below
+      if (stable(before.changeIds || []) !== stable(after.changeIds || []))
+        return res.status(403).json({ error: `Internal review ${id} is open — the changes it covers cannot be edited.` });
+      if (stable(before.reviewer || null) !== stable(after.reviewer || null))
+        return res.status(403).json({ error: `Internal review ${id} is open — its reviewer cannot be changed.` });
+    }
+
+    /* 2. HOW AN OPEN REVIEW MAY END. Cancelled by the person who raised it or
+       by an admin; returned by the reviewer it was given to; and never simply
+       deleted, because a review that can be dropped from the array is a hold
+       anybody can lift with a save. */
+    for (const [id, before] of wasOpen){
+      const after = nowAll.get(id);
+      if (!after)
+        return res.status(403).json({ error: `Internal review ${id} cannot be removed from the record.` });
+      if (after.status === 'open') continue;
+      if (after.status === 'cancelled' && !(rvIsRequester(before, req.user) || req.user.role === 'admin'))
+        return res.status(403).json({ error: `Only ${before.by || 'the person who asked'}, or an admin, can cancel internal review ${id}.` });
+      if (after.status === 'returned' && !rvIsReviewer(before, req.user))
+        return res.status(403).json({ error: `Only ${(before.reviewer || {}).name || 'the reviewer'} can hand internal review ${id} back.` });
+    }
+
+    /* 3. A VERDICT IS THE NAMED REVIEWER'S ALONE. Compared per change, against
+       the review THAT CHANGE was in — with several reviews open, asking the
+       contract for "the" review would test the wrong person, which is the fault
+       the browser's model had and had to be taught out of. */
+    const prevCh = new Map((Array.isArray(prev.changes) ? prev.changes : []).map(x => [String(x && x.id), x]));
+    for (const ch of (Array.isArray(c.changes) ? c.changes : [])){
+      if (!ch || !ch.id) continue;
+      const was = prevCh.get(String(ch.id));
+      if (stable((was && was.review) || null) === stable(ch.review || null)) continue;   // untouched
+      const rv = rvOpenFor(prev, ch.id);
+      if (!rv)
+        return res.status(403).json({ error: `#${ch.id} is not part of any open internal review, so no verdict can be recorded on it.` });
+      if (!rvIsReviewer(rv, req.user))
+        return res.status(403).json({ error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule on #${ch.id}.` });
+    }
+
+    /* 4. A REVIEWER DOES NOT ANSWER THE COUNTERPARTY. Accepting their ask
+       settles it and travels on the next round, which is precisely what
+       somebody holding a colleague's clause does not do here. Their own two
+       jobs — ruling, and correcting the wording of their clause — move
+       `review` and `body`/`hash`, neither of which is a decision. */
+    if (rvActorHeld(prev, req.user).length){
+      const decided = (Array.isArray(c.changes) ? c.changes : []).find(ch => {
+        if (!ch || !ch.id) return false;
+        const was = prevCh.get(String(ch.id));
+        if (!was || String(was.status || '') === String(ch.status || '')) return false;
+        /* ---- DECIDING IS NOT THE SAME THING AS RECEIVING ----
+           This asked only "did a status move", and a status moves on the way IN
+           as well as on the way out: the counterparty's answer to OUR ask
+           arrives through this same save. So a colleague who happened to be
+           holding a review was refused every time their browser applied an
+           inbound response — the poller could never mark it applied, it retried
+           for ever, and the redline never landed. Reported exactly as that: "I
+           am unable to receive redline from the counterparty."
+
+           The rule is about ANSWERING THEIR ASK, so it asks two narrower
+           questions. Whose ask moved — ours moving is their reply arriving, and
+           nothing to do with this rule. And who settled it: negoResolve records
+           the decider by name and an inbound decision carries the
+           counterparty's, so a settlement in somebody else's name is not this
+           caller's act. Their own withdrawal is theirs too. */
+        if (ch.authorSide !== 'counterparty') return false;
+        const by = String(ch.resolvedBy || '');
+        if (by && by !== String(req.user.name || '')) return false;
+        if (ch.withdrawn && ch.withdrawn.side === 'counterparty') return false;
+        return true;
+      });
+      if (decided)
+        return res.status(403).json({ error: 'You are reviewing changes on this contract.'
+          + ' Hand the review back before accepting or rejecting the counterparty\'s proposals.' });
     }
   }
 
@@ -4305,6 +4625,57 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
   res.json({ ok: true });
 });
 
+/* "Please look at this before it goes out" — the internal review request.
+
+   THE RECORD IS THE BROWSER'S; THIS IS ONLY THE KNOCK ON THE DOOR. The request
+   itself lives on the contract (c.review, js/review.js) and is saved through
+   the ordinary contract save, so a mail provider that is down, misconfigured or
+   absent loses a notification and never a review. Everything below is therefore
+   best-effort by construction and reports what happened rather than failing.
+
+   THE RECIPIENT IS RESOLVED FROM THE USERS TABLE, never taken from the body.
+   A route that emailed whatever address the client sent would be an open relay
+   with this workspace's name on the envelope; the client names a colleague, the
+   server decides where a colleague's post goes. */
+app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const u = b.reviewerId ? db.prepare('SELECT * FROM users WHERE id=?').get(String(b.reviewerId))
+    : (b.reviewerEmail ? db.prepare('SELECT * FROM users WHERE email=?').get(cleanEmail(b.reviewerEmail)) : null);
+  if (!u) return res.status(404).json({ error: 'That colleague is not a member of this workspace' });
+  if (u.role === 'viewer') return res.status(400).json({ error: 'A viewer cannot rule on a review' });
+  /* AND THEY MUST BE ABLE TO OPEN IT. A member restricted to other value
+     streams never sees this contract — folderScopeFor keeps it out of every
+     query they make — so a request posted to them is a mail about a document
+     they cannot reach. Worse than useless: only the named reviewer can lift a
+     hold, so with the gate on the wording sits behind a wall whose only key is
+     held by somebody who cannot find the door. The browser refuses the same
+     thing where it can see their scope; this refuses it for everyone. */
+  if (!inScope(folderScopeFor(u), row.folder))
+    return res.status(400).json({ error: `${u.name} does not have access to this contract's value stream, so they could never open it` });
+  const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
+  const appUrl = `${req.protocol}://${req.get('host')}/`;
+  const note = clean(b.note).slice(0, 1000);
+  const due = clean(b.due).slice(0, 40);
+  const sent = await sendEmail(u.email,
+    `${req.user.name} asked you to review "${cName}"`,
+    `Hello ${u.name},\n\n`
+    + `${req.user.name} has proposed changes on "${cName}" and would like you to look at them `
+    + `before they go to the counterparty.\n`
+    + (note ? `\nWhat they want you to look at:\n"${note}"\n` : '')
+    + (due ? `\nNeeded by: ${due}\n` : '')
+    + `\nOpen the contract in HaTi, go to Negotiate, and clear or hold each change:\n${appUrl}\n\n`
+    + `Nothing you hold back will reach the counterparty.\n\nThis is an automated message from HaTi.`,
+    `review request: ${req.params.id} -> ${u.email}`);
+  /* `sent` is sendEmail's own verdict — 1 only when a provider actually took
+     it. Reported honestly rather than as "ok", because the dialog's toast tells
+     the requester whether their colleague will get a mail or has to be told,
+     and a cheerful lie there is how the review sits unopened for two days. */
+  res.json({ ok: true, emailSent: !!(sent && sent.sent),
+    emailConfigured: EMAIL_ON(), reviewer: { id: u.id, name: u.name } });
+});
+
 /* ---------- team management ---------- */
 app.post('/api/users', auth, admin, (req, res) => {
   const b = req.body || {};
@@ -4656,6 +5027,55 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   const shareId = (payload.contract && payload.contract.id) || null;
   if (shareId && !idInScope(folderScopeFor(req.user), shareId)) return res.status(404).json({ error: 'Contract not found' });
+  /* ============================================================
+     THE WALL, ENFORCED WHERE THE WORDING ACTUALLY LEAVES
+     ============================================================
+     buildSharePayload already strips a held change in the browser, and did so
+     alone. This route took the client's word for what was in the envelope,
+     which made the strongest rule in the feature a matter of the sender's
+     software being right.
+
+     Read from the STORED contract, never from the payload. The payload is the
+     thing under suspicion. */
+  const rvRow = shareId ? db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId) : null;
+  let rvStored = null;
+  if (rvRow) { try { rvStored = JSON.parse(rvRow.json); } catch (_) { rvStored = null; } }
+  if (rvStored){
+    /* 1. THE SENDER'S OWN POSTURE. Being asked to review a clause narrows you
+       on this contract until you hand back: nothing you do reaches the
+       counterparty. Refused rather than stripped — the person is not entitled
+       to send this round at all, so there is no smaller send to offer. */
+    const holding = rvActorHeld(rvStored, req.user);
+    if (holding.length){
+      const n = holding.reduce((a, r) => a + ((r.changeIds || []).length), 0);
+      return res.status(403).json({ error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
+        + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
+        reviewing: holding.map(r => r.id) });
+    }
+    /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
+       at does not travel, and this is the refusal the setting promises. */
+    const unreviewed = rvUnreviewedIds(rvStored);
+    if (unreviewed.size){
+      const carried = (payload.contract && Array.isArray(payload.contract.changes) ? payload.contract.changes : [])
+        .filter(x => x && unreviewed.has(String(x.id)));
+      if (carried.length)
+        return res.status(403).json({ error: `${carried.length} change${carried.length === 1 ? ' has' : 's have'}`
+          + ' not been cleared by an internal reviewer, and this workspace requires one before changes are sent.',
+          unreviewed: carried.map(x => x.id) });
+    }
+    /* 3. THE HELD AND THE STILL-BEING-READ, taken out of the envelope. STRIPPED
+       rather than refused, because the ordinary case here is a race and not an
+       attack: the sender built this payload, a colleague pressed Hold, and the
+       send arrived a second later. Refusing would lose the whole round over
+       one clause. What travels is what may travel, and the response says what
+       stayed behind so the sender is not told a lie by omission. */
+    const withheld = rvWithheldIds(rvStored);
+    if (withheld.size && payload.contract && Array.isArray(payload.contract.changes)){
+      const before = payload.contract.changes.length;
+      payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
+      req.rvStripped = before - payload.contract.changes.length;
+    }
+  }
   const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();
@@ -4794,6 +5214,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   }
   res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
     signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
+    /* What the wall took out of the envelope, reported rather than left silent:
+       a sender told "sent" about a round one change lighter has been misled. */
+    withheldByReview: req.rvStripped || undefined,
     emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
@@ -5012,10 +5435,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     const cid = payload && payload.contract && payload.contract.id;
     if (cid) db.prepare('INSERT INTO engagement (contract_id,token,kind,at,ip,ua) VALUES (?,?,?,?,?,?)')
       .run(cid, req.params.token, 'open', now(), clientIp(req), String(req.get('user-agent') || '').slice(0, 300));
-    /* Presence: the portal polls this GET every 10–45s while its reader has
-       the page open, so the read itself IS the heartbeat — no new call from
-       the portal, nothing stored beyond a name and a clock. */
-    if (cid) presenceMap.set(cid, { name: s.recipient_name || 'Counterparty', at: Date.now() });
+    /* The presence heartbeat was written here — this GET is polled every
+       10–45s while their page is open, so the read itself was the beat. Gone
+       with the rest of the feature; see the note where presenceMap was
+       declared. The engagement row above stays: it records that the link was
+       opened, which is a fact about delivery, not a live watch. */
     /* STAMPED, NOT ANNOUNCED. first_opened_at is what the owner's share panel
        and the engagement timeline read to show "opened" on the page, so the
        fact is still recorded and still visible — it just no longer sends an

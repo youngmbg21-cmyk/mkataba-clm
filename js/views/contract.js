@@ -1320,6 +1320,10 @@ async function submitUpload(){
   }
   _up=null;
   state.contracts.unshift(c);
+  /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
+     wsTabDefaults. Registered at every creation site because there is no
+     single funnel for creating a contract. */
+  if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
   state.activeId=c.id;
   persist(c);
   closeModal();
@@ -1339,12 +1343,34 @@ function applyMetadata(c, m){
 /* Working-text document body: shown once a contract carries edited wording
    (an owner edit or an accepted counterparty redline). This exact text is
    what versions/compare diff and what the seal will bind. */
+/* ---------- THE FRONT OF THE SHEET ----------
+   Every document body this tab renders opened differently: the generated one
+   with a centred kind/market/id line, the edited working text with a
+   left-aligned mono line and a rule all the way across. One agreement, two
+   faces, depending on whether anybody had edited it.
+
+   One head now, and it is the shape a deed has (Young, 10 Aug 2026): the
+   market it is governed by, the agreement's name, and who it is between —
+   from the contract's own record, with the parties line dropped rather than
+   invented where a counterparty has not been named. The short rule under it
+   is the flourish printed agreements carry; a full-width border reads as a
+   table header. Styled by .rl-paper-head in the workbench's stylesheet, which
+   this tab loads (see wireDocumentSync), so both screens draw one object. */
+function docPaperHeadHtml(c, opts={}){
+  const market=(typeof jxName==='function')?jxName():'';
+  const us=String((typeof window!=='undefined'&&window.FIRST_PARTY)||'').trim();
+  const them=String((c&&c.counterparty)||'').trim();
+  const between=(us&&them)?i18t('ct_between_parties',{us:esc(us),them:esc(them)}):'';
+  return `<header class="rl-paper-head">
+    ${market?`<div class="rl-paper-kick">${esc(market)}${opts.note?' · '+esc(opts.note):''}</div>`:''}
+    <h3 class="rl-paper-title">${esc((c&&c.name)||'')}</h3>
+    ${between?`<div class="rl-paper-sub">${between}</div>`:''}
+  </header>`;
+}
+
 function redlineDocBody(c){
   return `
-    <div class="mb-6 pb-5 border-b border-brand-100">
-      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${cKind(c)} · working text · ${c.id}</div>
-      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
-    </div>
+    ${docPaperHeadHtml(c,{note:i18t('ct_working_text_short')})}
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
       ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${i18t('ct_doc_carries')} <strong>${i18t('ct_edited_working')}</strong>. Use <strong>${i18t('act_edit')}</strong> ${i18t('ct_to_change_wording')} <strong>${i18t('ct_compare')}</strong> ${i18t('ct_review_between')}</span>
     </div>
@@ -1908,11 +1934,12 @@ function docBody(c){
   };
   const built=(BUILD[c.template]||BUILD.ND)();
   const title=built.title, recital=built.recital, clauses=built.clauses;
+  /* One head for every body this tab draws — see docPaperHeadHtml. The
+     template's own `title` is kept as the fallback for a contract with no name
+     of its own; the record's name is what the rest of the product calls this
+     agreement, so it leads. */
   return `
-    <div style="text-align:center;margin-bottom:18px">
-      <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · ${jxName()} · ${c.id}</div>
-      <h3 style="text-align:center;font-size:19px;margin:0;line-height:1.2">${title}</h3>
-    </div>
+    ${docPaperHeadHtml({...c, name:(c.name||title)},{note:t.kind})}
     <p class="text-[13px] leading-[1.7] mb-6 px-2 -mx-2 py-1" style="color:var(--color-doc-text)" data-anchor="recital">${recital}</p>
     ${clauses.join('')}
     ${signatureBlock(c)}`;
@@ -1932,7 +1959,10 @@ function templateProvenanceHtml(c){
   const label=`${(live?live.name:name)||'a template'}${v?` v${v}`:''}`;
   const moved=live && v && liveV>v;
   const esc=x=>String(x||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  return `<div style="max-width:660px;margin:0 auto 10px;display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px">
+  /* A CARD IN THE COLUMN, not a band over the sheet. The 660px width and the
+     auto margins were centring it on the paper it sat above; here it takes the
+     column's width and wears the column's shape. */
+  return `<div style="display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:12px;padding:10px 13px">
     <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('copy','w-3.5 h-3.5')}</span>
     <span>${i18t('ct_created_from')} <b>${esc(label)}</b>.${moved
       ? ` That template has since been revised — it is now <b>v${liveV}</b>. <b>${i18t('ct_keeps_wording')}</b>; editing a template never changes a contract already made from it.`
@@ -2049,9 +2079,23 @@ function signatureBlock(c){
       <div class="grid sm:grid-cols-2 gap-3 text-xs">${sofar.map(card).join('')}</div>
     </div>`;
   }
+  /* ---- AN UNSIGNED CONTRACT ENDS THE WAY PAPER ENDS ----
+     This was a dashed box with an icon in it reading "signature block pending",
+     which is a note about the software printed at the foot of an agreement. It
+     is two ruled lines and the parties' names now (Young, 10 Aug 2026) — the
+     shape every contract anybody has ever signed has — built by the same
+     rlPaperFootHtml the workbench, the counterparty's page and the phone use,
+     so one contract ends the same way on every screen it is read on.
+
+     STILL NOT A SIGNING SURFACE. Nothing here is pressable and nothing is
+     stamped: signing is the Signing tab's job, behind its own record and its
+     own seal. The anchor is kept, because the room scrolls to it by name. */
+  const foot=window.rlPaperFootHtml?rlPaperFootHtml(c):'';
+  if(foot) return `<div data-anchor="sig">${foot}</div>`;
+  /* No parties named yet — a contract with nothing to rule a line for. Say so
+     in a sentence rather than printing two empty rules. */
   return `
     <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
-      <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>
       <div class="text-sm font-medium text-brand-800/70">${i18t('ct_sig_block_pending')}</div>
       <div class="text-xs text-brand-800/65 mt-0.5">${i18t('ct_confirm_intent_panel')}</div>
     </div>`;
@@ -2153,12 +2197,21 @@ function wsNextAction(c){
   }
   // Under Review
   if(!appr.ok) return { get label(){ return i18t('ct_send_to_cp'); }, ic:'share', get guide(){ return i18t('ct_share_draft_guide'); }, kind:'share' };
-  // U-8: when intent-to-sign is not yet ticked, this button only scrolls to the
-  // consent box — it does not sign. Labelling it "Sign" made the prominent verb
-  // a false promise (tick the box, then hunt for a second Sign control). It now
-  // says what it actually does; the label becomes "Sign" only when a click will
-  // truly execute.
-  if(!c.compliance.consent) return { get label(){ return i18t('ct_review_sign_below'); }, ic:'finger', guide:'Approved — confirm intent-to-sign below, then sign.', kind:'sign-scroll' };
+  /* ---- NO BUTTON FOR "GO AND FIND THE REAL BUTTON" ----
+     U-8 gave this state a primary reading "Review & sign below", on the sound
+     reasoning that labelling it "Sign" was a false promise: the click only
+     scrolled to the consent box. But the honest label gave away what the
+     control was — a button whose whole job is to point at another button, in
+     the most prominent slot on the page, beside Share and Draft new agreement.
+     Removed (Young, 10 Aug 2026).
+
+     THE GUIDE STAYS. `noButton` keeps this branch answering the question the
+     status line asks — what is the next step — while the head draws nothing.
+     Returning null instead would have been the smaller edit and the wrong one:
+     the line would fall back to "All key terms are set", which is true, useless
+     and says nothing about the signature that is actually outstanding. */
+  if(!c.compliance.consent) return { get label(){ return i18t('ct_review_sign_below'); }, ic:'finger',
+    guide:'Approved — confirm intent-to-sign on the Signing tab, then sign.', kind:'sign-scroll', noButton:true };
   return { get label(){ return i18t('ct_sign'); }, ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
 }
 
@@ -2189,6 +2242,22 @@ function actionBarHtml(c){
      you had left. The button is gone and the strip repaints — see
      applyWsTabs. What is left here is the sentence that says WHY. */
   const tail='';
+  /* ---- THE DOCUMENT TAB SAYS NOTHING HERE AT ALL ----
+     This strip carried a status chip and a sentence — "the contract as it
+     stands, a clean read, proposed wording lives on the Negotiate tab" — as a
+     full-width band directly above the agreement. Asked for its removal
+     (Young, 10 Aug 2026): "open this space up for the contract exclusively."
+
+     Nothing is lost. The status is a chip beside the contract's name, two
+     lines up, on every tab. The sentence described the READING RULE, which the
+     page now demonstrates rather than announces: there are no marks on it. And
+     the door it pointed at is a button on the tab row, at the right of the
+     screen, where the reader will find it without a paragraph.
+
+     The other tabs keep the strip. On Key terms, Signing and History it is not
+     a description of the page, it is the contract's next step — which is what
+     this strip is for and why it repaints per tab (see applyWsTabs). */
+  if(_wsTab==='docs') return '';
   if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg)"><span style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot)"></span>${i18t('ct_executed_sealed')}</span>${line('Executed &amp; sealed. This document is locked and fields are read-only.')}`;
   if(!canEdit()) return `${statusChip(c.status)}${line('You have viewer access — the document is read-only for your role.')}${tail}`;
   /* On the Document tab the sentence is about READING, because that is what
@@ -2207,6 +2276,10 @@ function renderActionBar(c){
   wireActionBar(c);
 }
 function wireActionBar(c){
+  /* ws-to-nego is NOT wired here. It moved onto the tab row (see
+     roomTabsHtml's row in renderWorkspace) and is wired with it — this
+     function runs again on every tab change, and the tab row is not redrawn
+     by one, so binding it here would stack a handler per tab press. */
   document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
   document.getElementById('ws-next-action')?.addEventListener('click',e=>{
     const kind=e.currentTarget.getAttribute('data-na');
@@ -2316,9 +2389,38 @@ let _wsTabFor=null;
    the tab that was pressed rather than on the default. Honoured once, then
    cleared, so it cannot leak into the next contract. */
 let _wsTabWant=null;
+/* ---- A CONTRACT YOU HAVE JUST DRAFTED OPENS ON KEY TERMS ----
+   Asked for directly (Young, 09 Aug 2026): "when you draft a contract it does
+   not land you to document but rather lands you to Key terms first."
+
+   It is the right order of work. A new draft's document is a template with
+   blanks in it, and the blanks are filled from the terms — value, dates,
+   parties, governing law. Landing on the document shows somebody the OUTPUT of
+   a form they have not filled in yet, which reads as a half-finished contract
+   rather than as a step they have not taken.
+
+   ONCE, AND ONLY FOR A DRAFT. The id is consumed on first arrival, so going
+   back to the contract later behaves exactly as it always has — this is about
+   where a NEW contract opens, not a permanent change to the room's default.
+   And it is checked against the live status rather than against the moment of
+   creation: an uploaded agreement that is already executed has no terms to fill
+   and belongs on its document.
+
+   Registered by every path that creates a contract — the wizard, both template
+   routes, the clause library, the uploader and the migration importer — because
+   there is no single funnel for creation the way negoFileChange is for changes,
+   and a flag set in one of them is a flag the other five never set. */
+const _wsNewDrafts=new Set();
+function roomOpenOnTerms(id){ if(id) _wsNewDrafts.add(String(id)); }
+/* Which tab the room has settled on. `_wsTab` is a module-level `let`, so
+   nothing outside this file can read it — which made the landing rule above
+   untestable and, worse, unobservable from the workbench. One reader, no
+   setter: changing the tab still goes through roomGoTab. */
+function roomCurrentTab(){ return _wsTab; }
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
-    _wsTab='docs';
+    const fresh=_wsNewDrafts.delete(String(c.id));
+    _wsTab=(fresh && c.status==='Draft')?'terms':'docs';
     _wsTabFor=c.id;
     if(window.negoResetView) negoResetView();   // don't open on another contract's fingerprint
   }
@@ -2373,7 +2475,17 @@ function roomTabsHtml(c,active){
    discoverable only by clicking. */
 function negoTabCountHtml(c){
   if(!window.negoProgress) return '';
-  const p=negoProgress(c);
+  /* NARROWED FOR A REVIEWER, so the tab and the column it opens onto agree. A
+     pill reading 3 over a stack of 2 is the same "pill that counts something
+     other than the list it labels" fault redlineCardIds exists to prevent —
+     and here the third number is a change they were deliberately not handed. */
+  const mineOnly = (typeof window.reviewMyChangeIds==='function')
+    ? (()=>{ try{ return reviewMyChangeIds(c); }catch(_){ return null; } })() : null;
+  const p = mineOnly
+    ? (typeof negoChanges==='function' ? negoChanges(c) : [])
+        .filter(x=>x && mineOnly.has(String(x.id)) && x.status!=='superseded' && !x.withdrawn)
+        .reduce((a,x)=>({ total:a.total+1, pending:a.pending+(x.status==='pending'?1:0) }), { total:0, pending:0 })
+    : negoProgress(c);
   const total=p.total||0;
   if(!total) return '';
   const due=p.pending||0;
@@ -2396,6 +2508,23 @@ function applyWsTabs(c){
      happened to be current at render time kept describing the room for as long
      as you stayed on the page. */
   if(typeof renderActionBar==='function') renderActionBar(c);
+  /* AN EMPTY STRIP TAKES NO ROOM. The Document tab draws nothing here now, and
+     an empty flex box still costs the column its own height and the 12px gap
+     above it — which is the very space this was asked to give back to the
+     contract.
+
+     THE ATTRIBUTE MOVES WITH THE STYLE, or the hide does not survive. The
+     collapse toggle restores every folding row to `data-ws-display` (see
+     applyWsCollapse), which it reads as the row's OWN display — so leaving
+     that saying "flex" while the style said "none" put the empty strip back
+     the moment the header was unfolded, which is on the very next line of the
+     render. */
+  const _bar=document.getElementById('ws-actionbar');
+  if(_bar){
+    const _has=!!_bar.innerHTML.trim();
+    _bar.setAttribute('data-ws-display',_has?'flex':'none');
+    _bar.style.display=_has?'flex':'none';
+  }
   /* ---- REDLINE IS A DOOR, NOT A PANE ----
      The redline needs the whole window — the document entire, with the changes
      and the discussion beside it — and the right-hand panel here is a third of
@@ -2444,6 +2573,16 @@ function roomGoTab(c,k){
 function wireWsTabs(c){
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>
     roomGoTab(c,b.getAttribute('data-ws-tab'))));
+  /* The one door off the Document tab rides on this row now, so it is wired
+     with the row. It went through the ACTION BAR's wiring while it lived on
+     that band — and that wiring runs again on every tab change, which would
+     have stacked a second handler onto a button the tab change does not
+     redraw. Through the room's own router, like every other tab press, so the
+     landing rules (wsTabDefaults) apply however you arrived. */
+  document.getElementById('ws-to-nego')?.addEventListener('click',()=>{
+    if(window.roomGoTab) roomGoTab(c,'redline');
+    else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+  });
   applyWsTabs(c);
 }
 /* ============ KEY TERMS ============
@@ -2474,7 +2613,9 @@ function wireWsTabs(c){
 /* The read-out for one row, so an edit can refresh just that row. */
 function ktReadValue(c,key){
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
-  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
+  // Same instruction the panel's own date rows carry — see ktTermsRowsHtml.
+  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v)
+    :`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
   if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
@@ -2494,25 +2635,46 @@ function ktReadValue(c,key){
    whichever language it breaks in, so the empty read now carries data-kt-none
    and this looks for that. */
 const ktIsEmptyRead = html => /data-kt-none="1"/.test(String(html));
-function ktRowHtml(key,label,readHtml,fieldHtml,editable){
+/* ---- AN EMPTY ROW CARRIES THE MARK OF WHAT GOES IN IT ----
+   Reported (Young, 10 Aug 2026): "it should be clear that the boxes are entry
+   fields... you should clearly see you need to enter a date there." The box was
+   already drawn at rest by then; what it did not say was what KIND of thing was
+   missing. Three rows reading "Not set" in identical grey boxes are three
+   identical shrugs, and the two that want dates look exactly like the one that
+   wants an email address.
+
+   A CUE ICON, ONLY WHEN EMPTY. A filled row does not need telling what it
+   holds — it is holding it — so the icon is the empty state's alone, which also
+   stops a settled panel filling up with decoration. Hidden from screen readers:
+   the label to its left already names the field, and the empty read says its
+   own words ("Pick a date"). */
+function ktRowHtml(key,label,readHtml,fieldHtml,editable,cueIcon){
   if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
-  const empty=ktIsEmptyRead(readHtml)?' data-kt-empty="1"':'';
+  const isEmpty=ktIsEmptyRead(readHtml);
+  const empty=isEmpty?' data-kt-empty="1"':'';
+  const cue=(isEmpty&&cueIcon&&window.icon)
+    ?`<span class="kt-cue" aria-hidden="true">${icon(cueIcon,'w-3 h-3')}</span>`:'';
   return `<div class="kt-row is-editable" data-kt-row="${key}">
     <span class="kt-k">${label}</span>
-    <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${esc(ktIsEmptyRead(readHtml)?i18t('ct_empty_click'):i18t('ct_click_change'))}">${readHtml}</button>
+    <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${esc(isEmpty?i18t('ct_empty_click'):i18t('ct_click_change'))}">${cue}${readHtml}</button>
     <span class="kt-field hidden">${fieldHtml}</span></div>`;
 }
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
   const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:5px;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
+  /* A DATE ROW SAYS SO IN WORDS AS WELL AS IN ITS ICON. "Not set" is a state;
+     "Pick a date" is an instruction, and the two date rows are the ones a
+     reader was getting wrong. Same data-kt-none marker, so everything that
+     keys off empty (the dashed border, the cue, ktIsEmptyRead) is unchanged. */
+  const dashDate=`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   const money=isMonetary(c)?(c.value?fmtMoney(c.value):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`;
-  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dash;
+  const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):dashDate;
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   return [
     ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
-      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed),
+      `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed, 'pencil'),
     /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
        This was a banner across the top of the negotiation asking for it. The
        address is a fact about the counterparty, exactly like the name directly
@@ -2521,7 +2683,7 @@ function ktTermsRowsHtml(c,opts={}){
        leaving it empty costs nothing, because the share dialog still collects
        an address at the moment of sending. */
     ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
-      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed),
+      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil'),
     ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
          <span style="font-size:11px;color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
@@ -2529,9 +2691,9 @@ function ktTermsRowsHtml(c,opts={}){
          <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--color-neutral-600);flex:none;white-space:nowrap">
            <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>none</label></span>`, ed),
     ktRowHtml('effDate','Effective', day(c.fields&&c.fields.effDate),
-      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed),
+      `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar'),
     ktRowHtml('expiry','Expiry', day(c.expiry),
-      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed),
+      `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar'),
     ktRowHtml('stream','Value stream', esc((window.streamLabel?streamLabel(c):'')||'—'),'',false),
     tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):'',
   ].join('');
@@ -2574,8 +2736,17 @@ function readTermsHtml(c){
   const H='font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)';
   if(!rows.length) return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
       <div style="${H};margin-bottom:5px">${i18t('ct_read_from_doc')}</div>
-      <p style="margin:0 0 8px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review reads them out and quotes the clause it found them in.</p>
-      ${(canEdit()&&c.status!=='Signed')?`<button id="kt-readdoc" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('shield','w-3.5 h-3.5')} Run the playbook review</button>`:''}
+      ${''/* ---- THE SENTENCE STAYS, THE BUTTON GOES ----
+             Removed (Young, 10 Aug 2026). The playbook review is a check on the
+             WORDING: it reads the clauses, pins its findings to them and opens
+             them in a panel over the document. All of that is on the Document
+             tab, in the Checks card, which is where it is run from. A second
+             door here took you to a different tab to see what it found — the
+             same duplication Find obligations was removed for, in the other
+             direction. What is left is the sentence, which is not a duplicate:
+             it explains why governing law and the liability cap are not rows in
+             this panel, and that is a question only this panel raises. */}
+      <p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review on the <b>Document</b> tab reads them out and quotes the clause it found them in.</p>
     </div>`;
   return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
       <div style="${H};margin-bottom:6px">${i18t('ct_read_from_doc')}</div>
@@ -2620,7 +2791,13 @@ function riskCardHtml(c){
   const r=riskRead(c);
   if(!r) return `<h6 style="${H};margin-bottom:7px">${i18t('ct_risk')}</h6>
     <p style="margin:0 0 9px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_nothing_checked')}</p>
-    <button id="kt-gocheck" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${i18t('ct_go_to_checks')}</button>`;
+    ${''/* Reported with the obligations pair (Young, 10 Aug 2026): almost
+           transparent. A bare .ui-btn is a hairline border on a white
+           background, which is fine on a toolbar full of other buttons and
+           invisible alone at the foot of a paragraph. It takes the accent
+           outline the design already keeps for a secondary act — the same
+           treatment, and the same restraint, as Add obligation beside it. */}
+    <button id="kt-gocheck" class="ui-btn ob-btn-add" style="font-size:11.5px;padding:5px 11px">${i18t('ct_go_to_checks')}</button>`;
   const tone=r.score>=60?'var(--st-ruby-fg)':r.score>=35?'var(--st-amber-fg)':'var(--st-green-fg)';
   const bg=r.score>=60?'var(--st-ruby-bg)':r.score>=35?'var(--st-amber-bg)':'var(--st-green-bg)';
   return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
@@ -2632,15 +2809,27 @@ function riskCardHtml(c){
       <span class="risk-n">${b.n}</span></div>`).join('')}
     <p style="margin:8px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">Scored from ${[r.ranPb?'the playbook review':'',r.ranScan?'the Copilot scan':''].filter(Boolean).join(' and ')}. Anything above 60 needs Legal sign-off before signing.</p>`;
 }
+/* ---- ONE CARD BESIDE KEY TERMS, AND IT MATCHES IT ----
+   The Risk card is gone from this tab (Young, 10 Aug 2026). It was the third
+   card in a two-card column: Key terms on the left, Obligations and Risk
+   stacked on the right, so the right column ran past the bottom of the left
+   one and the two halves of the screen never lined up. Risk is not lost — it
+   is READ from the playbook review and the Copilot scan, and both of those,
+   with their findings, live on the Document tab. A score with no way to act on
+   it beside it is a number to look at, and it was pushing the obligations it
+   sat above off the fold.
+
+   THE ONE THAT STAYS IS SIZED TO ITS NEIGHBOUR. Obligations now takes the
+   column's full height with its list scrolling inside (see .ob-list), so the
+   two cards square off. align-items:stretch on the grid does the work; the
+   height is not a number written twice, which is how two cards drift apart the
+   first time somebody adds a row to one of them. */
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
-  host.innerHTML=`<section id="obligations-section" style="${CARD}"></section>
-    <section style="${CARD}">${riskCardHtml(c)}</section>`;
+  host.innerHTML=`<section id="obligations-section" class="kt-side-card" style="${CARD}"></section>`;
   if(window.renderObligationsSection) renderObligationsSection(c);
-  host.querySelector('#kt-gocheck')?.addEventListener('click',()=>roomGoTab(c,'docs'));
-  const read=document.getElementById('kt-readdoc');
-  if(read) read.addEventListener('click',()=>roomGoTab(c,'docs'));
+  /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 
 /* ============ HISTORY ============
@@ -3220,9 +3409,20 @@ function checksRowsHtml(c){
       <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${
         v?`<span class="pill-x" style="${tone}">${v.label}</span>`:'Run &rarr;'}</button></div>`;
   };
+  /* ---- FIND OBLIGATIONS IS NOT A CHECK ON THIS CARD ANY MORE ----
+     Removed as a duplicate (Young, 10 Aug 2026). The Obligations card on Key
+     terms carries its own Find obligations button, beside the list the sweep
+     fills and beside Add obligation, which is the other half of the same job.
+     Two entry points to one act is one too many — and this one was the worse
+     of the two, because pressing it here took you to the other tab to read the
+     result anyway (see the roomGoTab in the wiring below, now gone with it).
+
+     THE OTHER TWO STAY, and the difference is where their results live: a
+     playbook review and a risk scan pin their findings to CLAUSES, on this
+     tab, in a panel over this document. They are checks on the wording. An
+     obligation is a commitment on the record, and the record is on Key terms. */
   return row('playbook','shield',i18t('ct_playbook_review'))
-    + row('risk','scan',i18t('ct_copilot_risk_scan'))
-    + row('oblig','calendar','Find obligations');
+    + row('risk','scan',i18t('ct_copilot_risk_scan'));
 }
 function renderChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
@@ -3278,8 +3478,7 @@ function wireChecksCard(c){
     if(!editable&&!ran){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default';
       b.title='Read-only for your role, or this contract is executed'; return; }
     b.addEventListener('click',async()=>{
-      if(ran&&kind!=='oblig') return openCheckPanel(c,kind);
-      if(ran&&kind==='oblig') return roomGoTab(c,'terms');
+      if(ran) return openCheckPanel(c,kind);
       if(!editable) return;
       b.innerHTML=`<span style="opacity:.6">${i18t('ct_working')}</span>`; b.disabled=true;
       try{
@@ -3297,13 +3496,10 @@ function wireChecksCard(c){
           openCheckPanel(c,'playbook');
           return;
         }
-        /* Obligations go through the product's own review step — the found
-           list is shown and nothing is filed until it is confirmed. This used
-           to call the extractor directly and throw its result away, so the
-           toast reported a count that had nothing to do with the scan. */
-        if(!window.runFindObligations) throw new Error('unavailable');
-        await runFindObligations(c);
-        renderChecksCard(c);
+        /* The obligations branch lived here and has gone with its row — the
+           sweep is run from the Obligations card on Key terms, which is where
+           what it finds is read. runFindObligations itself is untouched; this
+           card simply no longer offers a second door onto it. */
       }catch(e){
         toast(i18t('ct_check_unavailable'),'err');
         renderChecksCard(c);
@@ -3701,7 +3897,10 @@ function roomHeadHtml(c,opts={}){
     const na=(!locked&&may&&window.wsNextAction)?wsNextAction(c):null;
     primary=locked
       ? `<button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
-      : na ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      /* A next action may have no button of its own — see wsNextAction's
+         intent-to-sign branch. It still answers the status line; it just does
+         not earn the head's primary slot. */
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
@@ -3713,8 +3912,9 @@ function roomHeadHtml(c,opts={}){
      SOLID GREEN, as asked. I had it as a green outline on the reasoning that
      one filled button per head keeps the hierarchy — the owner's call is that
      starting the next agreement is a first-class act on this platform and
-     should look like one. Two filled greens, and the head reads as two things
-     you can do rather than one thing you must.
+     should look like one. Share is filled too now, on the same call (09 Aug
+     2026): the head carries the acts, and an act drawn as an outline beside two
+     filled ones reads as the one you are not meant to press.
 
      Only where this head owns its primary. The negotiation workbench passes
      its own (Publish Round) and is a working surface, not a landing — offering
@@ -3730,12 +3930,60 @@ function roomHeadHtml(c,opts={}){
         <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c)
           :(window.statusChip?statusChip(c.status):esc(c.status||''))}</span>
       </div>
-      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
+      ${''/* ---- THE ROUND READS WITH THE OTHER FACTS ABOUT THE CONTRACT ----
+             It used to be an amber chip at the end of the workbench's tab row,
+             which is navigation furniture, and it appeared on one of the five
+             tabs. Where a negotiation is actually running the round is a fact
+             about this agreement exactly like its stream and its value, so it
+             reads here — on every tab, from one line (Young, 10 Aug 2026).
+             Drawn only where there IS a negotiation: "Round 1" over a draft
+             nobody has redlined is a number about nothing. */}
+      <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${
+        (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
+        ''/* `typeof`, not window: fmtMoney is a top-level const in
+              js/jurisdiction.js and a const is a LEXICAL binding, not a
+              property of window — the trap THE MAP records against currentUser
+              and friends. A bare call from a stage that has not loaded that
+              file is a ReferenceError that takes the whole head down. */}${
+        (typeof fmtMoney==='function'&&Number(c.value)>0)?' · '+esc(fmtMoney(c.value)):''}${
+        c.lastAction?' · '+i18t('ct_updated_on',{when:esc(c.lastAction)}):''}</div>
     </div>
     <div class="room-acts">
+      ${''/* ---- THE DESK, AND IT COSTS THE PAGE ONE CONTROL ----
+             Who leads this negotiation is a FACT about the contract, like its
+             value and its stream, so it sits with the other facts rather than
+             in a band of its own above the document. Both this page and the
+             negotiation workbench call roomHeadHtml, so the desk appears on
+             both from one line. See the note above deskChipHtml for the space
+             budget this is drawn to. */}
+      ${(window.deskChipHtml?deskChipHtml(c,opts):'')}
+      ${''/* ---- A CONTROL HAS TO LOOK LIKE ONE, AND SAY WHAT IT OPENS ----
+             Reported (Young, 11 Aug 2026): "it is not clear to a user what
+             that button is for or it is even a button."
+
+             TWO FAULTS IN ONE 34px SQUARE, and only one of them was the
+             styling. A bare glyph on a hairline square, sitting beside two
+             filled buttons that plainly are buttons, reads as a separator or
+             a decoration — nothing said it could be pressed. And even once
+             pressed, nothing had said what was behind it: ⋯ is a promise of
+             "more" to somebody who already knows the convention and a
+             punctuation mark to everybody else. The menu behind it holds the
+             import, the exports, focus mode and Delete — none of which anyone
+             would go looking for behind three dots.
+
+             SO IT IS LABELLED. "More" beside the glyph costs the row about
+             40px and answers both questions at once; the chevron is the
+             ordinary sign that a menu drops from it, and it turns over when
+             the menu is open (see wireRoomHead). The word is a <span> so a
+             narrow row can fold it back to the glyph the way the workbench's
+             purple buttons fold, without the button changing identity — its
+             id, its title and its textContent-based tests are untouched. */}
       <div style="position:relative;flex:none">
-        <button id="ws-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
-          title="${i18t('ct_everything_else')}" style="width:34px;height:34px;padding:0;font-size:15px;line-height:1">&#8943;</button>
+        <button id="ws-more" class="ui-btn ws-more-btn" aria-haspopup="true" aria-expanded="false"
+          title="${i18t('ct_everything_else')}">
+          <span aria-hidden="true" style="font-size:15px;line-height:1">&#8943;</span>
+          <span class="ws-more-word">${i18t('ct_more')}</span>
+          <span class="ws-more-caret" aria-hidden="true">${icon('chevD','w-3 h-3')}</span></button>
         ${''/* WRITTEN OUT, not built by a loop. Every id below is the id the
                control had on the old toolbar, and half the test suite reaches
                for them by name in this file's SOURCE — a helper that assembled
@@ -3767,7 +4015,18 @@ function roomHeadHtml(c,opts={}){
                  on the Document tab now, so it is not repeated here. */}
         </div>
       </div>
-      ${may?`<button id="ws-share" class="ui-btn" style="font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
+      ${''/* SOLID GREEN, on the owner's call (Young, 09 Aug 2026) — "make the
+             Share buttons both in Document and Negotiate tabs visible in green
+             like the other buttons". It was the head's one plain outline, and
+             beside two filled greens it read as a lesser control than Save as
+             template in the ⋯ menu, which is the opposite of what sending a
+             contract to the other side is worth.
+
+             ONE BUTTON, BOTH TABS. roomHeadHtml is drawn by renderWorkspace
+             (Document, Key terms, Signing, History) AND by renderRedline
+             (Negotiate) — there is no second Share markup anywhere, so this is
+             the whole of the change. See THE MAP's five-tabs section. */}
+      ${may?`<button id="ws-share" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary)}
       ${newBtn}
     </div>
@@ -3837,8 +4096,16 @@ function renderWorkspace(){
     return;
   }
   const locked=c.status==='Signed';
-  // Industry design-system tokens — inline styles per the design handoff.
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
+  /* The sheet's own rules — the front matter, the parties' lines at the foot —
+     live with the workbench because both tabs draw them from one builder. The
+     call is idempotent and it is made BEFORE the paint, so the first render of
+     a contract is not a frame of unstyled front matter. */
+  if(window.redlineLayoutCss) redlineLayoutCss();
+  /* Industry design-system tokens — inline styles per the design handoff.
+     12px and a hairline lift, matching the change cards and the queue on the
+     Negotiate tab: the two tabs are one room and their objects should be the
+     same objects (Young, 10 Aug 2026). */
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:12px';
   const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
   const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:11.5px';
   const KKEY='color:var(--color-neutral-600);flex:none';
@@ -3884,11 +4151,22 @@ function renderWorkspace(){
     <div class="room-tabrow" style="display:flex;align-items:center;gap:14px;flex:none;border-bottom:1px solid var(--color-divider)">
       ${roomTabsHtml(c,_wsTab)}
       <span style="flex:1"></span>
-      ${''/* Only the text-size stepper rides here. Focus mode moved into the
-             "⋯" with the rest of the give-the-document-more-room verbs, so
-             this row is the tabs and one quiet control rather than the tabs
-             and a second toolbar. */}
+      ${''/* The text-size stepper, and — at the far right — the one door off
+             this tab. The band that used to carry that door is gone (see
+             actionBarHtml), so it rides here, where a reader looking for
+             somewhere to go already looks.
+
+             FILLED, LIKE DRAFT NEW AGREEMENT, on the owner's call (Young,
+             10 Aug 2026). It is a real act rather than a way of looking, and
+             on this head an act is drawn solid.
+
+             Only where a negotiation is actually running: on a fresh draft the
+             head's own primary is the next thing to do, and a second answer to
+             that question beside it is noise. */}
       ${(_wsTab==='docs'&&window.rlTypeStepHtml)?rlTypeStepHtml():''}
+      ${(_wsTab==='docs'&&c.negotiation&&window.negoChanges&&negoChanges(c).length)
+        ? `<button type="button" id="ws-to-nego" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:7px 14px">${i18t('ct_open_negotiate')}</button>`
+        : ''}
     </div>
 
     <!-- The quiet line under the tabs: where this contract stands, what it
@@ -3900,10 +4178,18 @@ function renderWorkspace(){
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
     <div id="doc-grid" data-ws-pane="docs" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
 
-      <!-- LEFT: document -->
-      <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
+      <!-- LEFT: document
+           ---- THE SHEET SITS ON THE PAGE, NOT IN A CARD ----
+           This pane used to be a bordered white card holding a white sheet: a
+           box inside a box, and the reason the paper never read as paper. The
+           card chrome is off (Young, 10 Aug 2026) and the sheet carries the
+           whole of the object — warm ground, warm hairline, a long soft lift —
+           exactly as the negotiation workbench draws it, from the same tokens.
+           Same arrangement on both tabs, so switching moves the work and not
+           the furniture. -->
+      <section style="overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document body (scrolls within the left pane) -->
-        <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 24px;background:var(--color-bg)">
+        <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:4px 2px 24px">
           <!-- The page and its banners scale together to fill whatever width the
                divider gives them (see applyDocZoom), so a wider contract is a
                bigger contract rather than a wider margin. -->
@@ -3918,10 +4204,21 @@ function renderWorkspace(){
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>${i18t('ct_received_read_below')}</span></div>`
             :''}
-          ${templateProvenanceHtml(c)}
-          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
-            ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:36,bleedY:30}):''}
+          ${''/* THE PROVENANCE LINE HAS LEFT THE SPACE ABOVE THE PAPER. It read
+                 "Created from WH v1 — editing the template later does not
+                 change this contract", as a second full-width band between the
+                 tabs and the agreement. It is a fact about where this contract
+                 CAME FROM, not about the wording in front of you, so it reads
+                 with the contract's other facts in the right-hand column
+                 (Young, 10 Aug 2026: "open this space up for the contract
+                 exclusively"). Same builder, same words, one column across. */}
+          <div class="blueprint"${window.docDesignPaperAttr&&window.resolveDocBranding?docDesignPaperAttr(resolveDocBranding(c)):''} style="background:var(--color-doc-warm);border-color:var(--color-doc-warm-line);box-shadow:var(--shadow-paper);padding:34px 40px 44px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:14px;${window.docDesignPaperStyle&&window.resolveDocBranding?docDesignPaperStyle(resolveDocBranding(c)):''}">
+            ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c,{bleedX:40,bleedY:34}):''}
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docFillable(c)?docBodyStructured(c):readOnlyDocHtml(docBodyStructured(c))}</article>
+            ${''/* The parties' lines at the foot are NOT drawn here. Every
+                   document body this tab can render ends with signatureBlock,
+                   and that is where they are — one foot per contract, not two
+                   stacked because two files each thought it was theirs. */}
             ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
           </div>
           </div>
@@ -3956,6 +4253,11 @@ function renderWorkspace(){
                so: see checksRowsHtml, which counts the unfilled fields. -->
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          ${''/* Where this contract came from. Quiet, because it is a thing you
+                 check once — and it says the one thing that is easy to get
+                 wrong, which is that a template revised later does not revise
+                 the contracts already made from it. */}
+          ${templateProvenanceHtml(c)}
           <section id="checks-card" style="${CARD};padding:13px 15px">
             <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('ct_checks')}</h6>
             <p data-checks-note style="font-size:11.5px;color:var(--color-neutral-600);margin:4px 0 2px;line-height:1.5">${checksNoteHtml(c)}</p>
@@ -4054,7 +4356,13 @@ function renderWorkspace(){
          Editable until the seal binds them. -->
     <div data-ws-pane="terms" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
       <div class="terms-grid">
-      <div style="${CARD};padding:16px 18px;align-self:start">
+      ${''/* align-self is gone from BOTH columns, which is what squares them
+             off: left to itself each card was only as tall as its contents, so
+             the two halves of the screen ended at different places and neither
+             one looked deliberate. Stretched, the shorter card grows to meet
+             the taller and the obligations list — which is the part that varies
+             — scrolls inside its own bounds. See renderKeyTermsSide. */}
+      <div style="${CARD};padding:16px 18px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <h6 style="margin:0;flex:1;font-size:13px;font-weight:700;font-family:var(--font-heading)">${i18t('tab_key_terms')}</h6>
           ${(!ktEditable)?`<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('ct_confirmed')}</span>`:''}
@@ -4063,12 +4371,11 @@ function renderWorkspace(){
         <div id="kt-rows">${ktTermsRowsHtml(c,{editable:ktEditable})}</div>
         ${readTermsHtml(c)}
       </div>
-      ${''/* Obligations and Risk. What this contract COMMITS you to, and where
-             it sits against your standards — the two questions a reader has
-             the moment they have finished reading the terms themselves. Both
-             are filled by renderKeyTermsSide from records that already exist:
-             the obligations the Calendar chases, and the checks you have run. */}
-      <div id="kt-side" style="display:flex;flex-direction:column;gap:12px;align-self:start"></div>
+      ${''/* Obligations: what this contract COMMITS you to — the question a
+             reader has the moment they have finished reading the terms
+             themselves. Filled by renderKeyTermsSide from the record the
+             Calendar already chases. */}
+      <div id="kt-side" style="display:flex;flex-direction:column;gap:12px;min-height:0"></div>
       </div>
     </div>
 
@@ -5051,4 +5358,4 @@ Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,roomTabsHtml,roomGoTab,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});
+  ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});

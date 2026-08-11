@@ -312,31 +312,51 @@ describe('F95 — focus mode leaves no dead band at the foot', () => {
   });
 });
 
-describe('F95 — the negotiate cards are square', () => {
+describe('F95 — the negotiate objects are one set of objects', () => {
   const nego = src('js/views/negotiation.js');
 
-  test('the panes, the paper and the change cards all drop their radius', () => {
-    for (const sel of ['.redline-page .rl-col', '.redline-page .rl-doc',
-                       '.redline-page .rl-paper', '.redline-page .rl-card']){
+  /* THIS BLOCK USED TO SAY "SQUARE". The workbench had been given a 0-3px
+     radius everywhere, on the argument that a negotiation surface is a working
+     surface rather than a gallery of cards. The 10 Aug 2026 design reverses
+     it: the queue, the sheet and the change cards are 12-14px with a hairline
+     lift, and the Document tab's rail cards match them, so switching tabs
+     moves the work and not the furniture.
+
+     WHAT SURVIVES UNCHANGED is the rule underneath both: ONE radius, used by
+     everything on the page. A page where the paper is 14px, the cards are 6px
+     and the queue is 2px is the drift this test exists to catch, whichever
+     number is current. */
+  test('the queue, the sheet and the change cards share one radius', () => {
+    const radius = sel => {
       const rule = nego.slice(nego.indexOf(sel + '{'));
       const block = rule.slice(0, rule.indexOf('}'));
-      const r = (block.match(/border-radius:\s*([^;}]+)/) || [])[1];
-      assert.ok(r && /^(0|1px|2px|3px)$/.test(r.trim()), `${sel} is still rounded: ${r}`);
-    }
+      return ((block.match(/border-radius:\s*([^;}]+)/) || [])[1] || '').trim();
+    };
+    const got = ['.redline-page .rl-col', '.redline-page .rl-doc',
+      '.redline-page .rl-paper'].map(radius);
+    assert.deepEqual([...new Set(got)], ['14px'],
+      'the three big surfaces are one shape: ' + got.join(' / '));
+    assert.equal(radius('.redline-page .rl-card'), '12px',
+      'and a card inside them is one step tighter, never a different family');
   });
 
-  test('and the counterparty’s room, which is the same markup, comes with them', () => {
-    assert.match(nego, /--n-r-md:2px;\s*--n-r-lg:2px/,
-      'both pages read these tokens — one number, both seats');
-    const cl = nego.slice(nego.indexOf('.nego-clause{'));
-    assert.match(cl.slice(0, cl.indexOf('}')), /border-radius:var\(--n-r-md\)/,
-      'a clause block is a card too');
+  test('the Document tab\'s own cards were brought with them', () => {
+    /* Source-level, like the rest of this file's cross-file claims: the
+       workspace screen is too heavy to boot here and what is pinned is one
+       line of source. */
+    const ct = src('js/views/contract.js');
+    assert.match(ct, /const CARD='background:var\(--color-surface\)[^']*border-radius:12px'/,
+      'the Doc page rail is the same card as the Negotiate column');
   });
 
   test('but the buttons and pills keep their own shape', () => {
     assert.match(nego, /--n-r-sm:6px/, 'squaring a round Accept button turns it into a box');
     const verbs = nego.slice(nego.indexOf('.redline-page .rl-card-verbs button{'));
-    assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:999px/);
+    assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:8px/,
+      'the verbs are the design\'s soft rectangles, not pills');
+    const badge = nego.slice(nego.indexOf('.redline-page .rl-badge{'));
+    assert.match(badge.slice(0, badge.indexOf('}')), /border-radius:999px/,
+      'and a status pill is still a pill');
   });
 });
 

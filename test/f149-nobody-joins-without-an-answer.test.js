@@ -112,6 +112,36 @@ describe('f149 — the access question is part of adding somebody', () => {
     assert.ok($('tm-access-list').querySelectorAll('[data-tm-folder]').length >= 6);
   });
 
+  /* ---- AND THE ROLE THE FORM OPENS ON ----
+     Added 09 Aug 2026, reported the same way the access question was: the
+     dropdown opened on "Editor — edit & sign", so an admin who typed a name and
+     an email and never looked at it had handed over the right to redline and to
+     SIGN. Same rule as the access control beside it — the quietest path through
+     a form must not be the widest grant — but expressed differently, because a
+     role is unavoidable in a way an access answer is not: there is a safe
+     default here, so the form takes it. A skipped answer now costs a follow-up
+     rather than an authority nobody meant to give. */
+  test('the role opens on the SAFE one, not the powerful one', () => {
+    const { $ } = stage();
+    const sel = $('tm-role');
+    assert.ok(sel, 'the add-member form has a role control');
+    assert.equal(sel.value, 'viewer', 'a skipped answer must not grant edit and signature');
+    assert.equal(sel.options[0].value, 'viewer', 'and it is what the closed control reads');
+    assert.deepEqual(Array.from([...sel.options].map(o => o.value)), ['viewer', 'legal', 'admin'],
+      'all three are still offered — this is a default, not a restriction');
+  });
+
+  test('adding without touching the role creates a viewer', async () => {
+    const { $, log, fill, click, change } = stage();
+    fill('John Wayne', 'john@hati.test', 'temp12345');
+    $('tm-access').value = '*'; change($('tm-access'));
+    click($('tm-add'));
+    await settle();
+    const create = log.api.filter(c => c.route === 'users');
+    assert.equal(create.length, 1, 'the account was created');
+    assert.equal(create[0].body.role, 'viewer', 'the role that travelled is the safe one');
+  });
+
   test('unanswered is refused — no account is created', async () => {
     const { $, log, memberCount, fill, click } = stage();
     fill('John Wayne', 'john@hati.test', 'temp12345');

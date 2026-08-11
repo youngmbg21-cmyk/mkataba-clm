@@ -188,10 +188,55 @@ function dsPaint(opts) {
       `<span style="display:flex;gap:3px;flex:1"><span style="flex:1">${bar('100%')}${bar('100%', '2px')}${bar('60%', '2px')}${bar('100%', '2px')}</span><span style="flex:1">${bar('100%')}${bar('70%', '2px')}${bar('100%', '2px')}${bar('90%', '2px')}</span></span>`);
     if (id === 'ruled-clauses') return box(
       [0, 1, 2].map(() => `<span style="display:block;border-top:1px solid ${RULE};padding-top:2px;margin-top:2px">${bar('55%')}${bar('100%', '2px')}</span>`).join(''));
-    if (id === 'contents-first') return box(
-      `${bar('60%')}${[0, 1, 2, 3].map(() => `<span style="display:flex;align-items:center;gap:2px;margin-top:2px">${bar('40%')}<span style="flex:1;border-bottom:1px dotted ${RULE};height:1px"></span></span>`).join('')}`);
     return box([0, 1, 2, 3, 4].map((_, i) => bar(i % 3 === 2 ? '65%' : '100%', i ? '2px' : 0)).join(''));
   };
+
+  /* ---- THE CONTENTS PAGE IS A YES/NO, ABOVE THE LAYOUTS ----
+     It was the fifth structure card until 10 Aug 2026, which made it exclusive
+     with the other four: a contents page cost you Margin Numbers, and a
+     two-column booklet could not have one at all. It prepends a page and
+     leaves the body alone, so it was never the same kind of choice — see the
+     note at DOC_STRUCTURES.
+
+     DRAWN FIRST, AND AS A PAIR. Not a checkbox: "off" is a real answer here
+     and the default one, and a default worth stating is worth drawing. The
+     pair sits above the layout list because it is answered about the document
+     as a whole, and separated by a rule so it cannot read as a sixth layout.
+
+     "AT THE FRONT" NAMES THE PLACE, not the feature, because the place is the
+     only thing the reader is deciding — there is nowhere else a contents page
+     could go, and saying "Included" would invite the question.
+
+     NO THUMBNAIL ON THESE TWO, though the layout cards below all carry one.
+     The rail is 268px wide: a 30px wire plus its gap left the labels about
+     90px, which wrapped "At the front" onto two lines and made the pair look
+     broken. The layouts need a thumbnail because their names do not describe
+     a shape; these two are a yes and a no, and the preview beside them is the
+     picture. */
+  const contentsOn = !!b.contents;
+  const contentsBtn = (on, label, sub) => {
+    const sel = contentsOn === on;
+    return `<button data-ds-contents="${on ? '1' : '0'}" aria-pressed="${sel ? 'true' : 'false'}"
+      style="flex:1;min-width:0;text-align:left;font:inherit;cursor:pointer;
+      background:${sel ? 'var(--color-accent-100)' : 'var(--color-surface)'};
+      border:${sel ? '2px solid var(--color-accent-700)' : '1px solid var(--color-divider)'};
+      border-radius:10px;padding:${sel ? '8px 9px' : '9px 10px'}">
+      <b style="display:block;font-size:11.5px">${esc(label)}</b>
+      <span style="display:block;font-size:9.5px;color:var(--color-neutral-600);line-height:1.4;margin-top:3px">${esc(sub)}</span>
+    </button>`;
+  };
+  const contentsChoice = `
+    <div style="margin:0 0 13px;padding:0 0 13px;border-bottom:1px solid var(--color-divider)">
+      <div style="font-family:var(--font-heading);font-size:10px;font-weight:800;letter-spacing:.09em;
+        text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">Contents page</div>
+      <div style="display:flex;gap:7px;align-items:stretch">
+        ${contentsBtn(false, 'Not included', 'Opens on the first clause.')}
+        ${contentsBtn(true, 'At the front', 'Built from the clause headings.')}
+      </div>
+      <p style="font-size:9.5px;color:var(--color-neutral-500);line-height:1.45;margin:7px 0 0">
+        It rebuilds itself when a clause is added, and stays off a document with fewer than three headings.
+        The clause wording and numbering are untouched either way.</p>
+    </div>`;
 
   const structureCards = DOC_STRUCTURES.map(x => {
     const why = structureBlockedReason(b.designId, x.id);
@@ -359,7 +404,7 @@ function dsPaint(opts) {
           <p style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.45;margin:0">${rh.hint}</p>
         </div>
         <div id="ds-rail" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:11px 13px 14px">
-          ${step === 1 ? designCards : structureCards + blockNote}
+          ${step === 1 ? designCards : contentsChoice + structureCards + blockNote}
         </div>
       </section>`}
 
@@ -369,6 +414,10 @@ function dsPaint(opts) {
           <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text)">${esc(design.name)}</span>
           <span style="color:var(--color-neutral-400);font-size:11px">×</span>
           <span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">${esc(structure.name)}</span>
+          ${''/* The contents page only speaks when it is ON. Off is the default
+                 and the absence of a page — a chip reading "no contents page"
+                 would be the strip announcing that nothing has happened. */}
+          ${b.contents ? `<span class="badge" style="background:var(--color-neutral-100);color:var(--color-text);${step === 1 ? 'opacity:.5' : ''}">+ Contents</span>` : ''}
           <span style="flex:1"></span>
           <!-- The workbench's own controls, not lookalikes: one stored text-size
                preference shared with the Doc tab and the Redline canvas, so a
@@ -445,6 +494,14 @@ function dsPaint(opts) {
     dsHarvest();
     _ds.structureTouched = true;
     _ds.b.structureId = el.getAttribute('data-ds-structure');
+    dsPaint();
+  }));
+  /* Written as a real boolean, never left undefined: the reader has now
+     answered, and "not said" is a different fact from "said no" everywhere
+     downstream (see normalizeDesignBranding). */
+  document.querySelectorAll('[data-ds-contents]').forEach(el => el.addEventListener('click', () => {
+    dsHarvest();
+    _ds.b.contents = el.getAttribute('data-ds-contents') === '1';
     dsPaint();
   }));
   document.querySelectorAll('[data-ds-swatch]').forEach(el => el.addEventListener('click', () => {

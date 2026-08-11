@@ -59,8 +59,8 @@ async function loadAppCss(){
 
 /* Mount the document exactly as every render surface mounts it: the paper div
    carrying docDesignPaperAttr, the body passed through docStructureBodyHtml. */
-window.MOUNT = function (designId, structureId) {
-  const b = normalizeDesignBranding({ designId, structureId, companyName: 'Brut Africa Ltd' });
+window.MOUNT = function (designId, structureId, contents) {
+  const b = normalizeDesignBranding({ designId, structureId, contents, companyName: 'Brut Africa Ltd' });
   const stage = document.getElementById('stage');
   stage.innerHTML = '<div class="paper"' + docDesignPaperAttr(b) + ' style="' + docDesignPaperStyle(b) + '">'
     + '<article class="doc-surface hati-doc">' + docStructureBodyHtml(b, BODY) + '</article></div>';
@@ -69,8 +69,8 @@ window.MOUNT = function (designId, structureId) {
 window.RAW_BODY = BODY;
 
 /* Same mount, into the print sheet. */
-window.MOUNT_PRINT = function (designId, structureId) {
-  const b = normalizeDesignBranding({ designId, structureId, companyName: 'Brut Africa Ltd' });
+window.MOUNT_PRINT = function (designId, structureId, contents) {
+  const b = normalizeDesignBranding({ designId, structureId, contents, companyName: 'Brut Africa Ltd' });
   document.getElementById('print-root').innerHTML =
     '<div class="paper"' + docDesignPaperAttr(b) + ' style="' + docDesignPaperStyle(b) + '">'
     + '<article class="doc-surface hati-doc">' + docStructureBodyHtml(b, BODY) + '</article></div>';

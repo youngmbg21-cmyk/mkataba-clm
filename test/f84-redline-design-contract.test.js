@@ -76,21 +76,44 @@ describe('F84 — the design names every part, and the names are on the page', (
      invisible to a plain presence check. */
   test('every id in the design contract is present', async () => {
     const p = await page();
+    /* rl-disc-col, rl-threads and rl-thread-count have left this list. The
+       Discussion column they named is gone (10 Aug 2026) and the conversation
+       reads on the change's own card — see "the card carries its notes" below,
+       which is what now holds that part of the contract. */
     for (const id of ['view-redline', 'rl-banner', 'rl-grid', 'rl-doc',
-      'rl-side', 'rl-resizer', 'rl-changes-col', 'rl-changes', 'rl-disc-col',
-      'rl-threads', 'rl-rail-count', 'rl-thread-count'])
+      'rl-side', 'rl-resizer', 'rl-changes-col', 'rl-changes'])
       assert.ok(p.$('#' + id), `#${id} is missing from the rendered workbench`);
   });
 
-  test('the grid holds the document and ONE sidebar; both faces live inside it', async () => {
+  /* AND WHAT REPLACED THEM. The names above were the handle everything reached
+     for; these are the handles the conversation has now. */
+  test('the card carries its notes, and the composer the engine binds', async () => {
+    const p = await page();
+    const card = p.$('#rl-changes [data-nego-card]');
+    assert.ok(card, 'there is a card to hang a conversation off');
+    assert.ok(card.querySelector('.rl-cnotes'), 'the notes block is on the card');
+    const id = card.getAttribute('data-nego-card');
+    assert.ok(card.querySelector(`[id="nego-ti-${id}"]`), 'the engine\'s own composer id');
+    assert.ok(card.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
+    /* THE MARKER IS NOT DECORATION. wireNegotiationTab resolves visibility by
+       finding the pressed data-nego-vis button for this change and DEFAULTS TO
+       SHARED when there is none — so on our seat, where the card promises the
+       note never travels, the marker must be present and pressed to internal. */
+    const vis = card.querySelector(`[data-nego-vis][data-for="${id}"][aria-pressed="true"]`);
+    assert.ok(vis, 'a pressed visibility marker');
+    assert.equal(vis.getAttribute('data-nego-vis'), 'internal',
+      'and on our own seat it says internal, or every note would go to them');
+  });
+
+  test('the grid holds the document and ONE sidebar, with one face in it', async () => {
     const p = await page();
     const grid = p.$('#rl-grid');
     assert.ok(grid.contains(p.$('#rl-doc')), 'the document is not in the grid');
     assert.ok(grid.contains(p.$('#rl-side')), 'the single sidebar is not in the grid');
     assert.ok(p.$('#rl-side').contains(p.$('#rl-changes-col')),
-      'tracked changes must be a face of the one sidebar');
-    assert.ok(p.$('#rl-side').contains(p.$('#rl-disc-col')),
-      'and so must the discussion — not a third column');
+      'the tracked changes are in the sidebar');
+    assert.equal(p.$('#rl-disc-col'), null,
+      'and there is no second face to switch to any more');
   });
 
   test('#rl-changes is the card list inside the changes column', async () => {
@@ -101,10 +124,12 @@ describe('F84 — the design names every part, and the names are on the page', (
       'the design\'s card list must hold the engine\'s cards');
   });
 
-  test('#rl-threads is present even with nothing to say', async () => {
+  test('the column heads itself even with nothing on the table', async () => {
     // the empty state is where a "render it only when it has content" bug hides
     const p = await page({ withChange: false });
-    assert.ok(p.$('#rl-threads'), 'the thread list must exist before the first thread');
+    assert.ok(p.$('#rl-changes'), 'the card list must exist before the first card');
+    assert.match(p.$('.rl-idx-head').textContent, /Tracked changes/i,
+      'and it says what it is');
   });
 
   test('#rl-banner is a slot the page still owns, and the wall has left it', async () => {
@@ -163,12 +188,22 @@ describe('F84 — two panes, a drag handle, and a sidebar that shows one face', 
       'the Doc tab\'s own split — two thirds to the contract before the first drag');
   });
 
-  test('the sidebar\'s two faces are mutually exclusive by construction', async () => {
-    const css = (await page()).css();
-    assert.match(css, /\.redline-page\[data-rl-side-mode="changes"\] #rl-disc-col\{display:none\}/,
-      'in Tracked Changes mode the discussion must leave the card entirely');
-    assert.match(css, /\.redline-page\[data-rl-side-mode="disc"\] #rl-changes-col\{display:none\}/,
-      'and in Discussion mode the changes must — never both at once');
+  /* ---- AND NOW THERE IS ONE FACE ----
+     The pair of rules that hid one column to show the other is gone with the
+     Discussion column itself. What matters is the OPPOSITE of what this test
+     used to check: nothing may hide the card column, because there is nothing
+     left to show in its place. A browser holding the old stored preference is
+     the specific way that could still happen. */
+  test('nothing can hide the one column that is left', async () => {
+    const p = await page();
+    const css = p.css();
+    assert.doesNotMatch(css, /#rl-changes-col\{display:none\}/,
+      'no rule may take the cards off the page');
+    p.win.localStorage.setItem('hati.v1.rlSideMode', 'disc');
+    p.win.renderRedline();
+    assert.equal(p.win.rlSideMode(), 'changes',
+      'an old stored preference cannot put the page into a mode that no longer exists');
+    assert.ok(p.$('#rl-changes-col'), 'and the cards are still drawn');
   });
 
   test('the handle is real, absolute over the gap, and hidden when stacked', async () => {
@@ -188,153 +223,130 @@ describe('F84 — two panes, a drag handle, and a sidebar that shows one face', 
   });
 });
 
-describe('F84 — the Tracked Changes head gives the send slot its own line', () => {
-  /* WHAT THIS IS PINNING, and why it is worth a test rather than an eyeball.
+describe('F84 — the Tracked Changes head is a caption and a count', () => {
+  /* WHAT THIS BLOCK USED TO PIN, and why it is now about something else.
 
-     #nego-send is hidden on this page — the design carries that act in the page
-     header as Publish Round — but the sentence under it is not, and that
-     sentence only exists when there IS an unsent draft. So the header had one
-     layout on an idle contract and another the moment somebody filed a change,
-     and only the second one was broken.
+     The head was a toolbar: a filter, two bulk verbs and a second copy of the
+     batch send, wrapped onto two rows. Most of this file's rules about it were
+     about surviving that crowding — a whole test existed because the title had
+     laid out at ZERO PIXELS when the send slot pushed it over.
 
-     It was broken badly rather than untidily. The row was nowrap, the title
-     carries flex:1 with min-width:0 (flex-basis 0), and the slot was pushed
-     over with margin-left:auto at its content width. Shrinkage in flexbox is
-     weighted by flex-basis, so a basis of 0 takes none of it: the sentence kept
-     its full width, the title absorbed the entire deficit, and "Tracked
-     Changes" laid out at ZERO PIXELS — measured, not guessed. The column header
-     simply vanished while a draft was pending.
+     All four controls are gone (10 Aug 2026). Nothing left in this row can
+     grow, so nothing can squeeze anything else, and the rules worth keeping
+     are the two the design states: what the column is, and how much is in it.
 
-     flex-basis:100% is the fix, and it is inert without flex-wrap on the
-     parent — on a nowrap row it would make the sentence ask for the whole width
-     and squeeze the title harder still. The two declarations are one change and
-     are tested as one. */
-  test('the head wraps, so a full-basis child can break the line', async () => {
-    const css = (await page()).css();
-    assert.match(css, /\.redline-page \.rl-idx-head\{[^}]*flex-wrap:wrap/,
-      'without flex-wrap the send slot cannot take a row of its own');
-  });
-
-  test('the send slot claims a whole row instead of riding the title\'s', async () => {
-    const css = (await page()).css();
-    const m = /\.redline-page \.rl-sendslot\{([^}]*)\}/.exec(css);
-    assert.ok(m, 'the send slot must carry its own rule');
-    assert.match(m[1], /flex-basis:100%/, 'the slot takes the full line');
-    assert.ok(!/margin-left:auto/.test(m[1]),
-      'margin-left:auto is what pinned the sentence to the title\'s row');
-  });
-
-  test('an empty slot leaves no phantom row behind', async () => {
-    // negoIndexSendHtml returns '' when there is nothing unsent, and a
-    // full-basis element that still occupied a line would open a gap under the
-    // title on every idle contract
-    const css = (await page()).css();
-    assert.match(css, /\.redline-page \.rl-sendslot:empty\{display:none\}/);
-  });
-
-  test('the slot does not inherit the room\'s spacing on top of its own row', async () => {
-    // .nego-index-send is drawn for the room, where it earns a dashed rule and
-    // 9px of air at the foot of a scrolling index. Here it already sits under
-    // the head's own border, and the rule is painted in --n-line, a room token
-    // that does not resolve on this page
-    const css = (await page()).css();
-    assert.match(css, /\.redline-page \.rl-sendslot \.nego-index-send\{[^}]*margin-top:0[^}]*border-top:0/);
-  });
-
-  test('the fold\'s chip and chevron are gone with the fold', async () => {
-    // the sidebar tabs are the one switch now; a second control pair would be
-    // two ways to disagree about which face is showing
+     THE SEND SLOT SURVIVES, MOUNTED AND UNSEEN. #nego-send is the engine's one
+     send and Publish Round on the toolbar is a proxy that CLICKS it — so it
+     has to be in the DOM, and it has to be clickable rather than display:none.
+     That is the one thing here that would break silently. */
+  test('the head says what the column is and how much is on the table', async () => {
     const p = await page();
-    assert.equal(p.$('#rl-disc-show'), null);
-    assert.equal(p.$('.rl-disc-x'), null);
+    const head = p.$('.rl-idx-head');
+    assert.ok(head, 'the column heads itself');
+    assert.match(head.textContent, /Tracked changes/i, 'what it is');
+    assert.match(head.textContent, /\d+ on the table/, 'and how much is in it');
+  });
+
+  test('the controls that used to crowd it are gone', async () => {
+    const p = await page();
+    assert.equal(p.$('#rl-card-filter'), null, 'no origin filter');
+    assert.equal(p.doc.getElementById('nego-bulk-acc'), null, 'no bulk Accept');
+    assert.equal(p.doc.getElementById('nego-bulk-rej'), null, 'no bulk Reject');
+    assert.equal(p.$('.rl-side-tabs'), null, 'and no face switcher');
+  });
+
+  test('the engine\'s send is still mounted, and still clickable', async () => {
+    const p = await page();
+    const send = p.doc.getElementById('nego-send');
+    assert.ok(send, 'Publish Round has nothing to press without it');
+    const slot = p.$('.rl-sendslot');
+    assert.ok(slot.classList.contains('rl-sendslot-hidden'),
+      'it is out of the reader\'s way');
+    /* NOT display:none. A display:none control is one the browser may refuse
+       to focus or dispatch to, and the whole toolbar act runs through a click
+       on this element. */
+    const css = p.css();
+    const m = /\.redline-page \.rl-sendslot-hidden\{([^}]*)\}/.exec(css);
+    assert.ok(m, 'the hiding rule must exist');
+    assert.ok(!/display:none/.test(m[1]),
+      'clipped out of the layout, never display:none — the proxy clicks it');
   });
 });
 
-describe('F84 — the switcher wears its colours and its counts', () => {
-  test('the two tabs keep their colours, and only one of them is raised', async () => {
-    /* THE COLOURS MOVED FROM THE FILL TO THE TEXT. Both tabs used to be filled
-       tints permanently — a green pill beside an indigo pill — so the pair read
-       as two lit buttons and neither looked more current than the other. The
-       families stay, because they are the ones the origin badges and the card
-       spines speak; what says "you are here" is now the tab raised onto the
-       surface. Both are still named, still counted, still in their own colour,
-       which was the whole point of colouring them. */
+describe('F84 — how the contract reads, as three words', () => {
+  /* THE BLOCK THIS REPLACES pinned the two-tab switcher's colours and counts.
+     There is one column now, so there is nothing to switch between — and the
+     switch that took its place on the strip is a different question entirely:
+     not WHICH LIST am I looking at, but HOW IS THE SAME DOCUMENT DRAWN. */
+  test('three readings, one of them pressed', async () => {
     const p = await page();
-    const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
-    assert.match(css, /\.rl-side-tabs\{[^}]*background:var\(--color-neutral-100\)/, 'the tray');
-    assert.match(css, /\.rl-tab-changes\{[^}]*color:#047857/, 'Tracked Changes keeps emerald');
-    assert.match(css, /\.rl-tab-disc\{[^}]*color:#4338ca/, 'Discussion keeps indigo');
-    assert.match(css, /\.rl-side-tab\.on\{[^}]*background:var\(--color-surface\)/,
-      'the tab you are standing on is the one raised out of the tray');
-    assert.match(css, /\.rl-tab-changes \.rl-tab-n\{[^}]*background:#059669/, 'solid emerald count pill');
-    assert.match(css, /\.rl-tab-disc \.rl-tab-n\{[^}]*background:#4f46e5/, 'solid indigo count pill');
-    assert.match(css, /html\.dark[^{]*\.rl-tab-changes/, 'the colours survive dark mode');
+    const segs = p.$$('.rl-readwrap [data-rl-read]');
+    assert.deepEqual(segs.map(b => b.getAttribute('data-rl-read')),
+      ['marks', 'agreed', 'proposed']);
+    assert.equal(segs.filter(b => b.getAttribute('aria-pressed') === 'true').length, 1,
+      'exactly one is pressed — three readings, not three checkboxes');
+    assert.equal(p.win.rlReadMode(), 'marks', 'and the ordinary reading is the default');
   });
 
-  test('each tab carries its own live count', async () => {
+  test('a clean reading takes the marks off, and says so', async () => {
     const p = await page();
-    const chg = p.$('#rl-side .rl-tab-changes #rl-chg-count');
-    const disc = p.$('#rl-side .rl-tab-disc #rl-rail-count');
-    assert.ok(chg && disc, 'both pills are on their buttons');
-    assert.equal(chg.textContent.trim(), '1', 'one live redline in the fixture');
-    assert.match(p.$('#rl-side .rl-tab-changes').textContent, /Tracked Changes/);
-    assert.match(p.$('#rl-side .rl-tab-disc').textContent, /Discussion/);
+    assert.ok(p.$('#rl-doc del, #rl-doc .nego-del'), 'redlined shows the strike');
+    assert.equal(p.$('.rl-note-card'), null, 'and owes no explanation');
+
+    p.$('[data-rl-read="agreed"]').click();
+    assert.equal(p.win.rlReadMode(), 'agreed');
+    assert.equal(p.$('#rl-doc del, #rl-doc .nego-del'), null,
+      'as agreed: the proposal is not applied and not marked');
+    assert.equal(p.$('#rl-doc ins, #rl-doc .nego-ins'), null);
+    /* A DOCUMENT QUIETLY MISSING ITS STRIKES LOOKS LIKE A DOCUMENT WITH
+       NOTHING ON THE TABLE. The notice is the whole safety argument for
+       offering these readings at all. */
+    assert.ok(p.$('.rl-note-card'), 'a non-default reading always says so');
+    assert.match(p.$('.rl-note-card').textContent, /as it stands/i);
+    assert.ok(p.$('.rl-note-card [data-rl-read="marks"]'), 'with the way back on it');
+
+    p.$('.rl-note-card [data-rl-read="marks"]').click();
+    assert.equal(p.win.rlReadMode(), 'marks', 'and the way back works');
+    assert.equal(p.$('.rl-note-card'), null);
   });
 
-  test('the card snippet is clamped to two lines; the canvas holds the full scope', async () => {
+  test('nothing about the record moves when the reading does', async () => {
     const p = await page();
-    const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
-    const m = /\.rl-card-diff\{([^}]*)\}/.exec(css);
-    assert.ok(m, 'the diff snippet must carry a rule');
-    assert.match(m[1], /-webkit-line-clamp:2/, 'two lines, uniform stack');
-    assert.match(m[1], /overflow:hidden/, 'the overflow is reachable on the canvas, not in the card');
+    const before = JSON.stringify(p.win.negoChanges(p.c));
+    p.$('[data-rl-read="proposed"]').click();
+    p.$('[data-rl-read="agreed"]').click();
+    p.$('[data-rl-read="marks"]').click();
+    assert.equal(JSON.stringify(p.win.negoChanges(p.c)), before,
+      'a way of reading is not a way of writing');
   });
 });
 
-describe('F84 — the contract text size steps, within bounds, and is remembered', () => {
-  test('the stepper sits on the strip after the round tag: A⁻, readout, A⁺', async () => {
+describe('F84 — the text size is the Document tab\'s control now', () => {
+  /* IT USED TO LEAD THIS PAGE'S VERB STRIP. It is set once and then left alone
+     for the life of a contract, and the design puts it where the reading
+     happens rather than where the deciding does (10 Aug 2026). The control,
+     its bounds and its stored preference are untouched — only where it is
+     drawn moved — so what is worth pinning is that it went, that nothing else
+     went with it, and that the one place it now lives still renders it. */
+  test('the workbench strip no longer carries it', async () => {
     const p = await page();
-    const step = p.$('#view-redline .rl-head .rl-type-step');
-    assert.ok(step, 'the stepper must be on the sub-header strip');
-    /* It used to follow the Round badge on this strip. The badge moved up onto
-       the tab row when the tabs took a line of their own (see F89), so the
-       stepper now LEADS the strip — still the first control on it, still one
-       line under the round it belongs to. */
-    assert.equal(step.previousElementSibling, null,
-      'the stepper leads the verb strip');
-    assert.ok(p.$('#view-redline .rl-tabrow .rl-round'),
-      'and the Round badge is one line above it, on the tab row');
-    const [down, up] = [...step.querySelectorAll('[data-rl-type]')];
-    assert.equal(down.getAttribute('data-rl-type'), '-1');
-    assert.equal(up.getAttribute('data-rl-type'), '1');
-    assert.match(step.querySelector('.rl-type-out').textContent, /^\d+px$/,
-      'the readout is the live value');
+    assert.equal(p.$('#view-redline .rl-head .rl-type-step'), null,
+      'the stepper is not on the verb strip');
+    assert.equal(p.$('#view-redline [data-rl-focus]'), null,
+      'and neither is the fullscreen toggle — focus mode is in the head\'s "..."');
   });
 
-  test('a step moves the canvas token live; the bounds hold at 11 and 20', async () => {
+  test('the preference and its bounds are untouched', async () => {
     const p = await page();
     assert.equal(p.win.rlDocType(), 15, 'the doc-parity default');
-    p.$('.rl-type-step [data-rl-type="1"]').click();
-    assert.equal(p.win.rlDocType(), 16);
-    assert.equal(p.$('#view-redline').style.getPropertyValue('--rl-doc-type'), '16px',
-      'applied to the root without a repaint');
-    assert.equal(p.$('.rl-type-out').textContent, '16px');
     p.win.rlSetDocType(99);
     assert.equal(p.win.rlDocType(), 20, 'clamped at the ceiling');
-    assert.ok(p.$('.rl-type-step [data-rl-type="1"]').disabled, 'and A⁺ says so');
     p.win.rlSetDocType(2);
     assert.equal(p.win.rlDocType(), 11, 'clamped at the floor');
-    assert.ok(p.$('.rl-type-step [data-rl-type="-1"]').disabled, 'and A⁻ says so');
-    p.win.rlSetDocType(15);
-  });
-
-  test('the choice survives a repaint, read back from storage', async () => {
-    const p = await page();
     p.win.rlSetDocType(18);
     p.win.renderRedline();
     assert.equal(p.$('#view-redline').style.getPropertyValue('--rl-doc-type'), '18px',
-      'a size that resets on every clause is not a preference');
-    assert.equal(p.$('.rl-type-out').textContent, '18px');
+      'and the canvas still reads it, however it was set');
     p.win.rlSetDocType(15);
   });
 
@@ -346,65 +358,51 @@ describe('F84 — the contract text size steps, within bounds, and is remembered
       require('node:path').join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
     assert.ok(/rlTypeStepHtml\(\)/.test(src), 'the tab row renders the shared stepper');
     assert.ok(/rlWireTypeStep\(/.test(src), 'and wires it');
-    assert.ok(/rlDocType\(\)\s*:\s*15\)\s*\/\s*15/.test(src.replace(/\n/g, ' ')) || /rlDocType\(\)/.test(src),
-      'applyDocZoom multiplies by the stored preference');
+    assert.ok(/rlDocType\(\)/.test(src), 'applyDocZoom multiplies by the stored preference');
   });
 });
 
-describe('F84 — one sidebar, two modes, switched by the tabs and remembered', () => {
-  test('the tabs are mutually exclusive and mark the root', async () => {
+describe('F84 — one sidebar, and one face left in it', () => {
+  test('the tabs are gone and the root cannot be put into the other mode', async () => {
     const p = await page();
-    const view = p.$('#view-redline');
-    assert.equal(view.getAttribute('data-rl-side-mode'), 'changes', 'Tracked Changes is the default face');
-    const tabs = p.$$('#rl-side [data-rl-mode]');
-    assert.deepEqual(tabs.map(t => t.getAttribute('data-rl-mode')), ['changes', 'disc']);
-    assert.match(tabs[1].textContent, /Discussion/);
-
-    tabs[1].click();
-    assert.equal(view.getAttribute('data-rl-side-mode'), 'disc');
-    assert.equal(tabs[1].getAttribute('aria-selected'), 'true');
-    assert.equal(tabs[0].getAttribute('aria-selected'), 'false');
-
-    tabs[0].click();
-    assert.equal(view.getAttribute('data-rl-side-mode'), 'changes');
-    assert.equal(tabs[0].getAttribute('aria-selected'), 'true');
-  });
-
-  test('rlToggleDiscussion keeps its old contract on top of the modes', async () => {
-    /* The name is part of the design contract (the lab wraps it — see f90),
-       so it survives as a shim: true = discussion not showing. */
-    const p = await page();
-    assert.equal(p.win.rlToggleDiscussion(), false, 'from changes, a bare toggle opens the discussion');
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
-    assert.equal(p.win.rlToggleDiscussion(), true);
+    assert.equal(p.$$('#rl-side [data-rl-mode]').length, 0, 'no face switcher');
     assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'changes');
+    p.win.rlSetSideMode('disc');
+    assert.equal(p.win.rlSideMode(), 'changes',
+      'there is only one thing this page can be showing');
+    assert.ok(p.$('#rl-changes-col'), 'and it is showing it');
   });
 
-  test('the choice survives a repaint', async () => {
+  test('rlToggleDiscussion keeps its old contract', async () => {
+    /* The name is part of the design contract (the lab wraps it — see f90), so
+       it survives as a shim even though there is nothing left to toggle:
+       true = discussion is not showing, which is now permanently true. */
     const p = await page();
-    p.win.rlSetSideMode('disc');
-    p.win.renderRedline();
-    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc',
-      'a mode that resets itself on every clause is not a preference');
-    assert.equal(p.$('#rl-side [data-rl-mode="disc"]').getAttribute('aria-selected'), 'true');
-    p.win.rlSetSideMode('changes');
+    assert.equal(p.win.rlToggleDiscussion(), true);
+    assert.equal(p.win.rlToggleDiscussion(false), true);
+    assert.ok(p.$('#rl-changes-col'), 'and no call to it can empty the sidebar');
   });
 });
 
 describe('F84 — the header actions press the engine, not a lookalike', () => {
-  test('the header carries the view toggle and Publish Round — the batch verbs live with the cards', async () => {
-    /* "Send All" and "Accept All Non-Risk" used to render here as proxies,
-       crowding the strip until the contract dropdown clipped. The column's
-       own copies — beside the cards they act on — are the ones that stay. */
+  test('the strip carries the acts and the two ways of looking', async () => {
+    /* THERE IS ONLY ONE BATCH VERB LEFT ON THIS PAGE. Send All used to render
+       here as a proxy onto the column's own copy; the column's copy is gone
+       (10 Aug 2026) and Publish Round is the single act, still a proxy, still
+       onto the engine's own #nego-send. Accept All and Reject All are gone
+       outright — deciding the other side's wording is a press per clause. */
     const p = await page();
-    const labels = p.$$('.rl-actions button').map(b => b.textContent.trim());
-    assert.ok(labels.some(t => /Internal View/.test(t)));
-    assert.ok(labels.some(t => /Counterparty View/.test(t)));
-    assert.ok(labels.some(t => /Publish Round/.test(t)));
-    assert.ok(!labels.some(t => /Non-Risk|Send All/.test(t)),
-      'no second copies of the column\'s batch verbs in the header');
-    assert.ok(p.doc.getElementById('nego-bulk-acc'),
-      'the bulk verb is the engine\'s own control, at the head of the column');
+    const strip = p.$$('.rl-head button').map(b => b.textContent.trim());
+    /* "Internal View | Counterparty View" spent 260px of the row saying the
+       same word twice. The group carries that sentence now (its aria-label and
+       title), which is also what the mockup's own toggle does. */
+    assert.ok(strip.some(t => /^Internal$/.test(t)));
+    assert.ok(strip.some(t => /^Counterparty$/.test(t)));
+    assert.ok(strip.some(t => /Publish Round/.test(t)));
+    assert.ok(!strip.some(t => /Non-Risk|Reject All|Send All/.test(t)),
+      'no bulk verbs anywhere on this page');
+    assert.equal(p.doc.getElementById('nego-bulk-acc'), null,
+      'not at the head of the column either — that is where they used to be');
   });
 
   /* ---- AND THE SAME BUTTONS, READ FROM THE OTHER CHAIR ----
@@ -446,23 +444,30 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'no bulk Accept from the window');
     assert.equal(p.doc.getElementById('nego-bulk-rej'), null,
       'no bulk Reject either');
-    assert.match(p.doc.getElementById('nego-readonly-why').textContent,
-      /window onto exactly what/, 'the column says why it has no verbs');
+    /* The column used to say why it has no verbs, in a paragraph. That notice
+       is gone (Young, 10 Aug 2026) — the seat switch says which seat this is
+       and the missing verbs say the rest. See f152 for the argument. */
+    assert.equal(p.doc.getElementById('nego-readonly-why'), null,
+      'and it does not explain the absence in a paragraph');
   });
 
-  test('ONE copy of each batch verb — the header never duplicates the column', async () => {
+  test('ONE send on the page, and the proxy points at it', async () => {
     /* Two buttons for one act, and only one of them following the seat rule,
-       is exactly how the D2 drift happened — so the durable claim is now
-       stronger: on the owner's seat there is exactly one copy, and on the
-       read-only preview there is none at all. */
+       is how the D2 drift happened. The claim is stronger now: on the owner's
+       seat there is exactly one send in the DOM and exactly one thing pressing
+       it, and on the read-only preview there is neither. */
     const own = await page();
-    assert.ok(own.doc.getElementById('nego-bulk-acc'), 'the engine\'s bulk control renders for the owner');
-    assert.equal(own.$('[data-redline-proxy="nego-bulk-acc"]'), null, 'and no proxy shadows it');
+    assert.equal(own.$$('[data-redline-proxy="nego-send"]').length, 1, 'one proxy onto the send');
+    /* ONE #nego-send ON THE PAGE, whichever of the two builders drew it — the
+       postbox at the head of the column when something is unsent, or the turn
+       banner's hand-back when nothing is. Two would be the fault this id has
+       had before: the wiring takes the first match and would bind the wrong
+       one. */
+    assert.equal(own.doc.querySelectorAll('#nego-send').length, 1,
+      'exactly one send for the proxy to point at');
     const p = await asCounterparty();
-    assert.equal(p.doc.getElementById('nego-bulk-acc'), null, 'and none on the preview');
-    assert.equal(p.doc.querySelectorAll('[data-rl-blast]').length,
-      p.doc.getElementById('nego-send') ? 1 : 0,
-      'the blast identity lives on the engine\'s own send, nowhere else');
+    assert.equal(p.doc.getElementById('nego-bulk-acc'), null, 'nothing bulk on the preview');
+    assert.equal(p.$('[data-redline-proxy]'), null, 'and nothing to press from it');
   });
 
   test('and no send survives anywhere on the preview seat', async () => {
@@ -476,15 +481,19 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
       'no header proxy onto their postbox');
     assert.equal(p.doc.getElementById('nego-send-decisions'), null,
       'and no postbox for it to point at');
-    assert.match(p.doc.getElementById('nego-readonly-why').textContent, /read-only/,
-      'the column says what this seat is, rather than going quiet');
+    /* This used to add "the column says what this seat is, rather than going
+       quiet" — the read-only paragraph. It is gone (Young, 10 Aug 2026) and the
+       column IS quiet now, deliberately: the seat switch names the seat. The
+       claim this test carries is about the send, and it stands on its own. */
+    assert.equal(p.doc.getElementById('nego-readonly-why'), null,
+      'and no paragraph explaining the seat');
   });
 
   test('flipping back restores the owner\'s own words', async () => {
     const p = await asCounterparty();
     p.$$('[data-redline-side]').find(b => b.getAttribute('data-redline-side') === 'owner').click();
     assert.ok(/Publish Round/.test(headerLabels(p).join(' | ')));
-    assert.match(p.doc.getElementById('nego-bulk-acc').textContent, /Accept All Non-Risk/);
+    assert.ok(p.doc.getElementById('nego-send'), 'and the send it presses is back with it');
   });
 
   test('Close Round stays owner-only, as it already was', async () => {
@@ -495,11 +504,14 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
     assert.equal(p.$('[data-rl-close-round]'), null);
   });
 
-  test('Accept All Non-Risk is the engine\'s own control, pressed directly', async () => {
+  test('deciding is a press per clause, on the card the clause carries', async () => {
+    /* What replaced the bulk verb. The act did not move to a different button;
+       it stopped being one button and became the one already on every card. */
     const p = await page();
-    const engine = p.doc.getElementById('nego-bulk-acc');
-    assert.ok(engine, 'the engine\'s bulk-accept must be in the DOM to be pressed');
-    assert.equal(p.doc.querySelectorAll('#nego-bulk-acc').length, 1, 'once, and only once');
+    const card = p.$('#rl-changes [data-nego-card]');
+    assert.ok(card, 'a change on the table');
+    assert.ok(p.$('#rl-changes [data-nego-accept], #rl-changes [data-nego-reject], #rl-changes [data-rl-send]'),
+      'and its own verbs on it');
   });
 
   test('a header button disables itself rather than lying', async () => {
