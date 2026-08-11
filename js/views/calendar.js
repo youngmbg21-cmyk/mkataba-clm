@@ -90,8 +90,32 @@ function renderCalendar(){
        simply were not there. The floor now scales with the window and only
        reaches its old value once there is room for it, so a big screen is
        unchanged and a laptop shows all six rows instead of four and a half. */
-    const cellStyle=`min-height:clamp(38px,7.1vh,62px);min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
+    /* ---- THE WHOLE BOX IS THE DOOR (added 2026-08-11, asked for directly) ----
+       A day cell used to be scenery: only the name chips inside it did
+       anything, the "+2 more" line did nothing at all, and a day whose chips
+       were clipped had no way in. Pressing the box now answers the question
+       the box raises.
+
+       WHICH DOOR DEPENDS ON HOW MANY CONTRACTS ARE IN IT, and it is CONTRACTS,
+       not events — one contract can put two marks on one day (an expiry, and
+       the renewal decision that defaults to the same date when no notice
+       period is known), and sending a reader to a list to choose between two
+       rows about the same agreement would be a choice with one answer.
+
+         one   → open it. There is nothing to select between.
+         many  → the register, narrowed to exactly these, where they can be
+                 read side by side with their value, status and counterparty
+                 and one of them picked. */
+    const cids=Array.from(new Set(list.map(e=>e.cid).filter(Boolean)));
+    const openable=cids.length>0;
+    const dayName=new Date(y,m,dnum).toLocaleDateString(jxLocale(),{day:'numeric',month:'long',year:'numeric'});
+    const cellStyle=`min-height:clamp(38px,7.1vh,62px);min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:${openable?'pointer':'default'};border-radius:7px;`+
       `background:${bg};border:1px solid ${bd}`;
+    const cellAttrs=openable
+      ? ` role="button" tabindex="0" data-cal-day="${iso}" title="${_esc(cids.length===1
+          ? i18t('cal_open_this',{name:list[0].cname})
+          : i18t('cal_choose_from',{n:cids.length,day:dayName}))}"`
+      : '';
     /* The day number is the one thing every reader looks for first, so it is
        set bold at every state — not only on today and on days that carry an
        event. A plain day used to be 10px at weight 400 and read as a whisper. */
@@ -101,8 +125,10 @@ function renderCalendar(){
       return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
         _dot(ev.dot,6)+`<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></button>`;
     }).join('');
-    const moreLine=more>0?`<span style="font-size:9px;color:var(--color-neutral-500);padding-left:2px">+${more} more</span>`:'';
-    return `<div class="cal-day" style="${cellStyle}"><span style="${numStyle}">${dnum}</span>${chips}${moreLine}</div>`;
+    /* It is not its own button — the cell it sits in already is one, and the
+       thing it promises ("show me the rest") is exactly what the cell does. */
+    const moreLine=more>0?`<span style="font-size:9px;font-weight:600;color:var(--color-accent-700);padding-left:2px">${i18t('cal_n_more',{n:more})}</span>`:'';
+    return `<div class="cal-day"${cellAttrs} style="${cellStyle}"><span style="${numStyle}">${dnum}</span>${chips}${moreLine}</div>`;
   };
   const cells=[]; for(let i=0;i<42;i++) cells.push(cell(i-start+1));
 
@@ -236,7 +262,28 @@ function renderCalendar(){
   document.getElementById('cal-prev').addEventListener('click',()=>{ let {y,m}=calMonth(); m--; if(m<0){m=11;y--;} calState.ym={y,m}; renderCalendar(); });
   document.getElementById('cal-next').addEventListener('click',()=>{ let {y,m}=calMonth(); m++; if(m>11){m=0;y++;} calState.ym={y,m}; renderCalendar(); });
   document.getElementById('cal-today').addEventListener('click',()=>{ calState.ym=null; renderCalendar(); });
-  document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',()=>selectContract(b.getAttribute('data-sel'))));
+  /* stopPropagation, because a chip sits INSIDE a day cell that is now a door
+     of its own: without it, pressing a named contract would open that contract
+     and then be overtaken by the cell sending the reader to the register. */
+  document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation(); selectContract(b.getAttribute('data-sel'));
+  }));
+  /* THE DAY CELL. One contract opens; several go to the register narrowed to
+     exactly those — see the note at cellAttrs. Keyboard too: the cell carries
+     role="button" and a tab stop, so it has to answer Enter and Space like one. */
+  const openDay=iso=>{
+    const here=byDay[iso]||[];
+    const cids=Array.from(new Set(here.map(e=>e.cid).filter(Boolean)));
+    if(!cids.length) return;
+    if(cids.length===1) return selectContract(cids[0]);
+    const dayName=new Date(iso+'T00:00:00').toLocaleDateString(jxLocale(),{day:'numeric',month:'long',year:'numeric'});
+    if(typeof regShowOnly==='function') regShowOnly(cids, i18t('cal_due_on',{day:dayName}));
+    else selectContract(cids[0]);   // no register loaded (a test stage) — still go somewhere
+  };
+  document.querySelectorAll('[data-cal-day]').forEach(el=>{
+    el.addEventListener('click',()=>openDay(el.getAttribute('data-cal-day')));
+    el.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openDay(el.getAttribute('data-cal-day')); } });
+  });
   /* Completing goes through the shared verb in js/obligations.js, which writes
      the audit line and refreshes every surface that counts them — including
      this one. A second copy of that logic here is how two screens come to

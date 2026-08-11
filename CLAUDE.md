@@ -301,6 +301,16 @@ AND THE QUOTES LIVE IN ONE PLACE. Key terms reprinted, under "READ FROM THE DOCU
 
 Tests: playbook-opens-read-verify (13, in the browser). f178's two Key-terms assertions still hold and were not touched.
 
+A CALENDAR DAY IS A DOOR, AND THE REGISTER CAN BE HANDED A SET (added 2026-08-11)
+
+The day cell was scenery: only the name chips inside it did anything, "+2 more" did nothing at all, and a day whose chips were clipped had no way in. Pressing the box now answers the question the box raises, and WHICH DOOR DEPENDS ON HOW MANY CONTRACTS — one opens it, several go to the register narrowed to exactly those.
+
+IT COUNTS CONTRACTS, NOT EVENTS. One contract puts two marks on one day whenever no notice period is known, because renewalDecisionDate falls back to the expiry itself; sending a reader to a list to choose between two rows about the same agreement would be a choice with one answer. The chips inside stopPropagation, or pressing a named contract would open it and then be overtaken by the cell.
+
+regShowOnly(ids, label) IS THE ONE DOOR IN, and regState().only is what it sets. Every other filter here is a QUESTION (which stage, which stream, which category); this is an ANSWER somebody else worked out, so it is applied FIRST and everything else narrows within it. Two properties make it safe and they are the origin filter's own two: the chip SAYS what the list is narrowed to, and the way back is on the same chip. A register silently showing three of a hundred and thirty-nine is indistinguishable from a broken one. It is cleared by its ✕, by both Clear-all handlers, and by the phone's — the phone builds no calendar to have sent one, so that is its only door out of a narrowing inherited across a resize.
+
+Tests: calendar-day-verify (14, in the browser).
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.

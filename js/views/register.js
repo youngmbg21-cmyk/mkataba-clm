@@ -271,7 +271,30 @@ const REG_VIEWS=[
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
 ];
-function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null}; return state.reg; }
+function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null}; return state.reg; }
+/* ---- A NAMED SET, SENT HERE FROM SOMEWHERE ELSE (added 2026-08-11) ----
+   Asked for against the calendar: a day carrying more than one contract should
+   open the register on those contracts, so the reader can see them side by side
+   and pick. There was no way to say that — every filter here is a QUESTION
+   (which stage, which stream, which category), and "these two, because that is
+   what was on the 31st" is an ANSWER somebody else worked out.
+
+   So `only` is a set of ids with a label saying where it came from. Two rules
+   make it safe, and they are the same two the origin filter on the negotiation
+   column has to obey: it SAYS on screen what it is narrowed to, and the way
+   back is on the same chip. A list silently showing two of a hundred and
+   thirty-nine contracts is indistinguishable from a broken register.
+
+   It is an ordinary filter in every other respect — the stage, stream and
+   category dropdowns still narrow further inside it, Clear clears it with the
+   rest, and it survives navigation exactly as they do. */
+function regShowOnly(ids, label){
+  const list=Array.from(new Set((ids||[]).filter(Boolean)));
+  const R=regState();
+  R.only=list.length?{ ids:list, label:String(label||'') }:null;
+  R.page=1;
+  if(typeof setView==='function') setView('register'); else renderRegister();
+}
 /* The category list has ONE source: the metadata field that records it. Add
    a category there and it reaches this filter and the phone's chips without
    either of them being edited. */
@@ -336,6 +359,9 @@ function wireRegPager(){
 }
 function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
+  /* First, because it is not a question about a contract but a set somebody
+     else chose — everything below narrows WITHIN it. */
+  if(R.only&&Array.isArray(R.only.ids)){ const keep=new Set(R.only.ids); cs=cs.filter(c=>keep.has(c.id)); }
   // 'awaiting' is a virtual stage = contracts out with a counterparty and not yet
   // signed (a live share in 'sent' or 'opened'), matching the dashboard KPI. It
   // reads the dispatch state, not the status column. Real status pills fall
@@ -440,7 +466,7 @@ function regPrimaryAction(c){
 function regRowsHtml(cs){
   const R=regState();
   if(!cs.length){
-    const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all');
+    const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
     const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
@@ -533,7 +559,7 @@ function wireRegRows(){
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
@@ -580,7 +606,17 @@ function renderRegister(){
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
     +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
-  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all');
+  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
+  /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
+     regShowOnly. It leads the bar because it is the widest statement on it:
+     every dropdown beside it narrows within this set. */
+  const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
+      style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;border-radius:8px;padding:5px 6px 5px 10px;
+        background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
+      <span>${esc(R.only.label||i18t('reg_only_fallback'))}</span>
+      <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
+        style="border:0;background:none;font:inherit;font-size:13px;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7">&times;</button>
+    </span>`:'';
   const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
@@ -645,6 +681,7 @@ function renderRegister(){
            compact strip where three tiers of pills used to stack, so the table
            itself starts above the fold. -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        ${onlyChip}
         ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
         ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
         ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'))}
@@ -724,7 +761,8 @@ function renderRegister(){
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; renderRegister(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; renderRegister(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; renderRegister(); });
-  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.page=1; renderRegister(); });
+  document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; renderRegister(); });
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; renderRegister(); });
   setActiveNav('register');
 }
 
@@ -748,4 +786,4 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,renderRegister,renderRegisterBody,wireRegRows});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows});
