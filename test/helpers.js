@@ -329,16 +329,30 @@ async function seedWorkspace(h, { contracts = FIXTURES } = {}) {
    the signature itself. Every test that issues a signing link therefore has to
    set a route first, exactly as a real sender does on the Signing tab.
 
-   Deliberately minimal: ONE counterparty row, which is what signingRouteOpen
-   asks for. A test that cares about ORDER builds its own plan; this is for the
-   many that only ever needed a signing link to exist. */
+   Deliberately minimal: ONE NAME ON EACH SIDE, which is what signingRouteOpen
+   asks for — an agreement is signed by two parties, so a route naming only one
+   of them is refused (tightened 11 Aug 2026). A test that cares about ORDER
+   builds its own plan; this is for the many that only ever needed a signing
+   link to exist. Returns the counterparty row, which is the one a bound link
+   points at and therefore the one callers ask about. */
 async function nameASigner(client, contractId, signer = {}) {
   const full = await client.json('/api/contracts/' + contractId);
   const baseVersion = full._v;
   delete full._v;
-  full.signerPlan = [{ id: signer.id || 'sg-cp-1', party: 'counterparty', order: signer.order || 1,
-    name: signer.name || 'Grace Njeri', email: signer.email || 'grace@client.co.ke',
-    role: signer.role || 'Director', signed: false }];
+  /* THEIRS FIRST, OURS COUNTERSIGNING. A mixed route holds every step until the
+     ones before it are done, so putting our name first would leave the
+     counterparty's link dormant — correct behaviour, and the wrong scaffolding:
+     these tests are about what a LIVE signing link does, not about turn order.
+     Counterparty-first is an ordinary arrangement (they sign, we countersign),
+     so this names both sides without making anybody wait. A test about ORDER
+     builds its own plan. */
+  full.signerPlan = [
+    { id: signer.id || 'sg-cp-1', party: 'counterparty', order: signer.order || 1,
+      name: signer.name || 'Grace Njeri', email: signer.email || 'grace@client.co.ke',
+      role: signer.role || 'Director', signed: false },
+    { id: 'sg-us-1', party: 'internal', order: 2,
+      name: 'Amina Otieno', email: 'admin@example.co.ke', role: 'Director', signed: false },
+  ];
   await client.json('/api/contracts/' + contractId, { method: 'PUT', body: { contract: full, baseVersion } });
   return full.signerPlan[0];
 }

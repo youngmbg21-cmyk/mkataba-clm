@@ -430,7 +430,7 @@ function openSigningLockedNotice(c, opts){
         esc(i18tn('ap_route_locked_why',Math.max(1,done.length||marks),{ who }))}</p>
     </div>
     <p class="text-xs text-ink/65 mb-1" style="line-height:1.6">${esc(i18t('ap_route_locked_restart'))}</p>
-    <ul class="text-xs text-ink/60 mb-4" style="line-height:1.6;padding-left:16px;margin-top:4px">
+    <ul class="text-xs text-ink/60 mb-4" style="line-height:1.6;padding-left:18px;margin-top:4px;list-style:disc">
       <li>${esc(i18tn('ap_restart_loses_marks',Math.max(1,marks||done.length),{n:Math.max(1,marks||done.length)}))}</li>
       <li>${esc(i18t('ap_restart_kills_links'))}</li>
       <li>${esc(i18t('ap_restart_keeps_wording'))}</li>
