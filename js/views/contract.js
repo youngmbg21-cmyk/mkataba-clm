@@ -2736,8 +2736,17 @@ function readTermsHtml(c){
   const H='font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)';
   if(!rows.length) return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
       <div style="${H};margin-bottom:5px">${i18t('ct_read_from_doc')}</div>
-      <p style="margin:0 0 8px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review reads them out and quotes the clause it found them in.</p>
-      ${(canEdit()&&c.status!=='Signed')?`<button id="kt-readdoc" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('shield','w-3.5 h-3.5')} Run the playbook review</button>`:''}
+      ${''/* ---- THE SENTENCE STAYS, THE BUTTON GOES ----
+             Removed (Young, 10 Aug 2026). The playbook review is a check on the
+             WORDING: it reads the clauses, pins its findings to them and opens
+             them in a panel over the document. All of that is on the Document
+             tab, in the Checks card, which is where it is run from. A second
+             door here took you to a different tab to see what it found — the
+             same duplication Find obligations was removed for, in the other
+             direction. What is left is the sentence, which is not a duplicate:
+             it explains why governing law and the liability cap are not rows in
+             this panel, and that is a question only this panel raises. */}
+      <p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review on the <b>Document</b> tab reads them out and quotes the clause it found them in.</p>
     </div>`;
   return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
       <div style="${H};margin-bottom:6px">${i18t('ct_read_from_doc')}</div>
@@ -2820,8 +2829,7 @@ function renderKeyTermsSide(c){
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
   host.innerHTML=`<section id="obligations-section" class="kt-side-card" style="${CARD}"></section>`;
   if(window.renderObligationsSection) renderObligationsSection(c);
-  const read=document.getElementById('kt-readdoc');
-  if(read) read.addEventListener('click',()=>roomGoTab(c,'docs'));
+  /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 
 /* ============ HISTORY ============

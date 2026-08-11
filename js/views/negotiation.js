@@ -5543,7 +5543,55 @@ function rlFitTabRow(){
   row.classList.remove('rl-tabrow-tight');
   row.classList.add('rl-tabrow-wrap');
 }
+/* ---- THE ROW'S WIDTH CHANGES FOR REASONS THE WINDOW NEVER HEARS ABOUT ----
+   Reported (Young, 10 Aug 2026): "whenever I expand or minimize the navigation
+   panel, the clickable features should never go to a second line taking space
+   away from the contract."
+
+   The tighten-then-wrap ladder was already there and already right. What was
+   missing is that it only ever re-ran on a WINDOW resize — and collapsing the
+   nav rail does not resize the window, it resizes the CONTENT. So the row was
+   measured once at paint, the rail moved underneath it, and whatever it had
+   decided at the old width stood: expanded, it wrapped and stayed wrapped;
+   collapsed again, it stayed tight with room to spare.
+
+   ASK THE ELEMENT, NOT THE WINDOW. A ResizeObserver on the row itself catches
+   every cause of a width change — the rail, a docked panel, a browser zoom,
+   the next one nobody has thought of — without this function having to know
+   about any of them. The window listener stays for the stages that have no
+   ResizeObserver.
+
+   IT COMPARES WIDTHS BEFORE ACTING, and that guard is load-bearing rather than
+   an optimisation: this function's own classes change the row's HEIGHT, the
+   observer reports height, and re-entering on our own effect is an oscillation
+   between one line and two. Only a real width change re-asks the question.
+
+   RE-ATTACHED ON EVERY PAINT because renderRedline rebuilds the row — an
+   observer holding the previous element observes a node that is no longer on
+   the page. */
+let _rlFitRO = null, _rlFitW = -1;
+function rlObserveTabRow(row){
+  if (typeof ResizeObserver !== 'function' || !row) return;
+  if (_rlFitRO){ try{ _rlFitRO.disconnect(); }catch(_){} _rlFitRO = null; }
+  _rlFitW = Math.round(row.getBoundingClientRect().width);
+  let queued = false;
+  try{
+    _rlFitRO = new ResizeObserver(entries => {
+      const e = entries && entries[0];
+      const w = Math.round((e && e.contentRect ? e.contentRect.width : 0));
+      if (w === _rlFitW) return;      // height moved, and that was us
+      _rlFitW = w;
+      if (queued) return;
+      queued = true;
+      const run = () => { queued = false; rlFitTabRow(); };
+      if (window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 16);
+    });
+    _rlFitRO.observe(row);
+  }catch(_){ _rlFitRO = null; }
+}
 function rlWireFitTabRow(){
+  if (typeof document !== 'undefined')
+    rlObserveTabRow(document.querySelector('.redline-page .rl-tabrow'));
   if (_rlFitWired || typeof window === 'undefined' || !window.addEventListener) return;
   _rlFitWired = true;
   let queued = false;
@@ -11079,7 +11127,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn,
-  rlFitTabRow, rlWireFitTabRow,
+  rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,

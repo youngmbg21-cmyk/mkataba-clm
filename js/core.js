@@ -2915,23 +2915,58 @@ async function issueSigningRouteLinks(c){
    succession both run to completion, and what matters is that only the LAST one
    is allowed to paint. See the note in openShareModal. */
 let _shareOpenSeq = 0;
-/* THE FRAME, BEFORE THERE IS ANYTHING TO PUT IN IT.
-   Deliberately not a shimmer or a spinner over grey blocks: this dialog is
-   about to ask one short question, and a skeleton pretending to be three
-   paragraphs would be replaced by something a different shape. Its own title,
-   its own padding and one honest line — so what happens next is the answer
-   arriving under a heading that has not moved, rather than a screen changing
-   its mind. */
-function shareOpeningHtml(){
-  return `<div style="padding:22px 24px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-      <span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
-      <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_what_sharing')}</h2></div>
-    <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 18px;">${i18t('co_one_question')}</p>
-    <div aria-hidden="true" style="display:grid;gap:9px">
-      ${[0,1].map(()=>`<div style="height:72px;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg)"></div>`).join('')}
-    </div>
-  </div>`;
+/* THE FIRST PAINT IS THE REAL FIRST QUESTION.
+   It began as a skeleton — the heading over two grey boxes — which fixed the
+   dead press but bought a flicker instead, and the flicker is measurable: the
+   panel came up at 266px holding placeholders and jumped to 309px holding the
+   real cards ~30ms later on localhost, longer against a real server. A dialog
+   that arrives, resizes and changes its contents is three events where the
+   reader asked for one.
+
+   NOTHING IN THIS STEP NEEDS THE SERVER. "What are you sharing?" is answered
+   from the contract in hand: shareKindStepHtml takes only the record and the
+   current purpose, both of which exist the instant the button is pressed. The
+   awaits below are for the PAYLOAD and the recipient's details, which belong
+   to the screens after this one. So the same markup the settled dialog uses is
+   painted first, and the fill that follows replaces identical pixels — same
+   wrapper, same step, same height; the later steps are `hidden` and cost
+   nothing.
+
+   THE ONE THING THAT CAN LEGITIMATELY CHANGE is whether the history option is
+   offered: negoAllChanges reads the round history, and ensureFull is what
+   fetches it for a record opened from a list. On such a record the second card
+   corrects itself from "nothing proposed yet" to offered. That is a correction
+   the reader should see, and it is one card's state rather than the whole
+   dialog changing shape. */
+function shareOpeningHtml(c, purposeSel){
+  return `<div style="padding:22px 24px;">${shareKindStepHtml(c, purposeSel)}</div>`;
+}
+/* AND IT IS LIVE FROM THAT FIRST FRAME. The real wiring cannot be attached
+   until the full markup is in, so without this the cards and Next would be
+   drawn, look pressable and do nothing for as long as the fetches take —
+   which is the fault the skeleton was introduced to fix, moved rather than
+   removed. Presses are held and replayed once the dialog settles.
+
+   ABORTED BEFORE THE FILL, never left behind: the listener sits on #modal-root
+   and the fill only replaces the panel's contents, so a surviving copy would
+   handle every later press a second time alongside the real handlers. */
+function shareWireOpening(pending, c, get, set, signal){
+  const root = document.getElementById('modal-root');
+  if (!root || !root.addEventListener) return;
+  root.addEventListener('click', e => {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const card = t.closest('[data-share-kind]');
+    if (card && !card.disabled){
+      pending.kind = card.getAttribute('data-share-kind');
+      set(pending.kind);
+      const wrap = root.querySelector('#share-kind');
+      if (wrap) wrap.outerHTML = shareKindOptionsHtml(c, get());
+      return;
+    }
+    if (t.closest('#share-kind-next')){ pending.next = true; return; }
+    if (t.closest('#share-close-kind')) closeModal();
+  }, signal ? { signal } : false);
 }
 /* Into the frame that is already up, rather than a second dialog. openModal
    replaces #modal-root wholesale, which re-runs .modal-in's 200ms entry
@@ -2973,7 +3008,18 @@ async function openShareModal(c, opts={}){
      worse than the delay this fixes. */
   const _openSeq = ++_shareOpenSeq;
   const _superseded = () => _openSeq !== _shareOpenSeq || !document.getElementById('modal-scrim');
-  openModal(shareOpeningHtml());
+  /* The purpose is settled before the first paint because the first screen
+     draws it — see the note on shareOpeningHtml. It stays a live value: the
+     placeholder's own handler moves it, and the payload below is built from
+     wherever it has got to by then. */
+  let purposeSel = SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c);
+  const _pending = { kind: null, next: false };
+  const _openAbort = (typeof AbortController === 'function') ? new AbortController() : null;
+  openModal(shareOpeningHtml(c, purposeSel));
+  shareWireOpening(_pending, c, () => purposeSel,
+    k => { purposeSel = k === 'history' ? 'history'
+      : (SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c)); },
+    _openAbort ? _openAbort.signal : null);
   // A share copies the contract out of the building, so it must be copied
   // whole: a record loaded for a list view carries neither its uploaded file's
   // bytes nor its round history, and both are things the payload publishes.
@@ -3016,7 +3062,9 @@ async function openShareModal(c, opts={}){
      opinion, otherwise what the contract's own state says. It is a live value —
      the picker on step 1 changes it, and everything downstream reads it from
      here rather than from the payload built a moment ago. */
-  let purposeSel=SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c);
+  /* purposeSel was settled before the first paint and may have MOVED since —
+     the reader can answer the first question while the fetches are in flight.
+     The payload is built from where it has got to, not from the default. */
   const payloadObj=buildSharePayload(c, docHash, null, { purpose:purposeSel });
   const server=API_MODE();
   // Who this went to last time. Fetched before the dialog is built so the
@@ -3044,6 +3092,9 @@ async function openShareModal(c, opts={}){
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;
   let ch=pre.channel||'email';
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
+  /* The opening handler stands down the instant the real one is about to go
+     in — both live long enough to overlap otherwise. */
+  if (_openAbort) _openAbort.abort();
   shareFillModal(`
     <div style="padding:22px 24px;">
       ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
@@ -3227,6 +3278,13 @@ async function openShareModal(c, opts={}){
   const askKind = !(opts.handOver || SHARE_PURPOSE(opts.purpose));
   document.getElementById('share-back-kind')?.classList.toggle('hidden', !askKind);
   step(askKind ? 'kind' : 1);
+  /* WHAT THE READER DID WHILE IT WAS LOADING, honoured now. The markup above
+     was already built from the purpose they chose, so setKind is here to bring
+     the payload and the second screen's copy into line with it rather than to
+     repaint the cards; the press of Next is replayed last so it lands on a
+     dialog that is fully wired. */
+  if (_pending.kind) setKind(_pending.kind);
+  if (_pending.next && askKind) step(1);
   const setCh=k=>{ ch=k;
     document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
       b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
