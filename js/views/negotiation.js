@@ -10248,6 +10248,18 @@ function redlineChangeCardsHtml(c, opts = {}){
         title="${i18t('ng_let_ask_go')}">${i18t('ng_withdraw')}</button>`);
     }
     if (canAct && heldHere){
+      /* ---- THE SEND IS ON THE CARD THE DECISION WAS MADE ON ----
+         Asked for directly (Young, 11 Aug 2026: "the send should be a button
+         in the card which is the more logical thing to do"). You pressed
+         Accept HERE; the act that makes it real should not live only in a bar
+         at the other end of the page. Same pattern as the owner's per-card
+         Send below: data-rl-send is a PROXY onto the page's one postbox
+         (#nego-send-decisions on this seat), so it sends EVERYTHING held —
+         one send, batch semantics, and the title says so. A per-card send
+         that sent one answer while two others stayed home would let a reader
+         believe they had answered when they half had. */
+      verbs.push(`<button class="rl-send" data-rl-send="${_ne(ch.id)}"
+        title="${_nea(i18t('ng_send_answer_title',{who:opts.org || window.FIRST_PARTY || 'the other side'}))}">${i18t('ng_send')}</button>`);
       /* The answer has not left this page; the person who gave it can take it
          back. data-nego-undo is the engine's own re-open. */
       verbs.push(`<button class="rl-edit" data-nego-undo="${_ne(ch.id)}"

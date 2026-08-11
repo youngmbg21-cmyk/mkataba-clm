@@ -871,7 +871,12 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     const { card } = await decided(p, 'accepted', 'held');
     assert.match(card.querySelector('.rl-badge').textContent, /held/,
       'answered here, and nothing has left the page');
-    assert.deepEqual(verbsOf(card), ['Undo']);
+    /* Send FIRST, Undo beside it (asked for 11 Aug 2026: "the send should be
+       a button in the card"). The decision was made on this card, so the act
+       that makes it real lives here too — a proxy onto the page's one
+       postbox, same as the owner's per-card Send. f180 pins its visibility
+       and that pressing it posts the batch. */
+    assert.deepEqual(verbsOf(card), ['Send', 'Undo']);
     /* IT FOLDS LIKE EVERYTHING ELSE. Undo used to hold the card open — the one
        state that looks finished and is not, and the second after a click, when
        a mis-press is likeliest. It is one press away now, and the alternative

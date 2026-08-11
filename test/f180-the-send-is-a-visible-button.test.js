@@ -131,6 +131,23 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
     assert.match(v.$('#pt-nego-foot').textContent, /Nothing has reached/,
       'and the bar says the answer has not travelled yet');
   });
+
+  test('and the send is ON THE CARD the decision was made on', async () => {
+    /* Asked for directly (11 Aug 2026): you pressed Accept on the card, so
+       the act that makes it real belongs there too — not only in a bar at
+       the other end of the page. The card's Send is a proxy onto the page's
+       one postbox, so both doors post the same batch. */
+    const o = await ownerProposed();
+    const v = counterpartyView(o.c);
+    const id = o.filed[0].id;
+    v.$(`[data-nego-accept="${id}"]`).click();
+    const card = v.$(`[data-nego-card="${id}"]`);
+    assert.ok(card, 'the decided-but-held card stays on the table');
+    const cardSend = card.querySelector(`[data-rl-send="${id}"]`);
+    assertVisible(cardSend, 'the card\'s own Send');
+    assert.ok(card.querySelector(`[data-nego-undo="${id}"]`),
+      'Undo stands beside it — held means still yours to take back');
+  });
 });
 
 describe('F180 — the visible send closes the loop the bug report was about', () => {
@@ -154,13 +171,19 @@ describe('F180 — the visible send closes the loop the bug report was about', (
     assert.match(page.querySelector('.rl-q-row').textContent, /now/,
       'the clause is still waiting on them');
 
-    /* Erik answers — through the visible door, exactly as a person would:
-       accept on the card, name in the box, press the button he can see. */
+    /* Erik answers — through the CARD's own door, exactly as a person would:
+       accept on the card, name in the box, press the Send sitting right
+       there. The card's Send proxies the page's one postbox, so this also
+       proves the proxy chain end to end. */
     const v = counterpartyView(o.c);
     v.$(`[data-nego-accept="${id}"]`).click();
     assertVisible(v.$('#pt-nego-send'), 'the Send button');
     v.p.setValue('nego-cp-name', 'Erik Lindqvist');
-    await v.p.click('pt-nego-send');
+    const cardSend = v.$(`[data-nego-card="${id}"] [data-rl-send="${id}"]`);
+    assertVisible(cardSend, 'the card\'s own Send');
+    cardSend.dispatchEvent(new v.p.win.Event('click', { bubbles: true }));
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    await new Promise(r => setImmediate(r));
     const sent = v.p.lastSent();
     assert.equal(sent.action, 'decisions', 'the press posted a decisions response');
     assert.equal(sent.negoDecisions[0].id, id);
