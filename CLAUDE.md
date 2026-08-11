@@ -58,6 +58,12 @@ COUNTERPARTY VIEW IS A WINDOW, NOT A CHAIR (added 2026-08-08). The owner's Inter
 
 THE PHONE (added 2026-08-04)
 
+THE UNIVERSAL FRAME (added 2026-08-11). Insights has three tabs and opens on the first: Portfolio, Negotiation friction, Contract graph. The Portfolio tab is six panels every business gets whatever it does — what it is worth, where the value sits, where the difficulty is, who the big names are, what the numbers say, what needs attention — and it lives in js/views/portfolio.js, rendered by renderIntel like the other two.
+
+It reads LIVE contracts: everything except Declined. That is the same definition aiPortfolioSnapshot uses, and f151 exists because three surfaces counting the same book differently is how a customer stops believing any of them. A new figure here wants a row there.
+
+It is NOT on the phone. The phone deliberately builds no Insights screen — Insights is listed under More as desk work, with the honest one-line note that lives in M_DESK. That is a decision, not an omission.
+
 There is now a SECOND SHELL. Below 768px the desktop shell is hidden outright and js/mobile*.js draws the app instead. It is NOT a fork: it reads hmDashSlices() for figures, regFiltered()/regState() for the register, wsNextAction() for the next action, negoTimeline()/negoIntegrityReport() for history, negoRenumberPlan()/negoRenumberApply() for numbering, and buildSharePayload() + POST /api/shares for links. It files NO changes of its own — grep the five mobile files for changes.push / negoFileChange and you will find nothing, which is deliberate.
 
 WHAT THIS MEANS FOR THE DUPLICATION WARNING: a UI fix now has one more place it may appear. Ask whether the thing you are changing is drawn on a phone too — the contract screen, the register, the dashboard figures, the Copilot panel and the counterparty pages all are. A fix in a shared FUNCTION reaches both shells; a fix in a desktop RENDERER does not.
@@ -120,6 +126,8 @@ index.html IS PLAIN HTML. `${...}` there is printed, not evaluated — the trick
 THE CHARTS, AND THE HEALTH REPORT (added 2026-08-08)
 
 Every chart in the product is built by ONE box of recipes: js/aichart.js. The Copilot's in-chat charts, the Intelligence dock, the four Reports cards (js/views/reports.js — the old CSS bar strips are kept as the no-internet fallback) and the Portfolio Health Report's embedded pictures (js/views/healthreport.js) all draw through it. The AI never supplies chart data — it names a KIND, the recipes read live state. Every canvas card carries copy-image / download-PNG / download-CSV buttons, served by ONE delegated click listener registered in aichart.js — add a new chart surface and the buttons come with it for free.
+
+ONE EXCEPTION, AND IT IS ABOUT CLICKING (added 2026-08-11). Both Insights tabs that a reader can INTERROGATE draw their own marks inline instead: the Negotiation Friction bars, and the Portfolio frame's risk map (js/views/portfolio.js). aichart.js produces a canvas — an image, with copy and download buttons, which is exactly right for a report and useless for a filter, because you cannot click a dot inside a PNG and have the page narrow to it. So the rule is not "one file draws every chart" but: **a chart you look at goes through aichart.js; a chart you click is inline SVG.** If a picture stops being interactive, it belongs back in the recipes.
 
 The Portfolio Health Report is a DETERMINISTIC document — the AI never writes a word of it. openHealthReport() opens the tab synchronously (popup rules), then fills it: score with its workings, seven fixed sections, charts as embedded PNGs always drawn on the LIGHT palette (the dark class steps aside during the build). Copilot merely opens it, when a question pairs a report word with portfolio/health/overview (aiWantsHealthReport in js/ai.js) — which is why it works with no AI key at all. Reached from the Reports screen button too: SAME document, one builder.
 

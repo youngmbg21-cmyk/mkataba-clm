@@ -713,7 +713,10 @@ function renderIntel(){
   /* Two surfaces under one nav item: the graph, and the negotiation-friction
      read of the same portfolio. The tab lives on the module state so a
      repaint comes back where the reader was. */
-  if(intel.tab!=='map'&&intel.tab!=='friction') intel.tab='friction';
+  /* Three surfaces under one nav item. The frame is first and is the default:
+     it is the overview every business gets, and the other two are the two
+     specific questions you go on to ask. */
+  if(['frame','map','friction'].indexOf(intel.tab)<0) intel.tab='frame';
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type'],['expiry','Expiry window'],['risk','Risk'],['source','Origin']];
   /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
      the live one is the one with the accent rule under it. The -1px bottom
@@ -727,7 +730,7 @@ function renderIntel(){
      same line instead of stacking them. */
   const TABROW='display:flex;align-items:stretch;align-self:stretch;flex:none';
   const tabBtn=(k,label)=>`<button data-ig-tab="${k}" style="${UNDERTAB};border-bottom:2px solid ${intel.tab===k?'var(--accent-solid,var(--color-accent))':'transparent'};font-size:12.5px;color:${intel.tab===k?'var(--accent-ink,var(--color-accent))':'var(--color-neutral-500)'}">${label}</button>`;
-  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
+  const tabsHtml=`<div style="${TABROW};gap:20px">${tabBtn('frame',i18t('pf_tab'))}${tabBtn('friction',i18t('int_negotiation_friction'))}${tabBtn('map',i18t('int_contract_graph'))}</div>`;
   /* The friction levers live IN the header strip (the approved comp): the
      period toggle and the counterparty select sit beside the tabs, so the
      panel below is all answer and no chrome. */
@@ -767,6 +770,20 @@ function renderIntel(){
         </span>
       </label>`:''}
     </header>`;
+  if(intel.tab==='frame'){
+    /* Same shell as the friction tab: header strip, then one scrolling body.
+       The frame carries no header levers of its own — its controls are the
+       panels themselves. */
+    document.getElementById('content').innerHTML=`
+    <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
+      ${headerHtml}
+      <div id="ig-frame" class="scroll-thin pf-scroll" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:12px 20px 16px">${
+        (typeof portfolioFrameHtml==='function')?portfolioFrameHtml():''}</div>
+    </div>`;
+    document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
+    if(typeof wirePortfolioFrame==='function') wirePortfolioFrame(renderIntel);
+    return;
+  }
   if(intel.tab==='friction'){
     /* THE CONTROL TOWER — full width, no pinned Copilot. The dock stays on
        the Contract Graph, where its questions drive the map; here the levers

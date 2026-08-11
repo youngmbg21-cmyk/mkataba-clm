@@ -35,6 +35,7 @@ import './family.js';
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
 import './pdfrich.js';
+import './views/portfolio.js';    // the universal frame: six panels every business gets
 import './views/intelligence.js';
 import './ai.js';
 import './views/settings.js';
