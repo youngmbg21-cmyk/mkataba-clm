@@ -377,7 +377,11 @@ describe('a signing share addressed to a route signer is auto-bound to their row
       status: 'Under Review', format: 'text', redlineText: 'Article 1\n\nAgreed wording.',
       fields: {}, metadata: {}, comments: [], obligations: [], rounds: [], versions: [],
       audit: [], signatures: [],
-      signerPlan: [{ id: 'S1', order: 1, party: 'counterparty', name: 'Erik', email: 'erik@n.se', signed: false }] };
+      /* Both sides: a route naming only one of them is refused (11 Aug 2026),
+         because an agreement is signed by two parties. Theirs first, so their
+         link is live rather than held — this test is about the SEND. */
+      signerPlan: [{ id: 'S1', order: 1, party: 'counterparty', name: 'Erik', email: 'erik@n.se', signed: false },
+        { id: 'S0', order: 2, party: 'internal', name: 'Amina Otieno', email: 'admin@example.co.ke', signed: false }] };
     await W.admin.json('/api/contracts/MK-R8', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
     resend.reset();
     resend.failNextRequests(1);

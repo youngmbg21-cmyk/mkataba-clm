@@ -1138,8 +1138,14 @@ describe('the response route, against the real server', () => {
       /* A signing route, because since 11 Aug 2026 a Sign link cannot be issued
          without one: naming the signers is what starts signing. The tests below
          are about SUPERSESSION, not about the route, so it is set once here. */
-      c.signerPlan = [{ id: 'sg-' + id, party: 'counterparty', order: 1,
-        name: 'Erik Lindqvist', email: 'erik@nordkust.se', signed: false }];
+      /* Both sides, because a route naming only one of them is refused
+         (tightened 11 Aug 2026) — an agreement is signed by two parties.
+         Theirs first so their link is live rather than held for its turn. */
+      c.signerPlan = [
+        { id: 'sg-' + id, party: 'counterparty', order: 1,
+          name: 'Erik Lindqvist', email: 'erik@nordkust.se', signed: false },
+        { id: 'sg-us-' + id, party: 'internal', order: 2,
+          name: 'Amina Otieno', email: 'admin@example.co.ke', signed: false }];
       await W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
     }
   });

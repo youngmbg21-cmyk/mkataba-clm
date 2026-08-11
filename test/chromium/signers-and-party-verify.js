@@ -76,20 +76,79 @@ const contract = () => ({
     /* ---------- 1. the model ---------- */
     const model = await page.evaluate(() => {
       const mk = plan => ({ id: 'X', status: 'Under Review', signerPlan: plan });
+      const US = { id: 'a', party: 'internal', order: 1, name: 'Us' };
+      const THEM = { id: 'b', party: 'counterparty', order: 2, name: 'Them' };
       return {
         none: signingRouteOpen(mk([])),
-        internalOnly: signingRouteOpen(mk([{ id: 'a', party: 'internal', order: 1, name: 'Us' }])),
-        theirs: signingRouteOpen(mk([{ id: 'b', party: 'counterparty', order: 1, name: 'Them' }])),
-        alreadySigned: signingRouteOpen(mk([{ id: 'b', party: 'counterparty', order: 1, signed: true }])),
+        oursOnly: signingRouteOpen(mk([US])),
+        theirsOnly: signingRouteOpen(mk([THEM])),
+        both: signingRouteOpen(mk([US, THEM])),
+        alreadySigned: signingRouteOpen(mk([{ ...US, signed: true }, THEM])),
+        missing: { none: signingRouteMissing(mk([])), ours: signingRouteMissing(mk([THEM])),
+          theirs: signingRouteMissing(mk([US])), both: signingRouteMissing(mk([US, THEM])) },
       };
     });
     check('an empty route is not an open one', model.none === false);
-    check('and neither is a route naming only our own people',
-      model.internalOnly === false,
-      'a signing link goes to the other side; a route with no row for them has not said who may sign');
-    check('one counterparty signer opens it', model.theirs === true);
+    /* ---- BOTH SIDES, WHICH TIGHTENS THE ORIGINAL RULE ----
+       It began by asking only for a counterparty row, on the argument that a
+       signing link is a thing you send to the other side. True, and not
+       enough: "it should ask for the owners and the counterparties that will
+       sign the contract before you send" (Young, 11 Aug 2026). An agreement is
+       signed by two parties, and a route naming one of them describes a
+       document that executes with a single signature on it. */
+    check('a route naming only our own people is not open either',
+      model.oursOnly === false, 'nobody on the other side has been named');
+    check('and neither is one naming only theirs',
+      model.theirsOnly === false, 'we would be sending a contract nobody here has agreed to sign');
+    check('a name on each side opens it', model.both === true);
     check('and a route that has already been signed still counts as set',
       model.alreadySigned === true, 'the turn check refuses that case in its own words');
+    check('and the screen can say WHICH side is missing rather than only refusing',
+      model.missing.none === 'both' && model.missing.ours === 'ours'
+      && model.missing.theirs === 'theirs' && model.missing.both === null,
+      JSON.stringify(model.missing));
+
+    /* ---- AND ONCE SOMEBODY HAS SIGNED, THE ROUTE IS SHUT ----
+       "Once one person has signed, there can be no option to add other
+       signers, and the process would have to start all over again." A
+       signature is given to a specific arrangement, so adding a signatory
+       afterwards makes the first mark stand for an agreement nobody showed
+       that person. */
+    const lock = await page.evaluate(() => {
+      const US = { id: 'a', party: 'internal', order: 1, name: 'Us' };
+      const THEM = { id: 'b', party: 'counterparty', order: 2, name: 'Them' };
+      const open = { id: 'X', status: 'Under Review', signerPlan: [US, THEM], signatures: [], audit: [] };
+      const viaPlan = { ...open, signerPlan: [{ ...US, signed: true }, THEM] };
+      /* A counterparty's mark reaches c.signatures, never their plan row, until
+         the owner's browser applies it — asking only the plan would leave the
+         route editable for as long as nobody had the tab open. */
+      const viaMark = { ...open, signatures: [{ party: 'counterparty', name: 'Them', at: 'x' }] };
+      const after = JSON.parse(JSON.stringify(viaPlan));
+      after.audit = []; after.compliance = { consent: true };
+      signingRestart(after);
+      return {
+        openNotLocked: signingLocked(open),
+        lockedByPlan: signingLocked(viaPlan),
+        lockedByMark: signingLocked(viaMark),
+        restartUnlocks: signingLocked(after),
+        restartKeptRows: after.signerPlan.length,
+        restartFreshIds: after.signerPlan.every(s => s.id !== 'a' && s.id !== 'b'),
+        restartDroppedConsent: after.compliance.consent === false,
+        restartLogged: (after.audit || []).some(a => /restart/i.test(a.action || '')),
+      };
+    });
+    check('a route nobody has signed is not locked', lock.openNotLocked === false);
+    check('one internal signature locks it', lock.lockedByPlan === true);
+    check('and so does a counterparty mark that has not reached the plan yet',
+      lock.lockedByMark === true, 'their signature arrives on c.signatures first');
+    check('starting again unlocks it and keeps the names to edit',
+      lock.restartUnlocks === false && lock.restartKeptRows === 2,
+      lock.restartKeptRows + ' rows kept');
+    check('and re-issues every row, so a signing link already sent stops working',
+      lock.restartFreshIds, 'the server refuses a link whose row it can no longer find');
+    check('the intent-to-sign is withdrawn with it, and the restart is on the record',
+      lock.restartDroppedConsent && lock.restartLogged,
+      'consent was given against the arrangement being discarded');
 
     /* ---- AND THE CONTRACT'S OWN NEXT STEP SAYS SO ----
        The room's status line used to read "Approved — confirm intent-to-sign on
@@ -300,6 +359,73 @@ const contract = () => ({
         sharedBy: 'Amina Otieno', contract: { id: 'MK-SP1', name: 'Component Supply — Juno' } },
       channel: 'link', recipient: { name: 'Juno', email: 'juno@example.co.ke' }, purpose: 'sign' } });
     check('and the server issues the signing link', nowOk.status === 200, String(nowOk.status));
+
+    /* ---------- 5b. THE EDITOR ASKS FOR BOTH SIDES ---------- */
+    const editor = await page.evaluate(async () => {
+      if (window.closeModal) closeModal();
+      /* A contract with no route at all — the state the editor is opened in. */
+      const c = { id: 'ED1', name: 'Editor', counterparty: 'Juno Limited',
+        counterpartyEmail: 'juno@example.co.ke', status: 'Under Review', fields: {},
+        metadata: {}, audit: [], comments: [], signatures: [], signerPlan: [] };
+      openSignerPlanEditor(c, { onDone() {} });
+      await new Promise(r => setTimeout(r, 400));
+      const rows = [...document.querySelectorAll('[data-sp-row]')];
+      const partyOf = i => (document.querySelector(`[data-sp-party="${i}"]`) || {}).value;
+      const nameOf = i => (document.querySelector(`[data-sp-name="${i}"]`) || {}).value;
+      const out = { rows: rows.length, parties: rows.map((_, i) => partyOf(i)),
+        names: rows.map((_, i) => nameOf(i)),
+        tally: (document.getElementById('sp-tally') || {}).innerText || '' };
+      /* Empty one side and try to save: the refusal must name which. */
+      const cpIdx = out.parties.indexOf('counterparty');
+      const el = document.querySelector(`[data-sp-name="${cpIdx}"]`);
+      if (el) { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); }
+      out.tallyAfter = (document.getElementById('sp-tally') || {}).innerText || '';
+      document.getElementById('sp-save').click();
+      await new Promise(r => setTimeout(r, 400));
+      out.saved = Array.isArray(c.signerPlan) && c.signerPlan.length;
+      out.stillOpen = !!document.getElementById('sp-save');
+      out.said = document.body.innerText;
+      if (window.closeModal) closeModal();
+      return out;
+    });
+    check('the editor opens with a slot for each side rather than an empty list',
+      editor.rows === 2 && editor.parties.includes('internal') && editor.parties.includes('counterparty'),
+      editor.rows + ' rows: ' + editor.parties.join(', '));
+    check('and fills in what the record already knows',
+      editor.names.some(n => /Amina/.test(n)) && editor.names.some(n => /Juno/.test(n)),
+      editor.names.join(' | '));
+    check('it counts each side while you type',
+      /Our side/i.test(editor.tally) && /Their side/i.test(editor.tally),
+      editor.tally.replace(/\s+/g, ' ').slice(0, 60));
+    check('and saving with one side empty is refused, naming the side',
+      !editor.saved && editor.stillOpen && /Name who signs for/i.test(editor.said),
+      editor.saved ? 'it saved a one-sided route' : 'refused');
+
+    /* ---------- 5c. THE SERVER REFUSES A ROUTE CHANGE AFTER A SIGNATURE ---------- */
+    const signedDoc = await W.admin.json('/api/contracts/MK-SP1');
+    const bv = signedDoc._v; delete signedDoc._v;
+    signedDoc.signerPlan = signedDoc.signerPlan.map((s, i) => i === 0 ? { ...s, signed: true, at: '2026-08-11' } : s);
+    await W.admin.json('/api/contracts/MK-SP1', { method: 'PUT', body: { contract: signedDoc, baseVersion: bv } });
+    const withMark = await W.admin.json('/api/contracts/MK-SP1');
+    const bv2 = withMark._v; delete withMark._v;
+    /* Adding a third signatory while a mark stands: refused. */
+    const sneak = JSON.parse(JSON.stringify(withMark));
+    sneak.signerPlan.push({ id: 'sg-extra', party: 'counterparty', order: 9, name: 'Someone Else',
+      email: 'else@example.co.ke', signed: false });
+    const blocked = await W.admin.raw('/api/contracts/MK-SP1', { method: 'PUT',
+      body: { contract: sneak, baseVersion: bv2 } });
+    check('the server refuses a route change once somebody has signed',
+      blocked.status === 409 && blocked.json && blocked.json.signingLocked === true,
+      blocked.status + ' ' + ((blocked.json && blocked.json.error) || '').slice(0, 55));
+    /* The same save, as a full restart — every mark discarded — is allowed. */
+    const restarted = JSON.parse(JSON.stringify(sneak));
+    restarted.signerPlan = restarted.signerPlan.map((s, i) => ({ ...s, id: 'r' + i, signed: false, at: null }));
+    restarted.signatures = [];
+    const allowed = await W.admin.raw('/api/contracts/MK-SP1', { method: 'PUT',
+      body: { contract: restarted, baseVersion: bv2 } });
+    check('but starting the signing again — every mark discarded — is allowed',
+      allowed.status === 200,
+      allowed.status + ' ' + ((allowed.json && allowed.json.error) || '').slice(0, 55));
 
     /* ---------- 6. the party ---------- */
     const party = await page.evaluate(() => {
