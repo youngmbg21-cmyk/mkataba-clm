@@ -301,6 +301,44 @@ AND THE QUOTES LIVE IN ONE PLACE. Key terms reprinted, under "READ FROM THE DOCU
 
 Tests: playbook-opens-read-verify (13, in the browser). f178's two Key-terms assertions still hold and were not touched.
 
+A CALENDAR DAY IS A DOOR, AND THE REGISTER CAN BE HANDED A SET (added 2026-08-11)
+
+The day cell was scenery: only the name chips inside it did anything, "+2 more" did nothing at all, and a day whose chips were clipped had no way in. Pressing the box now answers the question the box raises, and WHICH DOOR DEPENDS ON HOW MANY CONTRACTS — one opens it, several go to the register narrowed to exactly those.
+
+IT COUNTS CONTRACTS, NOT EVENTS. One contract puts two marks on one day whenever no notice period is known, because renewalDecisionDate falls back to the expiry itself; sending a reader to a list to choose between two rows about the same agreement would be a choice with one answer. The chips inside stopPropagation, or pressing a named contract would open it and then be overtaken by the cell.
+
+regShowOnly(ids, label) IS THE ONE DOOR IN, and regState().only is what it sets. Every other filter here is a QUESTION (which stage, which stream, which category); this is an ANSWER somebody else worked out, so it is applied FIRST and everything else narrows within it. Two properties make it safe and they are the origin filter's own two: the chip SAYS what the list is narrowed to, and the way back is on the same chip. A register silently showing three of a hundred and thirty-nine is indistinguishable from a broken one. It is cleared by its ✕, by both Clear-all handlers, and by the phone's — the phone builds no calendar to have sent one, so that is its only door out of a narrowing inherited across a resize.
+
+Tests: calendar-day-verify (14, in the browser).
+
+DOES MONEY PASS UNDER THIS CONTRACT, AND WHO SAYS SO (added 2026-08-11)
+
+Reported off the share dialog: an NDA refused to send until somebody set "the contract value this contract type carries". Its own clause 1 reads "No monetary consideration passes under this Agreement".
+
+isMonetary(c) IS THE ONE ANSWER — the register's value column, the aggregate, the key terms panel, the approval threshold, the risk scan, the portal and the readiness list all ask it. It read `c.valueType !== 'none'` and nothing else, so `undefined` — the ordinary state of anything not made by the guided wizard — came back monetary. TEMPLATES.ND has carried valueType:'none' since the beginning; nobody was asking it.
+
+THE ORDER IS THE WHOLE RULE: the record wins wherever it has SAID something (the "none" tick-box on Key terms is how a person decides this, and putting a value on an NDA is unusual rather than forbidden), and the template answers only the silence. An upload has no template and is still assumed to carry money.
+
+A STAMP NOBODY CHOSE IS NOT AN ANSWER. Bulk creation from a spreadsheet wrote valueType:'estimated' onto everything it made. It asks the template now, and _repairValueType (inside migrateContract, where this product repairs stored records) fixes what is already saved — narrowly: only where the template says no money passes AND no value was ever entered. A figure on the record is somebody's decision and is never erased. The custom-template route still defaults to 'estimated' and is right to: a customer's own paper declares nothing, and those records carry template:null so neither the lookup nor the repair touches them.
+
+AND THE COUNT HAS TO COUNT THE LIST UNDER IT. The same box printed "1 thing to fix" — the number of BLOCKS — over a list of blocks AND warnings in one undifferentiated ruby run, so "This contract is still a Draft" read as something holding the send. It is not; it is what every contract shared for review is. readinessPanelHtml separates them: what blocks is counted and listed, what is merely worth knowing sits under its own quiet line.
+
+Tests: nda-carries-no-money-verify (21, in the browser, including a walk of all twelve templates against their own declared answer).
+
+WHO SIGNS, AND WHAT A REVIEW LINK CANNOT DO (added 2026-08-11)
+
+Three things asked for together, all about the moment a contract leaves the building.
+
+A REVIEW LINK CANNOT SIGN, AND THE SERVER IS WHERE THAT BECAME TRUE. The share dialog promises it in words and the browser kept the promise — a negotiate link opens renderShareWorkbench, which has no signing panel built into it — but that is a decision about pixels, and the link is a URL somebody keeps. POST /api/shares/:token/respond accepted action:'sign' on it like any other. It refuses now, 403, naming the way out. ONLY AN EXPLICIT 'negotiate' IS REFUSED: a link minted before purposes existed carries none, and those infer the phase from the change set, so refusing them would strand every signing link issued before the feature. ACCEPTING THE WORDING IS STILL ALLOWED — it is an answer a review link exists to collect, and it executes nothing. portalRespond refuses the same thing one layer earlier, in words.
+
+WHO SIGNS IS ASKED WHERE THE SIGNING LINK IS MADE. Everything needed already existed and was in the wrong place: the Signing tab has the route, issueSigningRouteLinks mints one bound link per counterparty signer held until their turn, and the server binds a share to a row of the STORED plan (shares.signer_id) and refuses a signature out of order. The share dialog knew none of it and minted a link bound to nobody — forwardable, and usable against any open counterparty step. shareSignerPickHtml draws the route on a Sign link; picking a row fills the recipient from it AND sends signerId, so the link is bound at the source rather than guessed at by the server's address match (which survives, and matters when the dialog is not the door).
+
+THREE PROPERTIES WORTH KEEPING: internal rows are DRAWN AND NOT PICKABLE (they sign in-app; hiding them would make the numbering say something false); pressing the chosen row again releases the binding; and NO ROUTE IS NOT AN ERROR — the free-typed recipient still works exactly as before, because a new wall in front of the commonest send would cost more than it saves. openSignerPlanEditor(c, {onDone}) is how the detour comes back: it closed onto the workspace, which is right from the Signing tab and wrong from inside a dialog somebody was part-way through.
+
+"PROPOSE A DIFFERENT VALUE" IS GONE from the counterparty's signing panel, on every contract. It sat at the top level between their own details and the Sign button, so it read as part of signing — and it never was: portalRespond only ever read it on the `changes` route, so a figure typed there before pressing Sign was silently discarded. It was also the wrong shape for the job: a price is agreed in the WORDING, where the redline gives it a fingerprint, a round and a decision, and this box moved a number on the record while the document beside it still said something else. THE READING SIDE STAYS — a round already carrying a proposedValue still shows it and still applies. f7's assertion was reversed to pin the removal.
+
+Tests: sign-links-verify (18, in the browser, and the wall is asserted with a raw POST). NOTE THE ORDER IN THAT FILE: issuing a signing link retires the negotiation links on the same contract, and that refusal fires before the purpose check — exercise the review link first or a working guard reports as broken.
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.

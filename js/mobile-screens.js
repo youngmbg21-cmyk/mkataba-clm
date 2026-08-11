@@ -468,7 +468,10 @@ function mScreenAct(k, btn){
   }
   if(k==='clear-filters'){
     const R = (typeof regState==='function') ? regState() : null;
-    if(R){ R.query=''; R.stage='all'; R.type='all'; R.category='all'; R.view=null; R.page=1; }
+    /* `only` too — a set sent to the register from another screen is a filter
+       like any other, and the phone builds no calendar to have sent one, so
+       this is the only door it has out of one inherited across a resize. */
+    if(R){ R.query=''; R.stage='all'; R.type='all'; R.category='all'; R.view=null; R.only=null; R.page=1; }
     mRender(); return;
   }
   if(k==='new-wizard'){ mCloseSheet(); if(window.openWizard) openWizard(); return; }

@@ -6014,6 +6014,28 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
      — the third, and quietest, of the three reasons their Send did nothing. */
   if (r.kind !== 'hati-response' || !['sign','accept','changes','decline','decisions','ready'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
+  /* ---- A REVIEW LINK CANNOT SIGN, AND THIS IS WHERE THAT BECOMES TRUE ----
+     The share dialog promises it in words — "Nothing can be signed on this
+     link" — and the browser keeps the promise: a negotiate link opens the
+     negotiation room, and that room has no signing panel built into it. But
+     that is a decision about pixels. The link itself is a URL somebody keeps,
+     and this route accepted action:'sign' on it like any other, so the promise
+     was true on the screen and not true underneath.
+
+     ONLY AN EXPLICIT 'negotiate' IS REFUSED. A link minted before purposes
+     existed carries none at all, and for those the phase is inferred from the
+     change set (portalNegoPhase in the browser) — refusing them here would
+     strand every signing link issued before the feature shipped.
+
+     ACCEPTING THE WORDING IS STILL ALLOWED. "I am happy with this" is an
+     answer a review link exists to collect; it is not a signature, and it
+     executes nothing. */
+  if (r.action === 'sign' && String(s.purpose || '') === 'negotiate')
+    return res.status(403).json({
+      error: 'This link was sent for review, not for signature. It can carry proposed changes, '
+        + 'comments and an acceptance of the wording — but nothing can be signed on it. '
+        + 'Ask the sender for a signing link.',
+      purpose: 'negotiate' });
   if (r.action === 'sign') {
     /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----
        A bound link signs one step of the route, in that step's turn. Out of

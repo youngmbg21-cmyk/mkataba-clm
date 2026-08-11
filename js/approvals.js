@@ -312,7 +312,16 @@ function distributionRecipients(c){
   if(cc) add('Records archive',cc,'','cc');
   return out;
 }
-function openSignerPlanEditor(c){
+/* opts.onDone — WHERE TO GO BACK TO. The editor closed straight onto the
+   workspace, which is right when it was opened from the Signing tab and wrong
+   when it was opened from inside the share dialog: assigning a signer there is
+   a detour on the way to sending, and dumping the sender out of the dialog
+   makes them start the send again. The caller says where it came from; with no
+   caller saying, the old behaviour stands exactly as it was. Cancel goes back
+   the same way — a reader who changed nothing should certainly not lose more
+   than one who changed something. */
+function openSignerPlanEditor(c, opts){
+  const back = opts && typeof opts.onDone === 'function' ? opts.onDone : null;
   const plan=(c.signerPlan||[]).slice();
   const members=(getUsers()||[]).filter(u=>u.role!=='viewer');
   // People directory (imported contacts + team members) → drives name auto-fill.
@@ -381,7 +390,7 @@ function openSignerPlanEditor(c){
   };
   document.getElementById('sp-add').addEventListener('click',()=>{ syncPlanFromDom(); plan.push({party:'internal',name:'',role:'',email:'',memberId:''}); rerow(); });
   wire();
-  document.getElementById('sp-cancel').addEventListener('click',closeModal);
+  document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
   document.getElementById('sp-save').addEventListener('click',()=>{
     syncPlanFromDom();
     const out=[]; plan.forEach(s=>{ if(!s.name) return;
@@ -389,7 +398,8 @@ function openSignerPlanEditor(c){
       out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
         email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
         signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
-    c.signerPlan=out; logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`); persist(c); closeModal(); renderWorkspace();
+    c.signerPlan=out; logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`); persist(c); closeModal();
+    if(back) back(); else renderWorkspace();
     toast(i18t('ap_route_saved'));
   });
 }

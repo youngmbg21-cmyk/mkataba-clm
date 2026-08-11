@@ -151,7 +151,33 @@ function navEarned(view, total){
 const navSeen=view=>{ try{ return localStorage.getItem('hati.v1.nav-seen.'+view)==='1'; }catch(e){ return true; } };
 const navMarkSeen=view=>{ try{ localStorage.setItem('hati.v1.nav-seen.'+view,'1'); }catch(e){} };
 
-const isMonetary = c => c.valueType !== 'none';
+/* ---- DOES MONEY PASS UNDER THIS CONTRACT ----
+   ONE FUNCTION, and everything asks it: the register's value column, the key
+   terms panel, the aggregate, the approval threshold, the risk scan, the
+   counterparty's portal and — the one that was reported — the share dialog's
+   readiness list, which refused to send an NDA until somebody set "the
+   contract value this contract type carries". The NDA's own clause 1 says no
+   monetary consideration passes under it.
+
+   IT USED TO READ THE RECORD AND NOTHING ELSE (`c.valueType !== 'none'`), so a
+   contract whose valueType had never been stamped came back monetary — and
+   `undefined` is the ordinary state for anything not created through the
+   guided wizard. The TEMPLATE already knows: TEMPLATES.ND carries
+   valueType:'none' and has since the beginning. Nobody was asking it.
+
+   THE ORDER IS THE WHOLE RULE. The record wins wherever it has actually SAID
+   something, because the "none" tick-box on Key terms is how a person makes
+   this decision and their answer must not be overruled by the template they
+   started from — putting a value on an NDA is unusual, not forbidden. The
+   template answers only the silence. */
+const isMonetary = c => {
+  if(!c) return true;
+  if(c.valueType) return c.valueType !== 'none';
+  const T = (typeof window!=='undefined') && window.TEMPLATES;
+  const t = (T && c.template) ? T[c.template] : null;
+  if(t && t.valueType) return t.valueType !== 'none';
+  return true;                       // an upload, or a template with no view — assume money
+};
 function mk(name,cp,value,status,tmpl,date,expiry,valueType){
   /* `seeded` marks demo paper so surfaces that measure REAL progress — the
      getting-started checklist on Home (WO N3) — can tell a pre-signed sample
@@ -806,9 +832,27 @@ function negoRecoverMisfiledReasons(c){
   }
   return c;
 }
+/* A STAMP NOBODY CHOSE IS NOT AN ANSWER. Bulk creation from a spreadsheet, and
+   the saved-template route, wrote valueType:'estimated' on every contract they
+   made regardless of the template's own answer — so an NDA came out of them
+   marked as carrying money, and isMonetary above rightly believes the record.
+   Both routes now ask the template (see templatefields.js / library.js), but
+   records already saved keep the wrong stamp, and this is where the product
+   repairs stored records.
+
+   NARROW ON PURPOSE: only where the template says no money passes AND no value
+   was ever entered. A figure on the record is somebody's decision even if the
+   template would not have expected one, and this must not erase it. */
+function _repairValueType(c){
+  if(!c || !c.template || Number(c.value)>0) return c;
+  const T=(typeof window!=='undefined') && window.TEMPLATES;
+  const t=(T && T[c.template]) || null;
+  if(t && t.valueType==='none' && c.valueType && c.valueType!=='none') c.valueType='none';
+  return c;
+}
 function migrateContract(c){
-  return negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
-    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c));
+  return _repairValueType(negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
+    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c)));
 }
 
 /* ---------- approvals (spend-threshold sign-off) ---------- */
@@ -2134,6 +2178,11 @@ function shareSummaryStepHtml(c, opts={}){
              do. So the picker is not disabled here, it is absent, and the
              screen says why rather than leaving a gap where a question was. */}
       <div id="share-purpose-wrap"${hist?' class="hidden"':''}>${sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c))}</div>
+      ${''/* Drawn always and shown on Sign, like every other branch in this
+             step: switching the purpose must not rebuild the dialog, or the
+             note the sender has already typed goes with it. */}
+      <div id="share-signers"${(opts.purposeSel||defaultSharePurpose(c))==='sign'?'':' class="hidden"'}>${
+        shareSignerPickHtml(c, opts.signerSel||null)}</div>
       <div id="share-hist-note"${hist?'':' class="hidden"'} style="margin:0 0 14px;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--color-accent-800)">
         <b>${i18t('co_no_purpose')}</b> This link opens the negotiation history and nothing else — the
         same screen ${esc(c.counterparty||'the counterparty')} already sees, read-only. The agreement
@@ -2213,21 +2262,115 @@ function shareSummaryStepHtml(c, opts={}){
     </div>`;
 }
 
+/* ============================================================
+   WHO SIGNS, ASKED WHERE THE SIGNING LINK IS MADE (added 2026-08-11)
+   ============================================================
+   Asked for directly: "whenever you click share and you are in this step where
+   you are sharing a contract for people to sign, there should be a trigger to
+   assign who will be signing the contract" — pointing at the Signing order
+   card on the Signing tab.
+
+   Everything needed already existed and was in the wrong place. The Signing
+   tab has the route; issueSigningRouteLinks mints one bound link per
+   counterparty signer, held until their turn; the server binds a share to a
+   row of the stored plan (shares.signer_id) and refuses a signature out of
+   order. The SHARE DIALOG knew none of it — it took one hand-typed address and
+   minted a link bound to nobody, so a signing link could be forwarded and used
+   to sign any open counterparty step.
+
+   So the dialog shows the route on a Sign link and the sender picks the person
+   this link is for. Picking fills the recipient from that row AND sends the
+   signerId, so the link is bound at the source rather than guessed at by the
+   server's address match.
+
+   THE INTERNAL ROWS ARE SHOWN AND ARE NOT PICKABLE. They sign in HaTi, not by
+   link; drawing them greyed is what makes the order legible — "you are second
+   of three" is the fact the sender needs, and hiding the first row would leave
+   the numbering saying something false.
+
+   NO ROUTE IS NOT AN ERROR. A contract with no plan says so and offers the
+   same editor; the free-typed recipient still works exactly as before, because
+   refusing to send until somebody fills in a route would be a new wall in
+   front of the commonest send there is. */
+function shareSignerRowsHtml(c, sel){
+  const plan=(typeof signerPlan==='function'?signerPlan(c):[])
+    .slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  if(!plan.length) return { plan, html:`<p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${
+    i18t('co_no_route_yet',{them:esc(c.counterparty||'the counterparty')})}</p>` };
+  const html=plan.map((s,i)=>{
+    const cp=s.party==='counterparty';
+    const pickable=cp && !s.signed;
+    const on=pickable && String(sel||'')===String(s.id);
+    const mail=String(s.email||'').trim();
+    const note=s.signed ? i18t('co_signer_signed')
+      : cp ? (mail ? esc(mail) : `<span style="color:var(--st-amber-fg)">${i18t('co_signer_no_email')}</span>`)
+      : i18t('co_signer_internal');
+    return `<${pickable?'button type="button"':'div'} ${pickable?`data-share-signer="${esc(s.id)}"`:''}
+      style="display:flex;align-items:flex-start;gap:8px;width:100%;text-align:left;font:inherit;border:1px solid ${on?'var(--color-accent)':'var(--color-divider)'};
+        background:${on?'var(--color-accent-100)':'var(--color-surface)'};border-radius:6px;padding:7px 9px;margin-bottom:5px;
+        cursor:${pickable?'pointer':'default'};opacity:${pickable||s.signed?'1':'.7'}">
+      <span style="flex:none;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:9.5px;font-weight:800;
+        background:${on?'var(--color-accent)':'var(--color-neutral-100)'};color:${on?'#fff':'var(--color-neutral-700)'}">${i+1}</span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:12px;font-weight:600;color:var(--color-text)">${esc(s.name||'—')}${
+          s.role?`<span style="font-weight:400;color:var(--color-neutral-600)"> · ${esc(s.role)}</span>`:''}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.45">${note}</span>
+      </span>
+      ${on?`<span style="flex:none;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--color-accent-800)">${i18t('co_signer_this_link')}</span>`:''}
+    </${pickable?'button':'div'}>`;
+  }).join('');
+  return { plan, html };
+}
+function shareSignerPickHtml(c, sel){
+  const { plan, html }=shareSignerRowsHtml(c, sel);
+  const cps=plan.filter(s=>s&&s.party==='counterparty'&&!s.signed);
+  return `<div style="margin:0 0 14px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:11px 12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="flex:1;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('co_who_signs')}</span>
+      ${plan.length?`<span style="flex:none;font-size:10px;color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
+    </div>
+    <div id="share-signer-rows">${html}</div>
+    <button type="button" id="share-signer-edit" class="ui-btn" style="width:100%;justify-content:center;font-size:11.5px;padding:6px 12px;margin-top:${plan.length?'3px':'8px'}">${
+      icon('users','w-3.5 h-3.5')} ${plan.length?i18t('co_add_reorder_signers'):i18t('co_add_signers')}</button>
+    <p style="margin:7px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">${
+      cps.length?i18t('co_signer_bind_note'):i18t('co_signer_free_note')}</p>
+  </div>`;
+}
+
 /* The warning block at the top of the share modal. Naming what is missing is
    the whole point — "this contract is incomplete" is not actionable, "no value
    is set and the document still says [SUPPLIER CORPORATE NAME]" is. */
+/* THE COUNT HAS TO COUNT THE LIST UNDER IT. This printed "1 thing to fix" —
+   the number of BLOCKS — and then listed every problem, blocks and warnings
+   alike, in one undifferentiated ruby list. On the reported NDA that read as
+   "1 thing to fix" above two sentences, the second of which ("This contract is
+   still a Draft") is not a thing to fix at all: it is an observation, and every
+   contract shared for review is a draft.
+
+   A reader cannot tell which of the sentences is the one holding the send, so
+   either the number is wrong or one of the lines is. They are separated now:
+   what BLOCKS is counted and listed, what is merely worth knowing sits under
+   its own quiet line. */
 function readinessPanelHtml(c){
   const probs=contractReadiness(c);
   if(!probs.length) return '';
   const blocks=probs.filter(x=>x.severity==='block');
+  const notes=probs.filter(x=>x.severity!=='block');
   const tone=blocks.length
-    ? { bg:'var(--st-ruby-bg)', line:'var(--st-ruby-line)', fg:'var(--st-ruby-fg)', head:`Not ready to send — ${blocks.length} thing${blocks.length===1?'':'s'} to fix` }
-    : { bg:'var(--st-amber-bg)', line:'var(--st-amber-line)', fg:'var(--st-amber-fg)', head:'Worth checking before you send' };
+    ? { bg:'var(--st-ruby-bg)', line:'var(--st-ruby-line)', fg:'var(--st-ruby-fg)',
+        head:i18tn('co_not_ready',blocks.length,{n:blocks.length}) }
+    : { bg:'var(--st-amber-bg)', line:'var(--st-amber-line)', fg:'var(--st-amber-fg)',
+        head:i18t('co_worth_checking') };
+  const list=(items,color)=>`<ul style="margin:0;padding-left:16px;font-size:11.5px;line-height:1.65;color:${color};">
+      ${items.map(x=>`<li>${esc(x.label)}</li>`).join('')}
+    </ul>`;
   return `<div id="share-readiness" style="margin:0 0 12px;border:1px solid ${tone.line};background:${tone.bg};border-radius:5px;padding:10px 12px;">
     <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
-    <ul style="margin:0;padding-left:16px;font-size:11.5px;line-height:1.65;color:${tone.fg};">
-      ${probs.map(x=>`<li>${esc(x.label)}</li>`).join('')}
-    </ul>
+    ${blocks.length?list(blocks,tone.fg):''}
+    ${notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:8px;border-top:1px solid '+tone.line+';':''}">
+      ${blocks.length?`<div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:4px">${i18t('co_also_worth_knowing')}</div>`:''}
+      ${list(notes,blocks.length?'var(--color-neutral-700)':tone.fg)}
+    </div>`:''}
     ${blocks.length?`<label style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:11.5px;color:${tone.fg};cursor:pointer;">
       <input id="sh-ack" type="checkbox" style="margin-top:2px;accent-color:${tone.fg}"/>
       <span>${i18t('co_send_anyway')}</span></label>`:''}
@@ -3241,7 +3384,48 @@ async function openShareModal(c, opts={}){
        move it, or the picker would quietly leave the wrong kind of link. */
     const d=document.getElementById('sh-durable');
     if(d) d.checked = purposeSel!=='sign';
+    /* WHO SIGNS belongs to the Sign purpose alone — on a negotiate link there
+       is nothing to bind, and on a view link nobody is being asked for
+       anything. Shown and hidden rather than built and thrown away, for the
+       reason the branches above give. */
+    document.getElementById('share-signers')?.classList.toggle('hidden', purposeSel!=='sign');
   };
+  /* The row this link is for, or null for the free-typed recipient. Held here
+     rather than read off the DOM at send time, so a repaint cannot lose it. */
+  let signerSel = null;
+  const paintSigners = () => {
+    const host=document.getElementById('share-signer-rows'); if(!host) return;
+    host.innerHTML=shareSignerRowsHtml(c, signerSel).html;
+    wireSignerRows();
+  };
+  function wireSignerRows(){
+    document.querySelectorAll('#share-signer-rows [data-share-signer]').forEach(b=>
+      b.addEventListener('click',()=>{
+        const id=b.getAttribute('data-share-signer');
+        /* Pressing the chosen row again takes the binding off — a picker with
+           no way back is a decision you cannot undo without closing the
+           dialog. */
+        signerSel = (String(signerSel||'')===String(id)) ? null : id;
+        const row=(typeof signerPlan==='function'?signerPlan(c):[]).find(x=>x&&String(x.id)===String(signerSel));
+        if(row){
+          /* THE RECIPIENT FOLLOWS THE ROW. Two answers to "who is this for" on
+             one screen is how a link ends up bound to one person and emailed
+             to another. */
+          const n=document.getElementById('sh-name'), e=document.getElementById('sh-email');
+          if(n) n.value=row.name||'';
+          if(e) e.value=row.email||'';
+          if(!String(row.email||'').trim()) toast(i18t('co_signer_needs_email',{name:row.name||'that signer'}),'err');
+        }
+        paintSigners();
+      }));
+    document.getElementById('share-signer-edit')?.addEventListener('click',()=>{
+      if(!window.openSignerPlanEditor){ toast(i18t('co_route_editor_missing'),'err'); return; }
+      /* Back to this dialog, on this purpose, with the note kept — see the
+         onDone note on openSignerPlanEditor. */
+      const keep={ summary:fval('sh-summary'), note:fval('sh-msg') };
+      openSignerPlanEditor(c, { onDone(){ openShareModal(c, { ...opts, purpose:'sign', resume:keep }); } });
+    });
+  }
   document.querySelectorAll('#share-purpose [data-share-purpose]').forEach(b=>
     b.addEventListener('click',()=>{ purposeSel=b.getAttribute('data-share-purpose');
       /* BOTH fields move with the picker. purposeChosen was stamped when the
@@ -3263,6 +3447,14 @@ async function openShareModal(c, opts={}){
   document.getElementById('share-next').addEventListener('click',()=>step(2));
   document.getElementById('share-back').addEventListener('click',()=>step(1));
   document.getElementById('share-back-kind').addEventListener('click',()=>step('kind'));
+  wireSignerRows();
+  /* Coming back from the route editor — the note the sender had typed before
+     they went to assign somebody. Restored after the step is built, because
+     the fields do not exist until then. */
+  if(opts.resume){
+    const su=document.getElementById('sh-summary'); if(su && opts.resume.summary) su.value=opts.resume.summary;
+    const nt=document.getElementById('sh-msg');     if(nt && opts.resume.note)    nt.value=opts.resume.note;
+  }
   setKind(purposeSel==='history'?'history':'contract');
   /* ---- ONLY THE SHARE BUTTON ASKS "WHAT ARE YOU SHARING?" ----
      Pressing Send on a redline opens this dialog too — the send path falls
@@ -3425,7 +3617,16 @@ async function openShareModal(c, opts={}){
           ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj })
           : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
               recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
-              durable:wantDurable, purpose:payloadObj.purpose });
+              durable:wantDurable, purpose:payloadObj.purpose,
+              /* BOUND AT THE SOURCE. The server can already match a signing
+                 address to an unsigned row on its own, and does; saying it
+                 outright is better because the sender CHOSE this row, and an
+                 address that appears twice on a route would otherwise be
+                 resolved by "earliest unsigned wins" rather than by what was
+                 on screen. Sent only on a signing link — it is meaningless on
+                 the other two, and the server validates it against the stored
+                 plan either way. */
+              signerId:(payloadObj.purpose==='sign' && signerSel) ? signerSel : undefined });
       }
       catch(e){ toast(e.message,'err'); return false; }
       reuseNote = reuse ? `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--color-accent-800);margin-bottom:8px">
@@ -4548,4 +4749,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
