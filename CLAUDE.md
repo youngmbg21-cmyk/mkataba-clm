@@ -311,6 +311,20 @@ regShowOnly(ids, label) IS THE ONE DOOR IN, and regState().only is what it sets.
 
 Tests: calendar-day-verify (14, in the browser).
 
+DOES MONEY PASS UNDER THIS CONTRACT, AND WHO SAYS SO (added 2026-08-11)
+
+Reported off the share dialog: an NDA refused to send until somebody set "the contract value this contract type carries". Its own clause 1 reads "No monetary consideration passes under this Agreement".
+
+isMonetary(c) IS THE ONE ANSWER — the register's value column, the aggregate, the key terms panel, the approval threshold, the risk scan, the portal and the readiness list all ask it. It read `c.valueType !== 'none'` and nothing else, so `undefined` — the ordinary state of anything not made by the guided wizard — came back monetary. TEMPLATES.ND has carried valueType:'none' since the beginning; nobody was asking it.
+
+THE ORDER IS THE WHOLE RULE: the record wins wherever it has SAID something (the "none" tick-box on Key terms is how a person decides this, and putting a value on an NDA is unusual rather than forbidden), and the template answers only the silence. An upload has no template and is still assumed to carry money.
+
+A STAMP NOBODY CHOSE IS NOT AN ANSWER. Bulk creation from a spreadsheet wrote valueType:'estimated' onto everything it made. It asks the template now, and _repairValueType (inside migrateContract, where this product repairs stored records) fixes what is already saved — narrowly: only where the template says no money passes AND no value was ever entered. A figure on the record is somebody's decision and is never erased. The custom-template route still defaults to 'estimated' and is right to: a customer's own paper declares nothing, and those records carry template:null so neither the lookup nor the repair touches them.
+
+AND THE COUNT HAS TO COUNT THE LIST UNDER IT. The same box printed "1 thing to fix" — the number of BLOCKS — over a list of blocks AND warnings in one undifferentiated ruby run, so "This contract is still a Draft" read as something holding the send. It is not; it is what every contract shared for review is. readinessPanelHtml separates them: what blocks is counted and listed, what is merely worth knowing sits under its own quiet line.
+
+Tests: nda-carries-no-money-verify (21, in the browser, including a walk of all twelve templates against their own declared answer).
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.

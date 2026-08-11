@@ -288,7 +288,11 @@ function createBulkFromTemplate(t, rows, opts={}){
   for(const r of rows){
     const c={ id:nextId(), name:r.name, counterparty:'', value:0, status:'Draft',
       template:t.builtin?t.id:null, source:t.builtin?undefined:'template',
-      folder:FOLDERS[t.folder]?t.folder:'corp', valueType:'estimated',
+      /* THE TEMPLATE'S OWN ANSWER, not a default. This said 'estimated' for
+         everything, so a bulk run of NDAs came out marked as carrying money and
+         every screen that asks isMonetary believed it — including the share
+         dialog, which then refused to send until a value nobody owed was set. */
+      folder:FOLDERS[t.folder]?t.folder:'corp', valueType:t.valueType||'estimated',
       lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
       compliance:{iprs:false,pki:false}, expiry:null,
       comments:[{author:'System',role:'Automation',side:'internal',

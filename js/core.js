@@ -151,7 +151,33 @@ function navEarned(view, total){
 const navSeen=view=>{ try{ return localStorage.getItem('hati.v1.nav-seen.'+view)==='1'; }catch(e){ return true; } };
 const navMarkSeen=view=>{ try{ localStorage.setItem('hati.v1.nav-seen.'+view,'1'); }catch(e){} };
 
-const isMonetary = c => c.valueType !== 'none';
+/* ---- DOES MONEY PASS UNDER THIS CONTRACT ----
+   ONE FUNCTION, and everything asks it: the register's value column, the key
+   terms panel, the aggregate, the approval threshold, the risk scan, the
+   counterparty's portal and — the one that was reported — the share dialog's
+   readiness list, which refused to send an NDA until somebody set "the
+   contract value this contract type carries". The NDA's own clause 1 says no
+   monetary consideration passes under it.
+
+   IT USED TO READ THE RECORD AND NOTHING ELSE (`c.valueType !== 'none'`), so a
+   contract whose valueType had never been stamped came back monetary — and
+   `undefined` is the ordinary state for anything not created through the
+   guided wizard. The TEMPLATE already knows: TEMPLATES.ND carries
+   valueType:'none' and has since the beginning. Nobody was asking it.
+
+   THE ORDER IS THE WHOLE RULE. The record wins wherever it has actually SAID
+   something, because the "none" tick-box on Key terms is how a person makes
+   this decision and their answer must not be overruled by the template they
+   started from — putting a value on an NDA is unusual, not forbidden. The
+   template answers only the silence. */
+const isMonetary = c => {
+  if(!c) return true;
+  if(c.valueType) return c.valueType !== 'none';
+  const T = (typeof window!=='undefined') && window.TEMPLATES;
+  const t = (T && c.template) ? T[c.template] : null;
+  if(t && t.valueType) return t.valueType !== 'none';
+  return true;                       // an upload, or a template with no view — assume money
+};
 function mk(name,cp,value,status,tmpl,date,expiry,valueType){
   /* `seeded` marks demo paper so surfaces that measure REAL progress — the
      getting-started checklist on Home (WO N3) — can tell a pre-signed sample
@@ -806,9 +832,27 @@ function negoRecoverMisfiledReasons(c){
   }
   return c;
 }
+/* A STAMP NOBODY CHOSE IS NOT AN ANSWER. Bulk creation from a spreadsheet, and
+   the saved-template route, wrote valueType:'estimated' on every contract they
+   made regardless of the template's own answer — so an NDA came out of them
+   marked as carrying money, and isMonetary above rightly believes the record.
+   Both routes now ask the template (see templatefields.js / library.js), but
+   records already saved keep the wrong stamp, and this is where the product
+   repairs stored records.
+
+   NARROW ON PURPOSE: only where the template says no money passes AND no value
+   was ever entered. A figure on the record is somebody's decision even if the
+   template would not have expected one, and this must not erase it. */
+function _repairValueType(c){
+  if(!c || !c.template || Number(c.value)>0) return c;
+  const T=(typeof window!=='undefined') && window.TEMPLATES;
+  const t=(T && T[c.template]) || null;
+  if(t && t.valueType==='none' && c.valueType && c.valueType!=='none') c.valueType='none';
+  return c;
+}
 function migrateContract(c){
-  return negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
-    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c));
+  return _repairValueType(negoRecoverMisfiledReasons(Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
+    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c)));
 }
 
 /* ---------- approvals (spend-threshold sign-off) ---------- */
@@ -2216,18 +2260,37 @@ function shareSummaryStepHtml(c, opts={}){
 /* The warning block at the top of the share modal. Naming what is missing is
    the whole point — "this contract is incomplete" is not actionable, "no value
    is set and the document still says [SUPPLIER CORPORATE NAME]" is. */
+/* THE COUNT HAS TO COUNT THE LIST UNDER IT. This printed "1 thing to fix" —
+   the number of BLOCKS — and then listed every problem, blocks and warnings
+   alike, in one undifferentiated ruby list. On the reported NDA that read as
+   "1 thing to fix" above two sentences, the second of which ("This contract is
+   still a Draft") is not a thing to fix at all: it is an observation, and every
+   contract shared for review is a draft.
+
+   A reader cannot tell which of the sentences is the one holding the send, so
+   either the number is wrong or one of the lines is. They are separated now:
+   what BLOCKS is counted and listed, what is merely worth knowing sits under
+   its own quiet line. */
 function readinessPanelHtml(c){
   const probs=contractReadiness(c);
   if(!probs.length) return '';
   const blocks=probs.filter(x=>x.severity==='block');
+  const notes=probs.filter(x=>x.severity!=='block');
   const tone=blocks.length
-    ? { bg:'var(--st-ruby-bg)', line:'var(--st-ruby-line)', fg:'var(--st-ruby-fg)', head:`Not ready to send — ${blocks.length} thing${blocks.length===1?'':'s'} to fix` }
-    : { bg:'var(--st-amber-bg)', line:'var(--st-amber-line)', fg:'var(--st-amber-fg)', head:'Worth checking before you send' };
+    ? { bg:'var(--st-ruby-bg)', line:'var(--st-ruby-line)', fg:'var(--st-ruby-fg)',
+        head:i18tn('co_not_ready',blocks.length,{n:blocks.length}) }
+    : { bg:'var(--st-amber-bg)', line:'var(--st-amber-line)', fg:'var(--st-amber-fg)',
+        head:i18t('co_worth_checking') };
+  const list=(items,color)=>`<ul style="margin:0;padding-left:16px;font-size:11.5px;line-height:1.65;color:${color};">
+      ${items.map(x=>`<li>${esc(x.label)}</li>`).join('')}
+    </ul>`;
   return `<div id="share-readiness" style="margin:0 0 12px;border:1px solid ${tone.line};background:${tone.bg};border-radius:5px;padding:10px 12px;">
     <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
-    <ul style="margin:0;padding-left:16px;font-size:11.5px;line-height:1.65;color:${tone.fg};">
-      ${probs.map(x=>`<li>${esc(x.label)}</li>`).join('')}
-    </ul>
+    ${blocks.length?list(blocks,tone.fg):''}
+    ${notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:8px;border-top:1px solid '+tone.line+';':''}">
+      ${blocks.length?`<div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:4px">${i18t('co_also_worth_knowing')}</div>`:''}
+      ${list(notes,blocks.length?'var(--color-neutral-700)':tone.fg)}
+    </div>`:''}
     ${blocks.length?`<label style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:11.5px;color:${tone.fg};cursor:pointer;">
       <input id="sh-ack" type="checkbox" style="margin-top:2px;accent-color:${tone.fg}"/>
       <span>${i18t('co_send_anyway')}</span></label>`:''}
