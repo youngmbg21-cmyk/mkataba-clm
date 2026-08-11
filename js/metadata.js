@@ -375,6 +375,15 @@ function openMetaReview(meta, onConfirm, opts={}){
     : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString(jxLocale())}-character document`
     : ` · read the whole ${Number(p.chars||0).toLocaleString(jxLocale())}-character document`;
   const src = (meta._source==='ai' ? 'Copilot-extracted' : 'Pattern-matched (no Copilot key)') + coverage;
+  /* A QUEUE NEEDS A DOOR. Opened one at a time from a backfill, this dialog had
+     Cancel — which meant "next", not "stop" — so the only way out of a run of
+     forty was to dismiss forty. Escape did end it, but silently, which is worse
+     than no exit: nothing told you it had stopped or how much was left.
+     When a caller supplies onStop the dialog says where you are in the queue,
+     offers Skip and Stop as separate buttons, and treats clicking away or
+     pressing Escape as Stop — because that is what a person means by it. */
+  const queued = typeof opts.onStop === 'function';
+  const pos = (queued && opts.queue) ? `<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-neutral-600);white-space:nowrap">${i18t('me_queue_pos',{i:opts.queue.i,n:opts.queue.n})}</span>` : '';
   /* The phrase each value came from, shown under the field. This is what turns
      the confirm step from a leap of faith into a glance — the same
      verbatim-quoting pattern the clause review already uses. */
@@ -400,14 +409,15 @@ function openMetaReview(meta, onConfirm, opts={}){
   openModal(`
     <div class="p-6 max-w-lg">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3></div>
+        <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3>${pos}</div>
       <p class="text-xs text-ink/60 mb-4">${src}. Check each field — <span class="text-amber font-600">low-confidence</span> ${i18t('me_fields_highlighted')}</p>
       ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:4px">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
-        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+        ${queued?`<button id="mr-stop" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
+        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
         <button id="mr-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);
@@ -415,7 +425,16 @@ function openMetaReview(meta, onConfirm, opts={}){
   // caller — for an upload that silently discarded the whole contract. Treat
   // it exactly like Cancel so the pending save still completes.
   let settled=false;
-  document.getElementById('modal-scrim').addEventListener('click',()=>{ if(!settled){ settled=true; if(opts.onCancel) opts.onCancel(); } });
+  const leave=()=>{ if(settled) return; settled=true;
+    if(queued) opts.onStop(); else if(opts.onCancel) opts.onCancel(); };
+  document.getElementById('modal-scrim').addEventListener('click',leave);
+  /* Escape reaches core's own handler, which closes the dialog and tells nobody.
+     In a queue that stranded the run halfway with no message at all. */
+  document.addEventListener('keydown',function esc(e){
+    if(e.key!=='Escape'){ if(settled) document.removeEventListener('keydown',esc); return; }
+    document.removeEventListener('keydown',esc); leave();
+  });
+  document.getElementById('mr-stop')?.addEventListener('click',()=>{ settled=true; closeModal(); opts.onStop(); });
   document.getElementById('mr-cancel').addEventListener('click',()=>{ settled=true; closeModal(); if(opts.onCancel) opts.onCancel(); });
   document.getElementById('mr-save').addEventListener('click',()=>{
     settled=true;
@@ -448,11 +467,25 @@ async function runMetaBackfill(opts={}){
     : state.contracts.filter(c=>isUpload(c) && !(c.metadata&&c.metadata.confirmedAt));
   if(!todo.length){ toast(i18t(needCat?'me_all_categorised':'me_all_confirmed')); return; }
   const lbl=document.getElementById('meta-backfill-lbl');
-  let done=0;
+  let done=0, idx=0, stopped=false;
+  const total=todo.length;
+  const reset=()=>{ if(lbl) lbl.textContent=i18t('set_extract_metadata'); };
+  /* Stopping is a real outcome, not an abort: it says what was done, what is
+     left, and where to pick it up. A run that ends in silence teaches people
+     never to start one. */
+  const stop=()=>{
+    if(stopped) return; stopped=true; reset();
+    const left=todo.length;
+    /* "Stopped after 0" is a sentence nobody writes. The count only earns a
+       mention once there is one. */
+    toast(left ? i18tn(done?'me_stopped_cat':'me_stopped', left, {n:left, done})
+               : i18t('me_all_done_after',{n:done}));
+  };
   const next=async()=>{
-    if(!todo.length){ if(lbl) lbl.textContent='Extract metadata for existing contracts'; toast(`Filed ${done} contract${done===1?'':'s'}`); return; }
-    const c=todo.shift();
-    if(lbl) lbl.textContent=`Reading ${c.name}… (${todo.length} left)`;
+    if(stopped) return;
+    if(!todo.length){ reset(); toast(i18t('me_all_done_after',{n:done})); return; }
+    const c=todo.shift(); idx++;
+    if(lbl) lbl.textContent=i18t('me_reading_n',{name:c.name, n:todo.length});
     try{ await ensureFull(c); }catch(e){}
     const text=(c.upload&&c.upload.extractedText)||contractPlainText(c);
     if(!text || text.length<200){
@@ -464,12 +497,12 @@ async function runMetaBackfill(opts={}){
       const bare=Object.assign({}, c.metadata||{},
         { confidence:Object.assign({}, (c.metadata&&c.metadata.confidence)||{}), _source:'heuristic' });
       openMetaReview(bare, m=>{ applyMetadata(c, m); persist(c); done++; next(); },
-        { saveLabel:i18t('me_save_next'), onCancel:next });
+        { saveLabel:i18t('me_save_next'), onCancel:next, onStop:stop, queue:{i:idx,n:total} });
       return;
     }
     const meta=await extractMetadata(text, {counterparty:c.counterparty, value:c.value, expiry:c.expiry});
     openMetaReview(meta, m=>{ applyMetadata(c, m); persist(c); done++; next(); },
-      { saveLabel:i18t('me_save_next'), onCancel:next });
+      { saveLabel:i18t('me_save_next'), onCancel:next, onStop:stop, queue:{i:idx,n:total} });
   };
   next();
 }
