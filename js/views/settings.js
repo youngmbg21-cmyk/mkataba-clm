@@ -124,6 +124,93 @@ function renderRateTable(rates, meta){
     : '';
 }
 
+/* ---- THE TWO COMPANY CARDS PATCH THEMSELVES, THEY DO NOT RE-RENDER THE PAGE ----
+   Reported as "when I make selections, the page glitches", against the market
+   dropdown and the work-shape tick boxes. Both handlers answered a change by
+   calling renderTeam(), which rebuilds the WHOLE settings screen — and half of
+   that screen is filled from the server after the fact: the sessions list, the
+   Copilot key and its usage, the per-model rate table, the monthly report and
+   its outbox. Rebuilt, every one of them comes back empty and refills over the
+   next few hundred milliseconds.
+
+   Measured before the fix, on one tick of a box: the page lost 703px of height
+   in the same frame and the card being read jumped 260px UP the screen, then
+   walked back down as each answer landed. The scroll offset never moved, which
+   is why this reads as the page lurching rather than as a scroll — and it is
+   also why setView's scroll-keeping does not help. The content above the reader
+   shrank; nothing was going to hold their place through that.
+
+   So each card now repaints only what its own answer changed. Nothing outside
+   these two cards shows a shape or the word, and the only other things on this
+   page that print money in the market's currency are the approval rules and the
+   review gate — both host-scoped repaints, neither of which costs the page a
+   pixel of height. */
+const WS_BOX_ON  = { line:'var(--color-accent)', fill:'color-mix(in srgb,var(--color-accent) 7%,transparent)' };
+const WS_BOX_OFF = { line:'var(--color-divider)', fill:'var(--color-surface)' };
+/* The three facts under the market dropdown. Built here rather than inline
+   because the dropdown has to rewrite them the moment it is changed, and two
+   copies of this line are two lines that can disagree about the currency. */
+function settingsMarketFactsHtml(){
+  return `<div>${i18t('set_market_currency')}: <b>${jxCurrency()}</b> · ${i18t('set_market_law')}: <b>${esc(jxLaw())}</b></div>
+    <div>${i18t('set_market_esig')}: ${esc(jxEsignatureShort())}</div>`;
+}
+/* AND WHERE THIS PAGE REALLY DOES HAVE TO BE REBUILT, THE PANELS KEEP THEIR
+   HEIGHT WHILE THEY REFILL.
+   Changing the market can change the LANGUAGE — not because the two are the
+   same thing (they are emphatically not; see the note in js/i18n.js) but
+   because a person who has never chosen one falls back to the language that
+   goes with the workspace's market. Every word on the screen changes, so the
+   screen genuinely is redrawn, and the redraw hits the collapse described
+   above. Measured: seven panels come back empty and between them the page
+   loses 703px — the outbox, the rate table, the activation funnel, the
+   sessions list, the report status and two spend lines.
+
+   A floor under #content would only pad the bottom; the panels that empty are
+   ABOVE the reader, so their card still jumps. The floor goes on the panels
+   themselves. Nothing is enumerated: every element with an id is measured
+   before the rebuild and any that comes back SHORTER is held at what it had,
+   so a panel added later is covered without anyone remembering this. Each
+   floor is released the moment its panel is filled — a mutation, not a
+   guess — with a timer only as the backstop for an answer that never lands. */
+const SET_HOLD_MS = 4000;
+function settingsHeightsBefore(){
+  /* Only when this page is being REBUILT. Arriving from another view, the
+     heights in front of us belong to that view. */
+  const page=document.getElementById('set-page'); if(!page) return null;
+  const was={};
+  page.querySelectorAll('[id]').forEach(el=>{ was[el.id]=el.offsetHeight; });
+  return was;
+}
+function settingsHoldHeights(was){
+  if(!was) return;
+  const page=document.getElementById('set-page'); if(!page) return;
+  page.querySelectorAll('[id]').forEach(el=>{
+    const h=was[el.id];
+    if(!h || el.offsetHeight>=h) return;
+    el.style.minHeight=h+'px';
+    let ob=null, tm=null;
+    const done=()=>{ el.style.minHeight=''; if(ob) ob.disconnect(); if(tm) clearTimeout(tm); };
+    if(typeof MutationObserver==='function'){
+      ob=new MutationObserver(()=>{
+        if(typeof requestAnimationFrame==='function') requestAnimationFrame(done); else done();
+      });
+      ob.observe(el,{childList:true,subtree:true,characterData:true});
+    }
+    tm=setTimeout(done,SET_HOLD_MS);
+  });
+}
+/* The tick boxes carry their state in a border and a tint. Painted from the
+   boxes themselves, so the label follows the tick in the same frame the reader
+   clicked it — and the checkbox keeps focus, which a rebuild would take away. */
+const settingsShapeBoxes = () => [...document.querySelectorAll('[data-ws-shape]')];
+function settingsPaintShapeBoxes(){
+  settingsShapeBoxes().forEach(b=>{
+    const lab=b.closest('[data-ws-box]'); if(!lab) return;
+    const on=b.checked?WS_BOX_ON:WS_BOX_OFF;
+    lab.style.borderColor=on.line; lab.style.background=on.fill;
+  });
+}
+
 function renderTeam(){
   const me=currentUser();
 
@@ -204,8 +291,9 @@ function renderTeam(){
       <span style="display:block;font-size:10px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
       <input id="${id}" type="number" min="${min}" style="margin-top:3px;${inputMono}"/></label>`;
 
+  const _heldHeights=settingsHeightsBefore();
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:16px 18px 28px">
+  <div id="set-page" class="view-enter" style="padding:16px 18px 28px">
     <div class="tm-cols" style="display:grid;gap:18px;align-items:start">
 
       <!-- ============ LEFT · MEMBERS (blueprint) ============ -->
@@ -468,10 +556,7 @@ function renderTeam(){
           <select id="set-market" style="min-width:190px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:7px 10px;font:inherit;font-size:13px;color:inherit;outline:none">
             ${jxList().map(p=>`<option value="${p.id}"${p.id===jxId()?' selected':''}>${esc(p.name)}</option>`).join('')}
           </select>
-          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">
-            <div>${i18t('set_market_currency')}: <b>${jxCurrency()}</b> · ${i18t('set_market_law')}: <b>${esc(jxLaw())}</b></div>
-            <div>${i18t('set_market_esig')}: ${esc(jxEsignatureShort())}</div>
-          </div>
+          <div id="set-market-facts" style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
         </div>`
         :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_market_admin_only')}</p>`}
       </section>
@@ -484,7 +569,7 @@ function renderTeam(){
         <h4 style="${h4Style}">${i18t('set_workshape')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_workshape_sub')}</p>
         ${(isAdmin()&&typeof wsCfg==='function')?(()=>{ const cfg=wsCfg(); const det=wsDetect();
-          const box=(k,title,sub)=>`<label style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?'var(--color-accent)':'var(--color-divider)'};border-radius:8px;cursor:pointer;background:${cfg.shapes.includes(k)?'color-mix(in srgb,var(--color-accent) 7%,transparent)':'var(--color-surface)'};flex:1 1 240px;min-width:0">
+          const box=(k,title,sub)=>`<label data-ws-box="${k}" style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?WS_BOX_ON.line:WS_BOX_OFF.line};border-radius:8px;cursor:pointer;background:${cfg.shapes.includes(k)?WS_BOX_ON.fill:WS_BOX_OFF.fill};flex:1 1 240px;min-width:0">
             <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
             <span style="min-width:0"><span style="display:block;font-size:12.5px;font-weight:600">${title}</span>
             <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
@@ -594,6 +679,7 @@ function renderTeam(){
       </div>
     </div>
   </div>`;
+  settingsHoldHeights(_heldHeights);
 
   if(API_MODE()&&isAdmin()){
     /* WO N7: the activation funnel — four labelled steps, each with its first
@@ -684,31 +770,54 @@ function renderTeam(){
   document.getElementById('tm-invite')?.addEventListener('click',()=>{ const n=document.getElementById('tm-name'); if(n){ n.scrollIntoView({block:'nearest'}); n.focus(); } });
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
   document.getElementById('brand-edit')?.addEventListener('click',()=>openDesignStep({ mode:'settings', onBack:()=>renderTeam() }));
-  /* THE MARKET. jxSet writes the local key, the org record and the server, so
-     the whole screen is re-rendered afterwards rather than patched: the money,
-     the governing law and the e-signature line on this very card all read from
-     the pack that just changed. */
-  /* THE SHAPES AND THE WORD. Re-render rather than patch: this card shows the
-     shapes it just wrote, and the Portfolio tab reads them on its next paint. */
+  /* THE SHAPES AND THE WORD. See the note above renderTeam: the answer is
+     written and the card repaints itself, because a full re-render empties
+     every server-filled panel on the page and the screen jumps. The Portfolio
+     tab reads the shapes on its own next paint, as it always did. */
   const wsSave=(shapes,word)=>{
     if(typeof wsSet!=='function') return;
-    if(!shapes.length){ toast(i18t('set_workshape_pick_shape'),'err'); renderTeam(); return; }
-    wsSet(shapes,word); toast(i18t('set_workshape_saved')); renderTeam();
+    if(!shapes.length){
+      /* A refusal has to put the boxes back the way the record has them.
+         Leaving the refused answer ticked on screen reads as a save. */
+      toast(i18t('set_workshape_pick_shape'),'err');
+      const cur=(typeof wsCfg==='function'?wsCfg().shapes:[]);
+      settingsShapeBoxes().forEach(b=>{ b.checked=cur.includes(b.getAttribute('data-ws-shape')); });
+      settingsPaintShapeBoxes(); return;
+    }
+    wsSet(shapes,word); settingsPaintShapeBoxes(); toast(i18t('set_workshape_saved'));
   };
-  const wsRead=()=>[...document.querySelectorAll('[data-ws-shape]')]
-    .filter(b=>b.checked).map(b=>b.getAttribute('data-ws-shape'));
-  document.querySelectorAll('[data-ws-shape]').forEach(b=>b.addEventListener('change',()=>
+  const wsRead=()=>settingsShapeBoxes().filter(b=>b.checked).map(b=>b.getAttribute('data-ws-shape'));
+  settingsShapeBoxes().forEach(b=>b.addEventListener('change',()=>
     wsSave(wsRead(), document.getElementById('set-work-word')?.value || (typeof wsWord==='function'?wsWord():''))));
+  /* The word changes nothing this card draws, so nothing here repaints at all —
+     and the select keeps the focus the reader just used to change it. */
   document.getElementById('set-work-word')?.addEventListener('change',e=>
     wsSave(wsRead().length?wsRead():(typeof wsShapes==='function'?wsShapes():[]), e.target.value));
   document.getElementById('ws-use-detected')?.addEventListener('click',()=>{
     if(typeof wsDetect!=='function') return;
-    wsSave(wsDetect().suggests, document.getElementById('set-work-word')?.value || wsWord()); });
+    const sug=wsDetect().suggests;
+    settingsShapeBoxes().forEach(b=>{ b.checked=sug.includes(b.getAttribute('data-ws-shape')); });
+    wsSave(sug, document.getElementById('set-work-word')?.value || wsWord()); });
+  /* THE MARKET. jxSet writes the local key, the org record and the server. What
+     it changes ON THIS PAGE is three lines under the dropdown, the approval
+     rules (their thresholds are money) and the review gate (its box is labelled
+     with the currency). Those three, and nothing else. */
   document.getElementById('set-market')?.addEventListener('change',e=>{
+    const langWas=(typeof langId==='function'?langId():null);
     if(!window.jxSet || !jxSet(e.target.value)) return;
     if(window.setRegion && window.regionCodeFor) setRegion(regionCodeFor(jxId()),{silent:true});
+    /* THE ONE CASE THAT IS NOT A PATCH. A reader who has never chosen a
+       language reads the one that goes with the market, so moving the market
+       moves every word on the page — and patching three lines would leave a
+       half-translated screen, which is the quiet fault js/i18n.js warns about.
+       Everyone else has chosen, nothing else changes, and the page holds
+       still. */
+    if((typeof langId==='function'?langId():null)!==langWas){ toast(i18t('set_market_saved')); renderTeam(); return; }
+    const facts=document.getElementById('set-market-facts');
+    if(facts) facts.innerHTML=settingsMarketFactsHtml();
+    if(typeof renderApprovalRules==='function') renderApprovalRules();
+    if(typeof renderReviewGatePanel==='function') renderReviewGatePanel();
     toast(i18t('set_market_saved'));
-    renderTeam();
   });
   renderClauseLibrary();
   if(API_MODE()) loadSessions();
