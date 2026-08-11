@@ -1442,13 +1442,21 @@ function portalNegoFootHtml(p){
   const whyNot=(window.negoAlignmentWhy&&c)?(negoAlignmentWhy(c,'counterparty')||'Changes are still waiting on a decision.')
     :'Changes are still waiting on a decision.';
   const spent=PORTAL_READY_SENT;
+  /* ONE CELL FOR THE WORDS, the verbs beside it. The two sentences used to be
+     siblings of the buttons with the second forced onto its own line
+     (flex-basis:100%), which was three stacked rows before a reader had
+     decided anything — affordable at the foot of the page, not at the top of
+     it now the strip sits under the header. Stacked here instead, so the
+     strip is one row of verbs with its explanation to the left. */
   return `
-    <span style="flex:1;min-width:150px;font-size:11.5px;color:${n?'var(--st-amber-fg)':'var(--color-neutral-600)'}">
-      ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
-        :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
+    <span style="flex:1;min-width:150px;display:grid;gap:2px">
+      <span style="font-size:11.5px;color:${n?'var(--st-amber-fg)':'var(--color-neutral-600)'}">
+        ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
+          :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
+      </span>
+      ${readyOk||spent?'':`<span id="pt-ready-why" style="font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${esc(whyNot)}</span>`}
     </span>
     ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
-    ${readyOk||spent?'':`<span id="pt-ready-why" style="flex-basis:100%;font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${esc(whyNot)}</span>`}
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
       title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
       style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
@@ -2161,7 +2169,7 @@ function portalWorkbenchStyle(){
        columns — which is the whole difference between this and the card. */
     .pw-mount{flex:1;min-height:0;display:flex;flex-direction:column;}
     .pw-mount>*{flex:1;min-height:0;}
-    /* THE DEAL-LEVEL VERBS ARE A BAR ON THE PAGE, AND IT IS VISIBLE. Send,
+    /* THE DEAL-LEVEL VERBS ARE A STRIP ON THE PAGE, AND IT IS VISIBLE. Send,
        Ready to sign and Decline live in #pt-nego-foot (portalNegoFootHtml) —
        acts about the WHOLE deal, so they belong to the page, not to a card.
        This bar shipped with [hidden] on it: correct on the day, because the
@@ -2169,11 +2177,17 @@ function portalWorkbenchStyle(){
        cards — and wrong the day the new design took that visible send away
        (the owner got Publish Round on their toolbar; this page has no
        toolbar). The counterparty's every deal verb was unreachable pixels
-       while every test passed, pressing buttons no reader could see. The bar
-       is styled here and NEVER hidden on this page; f180 pins it visible. */
+       while every test passed, pressing buttons no reader could see. The
+       strip is styled here and NEVER hidden on this page; f180 pins it
+       visible.
+       It was a CARD AT THE FOOT of the page until 11 Aug 2026, when the
+       owner asked for that card to go so the workbench could run to the
+       bottom. The element and its id survive — every refill site, every
+       test and portalSetBusy all reach it by id — it now sits under the
+       header as a plain strip, no card chrome, and the workbench below it
+       takes everything that is left. */
     .pw-foot{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-      padding:10px 14px;background:var(--color-surface);border:1px solid var(--color-divider);
-      border-radius:8px;box-shadow:var(--shadow-sm);}
+      padding:0 3px;}
     .pw-foot:empty{display:none;}
     @media (max-width:1024px){
       /* Below the three-column width the page is allowed to grow and scroll:
@@ -2259,6 +2273,16 @@ function renderShareWorkbench(p, opts={}){
       ${window.negoNameFieldHtml
         ? negoNameFieldHtml({ recipientName:(opts.share&&opts.share.recipientName)||'' }) : ''}
     </section>
+    ${''/* NOT hidden. This strip carries the page's whole-deal verbs — Send /
+           Ready to sign / Decline / Share a read-only copy — see the .pw-foot
+           note in portalWorkbenchStyle for the week it spent as [hidden] and
+           what that cost. It sat at the BOTTOM of the page as a card until the
+           owner asked (11 Aug 2026) for that card to go and the workbench to
+           take the space; the verbs moved up here rather than out — a page
+           with no Ready to sign / Decline is the "no way to answer" fault all
+           over again. wirePortalNego fills it and refills it on every
+           decision. */}
+    <div id="pt-nego-foot" class="pw-foot"></div>
     <div class="pw-notes">
       ${portalClosedBanner()}
       ${portalRevisedBanner()}
@@ -2267,11 +2291,6 @@ function renderShareWorkbench(p, opts={}){
       ${msg}
     </div>
     <div class="pw-mount"><div id="pt-nego"></div></div>
-    ${''/* NOT hidden. This bar is the page's only visible Send / Ready to
-           sign / Decline — see the .pw-foot note in portalWorkbenchStyle for
-           the week it spent as [hidden] and what that cost. wirePortalNego
-           fills it and refills it on every decision. */}
-    <div id="pt-nego-foot" class="pw-foot"></div>
   </div>`;
   /* The reading controls: the stepper presses the shared rlSetDocType (which
      updates every mounted workbench root, this embed included), and focus is
