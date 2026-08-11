@@ -467,9 +467,16 @@ function pfMonthOf(iso){
   const t=Date.parse(String(iso||'')+'T00:00:00'); if(isNaN(t)) return null;
   const d=new Date(t); return d.getFullYear()*12 + d.getMonth() - pfMonth0();
 }
+/* A MONTH IS NAMED WITH ITS WHOLE YEAR. This read "Jan 27" — a two-digit year
+   beside a month name, which in a product that also prints day-level dates is
+   read as the twenty-seventh of January. Reported off the renewal runway
+   against the calendar beside it (Young, 11 Aug 2026): the bar was January
+   2027 and the calendar's 27th was empty, so the two surfaces looked as though
+   they disagreed when they were both right. Four characters of axis buys the
+   reader never having to work out which reading is meant. */
 function pfMonthLabel(off){
   const abs=pfMonth0()+off, d=new Date(Math.floor(abs/12), abs%12, 1);
-  try{ return d.toLocaleDateString(jxLocale(),{month:'short',year:'2-digit'}); }
+  try{ return d.toLocaleDateString(jxLocale(),{month:'short',year:'numeric'}); }
   catch(e){ return String(abs%12+1)+'/'+Math.floor(abs/12); }
 }
 /* A date the way this reader writes dates. A raw 2026-02-12 in the middle of a

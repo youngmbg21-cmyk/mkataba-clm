@@ -345,6 +345,84 @@ async function aiExtractMetadata(text, opts={}){
   return meta;
 }
 
+/* ============================================================================
+   HaTi CHECKS ITS OWN ARITHMETIC.
+
+   Reported off a real upload (Young, 11 Aug 2026): the expiry came back as
+   29 August 2026 on a contract whose own quoted phrase read "remain in force
+   for 3 years from the effective date", with an effective date of 9 August
+   2026. Three years from then is 2029, not three weeks later.
+
+   A DURATION IS A SUM, AND A SUM CAN BE CHECKED. When the document states a
+   term as a length of time from a date HaTi already has, the end date is not a
+   matter of opinion — so it is worked out here and compared. Nothing is
+   silently overwritten: the review card shows the mismatch, says what the
+   document implies, and offers the computed date as one press. The human still
+   confirms, which is the whole point of that screen.
+
+   WHY IT MATTERS MORE THAN IT LOOKS: an expiry date is not decoration. It
+   drives the renewal reminder, the calendar, the register's expiry views and
+   the runway charts. A date three years early does not merely look wrong, it
+   fires an alarm nobody needs and hides the one they do.
+   ========================================================================= */
+const TERM_WORDS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8,
+  nine:9, ten:10, eleven:11, twelve:12, eighteen:18, twenty:20, thirty:30 };
+/* A month is not 30 days when a lawyer says "12 months from 9 August" — they
+   mean the same day of the month. Calendar arithmetic, then, not multiplication. */
+function termAdd(iso, n, unit){
+  const t = Date.parse(String(iso||'')+'T00:00:00'); if(isNaN(t)) return null;
+  const d = new Date(t);
+  if(/^year/.test(unit))      d.setFullYear(d.getFullYear()+n);
+  else if(/^month/.test(unit))d.setMonth(d.getMonth()+n);
+  else if(/^week/.test(unit)) d.setDate(d.getDate()+n*7);
+  else                        d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+const _termN = raw => { const k=String(raw||'').toLowerCase();
+  return /^\d+$/.test(k) ? Number(k) : (TERM_WORDS[k]||0); };
+/* Reads a stated term out of the document. "twelve (12) months" is the shape
+   contracts actually use, so the bracketed digits are allowed to follow the
+   word and win — they are the drafter's own restatement. */
+function metaReadTerm(text){
+  const t = String(text||'').replace(/\s+/g,' ');
+  const NUM = '(\\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|eighteen|twenty|thirty)';
+  const UNIT = '(day|week|month|year)s?';
+  const pats = [
+    new RegExp('(?:remain(?:ing)? in (?:full )?force|continue in (?:full )?force)[^.]{0,60}?(?:for )?(?:a )?(?:period|term) of '+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+    new RegExp('(?:remain(?:ing)? in (?:full )?force|continue in (?:full )?force)[^.]{0,40}?for '+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+    new RegExp('(?:term|duration) of this agreement[^.]{0,60}?'+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+    new RegExp('for (?:an? )?(?:initial )?(?:period|term) of '+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+  ];
+  for(const re of pats){
+    const m = t.match(re);
+    if(!m) continue;
+    const n = m[2] ? Number(m[2]) : _termN(m[1]);
+    if(n>0) return { n, unit:String(m[3]||m[2]||'').toLowerCase(), quoted:m[0].trim().slice(0,140) };
+  }
+  return null;
+}
+/* Attaches meta.checks.expiryDate when the document's own term disagrees with
+   the extracted end date. Tolerance is 40 days: a contract that says "3 years"
+   and ends on the anniversary minus a day is not a mistake worth shouting
+   about, and one that is three YEARS out is. */
+const TERM_TOLERANCE_DAYS = 40;
+function metaCheckTerm(text, meta){
+  if(!meta || !meta.effectiveDate) return meta;
+  const term = metaReadTerm(text);
+  if(!term) return meta;
+  const expected = termAdd(meta.effectiveDate, term.n, term.unit);
+  if(!expected) return meta;
+  const got = meta.expiryDate;
+  const gap = got ? Math.abs((Date.parse(got+'T00:00:00')-Date.parse(expected+'T00:00:00'))/864e5) : Infinity;
+  if(isFinite(gap) && gap <= TERM_TOLERANCE_DAYS) return meta;
+  meta.checks = meta.checks || {};
+  meta.checks.expiryDate = { expected, n:term.n, unit:term.unit, quoted:term.quoted, had:got||'' };
+  /* A field HaTi can show is wrong is not a field it may call confident. */
+  meta.confidence = meta.confidence || {};
+  meta.confidence.expiryDate = 'low';
+  return meta;
+}
+
 /* ---- run extraction: server Copilot if configured, else heuristic ---- */
 async function extractMetadata(text, seed, opts={}){
   let meta = null;
@@ -354,10 +432,14 @@ async function extractMetadata(text, seed, opts={}){
   }
   if(!meta){ meta=heuristicExtract(text); meta._source='heuristic'; }
   // seed with what the uploader already typed (higher trust than a low-conf guess)
+  /* Checked before the seed is applied, so a date the uploader typed in
+     themselves is never second-guessed by a phrase in the document. */
+  try{ meta=metaCheckTerm(text, meta); }catch(e){}
   if(seed){ meta.confidence=meta.confidence||{};
     if(seed.counterparty){ meta.counterparty=seed.counterparty; meta.confidence.counterparty='high'; }
     if(seed.value){ meta.value=seed.value; meta.confidence.value='high'; if(!meta.currency) meta.currency=(typeof jxCurrency==='function'?jxCurrency():'KES'); }
-    if(seed.expiry){ meta.expiryDate=seed.expiry; meta.confidence.expiryDate='high'; }
+    if(seed.expiry){ meta.expiryDate=seed.expiry; meta.confidence.expiryDate='high';
+      if(meta.checks) delete meta.checks.expiryDate; }
   }
   return meta;
 }
@@ -375,39 +457,64 @@ function openMetaReview(meta, onConfirm, opts={}){
     : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString(jxLocale())}-character document`
     : ` · read the whole ${Number(p.chars||0).toLocaleString(jxLocale())}-character document`;
   const src = (meta._source==='ai' ? 'Copilot-extracted' : 'Pattern-matched (no Copilot key)') + coverage;
+  /* A QUEUE NEEDS A DOOR. Opened one at a time from a backfill, this dialog had
+     Cancel — which meant "next", not "stop" — so the only way out of a run of
+     forty was to dismiss forty. Escape did end it, but silently, which is worse
+     than no exit: nothing told you it had stopped or how much was left.
+     When a caller supplies onStop the dialog says where you are in the queue,
+     offers Skip and Stop as separate buttons, and treats clicking away or
+     pressing Escape as Stop — because that is what a person means by it. */
+  const queued = typeof opts.onStop === 'function';
+  const pos = (queued && opts.queue) ? `<span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-neutral-600);white-space:nowrap">${i18t('me_queue_pos',{i:opts.queue.i,n:opts.queue.n})}</span>` : '';
   /* The phrase each value came from, shown under the field. This is what turns
      the confirm step from a leap of faith into a glance — the same
      verbatim-quoting pattern the clause review already uses. */
   const spans = meta.sourceSpans||{};
   const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  /* WHERE HaTi DISAGREES WITH ITSELF, IT SAYS SO — under the field, in amber,
+     with the date the document implies and one press to take it. Not applied
+     silently: this screen exists because a person confirms, and a value that
+     changed itself while they were reading it is the one thing that would make
+     them stop trusting the rest. */
+  const checks = meta.checks||{};
+  const checkLine = k => { const ck=checks[k]; if(!ck) return '';
+    const pretty = iso => { const t=Date.parse(String(iso)+'T00:00:00');
+      if(isNaN(t)) return String(iso);
+      try{ return new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
+      catch(e){ return String(iso); } };
+    return `<span style="display:block;margin-top:4px;padding:5px 7px;border-radius:5px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:10.5px;line-height:1.5">
+      ${esc(i18t('me_term_mismatch',{n:ck.n, unit:i18t('me_unit_'+String(ck.unit).replace(/s$/,'')), from:pretty(meta.effectiveDate), to:pretty(ck.expected)}))}
+      <button type="button" data-mf-use="${k}" data-mf-val="${esc(ck.expected)}" style="border:0;background:none;padding:0;margin-left:4px;font:inherit;font-size:10.5px;font-weight:700;color:inherit;text-decoration:underline;cursor:pointer">${esc(i18t('me_term_use',{d:pretty(ck.expected)}))}</button>
+      ${spans[k] ? '' : `<span style="display:block;margin-top:3px;opacity:.85"><i>“${esc(String(ck.quoted).slice(0,120))}”</i></span>`}</span>`; };
   const spanLine = k => { const q=spans[k]; if(!q) return '';
     const t=String(q).replace(/\s+/g,' ').trim().slice(0,180);
     if(!t) return '';
     return `<span style="display:block;margin-top:3px;font-size:10.5px;line-height:1.45;color:var(--color-neutral-600)">found: <i>“${esc(t)}”</i></span>`; };
   const field = f => {
     const v = meta[f.k]!=null ? meta[f.k] : '';
-    const low = c[f.k]==='low';
+    const low = c[f.k]==='low' || !!checks[f.k];
     const ring = low ? 'border-gold-400 bg-gold-500/5' : 'border-inputln bg-white';
     if(f.type==='select'){
       return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
         <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500">
-          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}</label>`;
+          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}${checkLine(f.k)}</label>`;
     }
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
-      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500"/>${spanLine(f.k)}</label>`;
+      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500"/>${spanLine(f.k)}${checkLine(f.k)}</label>`;
   };
   openModal(`
     <div class="p-6 max-w-lg">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3></div>
+        <h3 class="font-serif font-600 text-lg text-ink">${i18t('me_review_extracted')}</h3>${pos}</div>
       <p class="text-xs text-ink/60 mb-4">${src}. Check each field — <span class="text-amber font-600">low-confidence</span> ${i18t('me_fields_highlighted')}</p>
       ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
       <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:4px">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
-        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
+        ${queued?`<button id="mr-stop" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
+        <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
         <button id="mr-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);
@@ -415,7 +522,23 @@ function openMetaReview(meta, onConfirm, opts={}){
   // caller — for an upload that silently discarded the whole contract. Treat
   // it exactly like Cancel so the pending save still completes.
   let settled=false;
-  document.getElementById('modal-scrim').addEventListener('click',()=>{ if(!settled){ settled=true; if(opts.onCancel) opts.onCancel(); } });
+  const leave=()=>{ if(settled) return; settled=true;
+    if(queued) opts.onStop(); else if(opts.onCancel) opts.onCancel(); };
+  document.getElementById('modal-scrim').addEventListener('click',leave);
+  /* Escape reaches core's own handler, which closes the dialog and tells nobody.
+     In a queue that stranded the run halfway with no message at all. */
+  document.addEventListener('keydown',function esc(e){
+    if(e.key!=='Escape'){ if(settled) document.removeEventListener('keydown',esc); return; }
+    document.removeEventListener('keydown',esc); leave();
+  });
+  document.querySelectorAll('[data-mf-use]').forEach(b=>b.addEventListener('click',e=>{
+    e.preventDefault();
+    const k=b.getAttribute('data-mf-use'), el=document.querySelector(`[data-mf="${k}"]`);
+    if(el){ el.value=b.getAttribute('data-mf-val'); el.dispatchEvent(new Event('change',{bubbles:true})); }
+    /* the warning has been answered; leaving it up would read as unresolved */
+    b.closest('span[style*="st-amber-bg"]')?.remove();
+  }));
+  document.getElementById('mr-stop')?.addEventListener('click',()=>{ settled=true; closeModal(); opts.onStop(); });
   document.getElementById('mr-cancel').addEventListener('click',()=>{ settled=true; closeModal(); if(opts.onCancel) opts.onCancel(); });
   document.getElementById('mr-save').addEventListener('click',()=>{
     settled=true;
@@ -448,11 +571,25 @@ async function runMetaBackfill(opts={}){
     : state.contracts.filter(c=>isUpload(c) && !(c.metadata&&c.metadata.confirmedAt));
   if(!todo.length){ toast(i18t(needCat?'me_all_categorised':'me_all_confirmed')); return; }
   const lbl=document.getElementById('meta-backfill-lbl');
-  let done=0;
+  let done=0, idx=0, stopped=false;
+  const total=todo.length;
+  const reset=()=>{ if(lbl) lbl.textContent=i18t('set_extract_metadata'); };
+  /* Stopping is a real outcome, not an abort: it says what was done, what is
+     left, and where to pick it up. A run that ends in silence teaches people
+     never to start one. */
+  const stop=()=>{
+    if(stopped) return; stopped=true; reset();
+    const left=todo.length;
+    /* "Stopped after 0" is a sentence nobody writes. The count only earns a
+       mention once there is one. */
+    toast(left ? i18tn(done?'me_stopped_cat':'me_stopped', left, {n:left, done})
+               : i18t('me_all_done_after',{n:done}));
+  };
   const next=async()=>{
-    if(!todo.length){ if(lbl) lbl.textContent='Extract metadata for existing contracts'; toast(`Filed ${done} contract${done===1?'':'s'}`); return; }
-    const c=todo.shift();
-    if(lbl) lbl.textContent=`Reading ${c.name}… (${todo.length} left)`;
+    if(stopped) return;
+    if(!todo.length){ reset(); toast(i18t('me_all_done_after',{n:done})); return; }
+    const c=todo.shift(); idx++;
+    if(lbl) lbl.textContent=i18t('me_reading_n',{name:c.name, n:todo.length});
     try{ await ensureFull(c); }catch(e){}
     const text=(c.upload&&c.upload.extractedText)||contractPlainText(c);
     if(!text || text.length<200){
@@ -464,14 +601,14 @@ async function runMetaBackfill(opts={}){
       const bare=Object.assign({}, c.metadata||{},
         { confidence:Object.assign({}, (c.metadata&&c.metadata.confidence)||{}), _source:'heuristic' });
       openMetaReview(bare, m=>{ applyMetadata(c, m); persist(c); done++; next(); },
-        { saveLabel:i18t('me_save_next'), onCancel:next });
+        { saveLabel:i18t('me_save_next'), onCancel:next, onStop:stop, queue:{i:idx,n:total} });
       return;
     }
     const meta=await extractMetadata(text, {counterparty:c.counterparty, value:c.value, expiry:c.expiry});
     openMetaReview(meta, m=>{ applyMetadata(c, m); persist(c); done++; next(); },
-      { saveLabel:i18t('me_save_next'), onCancel:next });
+      { saveLabel:i18t('me_save_next'), onCancel:next, onStop:stop, queue:{i:idx,n:total} });
   };
   next();
 }
 
-Object.assign(window,{META_FIELDS,RENEWAL_LABEL,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,RENEWAL_LABEL,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

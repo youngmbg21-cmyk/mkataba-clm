@@ -169,21 +169,62 @@ const TEMPLATE_BASE_FIELDS = [
   { key:'effDate',      label:'Start date', type:'date', maps:'effDate', required:false, def:'' },
   { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry', required:false, def:'' },
 ];
-const TEMPLATE_PAY_FIELD = { key:'payDays', label:'Payment terms (days)', type:'num', maps:'noticePeriodDays', required:false, def:'30', ph:'30' };
-let _tplFieldCache=null;
+/* ---- WHAT A TEMPLATE MAY ASK FOR ----------------------------------------
+   ONE RULE, AND IT IS THE WHOLE SECTION: A TEMPLATE ASKS ONLY FOR FACTS ITS
+   OWN PAPER STATES, plus the contract essentials every record needs.
+
+   Reported by the owner (11 Aug 2026) against the NDA: "NDA should not have
+   payment terms." It was worse than one stray field — every one of the twelve
+   built-ins was handed the same payment question regardless of whether its
+   drafting mentioned money at all, so nine of them asked for a number that
+   then appeared nowhere in the contract it created. On the NDA the paper
+   actively CONTRADICTED the question: its own clause 1 reads "No monetary
+   consideration passes under this Agreement."
+
+   A question with no answer on the page is worse than a missing question. The
+   drafter believes they have agreed a payment window; the counterparty reads a
+   document that never mentions one; the disagreement surfaces at the first
+   invoice. So each template names its own payment question below, and where
+   the answer had nowhere to print, the drafting now prints it (js/views/
+   contract.js — the fee or price clause of each).
+
+   THREE ANSWERS, and each is a decision about the paper rather than the form:
+     · a key + default — the paper states a payment window, and this is it
+     · 'creditDays' on the distributor — its clause 3 ALREADY asks this, in the
+       document, and two blanks for one fact is how they come to disagree
+     · null — no payment window exists. The NDA carries no money at all; a
+       property lease's rent and an equipment lease's charge both fall due IN
+       ADVANCE on a stated day, which their own clauses say, so a number of
+       days after invoice is not a term either of them has. */
+const TEMPLATE_PAY = {
+  RM:{ key:'payDays',    def:'30' },
+  PK:{ key:'payDays',    def:'30' },
+  CM:{ key:'payDays',    def:'30' },
+  WH:{ key:'payDays',    def:'30' },
+  FF:{ key:'payDays',    def:'30' },
+  DA:{ key:'creditDays', def:'30', label:'Credit terms (days)' },
+  RL:{ key:'payDays',    def:'60' },   // its own clause 3 has always said 60
+  MK:{ key:'payDays',    def:'30' },
+  PS:{ key:'payDays',    def:'30' },
+  ND:null,
+  LE:null,
+};
+/* Copied by DESCRIPTOR, not spread. `value`'s label is a getter that names the
+   workspace's currency, and `{...f}` reads it once and freezes the answer — so
+   a workspace switched to Sweden went on asking for KES until the page was
+   reloaded. This is the getter trap CLAUDE.md names, and dropping the cache is
+   the other half of it: a frozen list is a frozen label. */
+const _tplCloneField = f => Object.defineProperties({}, Object.getOwnPropertyDescriptors(f));
 function builtinTemplateFields(tid){
   const t=TEMPLATES[tid]; if(!t) return [];
-  if(!_tplFieldCache) _tplFieldCache={};
-  if(_tplFieldCache[tid]) return _tplFieldCache[tid];
   const out=TEMPLATE_BASE_FIELDS
     .filter(f=>!(f.key==='value' && t.valueType==='none'))
-    .map(f=>({ ...f }));
+    .map(_tplCloneField);
   const prim=(typeof TEMPLATE_PRIMARY!=='undefined') ? TEMPLATE_PRIMARY[tid] : null;
   if(prim && prim.field) out.push({ key:prim.field, label:prim.label, type:'text', maps:'', required:false, def:prim.def||'', ph:prim.ph||'' });
-  // payDays maps to nothing standard on a template whose notice period is not
-  // the payment window; keep it as a plain document field there
-  out.push({ ...TEMPLATE_PAY_FIELD, maps:'paymentTerms' });
-  _tplFieldCache[tid]=out;
+  const pay=TEMPLATE_PAY[tid];
+  if(pay) out.push({ key:pay.key, label:pay.label||'Payment terms (days)', type:'num',
+    maps:'paymentTerms', required:false, def:pay.def, ph:pay.def });
   return out;
 }
 // give every built-in a live `fields` accessor so templateFields(t) just works
@@ -192,4 +233,4 @@ Object.values(TEMPLATES).forEach(t=>{
   Object.defineProperty(t,'fields',{ get(){ return builtinTemplateFields(t.id); }, enumerable:false, configurable:true });
 });
 
-Object.assign(window,{TEMPLATE_BASE_FIELDS,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
+Object.assign(window,{TEMPLATE_BASE_FIELDS,TEMPLATE_PAY,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,visibleFolders,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});

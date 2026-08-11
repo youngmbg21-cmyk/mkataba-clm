@@ -265,6 +265,30 @@ SEVEN CREATION SITES REGISTER IT, and there is no single funnel the way negoFile
 
 roomCurrentTab() was added purely so this is observable — _wsTab is a module-level `let` and nothing outside contract.js could read it, which made the rule untestable from the workbench as well as from a test.
 
+THE TERM IS ONE FACT, AND A TEMPLATE ASKS ONLY WHAT ITS OWN PAPER SAYS (added 2026-08-11)
+
+Three faults reported off one sitting, all the same shape: a fact stated in one place and contradicted, or never printed at all, in another.
+
+THE TERM WAS STATED TWICE. Two dates on the record — which the register, the calendar, the renewal runway and every reminder read — and a number of years in a blank in the drafting, which nothing read and nothing kept in step. A draft created 11 Aug 2026 to 16 Aug 2026 went on reading "for 3 years from the effective date"; reported as "the contract seems to have stuck on 3 years". It had not stuck, it had never been connected.
+
+docTermSpan(c) (js/views/contract.js, above docBody) is the one reading and BOTH directions now go through it:
+
+- THE PAPER READS THE RECORD. Where both dates are known the term clause states THEM and the years blank is not drawn at all — a blank whose number would contradict the sentence around it is worse than no blank. Where they are not both known the blank stands exactly as before, because on a contract with no end date on file it is the only statement of the term there is.
+- THE RECORD READS THE PAPER. Typing a term into the blank fills an EMPTY end date (wireDocumentSync, on `change` not `input` — a repaint mid-keystroke takes the field out from under the typist). A FILL, NEVER AN OVERWRITE: it refuses the moment an end date exists. This is why 98 contracts sat on no runway at all.
+- ONLY FOUR OF THE TWELVE built-ins draft a term clause (DOC_TERM_IN_CLAUSE). The other eight say it on the RECITAL instead — appended once after BUILD, not written into eight recitals. Not a fifth clause: the scan findings anchor on clause numbers c1…c4, so renumbering to fit a sentence would move every finding onto the wrong paragraph.
+
+Every screen inherits this because every screen shares docBody — the Document tab, the counterparty's portal, the phone, the exports, and the negotiation baseline through docPlainText. There is nothing to fix in a second place.
+
+A TEMPLATE ASKS ONLY FOR FACTS ITS OWN PAPER STATES, plus the contract essentials. Reported as "NDA should not have payment terms" — and it was worse than one stray field: all twelve were handed the same payment question regardless of whether their drafting mentioned money, so nine asked for a number that appeared nowhere in the contract they created, and on the NDA the paper actively contradicted it ("No monetary consideration passes under this Agreement"). TEMPLATE_PAY (js/templates.js) gives each template its own answer — a key and a default, or the blank its own clause already carries (the distributor's creditDays; two blanks for one fact is how they come to disagree), or null where no payment window exists (the NDA has no money; a lease's rent and an equipment lease's charge fall due IN ADVANCE on a stated day). Where the answer had nowhere to print, the drafting now prints it. Same walk found the retail template asking for a channel its paper never named.
+
+A QUESTION WITH NO ANSWER ON THE PAGE IS WORSE THAN A MISSING QUESTION: the drafter believes they agreed a payment window, the counterparty reads a document that never mentions one, and the disagreement surfaces at the first invoice. The test that matters is the one that walks ALL TWELVE — every field a template asks for must appear as a data-field in that template's own docBody — because it catches the next one rather than this one.
+
+AND builtinTemplateFields NO LONGER CACHES. `value`'s label is a getter naming the workspace's currency, `{...f}` read it once and froze it, and the cache froze the frozen list — so a workspace switched to Sweden went on asking for KES until reload. Copied by descriptor now. This is the getter trap named under TWO LANGUAGES, met a third time.
+
+A MONTH IS NAMED WITH ITS WHOLE YEAR. "Jan 27" on the renewal runway was read as the 27th of January against the calendar beside it. Both surfaces were right — the bar was January 2027 — and the axis was the only thing that could say which reading was meant. Fixed at the three shared label functions (pfMonthLabel, _acMonthLabel in js/aichart.js, repMonthLabel), so every chart in the product changed at once.
+
+Tests: term-and-fields-verify (24, in the browser).
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.
