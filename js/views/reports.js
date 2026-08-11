@@ -290,6 +290,16 @@ function renderReports(){
     <div style="display:flex;flex-direction:column;gap:18px">
       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
         <button type="button" id="rep-export" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('download','w-3.5 h-3.5')}${i18t('rep_export_btn')}</button>
+        ${''/* THE WEEKLY REVIEW sits beside the health report because they are the
+               same kind of thing — a deterministic document, opened in a tab,
+               with no model anywhere near it. The size lives next to the button
+               rather than inside the document: choosing it afterwards would mean
+               reading the wrong one first. */}
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:var(--color-neutral-700)">${i18t('rep_weekly_size')}
+          <select id="rep-weekly-tier" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:6px 9px;font:inherit;font-size:12px;color:inherit;outline:none">
+            ${(typeof WK_TIERS!=='undefined'?WK_TIERS:['skinny','tower','full']).map(t=>`<option value="${t}"${(typeof wkTier==='function'&&wkTier()===t)?' selected':''}>${i18t('wk_tier_'+t)}</option>`).join('')}
+          </select></label>
+        <button type="button" id="rep-weekly" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_weekly_btn')}</button>
         <button type="button" id="rep-health" style="display:inline-flex;align-items:center;gap:7px;border:0;background:var(--color-accent);color:#fff;font:inherit;font-size:12px;font-weight:600;border-radius:6px;padding:7px 12px;cursor:pointer">${icon('file','w-3.5 h-3.5')}${i18t('rep_health_btn')}</button>
       </div>
       <section class="rp-stats" style="display:grid;gap:14px">
@@ -308,6 +318,10 @@ function renderReports(){
      the fix. The health report is the same document Copilot builds on request. */
   const ex=document.getElementById('rep-export');
   if(ex) ex.addEventListener('click',()=>exportReportsCsv(r));
+  document.getElementById('rep-weekly-tier')?.addEventListener('change',e=>{
+    if(typeof wkSetTier==='function') wkSetTier(e.target.value); });
+  document.getElementById('rep-weekly')?.addEventListener('click',()=>{
+    if(typeof openWeeklyReview==='function') openWeeklyReview(); });
   const hb=document.getElementById('rep-health');
   if(hb) hb.addEventListener('click',()=>{ if(typeof openHealthReport==='function') openHealthReport(); });
   repHydrateCharts(chartItems.filter(it=>it.cfg));

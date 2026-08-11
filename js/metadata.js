@@ -435,9 +435,18 @@ function openMetaReview(meta, onConfirm, opts={}){
 
 /* ---- backfill: extract metadata for existing uploads, one at a time,
    each queued for human review before it is written. ---- */
-async function runMetaBackfill(){
-  const todo = state.contracts.filter(c=>isUpload(c) && !(c.metadata&&c.metadata.confirmedAt));
-  if(!todo.length){ toast(i18t('me_all_confirmed')); return; }
+async function runMetaBackfill(opts={}){
+  /* TWO ERRANDS, ONE QUEUE. The original: uploads nobody has confirmed yet.
+     The second, added with the category field: contracts that WERE confirmed,
+     back when there was no category to confirm, and therefore cannot be
+     grouped by anything. Those are already "done" by the first test, so
+     without this they would sit uncountable forever with no way to reach
+     them. */
+  const needCat = !!opts.missingCategory;
+  const todo = needCat
+    ? state.contracts.filter(c=>c.status!=='Declined' && !(c.metadata&&c.metadata.category))
+    : state.contracts.filter(c=>isUpload(c) && !(c.metadata&&c.metadata.confirmedAt));
+  if(!todo.length){ toast(i18t(needCat?'me_all_categorised':'me_all_confirmed')); return; }
   const lbl=document.getElementById('meta-backfill-lbl');
   let done=0;
   const next=async()=>{
@@ -446,10 +455,21 @@ async function runMetaBackfill(){
     if(lbl) lbl.textContent=`Reading ${c.name}… (${todo.length} left)`;
     try{ await ensureFull(c); }catch(e){}
     const text=(c.upload&&c.upload.extractedText)||contractPlainText(c);
-    if(!text || text.length<200){ done+=0; return next(); }   // nothing to read; skip silently
+    if(!text || text.length<200){
+      /* Nothing readable in the file. For the original errand that is a skip —
+         there is nothing to extract. For the category errand it is not: a
+         person can still say what kind of agreement this is, and refusing to
+         ask them would leave the contract uncountable with no route out. */
+      if(!needCat) return next();
+      const bare=Object.assign({}, c.metadata||{},
+        { confidence:Object.assign({}, (c.metadata&&c.metadata.confidence)||{}), _source:'heuristic' });
+      openMetaReview(bare, m=>{ applyMetadata(c, m); persist(c); done++; next(); },
+        { saveLabel:i18t('me_save_next'), onCancel:next });
+      return;
+    }
     const meta=await extractMetadata(text, {counterparty:c.counterparty, value:c.value, expiry:c.expiry});
     openMetaReview(meta, m=>{ applyMetadata(c, m); persist(c); done++; next(); },
-      { saveLabel:'Save & next', onCancel:next });
+      { saveLabel:i18t('me_save_next'), onCancel:next });
   };
   next();
 }

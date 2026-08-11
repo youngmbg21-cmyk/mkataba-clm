@@ -377,16 +377,45 @@ function pfFindings(){
 function portfolioFrameHtml(){
   if(!pfLive().length) return `<div style="max-width:520px;margin:44px auto;text-align:center;color:var(--color-neutral-600);font-size:13px;line-height:1.65">
     <b style="color:var(--color-text)">${i18t('pf_empty_title')}</b><br/>${i18t('pf_empty_body')}</div>`;
+  /* THE SHAPED FILL, added only where the shape is present. A row is skipped
+     outright rather than drawn empty — the panels themselves already refuse to
+     render when they have nothing to say, so an empty string here means there
+     was genuinely nothing, and a row of one card takes the full width. */
+  const hasProject = typeof wsHas!=='function' || wsHas('project');
+  const hasStanding = typeof wsHas!=='function' || wsHas('standing');
+  const row = (cards, cls) => { const live=cards.filter(Boolean);
+    return live.length ? `<div class="pf-grid ${live.length>1?(cls||'pf-6-6'):''}">${live.join('')}</div>` : ''; };
+  const runway = hasProject ? pfWorkloadRunway() : '';
+  const wonlost = hasProject ? pfWonLost() : '';
+  const tail = hasProject ? [pfMoneyHeld(), pfPromisesLive()] : [];
+  const renewal = hasStanding ? pfRenewalRunway() : '';
+
+  /* THE PILE NOBODY CAN COUNT. Contracts filed before the category existed
+     group under nothing, so they quietly fall out of every figure that groups.
+     A number with no route to fixing it is a complaint; this one carries the
+     route. */
+  const uncounted = pfLive().filter(c=>!pfCategoryOf(c));
+  const nudge = uncounted.length ? `
+    <div style="display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;padding:10px 13px;border-radius:8px;background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-size:12px;line-height:1.55">
+      <span style="flex:1;min-width:220px"><b>${i18t('pf_uncounted_head',{n:uncounted.length})}</b> ${i18t('pf_uncounted_body')}</span>
+      ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;border:1px solid currentColor;background:none;color:inherit;border-radius:6px;padding:5px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
+    </div>` : '';
+
   return `<style>
     .pf-grid{display:grid;gap:10px;align-items:stretch;margin-bottom:10px}
     .pf-6-6{grid-template-columns:1fr 1fr}
-    @media (max-width:1080px){ .pf-6-6{grid-template-columns:1fr} .pf-figs{grid-template-columns:repeat(2,1fr)!important} }
+    .pf-8-4{grid-template-columns:8fr 4fr}
+    @media (max-width:1080px){ .pf-6-6,.pf-8-4{grid-template-columns:1fr} .pf-figs{grid-template-columns:repeat(2,1fr)!important} }
     .pf-scroll [data-pf-cat]:hover,.pf-scroll [data-pf-cp]:hover,.pf-scroll [data-pf-open]:hover{background:var(--color-neutral-100)!important}
   </style>
   <div style="max-width:1280px;margin:0 auto">
+    ${nudge}
     ${pfChipsHtml()}
     ${pfFigures()}
+    ${row([runway, wonlost],'pf-8-4')}
+    ${row([renewal])}
     <div class="pf-grid pf-6-6">${pfRiskMap()}${pfWhereValueSits()}</div>
+    ${row(tail)}
     <div class="pf-grid">${pfBiggest()}</div>
     <div class="pf-grid pf-6-6">${pfReadout()}${pfFindings()}</div>
     <div style="margin-top:2px;padding:9px 13px;border-radius:7px;background:var(--color-neutral-100);font-size:10.5px;line-height:1.55;color:var(--color-neutral-600)">
@@ -408,6 +437,9 @@ function wirePortfolioFrame(rerender){
   document.querySelectorAll('[data-pf-unfilter]').forEach(el=>el.addEventListener('click',()=>{
     F[el.getAttribute('data-pf-unfilter')]=null; again(); }));
   document.querySelector('[data-pf-clear]')?.addEventListener('click',()=>{ F.cat=null; F.cp=null; again(); });
+  document.querySelector('[data-pf-fixcats]')?.addEventListener('click',()=>{
+    if(typeof runMetaBackfill==='function') runMetaBackfill({missingCategory:true});
+  });
   document.querySelectorAll('[data-pf-open]').forEach(el=>el.addEventListener('click',()=>{
     const id=el.getAttribute('data-pf-open');
     if(typeof openWorkspace==='function') openWorkspace(id);
@@ -417,3 +449,281 @@ function wirePortfolioFrame(rerender){
 Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,PF_MAX_FINDINGS,pfState,pfLive,pfRows,pfSum,pfWeight,pfN,pfMoneyOk,
   pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfSentences,pfFigures,pfWhereValueSits,pfRiskMap,pfBiggest,
   pfReadout,pfFindings,portfolioFrameHtml,wirePortfolioFrame});
+
+/* ============================================================================
+   THE SHAPED FILL. Panels that appear only when a business has that shape of
+   agreement, named with that business's own word for a piece of work.
+
+   Nothing here is a second implementation of the frame. They read the same
+   live book, obey the same two cross-filters, and are drawn with the same card
+   as the six — the only difference is that they can be absent.
+   ========================================================================= */
+
+/* Months are counted from the current one, so "0" is this month on every
+   screen that draws a runway. The names come from the reader's own locale,
+   which is why no month name appears in the dictionary. */
+const pfMonth0 = () => { const d=new Date(); return d.getFullYear()*12 + d.getMonth(); };
+function pfMonthOf(iso){
+  const t=Date.parse(String(iso||'')+'T00:00:00'); if(isNaN(t)) return null;
+  const d=new Date(t); return d.getFullYear()*12 + d.getMonth() - pfMonth0();
+}
+function pfMonthLabel(off){
+  const abs=pfMonth0()+off, d=new Date(Math.floor(abs/12), abs%12, 1);
+  try{ return d.toLocaleDateString(jxLocale(),{month:'short',year:'2-digit'}); }
+  catch(e){ return String(abs%12+1)+'/'+Math.floor(abs/12); }
+}
+/* A date the way this reader writes dates. A raw 2026-02-12 in the middle of a
+   sentence is the machine's format leaking onto the screen. */
+function pfDate(iso){
+  const t=Date.parse(String(iso||'')+'T00:00:00'); if(isNaN(t)) return String(iso||'');
+  try{ return new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
+  catch(e){ return String(iso); }
+}
+const pfAddDays = (iso,n) => { const t=Date.parse(String(iso||'')+'T00:00:00');
+  if(isNaN(t)) return null; return new Date(t+n*864e5).toISOString().slice(0,10); };
+
+/* Guarded like every cross-module read in this codebase: a test world (and a
+   browser that failed to load one script) stages these views without the
+   modules they read, and an unguarded call takes the whole screen down. */
+const _wsOne   = () => (typeof wsOne==='function') ? wsOne() : i18t('ww_project');
+const _wsMany  = () => (typeof wsMany==='function') ? wsMany() : i18t('ww_project_pl');
+const _wsTitle = () => (typeof wsTitle==='function') ? wsTitle() : i18t('ww_project_title');
+const _wsCount = n => (typeof wsCount==='function') ? wsCount(n) : pfN(n,'contracts');
+const _wsStart = c => (typeof wsStartOf==='function') ? wsStartOf(c)
+  : ((c.metadata&&c.metadata.effectiveDate) || null);
+const _wsEnd   = c => (typeof wsEndOf==='function') ? wsEndOf(c) : pfExpiry(c);
+
+/* A piece of work, by the one rule the Settings card also reads. */
+const pfJobs = ex => pfRows(ex).filter(c=>typeof wsIsProject==='function' && wsIsProject(c));
+
+/* ---- WHAT COUNTS AS WON, LOST, AND STILL OUT ----
+   Settled from the statuses HaTi already keeps rather than by inventing a
+   quote state, because a state nobody sets is a state that stays empty:
+     WON      Signed — an agreement exists, the work is yours.
+     LOST     Declined — somebody closed it without a signature.
+     STILL OUT Under Review, or a draft with a live share the other side has
+              been sent. A draft sitting in your own folder is not awaiting an
+              answer; it is awaiting you.
+   HaTi knows nothing about WHY one was lost, and the panel says so. */
+const pfIsWon  = c => c.status==='Signed';
+const pfIsLost = c => c.status==='Declined';
+function pfIsOut(c){
+  if(c.status==='Under Review') return true;
+  const s=state.shareByContract&&state.shareByContract[c.id];
+  return c.status==='Draft' && !!s && (s.state==='sent'||s.state==='opened');
+}
+
+/* ------------------------------------------------- THE WORKLOAD RUNWAY ----- */
+/* A piece of work OCCUPIES the months it runs, so its contracted value is
+   spread evenly across them. That is the difference between this and a renewal
+   runway, where a contract lands on one month and is gone. */
+const PF_RUN_BACK = 3, PF_RUN_FWD = 14;
+function pfWorkloadRunway(){
+  const jobs=pfJobs('month').filter(c=>!pfIsLost(c));
+  const placed=[], unplaced=[];
+  jobs.forEach(c=>{
+    const a=pfMonthOf(_wsStart(c)), b=pfMonthOf(_wsEnd(c));
+    if(a==null||b==null||b<a) unplaced.push(c); else placed.push({c,a,b});
+  });
+  if(!placed.length) return '';
+  const m0=-PF_RUN_BACK, m1=PF_RUN_FWD, N=m1-m0+1;
+  const per=[];
+  for(let i=0;i<N;i++){
+    const m=m0+i; let won=0, out=0, n=0;
+    placed.forEach(({c,a,b})=>{ if(a<=m&&m<=b){
+      const slice=pfWeight(c)/(b-a+1);
+      if(pfIsWon(c)) won+=slice; else out+=slice; n++; } });
+    per.push({m,won,out,n});
+  }
+  const peak=Math.max(...per.map(p=>p.won+p.out))||1;
+  const W=920,H=196,px=64,pb=32,bw=(W-px-12)/N;
+  const bars=per.map(p=>{
+    const x=px+(p.m-m0)*bw+3, past=p.m<0;
+    const hW=Math.round((H-pb-18)*p.won/peak), hO=Math.round((H-pb-18)*p.out/peak);
+    let y=H-pb, g=`<g><title>${pfEsc(pfMonthLabel(p.m))} — ${pfN(p.n,'contracts')} · ${pfEsc(pfMoney(p.won+p.out))}</title>`;
+    if(p.won+p.out===0) g+=`<rect x="${x}" y="${H-pb-3}" width="${bw-6}" height="3" rx="1.5" fill="var(--color-divider)"/>`;
+    else{
+      if(p.won>0){ y-=hW; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hW,3)}" rx="3" fill="var(--accent-solid,var(--color-accent))"${past?' opacity=".45"':''}/>`; }
+      if(p.out>0){ y-=hO; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hO,3)}" rx="3" fill="var(--color-neutral-400)"${past?' opacity=".45"':''}/>`; }
+    }
+    if((p.m-m0)%3===0) g+=`<text x="${x+(bw-6)/2}" y="${H-pb+15}" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-600)">${pfMonthLabel(p.m)}</text>`;
+    return g+'</g>';
+  }).join('');
+  const nowX=px+(0-m0)*bw;
+  const booked=per.filter(p=>p.m>=0&&p.m<6&&p.won>0).length;
+  const body=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${pfEsc(i18t('pf_runway_aria'))}">
+    <g stroke="var(--color-divider)" stroke-width="1"><line x1="${px}" y1="${H-pb}" x2="${W-8}" y2="${H-pb}"/></g>
+    <line x1="${nowX}" y1="12" x2="${nowX}" y2="${H-pb}" stroke="var(--color-neutral-400)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="${nowX+4}" y="19" font-size="9.5" font-weight="700" fill="var(--color-neutral-500)">${i18t('pf_today')}</text>
+    <text x="${px-8}" y="22" text-anchor="end" font-size="9.5" fill="var(--color-neutral-600)">${pfEsc(pfMoney(peak))}</text>
+    <text x="${px-8}" y="${H-pb+3}" text-anchor="end" font-size="9.5" fill="var(--color-neutral-600)">0</text>
+    ${bars}</svg>`;
+  const key=(col,txt)=>`<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:${col};display:inline-block"></i>${txt}</span>`;
+  const foot=`<div style="display:flex;gap:13px;flex-wrap:wrap;align-items:center">
+    ${key('var(--accent-solid,var(--color-accent))',i18t('pf_work_won'))}
+    ${key('var(--color-neutral-400)',i18t('pf_work_out'))}
+    <span style="margin-left:auto">${i18t('pf_months_booked',{n:booked})}</span></div>
+    <div style="margin-top:5px">${i18t('pf_runway_foot',{w:_wsOne()})}${unplaced.length
+      ? ' '+i18t('pf_runway_unplaced',{n:unplaced.length}) : ''}</div>`;
+  return pfCard(i18t('pf_workload_runway'), i18t('pf_workload_hint',{w:_wsOne()}), body, foot);
+}
+
+/* ------------------------------------------------------- MONEY HELD BACK --- */
+const pfRetVal = c => { const p=Number((c.metadata||{}).retentionPct)||0;
+  return p>0 ? pfWeight(c)*p/100 : 0; };
+const pfRetDue = c => { const d=Number((c.metadata||{}).retentionReleaseDays);
+  const end=_wsEnd(c); if(!end) return null;
+  return Number.isFinite(d)&&d>0 ? pfAddDays(end,d) : end; };
+function pfMoneyHeld(){
+  const held=pfJobs(null).filter(c=>pfRetVal(c)>0 && !pfIsLost(c));
+  if(!held.length) return '';
+  const rows=held.slice().sort((a,b)=>String(pfRetDue(a)||'').localeCompare(String(pfRetDue(b)||'')));
+  const total=rows.reduce((a,c)=>a+pfRetVal(c),0);
+  const late=rows.filter(c=>{ const d=pfRetDue(c); const n=d?pfDaysTo(d):null; return n!=null&&n<0; });
+  const td='padding:7px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle';
+  const body=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tbody>${
+    rows.slice(0,5).map(c=>{
+      const due=pfRetDue(c), n=due?pfDaysTo(due):null;
+      const st=(n!=null&&n<0)?{c:'ruby',t:i18t('pf_ret_overdue')}
+        :(n!=null&&n<=60)?{c:'amber',t:i18t('pf_ret_due_soon')}:{c:'gray',t:i18t('pf_ret_held')};
+      const pal=st.c==='ruby'?{bg:'var(--st-ruby-bg)',fg:'var(--st-ruby-fg)'}
+        :st.c==='amber'?{bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)'}
+        :{bg:'var(--color-neutral-100)',fg:'var(--color-neutral-700)'};
+      return `<tr data-pf-open="${pfEsc(c.id)}" style="cursor:pointer">
+        <td style="${td};font-weight:600">${pfEsc(c.name)}
+          <div style="font-size:10px;color:var(--color-neutral-600);font-weight:500">${(c.metadata||{}).retentionPct}% ${i18t('pf_ret_held_lc')}${due?' · '+i18t('pf_ret_due_back')+' '+pfEsc(pfDate(due)):''}</div></td>
+        <td style="${td};text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${pfEsc(pfMoney(pfRetVal(c)))}</td>
+        <td style="${td};width:1%"><span style="font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:${pal.bg};color:${pal.fg};white-space:nowrap">${st.t}</span></td></tr>`;
+    }).join('')}</tbody></table></div>`;
+  const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
+    <span>${i18t('pf_on_n_jobs',{n:_wsCount(rows.length)})}</span>
+    <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text);font-variant-numeric:tabular-nums">${pfEsc(pfMoney(total))}</span></div>`;
+  return pfCard(i18t('pf_money_held'), i18t('pf_money_held_hint'), head+body,
+    `${rows.length>5?`<b>${i18t('pf_more_beyond',{n:rows.length-5})}</b> `:''}${i18t('pf_money_held_foot')}${late.length?' '+i18t('pf_money_held_late'):''}`);
+}
+
+/* ------------------------------------------------------ PROMISES STILL LIVE */
+const pfWarrantyEnd = c => { const m=Number((c.metadata||{}).warrantyMonths)||0;
+  const end=_wsEnd(c); if(!m||!end) return null; return pfAddDays(end, Math.round(m*30.4)); };
+function pfPromisesLive(){
+  const live=pfJobs(null).filter(c=>{
+    if(pfIsLost(c)) return false;
+    const end=_wsEnd(c), w=pfWarrantyEnd(c);
+    if(!end||!w) return false;
+    const done=pfDaysTo(end), left=pfDaysTo(w);
+    return done!=null&&done<0 && left!=null&&left>=0;      // finished, still carried
+  }).sort((a,b)=>String(pfWarrantyEnd(a)).localeCompare(String(pfWarrantyEnd(b))));
+  if(!live.length) return '';
+  const t0=Math.min(...live.map(c=>pfMonthOf(_wsEnd(c))));
+  const t1=Math.max(...live.map(c=>pfMonthOf(pfWarrantyEnd(c))));
+  const span=Math.max(t1-t0,1), at=m=>(m-t0)/span*100;
+  const body=`<div>${live.slice(0,5).map(c=>{
+    const a=pfMonthOf(_wsEnd(c)), b=pfMonthOf(pfWarrantyEnd(c));
+    return `<button data-pf-open="${pfEsc(c.id)}" style="display:grid;grid-template-columns:1fr 104px;gap:9px;align-items:center;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:5px 3px;border-radius:7px">
+      <span style="min-width:0"><span style="display:block;font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pfEsc(c.name)}</span>
+        <span style="display:block;position:relative;height:10px;margin-top:4px">
+          <span style="position:absolute;left:${at(a)}%;width:${Math.max(at(b)-at(a),2)}%;top:2px;height:6px;border-radius:3px;background:var(--color-accent-500,var(--color-accent))"></span>
+          <span style="position:absolute;left:${at(0)}%;top:-2px;height:14px;border-left:1px dashed var(--color-neutral-400)"></span></span></span>
+      <span style="text-align:right;font-size:10.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">${i18t('pf_yours_to')} ${pfEsc(pfMonthLabel(b))}</span></button>`;
+  }).join('')}</div>`;
+  const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
+    <span>${i18t('pf_finished_carried')}</span>
+    <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text)">${_wsCount(live.length)}</span></div>`;
+  return pfCard(i18t('pf_promises_live'), i18t('pf_promises_hint'), head+body,
+    i18t('pf_promises_foot',{a:pfMonthLabel(t0),b:pfMonthLabel(t1)}));
+}
+
+/* ------------------------------------------------------ WON AND LOST ------- */
+function pfWonLost(){
+  /* THE ONE PANEL THAT LOOKS PAST THE LIVE BOOK. Everywhere else "live" means
+     everything except Declined, because a declined contract is not part of
+     what you hold. But a LOST piece of work IS a declined contract, so a
+     conversion rate computed over the live book can only ever say 100%. */
+  const F=pfState();
+  const jobs=(state.contracts||[]).filter(c=>{
+    if(!(typeof wsIsProject==='function' && wsIsProject(c))) return false;
+    if(F.cat!=null && pfCategoryOf(c)!==F.cat) return false;
+    if(F.cp && (c.counterparty||'')!==F.cp) return false;
+    return true;
+  });
+  const won=jobs.filter(pfIsWon), lost=jobs.filter(pfIsLost), out=jobs.filter(pfIsOut);
+  if(!won.length&&!lost.length&&!out.length) return '';
+  const wv=pfSum(won), lv=pfSum(lost), ov=pfSum(out), tot=wv+lv+ov||1;
+  const decided=won.length+lost.length;
+  const byCount=decided?pfPct(won.length,decided):0;
+  const byValue=(wv+lv)?pfPct(wv,wv+lv):0;
+  const seg=(v,col)=>`<span style="display:block;height:100%;width:${v/tot*100}%;background:${col}"></span>`;
+  const stat=(k,v,d,col)=>`<div style="background:var(--color-neutral-100);border-left:3px solid ${col};border-radius:7px;padding:7px 10px">
+    <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${k}</div>
+    <div style="font-family:var(--font-heading);font-size:15px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">${v}</div>
+    <div style="font-size:10px;color:var(--color-neutral-600)">${d}</div></div>`;
+  const body=`<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--color-divider);margin-bottom:9px">
+      ${seg(wv,'var(--accent-solid,var(--color-accent))')}${seg(ov,'var(--color-neutral-400)')}${seg(lv,'var(--color-neutral-300)')}</div>
+    <div style="display:grid;gap:7px">
+      ${stat(i18t('pf_won'),pfMoney(wv),_wsCount(won.length),'var(--accent-solid,var(--color-accent))')}
+      ${stat(i18t('pf_awaiting'),pfMoney(ov),_wsCount(out.length),'var(--color-neutral-400)')}
+      ${stat(i18t('pf_lost'),pfMoney(lv),_wsCount(lost.length),'var(--color-neutral-300)')}
+    </div>
+    ${decided?`<div style="margin-top:10px;font-size:12px;line-height:1.6;color:var(--color-neutral-700)">
+      ${i18t('pf_won_pct',{c:byCount,v:byValue})} ${byValue<byCount?i18t('pf_winning_smaller'):byValue>byCount?i18t('pf_winning_bigger'):''}</div>`:''}`;
+  return pfCard(i18t('pf_won_lost',{W:_wsTitle()}), '', body, i18t('pf_won_lost_foot',{w:_wsOne()}));
+}
+
+/* ------------------------------------------------------ RENEWAL RUNWAY ----- */
+/* The standing shape's own panel: what ends when, and whether anybody has
+   decided. "Decided" is the platform's own renewal decision — the obligation
+   HaTi raises for a contract that is about to end — so this panel and the
+   Approvals queue never disagree about what has been dealt with. */
+function pfRenewalDecided(c){
+  const obs=(typeof allObligations==='function')?allObligations():[];
+  const mine=obs.filter(o=>o&&o.cid===c.id&&/renew/i.test(String(o.desc||'')));
+  if(!mine.length) return false;
+  const st=(typeof obState==='function')?obState:(o=>o&&o.status==='done'?'done':'open');
+  return mine.some(o=>st(o)==='done');
+}
+function pfRenewalRunway(){
+  const rs=pfRows('month').filter(c=>!(typeof wsIsProject==='function'&&wsIsProject(c)));
+  const N=18, per=[];
+  let openEnded=0;
+  rs.forEach(c=>{ if(!_wsEnd(c)) openEnded++; });
+  for(let i=0;i<N;i++){
+    const inM=rs.filter(c=>pfMonthOf(_wsEnd(c))===i);
+    per.push({ m:i, n:inM.length,
+      dec:pfSum(inM.filter(pfRenewalDecided)),
+      und:pfSum(inM.filter(c=>!pfRenewalDecided(c))) });
+  }
+  if(!per.some(p=>p.n)) return '';
+  const peak=Math.max(...per.map(p=>p.dec+p.und))||1;
+  /* Wider viewBox than the workload chart because this one is drawn full
+     width: the height scales with the width, and 920 units across a 1700px
+     card made a 390px-tall chart that was mostly empty sky. */
+  const W=1400,H=230,px=70,pb=32,bw=(W-px-12)/N;
+  const bars=per.map(p=>{
+    const x=px+p.m*bw+3, tot=p.dec+p.und;
+    const hD=Math.round((H-pb-18)*p.dec/peak), hU=Math.round((H-pb-18)*p.und/peak);
+    let y=H-pb, g=`<g><title>${pfEsc(pfMonthLabel(p.m))} — ${pfN(p.n,'contracts')} · ${pfEsc(pfMoney(tot))}</title>`;
+    if(tot===0) g+=`<rect x="${x}" y="${H-pb-3}" width="${bw-6}" height="3" rx="1.5" fill="var(--color-divider)"/>`;
+    else{
+      if(p.dec>0){ y-=hD; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hD,3)}" rx="3" fill="var(--accent-solid,var(--color-accent))"/>`; }
+      if(p.und>0){ y-=hU; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hU,3)}" rx="3" fill="var(--st-amber-dot)"/>`; }
+    }
+    if(p.m%3===0) g+=`<text x="${x+(bw-6)/2}" y="${H-pb+15}" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-600)">${pfMonthLabel(p.m)}</text>`;
+    return g+'</g>';
+  }).join('');
+  const half=per.slice(0,6).reduce((a,p)=>a+p.dec+p.und,0);
+  const body=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${pfEsc(i18t('pf_renewal_aria'))}">
+    <g stroke="var(--color-divider)" stroke-width="1"><line x1="${px}" y1="${H-pb}" x2="${W-8}" y2="${H-pb}"/></g>
+    <text x="${px-8}" y="22" text-anchor="end" font-size="9.5" fill="var(--color-neutral-600)">${pfEsc(pfMoney(peak))}</text>
+    <text x="${px-8}" y="${H-pb+3}" text-anchor="end" font-size="9.5" fill="var(--color-neutral-600)">0</text>
+    ${bars}</svg>`;
+  const key=(col,txt)=>`<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:${col};display:inline-block"></i>${txt}</span>`;
+  const foot=`<div style="display:flex;gap:13px;flex-wrap:wrap;align-items:center">
+    ${key('var(--accent-solid,var(--color-accent))',i18t('pf_decided'))}
+    ${key('var(--st-amber-dot)',i18t('pf_nothing_filed'))}
+    <span style="margin-left:auto">${i18t('pf_lands_six',{v:pfMoney(half)})}</span></div>
+    ${openEnded?`<div style="margin-top:5px">${i18t('pf_open_ended',{n:openEnded})}</div>`:''}`;
+  return pfCard(i18t('pf_renewal_runway'), i18t('pf_renewal_hint'), body, foot);
+}
+
+Object.assign(window,{pfMonthOf,pfMonthLabel,pfDate,pfJobs,pfIsWon,pfIsLost,pfIsOut,pfRetVal,pfRetDue,
+  pfWarrantyEnd,pfWorkloadRunway,pfMoneyHeld,pfPromisesLive,pfWonLost,pfRenewalRunway,pfRenewalDecided});

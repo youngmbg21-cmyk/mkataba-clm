@@ -64,6 +64,14 @@ It reads LIVE contracts: everything except Declined. That is the same definition
 
 It is NOT on the phone. The phone deliberately builds no Insights screen — Insights is listed under More as desk work, with the honest one-line note that lives in M_DESK. That is a decision, not an omission.
 
+THE SHAPED FILL sits beside the six: a workload runway, money held back, promises still live and work won and lost when the workspace has PROJECT-shaped agreements; a renewal runway when it has STANDING ones. Which shapes a business has, and what it calls one piece of work (job / project / order / matter / engagement / case), are two COMPANY settings on the Settings screen — admin-only and stored like the market (org record, browser fallback, PUT /api/org/workshape). js/workshape.js holds them.
+
+ONE CLASSIFICATION RULE, THREE READERS. wsIsProject() decides what counts as a piece of work, and the Settings card's suggestion, the panels and their counts all call it. Split across the three it would say "we can see 12 jobs" and then draw 3.
+
+THE ONE PANEL THAT LOOKS PAST THE LIVE BOOK is "won and lost". Everywhere else live means everything except Declined — but a LOST piece of work IS a declined contract, so a conversion rate over the live book can only ever say 100%. Won = Signed, lost = Declined, still out = Under Review or a draft with a live share. No new status was invented, because a status nobody sets is a status that stays empty.
+
+THE WEEKLY REVIEW (js/views/weekly.js) is the second deterministic document, built the same way the health report is: window.open first, then fill. Five slots that never grow, three sizes that add pages AFTER the five rather than inside them, and slot 5 — "what we did not look at" — printed every week whether or not anything else is in it. Reached from Reports. No model writes a word of it.
+
 There is now a SECOND SHELL. Below 768px the desktop shell is hidden outright and js/mobile*.js draws the app instead. It is NOT a fork: it reads hmDashSlices() for figures, regFiltered()/regState() for the register, wsNextAction() for the next action, negoTimeline()/negoIntegrityReport() for history, negoRenumberPlan()/negoRenumberApply() for numbering, and buildSharePayload() + POST /api/shares for links. It files NO changes of its own — grep the five mobile files for changes.push / negoFileChange and you will find nothing, which is deliberate.
 
 WHAT THIS MEANS FOR THE DUPLICATION WARNING: a UI fix now has one more place it may appear. Ask whether the thing you are changing is drawn on a phone too — the contract screen, the register, the dashboard figures, the Copilot panel and the counterparty pages all are. A fix in a shared FUNCTION reaches both shells; a fix in a desktop RENDERER does not.

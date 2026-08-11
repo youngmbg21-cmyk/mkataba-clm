@@ -25,6 +25,7 @@ import './signature.js';
 import './wizard.js';
 import './views/calendar.js';
 import './views/reports.js';
+import './views/weekly.js';       // the weekly review: five slots, three sizes, no AI
 import './views/healthreport.js'; // the Portfolio Health Report: deterministic document, opened by button or by Copilot
 import './views/portal.js';
 import './views/home.js';
@@ -35,6 +36,7 @@ import './family.js';
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
 import './pdfrich.js';
+import './workshape.js';       // which shapes this business has, and what it calls a piece of work
 import './views/portfolio.js';    // the universal frame: six panels every business gets
 import './views/intelligence.js';
 import './ai.js';

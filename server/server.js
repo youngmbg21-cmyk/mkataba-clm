@@ -1968,6 +1968,24 @@ app.put('/api/org/jurisdiction', auth, admin, (req, res) => {
   res.json({ ok: true, jurisdiction: id });
 });
 
+/* HOW THIS WORKSPACE'S WORK IS SHAPED, and what it calls one piece of it.
+   Admin-gated and workspace-wide for the same reason the market is: it decides
+   which panels the whole team sees and what the words on them are, so two
+   members must not be able to disagree about it. Validated against the lists
+   rather than stored as typed — an unknown shape would simply hide panels with
+   nothing to say about why. */
+const WORK_SHAPES = ['standing', 'project'];
+const WORK_WORDS = ['job', 'project', 'order', 'matter', 'engagement', 'case'];
+app.put('/api/org/workshape', auth, admin, (req, res) => {
+  const body = req.body || {};
+  const shapes = (Array.isArray(body.shapes) ? body.shapes : []).filter(s => WORK_SHAPES.includes(s));
+  const word = WORK_WORDS.includes(body.word) ? body.word : 'project';
+  if (!shapes.length) return res.status(400).json({ error: 'At least one shape is required' });
+  const org = getSetting('org') || {};
+  setSetting('org', { ...org, workShape: { shapes, word } });
+  res.json({ ok: true, shapes, word });
+});
+
 /* WHICH LANGUAGE THIS PERSON READS, stored per user rather than per workspace.
    Note the middleware: `auth` and not `admin`, and it writes req.user.id and
    never an id from the body — changing your own language is every member's
