@@ -311,6 +311,24 @@ regShowOnly(ids, label) IS THE ONE DOOR IN, and regState().only is what it sets.
 
 Tests: calendar-day-verify (14, in the browser).
 
+A SETTING ANSWERS WHERE IT IS ASKED, AND THE PAGE HOLDS STILL (added 2026-08-11)
+
+Reported with a screenshot of the two company cards ringed in red: "when I make selections, the page glitches." The market dropdown and the work-shape tick boxes each answered a change by calling renderTeam(), which rebuilds the WHOLE settings screen — and half of that screen is filled from the server after the fact.
+
+MEASURED, ON ONE TICK OF A BOX: seven panels came back empty (the outbox, the rate table, the activation funnel, the sessions list, the report status and two spend lines), the page lost 703px of height in the same frame, and the card being read jumped 260px UP the screen before walking back down as each answer landed.
+
+THE SCROLL OFFSET NEVER MOVED, WHICH IS THE WHOLE DIAGNOSIS. This is why it reads as the page lurching rather than as a scroll, and why setView's scroll-keeping and keepScroll could never have helped either — they hold the reader's OFFSET, and what moved was the CONTENT above the reader. Note also that a single innerHTML assignment does not clamp scrollTop to zero the way a shorter intermediate paint does; the comment at setView is about that other case and does not cover this one.
+
+SO EACH CARD REPAINTS ONLY WHAT ITS OWN ANSWER CHANGED. The shapes are a border and a tint painted from the boxes themselves (settingsPaintShapeBoxes), so the label follows the tick in the same frame and the checkbox keeps focus. The word repaints nothing at all — nothing on the card shows it. The market rewrites the three facts under the dropdown (settingsMarketFactsHtml, built once because two copies of that line are two lines that can disagree about the currency) and calls renderApprovalRules and renderReviewGatePanel, which are the only other things on the page printing money in the market's currency. All three are host-scoped and cost the page no height.
+
+A REFUSAL MUST PUT THE SCREEN BACK. Unticking the last shape is refused, and the boxes are re-read from the record — a refusal that leaves the refused answer ticked reads as a save that worked. The re-render used to do this for free; a patch has to do it on purpose.
+
+THE ONE CASE THAT IS STILL A FULL REDRAW is the market changing the LANGUAGE. They are not the same thing and must never be conflated — but a person who has never chosen a language falls back to the one that goes with the workspace's market (js/i18n.js langId), so for them moving the market moves every word on the page. Patching three lines there leaves a half-translated screen, which is exactly the fault the two-languages section warns is invisible. langId() is compared across jxSet and the whole page is redrawn when it moved.
+
+AND THAT REDRAW HOLDS ITS PANELS. settingsHeightsBefore / settingsHoldHeights put a floor under any element that comes back SHORTER than it was, released on the mutation that fills it rather than on a timer (a timer is the backstop for an answer that never lands). NOTHING IS ENUMERATED: every element with an id inside #set-page is measured, so a panel added later is covered without anyone remembering this file. A floor on #content would not have worked — it only pads the bottom, and the panels that empty are above the reader.
+
+Tests: settings-holds-still-verify (18, in the browser). It anchors its measurements on the checkbox rather than on the marker this fix added, so it runs against the old code too — a test that cannot execute on the code it is about proves nothing about the numbers it quotes.
+
 DOES MONEY PASS UNDER THIS CONTRACT, AND WHO SAYS SO (added 2026-08-11)
 
 Reported off the share dialog: an NDA refused to send until somebody set "the contract value this contract type carries". Its own clause 1 reads "No monetary consideration passes under this Agreement".
