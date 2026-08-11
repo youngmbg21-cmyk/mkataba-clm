@@ -345,6 +345,84 @@ async function aiExtractMetadata(text, opts={}){
   return meta;
 }
 
+/* ============================================================================
+   HaTi CHECKS ITS OWN ARITHMETIC.
+
+   Reported off a real upload (Young, 11 Aug 2026): the expiry came back as
+   29 August 2026 on a contract whose own quoted phrase read "remain in force
+   for 3 years from the effective date", with an effective date of 9 August
+   2026. Three years from then is 2029, not three weeks later.
+
+   A DURATION IS A SUM, AND A SUM CAN BE CHECKED. When the document states a
+   term as a length of time from a date HaTi already has, the end date is not a
+   matter of opinion — so it is worked out here and compared. Nothing is
+   silently overwritten: the review card shows the mismatch, says what the
+   document implies, and offers the computed date as one press. The human still
+   confirms, which is the whole point of that screen.
+
+   WHY IT MATTERS MORE THAN IT LOOKS: an expiry date is not decoration. It
+   drives the renewal reminder, the calendar, the register's expiry views and
+   the runway charts. A date three years early does not merely look wrong, it
+   fires an alarm nobody needs and hides the one they do.
+   ========================================================================= */
+const TERM_WORDS = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8,
+  nine:9, ten:10, eleven:11, twelve:12, eighteen:18, twenty:20, thirty:30 };
+/* A month is not 30 days when a lawyer says "12 months from 9 August" — they
+   mean the same day of the month. Calendar arithmetic, then, not multiplication. */
+function termAdd(iso, n, unit){
+  const t = Date.parse(String(iso||'')+'T00:00:00'); if(isNaN(t)) return null;
+  const d = new Date(t);
+  if(/^year/.test(unit))      d.setFullYear(d.getFullYear()+n);
+  else if(/^month/.test(unit))d.setMonth(d.getMonth()+n);
+  else if(/^week/.test(unit)) d.setDate(d.getDate()+n*7);
+  else                        d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+const _termN = raw => { const k=String(raw||'').toLowerCase();
+  return /^\d+$/.test(k) ? Number(k) : (TERM_WORDS[k]||0); };
+/* Reads a stated term out of the document. "twelve (12) months" is the shape
+   contracts actually use, so the bracketed digits are allowed to follow the
+   word and win — they are the drafter's own restatement. */
+function metaReadTerm(text){
+  const t = String(text||'').replace(/\s+/g,' ');
+  const NUM = '(\\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|eighteen|twenty|thirty)';
+  const UNIT = '(day|week|month|year)s?';
+  const pats = [
+    new RegExp('(?:remain(?:ing)? in (?:full )?force|continue in (?:full )?force)[^.]{0,60}?(?:for )?(?:a )?(?:period|term) of '+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+    new RegExp('(?:remain(?:ing)? in (?:full )?force|continue in (?:full )?force)[^.]{0,40}?for '+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+    new RegExp('(?:term|duration) of this agreement[^.]{0,60}?'+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+    new RegExp('for (?:an? )?(?:initial )?(?:period|term) of '+NUM+'\\s*(?:\\((\\d{1,3})\\)\\s*)?'+UNIT,'i'),
+  ];
+  for(const re of pats){
+    const m = t.match(re);
+    if(!m) continue;
+    const n = m[2] ? Number(m[2]) : _termN(m[1]);
+    if(n>0) return { n, unit:String(m[3]||m[2]||'').toLowerCase(), quoted:m[0].trim().slice(0,140) };
+  }
+  return null;
+}
+/* Attaches meta.checks.expiryDate when the document's own term disagrees with
+   the extracted end date. Tolerance is 40 days: a contract that says "3 years"
+   and ends on the anniversary minus a day is not a mistake worth shouting
+   about, and one that is three YEARS out is. */
+const TERM_TOLERANCE_DAYS = 40;
+function metaCheckTerm(text, meta){
+  if(!meta || !meta.effectiveDate) return meta;
+  const term = metaReadTerm(text);
+  if(!term) return meta;
+  const expected = termAdd(meta.effectiveDate, term.n, term.unit);
+  if(!expected) return meta;
+  const got = meta.expiryDate;
+  const gap = got ? Math.abs((Date.parse(got+'T00:00:00')-Date.parse(expected+'T00:00:00'))/864e5) : Infinity;
+  if(isFinite(gap) && gap <= TERM_TOLERANCE_DAYS) return meta;
+  meta.checks = meta.checks || {};
+  meta.checks.expiryDate = { expected, n:term.n, unit:term.unit, quoted:term.quoted, had:got||'' };
+  /* A field HaTi can show is wrong is not a field it may call confident. */
+  meta.confidence = meta.confidence || {};
+  meta.confidence.expiryDate = 'low';
+  return meta;
+}
+
 /* ---- run extraction: server Copilot if configured, else heuristic ---- */
 async function extractMetadata(text, seed, opts={}){
   let meta = null;
@@ -354,10 +432,14 @@ async function extractMetadata(text, seed, opts={}){
   }
   if(!meta){ meta=heuristicExtract(text); meta._source='heuristic'; }
   // seed with what the uploader already typed (higher trust than a low-conf guess)
+  /* Checked before the seed is applied, so a date the uploader typed in
+     themselves is never second-guessed by a phrase in the document. */
+  try{ meta=metaCheckTerm(text, meta); }catch(e){}
   if(seed){ meta.confidence=meta.confidence||{};
     if(seed.counterparty){ meta.counterparty=seed.counterparty; meta.confidence.counterparty='high'; }
     if(seed.value){ meta.value=seed.value; meta.confidence.value='high'; if(!meta.currency) meta.currency=(typeof jxCurrency==='function'?jxCurrency():'KES'); }
-    if(seed.expiry){ meta.expiryDate=seed.expiry; meta.confidence.expiryDate='high'; }
+    if(seed.expiry){ meta.expiryDate=seed.expiry; meta.confidence.expiryDate='high';
+      if(meta.checks) delete meta.checks.expiryDate; }
   }
   return meta;
 }
@@ -389,22 +471,37 @@ function openMetaReview(meta, onConfirm, opts={}){
      verbatim-quoting pattern the clause review already uses. */
   const spans = meta.sourceSpans||{};
   const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  /* WHERE HaTi DISAGREES WITH ITSELF, IT SAYS SO — under the field, in amber,
+     with the date the document implies and one press to take it. Not applied
+     silently: this screen exists because a person confirms, and a value that
+     changed itself while they were reading it is the one thing that would make
+     them stop trusting the rest. */
+  const checks = meta.checks||{};
+  const checkLine = k => { const ck=checks[k]; if(!ck) return '';
+    const pretty = iso => { const t=Date.parse(String(iso)+'T00:00:00');
+      if(isNaN(t)) return String(iso);
+      try{ return new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
+      catch(e){ return String(iso); } };
+    return `<span style="display:block;margin-top:4px;padding:5px 7px;border-radius:5px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:10.5px;line-height:1.5">
+      ${esc(i18t('me_term_mismatch',{n:ck.n, unit:i18t('me_unit_'+String(ck.unit).replace(/s$/,'')), from:pretty(meta.effectiveDate), to:pretty(ck.expected)}))}
+      <button type="button" data-mf-use="${k}" data-mf-val="${esc(ck.expected)}" style="border:0;background:none;padding:0;margin-left:4px;font:inherit;font-size:10.5px;font-weight:700;color:inherit;text-decoration:underline;cursor:pointer">${esc(i18t('me_term_use',{d:pretty(ck.expected)}))}</button>
+      ${spans[k] ? '' : `<span style="display:block;margin-top:3px;opacity:.85"><i>“${esc(String(ck.quoted).slice(0,120))}”</i></span>`}</span>`; };
   const spanLine = k => { const q=spans[k]; if(!q) return '';
     const t=String(q).replace(/\s+/g,' ').trim().slice(0,180);
     if(!t) return '';
     return `<span style="display:block;margin-top:3px;font-size:10.5px;line-height:1.45;color:var(--color-neutral-600)">found: <i>“${esc(t)}”</i></span>`; };
   const field = f => {
     const v = meta[f.k]!=null ? meta[f.k] : '';
-    const low = c[f.k]==='low';
+    const low = c[f.k]==='low' || !!checks[f.k];
     const ring = low ? 'border-gold-400 bg-gold-500/5' : 'border-inputln bg-white';
     if(f.type==='select'){
       return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
         <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500">
-          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}</label>`;
+          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}${checkLine(f.k)}</label>`;
     }
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
-      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500"/>${spanLine(f.k)}</label>`;
+      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500"/>${spanLine(f.k)}${checkLine(f.k)}</label>`;
   };
   openModal(`
     <div class="p-6 max-w-lg">
@@ -434,6 +531,13 @@ function openMetaReview(meta, onConfirm, opts={}){
     if(e.key!=='Escape'){ if(settled) document.removeEventListener('keydown',esc); return; }
     document.removeEventListener('keydown',esc); leave();
   });
+  document.querySelectorAll('[data-mf-use]').forEach(b=>b.addEventListener('click',e=>{
+    e.preventDefault();
+    const k=b.getAttribute('data-mf-use'), el=document.querySelector(`[data-mf="${k}"]`);
+    if(el){ el.value=b.getAttribute('data-mf-val'); el.dispatchEvent(new Event('change',{bubbles:true})); }
+    /* the warning has been answered; leaving it up would read as unresolved */
+    b.closest('span[style*="st-amber-bg"]')?.remove();
+  }));
   document.getElementById('mr-stop')?.addEventListener('click',()=>{ settled=true; closeModal(); opts.onStop(); });
   document.getElementById('mr-cancel').addEventListener('click',()=>{ settled=true; closeModal(); if(opts.onCancel) opts.onCancel(); });
   document.getElementById('mr-save').addEventListener('click',()=>{
@@ -507,4 +611,4 @@ async function runMetaBackfill(opts={}){
   next();
 }
 
-Object.assign(window,{META_FIELDS,RENEWAL_LABEL,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,RENEWAL_LABEL,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
