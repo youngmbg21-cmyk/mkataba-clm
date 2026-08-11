@@ -30,6 +30,9 @@ const TPL_MAPS = [
   { k:'noticePeriodDays', get label(){ return i18t('tf_notice_days'); } },
   { k:'paymentTerms',     get label(){ return i18t('me_payment_terms'); } },
   { k:'governingLaw',     get label(){ return i18t('me_governing_law'); } },
+  { k:'category',         get label(){ return i18t('me_category'); } },
+  { k:'retentionPct',     get label(){ return i18t('me_retention_pct'); } },
+  { k:'warrantyMonths',   get label(){ return i18t('me_warranty_months'); } },
   { k:'folder',           get label(){ return i18t('tf_value_stream_filing'); } },
 ];
 const tplMapLabel = k => (TPL_MAPS.find(m=>m.k===k)||{}).label || '';
@@ -114,6 +117,8 @@ function guessFieldShape(label){
   if(/effective|commence|start date|date of this/.test(l)) return { type:'date', maps:'effDate' };
   if(/\bdate\b/.test(l)) return { type:'date', maps:'' };
   if(/notice/.test(l)) return { type:'num', maps:'noticePeriodDays' };
+  if(/retention/.test(l)) return { type:'num', maps:'retentionPct' };
+  if(/warrant|defects? liability|guarantee period/.test(l)) return { type:'num', maps:'warrantyMonths' };
   if(/value|amount|price|fee|salary|rent|consideration/.test(l)) return { type:'num', maps:'value' };
   if(/payment term|credit term/.test(l)) return { type:'text', maps:'paymentTerms' };
   if(/governing law|jurisdiction/.test(l)) return { type:'text', maps:'governingLaw' };
@@ -208,6 +213,9 @@ function applyTemplateValues(c, fields, values){
       case 'noticePeriodDays': set('noticePeriodDays', Number(v)||0); break;
       case 'paymentTerms': set('paymentTerms', String(v)); break;
       case 'governingLaw': set('governingLaw', String(v)); break;
+      case 'category': set('category', String(v)); break;
+      case 'retentionPct': set('retentionPct', Number(v)||0); break;
+      case 'warrantyMonths': set('warrantyMonths', Number(v)||0); break;
       default: break;
     }
   }

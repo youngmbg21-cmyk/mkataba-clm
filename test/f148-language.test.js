@@ -47,6 +47,7 @@ const SAME_IN_BOTH = new Set([
   'nav_team_title',       // 'Team' is the ordinary Swedish word too
   'foot_team',            // ditto
   'foot_copilot',         // the product name
+  'mo_partner',           // 'Partner' is the same word in Swedish
   'lib_col_version',      // 'Version' is the same word in Swedish
   'set_rate_in',          // token rate "in" — the same preposition in Swedish
   'ct_live',              // 'live' is the borrowed word Swedish uses too

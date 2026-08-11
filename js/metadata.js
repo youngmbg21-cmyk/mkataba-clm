@@ -6,6 +6,11 @@
 const META_FIELDS = [
   { k:'counterparty',     get label(){ return i18t('me_counterparty'); },   type:'text' },
   { k:'contractType',     get label(){ return i18t('me_contract_type'); },  type:'text' },
+  /* CATEGORY is not contractType. contractType is the document's own words
+     ("Raw Material Supply Agreement") and is free text, so nothing can count
+     it. Category is a short closed list, which is what every figure that says
+     "where the value sits" has to group by. */
+  { k:'category',         get label(){ return i18t('me_category'); },       type:'select', opts:['customer','supplier','employment','lease','licence','partner','funding','other'] },
   { k:'effectiveDate',    get label(){ return i18t('me_effective_date'); }, type:'date' },
   { k:'expiryDate',       get label(){ return i18t('me_expiry_date'); },    type:'date' },
   { k:'value',            get label(){ return i18t('me_value'); },          type:'num'  },
@@ -14,8 +19,50 @@ const META_FIELDS = [
   { k:'noticePeriodDays', get label(){ return i18t('me_notice_days'); },  type:'num'  },
   { k:'governingLaw',     get label(){ return i18t('me_governing_law'); },  type:'text' },
   { k:'paymentTerms',     get label(){ return i18t('me_payment_terms'); },  type:'text' },
+  /* ---- what an agreement leaves behind, and what it exposes ----
+     These four are the ones a business carries after the work is done or
+     while the price is out of its hands. They are read off the document like
+     everything above; none of them asks anyone to type a number in. */
+  { k:'retentionPct',        get label(){ return i18t('me_retention_pct'); },     type:'num' },
+  { k:'retentionReleaseDays',get label(){ return i18t('me_retention_release'); }, type:'num' },
+  { k:'warrantyMonths',      get label(){ return i18t('me_warranty_months'); },   type:'num' },
+  { k:'liabilityCapped',     get label(){ return i18t('me_liability_cap'); },     type:'select', opts:['capped','uncapped','unclear'] },
+  { k:'priceReview',         get label(){ return i18t('me_price_review'); },      type:'select', opts:['nochange','ceiling','indexed','open','unclear'] },
 ];
-const RENEWAL_LABEL = { 'auto-renew':'Auto-renew', fixed:'Fixed term', evergreen:'Evergreen', unknown:'Unknown', '':'—' };
+/* One table for every select option in META_FIELDS. GETTERS, not literals: an
+   object literal of translated strings freezes whatever language was current
+   when the module loaded, and this file loads once. Note 'fixed' belongs to
+   renewalType only — the price option is 'nochange' precisely so the two
+   cannot collide in here. */
+const META_OPT_LABEL = {
+  get ''(){ return '—'; },
+  get 'auto-renew'(){ return i18t('mo_auto_renew'); },
+  get fixed(){ return i18t('mo_fixed'); },
+  get evergreen(){ return i18t('mo_evergreen'); },
+  get unknown(){ return i18t('mo_unknown'); },
+  get customer(){ return i18t('mo_customer'); },
+  get supplier(){ return i18t('mo_supplier'); },
+  get employment(){ return i18t('mo_employment'); },
+  get lease(){ return i18t('mo_lease'); },
+  get licence(){ return i18t('mo_licence'); },
+  get partner(){ return i18t('mo_partner'); },
+  get funding(){ return i18t('mo_funding'); },
+  get other(){ return i18t('mo_other_category'); },
+  get capped(){ return i18t('mo_capped'); },
+  get uncapped(){ return i18t('mo_uncapped'); },
+  get unclear(){ return i18t('mo_unclear'); },
+  get nochange(){ return i18t('mo_nochange'); },
+  get ceiling(){ return i18t('mo_ceiling'); },
+  get indexed(){ return i18t('mo_indexed'); },
+  get open(){ return i18t('mo_open'); },
+};
+const metaOptLabel = v => { const s=String(v==null?'':v);
+  return (s in META_OPT_LABEL) ? META_OPT_LABEL[s] : s; };
+/* Kept because other modules read it directly. The values it holds are the
+   same four renewal options, now answered by the one table above. */
+const RENEWAL_LABEL = { get 'auto-renew'(){ return metaOptLabel('auto-renew'); },
+  get fixed(){ return metaOptLabel('fixed'); }, get evergreen(){ return metaOptLabel('evergreen'); },
+  get unknown(){ return metaOptLabel('unknown'); }, get ''(){ return '—'; } };
 
 /* ---- heuristic fallback: no API key, extract what regex reliably can ---- */
 function heuristicExtract(text){
@@ -49,8 +96,70 @@ function heuristicExtract(text){
   if(/automatically\s+renew|auto-?renew/i.test(t)) set(m,'renewalType','auto-renew','low');
   else if(/evergreen|continue\s+(?:indefinitely|until\s+terminated)/i.test(t)) set(m,'renewalType','evergreen','low');
   else if(/fixed\s+term|expires?\s+on|term\s+of\s+\d/i.test(t)) set(m,'renewalType','fixed','low');
+
+  /* ---- category: first match wins, most specific first ----
+     Deliberately ordered. "Employment" beats "services" because a contract of
+     service says both; "lease" beats "supplier" because a lease of premises
+     mentions rent and supply of services in the same breath. */
+  const CAT = [
+    ['employment', /contract of (?:service|employment)|employment agreement|the employee\b|staff contract|anställningsavtal/i],
+    ['lease',      /\blease\b|tenancy|licence to occupy|the (?:landlord|tenant|lessor|lessee)\b|demised premises/i],
+    ['licence',    /software (?:as a service|licence|license)|end.user licence|subscription (?:agreement|terms)|\bSaaS\b|licensed software/i],
+    ['funding',    /\bgrant agreement\b|funding agreement|the (?:donor|grantor|grantee)\b|disburse(?:d|ment) of (?:the )?funds/i],
+    ['partner',    /memorandum of understanding|consortium|partnership agreement|joint venture|implementing partner/i],
+    ['supplier',   /\b(?:supply|purchase|procurement|vendor|subcontract)\w* agreement\b|the (?:supplier|vendor|subcontractor|seller)\b|purchase order/i],
+    /* "the Employer" is the construction word for the customer — a works
+       contract names neither. Read from the contractor's side, which is the
+       side HaTi's user is on. A subcontract is caught by 'supplier' above,
+       which is tested first for exactly that reason. */
+    ['customer',   /\b(?:services|distribution|sale|reseller|framework)\w* agreement\b|the (?:customer|client|buyer|purchaser|distributor|employer)\b|scope of works?\b|contract for [^.]{0,24}works\b|\bworks contract\b/i],
+  ];
+  for(const [k,re] of CAT){ if(re.test(t)){ set(m,'category',k,'low'); break; } }
+
+  // retention: the percentage held back, and how long before it comes home
+  /* "retain 10%" is read on its own. The earlier patterns all required the word
+     "retention" and the figure inside one sentence, which a numbered clause
+     breaks: "2. RETENTION. The Employer shall retain 10%…" puts a full stop
+     between them, and [^.] stops dead at it. Found by running a real roofing
+     contract through the browser, not by reading the pattern. */
+  const ret = t.match(/\bretain(?:s|ed|age)?\b[^.]{0,40}?(\d{1,2}(?:\.\d+)?)\s*(?:%|per\s?cent)/i)
+           || t.match(/retention[^.]{0,60}?(\d{1,2}(?:\.\d+)?)\s*(?:%|per\s?cent)/i)
+           || t.match(/(\d{1,2}(?:\.\d+)?)\s*(?:%|per\s?cent)[^.]{0,40}?\bretention\b/i);
+  if(ret) set(m,'retentionPct',Number(ret[1]),'low');
+  const rel = t.match(/retention[^.]{0,140}?(\d{1,3})\s*(days?|months?|years?)[^.]{0,80}?(?:practical completion|completion|handover|defects? liability|making good)/i)
+           || t.match(/(?:released?|repaid|returned)[^.]{0,60}?(\d{1,3})\s*(days?|months?|years?)[^.]{0,60}?(?:practical completion|completion|handover)/i);
+  if(rel) set(m,'retentionReleaseDays',unitDays(rel[1],rel[2]),'low');
+
+  // defects liability / warranty period, always stored in months
+  const war = t.match(/(?:defects?\s+liability|warrant(?:y|ies)|guarantee)\s+period[^.]{0,60}?(\d{1,3})\s*(days?|months?|years?)/i)
+           || t.match(/warrants?[^.]{0,80}?for\s+(?:a\s+period\s+of\s+)?(\d{1,3})\s*(days?|months?|years?)\s+(?:from|after|following)/i);
+  if(war){ const d=unitDays(war[1],war[2]); if(d>0) set(m,'warrantyMonths',Math.round(d/30),'low'); }
+
+  // is our liability capped, and can the price move without our say-so
+  if(/(?:aggregate|total)\s+liabilit\w+[^.]{0,120}?(?:shall not exceed|limited to|capped at)|liabilit\w+[^.]{0,60}(?:shall not exceed|capped at)/i.test(t))
+    set(m,'liabilityCapped','capped','low');
+  else if(/unlimited liabilit|liabilit\w+[^.]{0,60}shall not be limited|without limit(?:ation)? (?:as to|of) (?:amount|liability)|nothing[^.]{0,70}limits?[^.]{0,20}liabilit/i.test(t))
+    set(m,'liabilityCapped','uncapped','low');
+
+  if(/(?:increase|adjust|revis)\w*[^.]{0,90}?(?:shall not exceed|no more than|capped at|subject to a maximum of)\s*\d{1,2}\s*(?:%|per\s?cent)/i.test(t))
+    set(m,'priceReview','ceiling','low');
+  else if(/consumer price index|\bCPI\b|cost of living index|indexed? (?:to|in line with)|indexation/i.test(t))
+    set(m,'priceReview','indexed','low');
+  else if(/may[^.]{0,40}\b(?:vary|revise|increase|adjust)\b[^.]{0,40}\b(?:price|prices|rates?|fees?|charges)\b/i.test(t))
+    set(m,'priceReview','open','low');
+  else if(/(?:price|prices|rates?|fees?)[^.]{0,60}?(?:shall remain|remain) fixed|fixed for the (?:term|duration|period)/i.test(t))
+    set(m,'priceReview','nochange','low');
+
   m.confidence = conf;
   return m;
+}
+/* days / months / years as written, in days. Months are 30 and years 365 —
+   HaTi is reading a period out of prose, not settling an account on it. */
+function unitDays(n, unit){
+  const v=Number(n)||0, u=String(unit||'').toLowerCase();
+  if(u.startsWith('year')) return v*365;
+  if(u.startsWith('month')) return v*30;
+  return v;
 }
 
 /* ---- what actually gets sent for extraction ----
@@ -73,6 +182,12 @@ const EXTRACT_FRONT = 15000, EXTRACT_BACK = 10000, EXTRACT_WINDOW = 1500;
 const EXTRACT_TERMS = [
   { prio:1, re:/renew|terminat|expir|notice|term of this agreement|duration/gi },
   { prio:2, re:/govern|jurisdiction|payment|invoice|price|escalat/gi },
+  /* Retention, the defects period and the liability cap sit in the middle of a
+     long agreement, which is exactly the part a front-and-back slice throws
+     away. They rank with the commercial terms, not with the boilerplate,
+     because each of them is money or exposure a business keeps carrying after
+     the work is finished. */
+  { prio:2, re:/retention|retain|defects? liability|warrant|guarantee period|practical completion|handover/gi },
   { prio:3, re:/stamp duty|force majeure|liabilit|indemnit/gi },
   { prio:4, re:/assign|confidential/gi },
 ];
@@ -276,7 +391,7 @@ function openMetaReview(meta, onConfirm, opts={}){
     if(f.type==='select'){
       return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
         <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500">
-          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${RENEWAL_LABEL[o]||o}</option>`).join('')}</select>${spanLine(f.k)}</label>`;
+          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${metaOptLabel(o)}</option>`).join('')}</select>${spanLine(f.k)}</label>`;
     }
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
@@ -290,7 +405,7 @@ function openMetaReview(meta, onConfirm, opts={}){
       ${opts.ocrNotice?`<div style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:5px;padding:8px 11px;font-size:11.5px;line-height:1.55;margin:-8px 0 14px">
         <span style="flex:none;margin-top:1px">${icon('scan','w-3.5 h-3.5')}</span>
         <span>${String(opts.ocrNotice).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))} Every field below is capped at <b>medium</b> confidence until you confirm it.</span></div>`:''}
-      <div class="grid grid-cols-2 gap-3">${META_FIELDS.map(field).join('')}</div>
+      <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:4px">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
         <button id="mr-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
         <button id="mr-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${opts.saveLabel||'Confirm & save'}</button>
@@ -339,4 +454,4 @@ async function runMetaBackfill(){
   next();
 }
 
-Object.assign(window,{META_FIELDS,RENEWAL_LABEL,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,RENEWAL_LABEL,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
