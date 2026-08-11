@@ -22,8 +22,12 @@
      · the door is on a live negotiate link, and on nothing else;
      · a cancelled name mints no ticket — a live link nobody wanted is worse
        than no link;
-     · the minted link survives the repaints this page does constantly, and a
-       reload, because a link the reader has not copied yet is the whole point;
+     · the minted link is HANDED OVER ONCE, at the moment it is made. It used
+       to live in a standing panel under the verbs that survived every repaint
+       and a reload. The owner asked for that panel gone (12 Aug 2026), and
+       the hand-over moved into a dialog rather than disappearing with it —
+       deleting the panel alone would have left a button that creates live,
+       owner-revocable access to the contract and shows the presser nothing;
      · a failure puts the button back rather than leaving "Creating…" standing
        over an act that did not happen;
      · and the page says what it is handing over — read-only, expiring, and
@@ -58,6 +62,9 @@ function open_(opts = {}, answer = 'Nordfrakt insurers', world = {}){
   return p;
 }
 const foot = p => p.win.document.getElementById('pt-nego-foot');
+/* The one screen a minted link is ever shown on, since the panel went. */
+const dlg = p => p.win.document.getElementById('pt-derive-dialog');
+const linkBox = p => p.win.document.getElementById('pt-derived-link');
 
 /* ============================================================ */
 describe('f127a — the door is where the route would say yes, and nowhere else', () => {
@@ -108,13 +115,32 @@ describe('f127b — minting one', () => {
       'the name is what the OWNER sees beside the child in their share panel');
   });
 
-  test('and the link comes back on the page, ready to copy', async () => {
+  test('and the link is handed straight to the reader, ready to copy', async () => {
     const p = open_();
     await p.click('pt-derive');
-    const box = p.win.document.querySelector('[data-pt-derived="0"]');
+    assert.ok(dlg(p), 'the one screen the link is ever shown on opens by itself');
+    const box = linkBox(p);
     assert.ok(box, 'the link is shown');
     assert.equal(box.value, 'https://hati.test/#s=t:tok_child1');
-    assert.ok(p.win.document.querySelector('[data-pt-derive-copy="0"]'), 'with a copy control');
+    assert.ok(p.win.document.getElementById('pt-derive-copy'), 'with a copy control');
+  });
+
+  test('THE PANEL IS GONE, and the button did not go with it', async () => {
+    /* The ask was to remove the standing list at the foot of the strip. The
+       trap was that the list was the ONLY place a link was ever drawn, so
+       removing it alone would have left "Share a read-only copy" minting real
+       tickets in silence. Both halves are asserted together, because either
+       one alone is a broken product. */
+    const p = open_();
+    await p.click('pt-derive');
+    assert.equal(p.win.document.getElementById('pt-derive-out'), null,
+      'no standing panel under the verbs');
+    assert.equal(p.win.document.querySelector('[data-pt-derived]'), null,
+      'and no row of it left behind');
+    assert.ok(p.win.document.getElementById('pt-derive'),
+      'the door that mints one is still there');
+    assert.equal(linkBox(p).value, 'https://hati.test/#s=t:tok_child1',
+      'and the link it made reached the reader');
   });
 
   test('CANCELLING THE NAME MINTS NOTHING', async () => {
@@ -124,8 +150,8 @@ describe('f127b — minting one', () => {
        from the page that it exists. */
     const p = open_({}, null);
     await p.click('pt-derive');
-    assert.equal(p.derived().length, 0);
-    assert.equal(p.win.portalDerivedLinks().length, 0);
+    assert.equal(p.derived().length, 0, 'the route was never called');
+    assert.equal(dlg(p), null, 'and nothing is handed over');
   });
 
   test('an unnamed copy is still allowed — an empty box is an answer', async () => {
@@ -134,52 +160,59 @@ describe('f127b — minting one', () => {
     assert.equal(p.derived().length, 1);
   });
 
-  test('two advisers get two links, and the first is not overwritten', async () => {
+  test('two advisers get two DIFFERENT links, each handed over in its turn', async () => {
     const p = open_();
     await p.click('pt-derive');
+    const first = linkBox(p).value;
+    p.win.document.getElementById('pt-derive-done').click();
     await p.click('pt-derive');
-    assert.equal(p.win.portalDerivedLinks().length, 2);
-    assert.ok(p.win.document.querySelector('[data-pt-derived="0"]'), 'the first is still on the page');
-    assert.ok(p.win.document.querySelector('[data-pt-derived="1"]'));
+    const second = linkBox(p).value;
+    assert.equal(p.derived().length, 2, 'two tickets were minted');
+    assert.notEqual(first, second, 'and the second is its own link, not the first again');
   });
 });
 
 /* ============================================================ */
-describe('f127c — a link the reader has not copied yet must not vanish', () => {
-  test('it survives the footer being rebuilt', async () => {
-    /* This footer is rewritten every time a decision is held. Written into the
-       DOM once, the link would disappear the moment the reader answered the
-       next change — which is exactly when they would be doing both. */
+describe('f127c — shown once, and the once is protected', () => {
+  test('the dialog says out loud that this is the only sight of it', async () => {
+    /* The panel used to be a promise that the link could be found again. It
+       cannot now, so the screen has to say so rather than let a reader close
+       it expecting otherwise. */
     const p = open_();
     await p.click('pt-derive');
-    foot(p).innerHTML = p.win.portalNegoFootHtml({ org: 'Wanjiru Catering Ltd' });
-    assert.ok(p.win.document.querySelector('[data-pt-derived="0"]'),
-      'the held list is what the footer draws from, not a one-time write');
+    assert.match(dlg(p).textContent, /only time it is shown/i);
   });
 
-  test('it is remembered, so a closed tab does not lose it', async () => {
-    /* A REAL ORIGIN. The stage runs on an opaque one by default — where
-       localStorage throws, which is the counterparty's own situation and what
-       the save path is written to survive — so a test that wants to prove
-       something WAS written has to ask for a real one (see portalworld). */
-    const p = open_({}, 'Nordfrakt insurers', { url: 'https://hati.test/' });
+  test('a stray click on the backdrop does not throw the link away', async () => {
+    /* confirmDialog dismisses on a backdrop click, which is right for a
+       question and wrong for the one and only sight of a live ticket. */
+    const p = open_();
     await p.click('pt-derive');
-    assert.ok(p.win.localStorage.getItem('hati.negoHeld.tok_parent'), 'something was written');
-    p.win.portalLoadHeld();   // as a fresh tab would
-    assert.equal(p.win.portalDerivedLinks().length, 1);
-    assert.equal(p.win.portalDerivedLinks()[0].link, 'https://hati.test/#s=t:tok_child1');
+    const ov = dlg(p);
+    ov.firstElementChild.dispatchEvent(new p.win.Event('click', { bubbles: true }));
+    assert.ok(dlg(p), 'still open');
+    assert.equal(linkBox(p).value, 'https://hati.test/#s=t:tok_child1');
   });
 
-  test('and sending your decisions does not throw it away', async () => {
-    /* portalDropHeld clears the answers that have just gone. A derived link is
-       not a draft — it is a live ticket on the server — and losing the only
-       record of one to an unrelated send leaves the reader holding nothing to
-       give anybody. */
+  test('Done closes it, and nothing of it is left on the page', async () => {
+    const p = open_();
+    await p.click('pt-derive');
+    p.win.document.getElementById('pt-derive-done').click();
+    assert.equal(dlg(p), null, 'the dialog is gone');
+    assert.equal(p.win.document.getElementById('pt-derive-out'), null,
+      'and no panel took its place');
+  });
+
+  test('NOTHING ABOUT IT IS KEPT IN THIS BROWSER', async () => {
+    /* The list used to be written to localStorage so the panel could survive a
+       reload. With the panel gone that store has no reader, and state nothing
+       reads but every save writes is how a page rots. The durable record is
+       the OWNER's share panel, which lists and revokes every child link. */
     const p = open_({}, 'Nordfrakt insurers', { url: 'https://hati.test/' });
     await p.click('pt-derive');
-    p.win.portalDropHeld();
-    p.win.portalLoadHeld();   // as a fresh tab would
-    assert.equal(p.win.portalDerivedLinks().length, 1, 'the ticket outlives the draft');
+    const raw = p.win.localStorage.getItem('hati.negoHeld.tok_parent');
+    assert.doesNotMatch(String(raw || ''), /tok_child1/,
+      'the minted link is not squirrelled away in the reader\'s browser');
   });
 });
 
@@ -190,11 +223,11 @@ describe('f127d — what it says, and what it does when it fails', () => {
        the sender would be a reader misled by our silence. */
     const p = open_();
     await p.click('pt-derive');
-    const html = foot(p).innerHTML;
-    assert.match(html, /cannot accept, reject, propose wording or sign/,
+    const said = dlg(p).textContent.replace(/\s+/g, ' ');
+    assert.match(said, /cannot accept, reject, propose wording or sign/,
       'what the holder may NOT do');
-    assert.match(html, /Access ends/, 'that it expires');
-    assert.match(html, /sender can see .* and can withdraw/,
+    assert.match(said, /Access ends/, 'that it expires');
+    assert.match(said, /can see it and can withdraw it/,
       'and that the sender sees it and can revoke it');
   });
 
@@ -207,7 +240,7 @@ describe('f127d — what it says, and what it does when it fails', () => {
     p.win.api = async () => { throw new Error('This share link is no longer active'); };
     await p.click('pt-derive');
     assert.match(p.toastText(), /no longer active/);
-    assert.equal(p.win.portalDerivedLinks().length, 0, 'and nothing is claimed to exist');
+    assert.equal(dlg(p), null, 'and nothing is claimed to exist');
     const btn = p.win.document.getElementById('pt-derive');
     assert.ok(btn && !btn.disabled, 'the door is open again');
     assert.doesNotMatch(btn.textContent, /Creating/);
@@ -217,7 +250,7 @@ describe('f127d — what it says, and what it does when it fails', () => {
     const p = open_();
     p.win.api = async () => ({ ok: true });
     await p.click('pt-derive');
-    assert.equal(p.win.portalDerivedLinks().length, 0);
+    assert.equal(dlg(p), null, 'no dialog over a link that does not exist');
     assert.match(p.toastText(), /Could not create|could not be created/i);
   });
 });

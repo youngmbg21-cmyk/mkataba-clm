@@ -1033,17 +1033,14 @@ let PORTAL_NEGO_PROPOSED_SENT = {};
    Stage 8 and nothing in any page ever called it: the route was proven by
    f123 and unreachable by a human. This is the door.
 
-   Held as a LIST, and remembered with the rest of the held state, because a
-   minted link the reader has not copied yet must survive the repaint that
-   answering a change causes — and a link they cannot recover is one they mint
-   again, leaving two live tickets in the owner's panel where they wanted one. */
-let PORTAL_DERIVED = [];
-/* Read-only, and a COPY. `let` at the top of this module is a lexical binding,
-   not a property of window — so a caller (or a test) that assigned to
-   window.PORTAL_DERIVED would be writing to a name nothing in here reads, the
-   same trap the stage documents for canEdit. Handing out the list by function
-   is the only honest way to let anything else see it. */
-function portalDerivedLinks(){ return PORTAL_DERIVED.slice(); }
+   NOTHING ABOUT IT IS HELD ON THIS PAGE ANY MORE (12 Aug 2026). A minted link
+   used to be kept in a list and drawn under the verbs, so it could survive the
+   repaint that answering a change causes. The panel was removed at the owner's
+   ask, and the list went with it rather than lingering as state nothing reads
+   and every save writes: the link is handed over once, in a dialog, at the
+   moment it is minted — see openDerivedLinkDialog. The durable record of who
+   holds what was never here anyway; it is the owner's own share panel, which
+   lists every child link and can revoke any of them. */
 /* Exactly the route's own conditions, read on this side so the button is
    absent rather than refused. A view link cannot delegate (privilege
    laundering) and a signing link's holder was asked to sign, not to
@@ -1126,19 +1123,15 @@ function portalSaveHeld(){
   try{
     const any=Object.keys(PORTAL_NEGO_DECISIONS).length
       || Object.keys(PORTAL_NEGO_WITHDRAWN).length
-      || Object.keys(PORTAL_NEGO_PROPOSED).length
-      /* A minted read-only link counts as something held. Left out of this
-         test, a reader who derived a link and had answered nothing would have
-         the whole blob deleted on the next save and lose it. */
-      || PORTAL_DERIVED.length;
+      || Object.keys(PORTAL_NEGO_PROPOSED).length;
     if(!any){ localStorage.removeItem(PORTAL_HELD_KEY(t)); return; }
     localStorage.setItem(PORTAL_HELD_KEY(t), JSON.stringify({ v:1, at:Date.now(),
       decisions:PORTAL_NEGO_DECISIONS, withdrawn:PORTAL_NEGO_WITHDRAWN,
-      proposed:PORTAL_NEGO_PROPOSED, derived:PORTAL_DERIVED }));
+      proposed:PORTAL_NEGO_PROPOSED }));
   }catch(e){ /* a browser that will not remember is not a reason to stop */ }
 }
 function portalLoadHeld(){
-  PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={}; PORTAL_DERIVED=[];
+  PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
   const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
   try{
     const raw=localStorage.getItem(PORTAL_HELD_KEY(t)); if(!raw) return;
@@ -1148,19 +1141,15 @@ function portalLoadHeld(){
     PORTAL_NEGO_DECISIONS=held.decisions&&typeof held.decisions==='object'?held.decisions:{};
     PORTAL_NEGO_WITHDRAWN=held.withdrawn&&typeof held.withdrawn==='object'?held.withdrawn:{};
     PORTAL_NEGO_PROPOSED=held.proposed&&typeof held.proposed==='object'?held.proposed:{};
-    PORTAL_DERIVED=Array.isArray(held.derived)?held.derived.filter(x=>x&&x.link):[];
-  }catch(e){ PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={}; PORTAL_DERIVED=[]; }
+    /* An older blob may still carry `derived` — ignored rather than migrated.
+       Those links are live on the server and listed in the owner's panel; the
+       copy this page kept was only ever for drawing a panel that is gone. */
+  }catch(e){ PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={}; }
 }
 /* Sent, or overtaken by the record — either way it is no longer a draft. */
 function portalDropHeld(){
   const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
   try{ localStorage.removeItem(PORTAL_HELD_KEY(t)); }catch(e){}
-  /* A DERIVED LINK IS NOT A DRAFT. This clears the answers that have just been
-     sent; the read-only copies this reader minted are live tickets on the
-     server either way, and losing the only record of one to an unrelated send
-     would leave them with a link they cannot give anybody. Written straight
-     back. */
-  if(PORTAL_DERIVED.length) portalSaveHeld();
 }
 
 /* Is this answer already somewhere other than this browser? Either it has been
@@ -1513,32 +1502,74 @@ function portalNegoFootHtml(p){
       style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
     <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px;color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">${i18t('po_decline')}</button>
     ${portalCanDerive()?`<button id="pt-derive" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px"
-      title="${i18t('po_mint_readonly')}">${i18t('po_share_readonly')}</button>`:''}
-    ${portalDerivedHtml()}`;
+      title="${i18t('po_mint_readonly')}">${i18t('po_share_readonly')}</button>`:''}`;
 }
-/* ---- WHAT THEY MINTED, KEPT ON THE PAGE ----
-   Rendered from the held list rather than written into the DOM once, because
-   this footer is rebuilt every time a decision is held — and a link that
-   vanished when the reader answered the next change is a link they never
-   copied. Says what the ticket IS in the same breath as handing it over: the
-   sender can see it and can revoke it. A reader who passes on a link believing
-   it private has been misled by our silence, not by anything they did. */
-function portalDerivedHtml(){
-  if(!PORTAL_DERIVED.length) return '';
-  return `<div id="pt-derive-out" style="flex-basis:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:10px 12px;margin-top:2px">
-    <div style="font-size:11.5px;font-weight:600;color:var(--color-text);margin-bottom:6px">${i18tn('po_readonly_copy',PORTAL_DERIVED.length)}</div>
-    ${PORTAL_DERIVED.map((d,i)=>`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-      <span style="font-size:11px;color:var(--color-neutral-700);flex:none">${esc(d.name||'Unnamed')}</span>
-      <input readonly value="${esc(d.link)}" data-pt-derived="${i}"
-        style="flex:1;min-width:180px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 7px;font-size:10px;font-family:var(--font-mono);color:var(--color-text);outline:none">
-      <button class="ui-btn" data-pt-derive-copy="${i}" style="flex:none;font-size:11px;padding:5px 10px">${i18t('po_copy')}</button>
-    </div>`).join('')}
-    <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">
-      Anyone with ${PORTAL_DERIVED.length===1?'this link':'these links'} can read the contract. They cannot accept, reject, propose wording or sign.
-      ${PORTAL_DERIVED.some(d=>d.expiresAt)?`Access ends ${esc(String(PORTAL_DERIVED.find(d=>d.expiresAt).expiresAt).slice(0,10))} at the latest, and sooner if your own link ends first. `:'Access ends when your own link does. '}
-      The sender can see ${PORTAL_DERIVED.length===1?'it':'them'} and can withdraw ${PORTAL_DERIVED.length===1?'it':'them'} at any time.
-    </div>
-  </div>`;
+/* ---- THE LINK IS HANDED OVER ONCE, AND THE PANEL IS GONE ----
+   (owner-asked, 12 Aug 2026: remove the box at the foot of the strip entirely.)
+
+   It used to be a standing list under the verbs — every copy this reader had
+   minted, each with its own Copy button — rebuilt on every repaint so that
+   answering a change could not make a link vanish before it was copied.
+
+   REMOVING THE LIST WITHOUT REPLACING IT WOULD HAVE BROKEN THE FEATURE, not
+   trimmed it: that panel was the ONLY place a minted link was ever displayed.
+   The route returns it, the list drew it, and the toast said "copy it below".
+   Delete the list alone and "Share a read-only copy" becomes a button that
+   creates real, live, owner-revocable access to the contract and shows the
+   person who pressed it nothing at all — silent access grants, which is worse
+   than the button not existing.
+
+   So the hand-over moved to the moment of minting: one dialog, the link
+   selected and ready to copy, and the same sentence the panel carried about
+   what the ticket IS. Once it is closed the link is not recoverable from this
+   page — deliberate, and said on the dialog in as many words, because a
+   promise that it can be found later is exactly what is no longer true. The
+   owner still sees every child link in their own share panel and can revoke
+   it, which is where the durable record always lived. */
+function openDerivedLinkDialog(d, org){
+  const link=String((d&&d.link)||'');
+  const who=String((d&&d.name)||'').trim();
+  const ov=document.createElement('div');
+  ov.id='pt-derive-dialog';
+  ov.style.cssText='position:fixed;inset:0;z-index:94;display:grid;place-items:center;padding:16px';
+  ov.innerHTML=`
+    <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
+    <div class="modal-in" role="dialog" aria-modal="true" aria-labelledby="pt-derive-t"
+      style="position:relative;width:100%;max-width:31rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:22px 24px">
+      <h3 id="pt-derive-t" style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0 0 4px;line-height:1.3">${i18t('po_readonly_created')}</h3>
+      <p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 14px">${
+        who?`For <b>${esc(who)}</b>. `:''}${i18t('po_readonly_copy_now')}</p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input readonly value="${esc(link)}" id="pt-derived-link"
+          style="flex:1;min-width:200px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 9px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none">
+        <button class="ui-btn" id="pt-derive-copy" style="flex:none;font-size:12px;padding:7px 13px">${i18t('po_copy')}</button>
+      </div>
+      ${''/* The panel's own sentence, kept whole. A reader who passes a link on
+             believing it private has been misled by our silence. */}
+      <p style="font-size:11px;color:var(--color-neutral-600);line-height:1.55;margin:0 0 16px">
+        Anyone with this link can read the contract. They cannot accept, reject, propose wording or sign.
+        ${d&&d.expiresAt?`Access ends ${esc(String(d.expiresAt).slice(0,10))} at the latest, and sooner if your own link ends first. `:'Access ends when your own link does. '}
+        ${esc(org||'The sender')} can see it and can withdraw it at any time.
+      </p>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="pt-derive-done" class="ui-btn" style="background:var(--color-accent);border-color:var(--color-accent);color:#fff">${i18t('po_done')}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const box=ov.querySelector('#pt-derived-link');
+  const close=()=>{ ov.remove(); document.removeEventListener('keydown',onKey); };
+  function onKey(e){ if(e.key==='Escape') close(); }
+  document.addEventListener('keydown',onKey);
+  ov.querySelector('#pt-derive-done').addEventListener('click',close);
+  ov.querySelector('#pt-derive-copy').addEventListener('click',async()=>{
+    box?.select?.();
+    try{ await navigator.clipboard.writeText(link); }catch(e){ try{ document.execCommand('copy'); }catch(_){} }
+    toast(i18t('po_readonly_copied'));
+  });
+  /* NOT dismissed by a click on the backdrop, unlike confirmDialog. This is
+     the one and only sight of the link; a stray click outside the card must
+     not be able to throw it away. */
+  try{ box?.focus(); box?.select?.(); }catch(_){}
 }
 /* A reply on one fingerprint, sent immediately. It is not a response — it
    changes no wording, opens no round and does not close the link — so it goes
@@ -1722,15 +1753,16 @@ async function portalDeriveView(c, p){
   try{
     const r=await api('shares/'+PORTAL_OPTS.token+'/derive-view','POST',{ name:String(name||'').slice(0,120) });
     if(!r||!r.link) throw new Error('The link could not be created');
-    PORTAL_DERIVED.push({ link:r.link, name:String(name||'').trim(), expiresAt:r.expiresAt||null });
-    portalSaveHeld();
-    toast(i18t('po_readonly_created'));
+    /* Straight into the reader's hands. The ticket is live on the server the
+       moment this returns, so the ONE screen that shows it opens before
+       anything else can repaint over it. */
+    openDerivedLinkDialog({ link:r.link, name:String(name||'').trim(), expiresAt:r.expiresAt||null },
+      (p&&p.org)||'The sender');
   }catch(e){
     toast(e.message||'Could not create a read-only link','err');
   }
-  /* Repaint from the held list either way: on success it draws the new link,
-     and on failure it puts the button back rather than leaving "Creating…"
-     standing over an act that did not happen. */
+  /* Put the button back either way — on failure especially, rather than
+     leaving "Creating…" standing over an act that did not happen. */
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
 }
@@ -3665,4 +3697,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,portalDerivedHtml,portalDerivedLinks,portalReadingBtnsHtml,portalReadyProxyHtml,portalSyncReadyProxy});
+Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalReadyProxyHtml,portalSyncReadyProxy});
