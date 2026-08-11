@@ -2788,35 +2788,27 @@ function renderKeyTerms(c){
   host.innerHTML=ktTermsRowsHtml(c,{editable:ktEditable});
   wireKtRows(c); wireKeyTerms(c);
 }
-function termsFromPlaybook(c){
-  const r=c&&c.playbook;
-  if(!r||!Array.isArray(r.verdicts)) return [];
-  return r.verdicts.filter(v=>v&&v.quote&&String(v.quote).trim())
-    .map(v=>({ label:String(v.category||'Term'), quote:String(v.quote).trim(), status:v.status||'' }));
-}
+/* ---- THE QUOTES WENT BACK WHERE THEY WERE FOUND (2026-08-11) ----
+   Key terms used to reprint, under "READ FROM THE DOCUMENT", the wording the
+   playbook review had quoted — governing law, the payment terms, the liability
+   cap, each with its sentence from the contract. Removed on request.
+
+   It was the same content twice. The review panel already prints every one of
+   those quotes, beside the standard it is being measured against and the
+   button that turns it into a redline; this copy had the quote and none of the
+   rest, so a reader who found it here still had to go to the panel to do
+   anything about it. And the two could drift: this list was drawn from
+   whatever review had last been run, while the panel is what that review
+   actually says.
+
+   WHAT STAYS IS THE ONE SENTENCE, and it is not a duplicate of anything: it
+   answers the question this panel raises by its own shape — why governing law
+   and the liability cap are not rows in it — and says where they are. Drawn
+   whether or not a review has been run, because the question is the same
+   either way. */
 function readTermsHtml(c){
-  const rows=termsFromPlaybook(c);
-  const H='font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)';
-  if(!rows.length) return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
-      <div style="${H};margin-bottom:5px">${i18t('ct_read_from_doc')}</div>
-      ${''/* ---- THE SENTENCE STAYS, THE BUTTON GOES ----
-             Removed (Young, 10 Aug 2026). The playbook review is a check on the
-             WORDING: it reads the clauses, pins its findings to them and opens
-             them in a panel over the document. All of that is on the Document
-             tab, in the Checks card, which is where it is run from. A second
-             door here took you to a different tab to see what it found — the
-             same duplication Find obligations was removed for, in the other
-             direction. What is left is the sentence, which is not a duplicate:
-             it explains why governing law and the liability cap are not rows in
-             this panel, and that is a question only this panel raises. */}
-      <p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">Governing law, the liability cap and the payment terms are in the wording, not in this panel. The playbook review on the <b>Document</b> tab reads them out and quotes the clause it found them in.</p>
-    </div>`;
   return `<div style="margin-top:13px;padding-top:11px;border-top:1px solid var(--color-divider)">
-      <div style="${H};margin-bottom:6px">${i18t('ct_read_from_doc')}</div>
-      ${rows.map(r=>`<div class="kt-read-row" title="${esc(r.quote)}">
-        <span class="kt-read-k">${esc(r.label)}</span>
-        <span class="kt-read-v">&ldquo;${esc(r.quote.slice(0,120))}${r.quote.length>120?'&hellip;':''}&rdquo;</span></div>`).join('')}
-      <p style="margin:7px 0 0;font-size:10.5px;color:var(--color-neutral-500)">${i18t('ct_quoted_from_clause')}</p>
+      <p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">${i18t('ct_terms_in_wording')}</p>
     </div>`;
 }
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----

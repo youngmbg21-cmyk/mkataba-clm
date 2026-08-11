@@ -169,9 +169,31 @@ function deviationSummary(c){
    So the status became a small coloured mark at the left, the category became
    the line you read, and everything else folds away until the row is opened.
    Nothing was dropped: the quoted wording, the preferred position and "apply
-   as a redline" are all inside the row, one click down, exactly as the Scan
-   card holds its own detail. */
-window.pbUI = window.pbUI || { expanded:new Set() };
+   as a redline" are all inside the row, exactly as the Scan card holds its own
+   detail.
+
+   BUT IT ARRIVES OPEN (changed 2026-08-11, asked for directly). The rows were
+   shut on arrival, so pressing "Playbook review" and waiting for it produced a
+   list of four headings and nothing you could act on — the quoted wording, the
+   standard it misses and "apply as a redline" were all one press further away,
+   four times over. You ran the review to read the findings; making you ask for
+   each one again is asking twice.
+
+   NOTE THE DELIBERATE ASYMMETRY WITH THE CHANGE CARDS, which are shut until
+   somebody opens them (see "A CARD IS SHUT UNTIL SOMEBODY OPENS IT"). That
+   rule exists because a busy round arrives as forty cards and a wall of open
+   ones is unreadable. A playbook review is a handful of findings a reader
+   opened a panel specifically to read, and it is the whole content of that
+   panel. The number, and whether the list is the destination or the index, is
+   what separates the two.
+
+   SO THE SET RECORDS WHAT IS SHUT, not what is open — the reader's exceptions
+   rather than the default. Keyed by contract AND category: the old key was the
+   row's INDEX, which is not a fact about anything, so row 2 folded on one
+   contract came back folded on the next contract's unrelated row 2. Held in
+   memory for the sitting, never persisted. */
+window.pbUI = window.pbUI || { shut:new Set() };
+const pbFoldKey = (c,v,i) => `${(c&&c.id)||'?'}::${String((v&&v.category)||i)}`;
 
 const PB_MARK = {
   aligned:   { bg:'var(--st-green-bg)', fg:'var(--st-green-fg)', glyph:'&#10003;', word:'matches Our standards' },
@@ -231,12 +253,12 @@ function renderPlaybookSection(c){
   const HEAD='font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin:0';
   const rowsHtml = r ? r.verdicts.map((v,i)=>{
     const m=PB_MARK[v.status]||PB_MARK.missing;
-    const id=`pbv-${i}`;
-    const open=pbUI.expanded.has(id);
+    const id=pbFoldKey(c,v,i);
+    const open=!pbUI.shut.has(id);
     const detail = (v.quote || (v.status!=='aligned'&&v.position) || (editable&&v.redline));
     return `
     <div style="border-top:1px solid var(--color-divider)">
-      <button ${detail?`data-pb-row="${id}"`:''} style="display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:9px 2px;${detail?'cursor:pointer':'cursor:default'}">
+      <button ${detail?`data-pb-row="${_pbEsc(id)}"`:''} style="display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;color:inherit;padding:9px 2px;${detail?'cursor:pointer':'cursor:default'}">
         <span aria-hidden="true" style="flex:none;margin-top:1px;width:17px;height:17px;border-radius:50%;background:${m.bg};color:${m.fg};display:grid;place-items:center;font-size:10px;font-weight:800;line-height:1">${m.glyph}</span>
         <span style="flex:1;min-width:0">
           <span style="display:block;font-size:12.5px;font-weight:600;color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
@@ -293,7 +315,7 @@ function renderPlaybookSection(c){
      card uses, and the reason the open set lives outside this function. */
   host.querySelectorAll('[data-pb-row]').forEach(b=>b.addEventListener('click',()=>{
     const id=b.getAttribute('data-pb-row');
-    pbUI.expanded.has(id)?pbUI.expanded.delete(id):pbUI.expanded.add(id);
+    pbUI.shut.has(id)?pbUI.shut.delete(id):pbUI.shut.add(id);
     renderPlaybookSection(c);
   }));
   host.querySelectorAll('[data-pb-jump]').forEach(b=>b.addEventListener('click',()=>{
@@ -510,4 +532,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); onPick(cl); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictLine,pbHeadPill,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
