@@ -319,10 +319,8 @@ function portalVerbStyle(){
    would rebuild the bulk being removed — and it was never the thing being
    clicked: each button's title says what it does, in the same words.
 
-   The buttons sit in the identity card beside the other reading controls (the
-   type stepper, focus), which is where a reader already looks for them, and
-   which means they now survive focus mode instead of folding away with the
-   banners — the same as every other control on that row.
+   The buttons sit in the identity card beside the type stepper, which is where
+   a reader already looks for them.
 
    portalCompareBar() stays for the older signing screen, whose header is a dark
    band rather than a card with a row to join. */
@@ -346,7 +344,6 @@ function portalVerbStyle(){
 function portalReadingBtnsHtml(){
   const hist=portalHasHistory();
   const cmp=portalHasCompare();
-  if(!cmp && !hist) return '';
   return `
     <span class="pw-id-read">
       ${hist?`<button id="pt-hist" class="ui-btn pt-verb pw-id-verb"
@@ -355,8 +352,57 @@ function portalReadingBtnsHtml(){
       ${cmp?`<button id="pt-compare" class="ui-btn pt-verb pw-id-verb"
         title="${i18t('po_two_versions_side')}">${
         icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
+      ${portalReadyProxyHtml()}
     </span>
     <span class="pw-id-rule" aria-hidden="true"></span>`;
+}
+/* ---- READY TO SIGN, WHERE THE READER IS ALREADY LOOKING ----
+   Asked for beside Compare wording (12 Aug 2026). It is the SAME act as the
+   strip's Ready to sign, reached from a second place — never a second path:
+   the click forwards to #pt-nego-ready and portalRespond runs exactly once,
+   carrying the held decisions with the signal as it always has.
+
+   WHICH MEANS THIS BUTTON MUST NEVER KNOW ANYTHING OF ITS OWN. The strip's
+   button is gated on negoAlignment — a reader with a refused ask still on the
+   table is not ready, and saying so over a contested point is the untruth that
+   gate exists to prevent. Recomputing that here would be two copies of one
+   sentence, free to disagree the day one of them is edited (the settings page
+   learned this the expensive way). So it renders SHUT and mirrors: whether it
+   exists at all, whether it is pressable, what it says and what its tooltip
+   explains are all copied off the real button by portalSyncReadyProxy. The
+   safe default is deliberate — if the mirror never ran, this button would be
+   absent rather than a live door onto a refusal.
+
+   It is NOT added to portalCompareBar, the page's other builder of these
+   verbs, and that is a decision rather than an oversight: that bar renders on
+   the SIGNING screen, where readiness is already spent and the reader's verb
+   is Sign. There is no #pt-nego-ready live on that screen to mirror — the
+   agreed-banner layout keeps its strip hidden behind "Review what changed" —
+   so the button would have had nothing to press. Its absence there is the
+   same rule as here, applied to a seat that has moved past this question. */
+function portalReadyProxyHtml(){
+  return `<button type="button" id="pt-ready-top" class="ui-btn pt-verb pw-id-verb pt-ready-top" hidden
+    title="Ready to sign">${''/* check2, not check — icon() answers ICONS[n]||'' and
+      a mistyped name draws an EMPTY svg rather than failing, so the button
+      would have shipped iconless beside two verbs that have one. */
+    }${icon('check2','w-3.5 h-3.5',2)}<span class="pt-ready-top-lbl">Ready to sign</span></button>`;
+}
+/* The mirror. Called from wirePortalNegoFoot — the one funnel every refill of
+   the strip already goes through, so a future third refill site inherits this
+   without knowing it exists. */
+function portalSyncReadyProxy(){
+  const top=document.getElementById('pt-ready-top');
+  if(!top) return;
+  const real=document.getElementById('pt-nego-ready');
+  /* No readiness verb on the strip — a read-only, superseded, executed or
+     already-answered link — so there is none up here either. */
+  if(!real){ top.hidden=true; return; }
+  top.hidden=false;
+  top.disabled=!!real.disabled;
+  top.title=real.title||'Ready to sign';
+  const lbl=top.querySelector('.pt-ready-top-lbl');
+  const said=(real.textContent||'').replace(/\s+/g,' ').trim();
+  if(lbl && said) lbl.textContent=said;
 }
 /* ---- THE SAME HISTORY THE OWNER READS, ON THEIR SIDE OF THE GLASS ----
    openHistoryTimeline is the owner's screen and it is mounted here unchanged:
@@ -496,7 +542,12 @@ const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-declin
      press that left THESE live while the request was in flight would look like
      nothing had happened — the exact invitation to press twice this list
      exists to remove. */
-  'nego-cp-ready','nego-cp-decline','nego-send-decisions'];
+  'nego-cp-ready','nego-cp-decline','nego-send-decisions',
+  /* The header's Ready to sign. It forwards to #pt-nego-ready, which a
+     disabled button would swallow anyway — but a door that still LOOKS live
+     while the request is in flight is the second and third press this list
+     exists to remove, and both doors onto one act must dim together. */
+  'pt-ready-top'];
 function portalActionButtons(){
   return PORTAL_ACTIONS.map(id=>document.getElementById(id)).filter(Boolean);
 }
@@ -1709,6 +1760,11 @@ function wirePortalNegoFoot(c, p){
     if(!String(reason).trim()){ toast(i18t('po_reason_required'),'err'); return; }
     portalRespond(p,'decline',{ comment:String(reason).trim() });
   });
+  /* The header's Ready to sign copies its whole state off the button wired
+     just above. Here rather than at the three call sites, so the mirror is
+     part of "the strip was refilled" rather than something each caller has to
+     remember — the funnel rule, applied to a two-line function. */
+  portalSyncReadyProxy();
 }
 /* The negotiation room is RETIRED. Both sides of the table use the one
    workbench now — see wirePortalNego — and the code that opened the room from
@@ -2149,12 +2205,19 @@ function portalWorkbenchStyle(){
     /* Verbs on the left of it, reading controls on the right. Without this the
        row is one undifferentiated run of pills. */
     .pw-id-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px;}
-    .pt-focus-btn{width:32px;height:32px;flex:none;display:inline-grid;place-items:center;
-      background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;
-      cursor:pointer;color:var(--color-neutral-700);transition:background .12s,border-color .12s;}
-    .pt-focus-btn:hover{background:var(--color-neutral-100);}
-    .pt-focus-btn.on{background:var(--color-accent-800,#115e59);border-color:var(--color-accent-800,#115e59);color:#fff;}
-    .pw-page.pw-focus .pw-notes{display:none;}
+    /* THE HIDE HAS TO BEAT .ui-btn, AND [hidden] ALONE DOES NOT. index.html's
+       .ui-btn sets a display, and an author rule beats the browser's own
+       [hidden]{display:none} every time. MEASURED, not reasoned: with this
+       rule deleted, Chromium reports display:flex on a button carrying the
+       attribute — it stays on screen, on exactly the links that have no
+       readiness to signal, which is the "a button that always fails is worse
+       than no button" fault portalCanDerive exists to avoid. jsdom cannot see
+       any of this (it resolves no class rules at all and reports the UA
+       inline-block), so the proof lives in ready-proxy-verify, not in f181.
+       Specificity alone would win today; !important is what keeps it winning
+       wherever this sheet happens to land, which is the lesson portalVerbStyle
+       paid for one bug earlier. */
+    .ui-btn.pt-ready-top[hidden]{display:none!important;}
     .pw-id .nego-who .lbl{font-size:11px;font-weight:600;color:var(--color-neutral-700);
       font-family:var(--font-mono);}
     .pw-id .nego-who input{min-height:32px;min-width:180px;border:1px solid var(--color-divider);
@@ -2196,10 +2259,10 @@ function portalWorkbenchStyle(){
          work order asks, instead of inheriting the desktop grid. */
       .pw-page{height:auto;overflow:visible;}
       .pw-mount{min-height:70vh;}
-      /* The identity row now carries the two reading buttons as well as the
-         stepper, the focus button and the name box. On a desktop that fits on
-         one line; on a phone it must be allowed to fall onto a second rather
-         than squeeze the contract's name to nothing. */
+      /* The identity row now carries the two reading buttons and Ready to sign
+         as well as the stepper and the name box. On a desktop that fits on one
+         line; on a phone it must be allowed to fall onto a second rather than
+         squeeze the contract's name to nothing. */
       .pw-id{flex-wrap:wrap;}
       .pw-id .nego-who{margin-left:0;}
       /* A group separator means nothing once the groups have wrapped onto
@@ -2255,21 +2318,17 @@ function renderShareWorkbench(p, opts={}){
              Filled ONLY from the share's named recipient, never from the
              counterparty ORGANISATION — see negoNameFieldHtml. An empty box
              asks the question; a wrong one answers it. */}
-      ${''/* Negotiation history and Compare wording — the two reading verbs,
-             on the row with the other reading controls rather than in a card
-             of their own below. See portalReadingBtnsHtml. */}
+      ${''/* Negotiation history, Compare wording and Ready to sign — the two
+             reading verbs and the one deal verb that earns a place beside
+             them, on the row with the other reading controls rather than in
+             a card of their own below. See portalReadingBtnsHtml. */}
       ${portalReadingBtnsHtml()}
-      ${''/* The same reading controls the owner's bench carries — the
+      ${''/* The same reading control the owner's bench carries — the
              counterparty is the customer, and squinting at 11px wording is
              not a seat-relative fact. The stepper is the shared component
              (rlSetDocType updates every mounted .redline-page, this embed
-             included); focus folds the banners away and gives the room to
-             the document, exiting through the same button. */}
+             included). */}
       ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
-      <button type="button" id="pt-focus" class="pt-focus-btn" aria-pressed="false"
-        title="${i18t('po_focus_hide_banners')}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-      </button>
       ${window.negoNameFieldHtml
         ? negoNameFieldHtml({ recipientName:(opts.share&&opts.share.recipientName)||'' }) : ''}
     </section>
@@ -2292,9 +2351,8 @@ function renderShareWorkbench(p, opts={}){
     </div>
     <div class="pw-mount"><div id="pt-nego"></div></div>
   </div>`;
-  /* The reading controls: the stepper presses the shared rlSetDocType (which
-     updates every mounted workbench root, this embed included), and focus is
-     a class flip on the page — the banners fold, the button stays. */
+  /* The reading control: the stepper presses the shared rlSetDocType, which
+     updates every mounted workbench root, this embed included. */
   if(window.rlWireTypeStep) rlWireTypeStep(root);
   /* The reading bar's own controls. They are rendered by portalCompareBar into
      this screen as well as the signing one, and were only ever WIRED on the
@@ -2303,12 +2361,15 @@ function renderShareWorkbench(p, opts={}){
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
   portalWireRevisedBanner(p);
-  document.getElementById('pt-focus')?.addEventListener('click',()=>{
-    const pg=document.getElementById('pw-page'); if(!pg) return;
-    const on=pg.classList.toggle('pw-focus');
-    const b=document.getElementById('pt-focus');
-    if(b){ b.classList.toggle('on',on); b.setAttribute('aria-pressed',on?'true':'false');
-      b.title=on?'Exit focus — bring the banners back':'Focus — hide the banners and give the room to the document'; }
+  /* ---- THE HEADER'S READY TO SIGN IS A DOOR, NOT A SECOND VERB ----
+     It presses the strip's own #pt-nego-ready and does nothing else. Exactly
+     the card Send's shape (data-rl-send onto #nego-send-decisions): one act,
+     two doors, never a second transport — so the readiness signal, the
+     decisions that ride with it and every refusal on the way stay in the one
+     path portalRespond already owns. What this button KNOWS is only what the
+     real one tells it; see portalSyncReadyProxy. */
+  document.getElementById('pt-ready-top')?.addEventListener('click',()=>{
+    document.getElementById('pt-nego-ready')?.click();
   });
   /* The shared component, wired exactly as the old page wired it. Same
      function, same options — this changes the room the workbench stands in,
@@ -3604,4 +3665,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,portalDerivedHtml,portalDerivedLinks});
+Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,portalDerivedHtml,portalDerivedLinks,portalReadingBtnsHtml,portalReadyProxyHtml,portalSyncReadyProxy});

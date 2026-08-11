@@ -53,7 +53,6 @@ const M_PORTAL_CSS = `
   .pw-id .nego-who input{ min-width:0!important; width:100%; font-size:16px!important; min-height:44px!important; }
   .pw-id-rule{ display:none!important; }
   .ui-btn.pw-id-verb{ flex:1 1 auto!important; min-height:44px!important; font-size:14px!important; }
-  .pt-focus-btn{ display:none!important; }
 
   /* ---- the panes ---- */
   .pw-mount{ min-height:0!important; }
