@@ -103,7 +103,14 @@ const check = (name, pass, detail) => {
        somewhere on that template's own page to print. This is the check that
        catches the next one rather than this one. */
     const orphans = await page.evaluate(() => {
-      const ESSENTIAL = new Set(['counterparty', 'value', 'effDate', 'expiry']);
+      /* The contract-record facts. They are exempt from the data-field rule
+         because they print through their own mechanisms — the counterparty and
+         the value through data-sync inputs, the dates through docTermSpan — not
+         because they are allowed to go unprinted. `party` (added 11 Aug 2026,
+         our own entity on the agreement) is the same kind of fact and prints
+         the same way: in the recital and in the paper's "Between A and B". The
+         check straight after this one proves it, so the exemption is not a hole. */
+      const ESSENTIAL = new Set(['party', 'counterparty', 'value', 'effDate', 'expiry']);
       const out = [];
       Object.keys(window.TEMPLATES).forEach(id => {
         const c = { id: 'X', template: id, status: 'Draft', fields: {}, counterparty: 'Acme Ltd',
@@ -119,6 +126,30 @@ const check = (name, pass, detail) => {
     });
     check('every question a template asks has somewhere on its own page to print',
       orphans.length === 0, orphans.join(', ') || 'all twelve clean');
+
+    /* ---- AND THE PARTY IS THE CONTRACT'S, NOT THE WORKSPACE'S ----
+       Reported by the owner (11 Aug 2026): a group holds more than one legal
+       entity, so the paper must name the one that is actually contracting
+       rather than the account the drafter happens to be signed into. Walked
+       across all twelve, because the recital is written out longhand twelve
+       times and a missed one would name the wrong company on a real agreement. */
+    const partyWalk = await page.evaluate(() => {
+      const bad = [];
+      Object.keys(window.TEMPLATES).forEach(id => {
+        const mk = over => ({ id: 'X', template: id, status: 'Draft', fields: {},
+          counterparty: 'Acme Ltd', value: 0, metadata: {}, audit: [], comments: [],
+          signatures: [], ...over });
+        const named = window.docBody(mk({ party: 'West Electronics Retail Ltd' }));
+        if (!named.includes('West Electronics Retail Ltd')) bad.push(`${id}: ignores the party`);
+        if (named.includes(window.FIRST_PARTY)) bad.push(`${id}: still names the workspace`);
+        /* And an unanswered party still reads exactly as it always did. */
+        const silent = window.docBody(mk({}));
+        if (!silent.includes(window.FIRST_PARTY)) bad.push(`${id}: falls back to nothing`);
+      });
+      return bad;
+    });
+    check('all twelve name the contract\'s own party, and fall back to the workspace when it is not set',
+      partyWalk.length === 0, partyWalk.join(', ') || 'all twelve clean');
 
     /* The wizard is where it was reported — read the form, not the schema. */
     await page.evaluate(() => { closeModal && closeModal(); openWizard(); });

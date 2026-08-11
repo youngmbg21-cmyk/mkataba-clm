@@ -9,7 +9,7 @@
    owner sees the child in the share list and can revoke it like any link. */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace } = require('./helpers');
+const { startHati, seedWorkspace, nameASigner } = require('./helpers');
 
 describe('f123 — derived view links', () => {
   let h, W, parent;
@@ -47,6 +47,10 @@ describe('f123 — derived view links', () => {
     const child = await anon.json('/api/shares/' + parent.token + '/derive-view', { method: 'POST', body: {} });
     const laundering = await anon.raw('/api/shares/' + child.token + '/derive-view', { method: 'POST', body: {} });
     assert.equal(laundering.status, 403, 'privilege laundering: view minting view');
+    /* A Sign link needs a signing route to exist at all now — naming the
+       signers is what opens signing (11 Aug 2026). This test is about what a
+       signing token may DERIVE, so the route is only scaffolding for it. */
+    await nameASigner(W.admin, 'MK-A2', { name: 'MD', email: 'md@n.se' });
     const sign = await W.admin.json('/api/shares', { method: 'POST', body: {
       payload: { ...payload(), purpose: 'sign', purposeChosen: 'sign' }, channel: 'link',
       recipient: { name: 'MD', email: 'md@n.se' }, purpose: 'sign' } });

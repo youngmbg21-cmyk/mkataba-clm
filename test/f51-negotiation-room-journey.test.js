@@ -1135,6 +1135,11 @@ describe('the response route, against the real server', () => {
     W = await seedWorkspace(h);
     for (const id of ['MK-J1', 'MK-J2', 'MK-J3', 'MK-J4']) {
       const c = fixtureContract(id, 'Supply Agreement', 'Nordkust Industri AB', FOLDER_A, 4800000, 'Under Review');
+      /* A signing route, because since 11 Aug 2026 a Sign link cannot be issued
+         without one: naming the signers is what starts signing. The tests below
+         are about SUPERSESSION, not about the route, so it is set once here. */
+      c.signerPlan = [{ id: 'sg-' + id, party: 'counterparty', order: 1,
+        name: 'Erik Lindqvist', email: 'erik@nordkust.se', signed: false }];
       await W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
     }
   });

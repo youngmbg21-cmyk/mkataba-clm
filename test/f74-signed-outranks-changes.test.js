@@ -25,7 +25,7 @@
 */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace, FOLDER_A, Client } = require('./helpers');
+const { startHati, seedWorkspace, FOLDER_A, Client, nameASigner } = require('./helpers');
 
 describe('F74 — the dashboard reads the negotiation the room actually writes', () => {
   let h, W;
@@ -110,6 +110,11 @@ describe('F74 — the dashboard reads the negotiation the room actually writes',
   test('and where a link really was signed through, that is what shows', async () => {
     const c = contract('MK-R6', [change('CHG-001', 'pending')]);
     await answeredInTheRoom(c);
+    /* Signing has to have been STARTED before a signing link exists or a
+       signature is accepted (11 Aug 2026). This test is about a signature
+       outranking every other thing a link can say, so the route is the
+       precondition rather than the subject. */
+    await nameASigner(W.admin, c.id, { name: 'Erik Lindqvist', email: 'erik@nordfrakt.se' });
     const s2 = await W.admin.json('/api/shares', { method: 'POST', body: {
       payload: { ...payload(c), purpose: 'sign' }, contractId: c.id, durable: false, channel: 'email',
       recipient: { name: 'Erik Lindqvist', email: 'erik@nordfrakt.se' } } });

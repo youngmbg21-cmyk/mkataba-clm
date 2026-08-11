@@ -23,7 +23,7 @@
    Run: node test/chromium/phone-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, nameASigner } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -244,6 +244,11 @@ const PROBE = () => {
     };
     const list = await W.admin.json('/api/contracts');
     const stub = (list.rows || list.contracts || [])[0] || {};
+    /* Somebody has to be named to sign before a Sign link can be issued at all
+       (11 Aug 2026) — see signingRouteOpen. This block is about how the three
+       kinds of link RENDER on a phone, so the route is set once and the three
+       purposes are exercised exactly as before. */
+    await nameASigner(W.admin, stub.id, { name: 'Grace Njeri', email: 'grace@example.co.ke' });
     const full = (await W.admin.json('/api/contracts/' + stub.id)).contract || stub;
     for (const purpose of ['negotiate', 'sign', 'view']) {
       let token;

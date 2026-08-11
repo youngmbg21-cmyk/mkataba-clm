@@ -4938,6 +4938,35 @@ function signerRouteFor(contractId) {
   }
   return { contract: c, plan, signedRow: s => !!s.signed || responded.has(String(s.id)) };
 }
+/* ---- HAS SIGNING BEEN STARTED ON THIS CONTRACT? ----
+   The server's own reading of signingRouteOpen (js/approvals.js). Asked of the
+   STORED contract, never of the request, for the reason the review guards give
+   above: a page told a contract has no signers can simply not say so.
+
+   IT MUST NOT USE signerRouteFor, which returns null for an empty plan and is
+   otherwise about turns. The question here is narrower and blunter: is there a
+   row on this route for somebody on the other side. If there is not, no link
+   this server issues can carry a signature — see the two refusals that read it,
+   at POST /api/shares and at the respond route.
+
+   THE EXECUTED CASE IS NOT THIS FUNCTION'S BUSINESS. A signed contract still
+   goes out on a Sign link, as a copy; the respond route already refuses to
+   sign it again, in its own words, before this is ever consulted. */
+function signingRouteOpen(contractId) {
+  if (!contractId) return false;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return false;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return false; }
+  return (Array.isArray(c.signerPlan) ? c.signerPlan : [])
+    .some(s => s && s.party === 'counterparty');
+}
+const contractIsExecuted = contractId => {
+  if (!contractId) return false;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return false;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return false; }
+  return c.status === 'Signed' || !!c.hash || !!(c.execution && c.execution.at);
+};
 /* Is it this signer's moment? Order-based rather than a special internal/
    counterparty gate, so a mixed route (CEO → their MD → CFO → their FD) holds
    at every step, not only at the internal/counterparty boundary. */
@@ -5094,6 +5123,25 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      document it serves would supersede the wrong links. */
   const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
     : SHARE_PURPOSES.includes(purpose) ? purpose : null;
+  /* ---- A SIGNING LINK IS NOT ISSUED BEFORE SIGNING HAS BEEN STARTED ----
+     Owner's rule, 11 Aug 2026: naming the signers is what opens signing, and a
+     link issued before that must not be able to carry a signature. The share
+     dialog refuses this too and says so with the door to fix it beside the
+     message — but the dialog is not the only way a Sign link gets minted.
+     reshareToLastRecipient passes no purpose at all on two of its four callers,
+     so the purpose falls back to a reading of the change set, and on a contract
+     with nothing proposed that reading is 'sign'. This is the door none of
+     them can go round.
+
+     REFUSED, NOT DOWNGRADED to a review link. The sender asked for a signature;
+     quietly handing them something else would be a link that does not do what
+     the screen said, discovered a round later. An executed contract is exempt:
+     its copy still travels on a Sign link and there is nothing left to sign. */
+  if (purp === 'sign' && !signingRouteOpen(shareId) && !contractIsExecuted(shareId))
+    return res.status(409).json({
+      error: 'Nobody has been named to sign this contract, so a signing link cannot be issued. '
+        + 'Add the signers on the Signing tab — that is what starts the signing process — and send again.',
+      needsSigners: true });
   /* ---- THE SHARE BUTTON REACHES THE ROUTE (auto-bind) ----
      Only the route's own issued links used to carry the signer binding, so a
      contract sent through the ordinary Share dialog created an UNBOUND link —
@@ -6036,6 +6084,21 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
         + 'comments and an acceptance of the wording — but nothing can be signed on it. '
         + 'Ask the sender for a signing link.',
       purpose: 'negotiate' });
+  /* ---- AND NOTHING IS SIGNED BEFORE SIGNING WAS STARTED ----
+     The second wall the owner asked for (11 Aug 2026), and the one that has to
+     hold on its own: the mint refusal above stops NEW signerless signing links
+     being made, but every link issued before this rule existed is still out
+     there in somebody's inbox, and a route can be cleared after a link went.
+
+     Asked of the STORED contract, so it cannot be answered by the page holding
+     the link. The reason given is the reader's, not ours — they have done
+     nothing wrong and the fix is not theirs to make. */
+  if (r.action === 'sign' && !signingRouteOpen(s.contract_id))
+    return res.status(403).json({
+      error: 'This contract is for review only. Nobody has been named to sign it yet, so nothing '
+        + 'can be signed on this link. You can still read it, comment, propose changes or say you '
+        + 'are happy with the wording — and the sender will send a signing link when they are ready.',
+      reviewOnly: true });
   if (r.action === 'sign') {
     /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----
        A bound link signs one step of the route, in that step's turn. Out of

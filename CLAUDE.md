@@ -357,6 +357,49 @@ THREE PROPERTIES WORTH KEEPING: internal rows are DRAWN AND NOT PICKABLE (they s
 
 Tests: sign-links-verify (18, in the browser, and the wall is asserted with a raw POST). NOTE THE ORDER IN THAT FILE: issuing a signing link retires the negotiation links on the same contract, and that refusal fires before the purpose check — exercise the review link first or a working guard reports as broken.
 
+NAMING THE SIGNERS IS WHAT OPENS SIGNING (added 2026-08-11)
+
+Asked for directly, with the reasoning attached: "I do not want a contract signed without the owner knowing the process of signing has started, which will start by assigning signers. I also want this to act as the ability to give someone a contract to read [without] them in turn signing a contract that they were not supposed to sign." Asked whether to refuse at the point of SENDING or on the recipient's screen: "go with both."
+
+THIS REVERSES A DECISION MADE A WEEK EARLIER, and the old reasoning is worth keeping so nobody re-argues it by accident. shareSignerPickHtml used to say: "NO ROUTE IS NOT AN ERROR … refusing to send until somebody fills in a route would be a new wall in front of the commonest send there is." That is true and it was weighed. The wall is wanted.
+
+signingRouteOpen(c) IS THE ONE PREDICATE (js/approvals.js), and IT ASKS FOR A COUNTERPARTY ROW rather than for a non-empty route. That is the second half of the request: a signing link is a thing you send to the OTHER SIDE, and a route naming only our own people has not said who over there may sign — an unbound link on it would let whoever holds the URL sign as nobody in particular, which is exactly the reader who was never meant to sign. Signed rows still count: the question is whether a route was ever set, and a finished one is refused further along by the turn check and by "already executed", each in its own words.
+
+FOUR DOORS ASK IT, and each closes a different gap:
+- the share dialog's doSend — so the dead link is never made
+- POST /api/shares — because reshareToLastRecipient passes no purpose on two of its four callers, so the purpose falls back to a reading of the change set, and on a contract with nothing proposed that reading is 'sign'. The dialog is not the only door.
+- POST /api/shares/:token/respond — the wall that has to hold alone: every link issued before this rule is still in somebody's inbox, and a route can be cleared after a link went. Asked of the STORED contract, never of the request body.
+- the contract's own next step (wsNextAction) — it used to read "Approved — confirm intent-to-sign on the Signing tab, then sign" on a contract where all three of the above would have refused. Instructions a product will not honour are how a reader stops believing the rest of them.
+
+AN EXECUTED CONTRACT IS EXEMPT at the mint door: its copy still travels on a Sign link and there is nothing left to sign. ACCEPTING THE WORDING IS STILL ALLOWED on the counterparty's page — it executes nothing and it is the answer a review exists to collect.
+
+THE BLOCK IS DRESSED AS A PROMPT ONLY WHILE IT IS TRUE. Reported beside the screenshot: "it should be clear that action may be needed here … it is currently blending in the white background." Amber, with the alert glyph and the door drawn ui-btn-primary, whenever a Sign link has no route; back to the quiet grey the moment one exists, because a warning that is always on is furniture. The test measures the COLOUR against the dialog behind it rather than a class name.
+
+AND THREE SENTENCES THAT PROMISED SIGNING HAD TO GO WITH IT, because a page that refuses in one place and promises in another reads as broken rather than as strict: the share dialog's "One signature each side is assumed — us first, then them" (nothing was assuming it), the Signing tab's "No route set" paragraph, and the counterparty's green "Ready to sign" banner, which now says "Nothing outstanding between you" on that one state and keeps the fact it was actually carrying.
+
+WHO WE ARE ON THIS AGREEMENT IS NOT WHO WE ARE (added 2026-08-11)
+
+Reported in the same sitting: "when drafting a contract, you should have the option to state who the owner / party to the contract is along with the counterparty. Currently, the owner ends up being the person signed into the account, which is incorrect." And the reason, which settles the design: "even though I may work for West Electronics, within West Electronics there might be subdivisions of the business or different legal entities. Therefore the assumption should not be that the company is automatically the party to the contract."
+
+TWO FACTS THAT LOOKED LIKE ONE, and contractParty(c) in js/core.js is the line between them:
+
+- FIRST_PARTY is the WORKSPACE — the organisation whose seat you are in. It stays right for everything the PLATFORM says about itself: who sent a link (buildSharePayload's `org` and `sharedBy`), whose colleagues an internal note stays inside, which company the Copilot acts for, what the evidence pack was generated by.
+- c.party is the LEGAL ENTITY on THIS agreement. It is right for everything the DOCUMENT says: docPaperHeadHtml's "Between A and B", all twelve recitals, rlPaperFootHtml, signPartyBoxes on both its branches, the frozen execution record and canonicalDoc.
+
+THE RULE IS: does the DOCUMENT name us, or does the PLATFORM? Moving the second would rename the sender of every link, so signers-and-party-verify asserts both halves.
+
+AN UNANSWERED PARTY FALLS BACK TO THE WORKSPACE, so no contract that already exists reads differently — which is also why migrateContract has no repair here. What changed is that the assumption is now made OUT LOUD: the drafting form's field arrives prefilled with the workspace name and can be overtyped. A blank that silently became the workspace is the fault being fixed; a filled box somebody can see is the fix.
+
+ASKED IN FOUR PLACES, because there is no single funnel for creating a contract: TEMPLATE_BASE_FIELDS (the built-in wizard), CONTRACT_ESSENTIALS (the library routes), openTemplateFillModal's own form (a saved template with blanks), and the Key terms panel — which is the only door for an upload, a migrated record, or anything drafted before the question existed. It maps like any other fact (TPL_MAPS 'party' → applyTemplateValues), so a customer's own template can carry a "which of our companies" blank and have it land on the record; a template's own blank wins over the generic question.
+
+THE PHONE SHOWS IT READ-ONLY, above the counterparty, on the same rule the desktop panel follows: the two together are the sentence the paper opens with.
+
+AND THE ARROW UNDER A LABEL STANDS DOWN when it would repeat that label. "Counterparty * → Counterparty" has always been noise; adding "Our party → Our party" beside it made a pattern of it. Compared case-insensitively, because the map labels are translated and the two languages capitalise differently.
+
+Tests: signers-and-party-verify (32, in the browser, walking the model, the dialog, the server against raw POSTs, the counterparty's page and the party across every surface), plus a walk of all twelve templates in term-and-fields-verify. `party` is on that file's ESSENTIAL exemption list — it prints through the recital rather than as a data-field, exactly as the counterparty prints through data-sync — and the check immediately after it proves the printing, so the exemption is not a hole.
+
+AND EVERY TEST THAT ISSUES A SIGNING LINK NOW NEEDS A ROUTE. nameASigner(client, id) in test/helpers.js sets one counterparty row, which is what signingRouteOpen asks for. Eleven files were updated to call it; in each the route is scaffolding and the file's own subject is untouched. A test that starts failing with "Nobody has been named to sign this contract" is not broken — it is missing this line.
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.

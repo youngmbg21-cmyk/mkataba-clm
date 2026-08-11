@@ -17,7 +17,7 @@
    link — which is why W8 ships with W7 and never before it. */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace } = require('./helpers');
+const { startHati, seedWorkspace, nameASigner } = require('./helpers');
 
 describe('f118 — W8: the invited address, never a typed one', () => {
   let h, W;
@@ -32,7 +32,15 @@ describe('f118 — W8: the invited address, never a typed one', () => {
   const codeMails = async to => ((await W.admin.json('/api/outbox')).items || [])
     .filter(m => /signing code/i.test(m.subject || '') && (!to || m.to_addr === to));
 
-  before(async () => { h = await startHati(); W = await seedWorkspace(h); });
+  /* A signing route on the contract these links are issued against. Since
+     11 Aug 2026 naming the signers is what opens signing, and POST /api/shares
+     refuses a Sign link without one — see signingRouteOpen. This file is about
+     WHICH ADDRESS the code goes to, not about the route, so it is set once.
+     Deliberately a DIFFERENT address from INVITED: the whole subject here is
+     that the code follows the invitation on the share, and a route that
+     happened to match would hide it. */
+  before(async () => { h = await startHati(); W = await seedWorkspace(h);
+    await nameASigner(W.admin, 'MK-A2', { name: 'Their Board', email: 'board@nordfrakt.se' }); });
   after(async () => { await h.stop(); });
 
   test('the code is sent to the invited address, whatever the page types', async () => {

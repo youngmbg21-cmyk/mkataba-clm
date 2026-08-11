@@ -101,6 +101,15 @@ const negoSeenScope = (c, opts) => String((opts && opts.seenScope)
   || (c && c.id) || 'anon');
 
 const _ne = s => (window.esc ? esc(s) : String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
+/* OUR SIDE AS THE PAPER NAMES IT. Three places in this file print "between A
+   and B" — the printed history, the document pane's meta line and the ruled
+   signature foot — and all three are the DOCUMENT speaking, so all three take
+   the contract's own party rather than the workspace. Everything else here
+   that names us (who has not seen an answer, whose colleagues a note stays
+   inside, who will send a signing link) is the ORGANISATION and keeps
+   FIRST_PARTY. See contractParty in js/core.js for the line between them. */
+const _ngOurParty = c => (typeof window !== 'undefined' && window.contractParty)
+  ? contractParty(c) : ((typeof window !== 'undefined' && window.FIRST_PARTY) || '');
 /* ESCAPED FOR AN ATTRIBUTE, which _ne is not. The app's `esc` handles & < >
    and leaves quotes alone, which is right for text between tags and wrong the
    moment the value is a person's name inside title="…" — one apostrophe or
@@ -1454,7 +1463,7 @@ function negoHistoryExportHtml(c, report){
   @media print{ body{margin:10mm auto} }
 </style></head><body>
 <h1>Negotiation history — ${_ne(c.name || c.id)}</h1>
-<p class="sub">${_ne(c.id)} · between ${_ne((window.FIRST_PARTY) || 'the owner')} and ${_ne(c.counterparty || 'the counterparty')}
+<p class="sub">${_ne(c.id)} · between ${_ne(_ngOurParty(c) || 'the owner')} and ${_ne(c.counterparty || 'the counterparty')}
  · ${ev.length} events, oldest first · generated ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC by HaTi CLM</p>
 <div class="integrity">
   <b>${report.ok ? '✓ Record verified' : '✗ Integrity check FAILED'}</b> — ${_ne(report.detail)}<br>
@@ -1585,7 +1594,7 @@ function negoDocHtml(c, opts){
 
   const title = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name)
     || c.name || 'Contract';
-  const meta = [c.counterparty ? `Between ${(window.FIRST_PARTY || 'this workspace')} and ${c.counterparty}` : null,
+  const meta = [c.counterparty ? `Between ${(_ngOurParty(c) || 'this workspace')} and ${c.counterparty}` : null,
     c.id, baseline ? 'Baseline · the wording this round is measured against'
       : `Round ${negoRound(c)} · proposed redline`].filter(Boolean).join(' · ');
 
@@ -9357,13 +9366,13 @@ function redlineDocHtml(c, opts = {}){
    NOT A SIGNING SURFACE. Nothing here is clickable and nothing is stamped:
    signing is the Signing tab's job, with its own record and its own seal. This
    is the shape of the page — and it is drawn from the REAL parties, ours from
-   FIRST_PARTY and theirs from the contract, with a dash where a counterparty
+   the contract's own party and theirs from the contract, with a dash where a counterparty
    has not been named yet rather than an invented one.
 
    Shared, and deliberately so: the Document tab, the workbench, the
    counterparty's page and the phone all print the same foot. */
 function rlPaperFootHtml(c){
-  const us = String((typeof window !== 'undefined' && window.FIRST_PARTY) || '').trim();
+  const us = String(_ngOurParty(c) || '').trim();
   const them = String((c && c.counterparty) || '').trim();
   if (!us && !them) return '';
   const line = who => `<div class="rl-sigline">

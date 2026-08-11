@@ -1395,8 +1395,18 @@ function portalAgreedHtml(p){
       padding:14px 18px;margin:0 0 18px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
       <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--st-green-dot);color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:220px;line-height:1.5">
-        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${i18t('po_ready_to_sign')}</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} ${i18t('po_read_then_act')}</span>
+        ${''/* ---- IT DOES NOT SAY "READY TO SIGN" WHERE NOTHING CAN BE ----
+               Where nobody has been named to sign, the amber notice beside the
+               Sign button says so — and a green heading at the top of the same
+               page promising the opposite is the contradiction a reader
+               resolves by deciding the product is broken. The FACT this banner
+               carries is still true and still worth saying: there is nothing
+               outstanding between the two sides. Only the heading moves, and
+               only on the state where it would be a lie. */}
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:var(--st-green-fg)">${
+          (p&&p.signingOpen===false)?i18t('po_nothing_outstanding'):i18t('po_ready_to_sign')}</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} ${
+          (p&&p.signingOpen===false)?i18t('po_read_then_respond'):i18t('po_read_then_act')}</span>
       </span>
       ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">${i18t('po_review_what_changed')}</button>`:''}
     </div>
@@ -2543,6 +2553,26 @@ function renderSharePortal(p, opts={}){
                handlers and their behaviour — they move behind one line of
                plain English, and each is relabelled to describe the act rather
                than the mechanism. */}
+        ${''/* ---- FOR REVIEW ONLY, SAID BEFORE THE BUTTON RATHER THAN AFTER ----
+               Nobody on the sender's side has named who signs, so nothing here
+               can be signed (see signingRouteOpen; the server is the wall).
+
+               THE BUTTON STAYS AND STILL REFUSES IN WORDS. That is what the
+               owner asked for — "when you click the sign feature, the error
+               appears that this contract is for review only" — and it is the
+               right shape anyway: a reader who came here to sign needs to be
+               TOLD, and a button that has quietly vanished tells them nothing.
+               What this notice adds is that they learn it before typing their
+               name and their title into three boxes.
+
+               It says what still works, because almost everything does. "You
+               cannot sign" on its own reads as a broken page; "you cannot sign,
+               and here is everything you can do" reads as a stage of a
+               negotiation, which is what it is. */}
+        ${(p&&p.signingOpen===false)?`<div style="margin:0 0 12px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:10px 12px;">
+          <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--st-amber-fg);margin-bottom:5px">${icon('alert','w-3.5 h-3.5')} ${i18t('po_review_only')}</div>
+          <p style="margin:0;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${esc(i18t('po_no_signers_yet',{org:(p&&p.org)||'the sender'}))}</p>
+        </div>`:''}
         <div style="display:flex;flex-direction:column;gap:8px;">
           <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:13.5px;">${icon('finger','w-4 h-4')} ${i18t('po_sign_this_contract')}</button>
           <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
@@ -2703,6 +2733,15 @@ async function portalRespond(p, action, extra){
      signature; the sender said so when they made it. */
   if(action==='sign' && p && p.purpose==='negotiate'){
     toast(i18t('po_review_link_no_sign'),'err');
+    return;
+  }
+  /* AND THE SAME FOR A CONTRACT NOBODY HAS BEEN NAMED TO SIGN. The wall is the
+     server's (see the respond route); this is the sentence, said before the
+     request rather than after it. Only an explicit false refuses: a payload
+     built before this field existed carries nothing, and guessing on their
+     behalf would refuse signatures the sender fully intended. */
+  if(action==='sign' && p && p.signingOpen===false){
+    toast(i18t('po_no_signers_toast',{org:(p&&p.org)||'the sender'}),'err');
     return;
   }
   const name=portalResponderName(), title=fval('pt-title'), email=fval('pt-email');

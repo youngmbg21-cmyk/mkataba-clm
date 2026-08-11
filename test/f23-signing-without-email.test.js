@@ -20,7 +20,7 @@
    second server with one configured. */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace, fixtureContract, FOLDER_A } = require('./helpers');
+const { startHati, seedWorkspace, fixtureContract, FOLDER_A, nameASigner } = require('./helpers');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 
 const payloadFor = id => ({
@@ -42,6 +42,10 @@ describe('F23 — a server that cannot send codes', () => {
     await W.admin.json('/api/contracts/MK-SIGN', { method: 'PUT', body: {
       contract: fixtureContract('MK-SIGN', 'Supply Agreement', 'Nordkust Industri AB', FOLDER_A, 4800000, 'Under Review'),
       baseVersion: 0 } });
+    /* Somebody has to have been NAMED to sign before a signature is accepted at
+       all (11 Aug 2026). This file is about the verification CODE, not about
+       the route, so the route is set once as the precondition it now is. */
+    await nameASigner(W.admin, 'MK-SIGN', { name: 'Erik Lindqvist', email: 'erik@nordkust.se' });
     const made = await W.admin.json('/api/shares', { method: 'POST', body: {
       payload: payloadFor('MK-SIGN'), channel: 'email',
       recipient: { name: 'Erik Lindqvist', email: 'erik@nordkust.se' }, expiryDays: 30 } });
@@ -98,6 +102,7 @@ describe('F23 — a server that CAN send codes still demands one', () => {
     await W.admin.json('/api/contracts/MK-SIGN2', { method: 'PUT', body: {
       contract: fixtureContract('MK-SIGN2', 'Supply Agreement', 'Nordkust Industri AB', FOLDER_A, 4800000, 'Under Review'),
       baseVersion: 0 } });
+    await nameASigner(W.admin, 'MK-SIGN2', { name: 'Erik Lindqvist', email: 'erik@nordkust.se' });
     const made = await W.admin.json('/api/shares', { method: 'POST', body: {
       payload: payloadFor('MK-SIGN2'), channel: 'email',
       recipient: { name: 'Erik Lindqvist', email: 'erik@nordkust.se' }, expiryDays: 30 } });

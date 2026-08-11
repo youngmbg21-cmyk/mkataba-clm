@@ -1358,7 +1358,11 @@ function applyMetadata(c, m){
    this tab loads (see wireDocumentSync), so both screens draw one object. */
 function docPaperHeadHtml(c, opts={}){
   const market=(typeof jxName==='function')?jxName():'';
-  const us=String((typeof window!=='undefined'&&window.FIRST_PARTY)||'').trim();
+  /* OUR ENTITY ON THIS AGREEMENT, not the workspace — see contractParty in
+     js/core.js. This header is the document's own "Between A and B", so it is
+     the paper speaking, not the platform. */
+  const us=String((typeof window!=='undefined'&&window.contractParty)?contractParty(c)
+    :((typeof window!=='undefined'&&window.FIRST_PARTY)||'')).trim();
   const them=String((c&&c.counterparty)||'').trim();
   const between=(us&&them)?i18t('ct_between_parties',{us:esc(us),them:esc(them)}):'';
   return `<header class="rl-paper-head">
@@ -1561,7 +1565,7 @@ function uploadDocBody(c){
     <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
       ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${isExternallyExecuted(c)
         ? `This contract was <strong>${i18t('ct_executed_outside')}</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
-        : `${i18t('ct_received_from',{who:c.counterparty||i18t('ct_a_counterparty')})}${i18t('ct_on_their_paper')} <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
+        : `${i18t('ct_received_from',{who:c.counterparty||i18t('ct_a_counterparty')})}${i18t('ct_on_their_paper')} <strong>${OURS}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
     ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
@@ -1886,12 +1890,19 @@ function docBody(c){
   const LEASELAW = (typeof jxLeaseLaw==='function') ? jxLeaseLaw() : '';
   const ADJ  = (typeof jxAdjective==='function') ? jxAdjective() : 'Kenyan';
   const EG   = k => (typeof jxEg==='function') ? jxEg(k) : '';
+  /* ---- WHO WE ARE ON THIS PAPER ----
+     Every recital below used to name FIRST_PARTY, the WORKSPACE, so a group
+     drafting through one account named the holding company on every agreement
+     whichever of its entities was actually contracting. The drafter names the
+     party now (see contractParty in js/core.js); an unanswered one falls back
+     to the workspace, so nothing already drafted reads differently. */
+  const OURS = (typeof contractParty==='function') ? contractParty(c) : FIRST_PARTY;
 
   // Each builder returns { title, recital, clauses[] }. Clause 'c2' holds the
   // contract value for most types (NDA has no value; scanRules mirrors this).
   const BUILD = {
     RM:()=>({ title:'RAW MATERIAL SUPPLY AGREEMENT',
-      recital:`This Raw Material Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('material','e.g. refined sugar')} into the Buyer's production facilities in ${MKT}.`,
+      recital:`This Raw Material Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('material','e.g. refined sugar')} into the Buyer's production facilities in ${MKT}.`,
       clauses:[
         clause(1,'Supply & Specification',`The Supplier shall supply an estimated ${N('volume',5000)} metric tonnes per annum meeting the agreed specification${SB?` and the applicable ${SB} standard`:''}, delivered DDP to the Buyer's plant.`),
         clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT and invoices fall due within ${N('payDays',30)} days of receipt.`),
@@ -1899,7 +1910,7 @@ function docBody(c){
         clause(4,'Governing Law',LAWARB),
       ]}),
     PK:()=>({ title:'PACKAGING SUPPLY AGREEMENT',
-      recital:`This Packaging Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('packType','e.g. PET bottles & preforms')} and related packaging materials.`,
+      recital:`This Packaging Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('packType','e.g. PET bottles & preforms')} and related packaging materials.`,
       clauses:[
         clause(1,'Scope of Supply',`The Supplier shall manufacture and supply packaging to the Buyer's approved artwork and specification, against a rolling forecast, to the Buyer's plants in ${MKT}.`),
         clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, on agreed per-unit pricing, with invoices payable within ${N('payDays',30)} days of receipt. Any dedicated tooling is owned by the Buyer and listed in Annexure A.`),
@@ -1907,7 +1918,7 @@ function docBody(c){
         clause(4,'Intellectual Property & Governing Law',`All trademarks and artwork remain the Buyer's property. ${LAW}`),
       ]}),
     CM:()=>({ title:'CONTRACT MANUFACTURING & CO-PACKING AGREEMENT',
-      recital:`This Contract Manufacturing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Brand Owner") and ${CP} (the "Co-Packer") for the manufacture of ${T('product','e.g. powdered beverages')} to the Brand Owner's specification.`,
+      recital:`This Contract Manufacturing Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Brand Owner") and ${CP} (the "Co-Packer") for the manufacture of ${T('product','e.g. powdered beverages')} to the Brand Owner's specification.`,
       clauses:[
         clause(1,'Manufacturing Scope',`The Co-Packer shall manufacture, fill and pack the products to the Brand Owner's recipe and specification at its licensed facility. All formulations and recipes remain the exclusive property of the Brand Owner.`),
         clause(2,'Tolling Fee & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed as a per-unit conversion (tolling) fee, reconciled monthly against actual output and payable within ${N('payDays',30)} days of invoice.`),
@@ -1915,7 +1926,7 @@ function docBody(c){
         clause(4,'Liability & Governing Law',`The Co-Packer is liable for defects arising from its process, including recall costs. ${LAW}`),
       ]}),
     EQ:()=>({ title:'EQUIPMENT LEASE & MAINTENANCE AGREEMENT',
-      recital:`This Equipment Lease is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Lessee") and ${CP} (the "Lessor") for the lease of ${T('equipment','e.g. a PET filling line')} installed at the Lessee's plant.`,
+      recital:`This Equipment Lease is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Lessee") and ${CP} (the "Lessor") for the lease of ${T('equipment','e.g. a PET filling line')} installed at the Lessee's plant.`,
       clauses:[
         clause(1,'Equipment & Title',`The Lessor shall install and commission the equipment at the Lessee's premises. Title to the equipment remains with the Lessor at all times during the term.`),
         clause(2,'Lease Charges',`The Lessee shall pay a monthly lease charge of ${CUR} ${VAL}, in advance, exclusive of VAT.`),
@@ -1923,7 +1934,7 @@ function docBody(c){
         clause(4,'Term, Insurance & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',3)} years`}. The Lessee shall insure the equipment to full replacement value with the Lessor noted as loss payee. ${ADJ} law governs.`),
       ]}),
     WH:()=>({ title:'WAREHOUSING & COLD-CHAIN SERVICES AGREEMENT',
-      recital:`This Warehousing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Provider") for third-party storage and handling at ${T('site',EG('site'))}.`,
+      recital:`This Warehousing Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Client") and ${CP} (the "Provider") for third-party storage and handling at ${T('site',EG('site'))}.`,
       clauses:[
         clause(1,'Storage & Handling',`The Provider shall store up to ${N('pallets',1200)} pallet positions, including ${T('tempRange','e.g. 2–8°C chilled')} temperature-controlled space, with inventory managed on the Client's WMS.`),
         clause(2,'Service Charge',`The monthly service charge is ${CUR} ${VAL}, based on pallet positions and throughput, exclusive of VAT, and is payable within ${N('payDays',30)} days of invoice.`),
@@ -1931,7 +1942,7 @@ function docBody(c){
         clause(4,'Liability & Governing Law',`The Provider is liable for loss or damage to goods in its custody up to their stock value. ${LAW}`),
       ]}),
     FF:()=>({ title:'FREIGHT & DISTRIBUTION AGREEMENT',
-      recital:`This Freight & Distribution Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Principal") and ${CP} (the "Carrier") for the distribution of finished goods across ${T('region',EG('region'))}.`,
+      recital:`This Freight & Distribution Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Principal") and ${CP} (the "Carrier") for the distribution of finished goods across ${T('region',EG('region'))}.`,
       clauses:[
         clause(1,'Scope of Services',`The Carrier shall collect from the Principal's warehouse and deliver to the ${T('channel','e.g. distributors and modern trade')} within the agreed territory.`),
         clause(2,'Rates & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed against agreed per-drop and per-kilometre rates and reconciled monthly, with invoices payable within ${N('payDays',30)} days.`),
@@ -1939,7 +1950,7 @@ function docBody(c){
         clause(4,'Liability & Governing Law',`Liability for loss in transit is capped per consignment value. ${LAWARB}`),
       ]}),
     DA:()=>({ title:'DISTRIBUTOR AGREEMENT',
-      recital:`This Distributor Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Principal") and ${CP} (the "Distributor"), appointing the Distributor for the ${T('territory',EG('territory'))} territory.`,
+      recital:`This Distributor Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Principal") and ${CP} (the "Distributor"), appointing the Distributor for the ${T('territory',EG('territory'))} territory.`,
       clauses:[
         clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
         clause(2,'Targets & Contract Value',`The estimated annual purchase value is ${CUR} ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
@@ -1947,7 +1958,7 @@ function docBody(c){
         clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90)} days' written notice. ${ADJ} law governs.`),
       ]}),
     RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
-      recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
+      recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
       clauses:[
         clause(1,'Listing & Range',`The Retailer shall list the agreed SKUs across ${N('stores',40)} stores in the ${T('channel','e.g. modern trade')} channel, with planogram and shelf space per the trading terms in Annexure A.`),
         clause(2,'Trading Terms & Value',`The estimated annual supply value is ${CUR} ${VAL}, with a ${N('rebate',5)}% volume rebate and the agreed listing fees.`),
@@ -1955,7 +1966,7 @@ function docBody(c){
         clause(4,'Compliance & Governing Law',`Products shall comply with ${SB?`${SB} labelling and Legal Metrology requirements`:'applicable labelling and weights-and-measures requirements'}. ${LAW}`),
       ]}),
     MK:()=>({ title:'MARKETING & TRADE PROMOTION SERVICES AGREEMENT',
-      recital:`This Marketing Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Agency") for ${T('services','e.g. creative, media and activation')} services.`,
+      recital:`This Marketing Services Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Client") and ${CP} (the "Agency") for ${T('services','e.g. creative, media and activation')} services.`,
       clauses:[
         clause(1,'Scope of Services',`The Agency shall provide the services in accordance with approved campaign briefs and the Client's annual marketing calendar.`),
         clause(2,'Fees & Contract Value',`The annual retainer / working budget is ${CUR} ${VAL}, billed ${T('billing','e.g. monthly')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and third-party pass-through costs.`),
@@ -1963,7 +1974,7 @@ function docBody(c){
         clause(4,'IP, Confidentiality & Governing Law',`All work product and campaign intellectual property vest in the Client upon payment. ${LAW}`),
       ]}),
     ND:()=>({ title:'MUTUAL NON-DISCLOSURE AGREEMENT',
-      recital:`This Mutual Non-Disclosure Agreement is entered into on ${D('effDate')} between <strong>${FIRST_PARTY}</strong>, a company incorporated in ${INC}, and ${CP}, collectively the "Parties".`,
+      recital:`This Mutual Non-Disclosure Agreement is entered into on ${D('effDate')} between <strong>${OURS}</strong>, a company incorporated in ${INC}, and ${CP}, collectively the "Parties".`,
       clauses:[
         clause(1,'Purpose',`The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`),
         clause(2,'Confidential Information',`"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.`),
@@ -1971,7 +1982,7 @@ function docBody(c){
         clause(4,'Governing Law',`This Agreement is governed by the laws of ${INC}, and the Parties submit to the exclusive jurisdiction of ${FORUM}.`),
       ]}),
     LE:()=>({ title:'COMMERCIAL PROPERTY LEASE AGREEMENT',
-      recital:`This Lease is made on ${D('effDate')} between ${CP} (the "Landlord") and <strong>${FIRST_PARTY}</strong> (the "Tenant") in respect of commercial premises situated at ${T('premises',EG('premises'))}.`,
+      recital:`This Lease is made on ${D('effDate')} between ${CP} (the "Landlord") and <strong>${OURS}</strong> (the "Tenant") in respect of commercial premises situated at ${T('premises',EG('premises'))}.`,
       clauses:[
         clause(1,'Demised Premises',`The Landlord leases to the Tenant premises measuring ${N('sqm',420)} square metres, together with shared access to power, water and secure parking.`),
         clause(2,'Rent',`The Tenant shall pay monthly rent of ${CUR} ${VAL}, in advance on or before the 5th day of each month, exclusive of VAT${TAX?` at the prevailing ${TAX} rate`:''}.`),
@@ -1979,7 +1990,7 @@ function docBody(c){
         clause(4,'Governing Law',LEASELAW),
       ]}),
     PS:()=>({ title:'PROFESSIONAL SERVICES AGREEMENT',
-      recital:`This Professional Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Adviser") for ${T('services','e.g. statutory audit / legal advisory')} services.`,
+      recital:`This Professional Services Agreement is made on ${D('effDate')} between <strong>${OURS}</strong> (the "Client") and ${CP} (the "Adviser") for ${T('services','e.g. statutory audit / legal advisory')} services.`,
       clauses:[
         clause(1,'Scope of Engagement',`The Adviser shall provide the professional services described in the engagement letter / Annexure A with reasonable skill and care.`),
         clause(2,'Fees & Contract Value',`The fees for the engagement are ${CUR} ${VAL}, billed ${T('billing','e.g. on milestones')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and disbursements.`),
@@ -2273,6 +2284,16 @@ function wsNextAction(c){
      Returning null instead would have been the smaller edit and the wrong one:
      the line would fall back to "All key terms are set", which is true, useless
      and says nothing about the signature that is actually outstanding. */
+  /* ---- AND BEFORE ANY OF THAT, SOMEBODY HAS TO BE NAMED TO SIGN ----
+     Naming the signers is what opens signing (11 Aug 2026), so on a contract
+     with no route the next step is naming them — not confirming an intent to
+     sign that nothing would accept. This branch sits above the two below
+     because it is genuinely earlier: without it the page told a reader to go
+     to the Signing tab and sign, on a contract where the Sign button, the
+     share dialog and the server would all have refused. */
+  if(window.signingRouteOpen && !signingRouteOpen(c))
+    return { get label(){ return i18t('ct_add_signers'); }, ic:'users', kind:'add-signers',
+      get guide(){ return i18t('ct_name_who_signs_guide',{ them:c.counterparty||i18t('ct_a_counterparty') }); } };
   if(!c.compliance.consent) return { get label(){ return i18t('ct_review_sign_below'); }, ic:'finger',
     guide:'Approved — confirm intent-to-sign on the Signing tab, then sign.', kind:'sign-scroll', noButton:true };
   return { get label(){ return i18t('ct_sign'); }, ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
@@ -2372,6 +2393,13 @@ function wireActionBar(c){
     }
     if(kind==='review'){
       if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast(i18t('ct_moved_to_review')); }
+      return;
+    }
+    /* The route lives on the Signing tab, so the button goes there and opens
+       the editor — the same door the tab's own "Add signers" is. */
+    if(kind==='add-signers'){
+      roomGoTab(c,'sign');
+      setTimeout(()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(c); },180);
       return;
     }
     if(kind==='sign-scroll'){
@@ -2736,6 +2764,17 @@ function ktTermsRowsHtml(c,opts={}){
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   return [
+    /* ---- OUR PARTY, ABOVE THEIRS ----
+       The two together are the sentence the paper opens with, so they read as a
+       pair here. It is asked at drafting too, but this is the only place it can
+       be answered on a contract that never went through a creation form — an
+       upload, a migrated record, or anything drafted before the question
+       existed. Empty is not "not set": it means the workspace, which is what
+       the document has always said, so the read-out prints that name rather
+       than a dash and says where it came from. */
+    ktRowHtml('party', i18t('tf_our_party'),
+      c.party?esc(c.party):`<span style="color:var(--color-neutral-500)">${esc((window.FIRST_PARTY)||'')}</span>`,
+      `<input data-kt="party" type="text" value="${(c.party||'').replace(/"/g,'&quot;')}" placeholder="${esc((window.FIRST_PARTY)||'')}" style="${KIN}"/>`, ed, 'pencil'),
     ktRowHtml('counterparty','Counterparty', c.counterparty?esc(c.counterparty):dash,
       `<input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_who_is_this_with')}" style="${KIN}"/>`, ed, 'pencil'),
     /* ---- THEIR EMAIL, ON THE ROW UNDER THEIR NAME ----
@@ -4650,13 +4689,17 @@ function wireDocumentSync(c){
 
 /* -------- Key terms panel -------- */
 function wireKeyTerms(c){
-  const LABEL={counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
+  const LABEL={party:'our party', counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
                effDate:'effective date', expiry:'expiry date', cpEmail:'counterparty email'};
   document.querySelectorAll('[data-kt]').forEach(inp=>{
     const key=inp.getAttribute('data-kt');
     const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
     inp.addEventListener(evt,()=>{
-      if(key==='counterparty') c.counterparty=inp.value.trim();
+      /* Our entity on this agreement. Cleared back to empty means "the
+         workspace", which is the fallback contractParty already makes, so
+         nothing is stored to say it. */
+      if(key==='party') c.party=inp.value.trim()||undefined;
+      else if(key==='counterparty') c.counterparty=inp.value.trim();
       /* Their address. Stored as typed and never refused mid-keystroke — half
          an email is what every email looks like on the way in. It is only ever
          USED by a send, and the send already checks it and asks if it cannot
@@ -4821,7 +4864,7 @@ function signPartyBoxes(c){
   const sigs=c.signatures||[];
   if(plan.length) return plan.map(s=>({
     id:s.id, side:s.party==='counterparty'?'counterparty':'first',
-    org:s.party==='counterparty'?(c.counterparty||'the counterparty'):(window.FIRST_PARTY||'us'),
+    org:s.party==='counterparty'?(c.counterparty||'the counterparty'):(contractParty(c)||'us'),
     name:s.name||'', role:s.role||'', signed:!!s.signed, at:s.at||'',
     image:(s.signature&&s.signature.image)||'',
   }));
@@ -4833,7 +4876,7 @@ function signPartyBoxes(c){
   const me=(typeof currentUser==='function'&&currentUser())||null;
   const contact=(typeof counterpartyContact==='function')?counterpartyContact(c):null;
   return [
-    { side:'first', org:window.FIRST_PARTY||'us',
+    { side:'first', org:contractParty(c)||'us',
       name:(ourSig&&ourSig.name)||c.signatory||(me&&me.name)||'',
       role:(ourSig&&(ourSig.role||ourSig.capacity))||(me&&window.signerTitle?signerTitle(me):'')||'',
       signed:!!ourSig, at:(ourSig&&ourSig.at)||'', image:(ourSig&&ourSig.image)||'' },
@@ -4979,7 +5022,15 @@ function renderSignSide(c){
         <h6 style="${H};flex:1">${i18t('ct_signing_order')}</h6>
         ${plan.length?`<span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
       </div>
-      ${route||`<p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-600)">No route set. One signature each side is assumed — ${esc(window.FIRST_PARTY||'us')} first, then ${esc(c.counterparty||'the counterparty')}. Add signers to change that.</p>`}
+      ${''/* ---- NO ROUTE IS NOT AN ASSUMPTION ANY MORE ----
+             This read "One signature each side is assumed — us first, then
+             them." Nothing was assuming it: an empty route now means signing
+             has not been started, and no link issued on this contract can
+             carry a signature (see signingRouteOpen in js/approvals.js). A
+             sentence describing an arrangement that does not exist is how
+             somebody sends a contract out believing it can be signed. */}
+      ${route||`<p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:var(--st-amber-fg)">${
+        esc(i18t('ct_no_route_blocks',{them:c.counterparty||i18t('ct_a_counterparty')}))}</p>`}
       ${may?`<button id="sp-add-signer" class="ui-btn" style="width:100%;justify-content:center;font-size:12px;padding:7px 12px;margin-top:${route?'8px':'0'}">${icon('users','w-3.5 h-3.5')} ${plan.length?'Add or reorder signers':'Add signers'}</button>`:''}
       ${may?`<p style="margin:7px 0 0;font-size:10.5px;line-height:1.5;color:var(--color-neutral-500)">Internal signers sign here; each counterparty signer gets their own link, held until every internal signature is in. The seal lands with the last one.</p>`:''}
     </section>`;
@@ -5245,7 +5296,7 @@ async function finalizeExecution(c, opts={}){
   const exec={ at, method:'session-authenticated', consent:true, ua:(typeof navigator!=='undefined'?navigator.userAgent:''), ip,
     // H-6: freeze the first-party name into the record so the seal binds the
     // name as it was at signing, not the live (renameable) workspace name.
-    firstParty:(typeof window!=='undefined'&&window.FIRST_PARTY)||(typeof FIRST_PARTY!=='undefined'?FIRST_PARTY:''),
+    firstParty:(typeof contractParty==='function'?contractParty(c):'')||(typeof FIRST_PARTY!=='undefined'?FIRST_PARTY:''),
     /* The statute the signatures rest on, frozen at the moment of sealing —
        a legal claim printed on every copy of an executed contract, so it must
        never follow a later change of the workspace's market setting, and the

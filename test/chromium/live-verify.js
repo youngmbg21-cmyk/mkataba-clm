@@ -23,7 +23,7 @@
    Run: node test/chromium/live-verify.js */
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, nameASigner } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (require('node:fs').existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -71,6 +71,10 @@ const READ = () => {
   const W = await seedWorkspace(h);
   const c = contract();
   await W.admin.json('/api/contracts/MK-LIVE', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+  /* A Sign link cannot be issued until somebody is named to sign (11 Aug 2026).
+     This file walks the counterparty's SCREEN on both kinds of link, so the
+     route is the precondition rather than the subject. */
+  await nameASigner(W.admin, 'MK-LIVE', { name: 'Juno Limited', email: 'juno@example.co.ke' });
   const mk = async purpose => {
     const r = await W.admin.json('/api/shares', { method: 'POST', body: {
       payload: { kind: 'hati-share', purpose, org: 'Young', sharedBy: 'Young Mbagaya', contract: c },
