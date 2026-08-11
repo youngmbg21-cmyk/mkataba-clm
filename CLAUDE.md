@@ -289,6 +289,18 @@ A MONTH IS NAMED WITH ITS WHOLE YEAR. "Jan 27" on the renewal runway was read as
 
 Tests: term-and-fields-verify (24, in the browser).
 
+A CHECK YOU ASKED FOR ARRIVES READ (added 2026-08-11)
+
+The playbook review panel's findings were shut on arrival, so running the review produced four headings and nothing to act on — the quoted wording, the standard missed and "apply as a redline" were each one press further away, four times over. pbUI now records what is SHUT rather than what is open, so a finding arrives read and pressing it folds it.
+
+NOTE THE DELIBERATE ASYMMETRY WITH THE CHANGE CARDS, which are shut until somebody opens them. That rule exists because a busy round arrives as forty cards. A playbook review is a handful of findings a reader opened a panel specifically to read, and it IS the whole content of that panel. The number, and whether the list is the destination or the index, is what separates the two.
+
+THE FOLD IS KEYED BY CONTRACT AND CATEGORY (pbFoldKey), not by the row's index — an index is not a fact about anything, and row 2 folded on one contract came back folded on the next contract's unrelated row 2. In memory for the sitting, never persisted.
+
+AND THE QUOTES LIVE IN ONE PLACE. Key terms reprinted, under "READ FROM THE DOCUMENT", the same wording the review panel quotes — but with the quote and none of the rest, so a reader who found it there still had to go to the panel to do anything about it, and the two could drift (that list was drawn from whatever review last ran; the panel is what that review says). Removed on request. WHAT STAYS IS THE ONE SENTENCE, which is not a duplicate of anything: it answers the question the panel raises by its own shape — why governing law and the liability cap are not rows in it — and is drawn whether or not a review has been run, because the question is the same either way.
+
+Tests: playbook-opens-read-verify (13, in the browser). f178's two Key-terms assertions still hold and were not touched.
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.
