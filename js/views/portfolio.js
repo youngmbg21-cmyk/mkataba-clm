@@ -520,44 +520,170 @@ function pfIsOut(c){
   return c.status==='Draft' && !!s && (s.state==='sent'||s.state==='opened');
 }
 
+/* ============================================================================
+   COUNTING IS NOT DRAWING (added 2026-08-11)
+
+   Every shaped panel used to do both in one pass: the filtering, the spreading,
+   the peak and the exclusions were locals inside an SVG template string, so the
+   only way to know what a panel said was to look at it. A reader on Insights
+   asked Copilot why their workload runway was so high, and Copilot answered
+   about team capacity — it had never heard the phrase, and not one of the
+   panel's figures existed anywhere it could reach.
+
+   So each panel is now TWO functions: one that COUNTS and returns plain data,
+   and the renderer, which draws that data and counts nothing of its own. One
+   arithmetic, several readers — the same shape intelFrictionStats already has,
+   and the reason f151 can pin all of them against the same book.
+
+   THE COMPUTED OBJECT CARRIES MORE THAN THE CHART DRAWS, on purpose. A chart
+   answers "how big"; the question that got asked was "WHY is it big", and that
+   needs the drivers behind a bucket: which contracts are in it, whether their
+   start dates are real or defaulted to the day they were signed, how many run
+   for a single month so their whole value lands in one column — and everything
+   the chart could NOT place, with the reason. An exclusion is a fact to hand
+   over, never a silent trim.
+
+   TWO RULES FOR ANYONE EDITING THESE:
+   1. The renderers must draw EXACTLY what they drew before. This is a split,
+      not a redesign; a moved pixel means something else changed.
+   2. Keys are STABLE ENGLISH. Panel titles go through the dictionary, and a
+      key of "Arbetsbelastning" gives a model nothing to match on. The reader's
+      own label rides alongside as `title`.
+   ========================================================================= */
+
+/* How many contracts a bucket names. "The two or three driving a spike", which
+   is a different request from the full list — a list is what list_portfolio is
+   for. */
+const PF_DRIVERS = 3;
+/* And how many rows a LIST panel hands over. A workspace with four hundred
+   contracts would otherwise ship four hundred rows with every message, and the
+   cap is a fact that travels with the list — list_portfolio already reports
+   total/shown/truncated for exactly this reason, and a total that quietly
+   excludes rows is the one thing worse than a short list. */
+const PF_DATA_ROWS = 25;
+const pfCapped = (rows, n) => ({ rows:rows.slice(0, n==null?PF_DATA_ROWS:n),
+  total:rows.length, shown:Math.min(rows.length, n==null?PF_DATA_ROWS:n),
+  truncated:rows.length > (n==null?PF_DATA_ROWS:n) });
+/* Where a contract's start date actually came from. wsStartOf falls back to the
+   signature date when nothing was recorded, and a month full of work that
+   defaulted to the day it was signed looks exactly like a month somebody
+   planned. That is one of the two ordinary reasons a runway spikes, and it is
+   invisible on the chart. */
+const pfStartSource = c => ((c.metadata&&c.metadata.effectiveDate)||(c.fields&&c.fields.effDate))
+  ? 'on-file' : (c.signedAt ? 'signature-date' : 'none');
+/* Just enough to name a contract in a sentence — never the full record, and
+   never its wording. Every figure attached to it comes through pfWeight, which
+   is ALREADY the one place money visibility is decided: a member who may not
+   see values gets 1 per contract there, so nothing here can carry a value they
+   are not allowed. `money.visible` and `measure` on the panel say which of the
+   two the numbers are, so nobody reads a headcount as shillings. */
+const pfWho = (c, extra) => Object.assign(
+  { id:c.id, name:c.name||c.id, counterparty:c.counterparty||'' }, extra||{});
+/* The two cross-filters, said out loud: a panel narrowed to one category is
+   answering a narrower question than the reader may remember asking. */
+function pfScopeOf(){
+  const F=pfState();
+  return { category:F.cat!=null?(F.cat||'(uncategorised)'):null, counterparty:F.cp||null,
+    book:'live contracts (everything except Declined)' };
+}
+const pfMeasure = () => pfMoneyOk() ? 'value' : 'contracts';
+
 /* ------------------------------------------------- THE WORKLOAD RUNWAY ----- */
 /* A piece of work OCCUPIES the months it runs, so its contracted value is
    spread evenly across them. That is the difference between this and a renewal
    runway, where a contract lands on one month and is gone. */
 const PF_RUN_BACK = 3, PF_RUN_FWD = 14;
-function pfWorkloadRunway(){
+function pfWorkloadRunwayData(){
   const jobs=pfJobs('month').filter(c=>!pfIsLost(c));
   const placed=[], unplaced=[];
   jobs.forEach(c=>{
     const a=pfMonthOf(_wsStart(c)), b=pfMonthOf(_wsEnd(c));
-    if(a==null||b==null||b<a) unplaced.push(c); else placed.push({c,a,b});
+    if(a==null||b==null||b<a) unplaced.push({c,a,b}); else placed.push({c,a,b});
   });
-  if(!placed.length) return '';
   const m0=-PF_RUN_BACK, m1=PF_RUN_FWD, N=m1-m0+1;
-  const per=[];
+  const buckets=[];
   for(let i=0;i<N;i++){
     const m=m0+i; let won=0, out=0, n=0;
+    const inM=[];
     placed.forEach(({c,a,b})=>{ if(a<=m&&m<=b){
       const slice=pfWeight(c)/(b-a+1);
-      if(pfIsWon(c)) won+=slice; else out+=slice; n++; } });
-    per.push({m,won,out,n});
+      if(pfIsWon(c)) won+=slice; else out+=slice; n++;
+      inM.push({c,a,b,slice}); } });
+    /* WHY THIS BUCKET IS THE SIZE IT IS. Not decoration: these two counts are
+       the ordinary causes of a spike nobody planned, and neither is on the
+       chart. */
+    const why={ startDateOnFile:0, startDateFromSignature:0, singleMonth:0 };
+    inM.forEach(({c,a,b})=>{
+      if(pfStartSource(c)==='signature-date') why.startDateFromSignature++;
+      else why.startDateOnFile++;
+      if(a===b) why.singleMonth++;
+    });
+    buckets.push({ offset:m, label:pfMonthLabel(m), won, out, total:won+out, contracts:n,
+      past:m<0, why,
+      drivers:inM.slice().sort((x,y)=>y.slice-x.slice).slice(0,PF_DRIVERS)
+        .map(({c,a,b,slice})=>pfWho(c,{ valueThisMonth:slice, contractValue:pfWeight(c),
+          months:b-a+1, status:c.status||'', startDate:_wsStart(c), endDate:_wsEnd(c),
+          startDateSource:pfStartSource(c) })) });
   }
-  const peak=Math.max(...per.map(p=>p.won+p.out))||1;
+  const peakTotal=Math.max(...buckets.map(p=>p.total));
+  const peak=buckets.find(p=>p.total===peakTotal&&p.total>0)||null;
+  /* PLACED BUT NOWHERE ON THE CHART. Work that finished before the window
+     opened, or starts after it closes, contributes to no bar — it is neither
+     drawn nor counted in the "could not place" line under the chart. The chart
+     is right to leave it out and wrong to say nothing, so it is a fact here. */
+  const off=placed.filter(({a,b})=>b<m0||a>m1).map(({c})=>pfWho(c,{ contractValue:pfWeight(c) }));
+  const reason=({a,b})=>a==null&&b==null ? 'no start date and no end date'
+    : a==null ? 'no start date on record'
+    : b==null ? 'no end date on record' : 'end date falls before the start date';
+  const byReason=new Map();
+  unplaced.forEach(u=>{ const r=reason(u);
+    if(!byReason.has(r)) byReason.set(r,[]);
+    byReason.get(r).push(pfWho(u.c,{ contractValue:pfWeight(u.c) })); });
+  return {
+    panel:'workload_runway',
+    title:i18t('pf_workload_runway'),
+    question:'How much work is on the books, month by month, and how much of it is won versus still out',
+    drawn:placed.length>0,
+    unit:{ one:_wsOne(), many:_wsMany(), setting:(typeof wsWord==='function'?wsWord():'project') },
+    measure:pfMeasure(),
+    money:{ visible:pfMoneyOk(), currency:(typeof jxCurrency==='function'?jxCurrency():'') },
+    method:"each contract's value is spread evenly over every month between its start and end date, so a piece of work occupies the months it runs",
+    scope:pfScopeOf(),
+    window:{ monthsBack:PF_RUN_BACK, monthsForward:PF_RUN_FWD, zeroIs:'this month' },
+    buckets, peak, peakTotal,
+    totals:{ contractsPlaced:placed.length,
+      won:buckets.reduce((a,p)=>a+p.won,0), out:buckets.reduce((a,p)=>a+p.out,0),
+      monthsBooked:buckets.filter(p=>p.offset>=0&&p.offset<6&&p.won>0).length },
+    excluded:{
+      couldNotPlace:{ count:unplaced.length,
+        reasons:[...byReason].map(([r,cs])=>({ reason:r, count:cs.length,
+          contracts:cs.slice(0,PF_DATA_ROWS), contractsTruncated:cs.length>PF_DATA_ROWS })) },
+      outsideTheWindow:{ count:off.length, contracts:off.slice(0,PF_DATA_ROWS),
+        contractsTruncated:off.length>PF_DATA_ROWS,
+        note:'runs entirely before or after the months this chart covers — not drawn and not in couldNotPlace' },
+      lostWork:{ note:'Declined work is excluded from this panel; it is counted in won_and_lost' } },
+  };
+}
+function pfWorkloadRunway(){
+  const d=pfWorkloadRunwayData();
+  if(!d.drawn) return '';
+  const per=d.buckets, m0=-PF_RUN_BACK, m1=PF_RUN_FWD, N=m1-m0+1;
+  const peak=d.peakTotal||1;
   const W=920,H=196,px=64,pb=32,bw=(W-px-12)/N;
   const bars=per.map(p=>{
-    const x=px+(p.m-m0)*bw+3, past=p.m<0;
+    const x=px+(p.offset-m0)*bw+3, past=p.offset<0;
     const hW=Math.round((H-pb-18)*p.won/peak), hO=Math.round((H-pb-18)*p.out/peak);
-    let y=H-pb, g=`<g><title>${pfEsc(pfMonthLabel(p.m))} — ${pfN(p.n,'contracts')} · ${pfEsc(pfMoney(p.won+p.out))}</title>`;
+    let y=H-pb, g=`<g><title>${pfEsc(pfMonthLabel(p.offset))} — ${pfN(p.contracts,'contracts')} · ${pfEsc(pfMoney(p.won+p.out))}</title>`;
     if(p.won+p.out===0) g+=`<rect x="${x}" y="${H-pb-3}" width="${bw-6}" height="3" rx="1.5" fill="var(--color-divider)"/>`;
     else{
       if(p.won>0){ y-=hW; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hW,3)}" rx="3" fill="var(--accent-solid,var(--color-accent))"${past?' opacity=".45"':''}/>`; }
       if(p.out>0){ y-=hO; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hO,3)}" rx="3" fill="var(--color-neutral-400)"${past?' opacity=".45"':''}/>`; }
     }
-    if((p.m-m0)%3===0) g+=`<text x="${x+(bw-6)/2}" y="${H-pb+15}" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-600)">${pfMonthLabel(p.m)}</text>`;
+    if((p.offset-m0)%3===0) g+=`<text x="${x+(bw-6)/2}" y="${H-pb+15}" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-600)">${pfMonthLabel(p.offset)}</text>`;
     return g+'</g>';
   }).join('');
   const nowX=px+(0-m0)*bw;
-  const booked=per.filter(p=>p.m>=0&&p.m<6&&p.won>0).length;
+  const booked=d.totals.monthsBooked;
   const body=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${pfEsc(i18t('pf_runway_aria'))}">
     <g stroke="var(--color-divider)" stroke-width="1"><line x1="${px}" y1="${H-pb}" x2="${W-8}" y2="${H-pb}"/></g>
     <line x1="${nowX}" y1="12" x2="${nowX}" y2="${H-pb}" stroke="var(--color-neutral-400)" stroke-width="1" stroke-dasharray="3 3"/>
@@ -570,8 +696,8 @@ function pfWorkloadRunway(){
     ${key('var(--accent-solid,var(--color-accent))',i18t('pf_work_won'))}
     ${key('var(--color-neutral-400)',i18t('pf_work_out'))}
     <span style="margin-left:auto">${i18t('pf_months_booked',{n:booked})}</span></div>
-    <div style="margin-top:5px">${i18t('pf_runway_foot',{w:_wsOne()})}${unplaced.length
-      ? ' '+i18t('pf_runway_unplaced',{n:unplaced.length}) : ''}</div>`;
+    <div style="margin-top:5px">${i18t('pf_runway_foot',{w:_wsOne()})}${d.excluded.couldNotPlace.count
+      ? ' '+i18t('pf_runway_unplaced',{n:d.excluded.couldNotPlace.count}) : ''}</div>`;
   return pfCard(i18t('pf_workload_runway'), i18t('pf_workload_hint',{w:_wsOne()}), body, foot);
 }
 
@@ -581,53 +707,114 @@ const pfRetVal = c => { const p=Number((c.metadata||{}).retentionPct)||0;
 const pfRetDue = c => { const d=Number((c.metadata||{}).retentionReleaseDays);
   const end=_wsEnd(c); if(!end) return null;
   return Number.isFinite(d)&&d>0 ? pfAddDays(end,d) : end; };
-function pfMoneyHeld(){
+const PF_HELD_ROWS = 5;
+function pfMoneyHeldData(){
   const held=pfJobs(null).filter(c=>pfRetVal(c)>0 && !pfIsLost(c));
-  if(!held.length) return '';
   const rows=held.slice().sort((a,b)=>String(pfRetDue(a)||'').localeCompare(String(pfRetDue(b)||'')));
-  const total=rows.reduce((a,c)=>a+pfRetVal(c),0);
   const late=rows.filter(c=>{ const d=pfRetDue(c); const n=d?pfDaysTo(d):null; return n!=null&&n<0; });
+  const row=c=>{ const due=pfRetDue(c), n=due?pfDaysTo(due):null;
+    return pfWho(c,{ retentionPct:Number((c.metadata||{}).retentionPct)||0,
+      held:pfRetVal(c), contractValue:pfWeight(c), dueBack:due, daysUntilDue:n,
+      state:(n!=null&&n<0)?'overdue':(n!=null&&n<=60)?'due soon':'held',
+      endDate:_wsEnd(c) }); };
+  const capped=pfCapped(rows.map(row));
+  return {
+    panel:'money_held_back',
+    title:i18t('pf_money_held'),
+    question:'Which finished work still has retention money outstanding, and when it falls due back',
+    drawn:rows.length>0,
+    unit:{ one:_wsOne(), many:_wsMany() },
+    measure:pfMeasure(),
+    money:{ visible:pfMoneyOk(), currency:(typeof jxCurrency==='function'?jxCurrency():'') },
+    method:'retention is the contract value times the retention percentage on its record; it falls due the stated number of days after the end date, or on the end date where no delay is recorded',
+    scope:pfScopeOf(),
+    totals:{ contracts:rows.length, held:rows.reduce((a,c)=>a+pfRetVal(c),0), overdue:late.length,
+      overdueValue:late.reduce((a,c)=>a+pfRetVal(c),0) },
+    /* The panel shows five and says how many more; the data hands over every
+       row, and says which of them the reader can actually see. */
+    contracts:capped.rows, contractsShown:capped.shown, contractsTruncated:capped.truncated,
+    shownOnScreen:Math.min(rows.length,PF_HELD_ROWS),
+    truncatedOnScreen:rows.length>PF_HELD_ROWS,
+    excluded:{ note:'contracts with no retention percentage recorded, and Declined work, are not counted here' },
+  };
+}
+function pfMoneyHeld(){
+  const d=pfMoneyHeldData();
+  if(!d.drawn) return '';
+  const rows=d.contracts;
   const td='padding:7px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle';
   const body=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><tbody>${
-    rows.slice(0,5).map(c=>{
-      const due=pfRetDue(c), n=due?pfDaysTo(due):null;
+    rows.slice(0,PF_HELD_ROWS).map(r=>{
+      const due=r.dueBack, n=r.daysUntilDue;
       const st=(n!=null&&n<0)?{c:'ruby',t:i18t('pf_ret_overdue')}
         :(n!=null&&n<=60)?{c:'amber',t:i18t('pf_ret_due_soon')}:{c:'gray',t:i18t('pf_ret_held')};
       const pal=st.c==='ruby'?{bg:'var(--st-ruby-bg)',fg:'var(--st-ruby-fg)'}
         :st.c==='amber'?{bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)'}
         :{bg:'var(--color-neutral-100)',fg:'var(--color-neutral-700)'};
-      return `<tr data-pf-open="${pfEsc(c.id)}" style="cursor:pointer">
-        <td style="${td};font-weight:600">${pfEsc(c.name)}
-          <div style="font-size:10px;color:var(--color-neutral-600);font-weight:500">${(c.metadata||{}).retentionPct}% ${i18t('pf_ret_held_lc')}${due?' · '+i18t('pf_ret_due_back')+' '+pfEsc(pfDate(due)):''}</div></td>
-        <td style="${td};text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${pfEsc(pfMoney(pfRetVal(c)))}</td>
+      return `<tr data-pf-open="${pfEsc(r.id)}" style="cursor:pointer">
+        <td style="${td};font-weight:600">${pfEsc(r.name)}
+          <div style="font-size:10px;color:var(--color-neutral-600);font-weight:500">${r.retentionPct}% ${i18t('pf_ret_held_lc')}${due?' · '+i18t('pf_ret_due_back')+' '+pfEsc(pfDate(due)):''}</div></td>
+        <td style="${td};text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${pfEsc(pfMoney(r.held))}</td>
         <td style="${td};width:1%"><span style="font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:${pal.bg};color:${pal.fg};white-space:nowrap">${st.t}</span></td></tr>`;
     }).join('')}</tbody></table></div>`;
   const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
     <span>${i18t('pf_on_n_jobs',{n:_wsCount(rows.length)})}</span>
-    <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text);font-variant-numeric:tabular-nums">${pfEsc(pfMoney(total))}</span></div>`;
+    <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text);font-variant-numeric:tabular-nums">${pfEsc(pfMoney(d.totals.held))}</span></div>`;
   return pfCard(i18t('pf_money_held'), i18t('pf_money_held_hint'), head+body,
-    `${rows.length>5?`<b>${i18t('pf_more_beyond',{n:rows.length-5})}</b> `:''}${i18t('pf_money_held_foot')}${late.length?' '+i18t('pf_money_held_late'):''}`);
+    `${d.truncatedOnScreen?`<b>${i18t('pf_more_beyond',{n:rows.length-PF_HELD_ROWS})}</b> `:''}${i18t('pf_money_held_foot')}${d.totals.overdue?' '+i18t('pf_money_held_late'):''}`);
 }
 
 /* ------------------------------------------------------ PROMISES STILL LIVE */
 const pfWarrantyEnd = c => { const m=Number((c.metadata||{}).warrantyMonths)||0;
   const end=_wsEnd(c); if(!m||!end) return null; return pfAddDays(end, Math.round(m*30.4)); };
-function pfPromisesLive(){
-  const live=pfJobs(null).filter(c=>{
-    if(pfIsLost(c)) return false;
+const PF_PROMISE_ROWS = 5;
+function pfPromisesLiveData(){
+  const all=pfJobs(null).filter(c=>!pfIsLost(c) && pfWarrantyEnd(c));
+  const live=all.filter(c=>{
     const end=_wsEnd(c), w=pfWarrantyEnd(c);
     if(!end||!w) return false;
     const done=pfDaysTo(end), left=pfDaysTo(w);
     return done!=null&&done<0 && left!=null&&left>=0;      // finished, still carried
   }).sort((a,b)=>String(pfWarrantyEnd(a)).localeCompare(String(pfWarrantyEnd(b))));
-  if(!live.length) return '';
-  const t0=Math.min(...live.map(c=>pfMonthOf(_wsEnd(c))));
-  const t1=Math.max(...live.map(c=>pfMonthOf(pfWarrantyEnd(c))));
+  const notYetDone=all.filter(c=>{ const done=pfDaysTo(_wsEnd(c)); return done!=null&&done>=0; });
+  const expired=all.filter(c=>{ const left=pfDaysTo(pfWarrantyEnd(c)); return left!=null&&left<0; });
+  const t0=live.length?Math.min(...live.map(c=>pfMonthOf(_wsEnd(c)))):null;
+  const t1=live.length?Math.max(...live.map(c=>pfMonthOf(pfWarrantyEnd(c)))):null;
+  return {
+    panel:'promises_live',
+    title:i18t('pf_promises_live'),
+    question:'Which finished work is still carrying a defects or warranty promise, and until when',
+    drawn:live.length>0,
+    unit:{ one:_wsOne(), many:_wsMany() },
+    measure:pfMeasure(),
+    money:{ visible:pfMoneyOk(), currency:(typeof jxCurrency==='function'?jxCurrency():'') },
+    method:'the promise runs for the recorded number of warranty months after the end date; a contract counts here only once its end date has passed and while the promise has not',
+    scope:pfScopeOf(),
+    window:t0!=null?{ fromMonth:t0, fromLabel:pfMonthLabel(t0), toMonth:t1, toLabel:pfMonthLabel(t1) }:null,
+    totals:{ contracts:live.length, value:live.reduce((a,c)=>a+pfWeight(c),0) },
+    contracts:live.map(c=>pfWho(c,{ endDate:_wsEnd(c), promiseEnds:pfWarrantyEnd(c),
+      warrantyMonths:Number((c.metadata||{}).warrantyMonths)||0,
+      daysLeft:pfDaysTo(pfWarrantyEnd(c)), contractValue:pfWeight(c),
+      endMonth:pfMonthOf(_wsEnd(c)), promiseEndMonth:pfMonthOf(pfWarrantyEnd(c)) })).slice(0,PF_DATA_ROWS),
+    contractsShown:Math.min(live.length,PF_DATA_ROWS),
+    contractsTruncated:live.length>PF_DATA_ROWS,
+    shownOnScreen:Math.min(live.length,PF_PROMISE_ROWS),
+    truncatedOnScreen:live.length>PF_PROMISE_ROWS,
+    excluded:{ stillRunning:{ count:notYetDone.length,
+        note:'has a promise recorded but the work has not finished yet, so it is not carried here' },
+      alreadyExpired:{ count:expired.length, note:'its promise period has already run out' },
+      noPromiseRecorded:{ note:'contracts with no warranty months on record are not counted here at all' } },
+  };
+}
+function pfPromisesLive(){
+  const d=pfPromisesLiveData();
+  if(!d.drawn) return '';
+  const rows=d.contracts, t0=d.window.fromMonth, t1=d.window.toMonth;
   const span=Math.max(t1-t0,1), at=m=>(m-t0)/span*100;
-  const body=`<div>${live.slice(0,5).map(c=>{
-    const a=pfMonthOf(_wsEnd(c)), b=pfMonthOf(pfWarrantyEnd(c));
-    return `<button data-pf-open="${pfEsc(c.id)}" style="display:grid;grid-template-columns:1fr 104px;gap:9px;align-items:center;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:5px 3px;border-radius:7px">
-      <span style="min-width:0"><span style="display:block;font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pfEsc(c.name)}</span>
+  const body=`<div>${rows.slice(0,PF_PROMISE_ROWS).map(r=>{
+    const a=r.endMonth, b=r.promiseEndMonth;
+    return `<button data-pf-open="${pfEsc(r.id)}" style="display:grid;grid-template-columns:1fr 104px;gap:9px;align-items:center;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:5px 3px;border-radius:7px">
+      <span style="min-width:0"><span style="display:block;font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pfEsc(r.name)}</span>
         <span style="display:block;position:relative;height:10px;margin-top:4px">
           <span style="position:absolute;left:${at(a)}%;width:${Math.max(at(b)-at(a),2)}%;top:2px;height:6px;border-radius:3px;background:var(--color-accent-500,var(--color-accent))"></span>
           <span style="position:absolute;left:${at(0)}%;top:-2px;height:14px;border-left:1px dashed var(--color-neutral-400)"></span></span></span>
@@ -635,13 +822,13 @@ function pfPromisesLive(){
   }).join('')}</div>`;
   const head=`<div style="display:flex;align-items:baseline;gap:8px;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
     <span>${i18t('pf_finished_carried')}</span>
-    <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text)">${_wsCount(live.length)}</span></div>`;
+    <span style="margin-left:auto;font-size:12px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--color-text)">${_wsCount(rows.length)}</span></div>`;
   return pfCard(i18t('pf_promises_live'), i18t('pf_promises_hint'), head+body,
     i18t('pf_promises_foot',{a:pfMonthLabel(t0),b:pfMonthLabel(t1)}));
 }
 
 /* ------------------------------------------------------ WON AND LOST ------- */
-function pfWonLost(){
+function pfWonLostData(){
   /* THE ONE PANEL THAT LOOKS PAST THE LIVE BOOK. Everywhere else "live" means
      everything except Declined, because a declined contract is not part of
      what you hold. But a LOST piece of work IS a declined contract, so a
@@ -654,11 +841,34 @@ function pfWonLost(){
     return true;
   });
   const won=jobs.filter(pfIsWon), lost=jobs.filter(pfIsLost), out=jobs.filter(pfIsOut);
-  if(!won.length&&!lost.length&&!out.length) return '';
-  const wv=pfSum(won), lv=pfSum(lost), ov=pfSum(out), tot=wv+lv+ov||1;
+  const wv=pfSum(won), lv=pfSum(lost), ov=pfSum(out);
   const decided=won.length+lost.length;
-  const byCount=decided?pfPct(won.length,decided):0;
-  const byValue=(wv+lv)?pfPct(wv,wv+lv):0;
+  const top=cs=>cs.slice().sort((a,b)=>pfWeight(b)-pfWeight(a)).slice(0,PF_DRIVERS)
+    .map(c=>pfWho(c,{ contractValue:pfWeight(c), status:c.status||'' }));
+  return {
+    panel:'won_and_lost',
+    title:i18t('pf_won_lost',{W:_wsTitle()}),
+    question:'Of the work that has been decided, how much was won and how much lost — and what is still out',
+    drawn:!!(won.length||lost.length||out.length),
+    unit:{ one:_wsOne(), many:_wsMany() },
+    measure:pfMeasure(),
+    money:{ visible:pfMoneyOk(), currency:(typeof jxCurrency==='function'?jxCurrency():'') },
+    method:'won = status Signed; lost = status Declined; still out = Under Review, or a Draft with a live share the other side has been sent. This is the ONE panel that looks past the live book, because a lost piece of work is a Declined contract',
+    scope:Object.assign(pfScopeOf(),{ book:'every contract of this shape, INCLUDING Declined' }),
+    won:{ contracts:won.length, value:wv, examples:top(won) },
+    stillOut:{ contracts:out.length, value:ov, examples:top(out) },
+    lost:{ contracts:lost.length, value:lv, examples:top(lost) },
+    decided,
+    winRate:{ byCount:decided?pfPct(won.length,decided):0, byValue:(wv+lv)?pfPct(wv,wv+lv):0 },
+    excluded:{ note:'HaTi does not record WHY a piece of work was lost; the panel says so and so does this' },
+  };
+}
+function pfWonLost(){
+  const d=pfWonLostData();
+  if(!d.drawn) return '';
+  const wv=d.won.value, lv=d.lost.value, ov=d.stillOut.value, tot=wv+lv+ov||1;
+  const decided=d.decided;
+  const byCount=d.winRate.byCount, byValue=d.winRate.byValue;
   const seg=(v,col)=>`<span style="display:block;height:100%;width:${v/tot*100}%;background:${col}"></span>`;
   const stat=(k,v,d,col)=>`<div style="background:var(--color-neutral-100);border-left:3px solid ${col};border-radius:7px;padding:7px 10px">
     <div style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)">${k}</div>
@@ -667,9 +877,9 @@ function pfWonLost(){
   const body=`<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;border:1px solid var(--color-divider);margin-bottom:9px">
       ${seg(wv,'var(--accent-solid,var(--color-accent))')}${seg(ov,'var(--color-neutral-400)')}${seg(lv,'var(--color-neutral-300)')}</div>
     <div style="display:grid;gap:7px">
-      ${stat(i18t('pf_won'),pfMoney(wv),_wsCount(won.length),'var(--accent-solid,var(--color-accent))')}
-      ${stat(i18t('pf_awaiting'),pfMoney(ov),_wsCount(out.length),'var(--color-neutral-400)')}
-      ${stat(i18t('pf_lost'),pfMoney(lv),_wsCount(lost.length),'var(--color-neutral-300)')}
+      ${stat(i18t('pf_won'),pfMoney(wv),_wsCount(d.won.contracts),'var(--accent-solid,var(--color-accent))')}
+      ${stat(i18t('pf_awaiting'),pfMoney(ov),_wsCount(d.stillOut.contracts),'var(--color-neutral-400)')}
+      ${stat(i18t('pf_lost'),pfMoney(lv),_wsCount(d.lost.contracts),'var(--color-neutral-300)')}
     </div>
     ${decided?`<div style="margin-top:10px;font-size:12px;line-height:1.6;color:var(--color-neutral-700)">
       ${i18t('pf_won_pct',{c:byCount,v:byValue})} ${byValue<byCount?i18t('pf_winning_smaller'):byValue>byCount?i18t('pf_winning_bigger'):''}</div>`:''}`;
@@ -688,36 +898,77 @@ function pfRenewalDecided(c){
   const st=(typeof obState==='function')?obState:(o=>o&&o.status==='done'?'done':'open');
   return mine.some(o=>st(o)==='done');
 }
-function pfRenewalRunway(){
+const PF_RENEW_MONTHS = 18;
+function pfRenewalRunwayData(){
   const rs=pfRows('month').filter(c=>!(typeof wsIsProject==='function'&&wsIsProject(c)));
-  const N=18, per=[];
-  let openEnded=0;
-  rs.forEach(c=>{ if(!_wsEnd(c)) openEnded++; });
+  const N=PF_RENEW_MONTHS, buckets=[];
+  const openEnded=rs.filter(c=>!_wsEnd(c));
   for(let i=0;i<N;i++){
     const inM=rs.filter(c=>pfMonthOf(_wsEnd(c))===i);
-    per.push({ m:i, n:inM.length,
-      dec:pfSum(inM.filter(pfRenewalDecided)),
-      und:pfSum(inM.filter(c=>!pfRenewalDecided(c))) });
+    const dec=inM.filter(pfRenewalDecided), und=inM.filter(c=>!pfRenewalDecided(c));
+    buckets.push({ offset:i, label:pfMonthLabel(i), contracts:inM.length,
+      decided:pfSum(dec), undecided:pfSum(und), total:pfSum(inM),
+      /* WHY THIS MONTH LOOKS THE WAY IT DOES. A renewal bucket is one of two
+         things — a month somebody has dealt with, or a month nobody has — and
+         a bar that is entirely amber means the decisions have not been filed,
+         not that the money is at risk. */
+      why:{ decidedContracts:dec.length, nothingFiledContracts:und.length,
+        endDateOnFile:inM.filter(c=>(c.metadata&&c.metadata.expiryDate)||c.expiry).length },
+      drivers:inM.slice().sort((a,b)=>pfWeight(b)-pfWeight(a)).slice(0,PF_DRIVERS)
+        .map(c=>pfWho(c,{ contractValue:pfWeight(c), endDate:_wsEnd(c), status:c.status||'',
+          renewalDecisionFiled:pfRenewalDecided(c),
+          renewalType:(c.metadata&&c.metadata.renewalType)||'' })) });
   }
-  if(!per.some(p=>p.n)) return '';
-  const peak=Math.max(...per.map(p=>p.dec+p.und))||1;
+  const peakTotal=Math.max(...buckets.map(p=>p.total));
+  const past=rs.filter(c=>{ const m=pfMonthOf(_wsEnd(c)); return m!=null&&m<0; });
+  const beyond=rs.filter(c=>{ const m=pfMonthOf(_wsEnd(c)); return m!=null&&m>=N; });
+  return {
+    panel:'renewal_runway',
+    title:i18t('pf_renewal_runway'),
+    question:'Which standing agreements come up for renewal in each of the next eighteen months, and whether the decision has been filed',
+    drawn:buckets.some(p=>p.contracts>0),
+    measure:pfMeasure(),
+    money:{ visible:pfMoneyOk(), currency:(typeof jxCurrency==='function'?jxCurrency():'') },
+    method:"each standing agreement lands on the single month its end date falls in. 'Decided' means HaTi's own renewal obligation for that contract has been marked done, so this panel and the Approvals queue never disagree",
+    scope:pfScopeOf(),
+    window:{ monthsForward:N, zeroIs:'this month' },
+    buckets, peakTotal,
+    peak:buckets.find(p=>p.total===peakTotal&&p.total>0)||null,
+    totals:{ contracts:rs.length-openEnded.length,
+      nextSixMonths:buckets.slice(0,6).reduce((a,p)=>a+p.total,0),
+      decided:buckets.reduce((a,p)=>a+p.decided,0),
+      undecided:buckets.reduce((a,p)=>a+p.undecided,0) },
+    excluded:{
+      openEnded:{ count:openEnded.length, contracts:openEnded.slice(0,PF_DRIVERS).map(c=>pfWho(c,{contractValue:pfWeight(c)})),
+        note:'no end date on record, so there is no month to draw them in' },
+      alreadyEnded:{ count:past.length, note:'end date already passed — before the first month of this chart' },
+      beyondTheWindow:{ count:beyond.length, note:'ends more than eighteen months out' },
+      projectWork:{ note:'work with a start and an end is drawn on workload_runway instead' } },
+  };
+}
+function pfRenewalRunway(){
+  const d=pfRenewalRunwayData();
+  if(!d.drawn) return '';
+  const per=d.buckets, N=PF_RENEW_MONTHS;
+  const peak=d.peakTotal||1;
   /* Wider viewBox than the workload chart because this one is drawn full
      width: the height scales with the width, and 920 units across a 1700px
      card made a 390px-tall chart that was mostly empty sky. */
   const W=1400,H=230,px=70,pb=32,bw=(W-px-12)/N;
   const bars=per.map(p=>{
-    const x=px+p.m*bw+3, tot=p.dec+p.und;
-    const hD=Math.round((H-pb-18)*p.dec/peak), hU=Math.round((H-pb-18)*p.und/peak);
-    let y=H-pb, g=`<g><title>${pfEsc(pfMonthLabel(p.m))} — ${pfN(p.n,'contracts')} · ${pfEsc(pfMoney(tot))}</title>`;
+    const x=px+p.offset*bw+3, tot=p.total;
+    const hD=Math.round((H-pb-18)*p.decided/peak), hU=Math.round((H-pb-18)*p.undecided/peak);
+    let y=H-pb, g=`<g><title>${pfEsc(pfMonthLabel(p.offset))} — ${pfN(p.contracts,'contracts')} · ${pfEsc(pfMoney(tot))}</title>`;
     if(tot===0) g+=`<rect x="${x}" y="${H-pb-3}" width="${bw-6}" height="3" rx="1.5" fill="var(--color-divider)"/>`;
     else{
-      if(p.dec>0){ y-=hD; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hD,3)}" rx="3" fill="var(--accent-solid,var(--color-accent))"/>`; }
-      if(p.und>0){ y-=hU; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hU,3)}" rx="3" fill="var(--st-amber-dot)"/>`; }
+      if(p.decided>0){ y-=hD; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hD,3)}" rx="3" fill="var(--accent-solid,var(--color-accent))"/>`; }
+      if(p.undecided>0){ y-=hU; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hU,3)}" rx="3" fill="var(--st-amber-dot)"/>`; }
     }
-    if(p.m%3===0) g+=`<text x="${x+(bw-6)/2}" y="${H-pb+15}" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-600)">${pfMonthLabel(p.m)}</text>`;
+    if(p.offset%3===0) g+=`<text x="${x+(bw-6)/2}" y="${H-pb+15}" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-600)">${pfMonthLabel(p.offset)}</text>`;
     return g+'</g>';
   }).join('');
-  const half=per.slice(0,6).reduce((a,p)=>a+p.dec+p.und,0);
+  const half=d.totals.nextSixMonths;
+  const openEnded=d.excluded.openEnded.count;
   const body=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${pfEsc(i18t('pf_renewal_aria'))}">
     <g stroke="var(--color-divider)" stroke-width="1"><line x1="${px}" y1="${H-pb}" x2="${W-8}" y2="${H-pb}"/></g>
     <text x="${px-8}" y="22" text-anchor="end" font-size="9.5" fill="var(--color-neutral-600)">${pfEsc(pfMoney(peak))}</text>
@@ -732,5 +983,44 @@ function pfRenewalRunway(){
   return pfCard(i18t('pf_renewal_runway'), i18t('pf_renewal_hint'), body, foot);
 }
 
-Object.assign(window,{pfMonthOf,pfMonthLabel,pfDate,pfJobs,pfIsWon,pfIsLost,pfIsOut,pfRetVal,pfRetDue,
-  pfWarrantyEnd,pfWorkloadRunway,pfMoneyHeld,pfPromisesLive,pfWonLost,pfRenewalRunway,pfRenewalDecided});
+/* ---- ONE DOOR TO THE PANELS' OWN FIGURES ----
+   The names are STABLE ENGLISH and are the contract with Copilot: they appear
+   in the tool's schema, in the brief, and in every answer that cites a panel.
+   Renaming one renames it in three places at once — the whole reason a
+   translated title could never be the key. */
+const PF_PANEL_DATA = {
+  workload_runway: () => pfWorkloadRunwayData(),
+  money_held_back: () => pfMoneyHeldData(),
+  promises_live:   () => pfPromisesLiveData(),
+  won_and_lost:    () => pfWonLostData(),
+  renewal_runway:  () => pfRenewalRunwayData(),
+};
+const PF_PANEL_NAMES = Object.keys(PF_PANEL_DATA);
+/* Which panels this workspace's own shape actually draws. A renewal runway on
+   a business that only does projects is a chart nobody is looking at, and an
+   answer about it would be an answer about a screen that is not there. */
+function pfPanelsForShape(){
+  const project = (typeof wsHas!=='function') || wsHas('project');
+  const standing = (typeof wsHas!=='function') || wsHas('standing');
+  return PF_PANEL_NAMES.filter(k => k==='renewal_runway' ? standing : project);
+}
+function pfPanelData(name){
+  const fn=PF_PANEL_DATA[String(name||'')];
+  if(!fn) return { panel:String(name||''), found:false,
+    available:PF_PANEL_NAMES.slice(), onThisWorkspace:pfPanelsForShape() };
+  try{ return Object.assign({ found:true }, fn()); }
+  catch(e){ return { panel:String(name), found:true, drawn:false, error:'could not be counted: '+e.message }; }
+}
+/* Every panel this workspace draws, counted once. Small — these are aggregates,
+   not rows — which is why they can ride along with the brief instead of costing
+   a round trip through a tool the model has to think of calling. */
+function pfPanelsData(){
+  const out={};
+  pfPanelsForShape().forEach(k=>{ try{ out[k]=PF_PANEL_DATA[k](); }catch(e){} });
+  return out;
+}
+
+Object.assign(window,{pfMonthOf,pfMonthLabel,pfDate,pfJobs,pfIsWon,pfIsLost,pfIsOut,pfRetVal,pfRetDue,pfStartSource,
+  pfWarrantyEnd,pfWorkloadRunway,pfMoneyHeld,pfPromisesLive,pfWonLost,pfRenewalRunway,pfRenewalDecided,
+  pfWorkloadRunwayData,pfMoneyHeldData,pfPromisesLiveData,pfWonLostData,pfRenewalRunwayData,
+  PF_PANEL_NAMES,PF_DRIVERS,pfPanelData,pfPanelsData,pfPanelsForShape});

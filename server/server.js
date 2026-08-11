@@ -3349,6 +3349,53 @@ async function copilotPlaybookCheck(ctx, id, key) {
   return { id: c.id, name: c.name || c.id, playbook: resolved.label, verdicts: r.verdicts };
 }
 
+/* ---- THE INSIGHTS PANELS, READ AND NEVER RECOMPUTED ----
+   The panels are counted in ONE place — pfPanelData in js/views/portfolio.js —
+   and every figure in them depends on wsIsProject(), the browser's single
+   classification rule for what counts as a piece of work. THE SERVER HAS NO
+   COPY OF THAT RULE AND MUST NOT GROW ONE: a second implementation is a second
+   book, and the day the two disagree the customer stops believing either
+   (f151 exists for exactly that failure).
+
+   So this tool is a LOOKUP, not a calculation. The browser computes the panels
+   with the message and sends them in `context.insights`; this hands the named
+   one back. Same objects, same arithmetic, same function — the browser-direct
+   loop in js/ai.js simply asks pfPanelData() live, because there it can.
+
+   SCOPE AND MONEY VISIBILITY HOLD BY CONSTRUCTION: the panels are counted over
+   state.contracts, which is the caller's own already-scoped bootstrap, and
+   every figure passes through pfWeight, which answers 1-per-contract for a
+   member who may not see values. Nothing reachable here was not already on
+   their screen.
+
+   The names are the CONTRACT with the browser: stable English, matching
+   PF_PANEL_NAMES and AI_PANEL_NAMES. f151 pins all three. */
+const COPILOT_PANEL_NAMES = ['workload_runway', 'money_held_back', 'promises_live', 'won_and_lost', 'renewal_runway'];
+const COPILOT_PANEL_DESC = 'Fetch the figures behind one chart on the Insights → Portfolio page, counted by the panel itself. Use it whenever the question names a panel ("workload runway", "renewal runway", "money held back", "promises still live", "won and lost") or asks WHY one of them looks the way it does. Returns the panel\'s buckets with, per bucket, its total, how many contracts are in it, the two or three contracts driving it, and a "why" block (how many have a real start date on file versus one defaulted to their signature date, how many start and end in the same month). Also returns an "excluded" block naming the work the chart could NOT place and the reason — quote that rather than presenting the total as everything. "workload runway" is about CONTRACTED WORK, never about staff capacity.';
+const COPILOT_PANEL_BYTES = 300000;          // a bounded read of a client-sent object, like guideLive
+function copilotInsightsPanel(clientCtx, name) {
+  const key = String(name || '');
+  if (COPILOT_PANEL_NAMES.indexOf(key) < 0)
+    return { panel: key, found: false, available: COPILOT_PANEL_NAMES.slice() };
+  const ins = clientCtx && typeof clientCtx === 'object' ? clientCtx.insights : null;
+  const panels = ins && typeof ins === 'object' ? ins.panels : null;
+  if (!panels || typeof panels !== 'object')
+    return { panel: key, found: false,
+      note: 'This reader\'s Insights panels were not sent with the question — say the figures are not available from here rather than estimating them.' };
+  const d = panels[key];
+  if (!d || typeof d !== 'object')
+    return { panel: key, found: false, drawnOnThisWorkspace: false,
+      available: Object.keys(panels),
+      note: 'This workspace does not draw that panel — its work shape does not include it.' };
+  try {
+    if (JSON.stringify(d).length > COPILOT_PANEL_BYTES)
+      return { panel: key, found: false, note: 'That panel came back too large to read from here — answer from the summary in the brief instead.' };
+  } catch (_) {
+    return { panel: key, found: false, note: 'That panel could not be read.' };
+  }
+  return Object.assign({ found: true }, d);
+}
+
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet. Use when the user names a party or topic rather than an exact id.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' } }, required: ['query'] } },
@@ -3364,6 +3411,8 @@ const COPILOT_TOOLS = [
       minValue: { type: 'number', description: 'Optional: only contracts worth at least this much, in the workspace currency.' } } } },
   { name: 'compare_contracts', description: 'Fetch two or more contracts in full at once for a side-by-side comparison. Prefer this over multiple get_contract calls when comparing.',
     input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4, description: 'The contract ids to compare.' } }, required: ['ids'] } },
+  { name: 'get_insights_panel', description: COPILOT_PANEL_DESC,
+    input_schema: { type: 'object', properties: { panel: { type: 'string', enum: COPILOT_PANEL_NAMES, description: 'Which panel. Stable English keys — never a translated title.' } }, required: ['panel'] } },
   { name: 'check_against_playbook', description: 'Review one contract against the workspace playbook — the organisation\'s standard positions for its contract type. Returns one verdict per playbook position (aligned / deviation / missing, with verbatim quotes), or noPlaybook:true when no playbook is configured for that contract type. Use for questions about whether a contract matches our standards, positions or playbook. This runs a deeper, slower legal-review pass — reach for it when the question is really about playbook conformance, not for ordinary reading.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
@@ -3391,6 +3440,7 @@ async function runCopilotTool(ctx, name, input, aux) {
     if (name === 'list_portfolio') return copilotList(ctx, a);
     if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
     if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key);
+    if (name === 'get_insights_panel') return copilotInsightsPanel(aux && aux.clientCtx, a.panel);
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
 }
@@ -3425,6 +3475,11 @@ function buildCopilotSystem(context, scopeCtx) {
   if (ctx.view) view += `The user is currently on the "${ctx.view}" screen. `;
   if (ctx.activeContractId) view += `The contract open on screen is ${ctx.activeContractId}${ctx.activeContractName ? ' (' + ctx.activeContractName + ')' : ''} — assume an unqualified "this contract" means that one. `;
   if (ctx.clause) view += `They are looking at the "${ctx.clause}" area of the document. `;
+  /* WHICH INSIGHTS TAB. "intel" is three different pages, and a reader looking
+     at the Portfolio charts who asks "why is this so big" means the chart in
+     front of them — the same page-awareness the negotiation room already gets. */
+  if (typeof ctx.insightsTab === 'string' && ctx.insightsTab)
+    view += `Within Insights they are on the "${String(ctx.insightsTab).slice(0, 40)}" tab — an unqualified "this chart" or "this panel" means one drawn there, and get_insights_panel has its figures. `;
   /* THE CLIENT'S LIVE BRIEF, verbatim.
 
      The portfolio snapshot, the Plain/Legal register, the tone markers and the
@@ -3450,6 +3505,7 @@ HOW TO WORK:
 - To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
 - If a contract's "textTruncated" is true, the document was longer than the excerpt you received — say so plainly, and do not claim to have reviewed the whole document. A truncated record is not a reason to refuse an edit: when the request itself quotes the passage to work on, that quoted passage is the authoritative text — draft from it, and note the truncation in your reasoning rather than asking for the document again.
+- QUESTIONS ABOUT A CHART ON INSIGHTS → PORTFOLIO — the workload runway, the renewal runway, money held back, promises still live, won and lost — are answered from get_insights_panel. Quote its figures rather than recomputing them from list_portfolio, and when the question is WHY a bar is big, name that bucket's drivers (the two or three contracts carrying it) and its "why" counts — a start date defaulted to the signature date, or work whose start and end fall in one month. Reading the total back to somebody who is looking at the chart is not an answer. Say what the panel excludes whenever its "excluded" block is not empty.
 - QUESTIONS ABOUT WHETHER A CONTRACT MATCHES OUR STANDARDS, POSITIONS OR PLAYBOOK: call check_against_playbook with the contract id and answer from its verdicts. If it returns noPlaybook, say plainly that no playbook is set up for this contract type — do not improvise one.
 - Reply in the language the user wrote their question in. This reader's interface language is ${(typeof ctx.lang === 'string' && ctx.lang.trim()) ? ctx.lang.trim().slice(0, 35) : 'English (en)'}. Contract quotes stay verbatim in their original language; your own words follow the user's.
 - Contract ids look like MK-103. Money is in ${orgJx().currency}.
@@ -3598,7 +3654,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context })) })));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
@@ -3815,6 +3871,7 @@ function copilotProgressLabel(name, input) {
   if (name === 'list_portfolio') return 'Scanning the portfolio…';
   if (name === 'compare_contracts') { const n = Array.isArray(a.ids) ? a.ids.length : 2; return `Comparing ${n} contracts…`; }
   if (name === 'check_against_playbook') return 'Checking the playbook…';
+  if (name === 'get_insights_panel') return 'Reading the Insights panel…';
   return 'Working…';
 }
 
@@ -3879,7 +3936,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context })) })));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
