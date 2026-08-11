@@ -884,12 +884,15 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     assert.equal(card.getAttribute('data-rl-open'), '0');
   });
 
-  test('the verbs are one press away, on every state that carries one', async () => {
-    /* This used to insist those states stayed OPEN, and the exemption that made
-       that safe is gone with the automatic opening it protected. What replaces
-       it: whatever state a card is in, its controls are rendered and its head
-       is the one press that reveals them. A verb that was not in the DOM at all
-       would be the real fault, and that is what this now reads. */
+  test('the verbs are NOT behind the fold — a shut card still carries its action bar', async () => {
+    /* This has moved twice and the direction is the point. It first insisted
+       those states stayed OPEN; then, when the automatic opening went, it
+       settled for "rendered, one press away". Asked for on 11 Aug 2026: a shut
+       card is the header block AND the action bar, and the fold hides only
+       "Why they asked" and the notes. So the verbs are out of .rl-card-body
+       altogether — the thing display:none is applied to — and sit in a sibling
+       .rl-card-actions that no rule folds. A card that arrives shut can still
+       be sent from. */
     const p = await page();
     const mine = p.c.changes[0].id;
     const theirs = (await ownerAsk(p)).id;
@@ -902,9 +905,27 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
       assert.ok(card, `${what} is on the column`);
       assert.equal(card.getAttribute('data-rl-open'), '0', `${what} arrives shut`);
       assert.ok(card.querySelector('.rl-card-head'), `${what} has a head to press`);
-      assert.ok(card.querySelector('.rl-card-body .rl-card-verbs button'),
-        `${what} carries its verbs, one press away`);
+      assert.ok(card.querySelector('.rl-card-actions .rl-card-verbs button'),
+        `${what} carries its verbs on the action bar`);
+      const folded = card.querySelector('.rl-card-body');
+      assert.ok(!folded || !folded.querySelector('.rl-card-verbs'),
+        `${what}: no verb may sit inside the part that folds away`);
     }
+  });
+
+  test('and what the fold hides is reading matter, not a move waiting on anybody', async () => {
+    const p = await page();
+    const theirs = (await ownerAsk(p)).id;
+    const card = seat(p, {}).querySelector(`[data-nego-card="${theirs}"]`);
+    const body = card.querySelector('.rl-card-body');
+    assert.ok(body, 'the body is rendered, and hidden by CSS rather than dropped');
+    assert.equal(body.querySelectorAll('button').length -
+      body.querySelectorAll('.rl-cnote-add, .nego-vis, [data-rl-note-more], [data-nego-vis]').length <= 0,
+      true, 'nothing in the fold is a verb on the change itself');
+    /* And the action bar is a SIBLING of the head, never a child — that is what
+       keeps a press on Send from folding the card underneath the hand. */
+    assert.ok(!card.querySelector('.rl-card-head .rl-card-actions'),
+      'the action bar must not be inside the toggle');
   });
 
   /* ---- THE MOUNT REPAINTS ITSELF, OR THE PIN NEVER LETS GO ---- */

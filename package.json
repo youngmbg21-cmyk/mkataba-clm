@@ -13,7 +13,7 @@
     "test:structure": "node test/chromium/structure-verify.js",
     "test:standardpaper": "node test/chromium/standard-paper-verify.js",
     "test:designstep": "node test/chromium/designstep-verify.js",
-    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep && npm run test:laptops && npm run test:phone && npm run test:newcontract && npm run test:standardpaper && npm run test:themetokens && npm run test:swedish && npm run test:sharerecipient && npm run test:insights",
+    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep && npm run test:laptops && npm run test:phone && npm run test:newcontract && npm run test:standardpaper && npm run test:themetokens && npm run test:swedish && npm run test:sharerecipient && npm run test:insights && npm run test:cardcollapse",
     "test:live": "node test/chromium/live-verify.js",
     "test:laptops": "node test/chromium/laptops-verify.js",
     "test:phone": "node test/chromium/phone-verify.js",
@@ -21,7 +21,8 @@
     "test:themetokens": "node test/chromium/theme-tokens-verify.js",
     "test:swedish": "node test/chromium/swedish-verify.js",
     "test:sharerecipient": "node test/chromium/share-recipient-verify.js",
-    "test:insights": "node test/chromium/insights-panels-verify.js"
+    "test:insights": "node test/chromium/insights-panels-verify.js",
+    "test:cardcollapse": "node test/chromium/card-collapse-verify.js"
   },
   "engines": {
     "node": ">=22.5"

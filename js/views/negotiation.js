@@ -6293,6 +6293,17 @@ function redlineLayoutCss(){
      was crossing it and a card could be open without anybody having asked for
      it. One press opens it now, and only a press closes it. */
   .redline-page .rl-card-shut .rl-card-body{display:none}
+  /* ---- AND THE ACTION BAR IS NOT PART OF WHAT SHUTS ----
+     A collapsed card is the header block and the verbs (Young, 11 Aug 2026).
+     There is deliberately no .rl-card-shut rule for it: a verb hidden behind a
+     fold is a verb the reader has to go looking for, and Send is the commonest
+     press on this page. It carries the card's own top rule when the body above
+     it is folded away, so a shut card still reads as two areas rather than one
+     run-on block. */
+  .redline-page .rl-card-actions{cursor:default}
+  .redline-page .rl-card-shut .rl-card-actions{border-top:1px solid var(--color-divider);
+    margin-top:9px;padding-top:8px}
+  .redline-page .rl-card-shut .rl-card-actions .rl-card-verbs{margin-top:0}
   /* The head is the press target, so it says so — and only the head. */
   .redline-page .rl-card-head{cursor:pointer}
   .redline-page .rl-card-body{cursor:default}
@@ -10447,9 +10458,38 @@ function redlineChangeCardsHtml(c, opts = {}){
       return t ? `<div class="rl-card-diff">${_ne(t)}</div>` : '';
     })();
     const notes = rlCardNotesHtml(c, ch, opts, side);
-    const body = `<div class="rl-card-body">${dkBy}${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${rvStuckBlock}${
-      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}${dkInstead}${
-      window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}${notes}</div>`;
+    /* ---- THE VERBS ARE NOT BEHIND THE FOLD ----
+       Asked for (Young, 11 Aug 2026): a shut card shows its header block and
+       its action bar, and the fold hides "Why they asked" and the notes.
+
+       The verbs used to be inside .rl-card-body, so a collapsed card offered
+       nothing to press and every Send cost a press to open first — on the
+       commonest gesture on the page. Two rules survive the move intact and
+       both matter more than the layout:
+
+       ONLY THE HEAD TOGGLES. The action bar is a sibling of the head, not a
+       child of it, so pressing Edit, Retract or Send does its own job and
+       nothing else — a verb can never fold the card away underneath the hand
+       reaching for it. That was structural before and still is.
+
+       A VERB IS VISIBLE PIXELS (f180). Nothing here may be reachable only
+       after an unfold, which is why the review verdict buttons ride in this
+       bar too, and why the two sentences that explain a MISSING verb — the
+       desk's "instead" line and the review hold's "what now" — come with them.
+       An action bar with a hole in it and the explanation folded away is
+       worse than either. */
+    const actions = [
+      rvStuckBlock,
+      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : '',
+      dkInstead,
+      window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : '',
+    ].filter(Boolean).join('');
+    /* WHAT THE FOLD ACTUALLY HIDES: the context and the conversation. Who
+       filed it, who rewrote it, why they asked, what the reviewer said, and
+       the reply box. All of it is reading matter — none of it is a move
+       waiting on anybody. */
+    const body = `<div class="rl-card-body">${dkBy}${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${notes}</div>`;
+    const actionBar = actions ? `<div class="rl-card-actions">${actions}</div>` : '';
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"
         title="${open ? 'Collapse this card' : 'Open this card'}"
@@ -10478,6 +10518,7 @@ function redlineChangeCardsHtml(c, opts = {}){
         ${diff}
       </div>
       ${body}
+      ${actionBar}
     </article>`;
   }).join('');
 }
