@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HaTi Analyst — prototype</title>
+<!-- The real HaTi typefaces, already inlined as data URIs in the repo.
+     Nothing is fetched from the internet. -->
+<link rel="stylesheet" href="../fonts/fonts.css" />
+<style>
+
+/* ============================================================================
+   HaTi Analyst — a LOOKS-ONLY prototype, third cut.
+
+   THE RULE THIS CUT OBEYS: a figure appears only if HaTi could produce it from
+   documents it already holds. Nothing is typed in from another system and
+   nothing is checked against an outside source. Every number on screen is
+   marked with which of the two permitted sources it came from — a signed
+   document, or HaTi's own filing record.
+
+   That rule deleted the chart this prototype used to open with. It was
+   labelled "what you have paid", which HaTi cannot know: what left the bank is
+   in the accounts. It now compares each increase on file with the ceiling the
+   parent agreement sets, and the finding got STRONGER for it — a cap treated
+   as a target is an argument, but a rate on file the agreement does not permit
+   is a breach, and drawing it per year surfaced a second one.
+
+   Also carried forward from the second cut: a category belongs to the CONTRACT
+   rather than the company, value has five currencies, the shelf follows the
+   reader's job, and statistics are withheld below twenty contracts in a
+   category.
+
+   Three example organisations share one engine. Switch between them in the top
+   bar — that switch is a demo device, not a HaTi feature.
+
+   Drawn with HaTi's own tokens so it reads as the same product. Every figure
+   is invented.
+   ========================================================================= */
+
+:root{
+  --color-bg:#f8fafc;
+  --color-surface:#ffffff;
+  --color-surface-2:#f1f5f9;
+  --color-text:#1e293b;
+  --color-divider:#e2e8f0;
+
+  --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
+  --color-neutral-400:#94a3b8; --color-neutral-500:#64748b; --color-neutral-600:#475569;
+  --color-neutral-700:#334155; --color-neutral-800:#1e293b; --color-neutral-900:#0f172a;
+
+  --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4; --color-accent-300:#5eead4;
+  --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6; --color-accent-600:#0d9488;
+  --color-accent-700:#0f766e; --color-accent-800:#115e59; --color-accent-900:#134e4a;
+  --color-accent:var(--color-accent-600);
+  --accent-solid:var(--color-accent-600);
+  --accent-ink:var(--color-accent-800);
+  --brand-cyan:#06b6d4; --brand-cyan-700:#0aa2b8;
+  --brand-grad:linear-gradient(135deg,var(--color-accent-600),var(--brand-cyan));
+  --brand-hero-deep:#0b3d3a;
+  --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
+  --brand-hero-sub:#bde7e1;
+
+  /* the sidebar is dark in every theme — HaTi's rule, not a dark-mode effect */
+  --nav-bg:#0b3d3a; --nav-line:#0a3532; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
+
+  --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
+  --font-body:Inter,system-ui,sans-serif;
+
+  --radius-sm:8px; --radius-md:12px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+  --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+  --focus:0 0 0 2px color-mix(in srgb,var(--color-accent) 45%,transparent);
+
+  --danger:#dc2626;
+  --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;  --st-gray-line:#cbd5e1;
+  --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b; --st-amber-line:#e0c48a;
+  --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981; --st-green-line:#a8cbb8;
+  --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;  --st-ruby-line:#e6c9c1;
+  --st-steel-bg:var(--color-accent-100); --st-steel-fg:var(--color-accent-800);
+  --st-steel-dot:var(--color-accent-500); --st-steel-line:var(--color-accent-200);
+
+  /* THE CHART RAMP. The stage bar is a SEQUENCE (a deal moves through these in
+     order), so it is one hue getting darker — not five unrelated colours.
+     CATEGORIES are deliberately NOT colour-coded: nine of them would be a
+     rainbow, and a rainbow is how a reader stops trusting colour to mean
+     anything. They wear outlined chips instead. */
+  --ch-1:#5eead4; --ch-2:#2dd4bf; --ch-3:#14b8a6; --ch-4:#0f766e; --ch-5:#115e59;
+  --ch-grid:#e2e8f0;
+  --ch-ref:#94a3b8;          /* the benchmark line — an annotation, not a series */
+}
+
+/* Dark: the viewer's own theme decides. The un-stamped state (OS preference,
+   no explicit choice) is the common one, so it gets its own block; the
+   explicit stamp wins in both directions. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --color-bg:#020617;
+    --color-surface:#0f172a;
+    --color-surface-2:#111f36;
+    --color-text:#e2e8f0;
+    --color-divider:#1e293b;
+    --color-neutral-100:#1e293b; --color-neutral-200:#243244; --color-neutral-300:#334155;
+    --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1;
+    --color-neutral-700:#e2e8f0; --color-neutral-800:#f1f5f9; --color-neutral-900:#f8fafc;
+    --accent-ink:var(--color-accent-400);
+    --nav-bg:#0b1220; --nav-line:#1e293b; --nav-ink:#94a3b8; --nav-ink-strong:#f1f5f9;
+    --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+    --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+    --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+    --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+    --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+    --ch-grid:#1e293b;
+    --ch-ref:#64748b;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --color-bg:#020617;
+  --color-surface:#0f172a;
+  --color-surface-2:#111f36;
+  --color-text:#e2e8f0;
+  --color-divider:#1e293b;
+  --color-neutral-100:#1e293b; --color-neutral-200:#243244; --color-neutral-300:#334155;
+  --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1;
+  --color-neutral-700:#e2e8f0; --color-neutral-800:#f1f5f9; --color-neutral-900:#f8fafc;
+  --accent-ink:var(--color-accent-400);
+  --nav-bg:#0b1220; --nav-line:#1e293b; --nav-ink:#94a3b8; --nav-ink-strong:#f1f5f9;
+  --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+  --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+  --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+  --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+  --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+  --ch-grid:#1e293b;
+  --ch-ref:#64748b;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+  --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--color-bg);color:var(--color-text);
+  font-family:var(--font-body);font-size:13px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-heading);margin:0;text-wrap:balance;}
+button{font:inherit;font-family:var(--font-body);cursor:pointer;}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+/* ---------- the prototype's own frame (not part of HaTi) ---------- */
+.proto-note{max-width:1320px;margin:0 auto;padding:18px 20px 0;}
+.proto-note p{
+  margin:0;padding:11px 14px;border-radius:var(--radius-md);
+  background:var(--st-amber-bg);border:1px solid var(--st-amber-line);
+  color:var(--st-amber-fg);font-size:12px;font-weight:500;
+}
+.proto-note b{font-weight:700;}
+
+/* ---------- app shell ---------- */
+.shell{
+  max-width:1320px;margin:14px auto 34px;background:var(--color-surface);
+  border:1px solid var(--color-divider);border-radius:16px;overflow:hidden;
+  box-shadow:var(--shadow-md);
+  display:grid;grid-template-columns:236px 1fr;grid-template-rows:auto 1fr;
+  grid-template-areas:"brand top" "nav main";min-height:760px;
+}
+.brandbar{
+  grid-area:brand;background:var(--nav-bg);border-right:1px solid var(--nav-line);
+  padding:14px 16px;display:flex;align-items:center;gap:9px;
+}
+.brandbar .wm{font-family:var(--font-heading);font-weight:800;font-size:18px;letter-spacing:-.02em;color:#fff;}
+.brandbar .tag{font-size:9.5px;padding:1px 7px;border-radius:999px;font-weight:700;
+  background:rgba(255,255,255,.14);color:var(--brand-hero-sub);}
+.topbar{
+  grid-area:top;background:var(--color-surface);border-bottom:1px solid var(--color-divider);
+  padding:10px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.orgswitch{display:flex;align-items:center;gap:7px;}
+.orgswitch .cap{
+  font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);
+}
+.obtn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 11px;
+  font-size:11.5px;font-weight:600;
+}
+.obtn:hover{background:var(--color-surface-2);}
+.obtn.on{background:var(--brand-hero);border-color:transparent;color:#fff;}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.mkt-chip{
+  display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  border:1px solid var(--color-divider);border-radius:999px;padding:5px 11px;
+  color:var(--color-neutral-600);background:var(--color-surface);
+}
+.copilot-btn{
+  display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:10px;
+  background:color-mix(in srgb,var(--accent-solid) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent-solid) 30%,transparent);
+  color:var(--accent-ink);font-size:11.5px;font-weight:600;
+}
+.avatar{
+  width:30px;height:30px;border-radius:50%;background:var(--brand-grad);color:#fff;
+  display:grid;place-items:center;font-size:10.5px;font-weight:700;font-family:var(--font-heading);
+}
+
+/* ---------- sidebar ---------- */
+.sidenav{
+  grid-area:nav;background:var(--nav-bg);border-right:1px solid var(--nav-line);
+  padding:12px;display:flex;flex-direction:column;gap:2px;
+}
+.nav-head{
+  font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:color-mix(in srgb,var(--nav-ink) 78%,transparent);padding:14px 12px 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;width:100%;border:1px solid transparent;
+  background:none;color:var(--nav-ink);font-size:12px;font-weight:600;
+  padding:9px 12px;text-align:left;border-radius:12px;transition:background .12s,color .12s;
+}
+.nav-item svg{flex:none;opacity:.9;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:var(--nav-ink-strong);}
+.nav-item.active{background:rgba(255,255,255,.15);color:var(--nav-ink-strong);}
+.nav-item .lbl{flex:1;}
+.nav-count{
+  font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;
+  background:rgba(255,255,255,.14);color:var(--nav-ink);font-variant-numeric:tabular-nums;
+}
+.nav-item.active .nav-count{background:rgba(255,255,255,.24);color:#fff;}
+.nav-new{font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;
+  background:var(--color-accent-500);color:#04241f;}
+
+/* ---------- main ---------- */
+.main{grid-area:main;background:var(--color-bg);padding:20px 22px 30px;overflow:auto;}
+.page-head{margin-bottom:16px;display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.page-head h1{font-size:21px;font-weight:800;letter-spacing:-.02em;}
+.page-head .sub{color:var(--color-neutral-500);font-size:12.5px;margin-top:3px;max-width:66ch;}
+.page-head .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+.btn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-700);border-radius:10px;padding:7px 12px;
+  font-size:11.5px;font-weight:600;
+}
+.btn:hover{background:var(--color-surface-2);}
+.btn-primary{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff;}
+.btn-primary:hover{background:var(--color-accent-700);}
+.btn-sm{padding:4px 9px;font-size:11px;border-radius:8px;}
+
+.screen{display:none;}
+.screen.on{display:block;}
+
+/* ---------- cards ---------- */
+.card{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius-md);padding:16px;box-shadow:var(--shadow-sm);
+}
+.card-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.card-h h3{font-size:13.5px;font-weight:700;letter-spacing:-.01em;}
+.card-h .hint{font-size:11.5px;color:var(--color-neutral-500);margin-top:2px;max-width:62ch;}
+.card-h .side{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.grid{display:grid;gap:14px;}
+.g5{grid-template-columns:repeat(5,1fr);}
+.g4{grid-template-columns:repeat(4,1fr);}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g2{grid-template-columns:repeat(2,1fr);}
+.g-2-1{grid-template-columns:1.55fr 1fr;}
+.g-1-2{grid-template-columns:1fr 1.55fr;}
+@media (max-width:1180px){ .g5{grid-template-columns:repeat(3,1fr);} }
+@media (max-width:1080px){
+  .g4{grid-template-columns:repeat(2,1fr);}
+  .g3,.g2,.g-2-1,.g-1-2{grid-template-columns:1fr;}
+}
+@media (max-width:760px){ .g5,.g4{grid-template-columns:repeat(2,1fr);} }
+
+/* ---------- stat tiles ---------- */
+.tile{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius-md);padding:14px 15px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;gap:4px;
+}
+.tile .k{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);}
+.tile .v{font-family:var(--font-heading);font-size:25px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1;}
+.tile .v small{font-size:14px;font-weight:700;color:var(--color-neutral-500);margin-left:3px;}
+.tile .d{font-size:11.5px;color:var(--color-neutral-500);}
+.delta{font-weight:700;font-variant-numeric:tabular-nums;}
+.delta.up{color:var(--st-green-fg);}
+.delta.down{color:var(--st-ruby-fg);}
+.tile.hero{background:var(--brand-hero);border-color:transparent;color:#fff;}
+.tile.hero .k,.tile.hero .d{color:var(--brand-hero-sub);}
+.tile.hero .v small{color:var(--brand-hero-sub);}
+
+/* ---------- pills & category chips ---------- */
+.pill{
+  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+  padding:2px 8px;border-radius:999px;border:1px solid;white-space:nowrap;
+}
+.pill .dot{width:6px;height:6px;border-radius:50%;flex:none;}
+.pill.gray{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+.pill.gray .dot{background:var(--st-gray-dot);}
+.pill.amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+.pill.amber .dot{background:var(--st-amber-dot);}
+.pill.green{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line);}
+.pill.green .dot{background:var(--st-green-dot);}
+.pill.ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+.pill.ruby .dot{background:var(--st-ruby-dot);}
+.pill.steel{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
+.pill.steel .dot{background:var(--st-steel-dot);}
+
+/* A CATEGORY IS NOT A STATUS, so it does not borrow the status colours, and
+   nine of them would be a rainbow. One quiet outlined chip, the name doing
+   the work. */
+.cat{
+  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;
+  padding:2px 8px;border-radius:6px;white-space:nowrap;
+  border:1px solid var(--color-neutral-300);color:var(--color-neutral-600);
+  background:var(--color-surface);
+}
+.cat:before{
+  content:"";width:5px;height:5px;border-radius:1px;flex:none;
+  background:var(--color-neutral-400);transform:rotate(45deg);
+}
+/* WHAT IS AT STAKE IS NOT A CATEGORY, and wearing the same chip made the two
+   unreadable next to each other — "Donor funding · Compliance · Continuity"
+   looked like three categories. Stakes are set as quiet text instead. */
+.stakes{font-size:10.5px;color:var(--color-neutral-500);display:inline-flex;align-items:center;gap:4px;}
+.stakes b{font-weight:600;color:var(--color-neutral-600);}
+
+/* ---------- tables ---------- */
+.tblwrap{overflow-x:auto;margin:0 -16px -16px;padding:0 16px 16px;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:620px;}
+thead th{
+  text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding:8px 10px;border-bottom:1px solid var(--color-divider);white-space:nowrap;
+}
+tbody td{padding:10px;border-bottom:1px solid var(--color-divider);vertical-align:top;}
+tbody tr:last-child td{border-bottom:0;}
+tbody tr:hover{background:var(--color-surface-2);}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.t-strong{font-weight:600;color:var(--color-text);}
+.t-mut{color:var(--color-neutral-500);font-size:11.5px;}
+.t-src{
+  font-size:10.5px;color:var(--accent-ink);font-weight:600;white-space:nowrap;
+  border-bottom:1px dotted color-mix(in srgb,var(--accent-solid) 45%,transparent);
+}
+
+/* ---------- filter / switch rows ---------- */
+.filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:13px;}
+.fbtn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 12px;
+  font-size:11.5px;font-weight:600;
+}
+.fbtn:hover{background:var(--color-surface-2);}
+.fbtn.on{
+  background:color-mix(in srgb,var(--accent-solid) 12%,transparent);
+  border-color:color-mix(in srgb,var(--accent-solid) 32%,transparent);
+  color:var(--accent-ink);
+}
+.fsep{width:1px;height:20px;background:var(--color-divider);margin:0 4px;}
+.shelf{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;
+  padding:10px 12px;border-radius:var(--radius-md);
+  background:var(--color-surface);border:1px solid var(--color-divider);
+}
+.shelf .cap{
+  font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);margin-right:2px;
+}
+
+/* ---------- charts ---------- */
+.stagebar{display:flex;gap:2px;height:34px;margin-top:4px;}
+.stagebar div{position:relative;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:#04241f;font-variant-numeric:tabular-nums;}
+.stagebar div:first-child{border-radius:7px 3px 3px 7px;}
+.stagebar div:last-child{border-radius:3px 7px 7px 3px;}
+.stagebar div.dk{color:#e6fffb;}
+.stage-x{display:flex;gap:2px;margin-top:7px;font-size:10.5px;color:var(--color-neutral-500);}
+.stage-x div{text-align:center;line-height:1.25;}
+
+.rank{display:flex;flex-direction:column;gap:9px;}
+.rank .row{display:grid;grid-template-columns:1fr 168px 46px;gap:10px;align-items:center;}
+.rank .nm{font-size:12px;font-weight:600;}
+.rank .nm em{display:block;font-style:normal;font-size:10.5px;color:var(--color-neutral-500);font-weight:500;}
+/* display:block on BOTH. The track is a grid item so the grid blockifies it,
+   but the fill inside is a plain span — left inline, its width is ignored and
+   every bar draws empty. Caught by photographing the screen, not by reading
+   the CSS. */
+.rank .track{display:block;height:9px;background:var(--color-surface-2);border-radius:5px;overflow:hidden;}
+.rank .fill{display:block;height:100%;background:var(--color-accent-600);border-radius:5px;}
+.rank .fill.warn{background:var(--st-amber-dot);}
+.rank .val{text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;}
+@media (max-width:820px){ .rank .row{grid-template-columns:1fr 90px 44px;} }
+
+/* ---------- attention list ---------- */
+.attn{display:flex;flex-direction:column;}
+.attn .it{display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--color-divider);}
+.attn .it:last-child{border-bottom:0;}
+.attn .ic{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;}
+.attn .bd{flex:1;min-width:0;}
+.attn .bd b{display:block;font-size:12.5px;font-weight:700;margin-bottom:2px;}
+.attn .bd p{margin:0;font-size:11.5px;color:var(--color-neutral-500);}
+.attn .bd .tags{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
+.attn .go{margin-left:auto;flex:none;align-self:center;}
+
+/* ---------- exposure currencies ---------- */
+.cur{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius-md);padding:13px 14px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;gap:5px;text-align:left;width:100%;
+  transition:border-color .12s,background .12s;
+}
+.cur:hover{background:var(--color-surface-2);}
+.cur.on{
+  border-color:color-mix(in srgb,var(--accent-solid) 45%,transparent);
+  background:color-mix(in srgb,var(--accent-solid) 7%,transparent);
+}
+.cur .top{display:flex;align-items:center;gap:7px;}
+.cur .top svg{color:var(--accent-ink);flex:none;}
+.cur .nm{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-500);}
+.cur .v{font-family:var(--font-heading);font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--color-text);}
+.cur .d{font-size:11px;color:var(--color-neutral-500);}
+
+/* ---------- misc ---------- */
+.callout{
+  border-left:3px solid var(--accent-solid);background:var(--st-steel-bg);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:11px 13px;font-size:12px;
+}
+.callout b{font-weight:700;}
+.callout.warn{border-left-color:var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg);}
+
+.clause-src{
+  background:var(--color-surface-2);border:1px solid var(--color-divider);
+  border-radius:var(--radius-sm);padding:13px 15px;font-size:12.5px;line-height:1.75;
+}
+.clause-src .no{font-weight:700;}
+mark{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);
+  color:inherit;border-radius:3px;padding:1px 3px;font-weight:600;}
+
+.ghost{border:1px dashed color-mix(in srgb,var(--color-neutral-400) 60%,transparent);
+  background:transparent;box-shadow:none;}
+.ghost h3{color:var(--color-neutral-500);}
+.ghost .hint{color:var(--color-neutral-500);}
+
+.timeline{position:relative;padding-left:22px;}
+.timeline:before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;
+  background:var(--color-divider);border-radius:2px;}
+.tl-it{position:relative;padding:0 0 18px;}
+.tl-it:last-child{padding-bottom:0;}
+.tl-it:before{content:"";position:absolute;left:-20px;top:5px;width:10px;height:10px;border-radius:50%;
+  background:var(--color-accent-500);border:2px solid var(--color-surface);}
+.tl-it.bad:before{background:var(--st-ruby-dot);}
+.tl-it .dt{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--color-neutral-500);}
+.tl-it .hd{font-size:12.5px;font-weight:700;margin:2px 0 5px;}
+.tl-it .gv,.tl-it .wn{font-size:11.5px;display:flex;gap:7px;margin-bottom:3px;}
+.tl-it .gv b,.tl-it .wn b{flex:none;font-weight:700;}
+.tl-it .gv b{color:var(--st-ruby-fg);}
+.tl-it .wn b{color:var(--st-green-fg);}
+
+.cal-mo{margin-bottom:16px;}
+.cal-mo h4{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding-bottom:7px;border-bottom:1px solid var(--color-divider);margin-bottom:4px;}
+.cal-it{display:flex;gap:12px;align-items:baseline;padding:9px 2px;border-bottom:1px solid var(--color-divider);}
+.cal-it:last-child{border-bottom:0;}
+.cal-it .d{font-size:11px;font-weight:700;color:var(--color-neutral-500);width:52px;flex:none;font-variant-numeric:tabular-nums;}
+.cal-it .t{flex:1;font-size:12px;}
+.cal-it .t em{display:block;font-style:normal;font-size:11px;color:var(--color-neutral-500);}
+
+.finding{display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--color-divider);}
+.finding:last-child{border-bottom:0;}
+.finding .bd{flex:1;min-width:0;}
+.finding .bd b{display:block;font-size:12.5px;font-weight:700;margin-bottom:2px;}
+.finding .bd p{margin:0 0 6px;font-size:11.5px;color:var(--color-neutral-500);}
+.finding .amt{flex:none;text-align:right;min-width:104px;}
+.finding .amt .m{font-family:var(--font-heading);font-size:15px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.finding .amt .u{font-size:10.5px;color:var(--color-neutral-500);}
+@media (max-width:700px){ .finding{flex-direction:column;} .finding .amt{text-align:left;} }
+
+.packhd{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.packhd h4{font-size:13px;font-weight:700;}
+.checklist{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+.checklist div{display:flex;gap:8px;font-size:11.5px;align-items:flex-start;}
+.checklist div:before{
+  content:"";width:5px;height:5px;border-radius:50%;flex:none;margin-top:6px;
+  background:var(--color-accent-500);
+}
+.thin{border-top:1px solid var(--color-divider);margin-top:12px;padding-top:11px;}
+
+/* ---------- WHERE A FIGURE CAME FROM ----------
+   The whole point of this cut. Two sources, marked on every number, so a
+   reader never has to wonder whether a figure was read or inferred. */
+.src{
+  display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:5px;
+  border:1px solid;white-space:nowrap;vertical-align:middle;
+}
+.src.doc{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
+.src.hati{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+.src svg{flex:none;opacity:.9;}
+
+.srcbar{
+  display:flex;gap:9px;align-items:flex-start;margin-bottom:16px;padding:9px 13px;
+  border-radius:var(--radius-md);font-size:11.5px;line-height:1.6;
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  color:var(--color-neutral-500);
+}
+.srcbar svg{flex:none;margin-top:2px;color:var(--accent-ink);}
+
+/* the list of things this prototype refuses to say */
+.cutlist{display:flex;flex-direction:column;}
+.cutlist div{padding:9px 2px;border-bottom:1px solid var(--color-divider);}
+.cutlist div:last-child{border-bottom:0;}
+.cutlist b{display:block;font-size:12px;font-weight:700;margin-bottom:1px;}
+.cutlist span{font-size:11.5px;color:var(--color-neutral-500);}
+
+/* a check line now carries its source tag, so it needs to wrap as a unit */
+.checklist div>span{display:inline;}
+
+/* ---------- CHART LEGEND ----------
+   Dropped from the second cut because nothing used it, then needed again by
+   the bar chart that replaced the line chart — and it came back as unstyled
+   text reading "Above the ceilingWithin it". A legend is required whenever a
+   chart encodes more than one thing, so it lives here permanently now. */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--color-neutral-600);}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block;}
+.legend i.dash{width:16px;height:0;border-radius:0;border-top:2px dashed var(--ch-ref);}
+
+/* ---------- INSIGHTS: ONE PAGE, MANY TABS ----------
+   Drawn as physical file-folder tabs: rounded at the top only, each in its own
+   pastel, the active one raised and at full strength while the rest sit lower
+   and washed toward the page.
+
+   ABOUT THE COLOURS. Everywhere else in this prototype colour MEANS something —
+   ruby is wrong, amber is watch, teal is the brand. Seven pastel tabs would
+   wreck that if they were drawn from the same box, so they are not: every tab
+   tint is a desaturated wash no status ever uses, which is what keeps a lilac
+   tab from reading as a signal. Colour here does one job only — telling one
+   destination from another at a glance, which is the same job it does in the
+   reference. */
+:root{
+  --tab-1:#c9ece4; --tab-2:#d2e6f7; --tab-3:#ded9f6; --tab-4:#f1d8ef;
+  --tab-5:#f9d6dc; --tab-6:#fbdfcc; --tab-7:#f7ecc4;
+  --tab-ink:#332d3f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-4:#432344;
+    --tab-5:#4a2330; --tab-6:#4d3220; --tab-7:#463b18;
+    --tab-ink:#ece7f4;
+  }
+}
+:root[data-theme="dark"]{
+  --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-4:#432344;
+  --tab-5:#4a2330; --tab-6:#4d3220; --tab-7:#463b18;
+  --tab-ink:#ece7f4;
+}
+
+.ins-head{margin-bottom:4px;}
+.ins-head h1{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+.ins-sub{font-size:12.5px;color:var(--color-neutral-500);margin-top:3px;}
+
+.ins-tabrow{
+  display:flex;align-items:flex-end;gap:16px;margin-top:16px;
+  /* the rail takes the ACTIVE tab's colour — that is what visually joins the
+     raised tab to everything below it */
+  border-bottom:3px solid var(--rail,var(--color-divider));
+}
+.ins-tabs{
+  display:flex;align-items:flex-end;gap:3px;flex:1;min-width:0;
+  overflow-x:auto;overflow-y:hidden;padding-top:8px;scrollbar-width:thin;
+}
+.ins-tabs::-webkit-scrollbar{height:5px;}
+.ins-tabs::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:3px;}
+.ins-tab{
+  position:relative;flex:none;border:0;
+  background:color-mix(in srgb,var(--tab-c) 62%,var(--color-bg));
+  color:var(--tab-ink);
+  border-radius:11px 11px 0 0;
+  padding:7px 14px 8px;
+  font-size:12.5px;font-weight:600;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:background .12s,padding .12s;
+}
+.ins-tab:hover{ background:color-mix(in srgb,var(--tab-c) 82%,var(--color-bg)); }
+/* the raised folder: full-strength colour, taller, sitting on its own rail */
+.ins-tab.on{
+  background:var(--tab-c);
+  padding:12px 16px 10px;
+  font-weight:700;
+  box-shadow:0 -1px 3px rgba(15,23,42,.07);
+}
+.ins-tab .n{
+  font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:999px;
+  background:rgba(0,0,0,.09);color:inherit;font-variant-numeric:tabular-nums;
+}
+:root[data-theme="dark"] .ins-tab .n{background:rgba(255,255,255,.16);}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .ins-tab .n{background:rgba(255,255,255,.16);}
+}
+
+.ins-range{display:flex;gap:2px;flex:none;padding-bottom:8px;}
+.ins-range button{
+  border:0;background:none;font-size:12px;font-weight:600;padding:4px 9px;
+  border-radius:8px;color:var(--color-neutral-500);
+}
+.ins-range button:hover{background:var(--color-surface-2);color:var(--color-text);}
+.ins-range button.on{color:var(--accent-ink);background:var(--st-steel-bg);}
+
+/* each panel's own intro — smaller than a page header, because it is not one */
+.panel-head{display:flex;align-items:flex-start;gap:16px;margin:18px 0 14px;flex-wrap:wrap;}
+.panel-head .t{font-size:12.5px;color:var(--color-neutral-500);max-width:74ch;}
+.panel-head .t b{color:var(--color-text);font-weight:600;}
+.panel-head .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+@media (max-width:820px){ .ins-tabrow{flex-direction:column;align-items:stretch;gap:0;} .ins-range{padding:6px 0;} }
+
+/* ---------- COPILOT'S READ ----------
+   The one place AI appears in Insights, and it is opt-in by design: nothing
+   runs until the button is pressed, and the counted report never depends on
+   it. That is the same promise the source tags make, in a different form. */
+.copread{
+  display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;
+  padding:14px 16px;border-radius:var(--radius-md);margin-bottom:14px;
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  box-shadow:var(--shadow-sm);
+}
+.copread .hd{display:flex;align-items:center;gap:8px;width:100%;}
+.copread .hd h3{font-size:13px;font-weight:700;}
+.copread .hd .tagline{
+  font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;
+  background:var(--st-steel-bg);color:var(--st-steel-fg);border:1px solid var(--st-steel-line);
+}
+.copread .ic{
+  width:26px;height:26px;border-radius:8px;flex:none;display:grid;place-items:center;
+  background:var(--st-steel-bg);color:var(--st-steel-fg);
+}
+.copread p{margin:0;font-size:11.5px;color:var(--color-neutral-500);flex:1;min-width:220px;line-height:1.65;}
+
+/* ---------- NEGOTIATION FRICTION ---------- */
+.fr-big{display:flex;gap:16px;align-items:flex-start;padding:14px 2px;border-bottom:1px solid var(--color-divider);}
+.fr-big:last-child{border-bottom:0;}
+.fr-big .n{
+  font-family:var(--font-heading);font-size:30px;font-weight:800;letter-spacing:-.03em;
+  line-height:1;min-width:74px;font-variant-numeric:tabular-nums;
+}
+.fr-big .bd{flex:1;min-width:0;font-size:12.5px;line-height:1.6;}
+.fr-big .bd b{font-weight:700;}
+.fr-big .bd a{display:block;margin-top:6px;font-size:11.5px;font-weight:600;color:var(--accent-ink);text-decoration:none;}
+.fr-big .bd a:hover{text-decoration:underline;}
+
+.fr-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding-top:14px;border-top:1px solid var(--color-divider);margin-top:2px;}
+.fr-pair .k{font-family:var(--font-heading);font-size:20px;font-weight:800;letter-spacing:-.02em;}
+.fr-pair .l{font-size:11.5px;color:var(--color-neutral-500);}
+
+/* the contested-clause list: a bar, a share, and the rounds it adds */
+.cl-row{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(90px,1fr) 42px 44px;gap:10px;align-items:center;padding:5px 0;}
+.cl-row .nm{font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-row .track{display:block;height:9px;background:var(--color-surface-2);border-radius:5px;overflow:hidden;}
+.cl-row .fill{display:block;height:100%;border-radius:5px;background:var(--color-accent-600);}
+.cl-row .fill.flat{background:var(--color-neutral-300);}
+.cl-row .pc,.cl-row .rd{text-align:right;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+.cl-row .rd.up{color:var(--st-ruby-fg);}
+.cl-row .rd.dn{color:var(--st-green-fg);}
+@media (max-width:700px){ .cl-row{grid-template-columns:minmax(0,1fr) 42px 44px;} .cl-row .track{display:none;} }
+
+/* ---------- CONTRACT GRAPH ---------- */
+.graphwrap{overflow-x:auto;}
+.graphwrap svg{display:block;min-width:660px;}
+.gnode-l{font-family:var(--font-body);font-size:11px;font-weight:700;fill:var(--color-text);}
+.gnode-s{font-family:var(--font-body);font-size:9.5px;fill:var(--color-neutral-500);}
+.gcol{font-family:var(--font-body);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;fill:var(--color-neutral-500);}
+.gedge-l{font-family:var(--font-body);font-size:9.5px;font-weight:700;fill:var(--color-neutral-500);}
+</style>
+</head>
+<body>
+
+<div class="proto-note">
+  <p><b>Prototype — pictures only.</b> Nothing is connected to HaTi and every figure is invented.
+  Everything the analyst does now lives under <b>Insights</b> as tabs, beside the two that were already
+  there. Three example organisations share one engine — switch between them in the top bar.</p>
+</div>
+
+<div class="shell">
+
+  <div class="brandbar"><span class="wm">HaTi</span><span class="tag">CLM</span></div>
+
+  <div class="topbar">
+    <div class="orgswitch">
+      <span class="cap">Example organisation</span>
+      <button class="obtn on" data-org="savanna">Savanna Foods</button>
+      <button class="obtn" data-org="ubuntu">Ubuntu Health Trust</button>
+      <button class="obtn" data-org="nordlund">Nordlund Advokatbyrå</button>
+    </div>
+    <div class="top-right">
+      <span class="mkt-chip" id="mkt-chip">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>
+        <span id="mkt-text">Kenya · KES</span>
+      </span>
+      <button class="copilot-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
+        Ask Copilot
+      </button>
+      <span class="avatar" id="avatar">AM</span>
+    </div>
+  </div>
+
+  <!-- THE SIDEBAR LOST A SECTION. The previous cut invented an ANALYST group
+       with six doors of its own. Everything it held now sits behind the
+       Insights door that was already in the product, so the group is gone and
+       the five everyday doors are back to being five. -->
+  <nav class="sidenav">
+    <button class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
+      <span class="lbl">Home</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
+      <span class="lbl">Contracts</span><span class="nav-count" id="nav-contracts">148</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
+      <span class="lbl">Calendar</span>
+    </button>
+    <button class="nav-item active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
+      <span class="lbl">Insights</span><span class="nav-count" id="nav-exp">39</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
+      <span class="lbl">Templates</span>
+    </button>
+
+    <div class="nav-head">Administration</div>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
+      <span class="lbl">Settings &amp; Rules</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span class="lbl">Our standards</span>
+    </button>
+  </nav>
+
+  <main class="main">
+
+    <!-- ONE PAGE HEADER FOR THE WHOLE OF INSIGHTS. Every panel below is a tab
+         of this page, not a page of its own, so the title, the tab row and the
+         time range are written once here rather than by each renderer. -->
+    <div class="ins-head">
+      <h1>Insights</h1>
+      <div class="ins-sub" id="ins-sub"></div>
+      <div class="ins-tabrow">
+        <div class="ins-tabs" id="ins-tabs" role="tablist"></div>
+        <div class="ins-range">
+          <button class="on">All time</button><button>Last 90 days</button>
+        </div>
+      </div>
+    </div>
+    <div id="ins-src"></div>
+
+    <section class="screen on" id="s-home"></section>
+    <section class="screen" id="s-exp"></section>
+    <section class="screen" id="s-oblig"></section>
+    <section class="screen" id="s-brief"></section>
+    <section class="screen" id="s-friction"></section>
+    <section class="screen" id="s-graph"></section>
+    <section class="screen" id="s-mix"></section>
+  </main>
+</div>
+<script>
+/* ============================================================================
+   THE DATA. Three organisations, one engine.
+
+   THE RULE THIS CUT OBEYS: a figure appears here only if HaTi could produce it
+   from documents it already holds. Nothing is typed in from another system and
+   nothing is checked against an outside source.
+
+   Two sources qualify, and every figure on screen is marked with which:
+
+     doc  — read off a signed document. Includes comparing one document with
+            another: a rate in a variation against the ceiling in the parent
+            agreement, a donor condition against the partner agreement below it.
+     hati — HaTi's own filing record. Was a decision recorded before that date?
+            Has any variation ever been filed under this right? Is there a
+            letter on file for this matter? This is the platform's own audit
+            trail, not an import.
+
+   WHAT WAS CUT, and it was a lot: what was actually paid, volumes shipped,
+   seat usage, revenue by customer, spend against budget lines, inflation,
+   market benchmarks — and statutory limits, because "this fixed term reaches
+   its end date" is a document fact while "which passes the legal limit" is a
+   legal conclusion. The removed list is on the Exposure screen, in public.
+   ========================================================================= */
+
+/* ---- WHERE A FIGURE CAME FROM ---------------------------------------- */
+const SRC = {
+  doc:  {label:'From the contract',
+         icon:'<path d="M8 3h6l4 4v14a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/>'},
+  hati: {label:'HaTi’s own record',
+         icon:'<path d="M12 8v4.4l3 1.8"/><circle cx="12" cy="12" r="8.5"/>'}
+};
+function srcTag(k){
+  return '<span class="src '+k+'" title="'+SRC[k].label+'">'+
+    '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+
+    SRC[k].icon+'</svg>'+(k==='doc'?'Contract':'HaTi')+'</span>';
+}
+
+/* ---- THE CATEGORY LIBRARY --------------------------------------------
+   A category is a property of the CONTRACT, not of the company. Every
+   organisation below holds several. Each category brings its own obligation
+   types, its own checks and its own idea of what is at stake.
+
+   Every check now names its source. Ten checks from the previous cut were
+   deleted outright because they could not be answered without a figure from
+   another system — the price actually paid, tonnes shipped, seats in use,
+   spend against budget lines. Several were replaced by a document-only
+   question that gets at the same thing. */
+const CATS = {
+  supplier:{ label:'Supplier & services', short:'Supplier',
+    watches:'Ceilings on price rises, notice and renewal dates, exit rights, whether anyone else is named',
+    stakes:['Value','Continuity'],
+    checks:[
+      {t:'A rate on file that exceeds the ceiling in the parent agreement',s:'doc'},
+      {t:'Increase clause with no ceiling written in at all',s:'doc'},
+      {t:'Notice deadline approaching before it renews itself',s:'doc'},
+      {t:'They may leave on short notice and you may not',s:'doc'},
+      {t:'Named as sole source, with no alternative anywhere in the book',s:'doc'},
+      {t:'A rebate or discount tier written in, with no claim ever filed here',s:'hati'}
+    ]},
+  customer:{ label:'Customer & revenue', short:'Customer',
+    watches:'What you promised, what your liability is, rights you hold, how contracted revenue is spread',
+    stakes:['Value','Risk'],
+    checks:[
+      {t:'Your liability is uncapped',s:'doc'},
+      {t:'An indexation right exists with no variation ever filed under it',s:'hati'},
+      {t:'A penalty you owe with no ceiling on it',s:'doc'},
+      {t:'They may terminate for convenience and you may not',s:'doc'},
+      {t:'A large share of contracted revenue sits with one counterparty',s:'doc'}
+    ]},
+  employment:{ label:'Employment & people', short:'Employment',
+    watches:'Probation and fixed-term end dates, notice periods, covenants, what the contract points at',
+    stakes:['People','Risk'],
+    checks:[
+      {t:'Probation period reaches its end date',s:'doc'},
+      {t:'Fixed term reaches the end of its stated period',s:'doc'},
+      {t:'No written notice period in the contract at all',s:'doc'},
+      {t:'Restrictive covenant longer than your own standard wording',s:'doc'},
+      {t:'Points at a policy or handbook not held here',s:'hati'}
+    ]},
+  lease:{ label:'Property & lease', short:'Lease',
+    watches:'Break options, rent review terms, service-charge ceilings, reinstatement duties, term remaining',
+    stakes:['Value','Continuity'],
+    checks:[
+      {t:'Break option date approaching',s:'doc'},
+      {t:'Rent review with no ceiling written in',s:'doc'},
+      {t:'Reinstatement obligation at the end of the term',s:'doc'},
+      {t:'Service charge with no ceiling',s:'doc'},
+      {t:'Rent per square metre above your other leases',s:'doc'}
+    ]},
+  licence:{ label:'Software & licences', short:'Licence',
+    watches:'Stated seat and usage limits, audit rights, uplift terms, whether there is a decision point',
+    stakes:['Compliance','Value'],
+    checks:[
+      {t:'Automatic uplift written in with no ceiling',s:'doc'},
+      {t:'Audit right with no notice requirement',s:'doc'},
+      {t:'Renews itself with no decision point in the agreement',s:'doc'},
+      {t:'A seat limit is stated and nothing has ever been filed here against it',s:'hati'}
+    ]},
+  grant:{ label:'Donor funding', short:'Donor funding',
+    watches:'Reporting deadlines, clawback conditions, reallocation margins, extension deadlines, flow-down duties',
+    stakes:['Compliance','Continuity'],
+    checks:[
+      {t:'Narrative or financial report falling due',s:'doc'},
+      {t:'Clawback condition written into the agreement',s:'doc'},
+      {t:'No-cost extension deadline approaching',s:'doc'},
+      {t:'Reallocation margin tighter than your other funders allow',s:'doc'},
+      {t:'A donor condition missing from the partner agreement below it',s:'doc'},
+      {t:'A closed reporting period with nothing filed here',s:'hati'}
+    ]},
+  partner:{ label:'Sub-grants & partners', short:'Partner',
+    watches:'Whether donor conditions reached the partner, audit rights over them, how the dates line up',
+    stakes:['Compliance','Risk'],
+    checks:[
+      {t:'A donor condition not flowed down into the partner agreement',s:'doc'},
+      {t:'No audit right over a partner who holds donor money',s:'doc'},
+      {t:'Partner agreement runs past the grant that funds it',s:'doc'},
+      {t:'A closed period with no partner report filed here',s:'hati'}
+    ]},
+  client:{ label:'Client engagement', short:'Client',
+    watches:'Liability caps, fee and uplift terms, what the letter says the work is, whether there is a letter',
+    stakes:['Value','Risk'],
+    checks:[
+      {t:'Engagement letter with no cap on your liability',s:'doc'},
+      {t:'Liability cap set below the fee agreed',s:'doc'},
+      {t:'A fee uplift right with no variation ever filed under it',s:'hati'},
+      {t:'A matter open here with no engagement letter on file',s:'hati'}
+    ]},
+  nda:{ label:'Confidentiality', short:'Confidentiality',
+    watches:'When confidentiality ends, the permitted purpose, return-or-destroy duties',
+    stakes:['Risk'],
+    checks:[
+      {t:'Confidentiality period reaching its end',s:'doc'},
+      {t:'Return-or-destroy obligation with no completion recorded here',s:'hati'}
+    ]}
+};
+
+/* ---- THE FIVE CURRENCIES ----------------------------------------------
+   "Cash" became "Value" in this cut, and the change is not cosmetic. HaTi
+   cannot say what a leak cost you — that is in your accounts. It CAN say how
+   much CONTRACTED value sits behind a term nobody is using or a renewal
+   nobody decided. That number is written in the agreements. */
+const CURR = {
+  value:     { label:'Value',      icon:'M15 9.2c-.7-.9-1.8-1.4-3-1.4-1.8 0-2.9.9-2.9 2.1 0 3 6 1.6 6 4.5 0 1.3-1.2 2.2-3.1 2.2-1.3 0-2.5-.5-3.2-1.5M12 6v12' },
+  risk:      { label:'Risk',       icon:'M12 3 3.5 6.6v5.2c0 4.8 3.4 8.6 8.5 10.2 5.1-1.6 8.5-5.4 8.5-10.2V6.6L12 3Z' },
+  compliance:{ label:'Compliance', icon:'M8 4h8a2 2 0 0 1 2 2v14l-6-3-6 3V6a2 2 0 0 1 2-2Z' },
+  continuity:{ label:'Continuity', icon:'M4 18V9m5 9V4m5 14v-8m5 8V7' },
+  people:    { label:'People',     icon:'M9 11.6a3.7 3.7 0 1 0 0-7.4 3.7 3.7 0 0 0 0 7.4Zm0 1.4c-3.6 0-6.6 2-6.6 4.6v2.3h13.2v-2.3c0-2.6-3-4.6-6.6-4.6Z' }
+};
+
+/* ---- WHAT THIS PROTOTYPE DELIBERATELY WILL NOT SHOW --------------------
+   Shown on screen, not hidden in a comment. A reader who cannot see what was
+   left out has no way to judge what was left in. */
+const CUT = [
+  ['What you actually paid','Your accounts. The agreements say what was agreed; invoices, credit notes and part-shipments are somewhere else.'],
+  ['Volumes, tonnes, units shipped','Your ERP. Without them a rebate tier can be reported as existing, never as earned.'],
+  ['How many days you really take to pay','Your accounts. The contract states the terms; the payment run states the behaviour.'],
+  ['Seats or licences actually in use','The vendor’s own console. HaTi can state the limit and nothing more.'],
+  ['Revenue or funding actually received','Your accounts. Concentration here is measured on CONTRACTED value instead, and says so.'],
+  ['Spend against approved budget lines','Your grant ledger.'],
+  ['Inflation, market rates, sector benchmarks','Outside reference data. Every comparison here is against your own other contracts.'],
+  ['Whether a service level was ever met','Nobody records this today. It is the one item on this list that needs a new habit rather than a connection.']
+];
+
+const ORGS = {
+
+/* ======================= 1 · A FOOD MANUFACTURER ======================== */
+savanna:{
+  name:'Savanna Foods Ltd', kind:'Food manufacturer', market:'Kenya · KES', cur:'KES',
+  initials:'AM', contracts:148, obligations:1284,
+  asks:['Which agreements have no ceiling on price rises?',
+        'Which rights have we never filed a variation under?',
+        'Whose probation reaches its end date this month?'],
+  types:[['Payment terms',312],['Service levels',238],['Delivery & performance',201],['Reporting',157],
+         ['Notice & renewal',139],['Probation & fixed term',122],['Insurance & compliance',115]],
+  mix:[ {c:'customer',n:63},{c:'supplier',n:41},{c:'employment',n:28},
+        {c:'licence',n:7},{c:'lease',n:6},{c:'nda',n:3} ],
+  tiles:[
+    {k:'Contract health',v:'74',u:'/100',d:'Up 3 points on July'},
+    {k:'Open findings',v:'39',d:'across five kinds of exposure'},
+    {k:'Decisions due · 30 days',v:'9',d:'3 are notice deadlines with nothing filed'},
+    {k:'Largest category',v:'63',d:'customer contracts, 43% of the book'}
+  ],
+  score:[
+    {nm:'Renewals with a decision recorded in time',sub:'every category',pct:75,s:'hati'},
+    {nm:'Obligations confirmed by a person',sub:'1,137 of 1,284 checked',pct:89,s:'hati'},
+    {nm:'Liability capped in writing',sub:'weighted by 63 customer contracts',pct:66,s:'doc'},
+    {nm:'A ceiling on price rises',sub:'weighted by 41 supplier contracts',pct:48,warn:true,s:'doc'},
+    {nm:'Exit rights held',sub:'contracts you may leave early',pct:71,s:'doc'},
+    {nm:'Contracted revenue spread',sub:'top counterparty holds 24%',pct:55,warn:true,s:'doc'}
+  ],
+  roles:[
+    {id:'proc',label:'Procurement',items:[
+      {t:'ruby',h:'A rate on file exceeds the ceiling the agreement allows',p:'The 2024 variation with Rift Valley raised the rate 8.1% where clause 6.3 caps a yearly increase at 7%. Every increase since has compounded on top of it.',cat:'supplier',s:'doc',go:'s-brief'},
+      {t:'ruby',h:'Rift Valley Logistics — decide by 2 September',p:'It renews itself on 31 October and the agreement requires 60 days notice. Nothing has been filed here.',cat:'supplier',s:'doc',go:'s-brief'},
+      {t:'amber',h:'Seven supplier agreements have no ceiling on price rises',p:'No ceiling is written in at all, so any increase is permitted at renewal. KES 44M of contracted spend sits behind them.',cat:'supplier',s:'doc',go:'s-exp'}
+    ]},
+    {id:'sales',label:'Sales',items:[
+      {t:'ruby',h:'Four customer contracts cap nothing you owe',p:'Your liability under them is unlimited. Every other customer contract in the book caps it at twelve months of fees.',cat:'customer',s:'doc',go:'s-exp'},
+      {t:'amber',h:'Eleven indexation rights with no variation ever filed under them',p:'KES 96M of contracted revenue carries a right to adjust the price. HaTi has never seen one used.',cat:'customer',s:'hati',go:'s-exp'},
+      {t:'amber',h:'Two negotiations have had no movement for over a week',p:'Serena Hotels for 11 days, Java House for 6. Neither has anyone recorded as chasing it.',cat:'customer',s:'hati',go:'s-deals'}
+    ]},
+    {id:'people',label:'People',items:[
+      {t:'ruby',h:'Four probation periods reach their end date this month',p:'The dates are in the contracts. What happens if nobody acts is a question for your adviser, not for HaTi.',cat:'employment',s:'doc',go:'s-oblig'},
+      {t:'amber',h:'Two fixed terms reach the end of their stated period in October',p:'Both have already been extended once, which is visible from the variations on file.',cat:'employment',s:'doc',go:'s-oblig'},
+      {t:'amber',h:'Nine contracts have no written notice period at all',p:'The clause is simply absent. Whatever applies instead is not written down anywhere in the agreement.',cat:'employment',s:'doc',go:'s-exp'}
+    ]},
+    {id:'fin',label:'Finance',items:[
+      {t:'ruby',h:'Three contracts renewed themselves with no decision recorded',p:'Their notice dates passed in July and nothing was filed here. KES 4.2M of contracted value is committed for another year.',cat:'supplier',s:'hati',go:'s-exp'},
+      {t:'amber',h:'Four supplier agreements offer an early-payment discount',p:'The term is written in. No claim has ever been filed here under any of them.',cat:'supplier',s:'hati',go:'s-exp'},
+      {t:'steel',h:'A rebate tier is written in and has never been claimed here',p:'Clause 6.5 of the haulage framework. HaTi can see the tier exists; whether you passed it is a volume figure it does not hold.',cat:'supplier',s:'hati',go:'s-brief'}
+    ]}
+  ],
+  exposure:{
+    value:{v:'144M',u:'KES contracted',n:11,note:'Contracted value sitting behind a term nobody is using',
+      f:[{h:'Eleven indexation rights with no variation ever filed',p:'The right to adjust the price exists in each. HaTi has never recorded one being used. What that would have been worth is a calculation it will not make.',m:'96.0M',u:'contracted revenue',s:'amber',sl:'Never used',src:'hati',c:'customer'},
+         {h:'Seven supplier agreements with no ceiling on increases',p:'No ceiling is written in at all. Any increase is permitted at renewal.',m:'44.0M',u:'contracted spend',s:'ruby',sl:'No ceiling',src:'doc',c:'supplier'},
+         {h:'Three contracts renewed themselves with no decision recorded',p:'Their notice dates passed and nothing was filed here.',m:'4.2M',u:'committed',s:'ruby',sl:'Committed',src:'hati',c:'supplier'}]},
+    risk:{v:'9',u:'findings',n:9,note:'Four contracts leave your liability open',
+      f:[{h:'Four customer contracts cap nothing you owe',p:'Unlimited liability. Every other customer contract in the book caps it at twelve months of fees, which is how the outlier shows up.',m:'4',u:'contracts',s:'ruby',sl:'Uncapped',src:'doc',c:'customer'},
+         {h:'Three agreements let them leave and not you',p:'They hold a termination-for-convenience right and you hold none. The asymmetry is in the wording of a single clause.',m:'3',u:'contracts',s:'amber',sl:'One-way',src:'doc',c:'customer'}]},
+    compliance:{v:'5',u:'findings',n:5,note:'Stated limits with nothing filed against them',
+      f:[{h:'Two licences state a seat limit and nothing has been filed here against it',p:'HaTi can state the limit — 50 seats — and that no usage evidence has ever been filed. What you are actually using is in the vendor’s console.',m:'2',u:'licences',s:'amber',sl:'No evidence filed',src:'hati',c:'licence'},
+         {h:'An insurance obligation with no certificate on file this year',p:'The supply agreement requires an annual certificate. Nothing has been filed here for the current year.',m:'1',u:'agreement',s:'amber',sl:'Nothing filed',src:'hati',c:'supplier'}]},
+    continuity:{v:'4',u:'findings',n:4,note:'Measured on contracted value, not receipts',
+      f:[{h:'One counterparty holds 24% of contracted revenue',p:'Measured on the values written into the agreements, not on money received. The top three hold 51% between them.',m:'24%',u:'of contracted revenue',s:'amber',sl:'Concentrated',src:'doc',c:'customer'},
+         {h:'One supplier is named sole source with no alternative anywhere',p:'Cold storage. No second site is named in any agreement in the book.',m:'1',u:'supplier',s:'ruby',sl:'Sole source',src:'doc',c:'supplier'}]},
+    people:{v:'10',u:'findings',n:10,note:'Dates and missing clauses, nothing inferred',
+      f:[{h:'Four probation periods reach their end date this month',p:'The dates are written into the contracts. HaTi reports the date and stops there.',m:'4',u:'people',s:'ruby',sl:'This month',src:'doc',c:'employment'},
+         {h:'Nine contracts have no written notice period at all',p:'The clause is absent. Whatever governs instead is not in the agreement.',m:'9',u:'contracts',s:'amber',sl:'Clause missing',src:'doc',c:'employment'}]}
+  },
+  oblig:[
+    {t:'Keep the service available 99.5% of each month',d:'IT Support & Hosting Agreement',cp:'Cloudpoint Systems',c:'licence',by:'Them',ty:'Service level',w:'Every month',src:'Clause 7.1'},
+    {t:'Deliver within 48 hours of order confirmation',d:'Haulage Framework Agreement',cp:'Rift Valley Logistics',c:'supplier',by:'Them',ty:'Delivery',w:'Per order',src:'Clause 4.1'},
+    {t:'Confirm the probation outcome by its end date',d:'Employment contract — production supervisor',cp:'J. Wanjiru',c:'employment',by:'Us',ty:'Probation',w:'By 31 Aug — 23 days',src:'Clause 3.2'},
+    {t:'Cap your liability at 12 months of fees',d:'Supply Agreement',cp:'Naivas Supermarkets',c:'customer',by:'Us',ty:'Liability',w:'Ongoing',src:'Clause 15.2'},
+    {t:'Pay invoices within 30 days of receipt',d:'Cold Storage Agreement',cp:'Nairobi Cold Chain Ltd',c:'supplier',by:'Us',ty:'Payment',w:'Per invoice',src:'Clause 9.3'},
+    {t:'Reinstate the warehouse to its original state',d:'Industrial Area lease',cp:'Kenway Properties',c:'lease',by:'Us',ty:'Reinstatement',w:'At term end, 2028',src:'Clause 22.4'},
+    {t:'Raise prices no more than 7% in any year',d:'Packaging Supply Agreement',cp:'Mombasa Packaging Co',c:'supplier',by:'Them',ty:'Price ceiling',w:'Review 1 Oct',src:'Clause 6.3'},
+    {t:'Stay within 50 licensed seats',d:'Software Licence',cp:'Cloudpoint Systems',c:'licence',by:'Us',ty:'Usage limit',w:'Ongoing',src:'Clause 3.5'}
+  ],
+  cal:[
+    {mo:'August 2026',it:[
+      {d:'20 Aug',t:'Insurance certificate due under the produce supply agreement',e:'Annual obligation · Clause 8.6 · nothing filed here yet',p:'amber',l:'12 days'},
+      {d:'31 Aug',t:'Four probation periods reach their end date',e:'Dates written into the contracts',p:'ruby',l:'Decide'}
+    ]},
+    {mo:'September 2026',it:[
+      {d:'2 Sep',t:'Last day to give notice — Rift Valley Logistics',e:'Renews itself 31 Oct · 60 days notice · KES 24.6M contracted a year',p:'ruby',l:'Decide'},
+      {d:'15 Sep',t:'Naivas — the indexation window in clause 6.1 opens',e:'A right you hold · no variation ever filed under it',p:'steel',l:'Your right'}
+    ]},
+    {mo:'October 2026',it:[
+      {d:'1 Oct',t:'Mombasa Packaging annual price review',e:'Clause 6.3 caps any yearly increase at 7%',p:'steel',l:'Ceiling applies'},
+      {d:'14 Oct',t:'Two fixed terms reach the end of their stated period',e:'Both already extended once',p:'amber',l:'Decide'}
+    ]}
+  ],
+  clause:{no:'6.3',text:'The Supplier may increase the Rates once in any twelve month period, provided that <mark>no such increase shall exceed seven per cent (7%)</mark> of the Rates then in force, and provided further that <mark>not less than sixty (60) days written notice</mark> is given.',cat:'supplier',who:'Amina · 14 Jul',n:2},
+  deals:{
+    enough:[{c:'customer',n:63,med:18,std:9,their:31,untouched:62}],
+    thin:[{c:'lease',n:6},{c:'licence',n:7}],
+    stages:[2,3,8,4,1], stagesTheir:[1,5,13,10,2],
+    friction:[
+      {cl:'Limitation of liability',r:78,d:'+6.2',a:'A cap at 12 months of fees instead of unlimited',hot:true},
+      {cl:'Payment terms',r:54,d:'+2.1',a:'45 or 60 days instead of your 30'},
+      {cl:'Indemnity',r:44,d:'+4.8',a:'Mutual rather than one-way'},
+      {cl:'Termination for convenience',r:37,d:'+3.3',a:'The same right for both sides'},
+      {cl:'Governing law',r:31,d:'+1.4',a:'Their home jurisdiction'}
+    ],
+    accept:[{nm:'Under KES 2M',sub:'44 deals',pct:84},{nm:'KES 2M – 10M',sub:'27 deals',pct:51},{nm:'Over KES 10M',sub:'12 deals',pct:34,warn:true}],
+    live:[{nm:'Serena Hotels',d:'Distribution Agreement',o:'21d',s:'ruby',l:'Quiet 11 days'},
+          {nm:'Java House Group',d:'Supply Agreement',o:'12d',s:'amber',l:'Quiet 6 days'},
+          {nm:'Carrefour Kenya',d:'Master Services',o:'4d',s:'steel',l:'Us'},
+          {nm:'Naivas Supermarkets',d:'Annual renewal',o:'1d',s:'steel',l:'Us'}]
+  }
+},
+
+/* ======================= 2 · A HEALTH CHARITY ========================== */
+ubuntu:{
+  name:'Ubuntu Health Trust', kind:'Health charity', market:'Kenya · KES', cur:'KES',
+  initials:'GO', contracts:96, obligations:874,
+  asks:['Which donor reports fall due before October?',
+        'Which partner agreements are missing the audit condition?',
+        'Which posts end on the same date as their funding?'],
+  types:[['Reporting & assurance',246],['Spend restrictions',158],['Probation & fixed term',141],
+         ['Notice & renewal',112],['Flow-down & audit',87],['Insurance & compliance',76],['Payment terms',54]],
+  mix:[ {c:'employment',n:41},{c:'grant',n:22},{c:'supplier',n:18},
+        {c:'lease',n:9},{c:'partner',n:4},{c:'nda',n:2} ],
+  tiles:[
+    {k:'Contract health',v:'62',u:'/100',d:'Down 2 points on July'},
+    {k:'Open findings',v:'44',d:'across five kinds of exposure'},
+    {k:'Decisions due · 30 days',v:'14',d:'6 are donor reporting deadlines'},
+    {k:'Largest category',v:'41',d:'employment contracts, 43% of the book'}
+  ],
+  score:[
+    {nm:'Reports filed here by their due date',sub:'weighted by 22 funding agreements',pct:82,s:'hati'},
+    {nm:'Obligations confirmed by a person',sub:'620 of 874 checked',pct:71,warn:true,s:'hati'},
+    {nm:'Donor conditions present in partner agreements',sub:'weighted by 4 sub-grants',pct:50,warn:true,s:'doc'},
+    {nm:'Employment end dates aligned to funding',sub:'weighted by 41 employment contracts',pct:44,warn:true,s:'doc'},
+    {nm:'Extension or exit rights held',sub:'across live funding agreements',pct:58,s:'doc'},
+    {nm:'Contracted funding spread',sub:'one funder holds 61%',pct:34,warn:true,s:'doc'}
+  ],
+  roles:[
+    {id:'grants',label:'Grants',items:[
+      {t:'ruby',h:'Global Health Fund quarterly report due 14 September',p:'Clause 8.3 requires it within 45 days of the quarter end, with a financial annex.',cat:'grant',s:'doc',go:'s-brief'},
+      {t:'ruby',h:'Two partner agreements are missing the Fund’s audit condition',p:'Clause 11.4 requires the audit right to reach every sub-grantee. Comparing the funding agreement with each partner agreement shows two that do not contain it.',cat:'partner',s:'doc',go:'s-exp'},
+      {t:'amber',h:'No-cost extension deadline is 30 September',p:'Clause 7.6. Nothing has been filed here, and after the date the unspent balance returns under the same clause.',cat:'grant',s:'doc',go:'s-oblig'}
+    ]},
+    {id:'people',label:'People',items:[
+      {t:'ruby',h:'Nine fixed terms end on the same date as the grant that funds them',p:'31 December. Both dates are written down; that they are the same date is the finding.',cat:'employment',s:'doc',go:'s-oblig'},
+      {t:'amber',h:'Six probation periods reach their end date this month',p:'The dates are in the contracts.',cat:'employment',s:'doc',go:'s-oblig'},
+      {t:'amber',h:'Fourteen contracts point at a policy not held here',p:'They refer to a travel policy by name. No document of that name has ever been filed in HaTi.',cat:'employment',s:'hati',go:'s-exp'}
+    ]},
+    {id:'ops',label:'Operations',items:[
+      {t:'ruby',h:'Two partner agreements run past the grant that funds them',p:'The partner term ends in March; the funding ends in December. Both dates come from the agreements.',cat:'partner',s:'doc',go:'s-exp'},
+      {t:'amber',h:'Westlands lease break option lapses 12 October',p:'Clause 13.1, three months notice. Nothing filed here.',cat:'lease',s:'doc',go:'s-oblig'},
+      {t:'steel',h:'The fleet agreement renews itself with no decision point',p:'No notice provision and no review date anywhere in the document.',cat:'supplier',s:'doc',go:'s-oblig'}
+    ]},
+    {id:'fin',label:'Finance',items:[
+      {t:'ruby',h:'KES 118M of contracted funding carries a clawback condition',p:'Clause 14.2 makes disallowed spend repayable. Whether any spend will be disallowed is not something HaTi can see.',cat:'grant',s:'doc',go:'s-exp'},
+      {t:'amber',h:'This funder’s reallocation margin is the tightest of the three',p:'10% against 15% and no stated limit. All three figures are from the agreements themselves.',cat:'grant',s:'doc',go:'s-brief'},
+      {t:'amber',h:'Two closed reporting periods have nothing filed here',p:'HaTi knows only that nothing was filed in HaTi. Whether they went in by email is a question for the team.',cat:'grant',s:'hati',go:'s-exp'}
+    ]}
+  ],
+  exposure:{
+    value:{v:'26M',u:'KES contracted',n:4,note:'Small — this is not where a charity’s risk lives',
+      f:[{h:'Three agreements renew or lapse with no decision recorded',p:'Nothing has been filed here against any of their dates.',m:'22.0M',u:'contracted',s:'amber',sl:'Nothing filed',src:'hati',c:'supplier'},
+         {h:'The fleet agreement renews itself with no decision point',p:'No notice provision and no review date written into the document at all.',m:'4.1M',u:'a year contracted',s:'amber',sl:'No decision point',src:'doc',c:'supplier'}]},
+    risk:{v:'6',u:'findings',n:6,note:'Mostly gaps between one document and another',
+      f:[{h:'Two partners hold donor money with no audit right over them',p:'The funding agreement grants the Fund an audit right over anyone holding its money. Two partner agreements do not pass it on.',m:'2',u:'partners',s:'ruby',sl:'Flow-down gap',src:'doc',c:'partner'},
+         {h:'One supplier agreement caps nothing they owe you',p:'Medical equipment maintenance. No limitation clause either way.',m:'1',u:'agreement',s:'amber',sl:'Uncapped',src:'doc',c:'supplier'}]},
+    compliance:{v:'15',u:'findings',n:15,note:'Where this organisation’s risk actually lives',
+      f:[{h:'KES 118M of contracted funding carries a clawback condition',p:'Clause 14.2 across four agreements. The condition is written down; whether it will ever bite is not something HaTi can know.',m:'118M',u:'under clawback terms',s:'ruby',sl:'Condition present',src:'doc',c:'grant'},
+         {h:'Six donor reports fall due in the next 30 days',p:'Two narrative, four financial. All six dates come from the agreements.',m:'6',u:'reports',s:'amber',sl:'Due',src:'doc',c:'grant'},
+         {h:'Two closed reporting periods have nothing filed here',p:'HaTi knows only what is in HaTi. If they were filed by email, this finding is wrong and closing it takes one click.',m:'2',u:'periods',s:'amber',sl:'Nothing filed',src:'hati',c:'grant'}]},
+    continuity:{v:'6',u:'findings',n:6,note:'Measured on contracted value, not receipts',
+      f:[{h:'One funder holds 61% of contracted funding',p:'Measured on the values written into the agreements. That agreement ends 31 December 2027 with no renewal right — only an invitation to reapply.',m:'61%',u:'of contracted funding',s:'ruby',sl:'Concentrated',src:'doc',c:'grant'},
+         {h:'Nine posts end on the same date as the grant funding them',p:'Extend the funding without extending the contracts and the delivery team ends anyway.',m:'9',u:'posts',s:'amber',sl:'Same date',src:'doc',c:'employment'}]},
+    people:{v:'13',u:'findings',n:13,note:'Dates and missing documents',
+      f:[{h:'Nine fixed terms reach the end of their stated period on 31 December',p:'The same day the grant that funds them ends.',m:'9',u:'people',s:'ruby',sl:'31 December',src:'doc',c:'employment'},
+         {h:'Fourteen contracts point at a policy not held here',p:'They name a travel policy. No document of that name has ever been filed in HaTi.',m:'14',u:'contracts',s:'amber',sl:'Not on file',src:'hati',c:'employment'}]}
+  },
+  oblig:[
+    {t:'File a narrative and financial report each quarter',d:'Programme Funding Agreement',cp:'Global Health Fund',c:'grant',by:'Us',ty:'Reporting',w:'Due 14 Sep — 37 days',src:'Clause 8.3'},
+    {t:'Get written approval before moving over 10% between lines',d:'Programme Funding Agreement',cp:'Global Health Fund',c:'grant',by:'Us',ty:'Budget change',w:'Per change',src:'Clause 5.1'},
+    {t:'Flow the audit right down to every sub-grantee',d:'Programme Funding Agreement',cp:'Global Health Fund',c:'grant',by:'Us',ty:'Flow-down',w:'Ongoing',src:'Clause 11.4'},
+    {t:'Request any extension before the stated deadline',d:'WASH Programme Grant',cp:'Nordic Development Agency',c:'grant',by:'Us',ty:'Extension',w:'By 30 Sep — 53 days',src:'Clause 7.6'},
+    {t:'End the fixed term on its stated date',d:'Employment contracts — 9 field officers',cp:'Field team',c:'employment',by:'Us',ty:'Fixed term',w:'31 Dec 2026',src:'Clause 2.1'},
+    {t:'Give three months notice to break the office lease',d:'Westlands office lease',cp:'Westlands Property Ltd',c:'lease',by:'Both',ty:'Break option',w:'By 12 Oct — 65 days',src:'Clause 13.1'},
+    {t:'Submit an audited financial statement each year',d:'WASH Programme Grant',cp:'Nordic Development Agency',c:'grant',by:'Us',ty:'Assurance',w:'Due 31 Oct',src:'Clause 9.5'},
+    {t:'Keep vehicles insured to at least KES 20,000,000',d:'Fleet Supply Agreement',cp:'Rift Motors Ltd',c:'supplier',by:'Them',ty:'Insurance',w:'Annual certificate',src:'Clause 7.7'}
+  ],
+  cal:[
+    {mo:'August 2026',it:[
+      {d:'31 Aug',t:'Six probation periods reach their end date',e:'Dates written into the contracts',p:'amber',l:'Decide'}
+    ]},
+    {mo:'September 2026',it:[
+      {d:'14 Sep',t:'Global Health Fund quarterly report due',e:'Narrative plus financial annex · Clause 8.3',p:'ruby',l:'Due'},
+      {d:'30 Sep',t:'No-cost extension deadline — WASH programme',e:'Clause 7.6 · the unspent balance returns after this date',p:'ruby',l:'Decide'}
+    ]},
+    {mo:'October 2026',it:[
+      {d:'12 Oct',t:'Westlands lease break option lapses',e:'Clause 13.1 · three months notice · nothing filed here',p:'ruby',l:'Decide'},
+      {d:'31 Oct',t:'Audited statement due to Nordic Development Agency',e:'Clause 9.5',p:'amber',l:'Prepare'}
+    ]}
+  ],
+  clause:{no:'11.4',text:'The Recipient shall procure that <mark>every sub-grantee agrees in writing</mark> to grant the Fund the same rights of access, inspection and audit over records relating to Fund monies as the Recipient has granted under clause 11.1.',cat:'grant',who:'Grace · 2 Aug',n:2},
+  deals:{
+    enough:[{c:'grant',n:22,med:34,std:12,their:41,untouched:9}],
+    thin:[{c:'supplier',n:18},{c:'lease',n:9},{c:'partner',n:4}],
+    stages:[4,6,15,7,2], stagesTheir:[2,7,20,9,3],
+    friction:[
+      {cl:'Indirect cost recovery',r:41,d:'+5.2',a:'A lower percentage than you asked for',hot:true},
+      {cl:'Budget reallocation margin',r:32,d:'+2.4',a:'A tighter margin than you asked for'},
+      {cl:'Ownership of programme outputs',r:23,d:'+1.8',a:'Donor ownership rather than shared'},
+      {cl:'Audit and flow-down rights',r:18,d:'+1.1',a:'Rarely conceded — the donor’s wording stands'}
+    ],
+    accept:[{nm:'Your own MoU template',sub:'2 agreements',pct:100},
+            {nm:'The donor’s standard paper',sub:'20 agreements',pct:9,warn:true}],
+    live:[{nm:'Nordic Development Agency',d:'WASH extension',o:'16d',s:'amber',l:'Them'},
+          {nm:'Kilifi County Health',d:'Partnership MoU',o:'8d',s:'steel',l:'Us'},
+          {nm:'Rift Motors Ltd',d:'Fleet renewal',o:'3d',s:'steel',l:'Us'}]
+  }
+},
+
+/* ======================= 3 · A SWEDISH LAW FIRM ======================== */
+nordlund:{
+  name:'Nordlund Advokatbyrå', kind:'Law firm', market:'Sverige · SEK', cur:'SEK',
+  initials:'EN', contracts:74, obligations:512,
+  asks:['Which engagement letters have no liability cap?',
+        'Which fixed terms reach their end date this autumn?',
+        'Which matters have no engagement letter on file?'],
+  types:[['Probation & fixed term',148],['Fee & billing',96],['Liability & scope',78],
+         ['Consultation & notice',64],['Usage limits',52],['Return of material',41],['Property & lease',33]],
+  mix:[ {c:'employment',n:34},{c:'client',n:21},{c:'licence',n:9},
+        {c:'lease',n:5},{c:'supplier',n:4},{c:'nda',n:1} ],
+  tiles:[
+    {k:'Contract health',v:'83',u:'/100',d:'Up 3 points on July'},
+    {k:'Open findings',v:'22',d:'across five kinds of exposure'},
+    {k:'Decisions due · 30 days',v:'5',d:'3 are employment end dates'},
+    {k:'Largest category',v:'34',d:'employment contracts, 46% of the book'}
+  ],
+  score:[
+    {nm:'Obligations confirmed by a person',sub:'481 of 512 checked',pct:94,s:'hati'},
+    {nm:'Matters with an engagement letter on file',sub:'weighted by 21 client engagements',pct:88,s:'hati'},
+    {nm:'Engagement letters with a liability cap',sub:'weighted by 21 client engagements',pct:62,warn:true,s:'doc'},
+    {nm:'Licences with a ceiling on the uplift',sub:'weighted by 9 software licences',pct:55,warn:true,s:'doc'},
+    {nm:'Fee uplift rights with a variation filed',sub:'21 engagements carry one',pct:41,warn:true,s:'hati'},
+    {nm:'Contracted fee spread',sub:'largest client holds 18%',pct:77,s:'doc'}
+  ],
+  roles:[
+    {id:'people',label:'People',items:[
+      {t:'ruby',h:'Three fixed terms reach the end of their stated period in November',p:'14 November. The dates are in the contracts; what follows from them is a question for the firm, not for HaTi.',cat:'employment',s:'doc',go:'s-oblig'},
+      {t:'amber',h:'Two probation periods reach their end date this month',p:'Both stated in clause 2.4 of the respective contracts.',cat:'employment',s:'doc',go:'s-oblig'},
+      {t:'amber',h:'Two cover contracts end before the contract they cover resumes',p:'Six weeks apart. Both dates are written into the agreements.',cat:'employment',s:'doc',go:'s-exp'}
+    ]},
+    {id:'clients',label:'Clients',items:[
+      {t:'ruby',h:'Eight engagement letters have no cap on your liability',p:'Every other engagement in the book caps it at the fee paid for the matter, which is how the eight stand out.',cat:'client',s:'doc',go:'s-exp'},
+      {t:'amber',h:'Twelve fee uplift rights with no variation ever filed',p:'The letters allow an annual index adjustment each January. HaTi has never recorded one being made.',cat:'client',s:'hati',go:'s-exp'},
+      {t:'amber',h:'Two matters are open here with no engagement letter on file',p:'HaTi knows there is no letter in HaTi. Whether one exists in a drawer is a question for the partner.',cat:'client',s:'hati',go:'s-exp'}
+    ]},
+    {id:'office',label:'Office',items:[
+      {t:'ruby',h:'Office lease break option lapses 30 November',p:'Clause 16.2, six months notice. Nothing filed here.',cat:'lease',s:'doc',go:'s-brief'},
+      {t:'amber',h:'This lease is the only one of five with an uncapped service charge',p:'Your other leases cap it at 3% and 4%. All three figures come from the leases themselves.',cat:'lease',s:'doc',go:'s-brief'},
+      {t:'steel',h:'A reinstatement obligation with no figure anywhere in the lease',p:'Clause 19.4 requires the original layout to be restored. The lease states the duty and no cost.',cat:'lease',s:'doc',go:'s-exp'}
+    ]},
+    {id:'fin',label:'Finance',items:[
+      {t:'amber',h:'Three licences uplift automatically with no ceiling',p:'A fixed annual increase with nothing limiting it and no decision point in the agreement.',cat:'licence',s:'doc',go:'s-exp'},
+      {t:'amber',h:'Twelve fee uplift rights never used',p:'SEK 4.1M of contracted fees carries one. What exercising them would have yielded is a calculation HaTi will not make.',cat:'client',s:'hati',go:'s-exp'},
+      {t:'steel',h:'Two licences state a seat limit with nothing filed against it',p:'HaTi can state the limit — 40 seats — and that no usage evidence has been filed here.',cat:'licence',s:'hati',go:'s-exp'}
+    ]}
+  ],
+  exposure:{
+    value:{v:'4.9M',u:'SEK contracted',n:5,note:'Contracted fees behind rights nobody has used',
+      f:[{h:'Twelve fee uplift rights with no variation ever filed',p:'Each letter allows an annual index adjustment. HaTi has never recorded one. What that is worth depends on an index it does not hold.',m:'4.1M',u:'contracted fees',s:'amber',sl:'Never used',src:'hati',c:'client'},
+         {h:'Three licences uplift automatically with no ceiling',p:'A fixed annual increase, nothing limiting it, and no decision point written in.',m:'0.8M',u:'a year contracted',s:'amber',sl:'No ceiling',src:'doc',c:'licence'}]},
+    risk:{v:'8',u:'findings',n:8,note:'Eight engagements leave your liability open',
+      f:[{h:'Eight engagement letters have no cap on your liability',p:'Every other engagement caps it at the fee paid for the matter. These eight say nothing at all.',m:'8',u:'engagements',s:'ruby',sl:'Uncapped',src:'doc',c:'client'},
+         {h:'Two letters cap liability below the fee agreed',p:'The cap and the fee are both in the same document, and the cap is the smaller number.',m:'2',u:'engagements',s:'amber',sl:'Cap below fee',src:'doc',c:'client'}]},
+    compliance:{v:'4',u:'findings',n:4,note:'Duties with no completion recorded here',
+      f:[{h:'Twenty-one engagements carry a return-or-destroy duty with nothing recorded',p:'Every letter requires client material to be returned or destroyed when the matter ends. No closing step records that it happened.',m:'21',u:'engagements',s:'amber',sl:'Not recorded',src:'hati',c:'nda'},
+         {h:'Two licences state a seat limit with nothing filed against it',p:'HaTi can state the limit and that no evidence has been filed. Actual usage is in the vendor’s console.',m:'2',u:'licences',s:'amber',sl:'No evidence filed',src:'hati',c:'licence'}]},
+    continuity:{v:'2',u:'findings',n:2,note:'Healthily spread',
+      f:[{h:'Largest client holds 18% of contracted fees',p:'Measured on the values in the engagement letters. Comfortable, and worth stating so the number is on the record.',m:'18%',u:'of contracted fees',s:'green',sl:'Comfortable',src:'doc',c:'client'},
+         {h:'Three licences renew in the same month as the lease break date',p:'One month carries more decisions than any other in the year.',m:'Nov',u:'clustered',s:'amber',sl:'Clustered',src:'doc',c:'licence'}]},
+    people:{v:'3',u:'findings',n:3,note:'Dates, stated plainly',
+      f:[{h:'Three fixed terms reach the end of their stated period in November',p:'14 November, all three. HaTi reports the date and stops there.',m:'3',u:'people',s:'ruby',sl:'14 November',src:'doc',c:'employment'},
+         {h:'Two cover contracts end before the contract they cover resumes',p:'Six weeks apart, both dates written into the agreements.',m:'2',u:'people',s:'amber',sl:'Gap',src:'doc',c:'employment'}]}
+  },
+  oblig:[
+    {t:'Confirm the outcome by the end of the probation period',d:'Employment contract — associate',cp:'A. Lindqvist',c:'employment',by:'Us',ty:'Probation',w:'By 30 Sep — 53 days',src:'Clause 2.4'},
+    {t:'End the fixed term on its stated date',d:'Employment contracts — 3 associates',cp:'Associate group',c:'employment',by:'Us',ty:'Fixed term',w:'By 14 Nov — 98 days',src:'Clause 2.7'},
+    {t:'Cap liability at the fee paid for the matter',d:'Engagement letter',cp:'Hedberg AB',c:'client',by:'Us',ty:'Liability',w:'Ongoing',src:'Clause 9.1'},
+    {t:'Review fees annually against the stated index',d:'Engagement letters — 12 clients',cp:'Client group',c:'client',by:'Us',ty:'Fee uplift',w:'Each January',src:'Clause 4.3'},
+    {t:'Stay within 40 licensed seats',d:'Juridik Pro licence',cp:'Juridik Pro AB',c:'licence',by:'Us',ty:'Usage limit',w:'Ongoing',src:'Clause 3.5'},
+    {t:'Give six months notice to break the office lease',d:'Stockholm office lease',cp:'Fastighets AB Vasa',c:'lease',by:'Us',ty:'Break option',w:'By 30 Nov — 114 days',src:'Clause 16.2'},
+    {t:'Return or destroy client material when a matter ends',d:'All engagement letters',cp:'Client group',c:'nda',by:'Us',ty:'Return of material',w:'At matter end',src:'Clause 12.6'},
+    {t:'Restore the premises to their original layout',d:'Stockholm office lease',cp:'Fastighets AB Vasa',c:'lease',by:'Us',ty:'Reinstatement',w:'At term end',src:'Clause 19.4'}
+  ],
+  cal:[
+    {mo:'September 2026',it:[
+      {d:'30 Sep',t:'Probation period ends — A. Lindqvist',e:'Clause 2.4 · the date is in the contract',p:'amber',l:'Decide'}
+    ]},
+    {mo:'November 2026',it:[
+      {d:'14 Nov',t:'Three fixed terms reach the end of their stated period',e:'Clause 2.7 in each contract',p:'ruby',l:'Decide'},
+      {d:'30 Nov',t:'Office lease break option lapses',e:'Clause 16.2 · six months notice · nothing filed here',p:'ruby',l:'Decide'}
+    ]},
+    {mo:'December 2026',it:[
+      {d:'1 Dec',t:'Three licences renew themselves',e:'No decision point written into any of them',p:'steel',l:'Review'}
+    ]}
+  ],
+  clause:{no:'2.7',text:'Anställningen är tidsbegränsad. The appointment is fixed-term and <mark>expires on 14 November 2026</mark> unless a written extension is agreed. Any extension shall be <mark>recorded by variation to this contract</mark>.',cat:'employment',who:'Erik · 21 Jul',n:2},
+  deals:{
+    enough:[{c:'client',n:21,med:11,std:6,their:24,untouched:71}],
+    thin:[{c:'licence',n:9},{c:'lease',n:5},{c:'supplier',n:4}],
+    stages:[1,2,5,2,1], stagesTheir:[1,4,11,6,2],
+    friction:[
+      {cl:'Limitation of liability',r:52,d:'+3.1',a:'A cap at the fee paid for the matter',hot:true},
+      {cl:'Scope of the engagement',r:38,d:'+1.9',a:'A wider definition than the letter offers'},
+      {cl:'Fee basis and uplift',r:29,d:'+1.2',a:'A fixed fee instead of hourly'},
+      {cl:'Conflicts and confidentiality',r:14,d:'+0.6',a:'Rarely contested — your wording holds'}
+    ],
+    accept:[{nm:'Standard engagement letter',sub:'15 matters',pct:80},{nm:'Client’s own terms',sub:'6 matters',pct:33,warn:true}],
+    live:[{nm:'Hedberg AB',d:'Framework engagement',o:'9d',s:'amber',l:'Them'},
+          {nm:'Sundqvist Industri',d:'New matter',o:'2d',s:'steel',l:'Us'}]
+  }
+}
+};
+
+/* ============================================================================
+   RENDERING. One set of functions, three organisations.
+   ========================================================================= */
+
+/* THE ONE THRESHOLD. Below this many contracts in a category, a percentage is
+   noise wearing the clothes of insight, so the packs screen and the
+   negotiation screen both withhold statistics and show checks instead. */
+var STAT_MIN = 20;
+
+var org='savanna', role=0, curKey='value', briefKey='supplier', obView='list', obCat='all', dealCat=null;
+
+var $ = function(s){ return document.querySelector(s); };
+var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); };
+function O(){ return ORGS[org]; }
+function findingCount(o){ return Object.keys(o.exposure).reduce(function(a,k){ return a+o.exposure[k].n; },0); }
+function catLabel(k){ return CATS[k] ? CATS[k].short : k; }
+function catChip(k){ return '<span class="cat">'+esc(catLabel(k))+'</span>'; }
+function plural(n,word){ return n+' '+word+(n===1?'':'s'); }
+function pill(tone,label){ return '<span class="pill '+tone+'"><span class="dot"></span>'+esc(label)+'</span>'; }
+
+/* The promise the whole cut is built on. It used to be repeated by each of the
+   six screens; now that they are tabs of ONE page it is written once, directly
+   under the tab row, where it governs everything below it. */
+function sourceBar(){
+  return '<div class="srcbar">'+
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3.5 6.6v5.2c0 4.8 3.4 8.6 8.5 10.2 5.1-1.6 8.5-5.4 8.5-10.2V6.6L12 3Z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg>'+
+    '<span>Every figure on this page comes from one of two places — '+srcTag('doc')+
+    ' read off a signed document, or '+srcTag('hati')+' from HaTi’s own filing record. '+
+    'Nothing is estimated, benchmarked, or taken from another system.</span></div>';
+}
+
+var TONE_BG={ruby:'var(--st-ruby-bg)',amber:'var(--st-amber-bg)',steel:'var(--st-steel-bg)',green:'var(--st-green-bg)'};
+var TONE_FG={ruby:'var(--st-ruby-fg)',amber:'var(--st-amber-fg)',steel:'var(--st-steel-fg)',green:'var(--st-green-fg)'};
+var ICON_WARN='<path d="M12 8v5"/><circle cx="12" cy="16.6" r="1.1" fill="currentColor" stroke="none"/><path d="M10.3 3.9 2.5 18a1.9 1.9 0 0 0 1.7 2.9h15.6a1.9 1.9 0 0 0 1.7-2.9L13.7 3.9a1.9 1.9 0 0 0-3.4 0Z"/>';
+var ICON_CLOCK='<circle cx="12" cy="12" r="9"/><path d="M12 7v5.4l3.4 2"/>';
+var ICON_STAR='<path d="M12 3.5 14.6 9l6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8 9.4 9Z"/>';
+function toneIcon(t){ return t==='ruby'?ICON_WARN : t==='amber'?ICON_CLOCK : ICON_STAR; }
+
+function tiles(list){
+  return '<div class="grid g4" style="margin-bottom:14px;">'+list.map(function(t,i){
+    return '<div class="tile'+(i===0?' hero':'')+'">'+
+      '<span class="k">'+esc(t.k)+'</span>'+
+      '<span class="v">'+esc(t.v)+(t.u?'<small>'+esc(t.u)+'</small>':'')+'</span>'+
+      '<span class="d">'+t.d+'</span></div>';
+  }).join('')+'</div>';
+}
+function rank(rows,max){
+  var m = max || Math.max.apply(null, rows.map(function(r){return r.pct!==undefined?r.pct:r.n;}));
+  return '<div class="rank">'+rows.map(function(r){
+    var val = r.pct!==undefined ? r.pct : r.n;
+    return '<div class="row"><span class="nm">'+r.nm+
+      (r.s?' '+srcTag(r.s):'')+(r.sub?'<em>'+r.sub+'</em>':'')+'</span>'+
+      '<span class="track"><span class="fill'+(r.warn?' warn':'')+'" style="width:'+Math.round(val/m*100)+'%"></span></span>'+
+      '<span class="val">'+(r.pct!==undefined?val+'%':val)+'</span></div>';
+  }).join('')+'</div>';
+}
+
+/* ---------------------------- 1 · ANALYST HOME ------------------------- */
+function renderHome(){
+  var o=O(), r=o.roles[role];
+  var shelf='<div class="shelf"><span class="cap">Your shelf</span>'+
+    o.roles.map(function(x,i){ return '<button class="fbtn'+(i===role?' on':'')+'" data-role="'+i+'">'+esc(x.label)+'</button>'; }).join('')+
+    '<span style="font-size:11.5px;color:var(--color-neutral-500);margin-left:6px;">'+
+    'The same '+o.contracts+' contracts. What comes first depends on whose job it is.</span></div>';
+
+  var items = r.items.map(function(it){
+    return '<div class="it"><span class="ic" style="background:'+TONE_BG[it.t]+';color:'+TONE_FG[it.t]+';">'+
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+toneIcon(it.t)+'</svg></span>'+
+      '<div class="bd"><b>'+it.h+'</b><p>'+it.p+'</p><div class="tags">'+catChip(it.cat)+srcTag(it.s)+
+      '<span class="stakes">at stake: <b>'+CATS[it.cat].stakes.join(' · ')+'</b></span></div></div>'+
+      '<span class="go"><button class="btn btn-sm" data-go="'+it.go+'">Open</button></span></div>';
+  }).join('');
+
+  var others = o.roles.map(function(x,i){ return i===role ? null : x; }).filter(Boolean);
+  var otherLine = '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
+    'Also waiting, on other shelves: '+
+    others.map(function(x){ return '<b style="color:var(--color-neutral-600);">'+esc(x.label)+'</b> ('+x.items.length+')'; }).join(', ')+
+    '. Same contracts, different first question.</div>';
+
+  var mixTop = o.mix.slice(0,3).map(function(m){ return m.n+' '+catLabel(m.c).toLowerCase(); }).join(', ');
+  var tl = o.tiles.map(function(t){
+    return t.k==='Open findings' ? {k:t.k,v:String(findingCount(o)),d:t.d} : t;
+  });
+
+  $('#s-home').innerHTML =
+    '<div class="panel-head"><div class="t">'+o.contracts+' contracts in '+o.mix.length+
+    ' categories: '+esc(mixTop)+' and more. What is measured follows the category of each contract, '+
+    'not the industry of the company.</div>'+
+    '<div class="acts"><button class="btn">Email me this weekly</button>'+
+    '<button class="btn btn-primary" data-go="s-exp">Open exposure</button></div></div>'+
+    shelf + tiles(tl) +
+    '<div class="grid g-2-1"><div class="card">'+
+      '<div class="card-h"><div><h3>Needs you this week — '+esc(r.label)+'</h3>'+
+      '<div class="hint">Ranked by what it costs to ignore. Every row names its category, what kind of exposure it is, and where the figure came from.</div></div></div>'+
+      '<div class="attn">'+items+'</div>'+otherLine+'</div>'+
+    '<div style="display:flex;flex-direction:column;gap:14px;">'+
+      '<div class="card"><div class="card-h"><div><h3>Where the score comes from</h3>'+
+      '<div class="hint">Each part is weighted by how many contracts of that category you hold, and each is answerable from the documents or from HaTi’s own record.</div></div></div>'+
+      rank(o.score)+'</div>'+
+      '<div class="card"><div class="card-h"><div><h3>Ask the analyst</h3>'+
+      '<div class="hint">Copilot answers from these same numbers. It will not answer “how much did we pay” — that is not a question the contracts can settle.</div></div></div>'+
+      '<div style="display:flex;flex-direction:column;gap:7px;">'+
+      o.asks.map(function(q){ return '<button class="btn" style="text-align:left;">“'+esc(q)+'”</button>'; }).join('')+
+      '</div></div>'+
+    '</div></div>';
+}
+
+/* ------------------------ 2 · CATEGORIES & PACKS ----------------------- */
+function renderMix(){
+  var o=O();
+  var mixRows = o.mix.map(function(m){ return {nm:CATS[m.c].label, sub:CATS[m.c].stakes.join(' · '), n:m.n}; });
+
+  var packs = o.mix.map(function(m){
+    var c=CATS[m.c], thin = m.n < STAT_MIN;
+    return '<div class="card">'+
+      '<div class="packhd">'+catChip(m.c)+'<h4>'+esc(c.label)+'</h4>'+
+      '<span style="margin-left:auto;">'+pill(thin?'amber':'green', plural(m.n,'contract'))+'</span></div>'+
+      '<div class="hint" style="font-size:11.5px;color:var(--color-neutral-500);">'+esc(c.watches)+'</div>'+
+      '<div class="checklist">'+c.checks.map(function(k){
+        return '<div><span>'+esc(k.t)+' '+srcTag(k.s)+'</span></div>';
+      }).join('')+'</div>'+
+      '<div class="thin" style="font-size:11.5px;">'+
+        (thin
+          ? '<span style="color:var(--st-amber-fg);font-weight:600;">Checks only.</span> '+
+            'With '+plural(m.n,'contract')+' here, a percentage would be noise dressed up as '+
+            'insight. Statistics unlock at '+STAT_MIN+'.'
+          : '<span style="color:var(--st-green-fg);font-weight:600;">Checks and statistics.</span> '+
+            plural(m.n,'contract')+' is enough for a rate to mean something.')+
+      '</div></div>';
+  }).join('');
+
+  var off = Object.keys(CATS).filter(function(k){ return !o.mix.some(function(m){return m.c===k;}); });
+  var checkTotal = o.mix.reduce(function(a,m){ return a+CATS[m.c].checks.length; },0);
+
+  $('#s-mix').innerHTML =
+    '<div class="panel-head"><div class="t">A category belongs to the <b>contract</b>, not the company — which '+
+    'is why '+esc(o.name)+' holds '+o.mix.length+' at once. '+checkTotal+' checks run across them, and every '+
+    'one is answerable from a document you already hold or from HaTi’s own filing record.</div>'+
+    '<div class="acts"><button class="btn">Recheck categories</button><button class="btn btn-primary">Add a pack</button></div></div>'+
+
+    '<div class="grid g-2-1" style="margin-bottom:14px;">'+
+      '<div class="card"><div class="card-h"><div><h3>What kind of organisation this is</h3>'+
+      '<div class="hint">Nobody answers a questionnaire. Once the contracts are in, the mix says it — and the mix decides which packs switch on.</div></div></div>'+
+      rank(mixRows)+
+      '<div class="callout" style="margin-top:16px;">'+
+        'The biggest category here is <b>'+esc(CATS[o.mix[0].c].label.toLowerCase())+'</b>, at '+o.mix[0].n+' of '+o.contracts+
+        ' contracts. That single fact is why this organisation’s home screen looks nothing like the other two.'+
+      '</div></div>'+
+      '<div class="card"><div class="card-h"><div><h3>Packs not switched on</h3>'+
+      '<div class="hint">Available, but '+esc(o.name)+' holds no contracts of these kinds. They appear the moment one is imported.</div></div></div>'+
+      '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+
+        (off.length ? off.map(function(k){ return '<span class="cat" style="opacity:.65;">'+esc(CATS[k].label)+'</span>'; }).join('')
+                    : '<span class="t-mut">All nine packs are in use here.</span>')+
+      '</div>'+
+      '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
+      'Ten checks from the earlier version of this prototype were <b>deleted</b>, not hidden — every one needed a '+
+      'figure from another system. Where a document-only question got at the same thing, it replaced them: '+
+      '“a rebate tier exists and no claim has ever been filed here” survives, “you passed the tier” does not.</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="grid g3">'+packs+'</div>';
+}
+
+/* --------------------------- 3 · OBLIGATIONS --------------------------- */
+function renderOblig(){
+  var o=O();
+  var cats=['all'].concat(o.mix.map(function(m){return m.c;}));
+  var chips = cats.map(function(k){
+    var n = k==='all' ? o.obligations.toLocaleString('en-GB') : '';
+    return '<button class="fbtn'+(obCat===k?' on':'')+'" data-obcat="'+k+'">'+
+      (k==='all'?'All '+n:esc(catLabel(k))) + '</button>';
+  }).join('');
+
+  var rows = o.oblig.filter(function(r){ return obCat==='all' || r.c===obCat; });
+  var body = rows.length ? rows.map(function(r){
+    var byTone = r.by==='Them'?'steel' : r.by==='Us'?'amber':'gray';
+    return '<tr><td><span class="t-strong">'+esc(r.t)+'</span><div class="t-mut">'+esc(r.d)+'</div></td>'+
+      '<td>'+catChip(r.c)+'</td><td>'+esc(r.cp)+'</td>'+
+      '<td>'+pill(byTone,r.by)+'</td><td>'+esc(r.ty)+'</td>'+
+      '<td'+(/\d+ days|Due|By /.test(r.w)?' class="t-strong"':'')+'>'+esc(r.w)+'</td>'+
+      '<td><span class="t-src">'+esc(r.src)+'</span></td></tr>';
+  }).join('') : '<tr><td colspan="7" class="t-mut" style="padding:22px 10px;">No obligations of this category in the sample.</td></tr>';
+
+  var cal = o.cal.map(function(m){
+    return '<div class="cal-mo"><h4>'+esc(m.mo)+'</h4>'+m.it.map(function(i){
+      return '<div class="cal-it"><span class="d">'+esc(i.d)+'</span>'+
+        '<span class="t"><b>'+esc(i.t)+'</b><em>'+esc(i.e)+'</em></span>'+pill(i.p,i.l)+'</div>';
+    }).join('')+'</div>';
+  }).join('');
+
+  $('#s-oblig').innerHTML =
+    '<div class="panel-head"><div class="t">Every promise inside every contract, in one list, each tagged with '+
+    'the category it came from and the clause it was read out of. Nothing on this tab is anything but sentences '+
+    'from documents.</div>'+
+    '<div class="acts"><button class="btn'+(obView==='list'?' btn-primary':'')+'" data-obview="list">List</button>'+
+    '<button class="btn'+(obView==='cal'?' btn-primary':'')+'" data-obview="cal">Calendar</button>'+
+    '<button class="btn">Export</button></div></div>'+
+
+    (obView==='list' ?
+      '<div class="card" style="margin-bottom:14px;">'+
+        '<div class="filters">'+chips+'<span class="fsep"></span>'+
+        '<button class="fbtn">Owed by them</button><button class="fbtn">Owed by us</button>'+
+        '<button class="fbtn">Needs review <span class="pill amber" style="margin-left:5px">'+
+        Math.round(o.obligations*0.12)+'</span></button></div>'+
+        '<div class="tblwrap"><table><thead><tr>'+
+        '<th>The promise</th><th>Category</th><th>Counterparty</th><th>Owed by</th>'+
+        '<th>Type</th><th>When</th><th>From</th></tr></thead><tbody>'+body+'</tbody></table></div>'+
+      '</div>'+
+      '<div class="grid g3">'+
+        '<div class="card"><div class="card-h"><div><h3>Where this one came from</h3>'+
+        '<div class="hint">Every obligation shows the sentence it was read out of, so a person can check it in one glance.</div></div></div>'+
+        '<div class="clause-src"><span class="no">'+esc(o.clause.no)+'</span> '+o.clause.text+'</div>'+
+        '<div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
+        pill('green',o.clause.n+' obligations read from this clause')+catChip(o.clause.cat)+
+        pill('gray','Confirmed by '+o.clause.who)+'</div>'+
+        '<div style="margin-top:12px;display:flex;gap:8px;"><button class="btn btn-sm btn-primary">Confirm</button>'+
+        '<button class="btn btn-sm">Edit</button><button class="btn btn-sm">Not an obligation</button></div></div>'+
+
+        '<div class="card"><div class="card-h"><div><h3>What kind of promises they are</h3>'+
+        '<div class="hint">Counted across all '+o.obligations.toLocaleString('en-GB')+', not the sample above. The types on offer come from the categories this organisation holds.</div></div></div>'+
+        rank(o.types.map(function(t){ return {nm:t[0],n:t[1]}; }))+
+        '</div>'+
+
+        '<div class="card"><div class="card-h"><div><h3>What this list does not say</h3>'+
+        '<div class="hint">It says what was promised and by when. It does not say whether it happened — that is the '+
+        'one thing on the removed list that needs a habit nobody has today rather than a connection to a system that '+
+        'already exists.</div></div></div>'+
+        '<div class="callout" style="margin-top:2px;">A promise and its performance are different facts. HaTi holds '+
+        'the first with certainty. Presenting the second as if it held that too is how an analyst loses a reader.</div></div>'+
+      '</div>'
+    :
+      '<div class="grid g2">'+
+        '<div class="card"><div class="card-h"><div><h3>What is coming</h3>'+
+        '<div class="hint">Renewals, notice deadlines, probation ends, donor reports, break options — every category '+
+        'feeds the same calendar, and every date is written in a document.</div></div></div>'+cal+'</div>'+
+        '<div class="card"><div class="card-h"><div><h3>How you hear about it</h3>'+
+        '<div class="hint">The point of the calendar is that you never have to open it.</div></div></div>'+
+        '<div class="attn">'+
+        '<div class="it"><span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">'+
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 6.5 9 6 9-6"/></svg></span>'+
+        '<div class="bd"><b>Email, 90 / 60 / 30 days before</b><p>To whoever owns that category — procurement for a supplier notice, '+
+        'the people lead for a probation end. Not everything to everyone.</p></div></div>'+
+        '<div class="it"><span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">'+
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>'+
+        '<div class="bd"><b>On the phone shell too</b><p>The same list already reads through HaTi’s mobile screens, '+
+        'so it needs no second version building.</p></div></div>'+
+        '<div class="it"><span class="ic" style="background:var(--st-steel-bg);color:var(--st-steel-fg);">'+
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4"/></svg></span>'+
+        '<div class="bd"><b>Copilot can be asked</b><p>“What’s due next month?” is answered from this list, '+
+        'so the answer matches the email.</p></div></div>'+
+        '</div></div>'+
+      '</div>');
+}
+
+/* ---------------------------- 4 · BRIEFINGS ----------------------------
+   Three briefings of three different categories, from three different
+   organisations. The sections are not the same on any two — that is the point
+   of the screen — and not one figure needs a system other than HaTi. */
+var BRIEFS = {
+  supplier:{
+    who:'Savanna Foods Ltd', cat:'supplier',
+    title:'Rift Valley Logistics',
+    sub:'Haulage Framework Agreement · KES 24.6M a year contracted · renews itself 31 October 2026',
+    tiles:[{k:'Decide by',v:'2 Sep',d:'25 days · 60 days notice · nothing filed here',ruby:true},
+           {k:'Increases above the ceiling',v:'2',u:'of 3',d:'clause 6.3 allows 7% in any twelve months'},
+           {k:'Above the ceiling · KES',v:'340',u:'K',d:'a year, in the schedule now in force'},
+           {k:'Contracted value · KES',v:'24.6',u:'M',d:'a year, per the schedule now in force'}],
+    chart:true,
+    sections:[
+      {h:'Rights written in that nothing here has ever used',icon:'tick',
+       hint:'HaTi knows the right exists and that no filing has ever been made under it. Whether it was used outside HaTi is a question for the team.',
+       src:'hati',
+       list:[['A rebate tier at 5,000 tonnes — no claim ever filed','Clause 6.5. The tier is in the contract. Whether you passed it is a volume figure HaTi does not hold, so it does not claim you did.'],
+             ['A benchmarking right — never exercised here','Clause 12.4 lets you test their rates every two years and require a reduction. No benchmarking has ever been filed.'],
+             ['Termination for convenience on 60 days — never served','Clause 13.2. They need 180 days to do the same, so the asymmetry is in your favour and unused.']]},
+      {h:'What your other haulage agreements say',icon:'tick',src:'doc',
+       hint:'Contracted rate cards from signed agreements, compared only against other agreements in the same category.',
+       table:{head:['Supplier','KES / tonne contracted','Terms'],
+              rows:[['Rift Valley Logistics','4,550','60 days',true],['Coast Freight Ltd','3,980','45 days'],['Highland Transporters','4,120','30 days']]},
+       callout:'The contracted rate here is <b>11% above your next haulier</b>, on the longest payment terms of the three. All three figures are rate cards from agreements already in HaTi — no invoice was opened to produce this.'}
+    ],
+    timeline:[
+      {dt:'March 2023 · first agreement',hd:'Haulage Framework signed',gv:'60-day payment terms — you had opened at 30.',wn:'Fuel surcharge capped at 3% of the base rate.'},
+      {dt:'April 2024 · variation',hd:'Rate raised 8.1% — above the 7% ceiling',gv:'Accepted an increase the parent agreement does not permit.',wn:'48-hour delivery commitment written in for the first time.'},
+      {dt:'May 2025 · variation',hd:'Rate raised 7.5% — also above the ceiling',gv:'Benchmarking right weakened from yearly to every two years.',wn:'Volume rebate tier added at 5,000 tonnes.'},
+      {dt:'June 2026 · variation',hd:'Route exclusivity extended',gv:'Exclusivity on the Nairobi–Mombasa route to 2028.',wn:'Nothing recorded — this round was one-sided.',bad:true}
+    ],
+    open:['Put both over-ceiling increases against clause 6.3 in writing before anything else is discussed — every figure is in a document they signed.',
+          'File the rebate claim. The tier is in clause 6.5 and nothing has ever been filed under it.',
+          'Serve the benchmarking notice under clause 12.4; the right has never been used.',
+          'Trade the Nairobi–Mombasa exclusivity back — the June variation gave it away for nothing.',
+          'Give notice by 2 September regardless, to keep the option open.'],
+    cut:[['What you actually paid','The figures above are contracted rates from signed schedules. Invoices, credit notes and surcharges are in your accounts.'],
+         ['Whether the 5,000-tonne tier was reached','The tier is in the contract. The tonnage is in your ERP.'],
+         ['Whether they delivered on time','Nobody records this today.']]
+  },
+
+  grant:{
+    who:'Ubuntu Health Trust', cat:'grant',
+    title:'Global Health Fund',
+    sub:'Programme Funding Agreement · KES 118M contracted over three years · ends 31 December 2027',
+    tiles:[{k:'Next report due',v:'14 Sep',d:'Narrative and financial · clause 8.3',ruby:true},
+           {k:'Share of contracted funding',v:'61',u:'%',d:'Your single largest source by far'},
+           {k:'Clawback applies to · KES',v:'118',u:'M',d:'The full programme value · clause 14.2'},
+           {k:'Reallocation margin',v:'10',u:'%',d:'The tightest of your three funders'}],
+    sections:[
+      {h:'Conditions you are carrying',icon:'bind',src:'doc',
+       hint:'What a funding agreement has instead of a price. Every one is a sentence in the agreement — none of them is a judgement about how you are performing.',
+       list:[['Report every quarter, within 45 days','Clause 8.3, narrative and financial, in the approved format.'],
+             ['Reallocation above 10% needs prior written approval','Clause 5.1. Whether you have moved beyond it is a figure in your grant ledger, not here.'],
+             ['The audit right must reach every sub-grantee','Clause 11.4. Comparing this agreement with each partner agreement shows two that do not contain it.'],
+             ['Unspent balance returns unless an extension is requested','Clause 7.6, by 30 September. Nothing has been filed here.']]},
+      {h:'What your other funding agreements say',icon:'tick',src:'doc',
+       hint:'Compared only against other donor agreements — the only fair comparison, and one that needs no sector benchmark.',
+       table:{head:['Donor','Report cycle','Reallocation margin'],
+              rows:[['Global Health Fund','Quarterly, 45 days','10%',true],['Nordic Development Agency','Six-monthly, 60 days','15%'],['County Health Partnership','Annually','None stated']]},
+       callout:'This funder is the strictest of the three on every axis, and it is also <b>61% of contracted funding</b>. The reporting burden and the concentration are the same fact, and both come from the agreements themselves.'}
+    ],
+    timeline:[
+      {dt:'January 2024 · award',hd:'Three-year programme agreed',gv:'Accepted quarterly reporting where you asked for six-monthly.',wn:'Indirect cost recovery raised from 7% to 12%.'},
+      {dt:'August 2025 · variation',hd:'Budget reallocation approved',gv:'Accepted a tighter 10% margin between lines.',wn:'Approval for the reallocation granted in full.'},
+      {dt:'March 2026 · variation',hd:'Scope widened to two more counties',gv:'Delivery targets raised with no increase in indirect recovery.',wn:'Nothing recorded — this round was one-sided.',bad:true}
+    ],
+    open:['Request the extension before 30 September. The deadline is in clause 7.6 and nothing has been filed.',
+          'Get clause 11.4’s audit right into both outstanding partner agreements — the gap shows by reading the two documents side by side.',
+          'Two closed periods have no report filed here. Establish whether they went in by another route and file them.',
+          'Open indirect cost recovery at the next variation; it has not moved through two scope increases.',
+          'Start a second funder conversation. 61% of contracted funding from one source is the finding that matters most.'],
+    cut:[['Whether spend stayed inside the approved lines','Your grant ledger. HaTi can state the 10% margin and nothing about your position against it.'],
+         ['Whether the two missing reports were filed elsewhere','HaTi knows only that nothing was filed in HaTi.'],
+         ['Whether the programme met its targets','Not a contract fact.']]
+  },
+
+  lease:{
+    who:'Nordlund Advokatbyrå', cat:'lease',
+    title:'Fastighets AB Vasa',
+    sub:'Stockholm office lease · SEK 3.4M a year contracted · term to 2031, break option 2027',
+    tiles:[{k:'Break option lapses',v:'30 Nov',d:'114 days · six months notice · nothing filed',ruby:true},
+           {k:'Contracted rent · SEK',v:'3.4',u:'M',d:'a year, fixed for the full term'},
+           {k:'Rent per m² · SEK',v:'4,250',d:'against 3,780 across your other leases'},
+           {k:'Reinstatement obligation',v:'Yes',d:'Clause 19.4 · no figure stated anywhere in the lease'}],
+    sections:[
+      {h:'What this lease commits you to',icon:'bind',src:'doc',
+       hint:'A property agreement has none of the things a supplier briefing shows, and several it never would.',
+       list:[['Break option, exercisable once','Six months notice, expiring 30 November. Miss it and the term runs to 2031. Clause 16.2.'],
+             ['Reinstatement at the end of the term','Return the premises to their original open-plan layout. Clause 19.4. The lease states the duty and no cost.'],
+             ['Service charge with no ceiling','Rent is fixed; the service charge is not. Clause 11.6. What it has actually risen to is in your invoices.'],
+             ['No sublet without consent, and no deemed-approval period','Consent not to be unreasonably withheld, but nothing obliges them to answer. Clause 21.2.']]},
+      {h:'What your other leases say',icon:'tick',src:'doc',
+       hint:'Compared against the four other leases in your own book. No valuation and no market report was involved.',
+       table:{head:['Property','SEK / m²','Service charge'],
+              rows:[['Vasagatan (this lease)','4,250','No ceiling',true],['Kungsholmen store','3,910','Capped at 4%'],['Södermalm archive','3,650','Capped at 3%']]},
+       callout:'This is the <b>only one of your five leases with an uncapped service charge</b>, and the highest rent per square metre in the book. Both statements come from leases already in HaTi.'}
+    ],
+    timeline:[
+      {dt:'June 2021 · original lease',hd:'Ten-year term agreed',gv:'Accepted an uncapped service charge.',wn:'Rent fixed for the full term with no review.'},
+      {dt:'September 2023 · variation',hd:'Additional floor taken',gv:'Reinstatement obligation extended to the new floor.',wn:'Break option preserved across both floors.'},
+      {dt:'February 2026 · consent',hd:'Fit-out approved',gv:'Agreed to remove the fit-out at the end of the term.',wn:'Nothing recorded — this round was one-sided.',bad:true}
+    ],
+    open:['Serve the break notice by 30 November to keep the option alive, even if you expect to stay.',
+          'Ask for a service-charge ceiling as the price of not breaking — your other two leases have one at 3% and 4%.',
+          'Put a deemed-approval period into the sublet consent clause while you have leverage.',
+          'Price the reinstatement obligation. The lease creates the duty and states no figure, so nobody knows what it is.',
+          'Note that every point above came from leases you already hold — none of it needed a valuer.'],
+    cut:[['What the market rate is','Every comparison above is against your own leases. A district median is outside reference data.'],
+         ['What the service charge has actually risen to','The lease says there is no ceiling. The invoices say the rest.'],
+         ['What reinstatement will cost','Nobody has priced it, and the lease does not.']]
+  }
+};
+
+function renderBrief(){
+  var b=BRIEFS[briefKey];
+  var picker='<div class="shelf"><span class="cap">Example briefing</span>'+
+    Object.keys(BRIEFS).map(function(k){
+      return '<button class="fbtn'+(briefKey===k?' on':'')+'" data-brief="'+k+'">'+
+        esc(CATS[BRIEFS[k].cat].short)+' — '+esc(BRIEFS[k].who)+'</button>';
+    }).join('')+
+    '<span style="font-size:11.5px;color:var(--color-neutral-500);margin-left:6px;">'+
+    'Same builder, same page furniture. The <b>sections</b> come from the category.</span></div>';
+
+  var tls='<div class="grid g4" style="margin-bottom:14px;">'+b.tiles.map(function(t){
+    return '<div class="tile"'+(t.ruby?' style="border-color:var(--st-ruby-line);"':'')+'>'+
+      '<span class="k"'+(t.ruby?' style="color:var(--st-ruby-fg);"':'')+'>'+esc(t.k)+'</span>'+
+      '<span class="v">'+esc(t.v)+(t.u?'<small>'+esc(t.u)+'</small>':'')+'</span>'+
+      '<span class="d">'+esc(t.d)+'</span></div>';
+  }).join('')+'</div>';
+
+  /* THE CHART THAT REPLACED THE ONE THAT LIED.
+     It used to plot "what you have paid" against inflation — one figure HaTi
+     cannot know and one it would have to be told. It now plots the CONTRACTED
+     rate, taken from the signed variations, against the MAXIMUM the parent
+     agreement allows. Both lines are documents. The finding got stronger in
+     the process: a cap being treated as a target is an argument, but a rate on
+     file that exceeds the cap is a breach. */
+  /* THE CHART THAT REPLACED THE ONE THAT LIED.
+     It used to plot "what you have paid" against inflation — one figure HaTi
+     cannot know and one it would have to be told. Both are gone.
+
+     The first attempt at a replacement plotted the contracted rate against the
+     ceiling as two cumulative lines, and they sat 8px apart: honest, and
+     unreadable. The comparison is really a per-year one, so it is drawn that
+     way — each increase against the ceiling that governs it. Doing so also
+     surfaced a second breach the cumulative view had hidden. */
+  var chart = b.chart ?
+    '<div class="card" style="margin-bottom:14px;"><div class="card-h"><div>'+
+    '<h3>Each increase on file, against the ceiling that governs it</h3>'+
+    '<div class="hint">The percentage in each signed variation, and the 7% ceiling in clause 6.3 of the parent '+
+    'agreement. Both come from documents in HaTi. Nothing here is an invoice and nothing is an index.</div></div>'+
+    '<div class="side">'+srcTag('doc')+'</div></div>'+
+    '<svg viewBox="0 0 640 205" width="100%" height="205" role="img" aria-label="The 2024 increase was 8.1 per cent and the 2025 increase 7.5 per cent, both above the 7 per cent ceiling. The 2026 increase was 7 per cent, at the ceiling.">'+
+    '<g stroke="var(--ch-grid)" stroke-width="1">'+
+    '<line x1="92" y1="30" x2="620" y2="30"/><line x1="92" y1="76.7" x2="620" y2="76.7"/>'+
+    '<line x1="92" y1="123.3" x2="620" y2="123.3"/><line x1="92" y1="170" x2="620" y2="170"/></g>'+
+    '<g fill="var(--color-neutral-500)" font-size="10.5" font-family="Inter, system-ui, sans-serif" text-anchor="end">'+
+    '<text x="84" y="33.5">9%</text><text x="84" y="80.2">6%</text>'+
+    '<text x="84" y="126.8">3%</text><text x="84" y="173.5">0%</text></g>'+
+    /* 0% sits on y=170 and 9% on y=30, so one percentage point is 15.56px.
+       8.1% -> y 44 · 7.5% -> y 53.3 · 7.0% -> y 61.1 (the ceiling itself) */
+    '<rect x="138" y="44" width="96" height="126" rx="4" fill="var(--st-amber-dot)"/>'+
+    '<rect x="312" y="53.3" width="96" height="116.7" rx="4" fill="var(--st-amber-dot)"/>'+
+    '<rect x="485" y="61.1" width="96" height="108.9" rx="4" fill="var(--color-accent-600)"/>'+
+    '<line x1="100" y1="61.1" x2="612" y2="61.1" stroke="var(--ch-ref)" stroke-width="2" stroke-dasharray="6 5"/>'+
+    '<g font-family="Inter, system-ui, sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="var(--color-text)">'+
+    '<text x="186" y="36">8.1%</text><text x="360" y="45">7.5%</text><text x="533" y="53">7.0%</text></g>'+
+    '<g font-family="Inter, system-ui, sans-serif" font-size="10.5" fill="var(--color-neutral-500)" text-anchor="middle">'+
+    '<text x="186" y="190">2024 variation</text><text x="360" y="190">2025 variation</text><text x="533" y="190">2026 variation</text></g>'+
+    '</svg>'+
+    '<div class="legend">'+
+    '<span><i style="background:var(--st-amber-dot)"></i>Above the ceiling</span>'+
+    '<span><i style="background:var(--color-accent-600)"></i>Within it</span>'+
+    '<span><i class="dash"></i>The 7% ceiling in clause 6.3</span></div>'+
+    '<div class="callout" style="margin-top:14px;"><b>Two of the three increases on file exceed the ceiling the agreement sets.</b> '+
+    'Clause 6.3 permits 7% in any twelve-month period. The 2024 variation took 8.1% and the 2025 variation 7.5%, '+
+    'and every increase since has compounded on top of them — so the schedule now in force is KES 340,000 a year '+
+    'above what the agreement allows. That is not an argument about a ceiling being treated as a target. It is a '+
+    'rate on file the parent agreement does not permit, and every figure in that sentence is in a document they '+
+    'signed.</div></div>' : '';
+
+  var secs = b.sections.map(function(s){
+    var inner='';
+    if (s.list) {
+      /* A TICK MEANS GOOD NEWS YOU ALREADY HAVE. Rights you hold earn one; a
+         condition you are CARRYING does not. */
+      var tick = s.icon !== 'bind';
+      var glyph = tick ? '<path d="m5 12.5 4.5 4.5L19 7"/>'
+                       : '<path d="M12 3v7.5"/><path d="M8.5 7 12 3.5 15.5 7"/><path d="M4.5 12h15v7a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2Z"/>';
+      inner = '<div class="attn">'+s.list.map(function(l){
+        return '<div class="it"><span class="ic" style="background:'+(tick?'var(--st-green-bg)':'var(--st-steel-bg)')+
+          ';color:'+(tick?'var(--st-green-fg)':'var(--st-steel-fg)')+';">'+
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+glyph+'</svg></span>'+
+          '<div class="bd"><b>'+esc(l[0])+'</b><p>'+esc(l[1])+'</p></div></div>';
+      }).join('')+'</div>';
+    }
+    if (s.table) inner = '<div class="tblwrap"><table style="min-width:0;"><thead><tr>'+
+      s.table.head.map(function(h,i){ return '<th'+(i?' class="num"':'')+'>'+esc(h)+'</th>'; }).join('')+
+      '</tr></thead><tbody>'+s.table.rows.map(function(r){
+        return '<tr>'+r.slice(0,3).map(function(c,i){
+          return '<td'+(i?' class="num"':'')+(r[3]&&i===1?' style="color:var(--st-ruby-fg);font-weight:700;"':'')+'>'+
+            (i===0?'<span class="t-strong">'+esc(c)+'</span>':esc(c))+'</td>';
+        }).join('')+'</tr>';
+      }).join('')+'</tbody></table></div>'+
+      (s.callout?'<div class="callout" style="margin-top:12px;">'+s.callout+'</div>':'');
+    return '<div class="card"><div class="card-h"><div><h3>'+esc(s.h)+'</h3>'+
+      '<div class="hint">'+esc(s.hint)+'</div></div><div class="side">'+srcTag(s.src)+'</div></div>'+inner+'</div>';
+  }).join('');
+
+  var tl = '<div class="card"><div class="card-h"><div><h3>What you gave and what you got, every time you negotiated</h3>'+
+    '<div class="hint">Read from the tracked changes HaTi already stores. This section is the same in every category — '+
+    'concession memory does not care what kind of contract it is.</div></div><div class="side">'+srcTag('hati')+'</div></div>'+
+    '<div class="timeline">'+
+    b.timeline.map(function(t){
+      return '<div class="tl-it'+(t.bad?' bad':'')+'"><div class="dt">'+esc(t.dt)+'</div><div class="hd">'+esc(t.hd)+'</div>'+
+        '<div class="gv"><b>Gave</b><span>'+esc(t.gv)+'</span></div>'+
+        '<div class="wn"><b>Won</b><span'+(t.bad?' style="color:var(--st-ruby-fg);font-weight:600;"':'')+'>'+esc(t.wn)+'</span></div></div>';
+    }).join('')+'</div></div>';
+
+  var open='<div class="card"><div class="card-h"><div><h3>Suggested opening position</h3>'+
+    '<div class="hint">Drafted from the facts above. A person edits it before it goes anywhere.</div></div></div>'+
+    '<ol style="margin:0;padding-left:18px;font-size:12px;line-height:1.75;">'+
+    b.open.map(function(x){ return '<li>'+x+'</li>'; }).join('')+'</ol></div>';
+
+  var cut='<div class="card ghost"><div class="card-h"><div><h3>What this page does not claim</h3>'+
+    '<div class="hint">Stated here rather than left for the reader to discover. A briefing that quietly implies more '+
+    'than it knows is worth less than one that draws its own boundary.</div></div></div>'+
+    '<div class="cutlist">'+b.cut.map(function(c){
+      return '<div><b>'+esc(c[0])+'</b><span>'+esc(c[1])+'</span></div>';
+    }).join('')+'</div></div>';
+
+  $('#s-brief').innerHTML =
+    '<div class="panel-head"><div class="t"><b>'+esc(b.title)+'</b> — '+esc(b.who)+' · '+esc(b.sub)+
+    '. Prepared automatically before every renewal, review or break date, so nobody walks in without the '+
+    'history.</div>'+
+    '<div class="acts"><button class="btn">Download PDF</button><button class="btn btn-primary">Start the review</button></div></div>'+
+    picker + tls + chart +
+    '<div class="grid g-2-1">'+
+      '<div style="display:flex;flex-direction:column;gap:14px;">'+ secs + tl + '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:14px;">'+ open + cut + '</div>'+
+    '</div>';
+}
+
+/* ----------------------------- 5 · EXPOSURE ---------------------------- */
+function renderExp(){
+  var o=O(), e=o.exposure, keys=Object.keys(CURR);
+  var cards = keys.map(function(k){
+    var c=e[k];
+    return '<button class="cur'+(curKey===k?' on':'')+'" data-cur="'+k+'">'+
+      '<span class="top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+
+      '<path d="'+CURR[k].icon+'"/></svg><span class="nm">'+CURR[k].label+'</span></span>'+
+      '<span class="v">'+esc(c.v)+'</span><span class="d">'+esc(c.u)+'</span></button>';
+  }).join('');
+
+  var cur=e[curKey];
+  var findings = cur.f.map(function(f){
+    return '<div class="finding"><div class="bd"><b>'+esc(f.h)+'</b><p>'+esc(f.p)+'</p>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">'+catChip(f.c)+pill(f.s,f.sl)+srcTag(f.src)+'</div></div>'+
+      '<div class="amt"><div class="m">'+esc(f.m)+'</div><div class="u">'+esc(f.u)+'</div>'+
+      '<button class="btn btn-sm" style="margin-top:6px;">Review</button></div></div>';
+  }).join('');
+
+  var relevant = o.mix.filter(function(m){ return CATS[m.c].stakes.indexOf(CURR[curKey].label)>=0; });
+  var tests = relevant.length
+    ? relevant.map(function(m){
+        return '<tr><td>'+catChip(m.c)+'</td>'+
+          '<td><span class="t-strong">'+esc(CATS[m.c].checks[0].t)+'</span> '+srcTag(CATS[m.c].checks[0].s)+
+          '<div class="t-mut">and '+(CATS[m.c].checks.length-1)+' more in this pack</div></td>'+
+          '<td class="num">'+m.n+'</td></tr>';
+      }).join('')
+    : '<tr><td colspan="3" class="t-mut" style="padding:18px 10px;">No category '+esc(o.name)+
+      ' holds counts this as its main exposure — which is itself worth knowing.</td></tr>';
+
+  var biggest = Object.keys(e).reduce(function(a,b){ return e[b].n>e[a].n?b:a; });
+
+  $('#s-exp').innerHTML =
+    '<div class="panel-head"><div class="t">August 2026. Value has five currencies here and the first is '+
+    '<b>contracted value</b>, not cash — HaTi cannot say what a leak cost you, only how much contracted value '+
+    'sits behind a term nobody is using. For '+esc(o.name)+' the heaviest currency is <b>'+
+    CURR[biggest].label.toLowerCase()+'</b>.</div>'+
+    '<div class="acts"><button class="btn">Compare with July</button><button class="btn">Email to the board</button>'+
+    '<button class="btn btn-primary">Download PDF</button></div></div>'+
+
+    '<div class="grid g5" style="margin-bottom:14px;">'+cards+'</div>'+
+
+    '<div class="grid g-2-1" style="margin-bottom:14px;">'+
+      '<div class="card"><div class="card-h"><div><h3>'+CURR[curKey].label+' — what is at stake</h3>'+
+      '<div class="hint">'+esc(cur.note)+'. Showing '+cur.f.length+' of '+cur.n+
+      '. Every finding names its category, how sure HaTi is, and where the figure came from.</div></div></div>'+
+      findings+'</div>'+
+      '<div class="card"><div class="card-h"><div><h3>Which packs produced these</h3>'+
+      '<div class="hint">Only categories that count '+CURR[curKey].label.toLowerCase()+
+      ' as one of their stakes are searched. Nothing is computed across categories that cannot be compared.</div></div></div>'+
+      '<div class="tblwrap"><table style="min-width:0;"><thead><tr><th>Category</th><th>Leading check</th><th class="num">Contracts</th></tr></thead>'+
+      '<tbody>'+tests+'</tbody></table></div>'+
+      '<div class="thin" style="font-size:11.5px;color:var(--color-neutral-500);">'+
+      'No AI writes a word of this report. It is arithmetic over the obligations register, and the tests it runs '+
+      'are chosen by the categories in use.</div></div>'+
+    '</div>'+
+
+    '<div class="card"><div class="card-h"><div><h3>What this report deliberately will not tell you</h3>'+
+    '<div class="hint">Eight things a contract analyst is often expected to say, and where each one actually lives. '+
+    'They are listed on the page rather than left out quietly, because a reader who cannot see what was excluded '+
+    'has no way to judge what was included.</div></div></div>'+
+    '<div class="grid g2"><div class="cutlist">'+
+      CUT.slice(0,4).map(function(c){ return '<div><b>'+esc(c[0])+'</b><span>'+esc(c[1])+'</span></div>'; }).join('')+
+    '</div><div class="cutlist">'+
+      CUT.slice(4).map(function(c){ return '<div><b>'+esc(c[0])+'</b><span>'+esc(c[1])+'</span></div>'; }).join('')+
+    '</div></div>'+
+    '<div class="callout" style="margin-top:14px;">'+
+    'Seven of the eight are a <b>connection away, not a habit away</b> — the figure already exists in your accounts, '+
+    'your ERP or a vendor console. Only the last needs somebody to start recording something nobody records today. '+
+    'And the day the first connection is made, the most valuable number in the product appears: the gap between '+
+    '<b>what was agreed and what actually happened</b>.'+
+    '</div></div>';
+}
+
+/* ====================== 5 · NEGOTIATION FRICTION =======================
+   This tab already existed in Insights. The previous cut of this prototype
+   built a "Negotiation stats" screen that measured the same thing from the
+   same place, so the two are one tab now rather than two doors saying
+   different numbers about the same negotiations. */
+const FRICTION = {
+  savanna:{
+    negotiations:46, opened:9, avgRounds:1.8,
+    top:{clause:'Clause 12 · LIMITATION OF LIABILITY', pct:78, extra:0.6},
+    refused:{n:7, deals:5},
+    slowest:{who:'Serena Hotels', rounds:2.6, book:1.8, accept:100},
+    stats:[['18 days','median to signature'],['6h','median decision time'],
+           ['73%','signed within 30 days'],['67%','changes accepted first pass']],
+    clauses:[['Clause 12 · LIMITATION OF LIABILITY',78,0.6],['Clause 9 · PAYMENT TERMS',54,0.3],
+             ['Clause 14 · INDEMNITY',44,0.5],['Clause 13 · TERMINATION FOR CONVENIENCE',37,0.4],
+             ['Clause 20 · GOVERNING LAW',31,-0.2],['Clause 17 · DATA PROTECTION',22,-0.3],
+             ['Clause 18 · CONFIDENTIALITY',18,-0.1]],
+    parties:[['Serena Hotels',3,2.6,100,'slow'],['Java House Group',5,2.1,76,'slow'],
+             ['Rift Valley Logistics',4,2.0,45,'slow'],['Naivas Supermarkets',9,1.6,88,'smooth'],
+             ['Carrefour Kenya',4,1.4,92,'smooth'],['Cloudpoint Systems',6,1.1,100,'smooth']]
+  },
+  ubuntu:{
+    negotiations:24, opened:3, avgRounds:2.1,
+    top:{clause:'Clause 4 · INDIRECT COST RECOVERY', pct:41, extra:0.8},
+    refused:{n:4, deals:3},
+    slowest:{who:'Nordic Development Agency', rounds:2.8, book:2.1, accept:45},
+    stats:[['34 days','median to signature'],['2 days','median decision time'],
+           ['38%','signed within 30 days'],['41%','changes accepted first pass']],
+    clauses:[['Clause 4 · INDIRECT COST RECOVERY',41,0.8],['Clause 5 · BUDGET REALLOCATION',32,0.5],
+             ['Clause 8 · REPORTING CYCLE',27,0.3],['Clause 15 · OWNERSHIP OF OUTPUTS',23,0.4],
+             ['Clause 11 · AUDIT & FLOW-DOWN',18,-0.1],['Clause 13 · TERMINATION',12,-0.2]],
+    parties:[['Nordic Development Agency',4,2.8,45,'slow'],['Global Health Fund',6,2.4,33,'slow'],
+             ['County Health Partnership',3,1.6,80,'smooth'],['Kilifi County Health',5,1.4,90,'smooth'],
+             ['Rift Motors Ltd',3,1.2,100,'smooth'],['(no counterparty)',3,1.0,100,'smooth']]
+  },
+  nordlund:{
+    negotiations:29, opened:6, avgRounds:1.3,
+    top:{clause:'Clause 9 · LIMITATION OF LIABILITY', pct:52, extra:0.7},
+    refused:{n:2, deals:2},
+    slowest:{who:'Hedberg AB', rounds:2.0, book:1.3, accept:60},
+    stats:[['11 days','median to signature'],['3h','median decision time'],
+           ['86%','signed within 30 days'],['79%','changes accepted first pass']],
+    clauses:[['Clause 9 · LIMITATION OF LIABILITY',52,0.7],['Clause 3 · SCOPE OF THE ENGAGEMENT',38,0.4],
+             ['Clause 4 · FEE BASIS AND UPLIFT',29,0.2],['Clause 12 · CONFLICTS & CONFIDENTIALITY',14,-0.3],
+             ['Clause 18 · GOVERNING LAW',10,-0.2]],
+    parties:[['Hedberg AB',4,2.0,60,'slow'],['Juridik Pro AB',2,1.5,50,'slow'],
+             ['Sundqvist Industri',3,1.5,75,'smooth'],['Fastighets AB Vasa',2,1.0,100,'smooth'],
+             ['(internal matters)',9,1.0,100,'smooth']]
+  }
+};
+
+function copRead(what){
+  return '<div class="copread">'+
+    '<div class="hd"><span class="ic">'+
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>'+
+    '</span><h3>Copilot’s read</h3><span class="tagline">Optional · AI</span></div>'+
+    '<button class="btn btn-primary" style="flex:none;">Interpret these numbers</button>'+
+    '<p>Copilot explains what is behind '+esc(what)+' and what to do about it this week. '+
+    '<b style="color:var(--color-text);font-weight:600;">Nothing runs until you press it</b>, and the counted '+
+    'figures never depend on it — they are read from your documents either way.</p></div>';
+}
+
+function renderFriction(){
+  var o=O(), f=FRICTION[org];
+  var maxPct = Math.max.apply(null, f.clauses.map(function(c){return c[1];}));
+
+  var clauses = f.clauses.map(function(c){
+    var up = c[2] > 0;
+    return '<div class="cl-row"><span class="nm" title="'+esc(c[0])+'">'+esc(c[0])+'</span>'+
+      '<span class="track"><span class="fill'+(up?'':' flat')+'" style="width:'+Math.round(c[1]/maxPct*100)+'%"></span></span>'+
+      '<span class="pc">'+c[1]+'%</span>'+
+      '<span class="rd '+(up?'up':'dn')+'">'+(up?'+':'−')+Math.abs(c[2]).toFixed(1)+'</span></div>';
+  }).join('');
+
+  var parties = f.parties.map(function(p){
+    return '<tr><td class="t-strong">'+esc(p[0])+'</td><td class="num">'+p[1]+'</td>'+
+      '<td class="num">'+p[2].toFixed(1)+'</td><td class="num">'+p[3]+'%</td>'+
+      '<td>'+pill(p[4]==='slow'?'amber':'green', p[4])+'</td></tr>';
+  }).join('');
+
+  $('#s-friction').innerHTML =
+    '<div class="panel-head"><div class="t">Every figure here is HaTi timing and counting its own work — who '+
+    'filed which change, when, and how long it sat before somebody decided. It is the one tab whose source is '+
+    'the platform’s record rather than the contract.</div>'+
+    '<div class="acts"><button class="btn">Export</button><button class="btn btn-primary">Share with the team</button></div></div>'+
+
+    copRead('these '+f.negotiations+' negotiations') +
+
+    '<div class="grid g-2-1">'+
+      '<div class="card"><div class="card-h"><div><h3>What is slowing you down</h3>'+
+      '<div class="hint">'+f.negotiations+' negotiations · '+f.opened+' opened this month · '+
+      f.avgRounds.toFixed(1)+' rounds each on average</div></div><div class="side">'+srcTag('hati')+'</div></div>'+
+
+      '<div class="fr-big"><span class="n">'+f.top.pct+'%</span><div class="bd">'+
+      'of negotiations get stuck on <b>'+esc(f.top.clause)+'</b> — and when they do, the deal takes '+
+      '<b>'+f.top.extra.toFixed(1)+' more rounds</b>. It is the single change worth making to your standard paper.'+
+      '<a href="#">Open the clause in Our standards →</a></div></div>'+
+
+      '<div class="fr-big"><span class="n">'+f.refused.n+'</span><div class="bd">'+
+      'changes are <b>refused and still open</b> — nobody withdrew them, so '+f.refused.deals+
+      ' deals are waiting on a decision somebody has to make.'+
+      '<a href="#">See the '+(f.refused.n===7?'seven':f.refused.n)+' →</a></div></div>'+
+
+      '<div class="fr-big"><span class="n">'+f.slowest.rounds.toFixed(1)+'</span><div class="bd">'+
+      'rounds per deal with <b>'+esc(f.slowest.who)+'</b>, against '+f.slowest.book.toFixed(1)+
+      ' across the book — the slowest counterparty you negotiate with, and they accept <b>'+
+      f.slowest.accept+'%</b> of what you ask.'+
+      '<a href="#">Filter the page to '+esc(f.slowest.who)+' →</a></div></div>'+
+
+      '<div class="fr-pair">'+f.stats.map(function(s){
+        return '<div><div class="k">'+esc(s[0])+'</div><div class="l">'+esc(s[1])+'</div></div>';
+      }).join('')+'</div>'+
+      '</div>'+
+
+      '<div style="display:flex;flex-direction:column;gap:14px;">'+
+      '<div class="card"><div class="card-h"><div><h3>Most-contested clauses</h3>'+
+      '<div class="hint">% of '+f.negotiations+' negotiations · and the rounds each one adds or saves</div></div></div>'+
+      clauses+
+      '<div class="thin" style="font-size:11px;color:var(--color-neutral-500);">'+
+      'A teal bar marks a clause that <b>costs</b> you rounds. Grey marks one that gets challenged and settles '+
+      'quickly anyway — those are not the ones to rewrite.</div></div>'+
+
+      '<div class="card"><div class="card-h"><div><h3>Friction by counterparty</h3>'+
+      '<div class="hint">Click a row to filter the whole tab</div></div></div>'+
+      '<div class="tblwrap"><table style="min-width:0;"><thead><tr><th>Counterparty</th>'+
+      '<th class="num">Deals</th><th class="num">Rounds</th><th class="num">Accept us</th><th></th></tr></thead>'+
+      '<tbody>'+parties+'</tbody></table></div></div>'+
+      '</div>'+
+    '</div>';
+}
+
+/* ======================== 6 · CONTRACT GRAPH ===========================
+   Also already in Insights. It draws who you are contracted with and how the
+   agreements connect — which, for a chain of donor to charity to partner, is
+   the clearest way to show a condition that failed to reach the end of it. */
+const GRAPH = {
+  savanna:{
+    cols:[['Customers',150],['Savanna Foods Ltd',450],['Suppliers',760]],
+    nodes:[
+      {id:'c1',x:40,y:56,w:215,l:'Naivas Supermarkets',s:'24% of contracted revenue',t:'amber'},
+      {id:'c2',x:40,y:118,w:215,l:'Carrefour Kenya',s:'15% of contracted revenue'},
+      {id:'c3',x:40,y:180,w:215,l:'Java House Group',s:'12% of contracted revenue'},
+      {id:'c4',x:40,y:242,w:215,l:'59 other customers',s:'40% between them'},
+      {id:'you',x:350,y:140,w:200,l:'Savanna Foods Ltd',s:'148 contracts · 6 categories',t:'you'},
+      {id:'s1',x:645,y:56,w:215,l:'Rift Valley Logistics',s:'2 rates on file above the ceiling',t:'ruby'},
+      {id:'s2',x:645,y:118,w:215,l:'Nairobi Cold Chain',s:'sole source · no alternative named',t:'ruby'},
+      {id:'s3',x:645,y:180,w:215,l:'Mombasa Packaging Co',s:'ceiling written in at 7%'},
+      {id:'s4',x:645,y:242,w:215,l:'38 other suppliers',s:'7 with no ceiling at all',t:'amber'}
+    ],
+    edges:[{a:'c1',b:'you',l:'24%',t:'amber'},{a:'c2',b:'you',l:'15%'},{a:'c3',b:'you',l:'12%'},
+           {a:'c4',b:'you',l:'40%'},
+           {a:'you',b:'s1',l:'KES 24.6M',t:'ruby'},{a:'you',b:'s2',l:'KES 11.2M',t:'ruby'},
+           {a:'you',b:'s3',l:'KES 8.4M'},{a:'you',b:'s4',l:'KES 142M'}],
+    h:320,
+    note:'Two nodes here are worth a second look: the customer holding a quarter of contracted revenue, and the '+
+         'supplier named as sole source with no alternative anywhere in the book. Both are counts over the '+
+         'agreements — nothing on this map is a receipt.'
+  },
+  ubuntu:{
+    cols:[['Funders',150],['Ubuntu Health Trust',450],['Partners holding funder money',760]],
+    nodes:[
+      {id:'ghf',x:40,y:70,w:215,l:'Global Health Fund',s:'KES 118M · quarterly reporting',t:'amber'},
+      {id:'nda',x:40,y:150,w:215,l:'Nordic Development Agency',s:'KES 46M · six-monthly'},
+      {id:'chp',x:40,y:230,w:215,l:'County Health Partnership',s:'KES 9M · annual'},
+      {id:'you',x:350,y:150,w:200,l:'Ubuntu Health Trust',s:'96 contracts · 6 categories',t:'you'},
+      {id:'p1',x:645,y:48,w:215,l:'Kilifi Community Org',s:'audit condition present',t:'ok'},
+      {id:'p2',x:645,y:118,w:215,l:'Coast Health Network',s:'audit condition MISSING',t:'ruby'},
+      {id:'p3',x:645,y:188,w:215,l:'Turkana Wellbeing',s:'audit condition MISSING',t:'ruby'},
+      {id:'p4',x:645,y:258,w:215,l:'Mombasa Youth Trust',s:'audit condition present',t:'ok'}
+    ],
+    edges:[{a:'ghf',b:'you',l:'61% of funding',t:'amber'},{a:'nda',b:'you',l:'24%'},{a:'chp',b:'you',l:'5%'},
+           {a:'you',b:'p1',l:'flowed down',t:'ok'},{a:'you',b:'p2',l:'not flowed down',t:'ruby',dash:true},
+           {a:'you',b:'p3',l:'not flowed down',t:'ruby',dash:true},{a:'you',b:'p4',l:'flowed down',t:'ok'}],
+    h:336,
+    note:'Clause 11.4 of the Global Health Fund agreement requires the audit right to reach every organisation '+
+         'holding its money. Two of the four partner agreements do not contain it. That gap was found by reading '+
+         'one document against another — the single most useful thing a graph of contracts can do, and it needs '+
+         'no system but this one.'
+  },
+  nordlund:{
+    cols:[['Clients',150],['Nordlund Advokatbyrå',450],['Suppliers & premises',760]],
+    nodes:[
+      {id:'c1',x:40,y:56,w:215,l:'Hedberg AB',s:'18% of contracted fees'},
+      {id:'c2',x:40,y:118,w:215,l:'Sundqvist Industri',s:'11% of contracted fees'},
+      {id:'c3',x:40,y:180,w:215,l:'8 engagements',s:'no cap on your liability',t:'ruby'},
+      {id:'c4',x:40,y:242,w:215,l:'11 other engagements',s:'capped at the fee paid',t:'ok'},
+      {id:'you',x:350,y:140,w:200,l:'Nordlund Advokatbyrå',s:'74 contracts · 6 categories',t:'you'},
+      {id:'s1',x:645,y:80,w:215,l:'Fastighets AB Vasa',s:'break option lapses 30 Nov',t:'amber'},
+      {id:'s2',x:645,y:150,w:215,l:'Juridik Pro AB',s:'40 seats licensed'},
+      {id:'s3',x:645,y:220,w:215,l:'3 other licences',s:'automatic uplift, no ceiling',t:'amber'}
+    ],
+    edges:[{a:'c1',b:'you',l:'18%'},{a:'c2',b:'you',l:'11%'},{a:'c3',b:'you',l:'uncapped',t:'ruby'},
+           {a:'c4',b:'you',l:'capped',t:'ok'},
+           {a:'you',b:'s1',l:'SEK 3.4M',t:'amber'},{a:'you',b:'s2',l:'SEK 0.4M'},{a:'you',b:'s3',l:'SEK 0.8M',t:'amber'}],
+    h:300,
+    note:'Because the map is drawn from the agreements, a group that shares a defect can be one node — the eight '+
+         'engagement letters with no liability cap sit together rather than being scattered across the picture.'
+  }
+};
+
+var GTONE = {
+  you:  {stroke:'var(--accent-solid)',  bar:'var(--accent-solid)'},
+  ruby: {stroke:'var(--st-ruby-line)',  bar:'var(--st-ruby-dot)'},
+  amber:{stroke:'var(--st-amber-line)', bar:'var(--st-amber-dot)'},
+  ok:   {stroke:'var(--st-green-line)', bar:'var(--st-green-dot)'},
+  none: {stroke:'var(--color-divider)', bar:'var(--color-neutral-300)'}
+};
+
+function renderGraph(){
+  var o=O(), g=GRAPH[org], H=44;
+  var by={}; g.nodes.forEach(function(n){ by[n.id]=n; });
+
+  /* The labels were unreadable because they sat ON the curves, not because
+     they were badly placed — pushing them out towards the nodes only sent
+     them under the boxes instead. They stay at the midpoint, where the fan
+     already spreads them vertically, and get a halo: the surface colour
+     painted as a stroke underneath the glyphs. */
+  function bez(t,p0,p1,p2,p3){
+    var u=1-t;
+    return u*u*u*p0 + 3*u*u*t*p1 + 3*u*t*t*p2 + t*t*t*p3;
+  }
+  var edges = g.edges.map(function(e){
+    var a=by[e.a], b=by[e.b];
+    var x1=a.x+a.w, y1=a.y+H/2, x2=b.x, y2=b.y+H/2, mx=(x1+x2)/2;
+    var tone=GTONE[e.t||'none'];
+    var t = 0.5;
+    var lx = bez(t,x1,mx,mx,x2), ly = bez(t,y1,y1,y2,y2);
+    return '<path d="M'+x1+','+y1+' C'+mx+','+y1+' '+mx+','+y2+' '+x2+','+y2+'" fill="none" '+
+      'stroke="'+tone.bar+'" stroke-width="'+(e.t==='ruby'?2.2:1.6)+'"'+
+      (e.dash?' stroke-dasharray="5 4"':'')+' opacity="'+(e.t?'1':'.55')+'"/>'+
+      '<text class="gedge-l" x="'+lx.toFixed(1)+'" y="'+(ly-7).toFixed(1)+'" text-anchor="middle" '+
+      'stroke="var(--color-surface)" stroke-width="3.5" paint-order="stroke"'+
+      (e.t==='ruby'?' fill="var(--st-ruby-fg)"':'')+'>'+esc(e.l)+'</text>';
+  }).join('');
+
+  var nodes = g.nodes.map(function(n){
+    var tone=GTONE[n.t||'none'];
+    return '<g><rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+H+'" rx="10" '+
+      'fill="var(--color-surface)" stroke="'+tone.stroke+'" stroke-width="'+(n.t==='you'?2:1)+'"/>'+
+      '<rect x="'+(n.x+1)+'" y="'+(n.y+8)+'" width="3" height="'+(H-16)+'" rx="1.5" fill="'+tone.bar+'"/>'+
+      '<text class="gnode-l" x="'+(n.x+14)+'" y="'+(n.y+19)+'">'+esc(n.l)+'</text>'+
+      '<text class="gnode-s" x="'+(n.x+14)+'" y="'+(n.y+33)+'"'+
+      (n.t==='ruby'?' fill="var(--st-ruby-fg)" font-weight="700"':'')+'>'+esc(n.s)+'</text></g>';
+  }).join('');
+
+  var cols = g.cols.map(function(c){
+    return '<text class="gcol" x="'+c[1]+'" y="26" text-anchor="middle">'+esc(c[0])+'</text>';
+  }).join('');
+
+  $('#s-graph').innerHTML =
+    '<div class="panel-head"><div class="t">Who '+esc(o.name)+' is contracted with, drawn from the agreements '+
+    'themselves. Node position is the direction the paper flows; a coloured edge is a finding, not a decoration.</div>'+
+    '<div class="acts"><button class="btn">Download PNG</button><button class="btn">Expand</button></div></div>'+
+
+    '<div class="card"><div class="card-h"><div><h3>The contract graph</h3>'+
+    '<div class="hint">Every node and every line is a document or a group of documents already in HaTi.</div></div>'+
+    '<div class="side">'+srcTag('doc')+'</div></div>'+
+    '<div class="graphwrap"><svg viewBox="0 0 900 '+g.h+'" width="100%" height="'+g.h+'" role="img" '+
+    'aria-label="A map of the organisation and the counterparties it holds agreements with.">'+
+    cols + edges + nodes + '</svg></div>'+
+    '<div class="legend" style="margin-top:14px;">'+
+    '<span><i style="background:var(--st-ruby-dot)"></i>Something is wrong here</span>'+
+    '<span><i style="background:var(--st-amber-dot)"></i>Worth watching</span>'+
+    '<span><i style="background:var(--st-green-dot)"></i>As it should be</span>'+
+    '<span><i class="dash" style="border-top-color:var(--st-ruby-dot)"></i>A condition that did not reach the other end</span>'+
+    '</div>'+
+    '<div class="callout" style="margin-top:14px;">'+g.note+'</div></div>';
+}
+
+/* ============================ THE TAB ROW =============================
+   Seven tabs on one page, in the order somebody would actually use them:
+   the weekly read first, the configuration last, and the two tabs that were
+   already in Insights kept where they were rather than renamed. */
+var TABS = [
+  {id:'s-home',    label:'Overview',            sub:'the week’s read, by whose job it is'},
+  {id:'s-exp',     label:'Exposure',            sub:'five currencies of risk, cash being only one', count:function(o){return findingCount(o);}},
+  {id:'s-oblig',   label:'Obligations',         sub:'every promise in every contract, and when it falls due', count:function(o){return o.obligations.toLocaleString('en-GB');}},
+  {id:'s-brief',   label:'Briefings',           sub:'one page before every renewal, review or break date'},
+  {id:'s-friction',label:'Negotiation friction',sub:'what slows your negotiations down, and who'},
+  {id:'s-graph',   label:'Contract graph',      sub:'who you are contracted with, and how it connects'},
+  {id:'s-mix',     label:'Categories & packs',  sub:'what kind of contracts you hold, and what each pack checks', count:function(o){return o.mix.length;}}
+];
+var tab = 's-home';
+
+function renderTabs(){
+  var o=O();
+  var active=1;
+  $('#ins-tabs').innerHTML = TABS.map(function(t,i){
+    if (tab===t.id) active = i+1;
+    /* the tint is NAMED, not literal, so the same line resolves to the pastel
+       in light mode and to its deep counterpart in dark */
+    return '<button class="ins-tab'+(tab===t.id?' on':'')+'" data-tab="'+t.id+'" role="tab" '+
+      'style="--tab-c:var(--tab-'+(i+1)+')">'+
+      esc(t.label)+(t.count?'<span class="n">'+t.count(o)+'</span>':'')+'</button>';
+  }).join('');
+  document.querySelector('.ins-tabrow').style.setProperty('--rail','var(--tab-'+active+')');
+  var cur = TABS.filter(function(t){return t.id===tab;})[0];
+  $('#ins-sub').innerHTML = esc(o.name)+' · '+esc(o.kind)+', '+esc(o.market)+' — '+esc(cur.sub);
+}
+
+/* ------------------------------ PLUMBING ------------------------------- */
+function renderAll(){
+  var o=O();
+  $('#mkt-text').textContent=o.market;
+  $('#avatar').textContent=o.initials;
+  $('#nav-contracts').textContent=o.contracts;
+  $('#nav-exp').textContent=findingCount(o);
+  $('#ins-src').innerHTML = sourceBar();
+  renderTabs();
+  renderHome(); renderMix(); renderOblig(); renderBrief(); renderExp();
+  renderFriction(); renderGraph();
+}
+function goTab(id){
+  tab=id;
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('on', s.id===id); });
+  renderTabs();
+  $('.main').scrollTop=0;
+}
+
+/* ONE delegated listener. Every panel is redrawn from data on each change, so
+   handlers bound to individual buttons would be lost the moment their panel
+   re-rendered — this catches clicks at the document instead. */
+document.addEventListener('click', function(ev){
+  var t=ev.target.closest('[data-tab],[data-go],[data-org],[data-role],[data-cur],[data-brief],[data-obview],[data-obcat],[data-dealcat]');
+  if(!t) return;
+  if(t.dataset.tab){ goTab(t.dataset.tab); return; }
+  if(t.dataset.go){ goTab(t.dataset.go); return; }
+  if(t.dataset.org){
+    org=t.dataset.org; role=0; curKey='value'; obCat='all'; dealCat=null;
+    document.querySelectorAll('.obtn').forEach(function(b){ b.classList.toggle('on', b.dataset.org===org); });
+    renderAll(); return;
+  }
+  if(t.dataset.role!==undefined){ role=+t.dataset.role; renderHome(); return; }
+  if(t.dataset.cur){ curKey=t.dataset.cur; renderExp(); return; }
+  if(t.dataset.brief){ briefKey=t.dataset.brief; renderBrief(); return; }
+  if(t.dataset.obview){ obView=t.dataset.obview; renderOblig(); return; }
+  if(t.dataset.obcat){ obCat=t.dataset.obcat; renderOblig(); return; }
+});
+
+/* the time-range control is decoration in a prototype, but a control that
+   cannot be pressed reads as broken */
+document.querySelectorAll('.ins-range button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.ins-range button').forEach(function(o){ o.classList.remove('on'); });
+    b.classList.add('on');
+  });
+});
+
+renderAll();
+
+</script>
+
+</body>
+</html>

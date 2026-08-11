@@ -1105,7 +1105,7 @@ function uploadConfirmHtml(ext, meta){
     const v=m[f.k];
     if(f.type==='select') return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${f.label}${MARK}</span>
       <select data-umf="${f.k}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400">
-        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${RENEWAL_LABEL[o]||o}</option>`).join('')}</select>${found(f.k)}</label>`;
+        ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${typeof metaOptLabel==='function'?metaOptLabel(o):o}</option>`).join('')}</select>${found(f.k)}</label>`;
     return `<label class="block"><span class="text-xs font-medium text-brand-800/70">${f.label}${MARK}</span>
       <input data-umf="${f.k}" type="${f.type==='date'?'date':f.type==='num'?'number':'text'}" value="${attr(v)}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/>${found(f.k)}</label>`;
   };
@@ -1337,7 +1337,7 @@ function applyMetadata(c, m){
   if(m.counterparty && !c.counterparty) c.counterparty=m.counterparty;
   if(m.value && !(Number(c.value)>0)){ c.value=Number(m.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
   if(m.expiryDate && !c.expiry) c.expiry=m.expiryDate;
-  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'Copilot-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, renewal ${m.renewalType||'—'})`);
+  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'Copilot-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, category ${m.category||'—'}, renewal ${m.renewalType||'—'})`);
 }
 
 /* Working-text document body: shown once a contract carries edited wording

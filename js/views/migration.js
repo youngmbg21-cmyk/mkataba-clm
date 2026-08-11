@@ -729,13 +729,15 @@ function migExportSheet(){
   const rows=migContracts();
   if(!rows.length){ toast(i18t('mig_nothing_migrated'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','File','Name','Counterparty','Contract type','Stream','Status',`Value (${jxCurrency()})`,'Currency','Effective date','Expiry date','Renewal','Notice (days)','Governing law','Payment terms','Needs review','Low-confidence fields'];
+  const head=['ID','File','Name','Counterparty','Contract type','Stream','Status',`Value (${jxCurrency()})`,'Currency','Effective date','Expiry date','Renewal','Notice (days)','Governing law','Payment terms','Category','Retention (%)','Retention release (days)','Warranty (months)','Our liability','Price changes','Needs review','Low-confidence fields'];
   const body=rows.map(c=>{ const m=c.metadata||{}, conf=m.confidence||{};
     const low=Object.keys(conf).filter(k=>conf[k]==='low').join('; ');
     return [c.id, c.upload&&c.upload.fileName||'', c.name, c.counterparty||'', m.contractType||'',
       FOLDERS[c.folder]?.name||'', statusLabel(c.status), isMonetary(c)?(c.value||0):'', m.currency||'',
       m.effectiveDate||'', m.expiryDate||c.expiry||'', m.renewalType||'', m.noticePeriodDays||'',
-      m.governingLaw||'', m.paymentTerms||'', c.migration.needsReview?'YES':'', low].map(esc).join(','); });
+      m.governingLaw||'', m.paymentTerms||'', m.category||'', m.retentionPct||'', m.retentionReleaseDays||'',
+      m.warrantyMonths||'', m.liabilityCapped||'', m.priceReview||'',
+      c.migration.needsReview?'YES':'', low].map(esc).join(','); });
   downloadFile('hati-migration-review-sheet.csv',[head.map(esc).join(','),...body].join('\n'),'text/csv');
   toast(`Review sheet exported — ${rows.length} contracts. Correct it in Excel, then import it back.`);
 }
@@ -749,7 +751,9 @@ async function migImportSheet(file){
   if(iId<0){ toast(i18t('mig_needs_id_col'),'err'); return; }
   const idx={ name:col('name'), cp:col('counterparty'), type:col('contracttype'), stream:col('stream'),
     status:col('status'), value:col('value(kes)'), currency:col('currency'), eff:col('effectivedate'),
-    exp:col('expirydate'), renewal:col('renewal'), notice:col('notice(days)'), law:col('governinglaw'), pay:col('paymentterms') };
+    exp:col('expirydate'), renewal:col('renewal'), notice:col('notice(days)'), law:col('governinglaw'), pay:col('paymentterms'),
+    cat:col('category'), retpct:col('retention()'), retrel:col('retentionrelease(days)'),
+    warm:col('warranty(months)'), liab:col('ourliability'), price:col('pricechanges') };
   const g=(r,i)=>i>=0?String(r[i]||'').trim():'';
   let updated=0, missed=0;
   for(const r of rows.slice(1)){
@@ -764,6 +768,18 @@ async function migImportSheet(file){
     const ren=g(r,idx.renewal).toLowerCase(); if(['auto-renew','fixed','evergreen','unknown'].includes(ren)){ m.renewalType=ren; m.confidence.renewalType='high'; }
     const not=Number(g(r,idx.notice)); if(Number.isFinite(not)&&not>0){ m.noticePeriodDays=not; m.confidence.noticePeriodDays='high'; }
     set('governingLaw', g(r,idx.law)); set('paymentTerms', g(r,idx.pay));
+    // closed lists are checked against the list — a typo in a spreadsheet cell
+    // must not become a category nothing can group by
+    const inList=(v,list)=>list.includes(String(v||'').trim().toLowerCase());
+    const cat=g(r,idx.cat).toLowerCase();
+    if(inList(cat,['customer','supplier','employment','lease','licence','partner','funding','other'])){ m.category=cat; m.confidence.category='high'; }
+    const liab=g(r,idx.liab).toLowerCase();
+    if(inList(liab,['capped','uncapped','unclear'])){ m.liabilityCapped=liab; m.confidence.liabilityCapped='high'; }
+    const pr=g(r,idx.price).toLowerCase();
+    if(inList(pr,['nochange','ceiling','indexed','open','unclear'])){ m.priceReview=pr; m.confidence.priceReview='high'; }
+    for(const [k,i] of [['retentionPct',idx.retpct],['retentionReleaseDays',idx.retrel],['warrantyMonths',idx.warm]]){
+      const n=Number(g(r,i)); if(Number.isFinite(n)&&n>0){ m[k]=n; m.confidence[k]='high'; }
+    }
     m.confirmedAt=nowISO(); m.confirmedBy=(currentUser()?.name||'')+' (sheet import)';
     applyReviewedMeta(c, m);
     if(g(r,idx.name)) c.name=g(r,idx.name);

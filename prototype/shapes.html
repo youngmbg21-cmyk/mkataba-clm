@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HaTi — Portfolio intelligence, six businesses, one engine</title>
+<!-- The real HaTi typefaces, already inlined as data URIs in the repo. -->
+<link rel="stylesheet" href="../fonts/fonts.css" />
+<style>
+/* ============================================================================
+   HaTi — PORTFOLIO INTELLIGENCE, SHAPED.
+
+   THE ARGUMENT THIS PAGE MAKES: analytics do not vary by INDUSTRY, they vary
+   by the SHAPE of the agreement. A roofing job and a law firm's matter are the
+   same shape — they start, they run, they finish, and they leave a tail behind
+   them. A supply agreement and a hotel's rate contract are the same shape —
+   they run on until somebody stops them.
+
+   So there are three layers:
+     1. THE UNIVERSAL FRAME — six panels every business gets, whatever it does.
+     2. THE SHAPED FILL     — extra panels that appear only when a shape is
+                              present in the portfolio.
+     3. THE VOCABULARY      — the same panel says "job", "project", "order" or
+                              "matter" depending on who is reading it.
+
+   Six example organisations share ONE engine below. Nothing is written twice
+   for a different industry. Every figure is an aggregation over that
+   organisation's sample portfolio, computed live. The findings are DERIVED
+   from the contract data, not typed in beside it.
+
+   The honesty rule survives: values are CONTRACTED values from documents,
+   rounds and decisions are HaTi's own filing record, and the page says which
+   is which. Nothing here needs accounts, ERP, benchmarks or outside data.
+   Every figure is invented sample data.
+   ========================================================================= */
+
+:root{
+  --color-bg:#f8fafc;
+  --color-surface:#ffffff;
+  --color-surface-2:#f1f5f9;
+  --color-text:#1e293b;
+  --color-divider:#e2e8f0;
+  --color-neutral-100:#f1f5f9; --color-neutral-300:#cbd5e1; --color-neutral-400:#94a3b8;
+  --color-neutral-500:#64748b; --color-neutral-600:#475569; --color-neutral-700:#334155;
+  --color-accent-100:#ccfbf1; --color-accent-300:#5eead4; --color-accent-400:#2dd4bf;
+  --color-accent-500:#14b8a6; --color-accent-600:#0d9488; --color-accent-700:#0f766e; --color-accent-800:#115e59;
+  --accent-solid:var(--color-accent-600);
+  --accent-ink:var(--color-accent-800);
+  --brand-cyan-700:#0aa2b8;
+  --brand-hero-deep:#0b3d3a;
+  --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
+  --brand-hero-sub:#bde7e1;
+  --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
+  --font-body:Inter,system-ui,sans-serif;
+  --radius:12px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+  --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+  --focus:0 0 0 2px color-mix(in srgb,var(--accent-solid) 45%,transparent);
+  --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-line:#cbd5e1;  --st-gray-dot:#94a3b8;
+  --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-line:#e0c48a; --st-amber-dot:#f59e0b;
+  --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-line:#a8cbb8; --st-green-dot:#10b981;
+  --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-line:#e6c9c1;  --st-ruby-dot:#f43f5e;
+  --st-steel-bg:var(--color-accent-100); --st-steel-fg:var(--color-accent-800); --st-steel-line:#99f6e4;
+  --ch-grid:#e2e8f0; --ch-ref:#94a3b8; --ch-pipe:#a5b4fc;
+  --tab-1:#c9ece4; --tab-2:#d2e6f7; --tab-3:#ded9f6; --tab-ink:#332d3f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --color-bg:#020617; --color-surface:#0f172a; --color-surface-2:#111f36;
+    --color-text:#e2e8f0; --color-divider:#1e293b;
+    --color-neutral-100:#1e293b; --color-neutral-300:#334155; --color-neutral-400:#64748b;
+    --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1; --color-neutral-700:#e2e8f0;
+    --accent-ink:var(--color-accent-400);
+    --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+    --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+    --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+    --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+    --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+    --ch-grid:#1e293b; --ch-ref:#64748b; --ch-pipe:#4c51bf;
+    --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-ink:#ece7f4;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --color-bg:#020617; --color-surface:#0f172a; --color-surface-2:#111f36;
+  --color-text:#e2e8f0; --color-divider:#1e293b;
+  --color-neutral-100:#1e293b; --color-neutral-300:#334155; --color-neutral-400:#64748b;
+  --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1; --color-neutral-700:#e2e8f0;
+  --accent-ink:var(--color-accent-400);
+  --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+  --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+  --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+  --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+  --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+  --ch-grid:#1e293b; --ch-ref:#64748b; --ch-pipe:#4c51bf;
+  --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-ink:#ece7f4;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+  --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--color-bg);color:var(--color-text);
+  font-family:var(--font-body);font-size:13px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-heading);margin:0;text-wrap:balance;}
+/* buttons do NOT inherit colour — say it once, here, or dark mode draws black
+   text on every card that happens to be a button. Learned the hard way. */
+button{font:inherit;cursor:pointer;color:var(--color-text);}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+.wrap{max-width:1480px;margin:0 auto;padding:18px 22px 60px;}
+.proto-note{
+  margin-bottom:16px;padding:11px 14px;border-radius:var(--radius);
+  background:var(--st-amber-bg);border:1px solid var(--st-amber-line);
+  color:var(--st-amber-fg);font-size:12px;font-weight:500;
+}
+.proto-note b{font-weight:700;}
+
+.demo-strip{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.demo-strip .cap{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-500);}
+.obtn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 12px;
+  font-size:11.5px;font-weight:600;
+}
+.obtn:hover{background:var(--color-surface-2);}
+.obtn.on{background:var(--brand-hero);border-color:transparent;color:#fff;}
+
+/* ---------- Insights page chrome: title + folder tabs ---------- */
+.ins-head h1{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+.ins-sub{font-size:12.5px;color:var(--color-neutral-500);margin-top:3px;}
+.ins-tabrow{display:flex;align-items:flex-end;gap:16px;margin-top:14px;border-bottom:3px solid var(--tab-1);}
+.ins-tabs{display:flex;gap:3px;align-items:flex-end;padding-top:8px;overflow-x:auto;}
+.ins-tab{
+  flex:none;border:0;border-radius:11px 11px 0 0;padding:7px 14px 8px;
+  font-size:12.5px;font-weight:600;white-space:nowrap;color:var(--tab-ink);
+  background:color-mix(in srgb,var(--tc) 62%,var(--color-bg));
+}
+.ins-tab:hover{background:color-mix(in srgb,var(--tc) 82%,var(--color-bg));}
+.ins-tab.on{background:var(--tc);padding:12px 16px 10px;font-weight:700;box-shadow:0 -1px 3px rgba(15,23,42,.07);}
+
+/* ---------- the shape switch: layer 1 vs layer 2 made visible ---------- */
+.shapebar{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:16px 0 4px;
+  padding:10px 12px;border-radius:var(--radius);
+  background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);
+}
+.shapebar .cap{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);flex:none;}
+.sbtn{
+  border:1px solid var(--color-divider);background:var(--color-surface-2);
+  border-radius:9px;padding:6px 12px;font-size:12px;font-weight:600;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.sbtn .n{font-size:10.5px;font-weight:700;color:var(--color-neutral-500);
+  background:var(--color-bg);border-radius:999px;padding:0 6px;font-variant-numeric:tabular-nums;}
+.sbtn:hover{border-color:var(--color-neutral-400);}
+.sbtn.on{background:var(--accent-solid);border-color:transparent;color:#fff;}
+.sbtn.on .n{background:rgba(255,255,255,.22);color:#fff;}
+.shapebar .why{margin-left:auto;font-size:11px;color:var(--color-neutral-500);max-width:46ch;text-align:right;}
+
+/* ---------- the dashboard ---------- */
+.dash{margin-top:12px;}
+.hintline{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 12px;
+  font-size:11.5px;color:var(--color-neutral-500);
+}
+.hintline .how{
+  display:inline-flex;align-items:center;gap:6px;font-weight:600;
+  background:var(--st-steel-bg);color:var(--st-steel-fg);
+  border:1px solid var(--st-steel-line);border-radius:999px;padding:4px 11px;
+}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.fchip{
+  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+  background:var(--accent-solid);color:#fff;border:0;border-radius:999px;padding:4px 11px;
+}
+.fchip svg{opacity:.85;}
+.fchip:hover{background:var(--color-accent-700);}
+.clearall{border:0;background:none;font-size:11.5px;font-weight:600;color:var(--accent-ink);
+  text-decoration:underline;text-underline-offset:2px;}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+@media (max-width:900px){ .kpis{grid-template-columns:repeat(2,1fr);} }
+.kpi{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius);padding:13px 15px;box-shadow:var(--shadow-sm);
+}
+.kpi .k{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);}
+.kpi .v{font-family:var(--font-heading);font-size:24px;font-weight:800;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1.15;}
+.kpi .v small{font-size:13px;font-weight:700;color:var(--color-neutral-500);margin-left:2px;}
+.kpi .d{font-size:11px;color:var(--color-neutral-500);}
+.kpi.hero{background:var(--brand-hero);border-color:transparent;color:#fff;}
+.kpi.hero .k,.kpi.hero .d{color:var(--brand-hero-sub);}
+.kpi.hero .v small{color:var(--brand-hero-sub);}
+.kpi.bad .v{color:var(--st-ruby-fg);}
+
+/* Cards in a row share a height, and every card is a flex column so its
+   closing note pins to the bottom edge. That is what stops a stretched card
+   reading as an empty one: the eye finds a line where it expects the floor.
+   The rows are also PAIRED BY HEIGHT in the assembly — tall beside tall,
+   short beside short — so the stretch is small in the first place. */
+.grid{display:grid;gap:12px;align-items:stretch;}
+.g-8-4{grid-template-columns:8fr 4fr;}
+.g-6-6{grid-template-columns:6fr 6fr;}
+.g-7-5{grid-template-columns:7fr 5fr;}
+.g-5-7{grid-template-columns:5fr 7fr;}
+@media (max-width:1000px){ .g-8-4,.g-6-6,.g-7-5,.g-5-7{grid-template-columns:1fr;} }
+.row{margin-bottom:12px;}
+
+.card{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius);padding:15px 17px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;min-width:0;
+}
+.card.shaped{border-left:3px solid var(--accent-solid);}
+/* The growing middle, and the note that sits on the floor.
+   Leftover height is SPLIT above and below the content rather than pooling
+   under it. Cards in a row share a height they cannot all fill exactly, and
+   a single lump of white below the content is what reads as a broken card;
+   the same space divided in two reads as margin. */
+.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;}
+.grow.spread{justify-content:space-around;}
+.card-foot{
+  margin-top:auto;padding-top:11px;font-size:10.5px;line-height:1.55;
+  color:var(--color-neutral-500);
+}
+.card-foot b{font-weight:700;color:var(--color-neutral-600);}
+.card-h{display:flex;align-items:baseline;gap:9px;margin-bottom:10px;flex-wrap:wrap;}
+.card-h h3{font-size:13.5px;font-weight:700;}
+.card-h .hint{font-size:11px;color:var(--color-neutral-500);}
+.card-h .side{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:10.5px;color:var(--color-neutral-400);white-space:nowrap;}
+
+.src{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:5px;
+  border:1px solid;white-space:nowrap;vertical-align:middle;}
+.src.doc{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
+.src.hati{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+.shapetag{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;padding:1px 6px;border-radius:5px;
+  background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--accent-ink);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+  padding:1px 7px;border-radius:999px;border:1px solid;white-space:nowrap;}
+.pill .dot{width:5px;height:5px;border-radius:50%;flex:none;}
+.pill.amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+.pill.amber .dot{background:var(--st-amber-dot);}
+.pill.green{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line);}
+.pill.green .dot{background:var(--st-green-dot);}
+.pill.ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+.pill.ruby .dot{background:var(--st-ruby-dot);}
+.pill.gray{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+.pill.gray .dot{background:var(--st-gray-dot);}
+
+svg text{font-family:var(--font-body);}
+.clickable{cursor:pointer;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--color-neutral-600);
+  margin-top:auto;padding-top:9px;align-items:center;}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none;}
+.legend .sw{display:inline-flex;align-items:center;gap:6px;}
+.legend .far{margin-left:auto;color:var(--color-neutral-500);}
+
+/* category bars. display:block on BOTH track and fill — the fill is a span,
+   and an inline element ignores width, so every bar draws empty. */
+.catrow{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center;
+  padding:9px 6px;border-radius:9px;border:0;background:none;width:100%;text-align:left;
+  border-bottom:1px solid var(--color-divider);}
+.catrow:last-child{border-bottom:0;}
+.catrow:hover{background:var(--color-surface-2);}
+.catrow.sel{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
+.catrow.dim{opacity:.38;}
+.catrow .nm{font-size:12.5px;font-weight:600;}
+.catrow .nm em{display:block;font-style:normal;font-weight:500;font-size:10.5px;
+  color:var(--color-neutral-500);margin-top:1px;}
+.catrow .track{display:block;height:7px;background:var(--color-surface-2);border-radius:4px;
+  overflow:hidden;grid-column:1;margin-top:7px;}
+.catrow .fill{display:block;height:100%;background:var(--color-accent-600);border-radius:4px;transition:width .25s;}
+.catrow .val{grid-column:2;grid-row:1/span 2;text-align:right;font-family:var(--font-heading);
+  font-size:17px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
+.catrow .val em{font-style:normal;font-size:11px;font-weight:700;color:var(--color-neutral-500);margin-left:1px;}
+/* Four or more categories and the generous row height makes this card taller
+   than the chart beside it. Same information, tighter rhythm. */
+.dense .catrow{padding:6px;}
+.dense .catrow .nm{font-size:12px;}
+.dense .catrow .nm em{font-size:10px;}
+.dense .catrow .track{height:6px;margin-top:5px;}
+.dense .catrow .val{font-size:15px;}
+
+/* tables */
+.lb{width:100%;border-collapse:collapse;font-size:12px;}
+.lb th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding:5px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;}
+.lb td{padding:7px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle;}
+.lb tr:last-child td{border-bottom:0;}
+.lb tbody tr{cursor:pointer;}
+.lb tbody tr:hover{background:var(--color-surface-2);}
+.lb tbody tr.sel{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
+.lb td.num,.lb th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.lb .vbar{display:block;height:7px;border-radius:4px;background:var(--color-accent-600);min-width:2px;transition:width .25s;}
+.lb .flags{display:flex;gap:4px;flex-wrap:wrap;}
+
+/* the written readout */
+.readout{display:flex;flex-direction:column;gap:9px;}
+.readout .line{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.6;}
+.readout .line:before{content:"";width:6px;height:6px;border-radius:50%;flex:none;margin-top:7px;background:var(--color-accent-500);}
+.readout .line.warn:before{background:var(--st-amber-dot);}
+.readout .line.bad:before{background:var(--st-ruby-dot);}
+.readout b{font-weight:700;}
+
+/* findings list */
+.flist{display:flex;flex-direction:column;}
+.fitem{display:flex;gap:10px;align-items:flex-start;padding:9px 2px;border-bottom:1px dashed var(--color-divider);}
+.fitem:last-child{border-bottom:0;}
+.fitem .bd{flex:1;min-width:0;font-size:12px;}
+.fitem .bd b{font-weight:700;display:block;font-size:12px;}
+.fitem .bd span{color:var(--color-neutral-500);font-size:11px;}
+
+/* after-handover: retention rows + warranty tail bars */
+.subh{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);margin:2px 0 6px;display:flex;align-items:center;gap:7px;}
+.subh .rest{margin-left:auto;font-weight:700;color:var(--color-text);font-size:11.5px;
+  letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums;}
+.tailwrap{margin-top:14px;padding-top:12px;border-top:1px solid var(--color-divider);}
+.tailrow{display:grid;grid-template-columns:1fr 118px;gap:9px;align-items:center;padding:4px 2px;
+  border:0;background:none;width:100%;text-align:left;border-radius:8px;}
+.tailrow:hover{background:var(--color-surface-2);}
+.tailrow .nm{font-size:11.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tailrow .bars{display:block;position:relative;height:16px;margin-top:3px;}
+.tailrow .b1,.tailrow .b2{display:block;position:absolute;height:6px;border-radius:3px;}
+.tailrow .b1{top:0;background:var(--color-accent-500);}
+.tailrow .b2{top:9px;background:var(--st-ruby-dot);}
+.tailrow .bnow{display:block;position:absolute;top:-2px;height:19px;width:0;
+  border-left:1px dashed var(--ch-ref);}
+.tailrow .when{text-align:right;font-size:10.5px;color:var(--color-neutral-500);font-variant-numeric:tabular-nums;}
+
+/* conversion */
+.conv{display:grid;gap:16px;}
+@media (min-width:820px){ .conv{grid-template-columns:7fr 5fr;align-items:center;} }
+.convbar{display:flex;height:26px;border-radius:7px;overflow:hidden;border:1px solid var(--color-divider);}
+.convbar span{display:block;height:100%;}
+.convnums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px;}
+.convnums .cn{background:var(--color-surface-2);border-radius:9px;padding:9px 11px;border-left:3px solid transparent;}
+.convnums .cn.won {border-left-color:var(--color-accent-600);}
+.convnums .cn.wait{border-left-color:var(--ch-pipe);}
+.convnums .cn.lost{border-left-color:var(--color-neutral-300);}
+.convnums .cn .k{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);}
+.convnums .cn .v{font-family:var(--font-heading);font-size:18px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+.convnums .cn .v span{font-size:11px;font-weight:700;color:var(--color-neutral-500);margin-left:1px;}
+.convnums .cn .d{font-size:10.5px;color:var(--color-neutral-500);}
+.convsay{display:flex;gap:14px;align-items:center;}
+.convsay .big{font-family:var(--font-heading);font-size:44px;font-weight:800;line-height:1;
+  letter-spacing:-.04em;color:var(--accent-ink);font-variant-numeric:tabular-nums;flex:none;}
+.convsay .big span{font-size:20px;margin-left:1px;}
+.convsay .say{font-size:12.5px;line-height:1.6;color:var(--color-neutral-600);}
+.convsay .say b{font-weight:700;color:var(--color-text);}
+
+.footer-honest{
+  margin-top:14px;padding:10px 14px;border-radius:10px;font-size:10.5px;color:var(--color-neutral-500);
+  background:var(--color-surface-2);display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+
+/* floating tooltip */
+#tip{
+  position:fixed;pointer-events:none;z-index:50;max-width:270px;
+  background:var(--color-neutral-700);color:var(--color-bg);
+  border-radius:9px;padding:8px 11px;font-size:11.5px;line-height:1.5;
+  box-shadow:var(--shadow-md);opacity:0;transition:opacity .12s;
+}
+#tip b{font-weight:700;}
+#tip .t2{opacity:.75;}
+
+.stub{
+  border:1px dashed var(--color-neutral-400);border-radius:var(--radius);
+  padding:26px;text-align:center;color:var(--color-neutral-500);font-size:12.5px;
+  background:none;margin-top:16px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="proto-note">
+    <b>Prototype — pictures only.</b> Six businesses, one engine. Nothing below is written twice for a
+    different industry: the panels change because the <b>shape</b> of the agreements changes, and the wording
+    changes because each business calls a piece of work by a different name.
+    <b>Click anything</b> to re-filter the whole page.
+  </div>
+
+  <div class="demo-strip">
+    <span class="cap">Example organisation</span>
+    <button class="obtn on" data-org="mzedu">Mzedu Roofing</button>
+    <button class="obtn" data-org="asha">Studio Asha Interiors</button>
+    <button class="obtn" data-org="nyati">Nyati Print &amp; Pack</button>
+    <button class="obtn" data-org="nordlund">Nordlund Advokatbyrå</button>
+    <button class="obtn" data-org="savanna">Savanna Foods</button>
+    <button class="obtn" data-org="acacia">Acacia Bay Hotel</button>
+  </div>
+
+  <div class="ins-head">
+    <h1>Insights</h1>
+    <div class="ins-sub" id="ins-sub"></div>
+    <div class="ins-tabrow">
+      <div class="ins-tabs">
+        <button class="ins-tab on" data-tab="intel" style="--tc:var(--tab-1)">Portfolio intelligence</button>
+        <button class="ins-tab" data-tab="friction" style="--tc:var(--tab-2)">Negotiation friction</button>
+        <button class="ins-tab" data-tab="graph" style="--tc:var(--tab-3)">Contract graph</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="view"></div>
+</div>
+<div id="tip"></div>
+
+<script>
+/* ============================================================================
+   THE PORTFOLIOS.
+
+   One object per agreement. Two shapes:
+
+     sh:'p'  A PIECE OF WORK. It starts (m0), it finishes (m1), and it may
+             leave a tail: retention money held back, and a defects/warranty
+             promise that outlives the work. A roofing job, an interior
+             design project, a print order, a legal matter. Also: a quote
+             that has not been won yet, and one that was lost.
+
+     sh:'s'  A STANDING AGREEMENT. It runs until its end date (m1) or forever
+             (m1:-1). A supply contract, a hotel rate agreement, a licence,
+             a lease, an employment contract.
+
+   Month index 0 = Feb 2026. NOW = 6 = Aug 2026.
+
+   Values are CONTRACTED values read off the documents. Rounds and recorded
+   decisions are HaTi's own filing record. Nothing here comes from accounts,
+   an ERP, a benchmark or anywhere else.
+   ========================================================================= */
+var NOW = 6;
+
+var FLAGS = {
+  /* serious */
+  uncap:  {t:'uncapped liability',        tone:'ruby'},
+  flow:   {t:'warranty flow-down gap',    tone:'ruby'},
+  retlate:{t:'retention overdue',         tone:'ruby'},
+  unsigned:{t:'work began unsigned',      tone:'ruby'},
+  sole:   {t:'sole source',               tone:'ruby'},
+  over:   {t:'rate above ceiling',        tone:'ruby'},
+  /* worth watching */
+  slip:   {t:'past its finish date',      tone:'amber'},
+  varlate:{t:'variations filed late',     tone:'amber'},
+  noceil: {t:'no price ceiling',          tone:'amber'},
+  auto:   {t:'renews itself',             tone:'amber'},
+  idx:    {t:'unused indexation right',   tone:'amber'},
+  quiet:  {t:'negotiation gone quiet',    tone:'amber'},
+  brk:    {t:'break option ahead',        tone:'amber'},
+  claw:   {t:'clawback condition',        tone:'amber'}
+};
+
+var CATL = {customer:'Customer', supplier:'Supplier', licence:'Licence',
+            lease:'Lease', employment:'People', grant:'Funding'};
+
+var ORGS = {
+
+/* ---- 1. ROOFING CONTRACTOR — jobs ------------------------------------- */
+mzedu:{
+  name:'Mzedu Roofing Ltd', kind:'Roofing contractor', market:'Kenya', cur:'KES', unit:'M',
+  voc:{j:'job', js:'jobs', J:'Job', Js:'Jobs', q:'quote', qs:'quotes'},
+  dirNote:'customer value is money in; supplier and subcontract value is money out — all of it contracted, none of it banked or paid',
+  rows:[
+    {cp:'Riverside Gardens Phase 2',cat:'customer',sh:'p',v:8.4,m0:5,m1:8,st:'live',r:1.6,ret:10,retM:14,def:12,sub:6},
+    {cp:'Kileleshwa Villas',cat:'customer',sh:'p',v:6.2,m0:4,m1:7,st:'live',r:1.3,ret:10,retM:13,def:12,sub:12},
+    {cp:'Karen Ridge Homes',cat:'customer',sh:'p',v:5.1,m0:2,m1:5,st:'done',r:1.4,ret:10,retM:11,def:12,sub:6},
+    {cp:'Runda Court',cat:'customer',sh:'p',v:4.8,m0:6,m1:10,st:'live',r:2.2,ret:5,retM:16,def:12,sub:12,vr:[3,2]},
+    {cp:'Thika Road Apartments',cat:'customer',sh:'p',v:4.2,m0:0,m1:3,st:'done',r:1.2,ret:10,retM:9,def:12,sub:12},
+    {cp:'Lavington Townhouses',cat:'customer',sh:'p',v:3.6,m0:0,m1:2,st:'done',r:1.1,ret:10,retM:5,def:12,sub:12},
+    {cp:'Ngong Hills Estate',cat:'customer',sh:'p',v:3.1,m0:3,m1:6,st:'done',r:1.3,ret:5,retM:12,def:12,sub:12},
+    {cp:'Kiambu Ridge',cat:'customer',sh:'p',v:2.7,m0:2,m1:5,st:'live',r:1.9,ret:10,retM:11,def:12,sub:12,fl:['quiet']},
+    {cp:'Embakasi Warehouse Roof',cat:'customer',sh:'p',v:2.2,m0:1,m1:4,st:'done',r:1.5,ret:10,retM:10,def:24,sub:6},
+    {cp:'Westlands Rooftop Deck',cat:'customer',sh:'p',v:1.4,m0:6,m1:7,st:'live',r:1.0,def:12,fl:['unsigned']},
+    {cp:'Nyari Residence',cat:'customer',sh:'p',v:1.1,m0:4,m1:5,st:'done',r:1.1,def:12},
+    {cp:'Syokimau Gated Community',cat:'customer',sh:'p',v:2.9,m0:7,m1:11,st:'quote',r:1.4},
+    {cp:'Kitengela Homes',cat:'customer',sh:'p',v:2.4,m0:8,m1:12,st:'quote',r:1.2},
+    {cp:'Machakos Villas',cat:'customer',sh:'p',v:1.9,m0:5,m1:8,st:'lost',r:1.6},
+    {cp:'Athi River Duplexes',cat:'customer',sh:'p',v:1.6,m0:4,m1:7,st:'lost',r:1.1},
+    {cp:'Juma Fundis Ltd',cat:'supplier',sh:'p',v:3.2,m0:4,m1:10,st:'live',r:1.2,def:6},
+    {cp:'Sky Scaffolding',cat:'supplier',sh:'p',v:1.2,m0:5,m1:9,st:'live',r:1.0},
+    {cp:'Mabati Rolling Mills',cat:'supplier',sh:'s',v:5.4,m1:9,dec:true,r:1.4,fl:['sole']},
+    {cp:'Bamburi Cement',cat:'supplier',sh:'s',v:2.1,m1:12,dec:true,r:1.2},
+    {cp:'Timber & Board Kenya',cat:'supplier',sh:'s',v:1.8,m1:7,dec:false,r:1.3,fl:['auto','noceil']},
+    {cp:'Crane Hire Nairobi',cat:'supplier',sh:'s',v:0.9,m1:6,dec:false,r:1.1,fl:['auto']},
+    {cp:'Baba Dogo yard',cat:'lease',sh:'s',v:1.6,m1:15,dec:true,r:1.0},
+    {cp:'D. Otieno — site foreman',cat:'employment',sh:'s',v:0.9,m1:-1,dec:true,r:1.0},
+    {cp:'Fitting crew — fixed term (6)',cat:'employment',sh:'s',v:2.4,m1:8,dec:false,r:1.0}
+  ]
+},
+
+/* ---- 2. INTERIOR DESIGN — projects ------------------------------------ */
+asha:{
+  name:'Studio Asha Interiors', kind:'Interior design studio', market:'Kenya', cur:'KES', unit:'M',
+  voc:{j:'project', js:'projects', J:'Project', Js:'Projects', q:'proposal', qs:'proposals'},
+  dirNote:'client value is money in; joinery, lighting and fabric value is money out — all contracted, none invoiced or settled',
+  rows:[
+    {cp:'Sankara Hotel lobby refit',cat:'customer',sh:'p',v:6.8,m0:4,m1:9,st:'live',r:2.1,ret:5,retM:15,def:12,sub:12,vr:[4,3]},
+    {cp:'Two Rivers retail fit-out',cat:'customer',sh:'p',v:5.2,m0:5,m1:10,st:'live',r:1.7,ret:5,retM:16,def:12,sub:12},
+    {cp:'Villa Rosa suites',cat:'customer',sh:'p',v:4.1,m0:1,m1:5,st:'done',r:1.4,ret:5,retM:11,def:12,sub:12},
+    {cp:'Gigiri residence',cat:'customer',sh:'p',v:3.4,m0:6,m1:11,st:'live',r:1.9,def:12,fl:['uncap']},
+    {cp:'Muthaiga penthouse',cat:'customer',sh:'p',v:2.8,m0:0,m1:4,st:'done',r:1.3,ret:5,retM:4,def:12,sub:12},
+    {cp:'Nairobi Business Park offices',cat:'customer',sh:'p',v:2.6,m0:3,m1:7,st:'live',r:1.6,def:12,sub:12,vr:[2,1]},
+    {cp:'Karen boutique store',cat:'customer',sh:'p',v:1.9,m0:2,m1:4,st:'done',r:1.2,ret:5,retM:10,def:12,sub:12},
+    {cp:'Diani beach house',cat:'customer',sh:'p',v:0.9,m0:3,m1:5,st:'live',r:1.1,def:12,sub:12},
+    {cp:'Kilimani show unit',cat:'customer',sh:'p',v:1.6,m0:8,m1:11,st:'quote',r:1.2},
+    {cp:'Westgate kiosk concept',cat:'customer',sh:'p',v:1.2,m0:7,m1:9,st:'quote',r:1.0},
+    {cp:'Lamu villa',cat:'customer',sh:'p',v:2.2,m0:4,m1:8,st:'lost',r:1.8},
+    {cp:'Naivasha lodge',cat:'customer',sh:'p',v:1.4,m0:3,m1:6,st:'lost',r:1.3},
+    {cp:'Furnish Ltd — joinery',cat:'supplier',sh:'p',v:2.1,m0:4,m1:9,st:'live',r:1.3,def:6},
+    {cp:'Lighthouse Electrical',cat:'supplier',sh:'p',v:0.8,m0:5,m1:8,st:'live',r:1.1},
+    {cp:'Fabric House Kenya',cat:'supplier',sh:'s',v:1.1,m1:10,dec:true,r:1.2,fl:['noceil']},
+    {cp:'Design software suite',cat:'licence',sh:'s',v:0.4,m1:8,dec:false,r:1.0,fl:['auto','noceil']},
+    {cp:'Studio, Lavington',cat:'lease',sh:'s',v:1.2,m1:14,dec:true,r:1.0,fl:['brk']},
+    {cp:'A. Wanjiru — senior designer',cat:'employment',sh:'s',v:1.1,m1:-1,dec:true,r:1.0},
+    {cp:'Interns — fixed term (3)',cat:'employment',sh:'s',v:0.3,m1:7,dec:false,r:1.0}
+  ]
+},
+
+/* ---- 3. PRINTING — orders under frameworks ---------------------------- */
+nyati:{
+  name:'Nyati Print & Pack', kind:'Commercial printer', market:'Kenya', cur:'KES', unit:'M',
+  voc:{j:'order', js:'orders', J:'Order', Js:'Orders', q:'quote', qs:'quotes'},
+  dirNote:'customer value is money in; paper, ink and press maintenance is money out — all contracted, none received or paid',
+  rows:[
+    {cp:'County ballot printing',cat:'customer',sh:'p',v:6.2,m0:6,m1:8,st:'live',r:2.3,ret:10,retM:12,def:6,fl:['uncap']},
+    {cp:'Textbook run — Longhorn',cat:'customer',sh:'p',v:4.4,m0:3,m1:6,st:'done',r:1.4,ret:5,retM:10,def:6,sub:6},
+    {cp:'Savanna Foods label run',cat:'customer',sh:'p',v:3.8,m0:5,m1:7,st:'live',r:1.5,def:6},
+    {cp:'Election posters',cat:'customer',sh:'p',v:3.2,m0:1,m1:4,st:'done',r:1.2,ret:10,retM:5,def:6},
+    {cp:'Carton run — Nyanza Bottlers',cat:'customer',sh:'p',v:2.4,m0:2,m1:5,st:'done',r:1.1,def:6,fl:['unsigned']},
+    {cp:'Packaging run — Kilifi Farms',cat:'customer',sh:'p',v:2.1,m0:4,m1:6,st:'done',r:1.2,def:6},
+    {cp:'Catalogue run — Naivas',cat:'customer',sh:'p',v:1.9,m0:3,m1:5,st:'live',r:1.7,def:6},
+    {cp:'Annual reports — Equity',cat:'customer',sh:'p',v:1.6,m0:6,m1:7,st:'live',r:1.1,def:6},
+    {cp:'Menu cards — Acacia Bay',cat:'customer',sh:'p',v:0.6,m0:5,m1:6,st:'done',r:1.0,def:6},
+    {cp:'Calendar print — Safaricom',cat:'customer',sh:'p',v:2.8,m0:8,m1:10,st:'quote',r:1.3},
+    {cp:'Brochure run — Serena',cat:'customer',sh:'p',v:1.2,m0:6,m1:8,st:'lost',r:1.4},
+    {cp:'Ministry of Education framework',cat:'customer',sh:'s',v:12.6,m1:10,dec:false,r:2.4,fl:['quiet','uncap']},
+    {cp:'Naivas print framework',cat:'customer',sh:'s',v:9.4,m1:14,dec:true,r:1.6,fl:['noceil']},
+    {cp:'Safaricom preferred supplier',cat:'customer',sh:'s',v:6.8,m1:16,dec:true,r:1.5,fl:['idx']},
+    {cp:'Paper Merchants EA',cat:'supplier',sh:'s',v:7.2,m1:8,dec:false,r:1.8,fl:['sole','noceil']},
+    {cp:'Press maintenance — HeidelServe',cat:'supplier',sh:'s',v:3.4,m1:7,dec:false,r:1.3,fl:['auto','uncap']},
+    {cp:'Ink Solutions Ltd',cat:'supplier',sh:'s',v:2.6,m1:12,dec:true,r:1.2},
+    {cp:'Industrial Area press hall',cat:'lease',sh:'s',v:4.2,m1:20,dec:true,r:1.0},
+    {cp:'Press operators (8)',cat:'employment',sh:'s',v:4.8,m1:-1,dec:true,r:1.0},
+    {cp:'Night shift — fixed term',cat:'employment',sh:'s',v:1.6,m1:9,dec:false,r:1.0}
+  ]
+},
+
+/* ---- 4. LAW FIRM — matters -------------------------------------------- */
+nordlund:{
+  name:'Nordlund Advokatbyrå', kind:'Law firm', market:'Sverige', cur:'SEK', unit:'M',
+  voc:{j:'matter', js:'matters', J:'Matter', Js:'Matters', q:'engagement proposal', qs:'proposals'},
+  dirNote:'client value is contracted fees in; licences, cleaning and the office are committed cost out — none of it invoiced or banked',
+  rows:[
+    {cp:'Hedberg AB — acquisition',cat:'customer',sh:'p',v:3.1,m0:4,m1:10,st:'live',r:2.0,def:0,fl:['uncap'],vr:[3,2]},
+    {cp:'Sundqvist Industri — dispute',cat:'customer',sh:'p',v:1.9,m0:2,m1:12,st:'live',r:1.5,fl:['uncap']},
+    {cp:'Blomqvist AB — due diligence',cat:'customer',sh:'p',v:1.4,m0:7,m1:10,st:'quote',r:1.2},
+    {cp:'Vasa Industri — restructuring',cat:'customer',sh:'p',v:1.2,m0:5,m1:9,st:'live',r:1.3},
+    {cp:'Ekström Fastigheter — property',cat:'customer',sh:'p',v:0.9,m0:3,m1:6,st:'done',r:1.2},
+    {cp:'Lindgren Group — employment claim',cat:'customer',sh:'p',v:0.8,m0:6,m1:11,st:'live',r:1.1},
+    {cp:'Nyström Handel — dispute',cat:'customer',sh:'p',v:0.7,m0:2,m1:5,st:'live',r:1.9,fl:['quiet']},
+    {cp:'Åberg Konsult — contract review',cat:'customer',sh:'p',v:0.6,m0:1,m1:4,st:'done',r:1.2},
+    {cp:'Storgatan Fastigheter — lease advice',cat:'customer',sh:'p',v:0.5,m0:5,m1:7,st:'lost',r:1.1},
+    {cp:'Falk Teknik — IP filing',cat:'customer',sh:'p',v:0.4,m0:5,m1:7,st:'live',r:1.0,fl:['unsigned']},
+    {cp:'Nordbank retainer',cat:'customer',sh:'s',v:1.6,m1:18,dec:false,r:1.4,fl:['uncap','auto']},
+    {cp:'Kommun panel appointment',cat:'customer',sh:'s',v:1.1,m1:13,dec:true,r:1.3,fl:['noceil']},
+    {cp:'Juridik Pro AB',cat:'licence',sh:'s',v:0.4,m1:21,dec:false,r:1.1,fl:['noceil','auto']},
+    {cp:'CaseFlow licence',cat:'licence',sh:'s',v:0.3,m1:21,dec:false,r:1.0,fl:['auto']},
+    {cp:'Städservice cleaning',cat:'supplier',sh:'s',v:0.2,m1:10,dec:false,r:1.0,fl:['auto']},
+    {cp:'Vasagatan office',cat:'lease',sh:'s',v:3.4,m1:21,dec:false,r:1.0,fl:['brk']},
+    {cp:'Associates (4)',cat:'employment',sh:'s',v:4.2,m1:-1,dec:true,r:1.0},
+    {cp:'Trainee — fixed term',cat:'employment',sh:'s',v:0.4,m1:8,dec:false,r:1.0}
+  ]
+},
+
+/* ---- 5. FMCG — standing supply, a few campaigns ------------------------ */
+savanna:{
+  name:'Savanna Foods Ltd', kind:'Food manufacturer', market:'Kenya', cur:'KES', unit:'M',
+  voc:{j:'project', js:'projects', J:'Project', Js:'Projects', q:'quote', qs:'quotes'},
+  dirNote:'customer value is money in; supplier value is money out — both are contracted, neither is cash received or paid',
+  rows:[
+    {cp:'Naivas Supermarkets',cat:'customer',sh:'s',v:52,m1:13,dec:true,r:1.6,fl:['idx']},
+    {cp:'Carrefour Kenya',cat:'customer',sh:'s',v:33,m1:17,dec:true,r:1.4},
+    {cp:'Java House Group',cat:'customer',sh:'s',v:26,m1:11,dec:false,r:2.1,fl:['quiet','idx']},
+    {cp:'Serena Hotels',cat:'customer',sh:'s',v:21,m1:9,dec:false,r:2.6,fl:['quiet','uncap']},
+    {cp:'Tuskys Wholesale',cat:'customer',sh:'s',v:18,m1:15,dec:true,r:1.2,fl:['uncap']},
+    {cp:'QuickMart',cat:'customer',sh:'s',v:15,m1:20,dec:true,r:1.5,fl:['idx']},
+    {cp:'Chandarana Foodplus',cat:'customer',sh:'s',v:12,m1:14,dec:false,r:1.7,fl:['uncap']},
+    {cp:'Eastmatt Stores',cat:'customer',sh:'s',v:9,m1:22,dec:true,r:1.1},
+    {cp:'Zucchini Greengrocers',cat:'customer',sh:'s',v:6,m1:16,dec:true,r:1.3},
+    {cp:'Rift Valley Logistics',cat:'supplier',sh:'s',v:24.6,m1:8,dec:false,r:2.0,fl:['over']},
+    {cp:'Nairobi Cold Chain',cat:'supplier',sh:'s',v:11.2,m1:16,dec:true,r:1.3,fl:['sole']},
+    {cp:'Mombasa Packaging Co',cat:'supplier',sh:'s',v:8.4,m1:19,dec:true,r:1.4},
+    {cp:'Kilifi Farms Coop',cat:'supplier',sh:'s',v:7.8,m1:15,dec:false,r:1.8,fl:['noceil']},
+    {cp:'Coast Freight Ltd',cat:'supplier',sh:'s',v:6.1,m1:12,dec:true,r:1.2},
+    {cp:'Highland Transporters',cat:'supplier',sh:'s',v:5.2,m1:10,dec:false,r:1.5,fl:['noceil']},
+    {cp:'Equity Facilities',cat:'supplier',sh:'s',v:4.9,m1:7,dec:false,r:1.3,fl:['auto','noceil']},
+    {cp:'Bidco Cleaning Services',cat:'supplier',sh:'s',v:2.4,m1:6,dec:false,r:1.0,fl:['auto','noceil']},
+    {cp:'Cloudpoint Systems',cat:'licence',sh:'s',v:3.1,m1:18,dec:true,r:1.1},
+    {cp:'Juris HR Suite',cat:'licence',sh:'s',v:1.8,m1:12,dec:false,r:1.2,fl:['noceil','auto']},
+    {cp:'Industrial Area warehouse',cat:'lease',sh:'s',v:6.8,m1:23,dec:true,r:1.0},
+    {cp:'Nakuru depot',cat:'lease',sh:'s',v:3.2,m1:17,dec:true,r:1.0,fl:['brk']},
+    {cp:'Plant supervisors (5)',cat:'employment',sh:'s',v:3.6,m1:-1,dec:true,r:1.0},
+    {cp:'Seasonal packers — fixed term',cat:'employment',sh:'s',v:1.8,m1:9,dec:false,r:1.0},
+    {cp:'Naivas Q4 promotion',cat:'customer',sh:'p',v:4.2,m0:8,m1:11,st:'live',r:1.5},
+    {cp:'Carrefour anniversary listing',cat:'customer',sh:'p',v:2.6,m0:6,m1:8,st:'live',r:1.3},
+    {cp:'QuickMart national listing',cat:'customer',sh:'p',v:5.8,m0:9,m1:12,st:'quote',r:1.6},
+    {cp:'Depot fit-out — BuildCo',cat:'supplier',sh:'p',v:3.4,m0:5,m1:9,st:'live',r:1.4,ret:10,retM:15,def:12,sub:6}
+  ]
+},
+
+/* ---- 6. HOTEL — rate agreements, plus refurbs and event blocks --------- */
+acacia:{
+  name:'Acacia Bay Hotel', kind:'Resort hotel', market:'Kenya', cur:'KES', unit:'M',
+  voc:{j:'project', js:'projects', J:'Project', Js:'Projects', q:'proposal', qs:'proposals'},
+  dirNote:'rate and event agreements are money in; suppliers, licences and the land lease are money out — all contracted, none banked or paid',
+  rows:[
+    {cp:'Bookings.com distribution',cat:'customer',sh:'s',v:18.4,m1:12,dec:false,r:1.2,fl:['auto','noceil']},
+    {cp:'Kenya Airways crew rate',cat:'customer',sh:'s',v:12.2,m1:8,dec:false,r:2.2,fl:['quiet']},
+    {cp:'SafariNow OTA',cat:'customer',sh:'s',v:9.6,m1:10,dec:false,r:1.3,fl:['auto']},
+    {cp:'Safaricom corporate rate',cat:'customer',sh:'s',v:7.4,m1:20,dec:true,r:1.4,fl:['idx']},
+    {cp:'UN Nairobi delegate rate',cat:'customer',sh:'s',v:6.8,m1:17,dec:true,r:1.5},
+    {cp:'Wild Africa tour operator',cat:'customer',sh:'s',v:5.2,m1:15,dec:false,r:1.7,fl:['uncap']},
+    {cp:'EventCo conference agent',cat:'customer',sh:'s',v:3.1,m1:22,dec:true,r:1.2},
+    {cp:'Beachfront land lease',cat:'lease',sh:'s',v:14.6,m1:23,dec:true,r:1.0,fl:['brk']},
+    {cp:'Fresh Produce Direct',cat:'supplier',sh:'s',v:4.6,m1:7,dec:false,r:1.3,fl:['auto','noceil']},
+    {cp:'SecureGuard',cat:'supplier',sh:'s',v:3.4,m1:9,dec:false,r:1.4,fl:['auto','uncap']},
+    {cp:'Coastal Laundry Services',cat:'supplier',sh:'s',v:2.8,m1:6,dec:false,r:1.1,fl:['auto']},
+    {cp:'Bidco Cleaning',cat:'supplier',sh:'s',v:2.2,m1:13,dec:true,r:1.2},
+    {cp:'Nairobi Linen Supply',cat:'supplier',sh:'s',v:1.9,m1:11,dec:true,r:1.2,fl:['noceil']},
+    {cp:'Opera PMS licence',cat:'licence',sh:'s',v:2.4,m1:15,dec:true,r:1.1},
+    {cp:'Channel manager licence',cat:'licence',sh:'s',v:0.9,m1:8,dec:false,r:1.0,fl:['auto','noceil']},
+    {cp:'F&B manager',cat:'employment',sh:'s',v:1.4,m1:-1,dec:true,r:1.0},
+    {cp:'Seasonal staff — fixed term (12)',cat:'employment',sh:'s',v:4.2,m1:10,dec:false,r:1.0},
+    {cp:'Pool deck refurbishment — BuildRite',cat:'supplier',sh:'p',v:6.4,m0:5,m1:9,st:'live',r:1.6,ret:10,retM:15,def:12,sub:6},
+    {cp:'Zawadi Events wedding block',cat:'customer',sh:'p',v:3.2,m0:7,m1:9,st:'live',r:1.3},
+    {cp:'Equity Bank corporate retreat',cat:'customer',sh:'p',v:2.4,m0:6,m1:7,st:'live',r:1.2},
+    {cp:'Rooms 100–140 soft refurb',cat:'supplier',sh:'p',v:5.6,m0:9,m1:13,st:'quote',r:1.4},
+    {cp:'Spa relaunch — Zen Interiors',cat:'supplier',sh:'p',v:2.9,m0:2,m1:5,st:'live',r:1.8,ret:10,retM:11,def:12,sub:12}
+  ]
+}
+};
+
+/* ---------------------------- small helpers ------------------------------ */
+var MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function mlabel(i){
+  var abs=2026*12+1+i;                       /* index 0 = Feb 2026 */
+  return MN[abs%12]+' ’'+String(Math.floor(abs/12)).slice(2);
+}
+var $=function(s){return document.querySelector(s);};
+var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');};
+function fmt(v){return v>=100?Math.round(v):(Math.round(v*10)/10);}
+function plural(n,w){return n+' '+w+(n===1?'':'s');}
+function pct(a,b){return b? Math.round(a/b*100) : 0;}
+
+/* ---------------------------- state ------------------------------------- */
+var org='mzedu', tab='intel';
+var shape=null;                               /* 'p' | 's' | 'all' — set per org */
+var F={cat:null, cp:null, month:null};        /* the stacked filters */
+
+function O(){return ORGS[org];}
+function V(k){return O().voc[k];}
+function srcTag(k){return '<span class="src '+k+'">'+(k==='doc'?'Contract':'HaTi')+'</span>';}
+
+/* Findings are DERIVED from the contract data, not typed in beside it. The
+   hand-written flags are only the ones a human reads off a clause; anything
+   arithmetic can answer is computed here, every time. */
+function flagsOf(r){
+  var f=(r.fl||[]).slice();
+  if(r.sh==='p'){
+    if(r.st==='live' && r.m1<NOW)                       f.push('slip');
+    if(r.ret && !r.retOk && r.retM<NOW)                 f.push('retlate');
+    if(r.sub!=null && r.def && r.sub<r.def)             f.push('flow');
+    if(r.vr && r.vr[1]>0)                               f.push('varlate');
+  }
+  return f;
+}
+function won(r){ return r.sh==='s' || r.st==='live' || r.st==='done'; }
+function retVal(r){ return (r.sh==='p' && r.ret) ? r.v*r.ret/100 : 0; }
+function retOpen(r){ return retVal(r)>0 && !r.retOk; }
+function tailEnd(r){ return (r.sh==='p' && r.def && r.st==='done') ? r.m1+r.def : null; }
+function counts(o){
+  var p=0,s=0;
+  o.rows.forEach(function(r){ if(r.sh==='p') p++; else s++; });
+  return {p:p, s:s, dom: p>=s?'p':'s'};
+}
+
+/* month semantics differ by shape, and that is the point: a job OCCUPIES a
+   month, a standing agreement ENDS in one */
+function inMonth(r,m){
+  return r.sh==='p' ? (r.st!=='lost' && r.m0<=m && m<=r.m1) : (r.m1===m);
+}
+
+function rows(exclude){
+  /* cross-filtering: each panel is filtered by every dimension EXCEPT its own,
+     so the panel you clicked keeps its full axis with the selection
+     highlighted, while everything else narrows */
+  return O().rows.filter(function(r){
+    if(shape!=='all' && r.sh!==shape) return false;
+    if(exclude!=='cat'   && F.cat   && r.cat!==F.cat) return false;
+    if(exclude!=='cp'    && F.cp    && r.cp!==F.cp) return false;
+    if(exclude!=='month' && F.month!==null && !inMonth(r,F.month)) return false;
+    return true;
+  });
+}
+function sum(rs){return rs.reduce(function(a,r){return a+r.v;},0);}
+function sumWon(rs){return sum(rs.filter(won));}
+
+/* ---------------------------- chrome ------------------------------------- */
+function shapeBar(){
+  var c=counts(O());
+  var why = shape==='all'
+    ? 'Everything — only the six panels every business gets, whatever it does.'
+    : shape==='p'
+      ? 'Work with a start and a finish. These panels appear because this shape is in the portfolio.'
+      : 'Agreements that run on until somebody stops them. These panels appear because this shape is in the portfolio.';
+  function b(k,label,n){
+    return '<button class="sbtn'+(shape===k?' on':'')+'" data-shape="'+k+'">'+label+
+      (n!==null?'<span class="n">'+n+'</span>':'')+'</button>';
+  }
+  return '<div class="shapebar"><span class="cap">Shape</span>'+
+    b('all','Everything',c.p+c.s)+
+    b('p',V('Js'),c.p)+
+    b('s','Standing agreements',c.s)+
+    '<span class="why">'+why+'</span></div>';
+}
+
+function chipsBar(){
+  var chips=[];
+  if(F.cat)   chips.push({k:'cat',  l:CATL[F.cat]});
+  if(F.cp)    chips.push({k:'cp',   l:F.cp});
+  if(F.month!==null) chips.push({k:'month',l:(shape==='s'?'ends ':'running ')+mlabel(F.month)});
+  var c=chips.map(function(c){
+    return '<button class="fchip" data-unf="'+c.k+'">'+esc(c.l)+
+      '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>';
+  }).join('');
+  return '<div class="hintline">'+
+    '<span class="how"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5 11 8l4.6.6-3.4 3.2.9 4.6L9 14.2l-4.1 2.2.9-4.6L2.4 8.6 7 8Z"/></svg>'+
+    'Click anything to focus the whole page on it · click again to release</span>'+
+    '<span class="chips">'+c+(chips.length?'<button class="clearall" data-clearall>clear all</button>':'')+'</span></div>';
+}
+
+/* ---------------------------- LAYER 1: the universal frame --------------- */
+function kpiCard(c){
+  return '<div class="kpi'+(c.bad?' bad':'')+'"><div class="k">'+c.k+'</div>'+
+    '<div class="v">'+c.v+(c.u?'<small>'+c.u+'</small>':'')+'</div>'+
+    '<div class="d">'+c.d+'</div></div>';
+}
+function kpis(){
+  var rs=rows(null), all=O().rows.filter(function(r){return shape==='all'||r.sh===shape;});
+  var U=O().unit, C=O().cur;
+  var filtered=(F.cat||F.cp||F.month!==null);
+  var flagged=rs.filter(function(r){return flagsOf(r).length>0;});
+  var wonN=rs.filter(won).length;
+  /* the hero counts only what is actually yours — a quote you have not won is
+     not contracted value, and saying so is the whole honesty argument */
+  var dHero=(shape==='p'? plural(wonN,V('j'))+' won' : plural(wonN,'agreement')+' in force')+
+    (filtered? ' · '+rs.length+' of '+all.length+' in focus' : '');
+
+  /* candidates in priority order; only the ones with something to say are
+     drawn, so a business with no retention never sees a zero staring back */
+  var cand=[];
+  if(shape==='p'){
+    var landing=rs.filter(function(r){return won(r)&&r.m1>=NOW&&r.m1<=NOW+3;});
+    var held=rs.filter(retOpen), heldV=held.reduce(function(a,r){return a+retVal(r);},0);
+    var late=held.filter(function(r){return r.retM<NOW;});
+    var live=rs.filter(function(r){return tailEnd(r)!==null && tailEnd(r)>=NOW;});
+    var outq=rs.filter(function(r){return r.st==='quote';});
+    cand.push({k:'Finishes within 3 months',v:fmt(sum(landing)),u:U,d:plural(landing.length,V('j'))+' — the near horizon'});
+    if(heldV>0) cand.push({k:'Money held back',v:fmt(heldV),u:U,bad:late.length>0,
+      d:late.length? plural(late.length,V('j'))+' past the release date' : 'retention on '+plural(held.length,V('j'))});
+    if(live.length) cand.push({k:'Promises still live',v:live.length,d:'finished '+V('js')+' still under warranty'});
+    if(outq.length) cand.push({k:'Awaiting an answer',v:fmt(sum(outq)),u:U,d:plural(outq.length,V('q'))+' out, undecided'});
+  } else if(shape==='s'){
+    var soon=rs.filter(function(r){return r.m1>=NOW&&r.m1<=NOW+3;});
+    var undec=rs.filter(function(r){return !r.dec&&r.m1>=0;});
+    var openEnd=rs.filter(function(r){return r.m1<0;});
+    cand.push({k:'Ends within 3 months',v:fmt(sum(soon)),u:U,d:plural(soon.length,'agreement')+' — the near horizon'});
+    if(undec.length) cand.push({k:'No decision recorded',v:fmt(sum(undec)),u:U,d:undec.length+' ending with nothing filed'});
+    if(openEnd.length) cand.push({k:'No end date at all',v:openEnd.length,d:'run until somebody stops them'});
+  } else {
+    var runNow=rs.filter(function(r){return r.sh==='p'&&won(r)&&inMonth(r,NOW);});
+    var endSoon=rs.filter(function(r){return r.sh==='s'&&r.m1>=NOW&&r.m1<=NOW+3;});
+    if(runNow.length) cand.push({k:'Running this month',v:runNow.length,d:V('js')+' under way in '+mlabel(NOW)});
+    if(endSoon.length) cand.push({k:'Standing, ending soon',v:fmt(sum(endSoon)),u:U,d:plural(endSoon.length,'agreement')+' within 3 months'});
+  }
+  /* "of N in focus" alone reads as a finding count and disagrees with the
+     findings panel, which counts findings, not agreements. Say which. */
+  cand.push({k:'Carrying a finding',v:flagged.length,d:'agreements, of '+rs.length+' in focus'});
+
+  return '<div class="kpis">'+
+    '<div class="kpi hero"><div class="k">Contracted value · '+C+'</div>'+
+    '<div class="v">'+fmt(sumWon(rs))+'<small>'+U+'</small></div><div class="d">'+esc(dHero)+'</div></div>'+
+    cand.slice(0,3).map(kpiCard).join('')+'</div>';
+}
+
+function catmix(){
+  var rs=rows('cat'), per={}, cnt={};
+  rs.forEach(function(r){ if(won(r)){ per[r.cat]=(per[r.cat]||0)+r.v; cnt[r.cat]=(cnt[r.cat]||0)+1; } });
+  var keys=Object.keys(per).sort(function(a,b){return per[b]-per[a];});
+  var max=per[keys[0]]||1, total=keys.reduce(function(a,k){return a+per[k];},0)||1;
+  return '<div class="card"><div class="card-h"><h3>Where the value sits</h3>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    '<div class="grow '+(keys.length>=4?' dense':'')+'">'+keys.map(function(k){
+      var cls = F.cat===k?' sel' : (F.cat?' dim':'');
+      return '<button class="catrow'+cls+'" data-cat="'+k+'">'+
+        '<span class="nm">'+CATL[k]+'<em>'+plural(cnt[k],'agreement')+' · '+pct(per[k],total)+'% of the value</em></span>'+
+        '<span class="track"><span class="fill" style="width:'+Math.round(per[k]/max*100)+'%"></span></span>'+
+        '<span class="val">'+fmt(per[k])+'<em>'+O().unit+'</em></span></button>';
+    }).join('')+'</div>'+
+    '<div class="card-foot">'+esc(O().dirNote)+'. Click a row to hold the whole page to it.</div></div>';
+}
+
+function riskmap(){
+  var rs=rows('cp').filter(won);
+  /* the plot is as tall as it needs to be to keep the dots apart; drawn at a
+     fixed height a four-point scatter is mostly empty space */
+  var W=560,H=rs.length<=6?214:rs.length<=12?252:290, pl=56,pb=36;
+  if(!rs.length) return '<div class="card"><div class="card-h"><h3>The risk map</h3></div>'+
+    '<div style="font-size:12px;color:var(--color-neutral-500);padding:20px 0;">Nothing in focus to plot.</div></div>';
+  var vmax=Math.max.apply(null,rs.map(function(r){return r.v;}))*1.15||1;
+  var rmax=3.0;
+  /* TWO PASSES, because a label needs to know where the OTHER dots are.
+     Placed in one pass, a label sits on top of a neighbouring dot and eats
+     its own chart. So: work out every point first, then place the labels
+     avoiding both the dots already drawn and the labels already placed. */
+  var pts=rs.map(function(r){
+    var fl=flagsOf(r);
+    var worst=fl.map(function(f){return FLAGS[f].tone;}).indexOf('ruby')>=0?'ruby':(fl.length?'amber':'ok');
+    return {r:r, fl:fl, worst:worst,
+      x:pl+(((r.r||1.1)-0.8)/(rmax-0.8))*(W-pl-16),
+      y:(H-pb)-(r.v/vmax)*(H-pb-18)};
+  });
+  var placed=[], labels=[];
+  var dots=pts.map(function(p){
+    var r=p.r, x=p.x, y=p.y;
+    var fill=p.worst==='ruby'?'var(--st-ruby-dot)':p.worst==='amber'?'var(--st-amber-dot)':'var(--color-accent-500)';
+    var sel=F.cp===r.cp;
+    var ft=p.fl.map(function(f){return FLAGS[f].t;}).join(', ')||'no findings';
+    var label='';
+    if(r.v>=vmax*0.45 || (p.worst==='ruby' && r.v>=vmax*0.30) || sel){
+      var anchor = x>W*0.58 ? 'end' : 'start';
+      var lx = anchor==='end' ? x-12 : x+12, ly = y+3.5, guard=0;
+      var w = esc(r.cp).length*5.4;                      /* rough text width */
+      var lo = function(v){ return anchor==='end' ? v-w : v; };
+      var hitsLabel=function(){ return placed.some(function(q){
+        return Math.abs(q.y-ly)<11 && Math.abs(q.x-lx)<230; }); };
+      var hitsDot=function(){ return pts.some(function(q){
+        return q!==p && Math.abs(q.y-(ly-3.5))<9 && q.x>lo(lx)-8 && q.x<lo(lx)+w+8; }); };
+      while(guard++<14 && (hitsLabel()||hitsDot())) ly+=12;
+      placed.push({x:lx,y:ly});
+      label='<text x="'+lx+'" y="'+ly+'" text-anchor="'+anchor+'" font-size="10" font-weight="700" '+
+        'fill="var(--color-text)" stroke="var(--color-surface)" stroke-width="3" paint-order="stroke">'+esc(r.cp)+'</text>';
+    }
+    /* labels are collected separately and drawn AFTER every circle — an SVG
+       paints in document order, so a dot declared later covers a label
+       declared earlier no matter how carefully it was positioned */
+    labels.push(label);
+    return '<g class="clickable" data-cp="'+esc(r.cp)+'" data-tip="<b>'+esc(r.cp)+'</b><br>'+
+      fmt(r.v)+O().unit+' '+O().cur+' contracted · '+(r.r||1.1).toFixed(1)+' rounds<br><span class=\'t2\'>'+esc(ft)+'</span>">'+
+      '<circle cx="'+x+'" cy="'+y+'" r="'+(sel?10:7.5)+'" fill="'+fill+'" stroke="var(--color-surface)" stroke-width="2"'+
+      (F.cp&&!sel?' opacity=".35"':'')+'/></g>';
+  }).join('')+'<g style="pointer-events:none;">'+labels.join('')+'</g>';
+  return '<div class="card"><div class="card-h"><h3>The risk map</h3>'+
+    '<span class="hint">contracted value against negotiation friction</span>'+
+    '<span class="side">'+srcTag('doc')+' '+srcTag('hati')+'</span></div>'+
+    '<div class="grow"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Each dot is an agreement, placed by contracted value and negotiation rounds, coloured by its worst finding.">'+
+    '<rect x="'+(pl+(W-pl-16)*0.5)+'" y="10" width="'+((W-pl-16)*0.5+6)+'" height="'+((H-pb-18)*0.55)+'" rx="8" fill="var(--st-ruby-bg)" opacity=".35"/>'+
+    '<text x="'+(W-14)+'" y="26" text-anchor="end" font-size="9.5" font-weight="700" fill="var(--st-ruby-fg)" opacity=".8">EXPENSIVE AND DIFFICULT</text>'+
+    '<g stroke="var(--ch-grid)" stroke-width="1">'+
+    '<line x1="'+pl+'" y1="'+(H-pb)+'" x2="'+(W-8)+'" y2="'+(H-pb)+'"/>'+
+    '<line x1="'+pl+'" y1="12" x2="'+pl+'" y2="'+(H-pb)+'"/></g>'+
+    '<text x="'+(pl-8)+'" y="20" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">'+fmt(vmax)+O().unit+'</text>'+
+    '<text x="'+(pl-8)+'" y="'+(H-pb+3)+'" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">0</text>'+
+    '<text x="'+pl+'" y="'+(H-8)+'" font-size="9.5" fill="var(--color-neutral-500)">calm negotiations</text>'+
+    '<text x="'+(W-8)+'" y="'+(H-8)+'" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">many rounds →</text>'+
+    dots+'</svg></div>'+
+    '<div class="legend">'+
+    '<span class="sw"><i style="border-radius:50%;background:var(--st-ruby-dot);"></i>Serious finding</span>'+
+    '<span class="sw"><i style="border-radius:50%;background:var(--st-amber-dot);"></i>Worth watching</span>'+
+    '<span class="sw"><i style="border-radius:50%;background:var(--color-accent-500);"></i>Clean</span>'+
+    '</div></div>';
+}
+
+function leaderboard(){
+  var rs=rows('cp').filter(won), per={};
+  rs.forEach(function(r){
+    if(!per[r.cp]) per[r.cp]={v:0,n:0,fl:{},cat:r.cat};
+    per[r.cp].v+=r.v; per[r.cp].n++;
+    flagsOf(r).forEach(function(f){per[r.cp].fl[f]=1;});
+  });
+  var keys=Object.keys(per).sort(function(a,b){return per[b].v-per[a].v;}).slice(0,8);
+  var max=per[keys[0]]?per[keys[0]].v:1;
+  return '<div class="card"><div class="card-h"><h3>Biggest by contracted value</h3>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    '<div style="overflow-x:auto;"><table class="lb"><thead><tr>'+
+    '<th>Agreement</th><th style="width:30%">Value</th><th class="num">'+O().cur+' '+O().unit+'</th><th>Findings</th></tr></thead><tbody>'+
+    keys.map(function(k){
+      var p=per[k], sel=F.cp===k;
+      var fl=Object.keys(p.fl).map(function(f){
+        return '<span class="pill '+FLAGS[f].tone+'"><span class="dot"></span>'+FLAGS[f].t+'</span>';
+      }).join('')||'<span style="color:var(--color-neutral-400);font-size:10.5px;">none</span>';
+      return '<tr class="'+(sel?'sel':'')+'" data-cp="'+esc(k)+'"><td style="font-weight:600;">'+esc(k)+
+        '<div style="font-size:10px;color:var(--color-neutral-500);">'+CATL[p.cat]+(p.n>1?' · '+p.n+' agreements':'')+'</div></td>'+
+        '<td><span class="vbar" style="width:'+Math.round(p.v/max*100)+'%"></span></td>'+
+        '<td class="num" style="font-weight:700;">'+fmt(p.v)+'</td>'+
+        '<td><div class="flags">'+fl+'</div></td></tr>';
+    }).join('')+'</tbody></table></div>'+
+    '<div class="card-foot">Largest '+keys.length+' of '+plural(Object.keys(per).length,'name')+
+    ' in focus, by the value written into the documents. Click a row to hold the page to it.</div></div>';
+}
+
+function findings(){
+  var rs=rows(null), items=[];
+  rs.forEach(function(r){
+    flagsOf(r).forEach(function(f){ items.push({cp:r.cp, v:r.v, f:f, tone:FLAGS[f].tone}); });
+  });
+  items.sort(function(a,b){return (a.tone==='ruby'?0:1)-(b.tone==='ruby'?0:1) || b.v-a.v;});
+  var shown=items.slice(0,6);
+  return '<div class="card"><div class="card-h"><h3>Findings in this slice</h3>'+
+    '<span class="hint">'+items.length+' open · every one worked out from the documents</span></div>'+
+    (shown.length?'<div class="flist grow">'+shown.map(function(i){
+      return '<div class="fitem"><span class="pill '+i.tone+'" style="margin-top:2px;"><span class="dot"></span>'+FLAGS[i.f].t+'</span>'+
+        '<div class="bd"><b>'+esc(i.cp)+'</b><span>'+fmt(i.v)+O().unit+' '+O().cur+' contracted behind it</span></div></div>';
+    }).join('')+'</div>'
+    :'<div class="grow mid" style="font-size:12px;color:var(--color-neutral-500);padding:8px 0;">No findings in this slice — a clean corner of the book.</div>')+
+    '<div class="card-foot">'+
+    (items.length>shown.length? '<b>'+(items.length-shown.length)+' more</b> in this slice. ':'')+
+    'Serious findings first, then the largest contracted value behind them.</div>'+
+    '</div>';
+}
+
+function readout(){
+  var rs=rows(null), U=O().unit, C=O().cur, L=[];
+  if(!rs.length){
+    L.push({tone:'',t:'Nothing matches this combination of filters — which is itself an answer. Clear one and look again.'});
+  } else {
+    var ruby=rs.filter(function(r){return flagsOf(r).some(function(f){return FLAGS[f].tone==='ruby';});});
+
+    if(shape!=='s'){
+      var jobs=rs.filter(function(r){return r.sh==='p';});
+      var wonJ=jobs.filter(won);
+      var late=wonJ.filter(function(r){return retOpen(r)&&r.retM<NOW;});
+      if(late.length){
+        var lv=late.reduce(function(a,r){return a+retVal(r);},0);
+        var oldest=late.slice().sort(function(a,b){return a.retM-b.retM;})[0];
+        L.push({tone:'bad',t:'<b>'+fmt(lv)+U+' '+C+'</b> of retention is <b>past its release date</b> on '+
+          plural(late.length,V('j'))+' — the oldest was due back in '+mlabel(oldest.retM)+' and nobody has claimed it.'});
+      }
+      var gap=wonJ.filter(function(r){return flagsOf(r).indexOf('flow')>=0;});
+      if(gap.length){
+        var g=gap[0];
+        L.push({tone:'bad',t:'On '+plural(gap.length,V('j'))+' you promised the customer <b>'+g.def+' months</b> of warranty but your subcontractor gave you <b>'+g.sub+'</b> — for example '+esc(g.cp)+'. The difference is yours to carry.'});
+      }
+      var slip=wonJ.filter(function(r){return flagsOf(r).indexOf('slip')>=0;});
+      if(slip.length)
+        L.push({tone:'warn',t:'<b>'+plural(slip.length,V('j'))+'</b> '+(slip.length===1?'is':'are')+' past the finish date written into the contract with nothing filed since — '+
+          slip.map(function(r){return esc(r.cp);}).slice(0,3).join(', ')+'.'});
+      var vl=wonJ.filter(function(r){return flagsOf(r).indexOf('varlate')>=0;});
+      if(vl.length)
+        L.push({tone:'warn',t:'Variations were filed <b>after</b> the work they describe on '+plural(vl.length,V('j'))+'. Signed late is the hardest kind to get paid for.'});
+      var q=rs.filter(function(r){return r.sh==='p'&&r.st==='quote';});
+      var lost=rs.filter(function(r){return r.sh==='p'&&r.st==='lost';});
+      var wq=wonJ.length;
+      if(lost.length||q.length)
+        L.push({tone:'',t:'You have won <b>'+pct(wq,wq+lost.length)+'%</b> of decided '+V('qs')+' by count, and <b>'+
+          fmt(sum(q))+U+' '+C+'</b> is still out awaiting an answer.'});
+    }
+
+    if(shape!=='p'){
+      var st=rs.filter(function(r){return r.sh==='s';});
+      var undec=st.filter(function(r){return !r.dec&&r.m1>=0;});
+      if(undec.length){
+        var uv=sum(undec), tv=sum(st)||1;
+        L.push({tone:uv/tv>0.3?'bad':'warn',t:'<b>'+fmt(uv)+U+' '+C+'</b> of standing value ends with <b>no decision recorded</b> — '+
+          plural(undec.length,'agreement')+', nearest '+mlabel(Math.min.apply(null,undec.map(function(r){return r.m1;})))+'.'});
+      }
+      var has=function(k){ return st.filter(function(r){return (r.fl||[]).indexOf(k)>=0;}); };
+      /* "and more" rather than an ellipsis — an ellipsis followed by the
+         sentence's full stop prints four dots */
+      var names=function(a){ return a.slice(0,3).map(function(r){return esc(r.cp);}).join(', ')+(a.length>3?' and more':''); };
+      var auto=has('auto');
+      if(auto.length)
+        L.push({tone:'warn',t:'<b>'+auto.length+'</b> renew'+(auto.length===1?'s itself':' themselves')+' with no decision point written in — '+
+          names(auto)+'.'});
+      var brk=has('brk');
+      if(brk.length)
+        L.push({tone:'warn',t:'<b>'+plural(brk.length,'agreement')+'</b> carr'+(brk.length===1?'ies':'y')+
+          ' a <b>break option</b> — a chance to leave that quietly expires if nobody diarises it: '+names(brk)+'.'});
+      var idx=has('idx');
+      if(idx.length)
+        L.push({tone:'warn',t:'<b>'+idx.length+'</b> carr'+(idx.length===1?'ies':'y')+' a written right to move the price that has '+
+          '<b>never been used</b> — '+names(idx)+'.'});
+      var nc=has('noceil');
+      if(nc.length)
+        L.push({tone:'warn',t:'<b>'+nc.length+'</b> put <b>no ceiling</b> on what the other side may charge, so the price can move '+
+          'without anything in the contract stopping it.'});
+    }
+
+    if(ruby.length)
+      L.push({tone:'bad',t:'<b>'+ruby.length+'</b> in focus '+(ruby.length===1?'carries':'carry')+' a <b>serious finding</b> — '+
+        ruby.slice(0,3).map(function(r){
+          var f=flagsOf(r).filter(function(x){return FLAGS[x].tone==='ruby';})[0];
+          return esc(r.cp)+' ('+FLAGS[f].t+')';
+        }).join(', ')+(ruby.length>3?' and more':'')+'.'});
+
+    var wonAll=rs.filter(won);
+    if(wonAll.length){
+      var srt=wonAll.slice().sort(function(a,b){return b.v-a.v;}), tot=sum(wonAll)||1;
+      L.push({tone:'',t:'The largest single agreement in focus is <b>'+esc(srt[0].cp)+'</b> at <b>'+fmt(srt[0].v)+U+' '+C+
+        '</b> contracted — '+pct(srt[0].v,tot)+'% of this slice.'});
+      if(wonAll.length>=5){
+        var top3=srt.slice(0,3).reduce(function(a,r){return a+r.v;},0);
+        L.push({tone:pct(top3,tot)>=60?'warn':'', t:'The three largest together are <b>'+pct(top3,tot)+'%</b> of the value in focus'+
+          (pct(top3,tot)>=60? ' — losing any one of them would be felt.' : ', so no single name dominates.')});
+      }
+    }
+  }
+  return '<div class="card"><div class="card-h"><h3>What this slice says</h3>'+
+    '<span class="hint">recomputed from the '+plural(rs.length,'agreement')+' in focus — not written by an AI</span></div>'+
+    '<div class="readout grow">'+L.slice(0,6).map(function(l){
+      return '<div class="line '+l.tone+'"><span>'+l.t+'</span></div>';
+    }).join('')+'</div>'+
+    '<div class="card-foot">Six sentences at most, and only the ones that are true of the slice you are '+
+    'looking at. Change a filter and these rewrite themselves.</div></div>';
+}
+
+/* ---------------------------- LAYER 2: shaped fill ----------------------- */
+
+/* JOBS — the workload runway. A job OCCUPIES months, so its contracted value
+   is spread evenly across the months it runs. Quoted work is drawn separately
+   because it is not yours yet. */
+function workload(){
+  var rs=rows('month').filter(function(r){return r.sh==='p'&&r.st!=='lost';});
+  var m0=NOW-3, m1=NOW+14, N=m1-m0+1;
+  var per=[];
+  for(var i=0;i<N;i++){
+    var m=m0+i, w=0, q=0, n=0, names=[];
+    rs.forEach(function(r){
+      if(r.m0<=m && m<=r.m1){
+        var slice=r.v/(r.m1-r.m0+1);
+        if(r.st==='quote') q+=slice; else w+=slice;
+        n++; if(names.length<3) names.push(r.cp);
+      }
+    });
+    per.push({m:m,w:w,q:q,n:n,names:names});
+  }
+  var peak=Math.max.apply(null,per.map(function(p){return p.w+p.q;}))||1;
+  var W=920,H=200,px=54,pb=34,bw=(W-px-10)/N;
+  var bars=per.map(function(p){
+    var hW=Math.round((H-pb-16)*p.w/peak), hQ=Math.round((H-pb-16)*p.q/peak);
+    var x=px+(p.m-m0)*bw+3, sel=F.month===p.m, past=p.m<NOW;
+    var tot=p.w+p.q;
+    var g='<g class="clickable" data-month="'+p.m+'" data-tip="<b>'+mlabel(p.m)+'</b><br>'+
+      plural(p.n,V('j'))+' running · '+fmt(tot)+O().unit+' '+O().cur+' of work<br><span class=\'t2\'>'+
+      (p.names.length?esc(p.names.join(', ')):'nothing scheduled')+'</span>">';
+    if(tot===0) g+='<rect x="'+x+'" y="'+(H-pb-3)+'" width="'+(bw-6)+'" height="3" rx="1.5" fill="var(--ch-grid)"/>';
+    else{
+      var y=H-pb;
+      if(p.w>0){ y-=hW; g+='<rect x="'+x+'" y="'+y+'" width="'+(bw-6)+'" height="'+Math.max(hW,3)+'" rx="3" fill="var(--color-accent-600)"'+((F.month!==null&&!sel)||past?' opacity="'+(past&&!sel?'.45':'.3')+'"':'')+'/>'; }
+      if(p.q>0){ y-=hQ; g+='<rect x="'+x+'" y="'+y+'" width="'+(bw-6)+'" height="'+Math.max(hQ,3)+'" rx="3" fill="var(--ch-pipe)"'+(F.month!==null&&!sel?' opacity=".3"':'')+'/>'; }
+      if(sel) g+='<rect x="'+(x-2)+'" y="'+(y-4)+'" width="'+(bw-2)+'" height="'+(H-pb-y+6)+'" rx="5" fill="none" stroke="var(--accent-solid)" stroke-width="2"/>';
+    }
+    g+='<rect x="'+(x-2)+'" y="10" width="'+(bw-2)+'" height="'+(H-pb-8)+'" fill="transparent"/>';
+    if((p.m-m0)%3===0) g+='<text x="'+(x+(bw-6)/2)+'" y="'+(H-pb+16)+'" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-500)">'+mlabel(p.m)+'</text>';
+    return g+'</g>';
+  }).join('');
+  var nowX=px+(NOW-m0)*bw;
+  var next6=per.filter(function(p){return p.m>=NOW&&p.m<NOW+6;});
+  var covered=next6.filter(function(p){return p.w>0;}).length;
+  return '<div class="card shaped"><div class="card-h"><h3>The workload runway</h3>'+
+    '<span class="shapetag">'+V('Js')+'</span>'+
+    '<span class="hint">contracted value spread across the months each '+V('j')+' actually runs</span>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    '<div class="grow"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Value of work scheduled in each month, split into work you have won and work still out to quote.">'+
+    '<g stroke="var(--ch-grid)" stroke-width="1"><line x1="'+px+'" y1="'+(H-pb)+'" x2="'+(W-6)+'" y2="'+(H-pb)+'"/></g>'+
+    '<line x1="'+nowX+'" y1="12" x2="'+nowX+'" y2="'+(H-pb)+'" stroke="var(--ch-ref)" stroke-width="1" stroke-dasharray="3 3"/>'+
+    '<text x="'+(nowX+4)+'" y="20" font-size="9.5" font-weight="700" fill="var(--ch-ref)">today</text>'+
+    '<text x="'+(px-8)+'" y="20" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">'+fmt(peak)+O().unit+'</text>'+
+    '<text x="'+(px-8)+'" y="'+(H-pb+3)+'" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">0</text>'+
+    bars+'</svg></div>'+
+    '<div class="legend">'+
+    '<span class="sw"><i style="background:var(--color-accent-600);"></i>Work you have won</span>'+
+    '<span class="sw"><i style="background:var(--ch-pipe);"></i>Proposed, not yet won</span>'+
+    '<span class="far">'+covered+' of the next 6 months have '+V('j')+' work booked</span>'+
+    '</div></div>';
+}
+
+/* JOBS — what survives the handover. TWO cards, not one: as a single panel it
+   grew to twice the height of anything it could sit beside, and a row with one
+   card twice as tall as its neighbour is the thing that makes a dashboard look
+   unfinished. Money and promises are separate questions anyway. */
+function moneyHeld(){
+  var rs=rows(null).filter(function(r){return r.sh==='p'&&won(r);});
+  var U=O().unit, C=O().cur;
+  var held=rs.filter(retOpen).sort(function(a,b){return a.retM-b.retM;});
+  if(!held.length) return '';
+  var heldV=held.reduce(function(a,r){return a+retVal(r);},0);
+  var late=held.filter(function(r){return r.retM<NOW;});
+  return '<div class="card shaped"><div class="card-h"><h3>Money held back</h3>'+
+    '<span class="shapetag">'+V('Js')+'</span>'+
+    '<span class="hint">retention still to come home</span>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    '<div class="subh">On '+plural(held.length,V('j'))+'<span class="rest">'+fmt(heldV)+U+' '+C+'</span></div>'+
+    '<div class="grow"><table class="lb"><tbody>'+held.slice(0,5).map(function(r){
+      var state = r.retM<NOW ? {c:'ruby',t:'overdue'} : (r.retM<=NOW+2 ? {c:'amber',t:'due soon'} : {c:'gray',t:'held'});
+      return '<tr data-cp="'+esc(r.cp)+'" class="'+(F.cp===r.cp?'sel':'')+'"><td style="font-weight:600;">'+esc(r.cp)+
+        '<div style="font-size:10px;color:var(--color-neutral-500);">'+r.ret+'% held · due back '+mlabel(r.retM)+'</div></td>'+
+        '<td class="num" style="font-weight:700;">'+fmt(retVal(r))+U+'</td>'+
+        '<td style="width:1%"><span class="pill '+state.c+'"><span class="dot"></span>'+state.t+'</span></td></tr>';
+    }).join('')+'</tbody></table></div>'+
+    '<div class="card-foot">'+(held.length>5?'<b>'+(held.length-5)+' more</b> beyond these five. ':'')+
+    'The percentage and the release date are written into the contract; HaTi works out the amount and the month'+
+    (late.length? ' — and says so when the month has passed.':'.')+'</div></div>';
+}
+function promisesLive(){
+  var rs=rows(null).filter(function(r){return r.sh==='p'&&won(r);});
+  /* Each bar runs from the month the work FINISHED to the month the promise
+     expires, on one shared timeline with today marked. Anchoring every bar at
+     today instead made them all draw nearly the same length — a picture that
+     looks like a measurement and carries no information. */
+  var tails=rs.filter(function(r){return tailEnd(r)!==null && tailEnd(r)>=NOW;})
+              .sort(function(a,b){return tailEnd(a)-tailEnd(b);});
+  if(!tails.length) return '';
+  var t0=Math.min.apply(null,tails.map(function(r){return r.m1;}));
+  var t1=Math.max.apply(null,tails.map(tailEnd));
+  var tspan=Math.max(t1-t0,1);
+  var at=function(m){ return (m-t0)/tspan*100; };
+  var gaps=tails.filter(function(r){return r.sub!=null&&r.sub<r.def;});
+  return '<div class="card shaped"><div class="card-h"><h3>Promises still live</h3>'+
+    '<span class="shapetag">'+V('Js')+'</span>'+
+    '<span class="hint">warranties running on work already handed over</span>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    '<div class="subh">Finished, still carried<span class="rest">'+plural(tails.length,V('j'))+'</span></div>'+
+    '<div class="grow spread">'+tails.slice(0,5).map(function(r){
+      var end=tailEnd(r);
+      var subEnd = (r.sub!=null && r.sub<r.def) ? r.m1+r.sub : null;
+      return '<button class="tailrow" data-cp="'+esc(r.cp)+'">'+
+        '<span><span class="nm">'+esc(r.cp)+'</span>'+
+        '<span class="bars">'+
+        '<span class="b1" style="left:'+at(r.m1)+'%;width:'+Math.max(at(end)-at(r.m1),2)+'%"></span>'+
+        (subEnd!==null?'<span class="b2" style="left:'+at(r.m1)+'%;width:'+Math.max(at(subEnd)-at(r.m1),2)+'%"></span>':'')+
+        '<span class="bnow" style="left:'+at(NOW)+'%"></span>'+
+        '</span></span>'+
+        '<span class="when">yours to '+mlabel(end)+
+        (subEnd!==null?'<br><span style="color:var(--st-ruby-fg);font-weight:700;">theirs '+
+          (subEnd<NOW?'ended ':'ends ')+mlabel(subEnd)+'</span>':'')+
+        '</span></button>';
+    }).join('')+'</div>'+
+    '<div class="card-foot">Each bar starts the month the work finished; the dotted line is today. '+mlabel(t0)+' to '+mlabel(t1)+'.'+
+    (gaps.length? '<br><span style="color:var(--st-ruby-fg);font-weight:700;">The red bar is your subcontractor’s warranty. '+
+      'Where it stops short, the rest of the promise is yours alone.</span>':'')+
+    '</div></div>';
+}
+
+/* Shown where "What survives the handover" would have been, when there is
+   nothing for it to say. The empty state IS the product argument. */
+function noTailCard(){
+  return '<div class="card"><div class="card-h"><h3>Nothing survives the handover here</h3>'+
+    '<span class="shapetag">'+V('Js')+'</span></div>'+
+    /* full-width card, but prose still gets a readable measure */
+    '<div class="grow" style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-600);max-width:78ch;">'+
+    'The '+V('js')+' in this portfolio hold back no retention money and carry no warranty period, so the panel '+
+    'that tracks what a business is still carrying after the work is finished has nothing to show — and HaTi does not draw it.'+
+    '<br><br><b>A panel full of zeroes is worse than no panel:</b> it teaches people to skim, and skimming is how the '+
+    'one figure that mattered gets missed.</div>'+
+    '<div style="font-size:10.5px;color:var(--color-neutral-500);margin-top:11px;">'+
+    'A roofing contractor or an interior designer sees this panel filled in. Same engine, same code — different documents.</div></div>';
+}
+
+/* JOBS — did the work turn into a contract? HaTi knows, because the quote was
+   drafted here and either became a signed agreement or did not. */
+function conversion(){
+  var rs=rows(null).filter(function(r){return r.sh==='p';});
+  var w=rs.filter(function(r){return r.st==='live'||r.st==='done';});
+  var l=rs.filter(function(r){return r.st==='lost';});
+  var o=rs.filter(function(r){return r.st==='quote';});
+  var wv=sum(w), lv=sum(l), ov=sum(o), tot=wv+lv+ov||1;
+  var byCount=pct(w.length,w.length+l.length), byValue=pct(wv,wv+lv);
+  var U=O().unit;
+  return '<div class="card shaped"><div class="card-h"><h3>'+V('J')+'s won and lost</h3>'+
+    '<span class="shapetag">'+V('Js')+'</span>'+
+    '<span class="hint">by contracted value</span>'+
+    '<span class="side">'+srcTag('hati')+'</span></div>'+
+    /* a full-width card needs an internal layout, or it is just a stretched
+       narrow card: bar and figures on the left, the sentence on the right */
+    '<div class="conv">'+
+    '<div><div class="convbar">'+
+    '<span style="width:'+(wv/tot*100)+'%;background:var(--color-accent-600);"></span>'+
+    '<span style="width:'+(ov/tot*100)+'%;background:var(--ch-pipe);"></span>'+
+    '<span style="width:'+(lv/tot*100)+'%;background:var(--color-neutral-300);"></span>'+
+    '</div>'+
+    '<div class="convnums">'+
+    '<div class="cn won"><div class="k">Won</div><div class="v">'+fmt(wv)+'<span>'+U+'</span></div><div class="d">'+plural(w.length,V('j'))+'</div></div>'+
+    '<div class="cn wait"><div class="k">Awaiting</div><div class="v">'+fmt(ov)+'<span>'+U+'</span></div><div class="d">'+plural(o.length,V('q'))+' out</div></div>'+
+    '<div class="cn lost"><div class="k">Lost</div><div class="v">'+fmt(lv)+'<span>'+U+'</span></div><div class="d">'+plural(l.length,V('q'))+'</div></div>'+
+    '</div></div>'+
+    '<div class="convsay">'+
+    '<div class="big">'+byCount+'<span>%</span></div>'+
+    '<div class="say">of decided '+V('qs')+' won <b>by count</b>, and <b>'+byValue+'%</b> by value'+
+    (byValue<byCount? ' — you are winning the smaller ones.' : byValue>byCount? ' — you are winning the bigger ones.' : '.')+
+    '</div></div>'+
+    '</div>'+
+    '<div class="card-foot">HaTi can say this because the '+V('q')+
+    ' was drafted here and either became a signed agreement or did not. It knows nothing about why.</div>'+
+    '</div>';
+}
+
+/* STANDING — the renewal runway: what ends when, and whether anyone decided */
+function renewal(){
+  var rs=rows('month').filter(function(r){return r.sh==='s';});
+  var m0=NOW, m1=NOW+17, N=18;
+  var per=[];
+  for(var i=0;i<N;i++){
+    var m=m0+i;
+    var mr=rs.filter(function(r){return r.m1===m;});
+    per.push({m:m,
+      dec:sum(mr.filter(function(r){return r.dec;})),
+      und:sum(mr.filter(function(r){return !r.dec;})),
+      n:mr.length});
+  }
+  var open=rs.filter(function(r){return r.m1<0;});
+  var peak=Math.max.apply(null,per.map(function(p){return p.dec+p.und;}))||1;
+  var W=920,H=248,px=54,pb=34,bw=(W-px-10)/N;
+  var bars=per.map(function(p){
+    var tot=p.dec+p.und;
+    var hU=Math.round((H-pb-16)*p.und/peak), hD=Math.round((H-pb-16)*p.dec/peak);
+    var x=px+(p.m-m0)*bw+3, sel=F.month===p.m;
+    var g='<g class="clickable" data-month="'+p.m+'" data-tip="<b>'+mlabel(p.m)+'</b><br>'+
+      plural(p.n,'agreement')+' end · '+fmt(tot)+O().unit+' '+O().cur+'<br><span class=\'t2\'>'+
+      fmt(p.und)+O().unit+' with no decision recorded</span>">';
+    if(tot===0) g+='<rect x="'+x+'" y="'+(H-pb-3)+'" width="'+(bw-6)+'" height="3" rx="1.5" fill="var(--ch-grid)"/>';
+    else{
+      var y=H-pb;
+      if(p.dec>0){ y-=hD; g+='<rect x="'+x+'" y="'+y+'" width="'+(bw-6)+'" height="'+Math.max(hD,3)+'" rx="3" fill="var(--color-accent-600)"'+(F.month!==null&&!sel?' opacity=".3"':'')+'/>'; }
+      if(p.und>0){ y-=hU; g+='<rect x="'+x+'" y="'+y+'" width="'+(bw-6)+'" height="'+Math.max(hU,3)+'" rx="3" fill="var(--st-amber-dot)"'+(F.month!==null&&!sel?' opacity=".3"':'')+'/>'; }
+      if(sel) g+='<rect x="'+(x-2)+'" y="'+(y-4)+'" width="'+(bw-2)+'" height="'+(H-pb-y+6)+'" rx="5" fill="none" stroke="var(--accent-solid)" stroke-width="2"/>';
+    }
+    g+='<rect x="'+(x-2)+'" y="10" width="'+(bw-2)+'" height="'+(H-pb-8)+'" fill="transparent"/>';
+    if((p.m-m0)%3===0) g+='<text x="'+(x+(bw-6)/2)+'" y="'+(H-pb+16)+'" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-500)">'+mlabel(p.m)+'</text>';
+    return g+'</g>';
+  }).join('');
+  var half=fmt(per.slice(0,6).reduce(function(a,p){return a+p.dec+p.und;},0));
+  return '<div class="card shaped"><div class="card-h"><h3>The renewal runway</h3>'+
+    '<span class="shapetag">Standing</span>'+
+    '<span class="hint">what ends when, and whether anyone has decided</span>'+
+    '<span class="side">'+srcTag('doc')+' '+srcTag('hati')+'</span></div>'+
+    '<div class="grow"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Contracted value ending in each of the next 18 months, split into decided and undecided.">'+
+    '<g stroke="var(--ch-grid)" stroke-width="1"><line x1="'+px+'" y1="'+(H-pb)+'" x2="'+(W-6)+'" y2="'+(H-pb)+'"/></g>'+
+    '<text x="'+(px-8)+'" y="20" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">'+fmt(peak)+O().unit+'</text>'+
+    '<text x="'+(px-8)+'" y="'+(H-pb+3)+'" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">0</text>'+
+    bars+'</svg></div>'+
+    '<div class="legend">'+
+    '<span class="sw"><i style="background:var(--color-accent-600);"></i>Decision recorded</span>'+
+    '<span class="sw"><i style="background:var(--st-amber-dot);"></i>Nothing filed yet</span>'+
+    '<span class="far">'+half+O().unit+' '+O().cur+' lands in the next six months'+
+    (open.length? ' · '+plural(open.length,'agreement')+(open.length===1?' runs':' run')+' with no end date at all' : '')+'</span>'+
+    '</div></div>';
+}
+
+/* ---------------------------- assembly ----------------------------------- */
+function renderIntel(){
+  var c=counts(O());
+  var frameNote =
+    '<div class="footer-honest" style="margin:0 0 12px;display:block;max-width:104ch;">'+
+    '<b style="color:var(--color-text);font-weight:700;">The universal frame.</b> These six panels are the same for every business on HaTi — '+
+    'what it is worth, where the value sits, where the difficulty is, who the big names are, what the numbers say, and what needs attention. '+
+    'Switch to '+esc(V('Js'))+' or Standing agreements above to add the panels that only make sense for that shape.</div>';
+
+  /* ROWS ARE PAIRED BY HEIGHT, not by topic. A chart card and a five-row
+     table are roughly the same height; a chart card and a three-line summary
+     are not, and putting those two together is what leaves a hole. */
+  var top='', mid='', extra='';
+  if(shape==='p'){
+    top='<div class="grid g-8-4 row">'+workload()+catmix()+'</div>';
+    /* the two tail cards are a matched pair; when only one has anything to
+       say it takes the full width, and when neither does the explanation of
+       why does */
+    var pair=[moneyHeld(),promisesLive()].filter(Boolean);
+    extra = pair.length===2 ? '<div class="grid g-6-6 row">'+pair.join('')+'</div>'
+          : pair.length===1 ? '<div class="row">'+pair[0]+'</div>'
+          : '<div class="row">'+noTailCard()+'</div>';
+    mid='<div class="grid g-6-6 row">'+riskmap()+leaderboard()+'</div>';
+  } else if(shape==='s'){
+    top='<div class="grid g-8-4 row">'+renewal()+catmix()+'</div>';
+    mid='<div class="grid g-6-6 row">'+riskmap()+leaderboard()+'</div>';
+  } else {
+    /* the risk map keeps its 6-wide slot here too: in a wider box the SVG
+       scales up and the dot labels grow with it until they collide */
+    top='<div class="grid g-6-6 row">'+riskmap()+catmix()+'</div>';
+    mid='<div class="row">'+leaderboard()+'</div>';
+  }
+
+  $('#view').innerHTML =
+    shapeBar()+
+    '<div class="dash">'+chipsBar()+
+    (shape==='all'?frameNote:'')+
+    kpis()+top+
+    (shape==='p'? '<div class="row">'+conversion()+'</div>' : '')+
+    extra+mid+
+    '<div class="grid g-5-7 row">'+readout()+findings()+'</div>'+
+    '<div class="footer-honest">Every figure is an aggregation over the agreements in focus — '+
+    srcTag('doc')+' values, dates, retention percentages and warranty periods read off signed documents, '+
+    srcTag('hati')+' rounds, decisions and whether each '+V('q')+' became a contract, from HaTi’s own filing record. '+
+    'Nothing is estimated, benchmarked, or taken from another system. '+
+    'Portfolio: '+plural(c.p,V('j'))+' and '+plural(c.s,'standing agreement')+'.</div>'+
+    '</div>';
+}
+function renderStub(which){
+  $('#view').innerHTML = '<div class="stub">The <b>'+(which==='friction'?'Negotiation friction':'Contract graph')+
+    '</b> tab lives in the platform today, unchanged. This prototype reworks the third tab beside it.</div>';
+}
+function renderAll(){
+  $('#ins-sub').textContent = O().name+' · '+O().kind+', '+O().market+
+    ' — the panels below follow the shape of the agreements, not the industry';
+  if(tab==='intel') renderIntel(); else renderStub(tab);
+}
+
+/* ---------------------------- interaction -------------------------------- */
+function resetFor(o){
+  org=o; F={cat:null,cp:null,month:null}; shape=counts(ORGS[o]).dom;
+}
+document.addEventListener('click', function(ev){
+  var t=ev.target.closest('[data-org],[data-tab],[data-shape],[data-cat],[data-cp],[data-month],[data-unf],[data-clearall]');
+  if(!t) return;
+  if(t.dataset.org){ resetFor(t.dataset.org);
+    document.querySelectorAll('.obtn').forEach(function(b){b.classList.toggle('on',b.dataset.org===org);});
+    renderAll(); return; }
+  if(t.dataset.tab){ tab=t.dataset.tab;
+    document.querySelectorAll('.ins-tab').forEach(function(b){b.classList.toggle('on',b.dataset.tab===tab);});
+    renderAll(); return; }
+  if(t.dataset.shape){ shape=t.dataset.shape; F={cat:null,cp:null,month:null}; renderIntel(); return; }
+  if(t.dataset.cat){ F.cat = F.cat===t.dataset.cat?null:t.dataset.cat; renderIntel(); return; }
+  if(t.dataset.cp!==undefined){ F.cp = F.cp===t.dataset.cp?null:t.dataset.cp; renderIntel(); return; }
+  if(t.dataset.month!==undefined){ var m=+t.dataset.month; F.month = F.month===m?null:m; renderIntel(); return; }
+  if(t.dataset.unf){ F[t.dataset.unf]=null; renderIntel(); return; }
+  if(t.dataset.clearall!==undefined){ F={cat:null,cp:null,month:null}; renderIntel(); return; }
+});
+
+/* one floating tooltip for every mark that declares data-tip */
+var tip=$('#tip');
+document.addEventListener('mousemove', function(ev){
+  var m=ev.target.closest('[data-tip]');
+  if(m){
+    tip.innerHTML=m.dataset.tip;
+    var x=Math.min(ev.clientX+14, window.innerWidth-290), y=ev.clientY+16;
+    tip.style.left=x+'px'; tip.style.top=y+'px'; tip.style.opacity=1;
+  } else tip.style.opacity=0;
+});
+
+resetFor('mzedu');
+renderAll();
+</script>
+</body>
+</html>

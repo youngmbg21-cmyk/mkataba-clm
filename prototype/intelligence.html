@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HaTi — Portfolio intelligence</title>
+<!-- The real HaTi typefaces, already inlined as data URIs in the repo. -->
+<link rel="stylesheet" href="../fonts/fonts.css" />
+<style>
+/* ============================================================================
+   HaTi — PORTFOLIO INTELLIGENCE. A looks-only prototype of a third Insights
+   tab, beside the two the platform already has (Negotiation friction and
+   Contract graph).
+
+   THE ONE IDEA: everything cross-filters. Click a category, a month on the
+   renewal runway, a dot on the risk map or a counterparty row, and every
+   other panel — the KPIs, the charts, the findings, the written readout —
+   recomputes for that slice. Filters stack, show as chips, and clear with a
+   click. That is what makes it a dashboard rather than a poster.
+
+   To make that honest, this page carries an actual synthetic PORTFOLIO — a
+   table of contracts per organisation — and every figure on screen is an
+   aggregation over it, computed live in front of you. Nothing is a typed-in
+   number pretending to be a chart.
+
+   The honesty rule survives: values are CONTRACTED values from documents,
+   negotiation rounds are HaTi's own record, and the page says so.
+   Every figure is invented sample data.
+   ========================================================================= */
+
+:root{
+  --color-bg:#f8fafc;
+  --color-surface:#ffffff;
+  --color-surface-2:#f1f5f9;
+  --color-text:#1e293b;
+  --color-divider:#e2e8f0;
+  --color-neutral-100:#f1f5f9; --color-neutral-300:#cbd5e1; --color-neutral-400:#94a3b8;
+  --color-neutral-500:#64748b; --color-neutral-600:#475569; --color-neutral-700:#334155;
+  --color-accent-100:#ccfbf1; --color-accent-300:#5eead4; --color-accent-400:#2dd4bf;
+  --color-accent-500:#14b8a6; --color-accent-600:#0d9488; --color-accent-700:#0f766e; --color-accent-800:#115e59;
+  --accent-solid:var(--color-accent-600);
+  --accent-ink:var(--color-accent-800);
+  --brand-cyan-700:#0aa2b8;
+  --brand-hero-deep:#0b3d3a;
+  --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
+  --brand-hero-sub:#bde7e1;
+  --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
+  --font-body:Inter,system-ui,sans-serif;
+  --radius:12px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+  --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+  --focus:0 0 0 2px color-mix(in srgb,var(--accent-solid) 45%,transparent);
+  --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-line:#cbd5e1;  --st-gray-dot:#94a3b8;
+  --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-line:#e0c48a; --st-amber-dot:#f59e0b;
+  --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-line:#a8cbb8; --st-green-dot:#10b981;
+  --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-line:#e6c9c1;  --st-ruby-dot:#f43f5e;
+  --st-steel-bg:var(--color-accent-100); --st-steel-fg:var(--color-accent-800); --st-steel-line:#99f6e4;
+  --ch-grid:#e2e8f0; --ch-ref:#94a3b8;
+  --tab-1:#c9ece4; --tab-2:#d2e6f7; --tab-3:#ded9f6; --tab-ink:#332d3f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --color-bg:#020617; --color-surface:#0f172a; --color-surface-2:#111f36;
+    --color-text:#e2e8f0; --color-divider:#1e293b;
+    --color-neutral-100:#1e293b; --color-neutral-300:#334155; --color-neutral-400:#64748b;
+    --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1; --color-neutral-700:#e2e8f0;
+    --accent-ink:var(--color-accent-400);
+    --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+    --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+    --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+    --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+    --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+    --ch-grid:#1e293b; --ch-ref:#64748b;
+    --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-ink:#ece7f4;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --color-bg:#020617; --color-surface:#0f172a; --color-surface-2:#111f36;
+  --color-text:#e2e8f0; --color-divider:#1e293b;
+  --color-neutral-100:#1e293b; --color-neutral-300:#334155; --color-neutral-400:#64748b;
+  --color-neutral-500:#94a3b8; --color-neutral-600:#cbd5e1; --color-neutral-700:#e2e8f0;
+  --accent-ink:var(--color-accent-400);
+  --st-gray-bg:#1e293b;  --st-gray-fg:#cbd5e1;  --st-gray-line:#334155;
+  --st-amber-bg:#3b2a08; --st-amber-fg:#fbbf24; --st-amber-line:#6b4e12;
+  --st-green-bg:#052e26; --st-green-fg:#34d399; --st-green-line:#0d5546;
+  --st-ruby-bg:#3d1220;  --st-ruby-fg:#fb7185;  --st-ruby-line:#6d2337;
+  --st-steel-bg:#0d3b38; --st-steel-fg:#5eead4; --st-steel-line:#12514c;
+  --ch-grid:#1e293b; --ch-ref:#64748b;
+  --tab-1:#17453e; --tab-2:#153a54; --tab-3:#2a2352; --tab-ink:#ece7f4;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.6);
+  --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--color-bg);color:var(--color-text);
+  font-family:var(--font-body);font-size:13px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-heading);margin:0;text-wrap:balance;}
+button{font:inherit;cursor:pointer;color:inherit;}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px;}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+.wrap{max-width:1480px;margin:0 auto;padding:18px 22px 60px;}
+.proto-note{
+  margin-bottom:16px;padding:11px 14px;border-radius:var(--radius);
+  background:var(--st-amber-bg);border:1px solid var(--st-amber-line);
+  color:var(--st-amber-fg);font-size:12px;font-weight:500;
+}
+.proto-note b{font-weight:700;}
+
+.demo-strip{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+.demo-strip .cap{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-500);}
+.obtn{
+  border:1px solid var(--color-divider);background:var(--color-surface);
+  color:var(--color-neutral-600);border-radius:999px;padding:5px 12px;
+  font-size:11.5px;font-weight:600;
+}
+.obtn:hover{background:var(--color-surface-2);}
+.obtn.on{background:var(--brand-hero);border-color:transparent;color:#fff;}
+
+/* ---------- Insights page chrome: title + folder tabs ---------- */
+.ins-head h1{font-size:22px;font-weight:800;letter-spacing:-.02em;}
+.ins-sub{font-size:12.5px;color:var(--color-neutral-500);margin-top:3px;}
+.ins-tabrow{display:flex;align-items:flex-end;gap:16px;margin-top:14px;border-bottom:3px solid var(--tab-1);}
+.ins-tabs{display:flex;gap:3px;align-items:flex-end;padding-top:8px;overflow-x:auto;}
+.ins-tab{
+  flex:none;border:0;border-radius:11px 11px 0 0;padding:7px 14px 8px;
+  font-size:12.5px;font-weight:600;white-space:nowrap;color:var(--tab-ink);
+  background:color-mix(in srgb,var(--tc) 62%,var(--color-bg));
+}
+.ins-tab:hover{background:color-mix(in srgb,var(--tc) 82%,var(--color-bg));}
+.ins-tab.on{background:var(--tc);padding:12px 16px 10px;font-weight:700;box-shadow:0 -1px 3px rgba(15,23,42,.07);}
+
+/* ---------- the dashboard ---------- */
+.dash{margin-top:16px;}
+.hintline{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;
+  font-size:11.5px;color:var(--color-neutral-500);
+}
+.hintline .how{
+  display:inline-flex;align-items:center;gap:6px;font-weight:600;
+  background:var(--st-steel-bg);color:var(--st-steel-fg);
+  border:1px solid var(--st-steel-line);border-radius:999px;padding:4px 11px;
+}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.fchip{
+  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+  background:var(--accent-solid);color:#fff;border:0;border-radius:999px;padding:4px 11px;
+}
+.fchip svg{opacity:.85;}
+.fchip:hover{background:var(--color-accent-700);}
+.clearall{border:0;background:none;font-size:11.5px;font-weight:600;color:var(--accent-ink);
+  text-decoration:underline;text-underline-offset:2px;}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+@media (max-width:900px){ .kpis{grid-template-columns:repeat(2,1fr);} }
+.kpi{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius);padding:13px 15px;box-shadow:var(--shadow-sm);
+}
+.kpi .k{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);}
+.kpi .v{font-family:var(--font-heading);font-size:24px;font-weight:800;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;line-height:1.15;transition:opacity .15s;}
+.kpi .v small{font-size:13px;font-weight:700;color:var(--color-neutral-500);margin-left:2px;}
+.kpi .d{font-size:11px;color:var(--color-neutral-500);}
+.kpi.hero{background:var(--brand-hero);border-color:transparent;color:#fff;}
+.kpi.hero .k,.kpi.hero .d{color:var(--brand-hero-sub);}
+.kpi.hero .v small{color:var(--brand-hero-sub);}
+
+.grid{display:grid;gap:12px;}
+.g-8-4{grid-template-columns:8fr 4fr;}
+.g-6-6{grid-template-columns:6fr 6fr;}
+.g-7-5{grid-template-columns:7fr 5fr;}
+@media (max-width:1000px){ .g-8-4,.g-6-6,.g-7-5{grid-template-columns:1fr;} }
+.row{margin-bottom:12px;}
+
+.card{
+  background:var(--color-surface);border:1px solid var(--color-divider);
+  border-radius:var(--radius);padding:15px 17px;box-shadow:var(--shadow-sm);
+}
+.card-h{display:flex;align-items:baseline;gap:9px;margin-bottom:10px;}
+.card-h h3{font-size:13.5px;font-weight:700;}
+.card-h .hint{font-size:11px;color:var(--color-neutral-500);}
+.card-h .side{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:10.5px;color:var(--color-neutral-400);white-space:nowrap;}
+
+.src{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;padding:1px 5px;border-radius:5px;
+  border:1px solid;white-space:nowrap;vertical-align:middle;}
+.src.doc{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line);}
+.src.hati{background:var(--st-gray-bg);color:var(--st-gray-fg);border-color:var(--st-gray-line);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+  padding:1px 7px;border-radius:999px;border:1px solid;white-space:nowrap;}
+.pill .dot{width:5px;height:5px;border-radius:50%;flex:none;}
+.pill.amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+.pill.amber .dot{background:var(--st-amber-dot);}
+.pill.green{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line);}
+.pill.green .dot{background:var(--st-green-dot);}
+.pill.ruby{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
+.pill.ruby .dot{background:var(--st-ruby-dot);}
+
+svg text{font-family:var(--font-body);}
+.clickable{cursor:pointer;}
+
+/* category bars */
+.catrow{display:grid;grid-template-columns:112px 1fr 52px;gap:9px;align-items:center;
+  padding:5px 4px;border-radius:8px;border:0;background:none;width:100%;text-align:left;}
+.catrow:hover{background:var(--color-surface-2);}
+.catrow.sel{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
+.catrow.dim{opacity:.38;}
+.catrow .nm{font-size:11.5px;font-weight:600;}
+.catrow .track{display:block;height:9px;background:var(--color-surface-2);border-radius:5px;overflow:hidden;}
+.catrow .fill{display:block;height:100%;background:var(--color-accent-600);border-radius:5px;transition:width .25s;}
+.catrow .val{text-align:right;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;}
+
+/* counterparty leaderboard */
+.lb{width:100%;border-collapse:collapse;font-size:12px;}
+.lb th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--color-neutral-500);padding:5px 8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;}
+.lb td{padding:7px 8px;border-bottom:1px solid var(--color-divider);}
+.lb tr:last-child td{border-bottom:0;}
+.lb tbody tr{cursor:pointer;}
+.lb tbody tr:hover{background:var(--color-surface-2);}
+.lb tbody tr.sel{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);}
+.lb td.num,.lb th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.lb .vbar{display:block;height:7px;border-radius:4px;background:var(--color-accent-600);min-width:2px;transition:width .25s;}
+.lb .flags{display:flex;gap:4px;flex-wrap:wrap;}
+
+/* the written readout */
+.readout{display:flex;flex-direction:column;gap:9px;}
+.readout .line{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.6;}
+.readout .line:before{content:"";width:6px;height:6px;border-radius:50%;flex:none;margin-top:7px;background:var(--color-accent-500);}
+.readout .line.warn:before{background:var(--st-amber-dot);}
+.readout .line.bad:before{background:var(--st-ruby-dot);}
+.readout b{font-weight:700;}
+.readout .go{border:0;background:none;padding:0;font-size:11px;font-weight:700;color:var(--accent-ink);
+  text-decoration:underline;text-underline-offset:2px;margin-left:6px;}
+
+/* findings list */
+.flist{display:flex;flex-direction:column;}
+.fitem{display:flex;gap:10px;align-items:flex-start;padding:9px 2px;border-bottom:1px dashed var(--color-divider);}
+.fitem:last-child{border-bottom:0;}
+.fitem .bd{flex:1;min-width:0;font-size:12px;}
+.fitem .bd b{font-weight:700;display:block;font-size:12px;}
+.fitem .bd span{color:var(--color-neutral-500);font-size:11px;}
+.fitem .who{flex:none;text-align:right;font-size:11px;color:var(--color-neutral-500);max-width:130px;}
+
+.footer-honest{
+  margin-top:14px;padding:10px 14px;border-radius:10px;font-size:10.5px;color:var(--color-neutral-500);
+  background:var(--color-surface-2);display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+
+/* floating tooltip */
+#tip{
+  position:fixed;pointer-events:none;z-index:50;max-width:260px;
+  background:var(--color-neutral-700);color:var(--color-bg);
+  border-radius:9px;padding:8px 11px;font-size:11.5px;line-height:1.5;
+  box-shadow:var(--shadow-md);opacity:0;transition:opacity .12s;
+}
+#tip b{font-weight:700;}
+#tip .t2{opacity:.75;}
+
+/* placeholder panels for the two existing tabs */
+.stub{
+  border:1px dashed var(--color-neutral-400);border-radius:var(--radius);
+  padding:26px;text-align:center;color:var(--color-neutral-500);font-size:12.5px;
+  background:none;margin-top:16px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="proto-note">
+    <b>Prototype — pictures only.</b> Every figure is invented, and every figure is an aggregation over a
+    sample portfolio computed live on this page. <b>Click anything</b> — a category, a month on the runway,
+    a dot on the risk map, a counterparty — and the whole dashboard re-filters to that slice.
+  </div>
+
+  <div class="demo-strip">
+    <span class="cap">Example organisation</span>
+    <button class="obtn on" data-org="savanna">Savanna Foods</button>
+    <button class="obtn" data-org="ubuntu">Ubuntu Health Trust</button>
+    <button class="obtn" data-org="nordlund">Nordlund Advokatbyrå</button>
+  </div>
+
+  <div class="ins-head">
+    <h1>Insights</h1>
+    <div class="ins-sub" id="ins-sub"></div>
+    <div class="ins-tabrow">
+      <div class="ins-tabs">
+        <button class="ins-tab on" data-tab="intel" style="--tc:var(--tab-1)">Portfolio intelligence</button>
+        <button class="ins-tab" data-tab="friction" style="--tc:var(--tab-2)">Negotiation friction</button>
+        <button class="ins-tab" data-tab="graph" style="--tc:var(--tab-3)">Contract graph</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="view"></div>
+</div>
+<div id="tip"></div>
+
+<script>
+/* ============================================================================
+   THE PORTFOLIO. One row per contract: [counterparty, category, contracted
+   value (millions), end month (0 = Aug 2026 … 17 = Jan 2028, -1 = open-ended),
+   decision recorded?, negotiation rounds, flags].
+   Values are CONTRACTED values from the documents; rounds are HaTi's record.
+   ========================================================================= */
+var FLAGS = {
+  over: {t:'rate above ceiling',      tone:'ruby'},
+  uncap:{t:'uncapped liability',      tone:'ruby'},
+  sole: {t:'sole source',             tone:'ruby'},
+  flow: {t:'flow-down gap',           tone:'ruby'},
+  noceil:{t:'no price ceiling',       tone:'amber'},
+  auto: {t:'renews itself',           tone:'amber'},
+  idx:  {t:'unused indexation right', tone:'amber'},
+  quiet:{t:'negotiation gone quiet',  tone:'amber'},
+  claw: {t:'clawback condition',      tone:'amber'},
+  brk:  {t:'break option ahead',      tone:'amber'}
+};
+var CATL = {customer:'Customer', supplier:'Supplier', grant:'Funding', partner:'Partner',
+            client:'Client', licence:'Licence', lease:'Lease'};
+
+var ORGS = {
+  savanna:{
+    name:'Savanna Foods Ltd', kind:'Food manufacturer', market:'Kenya', cur:'KES', unit:'M',
+    dirNote:'customer value is money in; supplier value is money out — both are contracted, neither is cash received or paid',
+    rows:[
+      ['Naivas Supermarkets','customer',52,7,true,1.6,['idx']],
+      ['Carrefour Kenya','customer',33,11,true,1.4,[]],
+      ['Java House Group','customer',26,5,false,2.1,['quiet','idx']],
+      ['Serena Hotels','customer',21,3,false,2.6,['quiet','uncap']],
+      ['Tuskys Wholesale','customer',18,9,true,1.2,['uncap']],
+      ['QuickMart','customer',15,14,true,1.5,['idx']],
+      ['Chandarana Foodplus','customer',12,8,false,1.7,['uncap']],
+      ['Eastmatt Stores','customer',9,16,true,1.1,[]],
+      ['Zucchini Greengrocers','customer',6,10,true,1.3,[]],
+      ['Rift Valley Logistics','supplier',24.6,2,false,2.0,['over']],
+      ['Nairobi Cold Chain','supplier',11.2,10,true,1.3,['sole']],
+      ['Mombasa Packaging Co','supplier',8.4,13,true,1.4,[]],
+      ['Kilifi Farms Coop','supplier',7.8,9,false,1.8,['noceil']],
+      ['Coast Freight Ltd','supplier',6.1,6,true,1.2,[]],
+      ['Highland Transporters','supplier',5.2,4,false,1.5,['noceil']],
+      ['Equity Facilities','supplier',4.9,1,false,1.3,['auto','noceil']],
+      ['Rift Motors Ltd','supplier',3.8,3,false,1.1,['auto']],
+      ['Bidco Cleaning Services','supplier',2.4,0,false,1.0,['auto','noceil']],
+      ['Cloudpoint Systems','licence',3.1,12,true,1.1,[]],
+      ['Juris HR Suite','licence',1.8,6,false,1.2,['noceil','auto']],
+      ['Industrial Area warehouse','lease',6.8,17,true,1.0,[]],
+      ['Nakuru depot','lease',3.2,11,true,1.0,['brk']]
+    ]
+  },
+  ubuntu:{
+    name:'Ubuntu Health Trust', kind:'Health charity', market:'Kenya', cur:'KES', unit:'M',
+    dirNote:'funding value is money promised in; supplier and partner value is money committed out — all contracted, none received or spent',
+    rows:[
+      ['Global Health Fund','grant',118,16,false,2.4,['claw']],
+      ['Nordic Development Agency','grant',46,10,false,2.8,['claw']],
+      ['County Health Partnership','grant',9,4,true,1.6,[]],
+      ['Kilifi Community Org','partner',6,16,true,1.4,[]],
+      ['Coast Health Network','partner',5,16,false,1.5,['flow']],
+      ['Turkana Wellbeing','partner',4,16,false,1.3,['flow']],
+      ['Mombasa Youth Trust','partner',3,16,true,1.2,[]],
+      ['Rift Motors fleet','supplier',4.1,3,false,1.2,['auto','noceil']],
+      ['MedServe maintenance','supplier',3.2,7,true,1.4,['uncap']],
+      ['LabChem supplies','supplier',2.6,9,true,1.3,[]],
+      ['Askari Security','supplier',1.9,5,false,1.1,['auto']],
+      ['Safari Cleaning','supplier',1.2,8,true,1.0,[]],
+      ['Westlands office','lease',2.8,2,false,1.0,['brk']],
+      ['Kisumu field office','lease',1.4,12,true,1.0,[]]
+    ]
+  },
+  nordlund:{
+    name:'Nordlund Advokatbyrå', kind:'Law firm', market:'Sverige', cur:'SEK', unit:'M',
+    dirNote:'client value is contracted fees in; licences and leases are committed cost out — none of it is invoiced or banked',
+    rows:[
+      ['Hedberg AB','client',3.1,9,true,2.0,['uncap']],
+      ['Sundqvist Industri','client',1.9,6,true,1.5,[]],
+      ['Nordbank retainer','client',1.6,12,false,1.4,['uncap']],
+      ['Vasa Industri','client',1.2,4,true,1.3,[]],
+      ['Ekström Fastigheter','client',0.9,8,false,1.2,['uncap']],
+      ['Lindgren Group','client',0.8,13,true,1.1,[]],
+      ['Åberg Konsult','client',0.6,10,true,1.2,['idx']],
+      ['Juridik Pro AB','licence',0.4,15,false,1.1,['noceil','auto']],
+      ['CaseFlow licence','licence',0.3,15,false,1.0,['noceil','auto']],
+      ['DocSign licence','licence',0.25,15,false,1.0,['auto']],
+      ['Vasagatan office','lease',3.4,15,false,1.0,['brk']],
+      ['Städservice cleaning','supplier',0.2,4,false,1.0,['auto']]
+    ]
+  }
+};
+var MONTHS=(function(){
+  var n=['Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan'];
+  var y=[26,26,26,26,26,27,27,27,27,27,27,27,27,27,27,27,27,28];
+  return n.map(function(m,i){return m+' ’'+y[i];});
+})();
+
+/* ---------------------------- state ------------------------------------- */
+var org='savanna', tab='intel';
+var F={cat:null, cp:null, month:null};       // the stacked filters
+
+var $=function(s){return document.querySelector(s);};
+var esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');};
+function O(){return ORGS[org];}
+function srcTag(k){return '<span class="src '+k+'">'+(k==='doc'?'Contract':'HaTi')+'</span>';}
+function fmt(v){return v>=100?Math.round(v):(Math.round(v*10)/10);}
+
+function rows(exclude){
+  /* proper cross-filtering: each panel is filtered by every dimension EXCEPT
+     its own, so the panel you clicked keeps its full axis with the selection
+     highlighted, while everything else narrows */
+  return O().rows.filter(function(r){
+    if(exclude!=='cat'   && F.cat   && r[1]!==F.cat) return false;
+    if(exclude!=='cp'    && F.cp    && r[0]!==F.cp) return false;
+    if(exclude!=='month' && F.month!==null && r[3]!==F.month) return false;
+    return true;
+  });
+}
+function sum(rs){return rs.reduce(function(a,r){return a+r[2];},0);}
+
+/* ---------------------------- panels ------------------------------------- */
+function chipsBar(){
+  var chips=[];
+  if(F.cat)   chips.push({k:'cat',  l:CATL[F.cat]});
+  if(F.cp)    chips.push({k:'cp',   l:F.cp});
+  if(F.month!==null) chips.push({k:'month',l:'ends '+MONTHS[F.month]});
+  var c=chips.map(function(c){
+    return '<button class="fchip" data-unf="'+c.k+'">'+esc(c.l)+
+      '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>';
+  }).join('');
+  return '<div class="hintline">'+
+    '<span class="how"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3.5 11 8l4.6.6-3.4 3.2.9 4.6L9 14.2l-4.1 2.2.9-4.6L2.4 8.6 7 8Z"/></svg>'+
+    'Click anything to focus the whole page on it · click again to release</span>'+
+    '<span class="chips">'+c+(chips.length?'<button class="clearall" data-clearall>clear all</button>':'')+'</span></div>';
+}
+
+function kpis(){
+  var rs=rows(null), all=O().rows;
+  var undec=rs.filter(function(r){return !r[4] && r[3]>=0;});
+  var soon=rs.filter(function(r){return r[3]>=0 && r[3]<=3;});
+  var flagged=rs.filter(function(r){return r[6].length>0;});
+  var scope = (F.cat||F.cp||F.month!==null) ? rs.length+' of '+all.length+' contracts in focus' : all.length+' contracts';
+  return '<div class="kpis">'+
+    '<div class="kpi hero"><div class="k">Contracted value · '+O().cur+'</div>'+
+    '<div class="v">'+fmt(sum(rs))+'<small>'+O().unit+'</small></div><div class="d">'+esc(scope)+'</div></div>'+
+    '<div class="kpi"><div class="k">Ends within 4 months</div><div class="v">'+fmt(sum(soon))+'<small>'+O().unit+'</small></div>'+
+    '<div class="d">'+soon.length+' contract'+(soon.length===1?'':'s')+' — the near horizon</div></div>'+
+    '<div class="kpi"><div class="k">No decision recorded</div><div class="v">'+fmt(sum(undec))+'<small>'+O().unit+'</small></div>'+
+    '<div class="d">'+undec.length+' ending with nothing filed</div></div>'+
+    '<div class="kpi"><div class="k">Carrying a finding</div><div class="v">'+flagged.length+'</div>'+
+    '<div class="d">of '+rs.length+' in focus</div></div>'+
+    '</div>';
+}
+
+/* the renewal runway — stacked monthly bars, click a month to filter */
+function runway(){
+  var rs=rows('month');
+  var per=MONTHS.map(function(_,m){
+    var mr=rs.filter(function(r){return r[3]===m;});
+    return {dec:sum(mr.filter(function(r){return r[4];})),
+            und:sum(mr.filter(function(r){return !r[4];})),
+            n:mr.length};
+  });
+  var peak=Math.max.apply(null,per.map(function(p){return p.dec+p.und;}))||1;
+  var W=920,H=190,px=54,pb=34,bw=(W-px-10)/18;
+  var bars=per.map(function(p,m){
+    var tot=p.dec+p.und;
+    var hU=Math.round((H-pb-14)*p.und/peak), hD=Math.round((H-pb-14)*p.dec/peak);
+    var x=px+m*bw+3, sel=F.month===m;
+    var g='<g class="clickable" data-month="'+m+'" data-tip="<b>'+MONTHS[m]+'</b><br>'+p.n+' contract'+(p.n===1?'':'s')+' end · '+fmt(tot)+O().unit+' '+O().cur+'<br><span class=\'t2\'>'+fmt(p.und)+O().unit+' with no decision recorded</span>">';
+    if(tot===0) g+='<rect x="'+x+'" y="'+(H-pb-3)+'" width="'+(bw-6)+'" height="3" rx="1.5" fill="var(--ch-grid)"/>';
+    else{
+      var y=H-pb;
+      if(p.dec>0){ y-=hD; g+='<rect x="'+x+'" y="'+y+'" width="'+(bw-6)+'" height="'+Math.max(hD,3)+'" rx="3" fill="var(--color-accent-600)"'+(F.month!==null&&!sel?' opacity=".3"':'')+'/>'; }
+      if(p.und>0){ y-=hU; g+='<rect x="'+x+'" y="'+y+'" width="'+(bw-6)+'" height="'+Math.max(hU,3)+'" rx="3" fill="var(--st-amber-dot)"'+(F.month!==null&&!sel?' opacity=".3"':'')+'/>'; }
+      if(sel) g+='<rect x="'+(x-2)+'" y="'+(y-4)+'" width="'+(bw-2)+'" height="'+(H-pb-y+6)+'" rx="5" fill="none" stroke="var(--accent-solid)" stroke-width="2"/>';
+    }
+    g+='<rect x="'+(x-2)+'" y="10" width="'+(bw-2)+'" height="'+(H-pb-8)+'" fill="transparent"/>';
+    if(m%3===0) g+='<text x="'+(x+(bw-6)/2)+'" y="'+(H-pb+16)+'" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-500)">'+MONTHS[m]+'</text>';
+    return g+'</g>';
+  }).join('');
+  var half=fmt(per.slice(0,6).reduce(function(a,p){return a+p.dec+p.und;},0));
+  return '<div class="card"><div class="card-h"><h3>The renewal runway</h3>'+
+    '<span class="hint">what ends when, and whether anyone has decided</span>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Contracted value ending in each of the next 18 months, split into decided and undecided.">'+
+    '<g stroke="var(--ch-grid)" stroke-width="1"><line x1="'+px+'" y1="'+(H-pb)+'" x2="'+(W-6)+'" y2="'+(H-pb)+'"/></g>'+
+    '<text x="'+(px-8)+'" y="20" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">'+fmt(peak)+O().unit+'</text>'+
+    '<text x="'+(px-8)+'" y="'+(H-pb+3)+'" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">0</text>'+
+    bars+'</svg>'+
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--color-neutral-600);margin-top:8px;">'+
+    '<span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:10px;height:10px;border-radius:3px;background:var(--color-accent-600);display:inline-block;"></i>Decision recorded</span>'+
+    '<span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:10px;height:10px;border-radius:3px;background:var(--st-amber-dot);display:inline-block;"></i>Nothing filed yet</span>'+
+    '<span style="margin-left:auto;color:var(--color-neutral-500);">'+half+O().unit+' '+O().cur+' lands in the next six months</span>'+
+    '</div></div>';
+}
+
+/* category mix — clickable */
+function catmix(){
+  var rs=rows('cat');
+  var per={};
+  rs.forEach(function(r){ per[r[1]]=(per[r[1]]||0)+r[2]; });
+  var keys=Object.keys(per).sort(function(a,b){return per[b]-per[a];});
+  var max=per[keys[0]]||1;
+  return '<div class="card"><div class="card-h"><h3>Where the value sits</h3>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    keys.map(function(k){
+      var cls = F.cat===k?' sel' : (F.cat?' dim':'');
+      return '<button class="catrow'+cls+'" data-cat="'+k+'">'+
+        '<span class="nm">'+CATL[k]+'</span>'+
+        '<span class="track"><span class="fill" style="width:'+Math.round(per[k]/max*100)+'%"></span></span>'+
+        '<span class="val">'+fmt(per[k])+O().unit+'</span></button>';
+    }).join('')+
+    '<div style="font-size:10.5px;color:var(--color-neutral-500);margin-top:9px;">'+esc(O().dirNote)+'.</div></div>';
+}
+
+/* the risk map — value × friction scatter, flags as colour */
+function riskmap(){
+  var rs=rows('cp');
+  var W=560,H=250,pl=56,pb=36;
+  var vmax=Math.max.apply(null,rs.map(function(r){return r[2];}))*1.15||1;
+  var rmax=3.0;
+  var dots=rs.map(function(r){
+    var x=pl+((r[5]-0.8)/(rmax-0.8))*(W-pl-16);
+    var y=(H-pb)-(r[2]/vmax)*(H-pb-18);
+    var worst=r[6].map(function(f){return FLAGS[f].tone;}).indexOf('ruby')>=0?'ruby':(r[6].length?'amber':'ok');
+    var fill=worst==='ruby'?'var(--st-ruby-dot)':worst==='amber'?'var(--st-amber-dot)':'var(--color-accent-500)';
+    var sel=F.cp===r[0];
+    var flags=r[6].map(function(f){return FLAGS[f].t;}).join(', ')||'no findings';
+    var label = (r[2]>=vmax*0.45 || (worst==='ruby' && r[2]>=vmax*0.12) || sel)
+      ? '<text x="'+(x+11)+'" y="'+(y+3.5)+'" font-size="10" font-weight="700" fill="var(--color-text)" stroke="var(--color-surface)" stroke-width="3" paint-order="stroke">'+esc(r[0])+'</text>' : '';
+    return '<g class="clickable" data-cp="'+esc(r[0])+'" data-tip="<b>'+esc(r[0])+'</b><br>'+
+      fmt(r[2])+O().unit+' '+O().cur+' contracted · '+r[5].toFixed(1)+' rounds<br><span class=\'t2\'>'+esc(flags)+'</span>">'+
+      '<circle cx="'+x+'" cy="'+y+'" r="'+(sel?10:7.5)+'" fill="'+fill+'" stroke="var(--color-surface)" stroke-width="2"'+
+      (F.cp&&!sel?' opacity=".35"':'')+'/>'+label+'</g>';
+  }).join('');
+  return '<div class="card"><div class="card-h"><h3>The risk map</h3>'+
+    '<span class="hint">contracted value against negotiation friction — the top-right is where trouble is expensive</span>'+
+    '<span class="side">'+srcTag('doc')+' '+srcTag('hati')+'</span></div>'+
+    '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Each dot is a counterparty, placed by contracted value and negotiation rounds, coloured by its worst finding.">'+
+    '<rect x="'+(pl+(W-pl-16)*0.5)+'" y="10" width="'+((W-pl-16)*0.5+6)+'" height="'+((H-pb-18)*0.55)+'" rx="8" fill="var(--st-ruby-bg)" opacity=".35"/>'+
+    '<text x="'+(W-14)+'" y="26" text-anchor="end" font-size="9.5" font-weight="700" fill="var(--st-ruby-fg)" opacity=".8">EXPENSIVE AND DIFFICULT</text>'+
+    '<g stroke="var(--ch-grid)" stroke-width="1">'+
+    '<line x1="'+pl+'" y1="'+(H-pb)+'" x2="'+(W-8)+'" y2="'+(H-pb)+'"/>'+
+    '<line x1="'+pl+'" y1="12" x2="'+pl+'" y2="'+(H-pb)+'"/></g>'+
+    '<text x="'+(pl-8)+'" y="20" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">'+fmt(vmax)+O().unit+'</text>'+
+    '<text x="'+(pl-8)+'" y="'+(H-pb+3)+'" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">0</text>'+
+    '<text x="'+pl+'" y="'+(H-8)+'" font-size="9.5" fill="var(--color-neutral-500)">calm negotiations</text>'+
+    '<text x="'+(W-8)+'" y="'+(H-8)+'" text-anchor="end" font-size="9.5" fill="var(--color-neutral-500)">many rounds →</text>'+
+    dots+'</svg>'+
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--color-neutral-600);margin-top:6px;">'+
+    '<span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:9px;height:9px;border-radius:50%;background:var(--st-ruby-dot);display:inline-block;"></i>Serious finding</span>'+
+    '<span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:9px;height:9px;border-radius:50%;background:var(--st-amber-dot);display:inline-block;"></i>Worth watching</span>'+
+    '<span style="display:inline-flex;align-items:center;gap:6px;"><i style="width:9px;height:9px;border-radius:50%;background:var(--color-accent-500);display:inline-block;"></i>Clean</span>'+
+    '</div></div>';
+}
+
+/* counterparty leaderboard — clickable rows */
+function leaderboard(){
+  var rs=rows('cp');
+  var per={};
+  rs.forEach(function(r){
+    if(!per[r[0]]) per[r[0]]={v:0,n:0,fl:{},cat:r[1]};
+    per[r[0]].v+=r[2]; per[r[0]].n++;
+    r[6].forEach(function(f){per[r[0]].fl[f]=1;});
+  });
+  var keys=Object.keys(per).sort(function(a,b){return per[b].v-per[a].v;}).slice(0,8);
+  var max=per[keys[0]]?per[keys[0]].v:1;
+  return '<div class="card"><div class="card-h"><h3>Counterparties by contracted value</h3>'+
+    '<span class="side">'+srcTag('doc')+'</span></div>'+
+    '<div style="overflow-x:auto;"><table class="lb"><thead><tr>'+
+    '<th>Counterparty</th><th style="width:34%">Value</th><th class="num">'+O().cur+' '+O().unit+'</th><th>Findings</th></tr></thead><tbody>'+
+    keys.map(function(k){
+      var p=per[k], sel=F.cp===k;
+      var fl=Object.keys(p.fl).map(function(f){
+        return '<span class="pill '+FLAGS[f].tone+'"><span class="dot"></span>'+FLAGS[f].t+'</span>';
+      }).join('')||'<span style="color:var(--color-neutral-400);font-size:10.5px;">none</span>';
+      return '<tr class="'+(sel?'sel':'')+'" data-cp="'+esc(k)+'"><td style="font-weight:600;">'+esc(k)+
+        '<div style="font-size:10px;color:var(--color-neutral-500);">'+CATL[p.cat]+(p.n>1?' · '+p.n+' contracts':'')+'</div></td>'+
+        '<td><span class="vbar" style="width:'+Math.round(p.v/max*100)+'%"></span></td>'+
+        '<td class="num" style="font-weight:700;">'+fmt(p.v)+'</td>'+
+        '<td><div class="flags">'+fl+'</div></td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* what this slice says — sentences computed from the filtered rows */
+function readout(){
+  var rs=rows(null);
+  var lines=[];
+  if(!rs.length){
+    lines.push({t:'Nothing matches this combination of filters — which is itself an answer. Clear one and look again.',tone:''});
+  } else {
+    var undec=rs.filter(function(r){return !r[4]&&r[3]>=0;});
+    var v=sum(rs), uv=sum(undec);
+    if(undec.length)
+      lines.push({tone:uv/v>0.3?'bad':'warn', t:'<b>'+fmt(uv)+O().unit+' '+O().cur+'</b> of the value in focus ends with <b>no decision recorded</b> — '+
+        undec.length+' contract'+(undec.length===1?'':'s')+', nearest '+
+        MONTHS[Math.min.apply(null,undec.map(function(r){return r[3];}))]+'.'});
+    var ruby=rs.filter(function(r){return r[6].some(function(f){return FLAGS[f].tone==='ruby';});});
+    if(ruby.length)
+      lines.push({tone:'bad', t:'<b>'+ruby.length+'</b> in focus '+(ruby.length===1?'carries':'carry')+' a <b>serious finding</b> — '+
+        ruby.slice(0,3).map(function(r){return esc(r[0])+' ('+FLAGS[r[6].filter(function(f){return FLAGS[f].tone==='ruby';})[0]].t+')';}).join(', ')+
+        (ruby.length>3?' and more':'')+'.'});
+    var slow=rs.filter(function(r){return r[5]>=1.8;}).sort(function(a,b){return b[5]-a[5];});
+    if(slow.length)
+      lines.push({tone:'warn', t:'The slowest negotiation here is <b>'+esc(slow[0][0])+'</b> at <b>'+slow[0][5].toFixed(1)+' rounds</b>'+
+        (slow.length>1?', with '+(slow.length-1)+' other'+(slow.length>2?'s':'')+' above 1.8':'')+'.'});
+    var top=rs.slice().sort(function(a,b){return b[2]-a[2];})[0];
+    lines.push({tone:'', t:'The largest single agreement in focus is <b>'+esc(top[0])+'</b> at <b>'+fmt(top[2])+O().unit+' '+O().cur+
+      '</b> contracted — '+Math.round(top[2]/v*100)+'% of this slice.'});
+    var auto=rs.filter(function(r){return r[6].indexOf('auto')>=0;});
+    if(auto.length)
+      lines.push({tone:'warn', t:'<b>'+auto.length+'</b> renew'+(auto.length===1?'s itself':' themselves')+' with no decision point written in — '+
+        auto.map(function(r){return esc(r[0]);}).slice(0,3).join(', ')+(auto.length>3?'…':'')+'.'});
+  }
+  return '<div class="card"><div class="card-h"><h3>What this slice says</h3>'+
+    '<span class="hint">recomputed from the '+rs.length+' contract'+(rs.length===1?'':'s')+' in focus — not written by an AI</span></div>'+
+    '<div class="readout">'+lines.map(function(l){
+      return '<div class="line '+l.tone+'"><span>'+l.t+'</span></div>';
+    }).join('')+'</div></div>';
+}
+
+/* the findings inside the slice */
+function findings(){
+  var rs=rows(null);
+  var items=[];
+  rs.forEach(function(r){
+    r[6].forEach(function(f){
+      items.push({cp:r[0], v:r[2], f:f, tone:FLAGS[f].tone});
+    });
+  });
+  items.sort(function(a,b){return (a.tone==='ruby'?0:1)-(b.tone==='ruby'?0:1) || b.v-a.v;});
+  var shown=items.slice(0,7);
+  return '<div class="card"><div class="card-h"><h3>Findings in this slice</h3>'+
+    '<span class="hint">'+items.length+' open</span></div>'+
+    (shown.length?'<div class="flist">'+shown.map(function(i){
+      return '<div class="fitem"><span class="pill '+i.tone+'" style="margin-top:2px;"><span class="dot"></span>'+FLAGS[i.f].t+'</span>'+
+        '<div class="bd"><b>'+esc(i.cp)+'</b><span>'+fmt(i.v)+O().unit+' '+O().cur+' contracted behind it</span></div></div>';
+    }).join('')+'</div>'+(items.length>shown.length?'<div style="font-size:11px;color:var(--color-neutral-500);margin-top:8px;">and '+(items.length-shown.length)+' more in this slice.</div>':'')
+    :'<div style="font-size:12px;color:var(--color-neutral-500);padding:8px 0;">No findings in this slice — a clean corner of the book.</div>')+
+    '</div>';
+}
+
+/* ---------------------------- assembly ----------------------------------- */
+function renderIntel(){
+  $('#view').innerHTML =
+    '<div class="dash">'+chipsBar()+kpis()+
+    '<div class="grid g-8-4 row">'+runway()+catmix()+'</div>'+
+    '<div class="grid g-6-6 row">'+riskmap()+leaderboard()+'</div>'+
+    '<div class="grid g-7-5 row">'+readout()+findings()+'</div>'+
+    '<div class="footer-honest">Every figure on this page is an aggregation over the contracts in focus — '+
+    srcTag('doc')+' contracted values and dates from signed documents, '+srcTag('hati')+
+    ' rounds and decisions from HaTi’s own filing record. Nothing is estimated, benchmarked, or taken from another system.</div>'+
+    '</div>';
+}
+function renderStub(which){
+  $('#view').innerHTML = '<div class="stub">The <b>'+(which==='friction'?'Negotiation friction':'Contract graph')+
+    '</b> tab lives in the platform today, unchanged. This prototype adds the third tab beside it.</div>';
+}
+function renderAll(){
+  $('#ins-sub').textContent = O().name+' · '+O().kind+', '+O().market+' — click the dashboard to interrogate the portfolio';
+  if(tab==='intel') renderIntel(); else renderStub(tab);
+}
+
+/* ---------------------------- interaction -------------------------------- */
+document.addEventListener('click', function(ev){
+  var t=ev.target.closest('[data-org],[data-tab],[data-cat],[data-cp],[data-month],[data-unf],[data-clearall]');
+  if(!t) return;
+  if(t.dataset.org){ org=t.dataset.org; F={cat:null,cp:null,month:null};
+    document.querySelectorAll('.obtn').forEach(function(b){b.classList.toggle('on',b.dataset.org===org);});
+    renderAll(); return; }
+  if(t.dataset.tab){ tab=t.dataset.tab;
+    document.querySelectorAll('.ins-tab').forEach(function(b){b.classList.toggle('on',b.dataset.tab===tab);});
+    renderAll(); return; }
+  if(t.dataset.cat){ F.cat = F.cat===t.dataset.cat?null:t.dataset.cat; renderIntel(); return; }
+  if(t.dataset.cp!==undefined){ F.cp = F.cp===t.dataset.cp?null:t.dataset.cp; renderIntel(); return; }
+  if(t.dataset.month!==undefined){ var m=+t.dataset.month; F.month = F.month===m?null:m; renderIntel(); return; }
+  if(t.dataset.unf){ F[t.dataset.unf]=null; renderIntel(); return; }
+  if(t.dataset.clearall!==undefined){ F={cat:null,cp:null,month:null}; renderIntel(); return; }
+});
+
+/* one floating tooltip for every chart mark that declares data-tip */
+var tip=$('#tip');
+document.addEventListener('mousemove', function(ev){
+  var m=ev.target.closest('[data-tip]');
+  if(m){
+    tip.innerHTML=m.dataset.tip;
+    var x=Math.min(ev.clientX+14, window.innerWidth-280), y=ev.clientY+16;
+    tip.style.left=x+'px'; tip.style.top=y+'px'; tip.style.opacity=1;
+  } else tip.style.opacity=0;
+});
+
+renderAll();
+</script>
+</body>
+</html>

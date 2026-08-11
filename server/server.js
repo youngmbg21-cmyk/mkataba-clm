@@ -2288,6 +2288,24 @@ app.put('/api/org/jurisdiction', auth, admin, (req, res) => {
   res.json({ ok: true, jurisdiction: id });
 });
 
+/* HOW THIS WORKSPACE'S WORK IS SHAPED, and what it calls one piece of it.
+   Admin-gated and workspace-wide for the same reason the market is: it decides
+   which panels the whole team sees and what the words on them are, so two
+   members must not be able to disagree about it. Validated against the lists
+   rather than stored as typed — an unknown shape would simply hide panels with
+   nothing to say about why. */
+const WORK_SHAPES = ['standing', 'project'];
+const WORK_WORDS = ['job', 'project', 'order', 'matter', 'engagement', 'case'];
+app.put('/api/org/workshape', auth, admin, (req, res) => {
+  const body = req.body || {};
+  const shapes = (Array.isArray(body.shapes) ? body.shapes : []).filter(s => WORK_SHAPES.includes(s));
+  const word = WORK_WORDS.includes(body.word) ? body.word : 'project';
+  if (!shapes.length) return res.status(400).json({ error: 'At least one shape is required' });
+  const org = getSetting('org') || {};
+  setSetting('org', { ...org, workShape: { shapes, word } });
+  res.json({ ok: true, shapes, word });
+});
+
 /* WHICH LANGUAGE THIS PERSON READS, stored per user rather than per workspace.
    Note the middleware: `auth` and not `admin`, and it writes req.user.id and
    never an id from the body — changing your own language is every member's
@@ -2819,6 +2837,8 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
       properties: {
         counterparty: { type: 'string', description: 'The other party (not the client). Empty if unclear.' },
         contractType: { type: 'string', description: 'e.g. Raw Material Supply, Lease, NDA, Distribution, Professional Services.' },
+        category: { type: 'string', enum: ['customer', 'supplier', 'employment', 'lease', 'licence', 'partner', 'funding', 'other'],
+          description: 'Which side of the business this sits on. "customer" = they pay us for goods, work or services. "supplier" = we pay them, including subcontracts. "employment" = a contract of service with a person. "lease" = premises, land or equipment hired. "licence" = software or IP licensed. "partner" = a collaboration with no money changing hands directly. "funding" = a grant or donor agreement. Use "other" only when none fits.' },
         effectiveDate: { type: 'string', description: 'ISO yyyy-mm-dd, or empty.' },
         expiryDate: { type: 'string', description: 'ISO yyyy-mm-dd end/expiry date, or empty.' },
         value: { type: 'number', description: 'Contract value as a number (no currency symbol). 0 if none/non-monetary.' },
@@ -2827,16 +2847,29 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
         noticePeriodDays: { type: 'number', description: 'Notice period in days for termination/non-renewal. 0 if none/unclear.' },
         governingLaw: { type: 'string', description: 'e.g. Kenya, Sweden, England & Wales. Empty if unclear.' },
         paymentTerms: { type: 'string', description: 'Short phrase, e.g. "30 days from invoice". Empty if none.' },
+        // What the agreement leaves behind once the work is done, and what it
+        // leaves open. Each is read off the document like everything above —
+        // 0 or empty is the correct answer when the contract is silent, and
+        // is very different from a small number.
+        retentionPct: { type: 'number', description: 'Percentage of the price held back as retention until after completion, e.g. 10 for "10% retention". 0 if the contract holds nothing back.' },
+        retentionReleaseDays: { type: 'number', description: 'Days after completion/handover before retention is released, converted to days (a month is 30, a year 365). 0 if there is no retention or no stated period.' },
+        warrantyMonths: { type: 'number', description: 'Defects liability, warranty or guarantee period after completion, in MONTHS. 0 if none is stated.' },
+        liabilityCapped: { type: 'string', enum: ['capped', 'uncapped', 'unclear'],
+          description: 'Is OUR liability limited? "capped" if there is a stated ceiling on liability. "uncapped" if the contract says liability is unlimited or excludes a cap. "unclear" if the document does not settle it.' },
+        priceReview: { type: 'string', enum: ['nochange', 'ceiling', 'indexed', 'open', 'unclear'],
+          description: 'How the price may move during the term. "nochange" = fixed for the term. "ceiling" = rises allowed but capped at a stated figure. "indexed" = tied to an index such as CPI. "open" = the other side may change the price with no stated limit. "unclear" if the document does not settle it.' },
         confidence: { type: 'object', properties: {
-          counterparty: conf, contractType: conf, effectiveDate: conf, expiryDate: conf, value: conf,
+          counterparty: conf, contractType: conf, category: conf, effectiveDate: conf, expiryDate: conf, value: conf,
           renewalType: conf, noticePeriodDays: conf, governingLaw: conf, paymentTerms: conf,
+          retentionPct: conf, retentionReleaseDays: conf, warrantyMonths: conf, liabilityCapped: conf, priceReview: conf,
         }, description: 'Per-field confidence.' },
         // Source spans turn the confirm step from a leap of faith into a
         // glance: the review screen shows the phrase each value came from,
         // reusing the verbatim-quoting pattern already in the clause review.
         sourceSpans: { type: 'object', properties: {
-          counterparty: span, contractType: span, effectiveDate: span, expiryDate: span, value: span,
+          counterparty: span, contractType: span, category: span, effectiveDate: span, expiryDate: span, value: span,
           currency: span, renewalType: span, noticePeriodDays: span, governingLaw: span, paymentTerms: span,
+          retentionPct: span, retentionReleaseDays: span, warrantyMonths: span, liabilityCapped: span, priceReview: span,
         }, description: 'For each field you filled in, the short verbatim phrase it came from.' },
       },
       required: ['confidence'],
@@ -2850,6 +2883,8 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
     ? `\n\nThis is part ${part} of ${parts} of a longer agreement, read in overlapping sections. Extract only what THIS section supports; leave anything it does not mention empty rather than inferring it from elsewhere.`
     : '';
   const prompt = `Extract metadata from this contract. Today is ${today}. Use ONLY what the text supports; leave a field empty (or 0) rather than guessing, and mark uncertain fields low confidence.
+
+Silence is an answer. If the contract holds nothing back, retentionPct is 0 — not a guess at what is usual. If it states no warranty period, warrantyMonths is 0. If it does not settle whether liability is capped, liabilityCapped is "unclear". A wrong number here is worse than no number, because someone will chase money that was never held.
 
 The document may contain markers like "[... 12,000 characters omitted ...]". Those mark text that was deliberately elided to fit — do NOT infer anything from a gap, and do not treat the sections either side of one as adjacent.
 

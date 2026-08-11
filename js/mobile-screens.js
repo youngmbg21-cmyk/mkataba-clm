@@ -211,9 +211,14 @@ function mKpiSheetHtml(){
 
 /* ------------------------------------------------------------- CONTRACTS ---
    The register, filtered by the same state the desktop filters by. The chips
-   are two groups on one scrolling line: the four statuses, then the value
-   streams. Statuses write regState().stage; streams write regState().type —
-   which is exactly what the desktop's own two dropdowns write. */
+   are three groups on one scrolling line, hairline-separated: the four
+   statuses, then the categories present in the book, then the value streams.
+   Statuses write regState().stage, categories .category and streams .type —
+   exactly what the desktop's own dropdowns write.
+
+   Categories come BEFORE streams deliberately. Appended last they sat ten
+   chips along, past every status and every folder, which is further than a
+   thumb travels. */
 function mContractsHtml(){
   const R = (typeof regState==='function') ? regState() : { query:'', stage:'all', type:'all' };
   let rows = [];
@@ -242,6 +247,19 @@ function mContractsHtml(){
     <button class="m-chip${R.type===f?' on':''}" data-m-stream="${mEsc(f)}">
       <span class="m-chip-dot" style="background:${(typeof folderColor==='function')?folderColor(f):'var(--color-neutral-400)'}"></span>${mEsc(FOLDERS[f].name)}
     </button>`).join('');
+  /* Category chips, but only the ones this book actually contains. The desktop
+     can afford to list all eight in a dropdown; eight more chips on a phone,
+     six of them matching nothing, is a row nobody scrolls. One category is not
+     a filter either — it selects everything — so the group only appears once
+     there is a choice to make. */
+  const present = [];
+  (state.contracts||[]).forEach(c=>{ const k=(c.metadata&&c.metadata.category)||'';
+    if(k && present.indexOf(k)<0) present.push(k); });
+  const catOrder = (typeof regCategories==='function') ? regCategories() : [];
+  present.sort((a,b)=>catOrder.indexOf(a)-catOrder.indexOf(b));
+  const catChips = present.length>1 ? present.map(k=>`
+    <button class="m-chip${R.category===k?' on':''}" data-m-cat="${mEsc(k)}">${mEsc(
+      (typeof regCatLabel==='function')?regCatLabel(k):k)}</button>`).join('') : '';
 
   const total = (state.contracts||[]).length;
   const list = rows.length ? `
@@ -285,7 +303,7 @@ function mContractsHtml(){
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input id="m-reg-q" value="${mEsc(R.query||'')}" placeholder="${i18t('m_search_contracts')}" autocomplete="off">
       </div>
-      <div class="m-chips" style="margin:0 -16px">${statusChips}${streamChips}</div>
+      <div class="m-chips" style="margin:0 -16px">${statusChips}${catChips?'<span class="m-chip-sep"></span>'+catChips:''}<span class="m-chip-sep"></span>${streamChips}</div>
     </div>
     <div class="m-scroll">${list}</div>`;
 }
@@ -450,7 +468,7 @@ function mScreenAct(k, btn){
   }
   if(k==='clear-filters'){
     const R = (typeof regState==='function') ? regState() : null;
-    if(R){ R.query=''; R.stage='all'; R.type='all'; R.view=null; R.page=1; }
+    if(R){ R.query=''; R.stage='all'; R.type='all'; R.category='all'; R.view=null; R.page=1; }
     mRender(); return;
   }
   if(k==='new-wizard'){ mCloseSheet(); if(window.openWizard) openWizard(); return; }
@@ -470,13 +488,17 @@ function mWireScreen(root){
     mGo('contract',{ tab:'doc' });
   }));
 
-  /* The register's two chip groups write straight into regState(). */
+  /* The register's chip groups write straight into regState(). */
   root.querySelectorAll('[data-m-stage]').forEach(b=>b.addEventListener('click',()=>{
     const R = regState(); R.stage = b.getAttribute('data-m-stage'); R.page = 1; mRender();
   }));
   root.querySelectorAll('[data-m-stream]').forEach(b=>b.addEventListener('click',()=>{
     const R = regState(); const k = b.getAttribute('data-m-stream');
     R.type = (R.type===k) ? 'all' : k; R.page = 1; mRender();
+  }));
+  root.querySelectorAll('[data-m-cat]').forEach(b=>b.addEventListener('click',()=>{
+    const R = regState(); const k = b.getAttribute('data-m-cat');
+    R.category = (R.category===k) ? 'all' : k; R.page = 1; mRender();
   }));
 
   /* Search: repaint the list only, and put the caret back where it was. A full

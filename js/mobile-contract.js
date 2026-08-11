@@ -218,7 +218,16 @@ function mTermsHtml(c){
     { get label(){ return i18t('mc_expiry'); }, value:dateOf((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||c.expiry) },
     { get label(){ return i18t('mc_payment_terms'); }, value:md.paymentTerms },
     { get label(){ return i18t('mc_notice_period'); }, value:md.noticePeriodDays?md.noticePeriodDays+' days':'' },
-    { get label(){ return i18t('mc_renewal'); }, value:(typeof RENEWAL_LABEL==='object'&&RENEWAL_LABEL[md.renewalType])||md.renewalType },
+    { get label(){ return i18t('mc_renewal'); }, value:(typeof metaOptLabel==='function'&&md.renewalType)?metaOptLabel(md.renewalType):md.renewalType },
+    { get label(){ return i18t('me_category'); }, value:(typeof metaOptLabel==='function'&&md.category)?metaOptLabel(md.category):md.category },
+    /* The label already carries the unit ("Retention held (%)", "Warranty
+       period (months)"), so the value is the bare number. Appending " months"
+       here would print an English word beside a Swedish label — a half-English
+       screen is still a well-formed screen, which is why nothing would catch it. */
+    { get label(){ return i18t('me_retention_pct'); }, value:md.retentionPct||'' },
+    { get label(){ return i18t('me_warranty_months'); }, value:md.warrantyMonths||'' },
+    { get label(){ return i18t('me_liability_cap'); }, value:(typeof metaOptLabel==='function'&&md.liabilityCapped)?metaOptLabel(md.liabilityCapped):md.liabilityCapped },
+    { get label(){ return i18t('me_price_review'); }, value:(typeof metaOptLabel==='function'&&md.priceReview)?metaOptLabel(md.priceReview):md.priceReview },
     { get label(){ return i18t('mc_governing_law'); }, value:md.governingLaw },
     { get label(){ return i18t('mc_filed_under'); }, value:(typeof FOLDERS==='object'&&FOLDERS[c.folder]&&FOLDERS[c.folder].name)||'' },
     { get label(){ return i18t('mc_contract_id'); }, value:c.id },

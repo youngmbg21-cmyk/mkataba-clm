@@ -476,6 +476,39 @@ function renderTeam(){
         :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_market_admin_only')}</p>`}
       </section>
 
+      ${''/* HOW THE WORK IS SHAPED. Beside the market and for the same reason:
+             both are the COMPANY's answer, both are admin-only, and both change
+             what every member sees. This one decides which panels appear on the
+             Portfolio tab and what noun they use. */}
+      <section style="${cardStyle}">
+        <h4 style="${h4Style}">${i18t('set_workshape')}</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_workshape_sub')}</p>
+        ${(isAdmin()&&typeof wsCfg==='function')?(()=>{ const cfg=wsCfg(); const det=wsDetect();
+          const box=(k,title,sub)=>`<label style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${cfg.shapes.includes(k)?'var(--color-accent)':'var(--color-divider)'};border-radius:8px;cursor:pointer;background:${cfg.shapes.includes(k)?'color-mix(in srgb,var(--color-accent) 7%,transparent)':'var(--color-surface)'};flex:1 1 240px;min-width:0">
+            <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
+            <span style="min-width:0"><span style="display:block;font-size:12.5px;font-weight:600">${title}</span>
+            <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
+          return `
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">
+          ${box('standing',i18t('set_shape_standing'),i18t('set_shape_standing_sub'))}
+          ${box('project',i18t('set_shape_project'),i18t('set_shape_project_sub'))}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:9px;font-size:12px;font-weight:600">${i18t('set_work_word')}
+            <select id="set-work-word" style="min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:7px 10px;font:inherit;font-size:13px;color:inherit;outline:none">
+              ${WS_WORDS.map(w=>`<option value="${w}"${w===cfg.word?' selected':''}>${esc(i18t('ww_'+w+'_title'))}</option>`).join('')}
+            </select></label>
+          <span style="font-size:10.5px;color:var(--color-neutral-600)">${i18t('set_work_word_sub')}</span>
+        </div>
+        <div style="padding:9px 11px;border-radius:7px;background:var(--color-neutral-100);font-size:10.5px;line-height:1.6;color:var(--color-neutral-700)">
+          <b>${i18t('set_workshape_detect')}.</b> ${det.total
+            ? esc(i18t('set_workshape_seen',{p:det.project,s:det.standing,u:det.unknown}))
+              +` <button id="ws-use-detected" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:700;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">${i18t('set_workshape_use')}</button>`
+            : i18t('set_workshape_seen_none')}
+        </div>`;})()
+        :`<p style="font-size:11px;color:var(--color-neutral-600)">${i18t('set_workshape_admin_only')}</p>`}
+      </section>
+
       <section style="${cardStyle}">
         <h4 style="${h4Style}">${i18t('set_company_design')}</h4>
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">${i18t('set_design_sub')}</p>
@@ -655,6 +688,22 @@ function renderTeam(){
      the whole screen is re-rendered afterwards rather than patched: the money,
      the governing law and the e-signature line on this very card all read from
      the pack that just changed. */
+  /* THE SHAPES AND THE WORD. Re-render rather than patch: this card shows the
+     shapes it just wrote, and the Portfolio tab reads them on its next paint. */
+  const wsSave=(shapes,word)=>{
+    if(typeof wsSet!=='function') return;
+    if(!shapes.length){ toast(i18t('set_workshape_pick_shape'),'err'); renderTeam(); return; }
+    wsSet(shapes,word); toast(i18t('set_workshape_saved')); renderTeam();
+  };
+  const wsRead=()=>[...document.querySelectorAll('[data-ws-shape]')]
+    .filter(b=>b.checked).map(b=>b.getAttribute('data-ws-shape'));
+  document.querySelectorAll('[data-ws-shape]').forEach(b=>b.addEventListener('change',()=>
+    wsSave(wsRead(), document.getElementById('set-work-word')?.value || (typeof wsWord==='function'?wsWord():''))));
+  document.getElementById('set-work-word')?.addEventListener('change',e=>
+    wsSave(wsRead().length?wsRead():(typeof wsShapes==='function'?wsShapes():[]), e.target.value));
+  document.getElementById('ws-use-detected')?.addEventListener('click',()=>{
+    if(typeof wsDetect!=='function') return;
+    wsSave(wsDetect().suggests, document.getElementById('set-work-word')?.value || wsWord()); });
   document.getElementById('set-market')?.addEventListener('change',e=>{
     if(!window.jxSet || !jxSet(e.target.value)) return;
     if(window.setRegion && window.regionCodeFor) setRegion(regionCodeFor(jxId()),{silent:true});
