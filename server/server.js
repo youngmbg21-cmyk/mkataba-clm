@@ -2069,6 +2069,38 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
   }
 
+  /* ---- THE ROUTE IS SHUT ONCE ANYBODY HAS SIGNED ----
+     Owner's rule, 11 Aug 2026: "once one person has signed, there can be no
+     option to add other signers, and the process would have to start all over
+     again if you want to add signers." A signature is given to a specific
+     arrangement — this wording, these parties, in this order — so adding a
+     third signatory afterwards makes the first person's mark stand for an
+     agreement nobody showed them.
+
+     ASKED AS A DIFFERENCE, like the guards around it. A save that leaves the
+     route alone passes untouched, and so does the save that RECORDS a
+     signature — which necessarily changes the plan, by stamping a row.
+
+     THE ONE PERMITTED CHANGE IS THE FULL RESTART: every mark discarded and
+     every row re-issued (signingRestart in js/approvals.js). It is recognised
+     by its result rather than by a flag the client could simply send — nothing
+     signed, and no signatures on the record. A client that wanted to cheat this
+     would have to throw away the signatures it was trying to preserve, which is
+     precisely the act being permitted. */
+  if (prev && Array.isArray(prev.signerPlan)) {
+    const marks = s => (Array.isArray(s && s.signerPlan) ? s.signerPlan : []).filter(x => x && x.signed).length
+      + (Array.isArray(s && s.signatures) ? s.signatures : []).length;
+    const idsOf = s => (Array.isArray(s && s.signerPlan) ? s.signerPlan : [])
+      .map(x => `${x && x.id}|${x && x.party}|${x && x.name}|${x && x.email}|${x && x.order}`).join('~');
+    const routeMoved = idsOf(prev) !== idsOf(c);
+    if (marks(prev) > 0 && routeMoved && marks(c) > 0)
+      return res.status(409).json({
+        error: 'Somebody has already signed this contract, so the signing route cannot be changed. '
+          + 'To change who signs, start the signing again — that discards the signatures already '
+          + 'given and retires every signing link on the contract.',
+        signingLocked: true });
+  }
+
   if (prev && Array.isArray(prev.signerPlan) && Array.isArray(c.signerPlan)) {
     const was = new Map(prev.signerPlan.map(s => [String(s && s.id || s && s.order), s]));
     const stolen = c.signerPlan.find(s => {
@@ -4964,8 +4996,12 @@ function signingRouteOpen(contractId) {
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
   if (!row) return false;
   let c; try { c = JSON.parse(row.json); } catch (_) { return false; }
-  return (Array.isArray(c.signerPlan) ? c.signerPlan : [])
-    .some(s => s && s.party === 'counterparty');
+  /* BOTH SIDES, matching signingRouteOpen in js/approvals.js: an agreement is
+     signed by two parties, and a route naming only one describes a document
+     that executes with one signature on it. */
+  const plan = Array.isArray(c.signerPlan) ? c.signerPlan : [];
+  return plan.some(s => s && s.party === 'counterparty')
+      && plan.some(s => s && s.party !== 'counterparty');
 }
 const contractIsExecuted = contractId => {
   if (!contractId) return false;

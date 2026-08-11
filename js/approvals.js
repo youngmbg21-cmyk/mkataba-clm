@@ -220,9 +220,68 @@ function signerPlan(c){ return c.signerPlan||[]; }
    THREE DOORS ASK IT and all three must, because each closes a different gap:
    the share dialog (so a dead link is never made), the counterparty's page (so
    a link made before this rule existed says why in words) and the server (so
-   the answer does not depend on either page being ours). */
+   the answer does not depend on either page being ours).
+
+   BOTH SIDES, NOT JUST THEIRS (tightened 11 Aug 2026, asked for directly: "it
+   should ask for the owners and the counterparties that will sign the contract
+   before you send, otherwise the contract can't be sent for signing"). It began
+   by asking only for a counterparty row, on the argument that a signing link is
+   a thing you send to the other side. True, and not enough: an agreement is
+   signed by two parties, and a route naming only theirs describes a document
+   that executes with one signature on it. Naming both is what makes the route
+   a plan rather than an address. */
 function signingRouteOpen(c){
-  return signerPlan(c).some(s => s && s.party === 'counterparty');
+  const p = signerPlan(c);
+  return p.some(s => s && s.party === 'counterparty')
+      && p.some(s => s && s.party !== 'counterparty');
+}
+/* Which side is still missing, for a screen that has to say so rather than
+   just refuse. Returns 'ours', 'theirs', 'both' or null. */
+function signingRouteMissing(c){
+  const p = signerPlan(c);
+  const ours = p.some(s => s && s.party !== 'counterparty');
+  const theirs = p.some(s => s && s.party === 'counterparty');
+  return (ours && theirs) ? null : (!ours && !theirs) ? 'both' : ours ? 'theirs' : 'ours';
+}
+/* ---- ONCE ONE PERSON HAS SIGNED, THE ROUTE IS SHUT ----
+   Second half of the same instruction: "once one person has signed, there can
+   be no option to add other signers, and the process would have to start all
+   over again if you want to add signers."
+
+   The reason is the one the whole signing model rests on. A signature is given
+   to a SPECIFIC arrangement — this wording, these parties, in this order. Add a
+   third signatory afterwards and the person who already signed has signed
+   something nobody showed them: a different agreement, with a party they never
+   saw, executed under their name. So the route freezes at the first mark, and
+   the only way to change it is to take the marks off and begin again, which is
+   a decision somebody makes out loud rather than a side effect of editing.
+
+   IT READS BOTH STORES, because a signature reaches the record two ways: an
+   internal signer stamps their own row, and a counterparty's arrives on their
+   share and is written into c.signatures when the owner's browser applies it.
+   Asking only the plan would leave the route editable for as long as nobody
+   happened to have the tab open. */
+function signingLocked(c){
+  return signerPlan(c).some(s => s && s.signed)
+    || (Array.isArray(c && c.signatures) ? c.signatures : []).length > 0;
+}
+/* Start the signing again: every mark taken off, every row re-issued.
+   THE IDS ARE MINTED FRESH on purpose — a signing link already in somebody's
+   inbox is bound to a row id, and the server refuses a link whose row it can no
+   longer find ("this link no longer belongs to it"). New ids therefore retire
+   every outstanding signing link without a second mechanism to keep in step. */
+function signingRestart(c){
+  const was = signerPlan(c).length, marks = (c.signatures || []).length;
+  c.signerPlan = signerPlan(c).map((s, i) => ({
+    ...s, id: 'sg_' + Math.random().toString(36).slice(2, 7), order: i + 1,
+    signed: false, at: null, by: null, signature: null }));
+  c.signatures = [];
+  /* The intent to sign was given against the arrangement being discarded. */
+  if (c.compliance) c.compliance.consent = false;
+  logAudit(c, 'Signing restarted',
+    `Signing started again — ${marks} signature(s) discarded, ${was} signer(s) re-issued. `
+    + 'Any signing link already sent no longer works.');
+  return c;
 }
 /* What has ACTUALLY happened to a counterparty signer's turn, read from their
    bound link rather than from route order. The panel used to stamp "SIGNING
@@ -350,9 +409,80 @@ function distributionRecipients(c){
    caller saying, the old behaviour stands exactly as it was. Cancel goes back
    the same way — a reader who changed nothing should certainly not lose more
    than one who changed something. */
+/* ---- WHAT STANDS WHERE THE EDITOR WOULD BE, ONCE SOMEBODY HAS SIGNED ----
+   Not a disabled form. It says who has signed and what that costs to undo, and
+   offers the one way forward. The restart is deliberately the SECONDARY control
+   and Close is the primary: the common reason for opening this screen after a
+   signature is to look, not to tear it up. */
+function openSigningLockedNotice(c, opts){
+  const back = opts && typeof opts.onDone === 'function' ? opts.onDone : null;
+  const done=signerPlan(c).filter(s=>s&&s.signed);
+  const marks=(c.signatures||[]).length;
+  const who=done.length
+    ? done.map(s=>esc(s.name||'—')).join(', ')
+    : esc(((c.signatures||[])[0]||{}).name || i18t('ap_someone'));
+  const admin=(typeof isAdmin==='function') && isAdmin();
+  openModal(`<div class="p-6" style="max-width:520px">
+    <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
+    <div style="border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:8px;padding:11px 13px;margin:10px 0 12px">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--st-amber-fg);margin-bottom:5px">${icon('alert','w-3.5 h-3.5')} ${i18t('ap_route_locked')}</div>
+      <p style="margin:0;font-size:11.5px;line-height:1.6;color:var(--st-amber-fg)">${
+        esc(i18tn('ap_route_locked_why',Math.max(1,done.length||marks),{ who }))}</p>
+    </div>
+    <p class="text-xs text-ink/65 mb-1" style="line-height:1.6">${esc(i18t('ap_route_locked_restart'))}</p>
+    <ul class="text-xs text-ink/60 mb-4" style="line-height:1.6;padding-left:16px;margin-top:4px">
+      <li>${esc(i18tn('ap_restart_loses_marks',Math.max(1,marks||done.length),{n:Math.max(1,marks||done.length)}))}</li>
+      <li>${esc(i18t('ap_restart_kills_links'))}</li>
+      <li>${esc(i18t('ap_restart_keeps_wording'))}</li>
+    </ul>
+    <div class="flex justify-end gap-2">
+      ${admin?`<button id="sp-restart" class="rounded-lg border px-4 py-2 text-sm font-600" style="color:var(--st-ruby-dot);border-color:color-mix(in srgb,var(--st-ruby-dot) 40%,transparent)">${i18t('ap_start_signing_again')}</button>`
+        :`<span class="text-[11px] text-ink/50 self-center">${esc(i18t('ap_restart_admin_only'))}</span>`}
+      <button id="sp-shut" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('act_close')}</button>
+    </div></div>`);
+  document.getElementById('sp-shut').addEventListener('click',()=>{ closeModal(); if(back) back(); });
+  document.getElementById('sp-restart')?.addEventListener('click',async()=>{
+    /* Typed, not clicked. Discarding a signature somebody has given is the most
+       expensive undo in the product, and it is the one place a second press of
+       the same button would be too cheap a way to reach it. */
+    const ok=await confirmDialog({
+      get title(){ return i18t('ap_start_signing_again'); },
+      message:i18tn('ap_restart_confirm',Math.max(1,marks||done.length),
+        { n:Math.max(1,marks||done.length), who }),
+      get confirmLabel(){ return i18t('ap_restart_confirm_btn'); },
+      get cancelLabel(){ return i18t('act_cancel'); } });
+    if(!ok) return;
+    signingRestart(c); persist(c); closeModal();
+    toast(i18t('ap_restart_done'));
+    if(back) back(); else if(window.renderWorkspace) renderWorkspace();
+  });
+}
 function openSignerPlanEditor(c, opts){
   const back = opts && typeof opts.onDone === 'function' ? opts.onDone : null;
+  /* ---- SHUT ONCE ANYBODY HAS SIGNED ----
+     See signingLocked. The editor is not disabled field by field — it is not
+     drawn at all, and what stands in its place says who has signed and offers
+     the one way forward. A greyed-out form invites the reader to work out which
+     control is the one that still does something. */
+  if(signingLocked(c)){ openSigningLockedNotice(c, opts); return; }
   const plan=(c.signerPlan||[]).slice();
+  /* ---- IT OPENS ON THE QUESTION IT IS ASKING ----
+     "It should ask for the owners and the counterparties that will sign."
+     An empty editor asked for neither: it showed one link reading "Add signer"
+     over an empty list, and every route began by working out that a route has
+     two sides. It now opens with a slot for each, filled in as far as the
+     record can fill them — the person doing this is usually one of the two
+     names, and the other is on the contract. Both are ordinary rows: editable,
+     removable, and reorderable exactly like any other. */
+  if(!plan.length){
+    const me=(typeof currentUser==='function' && currentUser())||null;
+    const them=(typeof counterpartyContact==='function'?counterpartyContact(c):null)||{};
+    plan.push({ party:'internal', name:me?me.name:'', email:me?me.email:'',
+      role:(me&&typeof signerTitle==='function'?signerTitle(me):'')||'',
+      memberId:me?me.id:'' });
+    plan.push({ party:'counterparty', name:them.name||c.counterparty||'',
+      email:them.email||c.counterpartyEmail||'', role:'', memberId:'' });
+  }
   const members=(getUsers()||[]).filter(u=>u.role!=='viewer');
   // People directory (imported contacts + team members) → drives name auto-fill.
   const people=(typeof orgDirectory==='function')?orgDirectory():[];
@@ -382,12 +512,32 @@ function openSignerPlanEditor(c, opts){
     <p class="text-xs text-ink/60 mb-3">${i18t('ap_signers_execute')} <b>in order</b>. Internal members sign in-app (bind each to a team member); counterparty signers each get their own secure link, which stays dormant until every internal signature is in. Each signer freely chooses how they sign (draw / type / upload). The seal is applied when the last signature lands.</p>
     ${dirList}
     <div id="sp-rows">${plan.map(row).join('')||`<div class="text-[12px] text-ink/50 mb-2">${i18t('ap_no_signers')}</div>`}</div>
-    <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-4">${i18t('ap_add_signer')}</button>
+    <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-2">${i18t('ap_add_signer')}</button>
+    ${''/* ---- BOTH SIDES, COUNTED WHILE YOU TYPE ----
+           The rule is that a route names somebody on each side, and a rule a
+           form only mentions when it refuses is a rule the form is keeping to
+           itself. This says where the route stands after every keystroke, so
+           the refusal below is a confirmation rather than a surprise. */}
+    <div id="sp-tally" class="mb-4 text-[11.5px] leading-relaxed"></div>
     ${people.length?`<p class="text-[11px] text-ink/45 mb-3">${i18t('ap_tip_autofill')}</p>`:''}
     <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">${i18t('act_cancel')}</button>
       <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${i18t('ap_save_route')}</button></div>
   </div>`);
-  const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join('')||''; wire(); };
+  /* Named rows only, on both counts: a blank row is discarded on save (see
+     `if(!s.name) return` below), so counting it here would promise a route the
+     save is about to refuse. */
+  const tally=()=>{
+    const el=document.getElementById('sp-tally'); if(!el) return;
+    const named=p=>plan.filter(s=>s && String(s.name||'').trim() && (p==='counterparty'
+      ? s.party==='counterparty' : s.party!=='counterparty')).length;
+    const ours=named('internal'), theirs=named('counterparty');
+    const ok=ours>0 && theirs>0;
+    const line=(n,label)=>`<span style="color:${n?'var(--st-green-fg)':'var(--st-amber-fg)'};font-weight:600">${n?'✓':'○'} ${esc(label)}</span>`;
+    el.innerHTML=`${line(ours,i18tn('ap_our_side_n',ours,{n:ours}))} &nbsp;·&nbsp; ${
+      line(theirs,i18tn('ap_their_side_n',theirs,{n:theirs}))}`
+      + (ok?'':`<div style="color:var(--color-neutral-600);margin-top:3px">${esc(i18t('ap_both_sides_needed'))}</div>`);
+  };
+  const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join('')||''; wire(); tally(); };
   const readRow=idx=>{ const g=sel=>document.querySelector(`[data-sp-${sel}="${idx}"]`);
     return { party:g('party').value, name:g('name').value.trim(), role:g('role').value.trim(), email:g('email').value.trim(),
       memberId:g('member')?g('member').value:'' }; };
@@ -419,7 +569,10 @@ function openSignerPlanEditor(c, opts){
     }));
   };
   document.getElementById('sp-add').addEventListener('click',()=>{ syncPlanFromDom(); plan.push({party:'internal',name:'',role:'',email:'',memberId:''}); rerow(); });
-  wire();
+  /* The tally follows typing, not just structural changes — a name typed into
+     an existing row is the commonest way a side stops being empty. */
+  document.getElementById('sp-rows')?.addEventListener('input',()=>{ syncPlanFromDom(); tally(); });
+  wire(); tally();
   document.getElementById('sp-cancel').addEventListener('click',()=>{ closeModal(); if(back) back(); });
   document.getElementById('sp-save').addEventListener('click',()=>{
     syncPlanFromDom();
@@ -428,6 +581,20 @@ function openSignerPlanEditor(c, opts){
       out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
         email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
         signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
+    /* ---- A ROUTE WITH ONE SIDE ON IT IS NOT A ROUTE ----
+       Refused here as well as counted above, because the tally is a reading of
+       the form and this is a reading of what is about to be SAVED — blank rows
+       have been dropped by now, and a row whose name was deleted counts in
+       neither place. It names the missing side rather than restating the rule:
+       "one more thing to do" is not an instruction. */
+    const ourN=out.filter(s=>s.party!=='counterparty').length;
+    const theirN=out.filter(s=>s.party==='counterparty').length;
+    if(!ourN || !theirN){
+      toast(i18t(!ourN&&!theirN?'ap_need_both_sides'
+        :!ourN?'ap_need_our_side':'ap_need_their_side',
+        { them:c.counterparty||i18t('ct_a_counterparty') }),'err');
+      return;
+    }
     c.signerPlan=out; logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`); persist(c); closeModal();
     if(back) back(); else renderWorkspace();
     toast(i18t('ap_route_saved'));
@@ -631,4 +798,4 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
