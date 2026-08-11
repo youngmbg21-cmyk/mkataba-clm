@@ -220,6 +220,11 @@ const M_CSS = `
   }
   .m-chip.on{ background:var(--color-accent-900); border-color:var(--color-accent-900); color:#fff; }
   .m-chip-dot{ width:8px; height:8px; border-radius:2px; flex:none; }
+  /* the chip row carries three questions now — a hairline says where one
+     ends and the next begins, so the line reads as groups and not as a
+     stream of unrelated words */
+  .m-chip-sep{ flex:none; width:1px; align-self:stretch; margin:4px 2px;
+    background:var(--color-divider); }
 
   /* ---- the search field ---- */
   .m-search{

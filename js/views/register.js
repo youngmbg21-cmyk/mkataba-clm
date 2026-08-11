@@ -271,7 +271,19 @@ const REG_VIEWS=[
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
 ];
-function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',dir:-1,page:1,sel:{},view:null}; return state.reg; }
+function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null}; return state.reg; }
+/* The category list has ONE source: the metadata field that records it. Add
+   a category there and it reaches this filter and the phone's chips without
+   either of them being edited. */
+const regCategories = () => ((typeof META_FIELDS!=='undefined'?META_FIELDS:[]).find(f=>f.k==='category')||{opts:[]}).opts||[];
+const regCatLabel = k => (typeof metaOptLabel==='function' ? metaOptLabel(k) : k);
+/* 'none' is not a category — it is the pile that has none recorded yet, which
+   is the worklist for getting a portfolio countable. Without it those
+   contracts vanish under every category and there is no way back to them. */
+function regCatMatch(c, want){
+  const has=(c.metadata&&c.metadata.category)||'';
+  return want==='none' ? !has : has===want;
+}
 // Ascending-natural comparators; regFiltered() multiplies each by R.dir (1 = asc, -1 = desc)
 // so a column header click can toggle direction. STAGE follows lifecycle order.
 const REG_STAGE_ORDER={ 'Draft':0, 'Under Review':1, 'Signed':2, 'Declined':3 };
@@ -332,6 +344,7 @@ function regFiltered(){
   else if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
   if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
   if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
+  if(R.category&&R.category!=='all') cs=cs.filter(c=>regCatMatch(c,R.category));
   // E3-T5 saved views (presets over metadata/obligations)
   // family-aware: expiry views work on AGREEMENTS and on the term the latest
   // amendment actually set, not on whatever was typed on the master
@@ -427,7 +440,7 @@ function regPrimaryAction(c){
 function regRowsHtml(cs){
   const R=regState();
   if(!cs.length){
-    const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all');
+    const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all');
     const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
     const sub  = filtered ? i18t('reg_widen') : i18t('reg_create_from_template');
     const btn  = filtered
@@ -520,7 +533,7 @@ function wireRegRows(){
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
@@ -531,8 +544,8 @@ function regExportCsv(){
   const rows=regFiltered();
   if(!rows.length){ toast(i18t('reg_nothing_to_export'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Type','Folder',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
-  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const head=['ID','Name','Counterparty','Type','Category','Folder',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
+  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),(c.metadata&&c.metadata.category)||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='hati-register.csv'; a.click(); URL.revokeObjectURL(url);
@@ -567,7 +580,7 @@ function renderRegister(){
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
   const viewOpts=`<option value="" ${R.view?'':'selected'}>${i18t('reg_saved_views')}</option>`
     +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
-  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all');
+  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all');
   const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
@@ -575,6 +588,11 @@ function renderRegister(){
     ? `<span style="margin-left:4px;font-size:9px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:9px;color:var(--color-neutral-400)">↕</span>`;
   const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="${i18t('reg_sort_by',{col:label})}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
+  const catActive=!!(R.category&&R.category!=='all');
+  const catOpts=[['all',i18t('reg_any')]].concat(regCategories().map(k=>[k,regCatLabel(k)]))
+    .concat([['none',i18t('reg_uncategorised')]]);
+  const categorySel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">${i18t('me_category')}
+    <select id="reg-category" style="${selStyle}${catActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${catOpts.map(([k,l])=>`<option value="${k}" ${(R.category||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   const renewalActive=!!(R.renewal&&R.renewal!=='all');
   const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">${i18t('reg_renewal')}
     <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all',i18t('reg_any')],['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
@@ -621,7 +639,8 @@ function renderRegister(){
       .reg-th-sort.active{color:var(--color-accent-800)!important}
     </style>
     <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
-      <!-- THE ONE FILTER BAR: stage · stream · saved view · renewal · clear,
+      <!-- THE ONE FILTER BAR: stage · stream · saved view · category · renewal ·
+           clear,
            then sort, full-text search (server mode) and the export — a single
            compact strip where three tiers of pills used to stack, so the table
            itself starts above the fold. -->
@@ -629,6 +648,7 @@ function renderRegister(){
         ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
         ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
         ${selFilter('reg-view-sel',viewOpts,!!R.view,i18t('reg_saved_views_title'))}
+        ${categorySel}
         ${renewalSel}
         ${filtered?`<button id="reg-clear-filters" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">${i18t('reg_clear')}</button>`:''}
         <span style="flex:1;min-width:8px"></span>
@@ -700,10 +720,11 @@ function renderRegister(){
     R.page=1; renderRegister();
   }));
   document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegister(); });
+  document.getElementById('reg-category')?.addEventListener('change',e=>{ R.category=e.target.value; R.page=1; renderRegister(); });
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; renderRegister(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; renderRegister(); });
   document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; renderRegister(); });
-  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; renderRegister(); });
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.page=1; renderRegister(); });
   setActiveNav('register');
 }
 
@@ -727,4 +748,4 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,renderRegister,renderRegisterBody,wireRegRows});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,renderRegister,renderRegisterBody,wireRegRows});
