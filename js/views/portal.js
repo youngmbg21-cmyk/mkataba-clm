@@ -2011,7 +2011,37 @@ function renderShareViewer(p, opts={}){
   const round=(p&&p.round)||1;
   const to=(opts.share&&opts.share.recipientName)||'';
   const mark=((opts.share&&opts.share.recipientEmail)||'').trim()||'CONFIDENTIAL — VIEW ONLY';
-  const body=window.readOnlyDocHtml?readOnlyDocHtml(c.redlineText||''):esc(c.redlineText||'');
+  /* ---- THE WORDING, WHICHEVER OF THE TWO FORMS IT ARRIVES IN ----
+     Reported with a screenshot of an empty white box (Young, 11 Aug 2026), on
+     the first read-only link anybody sent: banner, watermark and footnote all
+     drawn correctly around a hole where the contract should be.
+
+     This read `c.redlineText` alone, which is the STORED wording — and a
+     contract drafted from a template has none. Its words are rendered on
+     demand from the template and the record's own fields, which is the same
+     property that makes clause ids unstable on those contracts (see
+     negoStampContract). An upload has no stored wording either. So the
+     read-only copy was blank for every one of the twelve built-ins and for
+     every migrated file, and correct only for a contract somebody had
+     redlined.
+
+     THE PAGE CANNOT RENDER A TEMPLATE ITSELF, and that is deliberate rather
+     than an oversight: the server's viewerPayload strips this copy down to the
+     wording and the marks, because an outside reader gets the argument and not
+     the arguers. Handing it the template and every field back would undo that
+     trim to solve a rendering problem. So the OWNER's side renders the body
+     once, at the moment the link is made, and sends the finished document —
+     see `viewBody` in buildSharePayload.
+
+     AN EMPTY PAYLOAD SAYS SO. Every view link minted before this carries
+     neither form on a template contract, and a viewer is the one screen with
+     no way to report a fault: they cannot respond, and the sender never learns
+     the page was blank. It asks for a fresh copy instead, which is the fix. */
+  const src=c.redlineText || c.viewBody || '';
+  const body=src
+    ? (window.readOnlyDocHtml?readOnlyDocHtml(src):esc(src))
+    : `<p style="font-size:12.5px;line-height:1.6;color:var(--st-ruby-fg)">${
+        esc(i18t('po_view_body_failed',{ org }))}</p>`;
   root.innerHTML=`
   <div class="pv-wrap">
     <header class="pv-banner" role="status">

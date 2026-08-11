@@ -2838,6 +2838,24 @@ function buildSharePayload(c, docHash, who, opts){
          Recording it here is what lets the next link tell the same reader what
          moved since the copy they last opened. */
       docText:shareDocText(c)||undefined,
+      /* ---- THE FINISHED DOCUMENT, FOR A COPY THAT CANNOT BUILD ONE ----
+         A read-only link is served the server's trimmed viewerPayload: the
+         wording and the marks, and none of the people. That trim is right, and
+         it leaves the viewer with `redlineText` as its only source of words —
+         which a template-drafted contract does not have, because its wording is
+         rendered on demand from the template and the record's fields. The
+         reported symptom was a blank sheet on every one of the twelve
+         built-ins, and on every uploaded file.
+
+         So the body is rendered HERE, once, on the side that can: docBody
+         answers for all three shapes (upload, stored wording, template). Only
+         where there is no stored wording, so the common case carries nothing
+         extra and the payload does not hold two copies of one document. Guarded
+         because a share must not fail over a preview — a missing body is a
+         sentence on their page, not a link that never went. */
+      viewBody:(!c.redlineText && typeof window!=='undefined' && window.docBody)
+        ? (()=>{ try{ return docBody(c)||undefined; }catch(_){ return undefined; } })()
+        : undefined,
       /* Changes they asked for that were NOT adopted. A rejected change that
          simply disappears from the document reads as agreement — the reader
          has no way to tell "we said no" from "we missed it". */
