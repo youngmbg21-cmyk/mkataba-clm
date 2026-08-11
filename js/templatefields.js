@@ -21,6 +21,10 @@ const TPL_FIELD_TYPES = [
    into data rather than decoration. */
 const TPL_MAPS = [
   { k:'',                 get label(){ return i18t('tf_nothing_extra'); } },
+  /* OUR side of the agreement — see contractParty in js/core.js. It maps like
+     any other fact, so a customer's own template can carry a "Which of our
+     companies" blank and have it land on the record without a second mapping. */
+  { k:'party',            get label(){ return i18t('tf_our_party'); } },
   { k:'counterparty',     get label(){ return i18t('me_counterparty'); } },
   { k:'value',            get label(){ return i18t('tf_contract_value'); } },
   { k:'expiry',           get label(){ return i18t('me_expiry_date'); } },
@@ -203,6 +207,9 @@ function applyTemplateValues(c, fields, values){
     // further confirmation step.
     const set=(k,val)=>{ c.metadata[k]=val; c.metadata.confidence[k]='high'; };
     switch(f.maps){
+      /* Our own entity. It is the same shape of fact as the counterparty and is
+         stored beside it — the document reads it through contractParty(c). */
+      case 'party': c.party=String(v); set('party', String(v)); break;
       case 'counterparty': c.counterparty=String(v); set('counterparty', String(v)); break;
       case 'value': c.value=Number(v)||0; if(c.value>0&&c.valueType==='none') c.valueType='estimated'; set('value', Number(v)||0); break;
       case 'expiry': c.expiry=String(v); set('expiryDate', String(v)); break;
@@ -360,6 +367,16 @@ Object.assign(window,{TPL_FIELD_TYPES,TPL_MAPS,TPL_BLANK,TPL_BULK_MAX,tplMapLabe
    The fields carry `maps`, so applyTemplateValues (above) puts them on the
    contract — no second mapping to drift from the first. */
 const CONTRACT_ESSENTIALS = [
+  /* WHO WE ARE ON THIS ONE, ASKED BESIDE WHO THEY ARE. The two together are the
+     sentence the paper opens with, so they are the first two questions on the
+     form. See contractParty in js/core.js for why this is not the workspace. */
+  { key:'party', get label(){ return i18t('tf_our_party'); }, type:'text', maps:'party',
+    get hint(){ return i18t('tf_our_party_hint'); },
+    /* Prefilled with the workspace, and that is the point rather than a
+       shortcut: the old behaviour was the same assumption made SILENTLY. A
+       filled box a drafter can see and overtype is the assumption made out
+       loud. Left empty it falls back to exactly what it always said. */
+    get def(){ return (typeof window!=='undefined' && window.FIRST_PARTY) || ''; } },
   { key:'counterparty', get label(){ return i18t('me_counterparty'); }, type:'text', maps:'counterparty',
     ph:'Full registered name' },
   { key:'cpemail',      label:'Their email',  type:'email', maps:null,
@@ -390,7 +407,7 @@ function openContractEssentials(opts){
     return `<label style="display:block">
       <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${esc(f.label)}${
         f.hint ? `<span style="font-weight:400;color:var(--color-neutral-500)"> → ${esc(f.hint)}</span>` : ''}</span>
-      <input id="ce-${f.key}" type="${it}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
+      <input id="ce-${f.key}" type="${it}" value="${esc(f.def||'').replace(/"/g,'&quot;')}" placeholder="${esc(f.ph||'')}" style="${ST}"></label>`;
   };
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${esc(o.title||'New contract')}</h3>

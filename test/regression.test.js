@@ -7,12 +7,17 @@
    accident. */
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace, fixtureContract, FOLDER_A } = require('./helpers');
+const { startHati, seedWorkspace, fixtureContract, FOLDER_A, nameASigner } = require('./helpers');
 
 let h, W, viewer;
 before(async () => {
   h = await startHati();
   W = await seedWorkspace(h);
+  /* Signing is opened by NAMING who signs (11 Aug 2026): until a counterparty
+     signer is on the route, the respond route refuses action:'sign' outright
+     and the two signature tests below could never reach the rules they are
+     actually about — the address requirement and the unverified stamp. */
+  await nameASigner(W.admin, 'MK-A2', { name: 'Grace Njeri', email: 'grace@x.co.ke' });
   const u = await W.admin.json('/api/users', { method: 'POST', body: {
     name: 'Read Only', email: 'viewer@example.co.ke', role: 'viewer', password: 'temporary-pass-1' } });
   viewer = h.client('viewer');

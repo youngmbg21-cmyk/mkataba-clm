@@ -30,7 +30,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
 const http = require('node:http');
-const { startHati, seedWorkspace, FOLDER_A, Client } = require('./helpers');
+const { startHati, seedWorkspace, FOLDER_A, Client, nameASigner } = require('./helpers');
 const F = require('./clausefixtures.js');
 
 function contract(over = {}){
@@ -430,6 +430,10 @@ describe('F55 — a negotiation is watched in the platform, and only its end is 
   });
 
   test('a signature is always worth an email', async () => {
+    /* A signature is only accepted once somebody has been named to sign
+       (11 Aug 2026). This test is about which events are worth an email, so
+       the route is the precondition rather than the subject. */
+    await nameASigner(W.admin, CID, { name: 'Amara Njoroge', email: 'amara@savannah.co.ke' });
     const before = (await about()).length;
     await respond({ action: 'sign', email: 'amara@savannah.co.ke' });
     const added = (await about()).slice(0, (await about()).length - before);

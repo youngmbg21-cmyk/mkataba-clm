@@ -163,6 +163,15 @@ const TEMPLATES = {
    TEMPLATE_PRIMARY (wizard.js) supplies each template's one distinctive field;
    it loads after this module, so the merge happens lazily on first read. */
 const TEMPLATE_BASE_FIELDS = [
+  /* OUR SIDE, ASKED FIRST AND BESIDE THEIRS. A group holds more than one legal
+     entity, and until this the paper always named the workspace — see
+     contractParty in js/core.js. The default is a GETTER, not a value: an
+     object literal holding the workspace name would freeze whichever name was
+     current when this module loaded, which is the table-built-once trap named
+     twice already in THE MAP. */
+  { key:'party', get label(){ return i18t('tf_our_party'); }, type:'party', maps:'party', required:false,
+    get def(){ return (typeof window!=='undefined' && window.FIRST_PARTY) || ''; },
+    get ph(){ return i18t('tf_our_party_ph'); } },
   { key:'counterparty', label:'Counterparty', type:'party', maps:'counterparty', required:true, def:'',
     ph:'Full registered name' },
   { key:'value',        get label(){ return `Contract value (${jxCurrency()})`; }, type:'num', maps:'value', required:false, def:'', ph:'0' },

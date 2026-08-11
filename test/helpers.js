@@ -322,6 +322,27 @@ async function seedWorkspace(h, { contracts = FIXTURES } = {}) {
   };
 }
 
+/* ---- NAME SOMEBODY TO SIGN, WHICH IS NOW A PRECONDITION OF SIGNING ----
+   Owner's rule, 11 Aug 2026: assigning signers is what starts the signing
+   process, and until it happens no link on the contract can carry a signature
+   — POST /api/shares refuses to mint a Sign link and the respond route refuses
+   the signature itself. Every test that issues a signing link therefore has to
+   set a route first, exactly as a real sender does on the Signing tab.
+
+   Deliberately minimal: ONE counterparty row, which is what signingRouteOpen
+   asks for. A test that cares about ORDER builds its own plan; this is for the
+   many that only ever needed a signing link to exist. */
+async function nameASigner(client, contractId, signer = {}) {
+  const full = await client.json('/api/contracts/' + contractId);
+  const baseVersion = full._v;
+  delete full._v;
+  full.signerPlan = [{ id: signer.id || 'sg-cp-1', party: 'counterparty', order: signer.order || 1,
+    name: signer.name || 'Grace Njeri', email: signer.email || 'grace@client.co.ke',
+    role: signer.role || 'Director', signed: false }];
+  await client.json('/api/contracts/' + contractId, { method: 'PUT', body: { contract: full, baseVersion } });
+  return full.signerPlan[0];
+}
+
 /* Does this text mention anything from folder B? Used on RAW response bodies
    and on RAW AI payloads — never on rendered UI. */
 function mentionsFolderB(text) {
@@ -330,4 +351,4 @@ function mentionsFolderB(text) {
 }
 
 module.exports = { startHati, startAiStub, startScriptedAi, seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
-  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, Client };
+  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client };

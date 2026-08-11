@@ -196,6 +196,34 @@ function resubmitApproval(c, note){
    c.signerPlan = [{ id, party:'internal'|'counterparty', name, email, order, signed, at }]
    Seal is applied when the final signature lands (handled in contract.js). */
 function signerPlan(c){ return c.signerPlan||[]; }
+/* ---- HAS THE SIGNING ACTUALLY BEEN STARTED? ----
+   Asked for directly (Young, 11 Aug 2026): "I do not want a contract signed
+   without the owner knowing the process of signing has started, which will
+   start by assigning signers. I also want this to act as the ability to give
+   someone a contract to read [without] them in turn signing a contract that
+   they were not supposed to sign."
+
+   So naming the signers IS the act that opens signing. Until it happens a link
+   can be read, answered and argued with, and nothing on it can be signed.
+
+   IT ASKS FOR A COUNTERPARTY ROW, not merely a non-empty route, and the
+   difference is the second half of the request. A signing link is a thing you
+   send to the OTHER SIDE; a route naming only our own people has not said who
+   over there may sign, and an unbound link on it would let whoever holds the
+   URL sign as nobody in particular. That is precisely the reader who was never
+   meant to sign.
+
+   SIGNED ROWS COUNT. The question is whether a route was ever set, not whether
+   it is still open — a finished route is refused further along, by the turn
+   check and by "this contract is already executed", each with its own sentence.
+
+   THREE DOORS ASK IT and all three must, because each closes a different gap:
+   the share dialog (so a dead link is never made), the counterparty's page (so
+   a link made before this rule existed says why in words) and the server (so
+   the answer does not depend on either page being ours). */
+function signingRouteOpen(c){
+  return signerPlan(c).some(s => s && s.party === 'counterparty');
+}
 /* What has ACTUALLY happened to a counterparty signer's turn, read from their
    bound link rather than from route order. The panel used to stamp "SIGNING
    NOW" on whoever was next in the plan — before any link existed, before
@@ -293,7 +321,9 @@ function executionParties(c){
   const plan=signerPlan(c);
   const routed=plan.length>0, routeDone=routed&&plan.every(s=>s&&s.signed);
   return { ours:ours.length, theirs:theirs.length, routed, routeDone,
-    ourName:nameOf(ours)||(window.FIRST_PARTY||'this workspace'),
+    /* The PARTY, not the workspace — this name goes on the executed copy and
+       into the "only X has signed" notice. See contractParty in js/core.js. */
+    ourName:nameOf(ours)||(window.contractParty?contractParty(c):'')||(window.FIRST_PARTY||'this workspace'),
     theirName:nameOf(theirs)||String((c&&c.counterparty)||'the counterparty'),
     fully: offPlatform || (routed ? routeDone
       : (ours.length>0 && (theirs.length>0 || !expectsCounterparty))) };
@@ -601,4 +631,4 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});

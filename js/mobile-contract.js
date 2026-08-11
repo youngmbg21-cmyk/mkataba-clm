@@ -212,6 +212,13 @@ function mTermsHtml(c){
     return isNaN(t) ? String(v) : new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
   const money = (typeof canViewValues!=='function' || canViewValues());
   const rows = [
+    /* OUR SIDE, ABOVE THEIRS. The two together are the sentence the paper opens
+       with, and the desktop's Key terms panel reads them as a pair — this list
+       is the same facts on a phone. Read-only here, like every row: it is set
+       when the contract is drafted, or on the desktop panel. Never blank —
+       an unanswered party IS the workspace (contractParty). */
+    { get label(){ return i18t('tf_our_party'); },
+      value:(typeof contractParty==='function'?contractParty(c):(c.party||'')) },
     { get label(){ return i18t('m_counterparty'); }, value:(typeof cParty==='function'?cParty(c):c.counterparty)||'', miss:true },
     money ? { get label(){ return i18t('mc_contract_value'); }, value:(typeof isMonetary==='function'&&!isMonetary(c))?'Non-monetary':(c.value?mMoney(c):''), miss:true } : null,
     { get label(){ return i18t('mc_start_date'); }, value:dateOf(md.effectiveDate||c.startDate) },

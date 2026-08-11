@@ -22,7 +22,7 @@
    ============================================================ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace } = require('./helpers');
+const { startHati, seedWorkspace, nameASigner } = require('./helpers');
 
 describe('f104 — contract from template', () => {
   let h, w, tplId, v1Id;
@@ -123,6 +123,10 @@ describe('f104 — contract from template', () => {
   });
 
   test('the counterparty portal autosave validates and persists per field', async () => {
+    /* Naming who signs is what opens signing (11 Aug 2026), and without it the
+       server refuses to issue a Sign link at all. This test is about the
+       template form autosaving field by field, so the route is scaffolding. */
+    await nameASigner(w.admin, contractId, { name: 'Grace Njeri', email: 'grace@client.co.ke' });
     const full = await w.admin.json('/api/contracts/' + contractId);
     delete full._v;
     // owner shares the contract (the payload carries the form, values and all)

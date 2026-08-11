@@ -74,6 +74,10 @@ function buildFromCustomTemplate(t, values, opts){
   // The mapped counterparty field is the counterparty — recorded, not only
   // spelled into the title. See js/wizard.js for the fault this closes.
   const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:cp,
+    /* Our own entity on this agreement. Blank is not an error — contractParty
+       falls back to the workspace, which is what the paper said before this
+       question existed. */
+    party:String((opts&&opts.party)||'').trim()||undefined,
     counterpartyEmail:cpEmail||undefined, value:0, status:'Draft',
     template:null, source:'template', folder:FOLDERS[t.folder]?t.folder:'corp', valueType:'estimated',
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
@@ -118,7 +122,12 @@ function buildFromCustomTemplate(t, values, opts){
 function openTemplateFillModal(t){
   const fs=templateFields(t);
   const inp=f=>{ const id='tf-'+f.key;
-    const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${f.maps?`<span style="font-weight:400;color:var(--color-neutral-500)"> → ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`;
+    /* The arrow says where the answer is filed, and stands down when that is
+       the same word as the label — see the note in js/wizard.js. */
+    const _map=f.maps?String(tplMapLabel(f.maps)||''):'';
+    const _mapNote=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase())
+      ? `<span style="font-weight:400;color:var(--color-neutral-500)"> → ${_tplEsc(_map)}</span>` : '';
+    const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
     const st='width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none';
     if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
@@ -126,7 +135,17 @@ function openTemplateFillModal(t){
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${_tplEsc(t.name)}</h3>
     <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">Fill in the blanks. Everything you type is filed as contract data as well as printed into the document — the register, filters, folder routing and reports pick it up with no second data-entry step.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(inp).join('')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
+             blank of its own mapped to `party`, in which case that one wins —
+             this answer is set on the record first and applyTemplateValues
+             runs after it. Where the template has no such blank, this is the
+             only place the entity can be named, and without it every contract
+             made from a saved template goes on naming the workspace. */}
+      <label style="display:block">
+        <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('tf_our_party')}<span style="font-weight:400;color:var(--color-neutral-500)"> → ${_tplEsc(i18t('tf_our_party_hint'))}</span></span>
+        <input id="tf-party" type="text" value="${_tplEsc((typeof FIRST_PARTY!=='undefined'&&FIRST_PARTY)||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(i18t('tf_our_party_ph'))}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
+      ${fs.map(inp).join('')}
       ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
              same act. Saved templates create contracts through their own fill
              form, so adding the address to the guided wizard alone left every
@@ -155,7 +174,8 @@ function openTemplateFillModal(t){
     if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
       errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
     if(errs.length){ document.getElementById('tf-err').textContent=errs[0]; return; }
-    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim() });
+    const party=((document.getElementById('tf-party')||{}).value||'').trim();
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party });
   });
 }
 
