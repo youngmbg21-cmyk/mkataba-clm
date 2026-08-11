@@ -2884,13 +2884,67 @@ function lastShareRecipient(shares){
   return { name:s.recipientName||'', email:s.recipientEmail||'', phone:s.recipientPhone||'',
     channel:s.channel||'email', token:s.token||null };
 }
+/* ---- THE SIGNING ROUTE IS THE NEWER ANSWER TO "WHO IS THIS FOR" ----
+   Reported (Young, 11 Aug 2026): the counterparty signer was named on the
+   signing route with one address, the route was saved, Share was opened — and
+   the recipient box arrived carrying a DIFFERENT address, the one an earlier
+   round had gone to, under a line reading "filled in from the last time you
+   shared this contract". Two records of who the counterparty is, and the older
+   one won.
+
+   Naming a signer is the later, deliberate act: somebody sat down and said who
+   executes this agreement and where the link must reach them. So it goes first,
+   ahead of both the last share and the address recorded on Key terms.
+
+   ONLY a counterparty row — internal signers sign in HaTi and never get a link
+   — only one who has not signed yet, only one carrying a real address (a row
+   with no email cannot fill a box, and shareSignerRowsHtml already says so in
+   amber), and the FIRST such row in turn order, because on a Sign link the
+   recipient should be the signer whose turn it is.
+
+   IT ANSWERS THE PREFILL, NOT THE STANDING NEGOTIATION CHANNEL.
+   reshareToLastRecipient refreshes the link the counterparty already holds, and
+   re-pointing that at a signer would move a whole negotiation to somebody who
+   was only ever named to sign. See counterpartyContact, where this is the LAST
+   answer rather than the first. */
+function shareRouteRecipient(c){
+  const plan=(typeof signerPlan==='function') ? signerPlan(c) : ((c&&c.signerPlan)||[]);
+  const row=(plan||[]).filter(s=>s && s.party==='counterparty' && !s.signed
+      && /.+@.+\..+/.test(String(s.email||'').trim()))
+    .slice().sort((a,b)=>(a.order||0)-(b.order||0))[0];
+  if(!row) return null;
+  return { name:String(row.name||'').trim(), email:String(row.email||'').trim(),
+    phone:'', channel:'email', token:null, signerId:row.id };
+}
 /* A blank recipient box on a contract whose counterparty we already named is
-   the third time in one sitting the same fact gets asked for. The contract's
-   own address fills it when no link has been sent yet. */
+   the third time in one sitting the same fact gets asked for. THREE records can
+   answer it and they answer in this order: the signing route, then the last
+   link we sent, then the address recorded on Key terms.
+
+   `source` travels with the answer because the dialog SAYS where the box was
+   filled from — and it was saying "from the last time you shared" over an
+   address that had come from somewhere else entirely. A prefill nobody can
+   trace is a prefill nobody checks. */
 function shareModalPrefill(shares, c){
-  const last=lastShareRecipient(shares) || (c ? counterpartyContact(c, []) : null);
-  if(!last) return { name:'', email:'', phone:'', channel:'email' };
-  return { name:last.name, email:last.email, phone:last.phone, channel:last.channel||'email' };
+  const route=c ? shareRouteRecipient(c) : null;
+  if(route) return { name:route.name, email:route.email, phone:'', channel:'email',
+    source:'route', signerId:route.signerId };
+  /* counterpartyContact already holds the second and third answers in the right
+     order, including the case a share carries a name but no address. */
+  const pick=c ? counterpartyContact(c, shares) : lastShareRecipient(shares);
+  if(!pick) return { name:'', email:'', phone:'', channel:'email', source:'', signerId:null };
+  return { name:pick.name||'', email:pick.email||'', phone:pick.phone||'',
+    channel:pick.channel||'email',
+    source:lastShareRecipient(shares)?'last':'record', signerId:null };
+}
+/* The one sentence the dialog says over a filled-in recipient box, named by
+   where the address actually came from. Empty where nothing was filled in. */
+function sharePrefillNote(pre){
+  const p=pre||{};
+  if(!(p.email||p.phone||p.name)) return '';
+  return p.source==='route' ? i18t('co_filled_from_route')
+    : p.source==='record' ? i18t('co_filled_from_record')
+    : p.source==='last' ? i18t('co_filled_from_last') : '';
 }
 /* The shares this contract has already had, for prefill and for the reshare
    button. Never fatal: a contract that cannot reach the server still shares. */
@@ -2940,6 +2994,15 @@ function counterpartyContact(c, shares){
     .find(Boolean)||'';
   if(last) return { ...last, email: last.email || fromShares || recorded };
   if(!recorded) return null;
+  /* AND THE SIGNING ROUTE IS DELIBERATELY NOT READ HERE, though it may hold the
+     only address anybody has given us. This function answers "where does a
+     ROUND go" — it drives the one-press send in the negotiation room and the
+     reshare that refreshes the standing link — and a round is not a signature.
+     Reading a signer here would mean naming a CFO on the signing route quietly
+     re-pointed the whole negotiation at them, with no dialog and no sight of
+     the address. Where there is nothing else, the send falls through to the
+     share dialog, which prefills FROM the route and shows it before it goes.
+     See shareRouteRecipient. */
   return { name:(c&&c.counterpartyName)||(c&&c.counterparty)||'', email:recorded, phone:'', channel:'email', token:null };
 }
 /* ---------- WHERE THIS CONTRACT'S CHANGES GO ----------
@@ -3336,6 +3399,11 @@ async function openShareModal(c, opts={}){
   const priorShares=await contractShares(c);
   if(_superseded()) return;
   const pre=shareModalPrefill(priorShares, c);
+  /* THE BOX AND THE ROW ARE ONE ANSWER. Where the prefill came off the signing
+     route, the row it came from opens already chosen, so the link is bound to
+     that signer from the first frame rather than only when somebody thinks to
+     press it. Pressing it again still takes the binding off. */
+  const preNote=sharePrefillNote(pre);
   /* WO N4 — the one-question send. Offered only when nothing needs asking:
      the email channel works end to end (server mode), somebody to send to is
      already on the record, and nothing on the readiness list BLOCKS — a block
@@ -3362,7 +3430,8 @@ async function openShareModal(c, opts={}){
     <div style="padding:22px 24px;">
       ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
       ${shareKindStepHtml(c, purposeSel)}
-      ${shareSummaryStepHtml(c, { ...opts, purposeSel, hiddenStart:true })}
+      ${shareSummaryStepHtml(c, { ...opts, purposeSel,
+        signerSel:(pre.source==='route'?pre.signerId:null), hiddenStart:true })}
       <div id="share-step-2" class="hidden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">${i18t('co_share_with_cp')}</h2></div>
@@ -3380,9 +3449,9 @@ async function openShareModal(c, opts={}){
       </div>`}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link',i18t('co_copy_link'),false)}</div>
       <div id="share-fields">
-        ${pre.email||pre.phone||pre.name?`<div style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:7px 10px">
+        ${preNote?`<div id="sh-prefill-note" data-prefill-src="${attr(pre.source)}" style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:7px 10px">
           <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
-          <span style="flex:1;min-width:0">${i18t('co_filled_from_last')}</span>
+          <span style="flex:1;min-width:0">${preNote}</span>
         </div>`:''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <label><span style="${LBL}">${i18t('co_recipient_name')}</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
@@ -3512,7 +3581,7 @@ async function openShareModal(c, opts={}){
   };
   /* The row this link is for, or null for the free-typed recipient. Held here
      rather than read off the DOM at send time, so a repaint cannot lose it. */
-  let signerSel = null;
+  let signerSel = (pre.source==='route' && pre.signerId) ? pre.signerId : null;
   const paintSigners = () => {
     const host=document.getElementById('share-signer-rows'); if(!host) return;
     host.innerHTML=shareSignerRowsHtml(c, signerSel).html;
@@ -4886,4 +4955,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

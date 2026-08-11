@@ -494,13 +494,35 @@ function mRenumberSheetHtml(){
 /* ------------------------------------------------------------- BEHAVIOUR ---*/
 const M_DESK_MSG = 'Open HaTi on a computer to do this.';
 
+/* THE PHONE ASKS THE SAME QUESTION THE DESKTOP DIALOG ASKS, and it must get the
+   same answer: shareModalPrefill holds the order — signing route, then the last
+   link sent, then the address on Key terms. This screen used to open with an
+   empty box on a contract the app could already address, which is the same
+   fault the desktop had in a different form: one record of who the counterparty
+   is being ignored in favour of nothing at all.
+
+   TWO DOORS reach this sheet (the next-action button and the overflow sheet),
+   so the prefill lives here rather than at either of them. A value the reader
+   has already typed is never overwritten. */
+function mOpenShareSheet(){
+  const s = mS(), c = mContract();
+  let email = String(s.shareEmail||'').trim();
+  if(!email && c && window.shareModalPrefill){
+    try{
+      const pre = shareModalPrefill(window.cachedShares ? cachedShares(c) : [], c);
+      email = String((pre && pre.email) || '').trim();
+    }catch(_){ email = ''; }
+  }
+  mOpenSheet('share', { shareEmail: email });
+}
+
 function mContractAct(k, btn){
   const s = mS();
   const c = mContract();
 
   if(k==='overflow'){ mOpenSheet('overflow'); return; }
   if(k==='renumber'){ mOpenSheet('renumber'); return; }
-  if(k==='share'){ mOpenSheet('share'); return; }
+  if(k==='share'){ mOpenShareSheet(); return; }
   if(k==='history'){ mCloseSheet(); s.tab='hist'; mRender(); return; }
   if(k==='copilot'){ mCloseSheet(); if(window.openAI) openAI(); return; }
   if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(M_DESK_MSG); return; }
@@ -561,7 +583,7 @@ function mDoNextAction(kind){
     if(window.toast) toast(i18t('mc_nego_on_computer'));
     return;
   }
-  if(kind==='share'){ mOpenSheet('share'); return; }
+  if(kind==='share'){ mOpenShareSheet(); return; }
   if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(i18t('mc_fill_on_computer')); return; }
   if(kind==='review'){
     if(c.status==='Draft'){
@@ -636,4 +658,5 @@ function mWireContract(root){
 
 Object.assign(window,{ mContract, mLocked, mContractHtml, mDocHtml, mTermsHtml, mHistHtml,
   mActionBarHtml, mOverflowSheetHtml, mShareSheetHtml, mRenumberSheetHtml,
-  mContractAct, mWireContract, mDoNextAction, mShareCreate, M_HIST_GROUP, M_SHARE_KINDS });
+  mContractAct, mWireContract, mDoNextAction, mShareCreate, mOpenShareSheet,
+  M_HIST_GROUP, M_SHARE_KINDS });

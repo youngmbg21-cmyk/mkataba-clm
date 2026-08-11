@@ -2740,7 +2740,13 @@ const ktIsEmptyRead = html => /data-kt-none="1"/.test(String(html));
    the label to its left already names the field, and the empty read says its
    own words ("Pick a date"). */
 function ktRowHtml(key,label,readHtml,fieldHtml,editable,cueIcon){
-  if(!editable) return `<div class="kt-row"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
+  /* A READ-ONLY ROW IS STILL A ROW, and it carries its key like every other
+     one. It did not, so a row that only ever reports (the value stream, the
+     template, the signing route's own address) was unaddressable — nothing
+     could point at it, and no test could ask whether the reader can see it.
+     The styling keys off .is-editable, which this branch still does not carry,
+     so nothing moves. */
+  if(!editable) return `<div class="kt-row" data-kt-row="${key}"><span class="kt-k">${label}</span><span class="kt-v">${readHtml}</span></div>`;
   const isEmpty=ktIsEmptyRead(readHtml);
   const empty=isEmpty?' data-kt-empty="1"':'';
   const cue=(isEmpty&&cueIcon&&window.icon)
@@ -2749,6 +2755,21 @@ function ktRowHtml(key,label,readHtml,fieldHtml,editable,cueIcon){
     <span class="kt-k">${label}</span>
     <button type="button" class="kt-v kt-read"${empty} data-kt-edit="${key}" title="${esc(isEmpty?i18t('ct_empty_click'):i18t('ct_click_change'))}">${cue}${readHtml}</button>
     <span class="kt-field hidden">${fieldHtml}</span></div>`;
+}
+/* The signing route's own address for the counterparty, shown only where it
+   disagrees with the contact recorded above it. Read-only: this row reports
+   what the route says, and the route is edited on the Signing tab. */
+function ktRouteEmailRowHtml(c){
+  const route=(typeof window!=='undefined' && window.shareRouteRecipient)
+    ? shareRouteRecipient(c) : null;
+  const routeEmail=String((route&&route.email)||'').trim();
+  if(!routeEmail) return '';
+  const recorded=String((c&&c.counterpartyEmail)||'').trim();
+  if(recorded && recorded.toLowerCase()===routeEmail.toLowerCase()) return '';
+  const who=String((route&&route.name)||'').trim();
+  return ktRowHtml('cpRouteEmail', i18t('ct_signing_route_email'),
+    `${esc(routeEmail)}<span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.4">${
+      who?esc(who)+' · ':''}${i18t('ct_signing_route_email_note')}</span>`, '', false);
 }
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
@@ -2786,6 +2807,20 @@ function ktTermsRowsHtml(c,opts={}){
        an address at the moment of sending. */
     ktRowHtml('cpEmail','Their email', c.counterpartyEmail?esc(c.counterpartyEmail):dash,
       `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil'),
+    /* ---- AND WHEN THE SIGNING ROUTE SAYS SOMETHING ELSE, IT SAYS SO ----
+       Two records can name the counterparty's address: this row — the general
+       contact, where rounds of the negotiation go — and the signing route,
+       which names the person who executes the agreement. They are allowed to
+       differ (the CFO signs, the commercial lead argues), and neither is
+       rewritten by the other: an address somebody typed is somebody's decision.
+
+       What is NOT allowed is for them to differ QUIETLY. That is the shape of
+       the reported bug — a route saved with one address, a link prefilled with
+       another, and no screen anywhere saying both existed. So the second
+       address is printed under the first, named, whenever the two disagree, and
+       the row is absent when they agree, because a row repeating the line above
+       it is furniture. */
+    ktRouteEmailRowHtml(c),
     ktRowHtml('value','Contract value', `<span style="font-family:var(--font-mono)">${money}</span>`,
       `<span style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
          <span style="font-size:11px;color:var(--color-neutral-500);flex:none">${jxCurrency()}</span>
