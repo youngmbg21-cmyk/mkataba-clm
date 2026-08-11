@@ -74,9 +74,12 @@ const _acDue = o => (typeof window.obligationDue === 'function' ? obligationDue(
 const _acObState = o => (typeof window.obState === 'function' ? obState(o)
   : ((o && o.status === 'done') ? 'done' : 'open'));
 const _acMonthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+/* THE WHOLE YEAR, for the reason pfMonthLabel gives: "Jan 27" beside a month
+   name reads as a day of the month, and every chart drawn here sits on a
+   screen that also prints real dates. */
 const _acMonthLabel = k => {
   const [y, m] = String(k).split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString(jxLocale(), { month: 'short', year: '2-digit' });
+  return new Date(y, m - 1, 1).toLocaleDateString(jxLocale(), { month: 'short', year: 'numeric' });
 };
 /* The next N months as keys, so a month with nothing in it still appears —
    a gap in a timeline is information, and a chart that silently skips empty

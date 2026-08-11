@@ -84,6 +84,13 @@ const REPORT_METRICS=[
   {k:'avgRisk',    get label(){ return i18t('rep_avg_risk'); },            grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
   {k:'openOb',     get label(){ return i18t('rep_open_obligations'); },          grad:'var(--grad-amber)',   ic:'list',  get:r=>({val:String(r.openOb), sub:r.overdueOb+' overdue'})},
 ];
+/* "2026-01" as a month, named with its whole year. The two-digit form read as
+   a day of the month on a screen full of real dates — see pfMonthLabel. The
+   fallback strip below and the Chart.js version share this one function so the
+   two renderings of the same bar can never label it differently. */
+const repMonthLabel = m => { try{
+    return new Date(m+'-01').toLocaleDateString(jxLocale(),{month:'short',year:'numeric'});
+  }catch(e){ return String(m); } };
 const DEFAULT_REPORT_METRICS=['avgCycle','ageReview','ageDraft','renewal'];
 function reportMetricSel(){
   const s=(state.settings&&Array.isArray(state.settings.reportMetrics))?state.settings.reportMetrics.slice():DEFAULT_REPORT_METRICS.slice();
@@ -103,7 +110,7 @@ const REPORT_CHARTS=[
     return r.topParty.map(([k,v])=>bar(k,v,mx,fmtMoneyShort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
   {k:'renewalPipe', get label(){ return i18t('rep_renewal_next_12'); }, render:r=>{
     const months=Object.keys(r.pipeline).sort(); const mx=Math.max(1,...Object.values(r.pipeline));
-    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString(jxLocale(),{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'var(--st-green-dot)')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
+    return months.length?months.map(m=>bar(repMonthLabel(m),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'var(--st-green-dot)')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
   {k:'roundsType', get label(){ return i18t('rep_rounds_by_type'); }, render:r=>{
     const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
     const mx=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
@@ -179,7 +186,7 @@ function wireReportDropdowns(){
    workspace with no outbound network — Chart.js arrives from a CDN. */
 function repChartConfig(k, r){
   if(typeof aiSimpleChart!=='function') return null;
-  const mLbl=m=>new Date(m+'-01').toLocaleDateString(jxLocale(),{month:'short',year:'2-digit'});
+  const mLbl=repMonthLabel;
   if(k==='streamValue'){
     const e=Object.entries(r.byFolder).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
     return e.length?aiSimpleChart('hbar',e.map(x=>x[0]),e.map(x=>x[1]),{unit:'money'}):null;
@@ -348,4 +355,4 @@ function exportReportsCsv(r){
   toast(i18t('rep_exported_csv'));
 }
 
-Object.assign(window,{lifecycleEvents,firstAuditAt,computeReports,renderReports,exportReportsCsv,repChartConfig,repHydrateCharts});
+Object.assign(window,{lifecycleEvents,firstAuditAt,computeReports,renderReports,exportReportsCsv,repChartConfig,repHydrateCharts,repMonthLabel});

@@ -1774,6 +1774,57 @@ function docFillable(c){
   return c.status==='Draft';
 }
 
+/* ============================================================
+   THE TERM IS ONE FACT, AND THE PAPER STATES IT
+   ============================================================
+   Reported by the owner (11 Aug 2026) with two screenshots side by side: a
+   draft created with a start of 11 Aug 2026 and an end of 16 Aug 2026 whose
+   document went on reading "shall remain in force for 3 years from the
+   effective date". "The contract seems to have stuck on 3 years."
+
+   It had not stuck. The term was being stated TWICE — as two dates on the
+   record, which the register, the calendar, the renewal runway and every
+   reminder read, and as a number of years in a blank in the drafting, which
+   nothing read and nothing kept in step. Two statements of one fact, and the
+   one printed on the contract was the one nobody had touched.
+
+   So the paper reads the record. Where both dates are known the term clause
+   states THEM, and the years blank is not drawn — a blank whose number would
+   contradict the sentence around it is worse than no blank. Where they are not
+   both known the blank stands exactly as before, because on a contract with no
+   end date on file it is the only statement of the term there is.
+
+   AND THE EIGHT TEMPLATES WITH NO TERM CLAUSE SAY IT TOO. Only four of the
+   twelve draft one, so on the other eight a term typed into the form appeared
+   nowhere on the page at all — the same fault, less visible. They gain one
+   sentence on the recital rather than a fifth clause: the scan findings anchor
+   on clause numbers (c1…c4), and renumbering them to fix a sentence would put
+   every finding on the wrong paragraph. */
+const DOC_TERM_IN_CLAUSE = { ND:1, EQ:1, DA:1, LE:1 };
+/* "3 years" where the two dates are exactly that apart, "5 days" otherwise —
+   said in brackets after the dates so a reader can check the arithmetic
+   without doing it. Calendar arithmetic, never 365 × n (see termAdd). */
+function docTermLength(a, b){
+  if(typeof termAdd==='function'){
+    for(const [unit,max] of [['year',30],['month',36]])
+      for(let n=1;n<=max;n++) if(termAdd(a,n,unit)===b) return `${n} ${unit}${n===1?'':'s'}`;
+  }
+  const days=Math.round((Date.parse(b+'T00:00:00')-Date.parse(a+'T00:00:00'))/864e5);
+  return Number.isFinite(days)&&days>0 ? `${days} day${days===1?'':'s'}` : '';
+}
+/* The term the RECORD holds, or null. Read in the same order the rest of the
+   product reads these two dates, so the document can never disagree with the
+   key terms panel beside it. */
+function docTermSpan(c){
+  const f=(c&&c.fields)||{}, m=(c&&c.metadata)||{};
+  const a=String(f.effDate||m.effectiveDate||'').trim();
+  const b=String((c&&c.expiry)||m.expiryDate||'').trim();
+  const from=(typeof fmtDocDate==='function')?fmtDocDate(a):null;
+  const to=(typeof fmtDocDate==='function')?fmtDocDate(b):null;
+  if(!from||!to||b<a) return null;          // a term that runs backwards is a typo, not a term
+  return { from, to, len:docTermLength(a,b) };
+}
+
 function docBody(c){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
@@ -1810,6 +1861,10 @@ function docBody(c){
   const T=(id,ph)=>fText(id,f[id],ph);            // text field
   const N=(id,def,ph)=>fNum(id,(f[id]??def),ph);  // number field (with default)
   const M=(id,def,ph)=>fMoney(id,(f[id]??def),ph);// an amount in shillings
+  /* The term the record holds — see docTermSpan above. Null means the record
+     does not know it, and every clause below falls back to its years blank. */
+  const TERM=docTermSpan(c);
+  const TERMRUN=TERM?`runs from ${TERM.from} until ${TERM.to}${TERM.len?` (${TERM.len})`:''}`:'';
 
   /* ---- THE MARKET SPEAKS THROUGH THESE, NOT THROUGH THE DRAFTING ----
      Every clause below used to name Kenya outright — its money, its standards
@@ -1839,7 +1894,7 @@ function docBody(c){
       recital:`This Raw Material Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('material','e.g. refined sugar')} into the Buyer's production facilities in ${MKT}.`,
       clauses:[
         clause(1,'Supply & Specification',`The Supplier shall supply an estimated ${N('volume',5000)} metric tonnes per annum meeting the agreed specification${SB?` and the applicable ${SB} standard`:''}, delivered DDP to the Buyer's plant.`),
-        clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT.`),
+        clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT and invoices fall due within ${N('payDays',30)} days of receipt.`),
         clause(3,'Quality & Rejection',`Consignments failing specification${(FSR||SB)?` or ${[FSR,SB].filter(Boolean).join(' / ')} requirements`:' or the agreed quality requirements'} may be rejected within ${N('inspectDays',3)} days of delivery, with replacement at the Supplier's cost.`),
         clause(4,'Governing Law',LAWARB),
       ]}),
@@ -1847,7 +1902,7 @@ function docBody(c){
       recital:`This Packaging Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('packType','e.g. PET bottles & preforms')} and related packaging materials.`,
       clauses:[
         clause(1,'Scope of Supply',`The Supplier shall manufacture and supply packaging to the Buyer's approved artwork and specification, against a rolling forecast, to the Buyer's plants in ${MKT}.`),
-        clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, on agreed per-unit pricing. Any dedicated tooling is owned by the Buyer and listed in Annexure A.`),
+        clause(2,'Price & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, on agreed per-unit pricing, with invoices payable within ${N('payDays',30)} days of receipt. Any dedicated tooling is owned by the Buyer and listed in Annexure A.`),
         clause(3,'Forecast, Lead Time & Stock',`The Buyer issues a ${N('forecastWeeks',8)}-week rolling forecast; the Supplier holds ${N('safetyDays',14)} days of safety stock and honours agreed lead times.`),
         clause(4,'Intellectual Property & Governing Law',`All trademarks and artwork remain the Buyer's property. ${LAW}`),
       ]}),
@@ -1855,7 +1910,7 @@ function docBody(c){
       recital:`This Contract Manufacturing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Brand Owner") and ${CP} (the "Co-Packer") for the manufacture of ${T('product','e.g. powdered beverages')} to the Brand Owner's specification.`,
       clauses:[
         clause(1,'Manufacturing Scope',`The Co-Packer shall manufacture, fill and pack the products to the Brand Owner's recipe and specification at its licensed facility. All formulations and recipes remain the exclusive property of the Brand Owner.`),
-        clause(2,'Tolling Fee & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed as a per-unit conversion (tolling) fee and reconciled monthly against actual output.`),
+        clause(2,'Tolling Fee & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed as a per-unit conversion (tolling) fee, reconciled monthly against actual output and payable within ${N('payDays',30)} days of invoice.`),
         clause(3,'Quality, Food Safety & Licences',`The Co-Packer shall maintain FSSC 22000${SB?` / ${SB}`:''} certification and valid ${(FSR&&TAX)?`${FSR} and ${TAX}`:'food-safety and business'} licences, and permit the Brand Owner to audit on ${N('auditNotice',7)} days' notice.`),
         clause(4,'Liability & Governing Law',`The Co-Packer is liable for defects arising from its process, including recall costs. ${LAW}`),
       ]}),
@@ -1865,13 +1920,13 @@ function docBody(c){
         clause(1,'Equipment & Title',`The Lessor shall install and commission the equipment at the Lessee's premises. Title to the equipment remains with the Lessor at all times during the term.`),
         clause(2,'Lease Charges',`The Lessee shall pay a monthly lease charge of ${CUR} ${VAL}, in advance, exclusive of VAT.`),
         clause(3,'Maintenance & Uptime',`The Lessor guarantees ${N('uptime',95)}% availability with an on-site response within ${N('respHrs',24)} hours, and holds critical spares locally.`),
-        clause(4,'Term, Insurance & Governing Law',`The term is ${N('termYears',3)} years. The Lessee shall insure the equipment to full replacement value with the Lessor noted as loss payee. ${ADJ} law governs.`),
+        clause(4,'Term, Insurance & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',3)} years`}. The Lessee shall insure the equipment to full replacement value with the Lessor noted as loss payee. ${ADJ} law governs.`),
       ]}),
     WH:()=>({ title:'WAREHOUSING & COLD-CHAIN SERVICES AGREEMENT',
       recital:`This Warehousing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Provider") for third-party storage and handling at ${T('site',EG('site'))}.`,
       clauses:[
         clause(1,'Storage & Handling',`The Provider shall store up to ${N('pallets',1200)} pallet positions, including ${T('tempRange','e.g. 2–8°C chilled')} temperature-controlled space, with inventory managed on the Client's WMS.`),
-        clause(2,'Service Charge',`The monthly service charge is ${CUR} ${VAL}, based on pallet positions and throughput, exclusive of VAT.`),
+        clause(2,'Service Charge',`The monthly service charge is ${CUR} ${VAL}, based on pallet positions and throughput, exclusive of VAT, and is payable within ${N('payDays',30)} days of invoice.`),
         clause(3,'Stock Accuracy & Temperature SLA',`The Provider shall maintain not less than ${N('accuracy',99)}% stock accuracy and continuous temperature logging, reporting any excursion within ${N('excursionHrs',2)} hours.`),
         clause(4,'Liability & Governing Law',`The Provider is liable for loss or damage to goods in its custody up to their stock value. ${LAW}`),
       ]}),
@@ -1879,7 +1934,7 @@ function docBody(c){
       recital:`This Freight & Distribution Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Principal") and ${CP} (the "Carrier") for the distribution of finished goods across ${T('region',EG('region'))}.`,
       clauses:[
         clause(1,'Scope of Services',`The Carrier shall collect from the Principal's warehouse and deliver to the ${T('channel','e.g. distributors and modern trade')} within the agreed territory.`),
-        clause(2,'Rates & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed against agreed per-drop and per-kilometre rates and reconciled monthly.`),
+        clause(2,'Rates & Contract Value',`The estimated annual contract value is ${CUR} ${VAL}, billed against agreed per-drop and per-kilometre rates and reconciled monthly, with invoices payable within ${N('payDays',30)} days.`),
         clause(3,'Service Levels',`The Carrier commits to an on-time-in-full (OTIF) target of ${N('otif',98)}% with delivery within ${N('leadHrs',48)} hours of dispatch, per the KPI schedule in Annexure A.`),
         clause(4,'Liability & Governing Law',`Liability for loss in transit is capped per consignment value. ${LAWARB}`),
       ]}),
@@ -1889,12 +1944,12 @@ function docBody(c){
         clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
         clause(2,'Targets & Contract Value',`The estimated annual purchase value is ${CUR} ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
         clause(3,'Credit & Payment Terms',`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`),
-        clause(4,'Term, Termination & Governing Law',`The term is ${N('termYears',2)} years, terminable on ${N('noticeDays',90)} days' written notice. ${ADJ} law governs.`),
+        clause(4,'Term, Termination & Governing Law',`The term ${TERM?TERMRUN:`is ${N('termYears',2)} years`}, terminable on ${N('noticeDays',90)} days' written notice. ${ADJ} law governs.`),
       ]}),
     RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
       recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
       clauses:[
-        clause(1,'Listing & Range',`The Retailer shall list the agreed SKUs across ${N('stores',40)} stores, with planogram and shelf space per the trading terms in Annexure A.`),
+        clause(1,'Listing & Range',`The Retailer shall list the agreed SKUs across ${N('stores',40)} stores in the ${T('channel','e.g. modern trade')} channel, with planogram and shelf space per the trading terms in Annexure A.`),
         clause(2,'Trading Terms & Value',`The estimated annual supply value is ${CUR} ${VAL}, with a ${N('rebate',5)}% volume rebate and the agreed listing fees.`),
         clause(3,'Payment & Returns',`Payment falls due within ${N('payDays',60)} days of invoice. Short-dated or damaged stock is handled per the returns schedule.`),
         clause(4,'Compliance & Governing Law',`Products shall comply with ${SB?`${SB} labelling and Legal Metrology requirements`:'applicable labelling and weights-and-measures requirements'}. ${LAW}`),
@@ -1903,7 +1958,7 @@ function docBody(c){
       recital:`This Marketing Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Agency") for ${T('services','e.g. creative, media and activation')} services.`,
       clauses:[
         clause(1,'Scope of Services',`The Agency shall provide the services in accordance with approved campaign briefs and the Client's annual marketing calendar.`),
-        clause(2,'Fees & Contract Value',`The annual retainer / working budget is ${CUR} ${VAL}, billed ${T('billing','e.g. monthly')}, exclusive of VAT and third-party pass-through costs.`),
+        clause(2,'Fees & Contract Value',`The annual retainer / working budget is ${CUR} ${VAL}, billed ${T('billing','e.g. monthly')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and third-party pass-through costs.`),
         clause(3,'Approvals & Media',`All spend and creative require the Client's prior written approval. Any media rebates or volume bonuses are passed back to the Client in full.`),
         clause(4,'IP, Confidentiality & Governing Law',`All work product and campaign intellectual property vest in the Client upon payment. ${LAW}`),
       ]}),
@@ -1912,7 +1967,7 @@ function docBody(c){
       clauses:[
         clause(1,'Purpose',`The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`),
         clause(2,'Confidential Information',`"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.`),
-        clause(3,'Term',`This Agreement shall remain in force for ${N('termYears',3)} years from the effective date, unless terminated earlier by written notice to the other Party's registered office.`),
+        clause(3,'Term',`This Agreement shall remain in force ${TERM?`from ${TERM.from} until ${TERM.to}${TERM.len?` (${TERM.len})`:''}`:`for ${N('termYears',3)} years from the effective date`}, unless terminated earlier by written notice to the other Party's registered office.`),
         clause(4,'Governing Law',`This Agreement is governed by the laws of ${INC}, and the Parties submit to the exclusive jurisdiction of ${FORUM}.`),
       ]}),
     LE:()=>({ title:'COMMERCIAL PROPERTY LEASE AGREEMENT',
@@ -1920,20 +1975,28 @@ function docBody(c){
       clauses:[
         clause(1,'Demised Premises',`The Landlord leases to the Tenant premises measuring ${N('sqm',420)} square metres, together with shared access to power, water and secure parking.`),
         clause(2,'Rent',`The Tenant shall pay monthly rent of ${CUR} ${VAL}, in advance on or before the 5th day of each month, exclusive of VAT${TAX?` at the prevailing ${TAX} rate`:''}.`),
-        clause(3,'Term & Deposit',`The lease term is ${N('termYears',6)} years, secured by a deposit of ${M('deposit',0,`deposit ${CUR}`)} held against dilapidations and refundable per clause 7.`),
+        clause(3,'Term & Deposit',`The lease term ${TERM?TERMRUN:`is ${N('termYears',6)} years`}, secured by a deposit of ${M('deposit',0,`deposit ${CUR}`)} held against dilapidations and refundable per clause 7.`),
         clause(4,'Governing Law',LEASELAW),
       ]}),
     PS:()=>({ title:'PROFESSIONAL SERVICES AGREEMENT',
       recital:`This Professional Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Adviser") for ${T('services','e.g. statutory audit / legal advisory')} services.`,
       clauses:[
         clause(1,'Scope of Engagement',`The Adviser shall provide the professional services described in the engagement letter / Annexure A with reasonable skill and care.`),
-        clause(2,'Fees & Contract Value',`The fees for the engagement are ${CUR} ${VAL}, billed ${T('billing','e.g. on milestones')}, exclusive of VAT and disbursements.`),
+        clause(2,'Fees & Contract Value',`The fees for the engagement are ${CUR} ${VAL}, billed ${T('billing','e.g. on milestones')} and payable within ${N('payDays',30)} days of invoice, exclusive of VAT and disbursements.`),
         clause(3,'Standard & Independence',`The services shall be performed to professional standards and, where regulated, in line with ${PROF?`${PROF} requirements and `:''}applicable independence rules.`),
         clause(4,'Liability, Confidentiality & Governing Law',`The Adviser's liability is capped at the fees paid, save for negligence or wilful default. ${LAW}`),
       ]}),
   };
   const built=(BUILD[c.template]||BUILD.ND)();
-  const title=built.title, recital=built.recital, clauses=built.clauses;
+  const title=built.title, clauses=built.clauses;
+  /* The eight templates that draft no term clause say it on the recital
+     instead — see DOC_TERM_IN_CLAUSE. Appended here rather than written into
+     eight recitals so there is one sentence to keep right, and so a template
+     added later inherits it without anyone remembering to. */
+  const tk=BUILD[c.template]?c.template:'ND';
+  const recital=(TERM && !DOC_TERM_IN_CLAUSE[tk])
+    ? `${built.recital} The term ${TERMRUN}.`
+    : built.recital;
   /* One head for every body this tab draws — see docPaperHeadHtml. The
      template's own `title` is kept as the fallback for a contract with no name
      of its own; the record's name is what the rest of the product calls this
@@ -4563,6 +4626,34 @@ function wireDocumentSync(c){
     logAudit(c,'Edited',`Updated field "${inp.getAttribute('data-field')}"`);
     persist(c); renderAuditSection(c);
   }));
+  /* THE TERM AGREES IN BOTH DIRECTIONS. docTermSpan makes the paper read the
+     record; this makes the record read the paper. Writing "3" into the term
+     blank of a contract that has a start date and NO end date fills the end
+     date in — the register, the calendar, the renewal runway and every
+     reminder run off that date, and a contract whose own clause states a term
+     while its record says "no end date" is the reason 98 of them appear on no
+     runway at all.
+
+     A FILL, NEVER AN OVERWRITE: it refuses the moment an end date exists, so
+     the number in the blank can never quietly move a date somebody set. It
+     runs on `change` rather than `input`, because a repaint mid-keystroke
+     takes the field out from under the typist — and by the time it fires the
+     blank is no longer drawn, the clause having become a sentence. */
+  canvas.querySelectorAll('[data-field="termYears"]').forEach(inp=>inp.addEventListener('change',()=>{
+    const n=Math.round(Number(inp.value));
+    const start=String((c.fields||{}).effDate||(c.metadata||{}).effectiveDate||'').trim();
+    if(!(n>0&&n<=99) || !start || c.expiry) return;
+    const end=(typeof termAdd==='function')?termAdd(start,n,'year'):null;
+    if(!end) return;
+    c.expiry=end;
+    c.metadata=c.metadata||{}; c.metadata.confidence=c.metadata.confidence||{};
+    c.metadata.expiryDate=end; c.metadata.confidence.expiryDate='high';
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`End date set to ${end} — ${n} years from the start date stated in the term clause`);
+    persist(c);
+    toast(`End date set to ${fmtDocDate(end)} — ${n} years from the start date`);
+    renderWorkspace();
+  }));
 }
 
 /* -------- Key terms panel -------- */
@@ -5338,7 +5429,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
