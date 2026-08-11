@@ -104,8 +104,23 @@ describe('F7 — the counterparty portal still works end to end', () => {
     const html = sb.document.getElementById('share-root').innerHTML;
     assert.ok(html.includes('Raw Milk Collection') || html.includes('MK-A2'),
       'the portal should have rendered the contract');
-    assert.ok(html.includes('Propose a different value'),
-      'the counter-proposal field must still be offered for a monetary contract');
+    /* THIS ASSERTION USED TO REQUIRE THE OPPOSITE. "Propose a different value"
+       was offered on every monetary contract, at the top level of the signing
+       panel between the reader's own details and the Sign button — so it read
+       as part of signing, which it never was: portalRespond only looked at it
+       on the `changes` route, and a figure typed there before pressing Sign
+       was silently discarded. Removed on request (Young, 11 Aug 2026).
+
+       A price is agreed in the WORDING. The value clause is a clause like any
+       other, and changing it through the redline gives it a fingerprint, a
+       round and a decision; this box moved a number on the record while the
+       document beside it still said something else. */
+    assert.ok(!html.includes('Propose a different value'),
+      'the counter-proposal value box is gone from the signing panel');
+    assert.ok(!html.includes('pt-proposed'),
+      'and so is the field behind it — a handler reading a box nobody can see is how it comes back');
+    /* What the panel still carries: the reader saying something in words. */
+    assert.ok(html.includes('pt-comment'), 'the comment box stays');
   });
 
   test('a counter-proposal still comes back and is recorded', async () => {

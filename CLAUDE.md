@@ -325,6 +325,20 @@ AND THE COUNT HAS TO COUNT THE LIST UNDER IT. The same box printed "1 thing to f
 
 Tests: nda-carries-no-money-verify (21, in the browser, including a walk of all twelve templates against their own declared answer).
 
+WHO SIGNS, AND WHAT A REVIEW LINK CANNOT DO (added 2026-08-11)
+
+Three things asked for together, all about the moment a contract leaves the building.
+
+A REVIEW LINK CANNOT SIGN, AND THE SERVER IS WHERE THAT BECAME TRUE. The share dialog promises it in words and the browser kept the promise — a negotiate link opens renderShareWorkbench, which has no signing panel built into it — but that is a decision about pixels, and the link is a URL somebody keeps. POST /api/shares/:token/respond accepted action:'sign' on it like any other. It refuses now, 403, naming the way out. ONLY AN EXPLICIT 'negotiate' IS REFUSED: a link minted before purposes existed carries none, and those infer the phase from the change set, so refusing them would strand every signing link issued before the feature. ACCEPTING THE WORDING IS STILL ALLOWED — it is an answer a review link exists to collect, and it executes nothing. portalRespond refuses the same thing one layer earlier, in words.
+
+WHO SIGNS IS ASKED WHERE THE SIGNING LINK IS MADE. Everything needed already existed and was in the wrong place: the Signing tab has the route, issueSigningRouteLinks mints one bound link per counterparty signer held until their turn, and the server binds a share to a row of the STORED plan (shares.signer_id) and refuses a signature out of order. The share dialog knew none of it and minted a link bound to nobody — forwardable, and usable against any open counterparty step. shareSignerPickHtml draws the route on a Sign link; picking a row fills the recipient from it AND sends signerId, so the link is bound at the source rather than guessed at by the server's address match (which survives, and matters when the dialog is not the door).
+
+THREE PROPERTIES WORTH KEEPING: internal rows are DRAWN AND NOT PICKABLE (they sign in-app; hiding them would make the numbering say something false); pressing the chosen row again releases the binding; and NO ROUTE IS NOT AN ERROR — the free-typed recipient still works exactly as before, because a new wall in front of the commonest send would cost more than it saves. openSignerPlanEditor(c, {onDone}) is how the detour comes back: it closed onto the workspace, which is right from the Signing tab and wrong from inside a dialog somebody was part-way through.
+
+"PROPOSE A DIFFERENT VALUE" IS GONE from the counterparty's signing panel, on every contract. It sat at the top level between their own details and the Sign button, so it read as part of signing — and it never was: portalRespond only ever read it on the `changes` route, so a figure typed there before pressing Sign was silently discarded. It was also the wrong shape for the job: a price is agreed in the WORDING, where the redline gives it a fingerprint, a round and a decision, and this box moved a number on the record while the document beside it still said something else. THE READING SIDE STAYS — a round already carrying a proposedValue still shows it and still applies. f7's assertion was reversed to pin the removal.
+
+Tests: sign-links-verify (18, in the browser, and the wall is asserted with a raw POST). NOTE THE ORDER IN THAT FILE: issuing a signing link retires the negotiation links on the same contract, and that refusal fires before the purpose check — exercise the review link first or a working guard reports as broken.
+
 THE CONTRACT ROOM HAS FIVE TABS, AND TWO SHELLS DRAW THEM (added 2026-08-05)
 
 One contract, five faces: Document, Negotiate, Key terms, Signing, History. Nothing new sits behind them — Key terms and Signing came out of a sub-tab pair on the right-hand panel, History came out of a modal.

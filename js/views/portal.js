@@ -2507,8 +2507,24 @@ function renderSharePortal(p, opts={}){
         ${input('pt-email','Work email','you@company.co.ke')}
         <label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('po_comment')}</span>
         <textarea id="pt-comment" rows="3" placeholder="${i18t('po_optional_for_signing')}" style="${TA}"></textarea></label>
-        ${isMonetary(c)?`<label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${i18t('po_propose_value')}</span>
-        <input id="pt-proposed" type="number" placeholder="e.g. ${c.value||'2500000'}" style="${TA}min-height:36px;"/></label>`:''}
+        ${''/* ---- "PROPOSE A DIFFERENT VALUE" IS GONE (removed 2026-08-11, on
+               request, for every contract) ----
+               It sat at the top level of this panel, between the reader's own
+               details and the Sign button, so it read as part of signing. It
+               never was: portalRespond only ever looked at it on the `changes`
+               route, which lives behind "Not ready to sign?", and a figure
+               typed here before pressing Sign was silently discarded.
+
+               It was also the wrong shape for the job. A price is agreed in
+               the wording — the value clause is a clause like any other, and
+               changing it through the redline gives it a fingerprint, a round
+               and a decision. This box changed a NUMBER ON THE RECORD beside a
+               document that still said something else.
+
+               THE READING SIDE STAYS. A round already stored with a
+               proposedValue still shows it, and "Accept & apply value" still
+               works on those — history is not rewritten because the way of
+               making more of it was closed. */}
         ${''/* ONE ACT, THEN THE OTHERS BEHIND A DOOR.
 
                Five buttons used to sit here as equals: Approve & sign, Accept
@@ -2680,6 +2696,15 @@ function renderSharePortal(p, opts={}){
   if(window.negoWireNameMemory) negoWireNameMemory();
 }
 async function portalRespond(p, action, extra){
+  /* THE SAME REFUSAL THE SERVER MAKES, one layer earlier — the wall is on the
+     server (POST /api/shares/:token/respond), and this is here so a reader who
+     somehow reaches a signing control on a review link is told why in words
+     rather than watching a request fail. A negotiate link is the room, not the
+     signature; the sender said so when they made it. */
+  if(action==='sign' && p && p.purpose==='negotiate'){
+    toast(i18t('po_review_link_no_sign'),'err');
+    return;
+  }
   const name=portalResponderName(), title=fval('pt-title'), email=fval('pt-email');
   /* The comment box lives on the respond panel, which is on the page
      UNDERNEATH the full-window room — the same trap that made the name check
@@ -2831,7 +2856,12 @@ async function portalRespond(p, action, extra){
       : normText(freezeContractHtml(migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'})));
     sendAction='changes';
   }
-  const proposedValue = (action==='changes') ? fval('pt-proposed') : '';
+  /* The field this read is gone (see the note where it was drawn), so this is
+     always ''. Kept as a named constant rather than deleted from the response
+     shape: the payload's `proposedValue` is read by the owner's round card and
+     by versioning's accept-and-apply, and a key that stops being sent is a
+     harder change to reason about than one that is reliably null. */
+  const proposedValue = '';
   const clauseNotes = (action==='redline')
     ? portalClauseNotes(migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'}))
     : null;
