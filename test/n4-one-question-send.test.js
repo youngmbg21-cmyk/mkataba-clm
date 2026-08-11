@@ -78,13 +78,30 @@ describe('N4 (1) — the dialog opens on the one decision that matters', () => {
     assert.ok(sign > -1 && nego > -1 && sign < nego, 'most sends are "here it is, sign it" — Sign leads');
   });
 
+  /* THE ROUTE IS PART OF THE ANSWER NOW (11 Aug 2026). Naming the signers is
+     what opens signing, so a Sign link on a contract with no route is refused
+     by the dialog and by the server — and preselecting it there would make the
+     quiet path through the form a blocked one. Sign stays first in the picker
+     and one press away; it is no longer the answer given by default on a
+     contract that cannot carry it. */
+  const routed = over => contract({ signerPlan: [{ id: 'sg1', party: 'counterparty', order: 1,
+    name: 'Their MD', email: 'md@juno.example', signed: false }], ...over });
   test('the default purpose is Sign when nothing is on the table, Negotiate while changes are open', () => {
     const s = core();
-    assert.equal(s.defaultSharePurpose(contract()), 'sign', 'a clean contract goes out to be signed');
-    assert.equal(s.defaultSharePurpose(contract({ changes: [{ id: 'x', status: 'pending' }] })), 'negotiate',
+    assert.equal(s.defaultSharePurpose(routed()), 'sign', 'a clean contract goes out to be signed');
+    assert.equal(s.defaultSharePurpose(routed({ changes: [{ id: 'x', status: 'pending' }] })), 'negotiate',
       'an open negotiation still preselects Negotiate — a signing link over unresolved changes is the known mistake');
-    assert.equal(s.defaultSharePurpose(contract({ changes: [{ id: 'x', status: 'accepted' }] })), 'sign',
+    assert.equal(s.defaultSharePurpose(routed({ changes: [{ id: 'x', status: 'accepted' }] })), 'sign',
       'a settled negotiation asks for the signature');
+  });
+
+  test('and it is Negotiate while nobody has been named to sign, whatever the change set says', () => {
+    const s = core();
+    assert.equal(s.defaultSharePurpose(contract()), 'negotiate',
+      'the default must be something the send will actually accept — a Sign link with no '
+      + 'signers is refused, and finding that out after filling in the recipient is the fault');
+    assert.equal(s.defaultSharePurpose(contract({ changes: [{ id: 'x', status: 'accepted' }] })), 'negotiate',
+      'even a settled negotiation cannot ask for a signature nobody has been named to give');
   });
 
   test('no recipient on record — the full dialog, exactly as before', async () => {

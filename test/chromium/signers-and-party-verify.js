@@ -111,9 +111,49 @@ const contract = () => ({
     check('and once it is named the ladder carries on to signing',
       /sign/.test(nextStep.routed.kind), nextStep.routed.kind);
 
-    /* ---------- 2. the dialog ---------- */
+    /* ---------- 1b. THE WAY OUT EXISTS AND IS THE DEFAULT ----------
+       Reported the day the rule shipped: "I am trying to send the contract
+       without signers just for viewing but I am getting the error. How am I
+       supposed to send a contract that is just for the counterparty to read?"
+       Two faults behind one question — the default was the refused answer, and
+       the read-only purpose was built, enforced, offered on the phone, and
+       missing from this dialog. */
     await page.evaluate(() => { state.activeId = 'MK-SP1'; setView('workspace'); });
     await page.waitForTimeout(1200);
+    const defaults = await page.evaluate(async () => {
+      const c = state.contracts.find(x => x.id === 'MK-SP1');
+      if (window.closeModal) closeModal();
+      await openShareModal(c);
+      await new Promise(r => setTimeout(r, 1200));
+      const btns = [...document.querySelectorAll('[data-share-purpose]')];
+      return { offered: btns.map(b => b.getAttribute('data-share-purpose')),
+        preselected: btns.filter(b => b.getAttribute('aria-pressed') === 'true')
+          .map(b => b.getAttribute('data-share-purpose')) };
+    });
+    check('the picker offers a read-only link, not only Sign and Negotiate',
+      defaults.offered.join(',') === 'sign,negotiate,view', defaults.offered.join(','));
+    check('and with nobody named to sign, the default is one the send will accept',
+      defaults.preselected.join(',') === 'negotiate',
+      'preselected ' + (defaults.preselected.join(',') || 'nothing')
+      + ' — a default the send refuses is discovered after the form is filled in');
+    /* And a read-only link really goes, on a contract with no signers at all. */
+    const viewSent = await page.evaluate(async () => {
+      document.querySelector('[data-share-purpose="view"]').click();
+      await new Promise(r => setTimeout(r, 300));
+      const nx = [...document.querySelectorAll('button')].find(b => /^Next/.test(b.textContent.trim()));
+      if (nx) nx.click();
+      await new Promise(r => setTimeout(r, 700));
+      const em = document.getElementById('sh-email'); if (em) em.value = 'juno@example.co.ke';
+      document.getElementById('share-send').click();
+      await new Promise(r => setTimeout(r, 1400));
+      return (await api('contracts/MK-SP1/shares')).shares.map(s => s.purpose);
+    });
+    check('a View only link sends on a contract nobody has been named to sign',
+      viewSent.includes('view'), viewSent.join(',') || 'nothing sent');
+
+    /* ---------- 2. the dialog ---------- */
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
+    await page.waitForTimeout(400);
     const openShare = () => page.evaluate(async () => {
       const c = state.contracts.find(x => x.id === 'MK-SP1');
       if (window.closeModal) closeModal();
