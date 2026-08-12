@@ -423,17 +423,25 @@ describe('what the column renders', () => {
      change card now, which cannot reproduce the fault because there is no
      flex:1 scroller for it to be a sibling of. */
 
-  test('the panel is on the negotiation grid, ahead of the contract', async () => {
+  test('the panel is written ahead of the contract, and takes no track from it', async () => {
+    /* It WAS the grid's third column, and that is what changed on 12 Aug 2026:
+       the width it took came off the contract, which is the thing being judged.
+       It is an overlay now — see rlQueueHtml — so the grid is two tracks and
+       nothing behind it moves when it opens. It is still written FIRST, because
+       it is read first and because the door that opens it has to exist before
+       the reader looks for it. */
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
     await ask(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
 
     const html = win.redlinePanesHtml(c, { side: 'owner' });
-    assert.match(html, /class="rl-grid nego-work has-queue"/,
-      'the grid declares its third column');
+    assert.match(html, /class="rl-grid nego-work"/, 'two tracks, not three');
+    assert.ok(!/has-queue/.test(html), 'the grid reserves nothing for the queue');
     assert.ok(html.indexOf('id="rl-queue"') < html.indexOf('id="rl-doc"'),
       'the queue is read before the contract, so it comes first');
+    assert.ok(html.indexOf('id="rl-q-tab"') < html.indexOf('id="rl-doc"'),
+      'and so does the door that opens it');
   });
 
   test('every row carries the hooks the click handler binds to', async () => {

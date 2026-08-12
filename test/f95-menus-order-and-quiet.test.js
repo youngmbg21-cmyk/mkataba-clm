@@ -210,19 +210,30 @@ describe('F95 — the contract is filled in before it is checked', () => {
   });
 });
 
-describe('F95 — the round’s queue folds to a rail', () => {
-  /* The three-column workbench, mounted the way the portal mounts it — the
-     queue is a column of redlinePanesHtml, which both seats render. */
+describe('F95 — the round’s queue slides over the page', () => {
+  /* THE QUEUE STOPPED BEING A COLUMN (owner-asked, 12 Aug 2026). It was the
+     first of three grid tracks and its chevron only narrowed it to a 34px rail
+     that still held one; the width it took came off the CONTRACT, which is the
+     thing being judged. It is an overlay now, on the Activity panel's own
+     mechanism, and this block asserts the properties rather than the pixels:
+     the panel occupies no layout track, the door that opens it carries the
+     score the rail used to carry, and opening it repaints nothing. The claims
+     about PIXELS — that the contract's width does not move — live in a browser
+     file, because jsdom resolves no class rules at all. */
   function bench(side = 'owner'){
     const { win } = buildWorld({ negotiationView: true, contractView: true });
-    /* lsGet/lsSet live in js/core.js, which this stage does not load — the
-       preference store is the shell, so it is supplied here as one. */
     const store = new Map();
     win.lsGet = k => (store.has(k) ? store.get(k) : null);
     win.lsSet = (k, v) => store.set(k, v);
     const c = contract();
     win.negoInit(c);
+    /* One ask on the table, so the queue has a row to be a door. */
+    const cl = (win.negoClauseList(c) || [])[0] || {};
+    c.changes.push({ id: 'CHG-950', status: 'pending', authorSide: 'counterparty',
+      clauseId: cl.clauseId || 'c1', clauseLabel: cl.label || '1. Supply',
+      kind: 'edit', author: 'Them', seq: 1 });
     win.negoResetView();
+    win.rlSetQueueOpen(false);
     const host = win.document.createElement('div');
     host.id = 'bench';
     win.document.body.appendChild(host);
@@ -231,60 +242,120 @@ describe('F95 — the round’s queue folds to a rail', () => {
     return { win, c, host,
       grid: () => host.querySelector('#rl-grid'),
       queue: () => host.querySelector('#rl-queue'),
-      btn: () => host.querySelector('#rl-q-min'),
+      scrim: () => host.querySelector('#rl-q-scrim'),
+      tab: () => host.querySelector('#rl-q-tab'),
+      close: () => host.querySelector('#rl-q-min'),
       press: el => el.dispatchEvent(new win.Event('click', { bubbles: true })) };
   }
 
-  test('it opens open, and offers the fold', () => {
+  test('IT OCCUPIES NO LAYOUT TRACK', () => {
+    /* The one claim the whole change is about. The grid asked for three columns
+       through .has-queue and gave the queue a width in --rl-queue-w; both are
+       gone, and so is the resizer term that subtracted them. */
     const b = bench();
-    assert.ok(b.queue(), 'the queue is there');
-    assert.ok(b.btn(), 'and it can be folded');
-    assert.equal(b.btn().getAttribute('aria-expanded'), 'true');
-    assert.ok(!b.queue().classList.contains('is-min'),
-      'a first-time reader sees it before they can decide they would rather not');
-  });
-
-  test('pressing it folds the column and the grid with it', () => {
-    const b = bench();
-    b.press(b.btn());
-    assert.ok(b.queue().classList.contains('is-min'), 'the column folds');
-    assert.ok(b.grid().classList.contains('q-min'), 'and the grid gives the width back');
-    assert.equal(b.btn().getAttribute('aria-expanded'), 'false');
-  });
-
-  test('the rail still says how far through the round you are', () => {
-    const b = bench();
-    const mini = b.host.querySelector('.rl-q-mini');
-    assert.ok(mini, 'a rail that went blank would make reopening it a guess');
-    assert.match(mini.textContent.replace(/\s+/g, ''), /^\d+\/\d+$/);
-    b.press(b.btn());
-    assert.equal(mini.getAttribute('aria-hidden'), 'false', 'and it is read out once folded');
-  });
-
-  test('pressing it again brings it back', () => {
-    const b = bench();
-    b.press(b.btn()); b.press(b.btn());
-    assert.ok(!b.queue().classList.contains('is-min'));
-    assert.ok(!b.grid().classList.contains('q-min'));
-    assert.equal(b.btn().getAttribute('aria-expanded'), 'true');
-  });
-
-  test('the choice is remembered, and it is remembered per person', () => {
-    const b = bench();
-    b.press(b.btn());
-    assert.equal(b.win.rlQueueMin(), true);
-    /* Repainting the bench must not quietly reopen it. */
-    b.win.redlineEmbed(b.host, b.c, { side: 'owner', by: 'Amina Otieno', persist: false,
-      selMenu(){}, noAi: true, rerender(){} });
-    assert.ok(b.host.querySelector('#rl-queue').classList.contains('is-min'));
-    assert.ok(b.host.querySelector('#rl-grid').classList.contains('q-min'));
-    b.win.rlSetQueueMin(false);
-  });
-
-  test('the folded column has a width to fold to', () => {
+    assert.ok(b.grid(), 'the grid is there');
+    assert.ok(!b.grid().classList.contains('has-queue'),
+      'the grid no longer reserves a track for the queue');
     const nego = src('js/views/negotiation.js');
-    assert.match(nego, /\.rl-grid\.has-queue\.q-min\{--rl-queue-w:\d+px\}/,
-      'the resizer reads --rl-queue-w, so the fold has to move that number');
+    assert.ok(!/--rl-queue-w:/.test(nego), 'and nothing declares a width for that track');
+    assert.ok(!/_rlQueueW/.test(nego), 'nor does the resizer subtract one');
+    /* Re-derived rather than patched: ONE description of the geometry, asked
+       for by the layout and by the drag alike — the mismatch between those two
+       is what made the handle fall behind the cursor. */
+    assert.match(nego, /const _rlAvail = grid => grid\.clientWidth - RL_GAP;/);
+    const wire = nego.slice(nego.indexOf('function rlWireResizer'));
+    assert.match(wire.slice(0, 2000), /_rlAvail\(grid\)/);
+  });
+
+  test('it arrives SHUT, over a scrim, with a door that says what is behind it', () => {
+    const b = bench();
+    assert.ok(b.queue(), 'the panel is mounted');
+    assert.ok(!b.queue().classList.contains('is-open'),
+      'an overlay that opened itself would be the complaint this change answers');
+    assert.equal(b.queue().getAttribute('aria-hidden'), 'true');
+    assert.ok(b.scrim(), 'and it has the Activity panel\'s scrim, not a second mechanism');
+    assert.ok(!b.scrim().classList.contains('is-open'));
+    const tab = b.tab();
+    assert.ok(tab, 'the way back in is on screen');
+    assert.equal(tab.getAttribute('aria-expanded'), 'false');
+    assert.equal(tab.getAttribute('aria-controls'), 'rl-queue');
+  });
+
+  test('THE SCORE SURVIVES THE CLOSE — the door carries it', () => {
+    /* The folded rail\'s justification was that "2 of 7" stayed legible at 34px,
+       so reopening was never a guess. An overlay that simply shut would have
+       taken that away. */
+    const b = bench();
+    const n = b.tab().querySelector('.rl-q-tab-n');
+    assert.ok(n, 'the door reads out the round');
+    assert.match(n.textContent.replace(/\s+/g, ''), /^\d+\/\d+$/);
+    /* One source: the panel\'s own foot says the same two numbers. */
+    const foot = b.host.querySelector('.rl-q-foot b').textContent.replace(/\s+/g, '');
+    assert.equal(foot, n.textContent.replace(/\s+/g, '').replace('/', 'of'));
+  });
+
+  test('pressing the door opens it; the close, the scrim and Escape shut it', () => {
+    const b = bench();
+    b.press(b.tab());
+    assert.ok(b.queue().classList.contains('is-open'));
+    assert.ok(b.scrim().classList.contains('is-open'));
+    assert.equal(b.win.rlQueueOpen(), true);
+    b.press(b.close());
+    assert.ok(!b.queue().classList.contains('is-open'), 'the close shuts it');
+    b.press(b.tab());
+    b.press(b.scrim());
+    assert.ok(!b.queue().classList.contains('is-open'), 'so does the scrim');
+    b.press(b.tab());
+    b.win.document.dispatchEvent(new b.win.KeyboardEvent('keydown', { key: 'Escape' }));
+    assert.ok(!b.queue().classList.contains('is-open'), 'and so does Escape');
+  });
+
+  test('OPENING IT REPAINTS NOTHING', () => {
+    /* The property the fold already had and the one worth keeping: rebuilding
+       the workbench to show one panel throws away the reader\'s place in the
+       contract, which is the one thing they were holding on to. */
+    const b = bench();
+    const doc = b.host.querySelector('#rl-doc');
+    b.press(b.tab());
+    assert.equal(b.host.querySelector('#rl-doc'), doc, 'the same node, not a rebuilt one');
+    const src2 = src('js/views/negotiation.js');
+    const fn = src2.slice(src2.indexOf('function rlSetQueueShown'));
+    const body = fn.slice(0, fn.indexOf('\n}'));
+    assert.ok(!/again\(\)|renderRedline|redlineEmbed/.test(body), 'no repaint in the flip');
+    /* And the resizer is NOT re-run: the split behind it has not moved. */
+    assert.ok(!/rlLayoutResizer/.test(body));
+  });
+
+  test('A QUEUE ROW CLOSES IT — a door must not open onto a wall', () => {
+    /* Pressing a row jumps the contract to that clause. With the panel standing
+       over the contract, that lands the reader on a passage they cannot see. */
+    const b = bench();
+    b.press(b.tab());
+    const row = b.host.querySelector('[data-rl-queue]');
+    assert.ok(row, 'there is a row to press');
+    b.press(row);
+    assert.equal(b.win.rlQueueOpen(), false);
+  });
+
+  test('THE COUNTERPARTY GETS THE OVERLAY TOO', () => {
+    /* One builder draws the owner\'s bench, the contract tab\'s embed and their
+       page — and the complaint (the queue eating the contract\'s width) is the
+       same on their screen. The door is built inside the panes rather than on
+       the workbench toolbar precisely so it reaches a page that has no toolbar. */
+    const b = bench('counterparty');
+    assert.ok(b.queue());
+    assert.ok(b.tab(), 'their page gets the door as well');
+    assert.ok(b.scrim());
+  });
+
+  test('THE PHONE GETS NO DESKTOP OVERLAY', () => {
+    const nego = src('js/views/negotiation.js');
+    const narrow = nego.slice(nego.lastIndexOf('@media (max-width:1023px)'));
+    const block = narrow.slice(0, narrow.indexOf('\n  }'));
+    assert.match(block, /\.rl-queue\{position:static!important/,
+      'the queue goes back into the flow');
+    assert.match(block, /\.rl-q-scrim,[\s\S]*\.rl-q-tab,[\s\S]*\.rl-q-min\{display:none!important\}/,
+      'and the scrim, the door and the close have nothing to do there');
   });
 });
 

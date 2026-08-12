@@ -1111,6 +1111,8 @@ const STRINGS = {
     ng_you_are_viewing: 'You are viewing',
     ng_internal_threads_hidden: '. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.',
     ng_this_rounds_queue: "This round's queue",
+    ng_queue_open_title: 'Open this round\u2019s queue \u2014 {done} of {total} decided. It slides over the contract and leaves it exactly where it was.',
+    ng_queue_close_title: 'Close this round\u2019s queue',
     ng_decided_this_round: 'decided this round',
     ng_the_contract: 'The contract',
     /* THE THREE READINGS. See rlReadMode — the switch changes how the page is
@@ -4496,6 +4498,8 @@ const STRINGS = {
     ng_you_are_viewing: 'Du tittar på',
     ng_internal_threads_hidden: '. Interna trådar, anteckningar och osända utkast finns inte här &mdash; och inget på den här sidan avslöjar att de finns.',
     ng_this_rounds_queue: 'Den här rundans kö',
+    ng_queue_open_title: '\u00d6ppna rundans k\u00f6 \u2014 {done} av {total} avgjorda. Den glider \u00f6ver avtalet och l\u00e4mnar det d\u00e4r det var.',
+    ng_queue_close_title: 'St\u00e4ng rundans k\u00f6',
     ng_decided_this_round: 'avgjorda den här rundan',
     ng_the_contract: 'Avtalet',
     ng_read_group: 'Så här läses avtalet',
