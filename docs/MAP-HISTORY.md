@@ -1799,3 +1799,62 @@ A SMALL THING WORTH KNOWING: the channel painter is called unconditionally on
 open now. It used to be skipped for email, because the markup already draws
 email as the active tab — but the new line has no markup default, so skipping
 the first paint left it blank until something was pressed.
+
+THE PEOPLE CHIP STOPS BEING A BUTTON — THE OTHER HALF OF IT
+
+On 11 August the claimed half of the desk chip stopped being a control, on the
+owner's own words: "that button should not be the trigger for assigning
+contributors. It should just highlight who has been assigned what and nothing
+more." The EMPTY half was left behind, still a button reading "Start
+negotiation", and on 13 August the owner reported it.
+
+TWO FAULTS, and the first is the one that would have caused a real mistake.
+
+IT READ AS A DOOR INTO THE NEGOTIATION AND WAS NOT ONE. The real door is the
+green "Start negotiating" on the Document tab — almost the same words, a few
+inches away, and somewhere else entirely. That button is the only way into a
+negotiation a draft has and it is untouched; anyone editing near this should
+read the two labels carefully before changing either.
+
+AND IT WAS THE ONE PLACE THE PRODUCT STATED THIS FACT AND ALSO THE ONE PLACE
+THE FACT WAS CHANGED. A fact you can press is a fact somebody presses by
+accident. The room header is a row of facts — the reference, the stream, the
+round, the value — and "who is working on this" belongs with them.
+
+A SPAN, NOT A DISABLED BUTTON. Disabled says "this control is unavailable to
+you"; the truth is that it was never a control. Its hover text changed with
+it: the old one described an act ("Open a negotiation desk on this contract
+and lead it") and went with the button.
+
+THREE GATES, DECIDED DELIBERATELY, because the work order asked for each to be
+argued rather than inherited:
+
+  · THE ASSIGNMENT RULE is not asked, and never was. Who is working on a
+    contract is a fact whether or not the rule that gates redlining is
+    switched on — and the claimed half has never asked either, so adding the
+    question here would have made the two halves of one chip disagree.
+  · CAN THIS READER EDIT is no longer asked, and this is the substantive
+    change rather than a side effect. A viewer used to get an empty corner
+    where everybody else had a control, which reads as a fault. A fact is a
+    fact from every chair.
+  · SIGNED OR EXECUTED still draws nothing. "Nobody is assigned to this
+    contract YET" is untrue once the paper is executed — there is nothing left
+    to assign — and that header is busy with facts that still matter.
+
+A SMALL CSS TRAP WORTH RECORDING. Below 720px the header hides the chip's
+word and keeps its faces, on the sound reasoning that a face still says
+"somebody owns this" while a truncated name says nothing. The empty chip has
+no faces. Left alone it would have collapsed to a blank pill on every phone
+and small laptop, so that rule is undone for this one variant.
+
+ASSIGNING PEOPLE DID NOT MOVE, and checking that was the condition of doing
+this at all: Internal review opens a chooser whose first option is "Assign
+contributors", and that route claims the desk for whoever presses it. The chip
+standing down leaves one door rather than none. deskOpenFromChip survives for
+exactly that caller — the delegated listener's data-dk-open branch is what
+went, because nothing emits that attribute any more.
+
+THE PHONE draws its own version of this line and used to be silent when nobody
+was assigned. That was defensible while the desktop's version was a control
+the phone deliberately did not offer; it is not, now that both are statements.
+It says the same sentence, without a face, and not on an executed contract.

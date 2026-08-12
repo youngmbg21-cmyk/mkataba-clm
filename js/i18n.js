@@ -3320,8 +3320,15 @@ const STRINGS = {
        "contributor" are words a commercial team already uses about a deal; a
        screen that said "principal actor" or "delegated editor" would be
        teaching vocabulary in order to explain a permission. */
-    dk_claim: 'Start negotiation',
-    dk_claim_title: 'Open a negotiation desk on this contract and lead it',
+    /* dk_claim ("Start negotiation") and dk_claim_title are RETIRED — flag any
+       mention as stale. The chip's empty state stopped being a button on
+       13 Aug 2026: it read as a door into the negotiation, which it was not
+       (that is the green "Start negotiating" on the Document tab), and it was
+       the one place the product both stated this fact and changed it. What it
+       says now is a statement, and its hover says what it SAYS rather than
+       what pressing it would have done. */
+    dk_none_yet: 'Nobody assigned yet',
+    dk_none_yet_title: 'Nobody has been assigned to work on this contract yet. Use Internal review to assign contributors.',
     dk_you_lead: 'You lead',
     dk_who_leads: '{who} leads',
     dk_chip_title: '{who} leads this negotiation — open the desk',
@@ -6751,8 +6758,8 @@ const STRINGS = {
     rv_doc_back_to_yours: 'Tillbaka till dina klausuler',
 
     /* ---- förhandlingsbordet (js/desk.js) ---- */
-    dk_claim: 'Starta förhandling',
-    dk_claim_title: 'Öppna ett förhandlingsbord för det här avtalet och led det',
+    dk_none_yet: 'Ingen tilldelad än',
+    dk_none_yet_title: 'Ingen har ännu tilldelats att arbeta med det här avtalet. Använd Intern granskning för att tilldela medarbetare.',
     dk_you_lead: 'Du leder',
     dk_who_leads: '{who} leder',
     dk_chip_title: '{who} leder den här förhandlingen — öppna bordet',

@@ -59,11 +59,37 @@ describe('F179 — the desk chip states who, and does nothing else', () => {
       'and the shared hover is taken back — a thing that lights up is a thing people press');
   });
 
-  test('but "Start negotiation" keeps its press, because it is an act', () => {
+  test('CLAIM REVERSED — the EMPTY chip is not a control either', () => {
+    /* This used to read '"Start negotiation" keeps its press, because it is an
+       act'. It was an act, and it was still the wrong shape for this corner:
+       it wore almost the same words as the real door on the Document tab, and
+       it made the one place the product states this fact also the one place
+       the fact is changed. Owner-asked, 13 Aug 2026 — the same reasoning that
+       turned the claimed half into a span two days earlier, applied to the
+       half that was left behind.
+
+       Read off the TAG, not the branch, for the reason stated above: the prose
+       explains what was dropped and names the very attributes being checked
+       for, so a search of the whole branch passes for the wrong reason. */
     const fn = /function deskChipHtml\(c, opts = \{\}\)\{[\s\S]*?\n\}/.exec(DESK)[0];
     const unclaimed = fn.slice(0, fn.indexOf('const lead = deskLead(c)'));
-    assert.match(unclaimed, /<button type="button" id="dk-chip"/, 'still a button');
-    assert.match(unclaimed, /data-dk-open="1"/, 'still opens');
+    const tag = /<span id="dk-chip"[\s\S]*?>/.exec(unclaimed);
+    assert.ok(tag, 'a span, not a button');
+    assert.ok(!/<button/.test(unclaimed), 'and no button anywhere in the branch');
+    assert.ok(!/data-dk-open/.test(tag[0]), 'nothing for the delegated opener to catch');
+    assert.ok(!/disabled/.test(tag[0]),
+      'not a disabled button either — that says "unavailable to you"');
+    assert.match(tag[0], /dk-chip-static/, 'so both halves of one chip behave alike');
+  });
+
+  test('and the attribute went with it, leaving no selector matching nothing', () => {
+    assert.ok(!/data-dk-open/.test(DESK.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'the delegated listener no longer looks for a hook nothing emits');
+    /* deskOpenFromChip itself is NOT dead and must not be tidied away: the
+       Internal review chooser's "Assign contributors" route calls it to claim
+       the desk for whoever presses it. */
+    assert.match(DESK, /function deskOpenFromChip/);
+    assert.match(read('js/review.js'), /deskOpenFromChip\(c\)/);
   });
 
   test('the assigning door is the one that was already there', () => {

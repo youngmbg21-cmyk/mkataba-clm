@@ -126,7 +126,20 @@ function mReviewNoticeHtml(c){
    the phone's own drawing of deskNoticeHtml's state, sharing the model rather
    than the markup, because the two shells legitimately look different. */
 function mDeskLineHtml(c){
-  if(!window.deskIsOpen || !deskIsOpen(c)) return '';
+  if(!window.deskIsOpen) return '';
+  /* ---- AND WHEN NOBODY IS ASSIGNED, IT SAYS SO (13 Aug 2026) ----
+     The desktop chip's empty state stopped being a "Start negotiation" button
+     and became a plain statement; this line is the phone's drawing of the
+     same fact, so it says the same thing. It was silent here before, which
+     was defensible while the desktop's version was a control the phone
+     deliberately did not offer — and is not, now that both are statements.
+     No face: there is nobody to draw. Not on an executed contract, for the
+     same reason the desktop leaves it out — "yet" is untrue once the paper is
+     signed. */
+  if(!deskIsOpen(c)){
+    if(c && (c.status==='Signed' || (window.negoExecuted && negoExecuted(c)))) return '';
+    return `<div class="m-note" style="margin-top:2px">${mEsc(i18t('dk_none_yet'))}</div>`;
+  }
   const role=window.deskRole?deskRole(c):null;
   const lead=deskLead(c)||{name:''};
   if(!role) return '';

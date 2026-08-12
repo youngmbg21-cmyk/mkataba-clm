@@ -757,15 +757,51 @@ function deskChipHtml(c, opts = {}){
   const me = _dkMe();
   if (!me) return '';
   const d = deskOf(c);
-  /* NOTHING CLAIMED YET, and this reader could claim it. An empty space where
-     the control will be is worse than the control: the person cannot tell
-     whether the feature exists. It says what pressing it does. */
+  /* ---- NOTHING CLAIMED YET, AND THAT IS A FACT, NOT A DOOR ----
+     (owner-asked, 13 Aug 2026 — and it finishes a job started on 11 August,
+     when the CLAIMED state stopped being a button for exactly this reasoning
+     and this branch was left behind.)
+
+     It was a button reading "Start negotiation" that opened the desk sheet.
+     Two faults, both reported:
+
+     IT READ AS A DOOR INTO THE NEGOTIATION AND WAS NOT ONE. The real door is
+     the green "Start negotiating" on the Document tab — almost the same
+     words, a few inches away, and somewhere else entirely.
+
+     AND IT WAS THE ONE PLACE THE PRODUCT STATED THIS FACT AND ALSO THE ONE
+     PLACE THE FACT WAS CHANGED. A fact you can press is a fact somebody
+     presses by accident. The header is a row of facts — the reference, the
+     stream, the round, the value — and this belongs with them.
+
+     A SPAN, not a disabled button: disabled says "this control is unavailable
+     to you", and the truth is that it was never a control. Its title says
+     what it SAYS rather than what pressing it would do; the old one ("Open a
+     negotiation desk on this contract and lead it") described an act and goes
+     with the button. dk_claim and dk_claim_title are retired — flag them as
+     stale.
+
+     ASSIGNING PEOPLE DID NOT MOVE. It already lives behind Internal review,
+     whose first option is "Assign contributors" and which claims the desk for
+     whoever presses it. This chip standing down leaves one door, not none.
+
+     THREE GATES, DECIDED DELIBERATELY NOW THAT THIS IS A STATEMENT:
+       · THE ASSIGNMENT RULE: not asked, and never was. Who is working on a
+         contract is a fact whether or not the rule that gates redlining is
+         switched on — and the CLAIMED chip has never asked either, so asking
+         here would have made the two halves of one chip disagree.
+       · CAN THIS READER EDIT: no longer asked, and this is the change. A
+         viewer used to get an empty corner where everyone else had a control,
+         which reads as a fault. A fact is a fact from every chair.
+       · SIGNED OR EXECUTED: still not drawn. "Nobody is assigned to this
+         contract YET" is untrue once the paper is executed — there is nothing
+         left to assign — and the header on a signed contract is busy with
+         facts that still matter. */
   if (!deskIsOpen(c)){
-    if (!(window.canEdit ? window.canEdit() : true)) return '';
     if (c.status === 'Signed' || (window.negoExecuted && window.negoExecuted(c))) return '';
-    return `<button type="button" id="dk-chip" class="dk-chip dk-chip-empty" data-dk-open="1"
-      title="${_dkE(i18t('dk_claim_title'))}">
-      <span class="dk-who">${_dkE(i18t('dk_claim'))}</span></button>`;
+    return `<span id="dk-chip" class="dk-chip dk-chip-static dk-chip-empty"
+      title="${_dkE(i18t('dk_none_yet_title'))}">
+      <span class="dk-who">${_dkE(i18t('dk_none_yet'))}</span></span>`;
   }
   const lead = deskLead(c);
   const role = deskRole(c, me);
@@ -955,7 +991,13 @@ function deskWireChip(){
   if (typeof document === 'undefined' || document._dkWired) return;
   document._dkWired = true;
   document.addEventListener('click', ev => {
-    const el = ev.target && ev.target.closest && ev.target.closest('[data-dk-open],[data-dk-manage]');
+    /* data-dk-open LEFT THIS SELECTOR WITH THE BUTTON (13 Aug 2026). The chip's
+       empty state stopped being a control, so nothing emits that attribute and
+       a selector matching nothing is one nobody can read. deskOpenFromChip
+       itself STAYS and is not dead: the Internal review chooser's "Assign
+       contributors" route calls it to claim the desk for whoever presses it,
+       which is the one-press rule this chip used to carry. */
+    const el = ev.target && ev.target.closest && ev.target.closest('[data-dk-manage]');
     if (!el) return;
     /* The contract the room is open on, resolved the way both views resolve it
        — getContract(state.activeId). A delegated listener has no closure over
@@ -964,8 +1006,7 @@ function deskWireChip(){
     const c = (window.getContract && st) ? window.getContract(st.activeId) : null;
     if (!c) return;
     ev.preventDefault();
-    if (el.hasAttribute('data-dk-open')) deskOpenFromChip(c);
-    else if (window.openDeskSheet) window.openDeskSheet(c);
+    if (window.openDeskSheet) window.openDeskSheet(c);
   });
   /* The notice band's one button. Delegated for the same reason as the chip —
      it lives inside a pane several paths repaint, and an element-bound listener

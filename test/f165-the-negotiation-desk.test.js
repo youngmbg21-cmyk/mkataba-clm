@@ -204,16 +204,48 @@ describe('f165 · the desk is drawn once, in the header', () => {
     assert.match(hers, /Wanjiru Kamau leads/);
   });
 
-  test('an unclaimed contract offers the claim rather than an empty space', () => {
+  /* ---- CLAIMS REVERSED, 13 Aug 2026, OWNER-ASKED ----
+     Both tests below asserted the chip's EMPTY state as a control: that an
+     unclaimed contract offered a "Start negotiation" button rather than an
+     empty space, and that a viewer — who cannot claim anything — was offered
+     nothing at all.
+
+     The button is gone. It read as a door into the negotiation and was not
+     one (that is the green "Start negotiating" on the Document tab, a few
+     inches away and almost the same words), and it was the one place the
+     product both stated this fact and changed it. The claimed half of the
+     same chip stopped being a button on 11 August for exactly this reasoning;
+     this finishes the job.
+
+     The viewer claim turns round with it, and that is the change that matters
+     rather than a consequence of it: a fact is a fact from every chair, and a
+     viewer looking at an empty corner where everybody else has something
+     reads it as a fault. */
+  test('an unclaimed contract STATES that nobody is assigned', () => {
     const { win } = world();
     const html = win.deskChipHtml(contract(), {});
-    assert.match(html, /data-dk-open/);
-    assert.match(html, /Start negotiation/);
+    assert.ok(!/<button/.test(html), 'not a button — it was never a control');
+    assert.ok(!/data-dk-open/.test(html), 'and no hook for the delegated opener');
+    assert.match(html, /Nobody assigned yet/);
+    assert.match(html, /dk-chip-static/, 'the class that stands the hover down');
+    assert.ok(!/Start negotiation/.test(html),
+      'and it does not wear the words of the door on the Document tab');
   });
 
-  test('a viewer is offered nothing to claim', () => {
+  test('a viewer is told the same fact as everybody else', () => {
     const { win } = world({ canEdit: false });
-    assert.equal(win.deskChipHtml(contract(), {}), '');
+    const html = win.deskChipHtml(contract(), {});
+    assert.match(html, /Nobody assigned yet/,
+      'who is working on a contract is a fact, not a permission');
+    assert.ok(!/<button/.test(html));
+  });
+
+  test('but not on a contract that is already executed', () => {
+    /* "Nobody is assigned YET" is untrue once the paper is signed — there is
+       nothing left to assign — and that header is busy with facts that still
+       matter. */
+    const { win } = world();
+    assert.equal(win.deskChipHtml(Object.assign(contract(), { status: 'Signed' }), {}), '');
   });
 
   test('the counterparty never learns who works this on our side', async () => {
