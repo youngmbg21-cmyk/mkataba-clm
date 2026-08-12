@@ -1694,3 +1694,52 @@ prints the raw record status in lower case ("pending", "accepted") in its own
 pill. That is the record's word shown verbatim rather than one of the phrases
 in this vocabulary, nobody asked for it, and changing it would rewrite a large
 number of unrelated claims.
+
+A NAME ON A CARD IS A GLANCE, NOT A RECORD
+
+"Young Mbagaya" reads "Young M." on a change card. The reason is width: the
+column is 285px, the head already carries an id, a status word, a round tag and
+a button, and the line under it has to fit a clause label, a person and an
+organisation. A full name pushed the organisation off the row.
+
+ONE FUNCTION, and where it lives was decided twice. It went into the app shell
+first, which is where a general-purpose helper belongs — and the whole node
+suite promptly proved that wrong. Most of the harnesses that mount a change
+card do not load the shell, so the shortening quietly did nothing in them and
+was exercised only in the one world that happens to load everything. A feature
+that no test can see is a feature that will be broken by the next person who
+touches it. It lives with the CHANGE MODEL now: every surface that draws a card
+— both renderers, the review chip, the desk's drafted-by line, the
+counterparty's page, the phone — already stands on that module.
+
+That same test run found the second lesson, and it is the more interesting one.
+A parity check comparing the owner's card against the counterparty's failed
+with "Erik A." on one side and "Erik Lindqvist · Nordfrakt Logistik AB" on the
+other. Two faults in one line. The asymmetry was the harness, above. The "Erik
+A." was real: that fixture stores the author as a person and a company already
+joined with a middot — the same separator the card's own meta line uses — so
+initialling it read "AB" as a surname. Anything carrying that separator is a
+composed LINE rather than a name and comes back whole. Nobody would have
+guessed that shape from the work order's list; the suite handed it over.
+
+THE FOUR SHAPES THE WORK ORDER DID ASK FOR are pinned beside it: nothing comes
+back as nothing (never a bare " ."), a single word comes back whole because
+there is no surname to cut, a name that is already an initial gets one dot
+rather than two, and a name that IS the company comes back whole — the caller
+passes the organisation, because "Nordfrakt L." is not a shortening of
+"Nordfrakt Logistik AB", it is a different company.
+
+NOTHING IS LOST. Every caller keeps the whole name in the hover text of the
+line it shortens: the meta line, the two stamps, the reviewer's note, the chip,
+the desk's row. A name cut to an initial with no way back is a name lost, and
+that would have been a worse bug than the one being fixed.
+
+AND THE BOUNDARY IS PART OF THE FEATURE, not an afterthought. The audit trail,
+the emails, the reviewer picker, the signing route and the approval chain all
+keep the whole name. A card is read at a glance and can afford ambiguity that a
+record and a chooser cannot: "Young M." in a list of six colleagues is a guess,
+and in an audit line it is a gap. Those claims are asserted in the same file as
+the shortener's own, so a later change that reaches one of them fails loudly.
+
+Our own company name still prints on our own cards. The owner considered
+dropping it and chose to keep it.

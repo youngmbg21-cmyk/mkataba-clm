@@ -337,14 +337,20 @@ describe('f166 · a shared draft says whose hand wrote it', () => {
   test('the workbench card names the colleague who drafted it', async () => {
     const { w, c } = await shared(ME);
     const html = w.win.redlineChangeCardsHtml(c, {});
+    /* CLAIM UPDATED, 13 Aug 2026: a name on a CARD is now first name plus
+       the surname's initial (cardName) — the whole name stays in the
+       line's hover text, and in the record, the emails and the pickers.
+       The claim is the same claim; only the form of the name moves. */
     assert.match(html, /dk-card-by/);
-    assert.match(html, /drafted by Grace Mwangi/);
+    assert.match(html, /drafted by Grace M\./);
+    assert.match(html, /class="dk-card-by" title="Grace Mwangi"/,
+      'and the whole name is on the row it shortens');
   });
 
   test('it does not caption your own wording back at you', async () => {
     const { w, c } = await shared(GRACE);
     const html = w.win.redlineChangeCardsHtml(c, {});
-    assert.equal(/drafted by Grace Mwangi/.test(html), false,
+    assert.equal(/drafted by Grace M\./.test(html), false,
       'a caption on every card whatever it says is chrome again');
   });
 

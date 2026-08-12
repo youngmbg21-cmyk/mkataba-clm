@@ -122,8 +122,13 @@ describe('f158 · both change cards name the reviser', () => {
       ['workbench', win.redlineChangeCardsHtml(c, { side: 'owner' })],
       ['contract tab', win.negoLiveCardsHtml(c, { side: 'owner' })],
     ]){
-      assert.match(html, /Achieng Otieno rewrote this wording/, name + ' names the reviser');
-      assert.match(html, /Wanjiru Kamau proposed the change/, name + ' still credits the author');
+    /* CLAIM UPDATED, 13 Aug 2026: a name on a CARD is now first name plus
+       the surname's initial (cardName) — the whole name stays in the
+       line's hover text, and in the record, the emails and the pickers.
+       The claim is the same claim; only the form of the name moves. */
+      assert.match(html, /Achieng O\. rewrote this wording/, name + ' names the reviser');
+      assert.match(html, /Wanjiru K\. proposed the change/, name + ' still credits the author');
+      assert.match(html, /title="[^"]*Achieng Otieno/, name + ' keeps both whole names on hover');
     }
   });
 

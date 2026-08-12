@@ -1127,6 +1127,10 @@ const STRINGS = {
     // translated in the same pass. Each has its own _title, because a
     // sentence taken out of the slot has to be findable somewhere before it
     // goes — see the card's badge builder. */
+    // The change card's meta line shortens the name it prints, so its hover
+    // text is where the whole one stays reachable.
+    ng_last_updated_by: 'Last updated by {who}',
+    ng_asked_by_full: 'Asked by {who}',
     ng_badge_draft: 'Draft',
     ng_badge_draft_title: 'Not sent yet — it is still on this page',
     ng_badge_sent: 'Sent',
@@ -4588,6 +4592,8 @@ const STRINGS = {
     ng_retract: 'Återkalla',
     ng_sent: 'Skickat',
     // Ändringskortets statusord — se den engelska listan.
+    ng_last_updated_by: 'Senast ändrad av {who}',
+    ng_asked_by_full: 'Begärd av {who}',
     ng_badge_draft: 'Utkast',
     ng_badge_draft_title: 'Inte skickat än — det ligger kvar på den här sidan',
     ng_badge_sent: 'Skickat',

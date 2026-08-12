@@ -1945,6 +1945,13 @@ function negoLiveCardsHtml(c, opts){
   return changes.map(ch => {
     const active = _negoActive === ch.id;
     const open = _negoThreads[ch.id];
+    /* A NAME ON A CARD IS A GLANCE — the same rule and the same function as
+       the workbench card's meta line (cardName, js/core.js). The author's
+       ORGANISATION rides with it so a counterparty filing under their own
+       company name is not initialled into a different company. */
+    const _liveOrg = ch.authorSide === 'counterparty'
+      ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us');
+    const _liveShort = n => (window.cardName ? cardName(n, _liveOrg) : String(n || ''));
     /* BOTH HALVES OF THE CONVERSATION. The thread written onto the record and
        the replies filed through the discussion channel are one exchange; see
        negoThreadOf. Reading only ch.thread is how a card could show the
@@ -2135,7 +2142,7 @@ function negoLiveCardsHtml(c, opts){
         </div>
         ${ch.status === 'rejected' && !ch.withdrawn ? `<div class="nego-contested" data-contested="${_ne(ch.id)}">
           <b>${i18t('ng_still_between_you')}</b> This was refused. It stops being outstanding when
-          ${mine ? 'you withdraw it' : `${_ne(ch.author)} withdraws it`} — until then neither side can signal readiness to sign.</div>` : ''}
+          ${mine ? 'you withdraw it' : `${_ne(_liveShort(ch.author))} withdraws it`} — until then neither side can signal readiness to sign.</div>` : ''}
         <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
         ${''/* The "(your side)" italic that used to live here is gone. It was
@@ -2143,11 +2150,15 @@ function negoLiveCardsHtml(c, opts){
                 at the bottom, next to a name that on a deal where both sides are
                 you says nothing at all. It is a pill in the top row now, and the
                 card carries an edge. */}
-        <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
+        ${''/* Shortened like the workbench card's meta line — one shared
+                function, so the two renderers cannot drift. The whole name is
+                on this line's own hover. */}
+        <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px" title="${_ne(String(ch.author || ''))}">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:600">${
+          _ne(window.cardName ? cardName(ch.author, _liveOrg) : ch.author)}</b></div>
         ${''/* Both renderers carry it — the project's own duplication rule. */}
         ${(side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author) ? `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px"
-          title="${_ne(i18t('ng_revised_title'))}"><span aria-hidden="true">&#9998;</span> ${
-          i18t('ng_revised_by_after',{who:_ne(ch.revisedBy),author:_ne(ch.author)})}</div>` : ''}
+          title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
+          i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
         ${(ch.why || ch.note) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
           <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.why || ch.note)}</span></div>` : ''}
@@ -2162,7 +2173,7 @@ function negoLiveCardsHtml(c, opts){
                    read as a caption; "ACHIENG OTIENO SAID" reads as shouting,
                    and a long name in caps outgrows the card. Same rule as the
                    review chip beside it. */}
-            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)">${i18t('rv_reviewer_said', { who: _ne(sayBy) })}</span>
+            <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.01em;color:var(--st-amber-fg)" title="${_ne(String(sayBy))}">${i18t('rv_reviewer_said', { who: _ne(_liveShort(sayBy)) })}</span>
             <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(v.note)}</span></div>` : ''; })()}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}
@@ -10850,6 +10861,17 @@ function redlineChangeCardsHtml(c, opts = {}){
     const sentHere = sentIds.has(ch.id) && ch.status !== 'pending' && !heldHere;
     const reopen = sentHere && redeciding(ch.id);
     const contested = ch.status === 'rejected' && !ch.withdrawn && !heldHere && !sentHere;
+    /* The organisation is the AUTHOR's, not the viewer's — see the meta line
+       below, where the reasoning lives. Read up here because the status word
+       needs it too: a name it prints goes through the same shortener. */
+    const metaOrg = ch.authorSide === 'counterparty' ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us');
+    /* ---- A NAME ON A CARD IS A GLANCE, NOT A RECORD (13 Aug 2026) ----
+       "Young Mbagaya" reads "Young M." One shared function — cardName in
+       js/core.js — so the two card renderers, the counterparty's page and the
+       phone cannot drift apart. The organisation rides with it so a
+       counterparty filing under their own company name is not initialled into
+       a different company. Every caller keeps the whole name in hover text. */
+    const _short = n => (window.cardName ? cardName(n, metaOrg) : String(n == null ? '' : n));
     /* ---- THE STATUS WORD IS SHORT, AND IT IS IN THE READER'S LANGUAGE ----
        (owner-asked, 13 Aug 2026.) Every one of these used to be a phrase typed
        into this file in English: "Accepted · 🔒 held", "Refused · withdraw or
@@ -10891,13 +10913,13 @@ function redlineChangeCardsHtml(c, opts = {}){
          also confusing" (Young, 09 Aug 2026). The card has ONE status slot and
          this is the card's status, so the badge keeps it and names who where
          the reader is entitled to the name; the chip stands down beside it. */
-      : rvHeld ? ['no', '&#9209; ' + (rvHeldBy ? i18t('rv_badge_held_by', { who: _ne(rvHeldBy) }) : i18t('rv_badge_held')),
+      : rvHeld ? ['no', '&#9209; ' + (rvHeldBy ? i18t('rv_badge_held_by', { who: _ne(_short(rvHeldBy)) }) : i18t('rv_badge_held')),
         rvHeldBy ? i18t('rv_held_what_now', { who: rvHeldBy }) : i18t('rv_held_what_now_anon')]
       /* NAMED, AND NOTHING ELSE. It read "⌛ With Achieng Otieno"; the "With"
          was the word doing least — the hourglass already says waiting and the
          name says who. A name needs no dictionary, so this branch prints it
          raw and rv_badge_waiting_by is retired (flag it as stale). */
-      : rvOut ? ['draft', '&#8987; ' + (rvOutNamed ? _ne(rvOutNamed) : i18t('rv_badge_waiting')),
+      : rvOut ? ['draft', '&#8987; ' + (rvOutNamed ? _ne(_short(rvOutNamed)) : i18t('rv_badge_waiting')),
         rvOutNamed ? i18t('rv_waiting_title', { who: rvOutNamed }) : i18t('rv_waiting_title_anon')]
       : mineUnsent ? ['draft', i18t('ng_badge_draft'), i18t('ng_badge_draft_title')]
       : theirs ? ['sent', i18t('ng_badge_awaiting_you'), i18t('ng_badge_awaiting_title')]
@@ -10911,9 +10933,9 @@ function redlineChangeCardsHtml(c, opts = {}){
        same string — which is what a counterparty who filed under their own
        company name produces — this line printed it twice, so a card three
        lines tall spent one of them repeating itself. */
-    const metaOrg = ch.authorSide === 'counterparty' ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us');
-    const metaBy = String(ch.by || ch.author || '').trim();
-    const who = [ch.clauseLabel || ch.clauseId, metaBy, metaBy === metaOrg ? '' : metaOrg]
+    const metaByFull = String(ch.by || ch.author || '').trim();
+    const metaBy = _short(metaByFull);
+    const who = [ch.clauseLabel || ch.clauseId, metaBy, metaByFull === metaOrg ? '' : metaOrg]
       .filter(Boolean).map(_ne).join(' &middot; ');
     /* The same tooltip the marked wording in the document carries, so hovering
        either one answers the same question with the same words. */
@@ -10921,7 +10943,14 @@ function redlineChangeCardsHtml(c, opts = {}){
        one. It used to read the author unconditionally and so claimed the
        original author had made a change somebody else made. */
     const lastBy = String((side !== 'counterparty' && ch.revisedBy) || ch.author || ch.by || '').trim();
-    const tip = lastBy ? `Last updated by ${lastBy}` : '';
+    /* THE HOVER KEEPS THE WHOLE NAME. This is the line the shortening happens
+       on, so this is where the full name has to still be reachable — a name
+       cut to an initial with no way back is a name lost. It names the author
+       too, not only the last mover, because the visible line now shows an
+       initial for them. */
+    const tip = [lastBy ? i18t('ng_last_updated_by', { who: lastBy }) : '',
+      (metaByFull && metaByFull !== lastBy) ? i18t('ng_asked_by_full', { who: metaByFull }) : '']
+      .filter(Boolean).join(' · ');
     /* ---- THE PROVENANCE LABEL IS NOT PAINTED ----
        `ch.note` on a Copilot-filed change is provenance — "Copilot — Edit",
        "Copilot — Shorten & Simplify (added after)" — written by the machinery
@@ -10961,8 +10990,9 @@ function redlineChangeCardsHtml(c, opts = {}){
        itself (negoFileChange sets enteredBy), so it travels into the audit
        trail and the exports; this is it on the face of the card. */
     const behalfBlock = ch.enteredBy
-      ? `<div class="rl-card-behalf" title="${i18t('ng_typed_on_behalf')}">`
-        + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_entered_by_on_behalf',{who:_ne(ch.enteredBy),author:_ne(ch.author)})}</div>`
+      ? `<div class="rl-card-behalf" title="${_nea(i18t('ng_typed_on_behalf'))} &mdash; ${
+          _nea(String(ch.enteredBy))} / ${_nea(String(ch.author))}">`
+        + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_entered_by_on_behalf',{who:_ne(_short(ch.enteredBy)),author:_ne(_short(ch.author))})}</div>`
       : '';
     /* ---- AND WHO REWROTE IT, WHEN THAT IS NOT WHO ASKED ----
        The same idea as the stamp above, one step along: enteredBy says who
@@ -10978,8 +11008,9 @@ function redlineChangeCardsHtml(c, opts = {}){
        what they see rather than one thing more. Caught by f158 before it
        shipped, on the preview rather than in the payload. */
     const revisedBlock = (side !== 'counterparty' && ch.revisedBy && ch.revisedBy !== ch.author)
-      ? `<div class="rl-card-behalf" title="${_nea(i18t('ng_revised_title'))}">`
-        + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_revised_by_after',{who:_ne(ch.revisedBy),author:_ne(ch.author)})}</div>`
+      ? `<div class="rl-card-behalf" title="${_nea(i18t('ng_revised_title'))} &mdash; ${
+          _nea(String(ch.revisedBy))} / ${_nea(String(ch.author))}">`
+        + `<span aria-hidden="true">&#9998;</span> ${i18t('ng_revised_by_after',{who:_ne(_short(ch.revisedBy)),author:_ne(_short(ch.author))})}</div>`
       : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
@@ -11148,10 +11179,12 @@ function redlineChangeCardsHtml(c, opts = {}){
          note behind would have handed back both the name and the reasoning. */
       const sayBy = window.reviewVerdictByFor ? reviewVerdictByFor(ch, null, c) : v.by;
       if (!sayBy) return '';
-      return `<div class="rl-card-why" style="border-left-color:var(--st-amber-line)">
+      return `<div class="rl-card-why" style="border-left-color:var(--st-amber-line)" title="${_nea(String(sayBy))}">
         ${''/* rl-said-k, not the bare caption class: this line holds a PERSON'S
-               NAME and capitals read as shouting. See the twin in negoDocHtml. */}
-        <span class="rl-card-why-k rl-said-k">${i18t('rv_reviewer_said', { who: _ne(sayBy) })}</span>
+               NAME and capitals read as shouting. See the twin in negoDocHtml.
+               Shortened like every other name on a card; the whole one is on
+               the block's own hover. */}
+        <span class="rl-card-why-k rl-said-k">${i18t('rv_reviewer_said', { who: _ne(_short(sayBy)) })}</span>
         <span class="nego-why-clamp">${_ne(v.note)}</span></div>`;
     })();
     /* ---- AND IT SAYS WHAT IS HAPPENING ----

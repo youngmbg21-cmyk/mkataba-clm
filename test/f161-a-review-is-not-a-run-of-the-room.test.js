@@ -606,8 +606,9 @@ describe('f161 · a held change says it once, and says what to do', () => {
     const w = world();
     const { c, six } = await held(w);
     const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
-    /* CLAIM UPDATED, 13 Aug 2026: trimmed from "Held by <name>". */
-    assert.match(one, /Held &middot; Simon Jordan/, 'the card’s own status slot says it');
+    /* CLAIM UPDATED TWICE, 13 Aug 2026: trimmed from "Held by <name>", and
+       the name itself is now the card form (first name, surname initial). */
+    assert.match(one, /Held &middot; Simon J\./, 'the card’s own status slot says it');
     assert.ok(!/data-rv-chip/.test(one), 'and the review’s chip stands down beside it');
   });
 

@@ -848,10 +848,16 @@ function deskCardByHtml(c, ch, opts = {}){
   const revised = String(ch.revisedBy || '').trim();
   const when = ch.createdAt || ch.at || '';
   const day = when ? String(when).slice(0, 10) : '';
-  return `<div class="dk-card-by">
+  /* A NAME ON A CARD IS A GLANCE (13 Aug 2026) — the one shared shortener,
+     cardName in js/core.js, so this line and the two card renderers' own name
+     lines cannot drift. The face beside it already carries the whole name in
+     its title, and the row carries it too, so nothing is lost. */
+  const shortWho = window.cardName ? cardName(who) : who;
+  const shortRev = window.cardName ? cardName(revised) : revised;
+  return `<div class="dk-card-by" title="${_dkE(who)}${revised && revised !== who ? ' / ' + _dkE(revised) : ''}">
     <span class="dk-face dk-face-sm" title="${_dkE(who)}">${_dkE(deskInitials(who))}</span>
-    <span>${_dkE(i18t('dk_drafted_by', { who }))}${day ? ' · ' + _dkE(day) : ''}${
-      revised && revised !== who ? ' · ' + _dkE(i18t('dk_revised_by', { who: revised })) : ''}</span>
+    <span>${_dkE(i18t('dk_drafted_by', { who: shortWho }))}${day ? ' · ' + _dkE(day) : ''}${
+      revised && revised !== who ? ' · ' + _dkE(i18t('dk_revised_by', { who: shortRev })) : ''}</span>
   </div>`;
 }
 

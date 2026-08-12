@@ -3065,7 +3065,63 @@ function negoMigrate(c){
   return { migrated, flagged, already: false };
 }
 
+/* ---- A NAME ON A CARD IS A GLANCE, NOT A RECORD (owner-asked, 13 Aug 2026) ----
+   "Young Mbagaya" becomes "Young M." — first name, then the initial of the
+   surname. ONE function, reached by every card that needs it, because the
+   alternative is the rule copied into two renderers and drifting apart the
+   first time either is touched.
+
+   IT LIVES WITH THE CHANGE MODEL, not with the app shell, and that placement
+   was chosen twice. It belongs to the CARD, and every surface that draws a
+   card — both card renderers, the review chip, the desk's drafted-by line,
+   the counterparty's page and the phone — already stands on this module. In
+   the shell it was invisible to every harness that mounts a card without a
+   shell, so the shortening silently did nothing there: a feature nothing can
+   test. Declared with `function` deliberately — that is what puts it on
+   `window`, which is how the other modules reach it; a `const` would be a
+   lexical binding nobody else can see, a trap this project has hit before.
+
+   CARDS ONLY, and the boundary matters. The audit trail, the emails, the
+   reviewer picker, the signing route and the approval chain all keep the
+   whole name: a record and a chooser have to be unambiguous, and "Young M."
+   in a list of six colleagues is a guess. A card is read at a glance, in a
+   column 285px wide, beside a status and an id.
+
+   NOTHING IS LOST, because every caller keeps the full name in the hover text
+   of the line it shortens.
+
+   FOUR SHAPES THAT MUST COME OUT SENSIBLY:
+     · nothing at all → nothing at all, never " ." ;
+     · one word ("Legal", "Copilot") → itself: there is no surname to cut;
+     · already an initial ("Young M.") → itself, with one dot rather than two;
+     · THE NAME THAT IS A COMPANY. A counterparty who files under their own
+       company name gives us "Nordfrakt Logistik AB" in the author field, and
+       initialling that produces "Nordfrakt L.", which is not a shortening of
+       anything — it is a different company. So a caller that knows the
+       organisation passes it, and a name equal to it comes back whole;
+     · AND THE NAME THAT IS ALREADY A LINE. Some records carry an author
+       written as "Erik Lindqvist · Nordfrakt Logistik AB" — a person and
+       their company already joined with the same separator the card's meta
+       line uses. Initialling that reads the company's last word as a surname
+       and produces "Erik A.", which is nobody. Anything carrying the
+       separator is a composed label rather than a person's name and comes
+       back whole. */
+function cardName(name, org){
+  const full = String(name == null ? '' : name).trim().replace(/\s+/g, ' ');
+  if (!full) return '';
+  if (full.includes('\u00b7')) return full;
+  if (org && full.toLowerCase() === String(org).trim().toLowerCase()) return full;
+  const parts = full.split(' ');
+  if (parts.length < 2) return full;
+  const letter = [...parts[parts.length - 1]][0] || '';
+  /* A surname that does not start with a letter is not one we can initial —
+     "Young (Legal)" and the like come back whole rather than as "Young (." */
+  if (!/\p{L}/u.test(letter)) return full;
+  return parts[0] + ' ' + letter.toUpperCase() + '.';
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
+  cardName,
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,

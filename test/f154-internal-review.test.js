@@ -439,7 +439,11 @@ describe('f154 · the verdict shows on both change cards', () => {
     /* CLAIM UPDATED, 13 Aug 2026: "Held by <name>" was trimmed to
        "Held · <name>" — the corner is read at a glance and "by" was the word
        doing least. Same slot, same fact, same name rule. */
-    assert.match(bench, /Held &middot; Achieng Otieno|Held · Achieng Otieno/,
+    /* CLAIM UPDATED, 13 Aug 2026: a name on a CARD is now first name plus
+       the surname's initial (cardName) — the whole name stays in the
+       line's hover text, and in the record, the emails and the pickers.
+       The claim is the same claim; only the form of the name moves. */
+    assert.match(bench, /Held &middot; Achieng O\./,
       'the workbench badge says it');
     assert.match(tab, /data-rv-verdict="held"/, 'the contract tab chip says it');
     assert.ok(!/data-rv-chip/.test(bench), 'and the workbench does not say it twice');

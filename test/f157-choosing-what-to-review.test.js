@@ -149,7 +149,13 @@ describe('f157 · waiting is amber, held is ruby', () => {
        now reads "⌛ Achieng Otieno". The hourglass already says waiting; "With"
        was the word doing least in a corner read at a glance. The NAME is what
        this test is about and it is still there. */
-    assert.match(html, /&#8987; Achieng Otieno/, 'and it names who has it');
+    /* CLAIM UPDATED, 13 Aug 2026: a name on a CARD is now first name plus
+       the surname's initial (cardName) — the whole name stays in the
+       line's hover text, and in the record, the emails and the pickers.
+       The claim is the same claim; only the form of the name moves. */
+    assert.match(html, /&#8987; Achieng O\./, 'and it names who has it');
+    assert.match(html, /title="[^"]*Achieng Otieno/,
+      'and the whole name is one hover away');
     assert.ok(!/data-rv-verdict="held"/.test(html), 'waiting is not a verdict');
     assert.match(html, /data-rv-waiting="1"/, 'and the card is flagged for the amber edge');
   });

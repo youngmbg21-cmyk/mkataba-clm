@@ -1069,7 +1069,12 @@ function reviewChipHtml(ch, opts, c){
     style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;letter-spacing:.01em;
     border-radius:5px;padding:2px 7px;background:var(--st-amber-bg);
     color:var(--st-amber-fg);border:1px solid currentColor">
-    <span aria-hidden="true">&#8987;</span> ${_rvE(named ? i18t('rv_with_who', { who: named }) : i18t('rv_out_for_review'))}</span>`;
+    ${''/* A NAME ON A CARD IS A GLANCE (13 Aug 2026) — cardName, js/core.js,
+           the same function the card's own status slot and meta line use. The
+           whole name is in this chip's title, one attribute above. */}
+    <span aria-hidden="true">&#8987;</span> ${_rvE(named
+      ? i18t('rv_with_who', { who: window.cardName ? cardName(named) : named })
+      : i18t('rv_out_for_review'))}</span>`;
   }
   const v = reviewOn(ch);
   if (!v) return '';
@@ -1082,6 +1087,9 @@ function reviewChipHtml(ch, opts, c){
   /* Same rule for a verdict already given: the word, always; the name and the
      reviewer's note, only to the two people in that review and to an admin. */
   const by = c ? reviewVerdictByFor(ch, null, c) : null;
+  /* The TITLE keeps the whole name, and it is the only place a name appears
+     in this branch of the chip — the visible text is the verdict word alone,
+     so there is nothing here to shorten. */
   const title = by ? `${word} — ${by}${v.note ? ': ' + v.note : ''}` : word;
   return `<span class="rv-chip" data-rv-chip="${_rvE(ch.id)}" data-rv-verdict="${_rvE(v.verdict)}"${
     stale ? ' data-rv-stale="1"' : ''}

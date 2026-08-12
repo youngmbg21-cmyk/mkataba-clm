@@ -248,6 +248,13 @@ describe('the change index card carries what a reader needs to decide', () => {
     assert.deepEqual([...pills], ['Verified', 'pending'],
       'and says Verified only once every hash has been recomputed and matched');
     assert.equal(after.querySelector('[data-verify]').getAttribute('data-verify'), 'ok');
+    /* UNCHANGED BY THE 13 Aug 2026 name shortening, deliberately, and this is
+       the interesting case: card names are now written "Young M.", but this
+       fixture's author is "Erik Lindqvist · Nordfrakt Logistik AB" — a person
+       and a company already joined with the same separator the card's own
+       lines use. cardName leaves anything carrying that separator whole,
+       because initialling it would read "AB" as a surname and print "Erik
+       A.", who is nobody. */
     assert.match(card.textContent, /Author:/);
     assert.match(card.textContent, /Erik Lindqvist · Nordfrakt Logistik AB/);
     // the abbreviated hash is shown; the full one is on the element
