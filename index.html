@@ -457,6 +457,15 @@
   /* buttons */
   .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
   .ui-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent);}
+  /* HIDING A BUTTON HAS TO ACTUALLY HIDE IT. The rule above sets a display, and
+     an author rule beats the browser's own [hidden]{display:none} — so every
+     `btn.hidden = true` in this app was leaving the button standing on screen,
+     measured. It was found once, on the counterparty's Ready to sign, and
+     patched there by name; the same trap was waiting for every other .ui-btn
+     in the product. Stated once, for all of them. jsdom resolves no class
+     rules at all and cannot see either the fault or the fix — the proof lives
+     in the browser verifies. */
+  .ui-btn[hidden]{display:none!important;}
   .ui-btn-primary{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid);box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 55%,transparent);}
   .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   /* Secondary action beside a primary: outlined in the accent so it reads as
