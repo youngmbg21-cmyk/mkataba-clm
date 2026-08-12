@@ -72,6 +72,7 @@ const M_SCREEN_FOR_VIEW = {
 };
 const M_VIEW_FOR_SCREEN = {
   home:'dashboard', contracts:'register', contract:'workspace', redline:'redline',
+  negotiations:'redline',
   approvals:'dashboard', portfolio:'reports', more:'dashboard', handoff:'dashboard',
 };
 
@@ -252,8 +253,33 @@ const M_CSS = `
     color:var(--color-neutral-600); padding:0;
   }
   .m-tab.on{ color:var(--color-accent-700); }
-  .m-tab span{ font-size:14px; font-weight:500; }
+  /* ---- FOUR LABELS, AND THE FOURTH WORD HAD TO GIVE ----
+     The bar carried three words at 14px with room to spare. Negotiations joined
+     it (12 Aug 2026) and it is the longest word in the app's navigation, so the
+     row was MEASURED rather than guessed at: four labels share ~304px on a
+     320px handset, "Negotiations" wants about 88 of the 76 it gets, and it runs
+     into its neighbours.
+
+     TWO THINGS COULD GIVE — the type or the word — AND THE TYPE MAY NOT. This
+     bar has a standing floor of 14px (phone-verify measures every label on
+     every screen against it), and it is the right rule: a navigation label
+     below 14px on a handset is a label people squint at. Stepping down to 12.5
+     was tried, and phone-verify refused it on Home and Contracts, which is
+     exactly what that check is for.
+
+     So the WORD gives, and only here. The door is called Negotiations
+     everywhere it has the room to say so — the sidebar, the list's own heading,
+     the page the phone opens onto. On this bar it is Negotiate, the way a bar
+     label is always the short form of the place it opens. Nowrap and ellipsis
+     stay as a backstop for a longer translation: a label that breaks onto two
+     lines lifts the whole row and shunts the page above it. */
+  .m-tab span{ font-size:14px; font-weight:500; max-width:100%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .m-tab.on span{ font-weight:600; }
+  /* Something is owed on a negotiation. Amber here for the same reason it is
+     amber on the desktop door and on the round line: one colour means "this is
+     waiting on you" across every surface in the product. */
+  .m-tab-due{ color:var(--st-amber-fg); }
   .m-tab-badge{
     position:absolute; top:0; right:20%; min-width:21px; height:21px; border-radius:999px;
     background:var(--danger); color:#fff; font-size:14px; font-weight:700; line-height:1;
@@ -701,6 +727,9 @@ function mTabsHtml(){
   const s = mS();
   const on = k => s.screen===k ? ' on' : '';
   const n = mApprovalItems().length;
+  /* Guarded: the phone's tests evaluate this file without the negotiation view
+     loaded, and a bar that throws takes every screen with it. */
+  const nn = (window.negoNeedsYouTotal ? (()=>{ try{ return negoNeedsYouTotal(); }catch(_){ return 0; } })() : 0);
   return `
     <div class="m-tabs">
       <button class="m-tab${on('home')}" data-m-tab="home">
@@ -710,6 +739,21 @@ function mTabsHtml(){
       <button class="m-tab${on('contracts')}" data-m-tab="contracts">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
         <span>${i18t('m_contracts')}</span>
+      </button>
+      ${''/* NEGOTIATIONS, THE SAME WAY THE DESKTOP GOT IT (12 Aug 2026). Half
+             of this design was already true here: Negotiate was never one of the
+             phone's contract tabs, and the workbench already opens as its own
+             screen under a back bar. The missing half was a door — the only way
+             into a negotiation on a phone was to find the agreement first.
+
+             It is a screen you go TO, so it keeps its own way back and is not in
+             the `tabbed` list below; pressing it runs the same reopen-the-last
+             door the sidebar does. The count is negoNeedsYouTotal, the same
+             number the desktop's door shows. */}
+      <button class="m-tab${on('negotiations')}${nn?' m-tab-due':''}" data-m-tab="negotiations">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+        <span>${i18t('m_negotiations')}</span>
+        ${nn?`<span class="m-tab-badge">${nn>99?'99+':nn}</span>`:''}
       </button>
       <button class="m-tab${on('approvals')}" data-m-tab="approvals">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
@@ -809,18 +853,27 @@ function mRender(){
   else if(s.screen==='portfolio') body = mPortfolioHtml();
   else if(s.screen==='more')      body = mMoreHtml();
   else if(s.screen==='handoff')   body = mHandoffHtml();
+  /* Left EMPTY on purpose and filled after the wiring below: the negotiations
+     list is the desktop's own builder, drawn into this screen unchanged. The
+     phone builds no second version of it — the same rule that keeps the
+     workbench itself a desktop renderer under a back bar. */
+  else if(s.screen==='negotiations') body = '';
   else                            body = mHomeHtml();
 
-  /* The tab bar shows on the three tabbed screens only. A contract, a sheet
-     route or a handoff is somewhere you went TO, and it keeps its own way
-     back — a tab bar under it would offer two different backs at once. */
-  const tabbed = ['home','contracts','approvals'].includes(s.screen);
+  /* The tab bar shows on the tabbed screens only. A contract, a sheet route or
+     a handoff is somewhere you went TO, and it keeps its own way back — a tab
+     bar under it would offer two different backs at once. The negotiations LIST
+     is a tabbed screen (it is the door's own landing); a negotiation itself is
+     not, and takes the whole shell (see onRedline above). */
+  const tabbed = ['home','contracts','approvals','negotiations'].includes(s.screen);
   root.innerHTML = mHeadHtml()
     + `<div class="m-screen">${body}</div>`
     + (tabbed ? mTabsHtml() : '')
     + (typeof mAiLauncherHtml==='function' ? mAiLauncherHtml() : '')
     + mSheetHtml();
   mWire();
+  if(s.screen==='negotiations' && window.renderNegotiationsList)
+    renderNegotiationsList(root.querySelector('.m-screen'));
 }
 
 /* Is the owner's app the thing on screen at all? A share link renders the
@@ -857,6 +910,15 @@ function mCloseSheet(){ mS().sheet=null; mRender(); }
    twin, so the two shells never disagree about where the reader is. */
 function mGo(screen, extra){
   const s = mS();
+  /* ---- THE NEGOTIATIONS DOOR BEHAVES THE SAME ON BOTH SHELLS ----
+     Reopen the last negotiation; with nothing to reopen, fall through to the
+     list. Decided in the FUNNEL rather than in the bar's click handler, so a
+     second way to reach this screen inherits the behaviour instead of quietly
+     landing on an empty page. */
+  if(screen==='negotiations' && window.negoLastOpened && window.openRedlineWorkbench){
+    const last = (()=>{ try{ return negoLastOpened(); }catch(_){ return null; } })();
+    if(last){ s.sheet=null; openRedlineWorkbench(last.id); return; }
+  }
   Object.assign(s, extra||{}, { screen, sheet:null });
   const view = M_VIEW_FOR_SCREEN[screen];
   if(view && state.view!==view) state.view = view;

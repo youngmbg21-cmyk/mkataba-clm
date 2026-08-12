@@ -76,6 +76,10 @@ const STRINGS = {
     // ---- shell / navigation ----
     nav_home: 'Home',
     nav_contracts: 'Contracts',
+    /* A NOUN, among nouns. The door is a place you go; the button on the
+       Document tab keeps the verb ("Open Negotiate") because a place and an act
+       must not share a word. */
+    nav_negotiations: 'Negotiations',
     nav_calendar: 'Calendar',
     nav_insights: 'Insights',
     nav_templates: 'Templates',
@@ -88,6 +92,7 @@ const STRINGS = {
     nav_new_badge: 'New',
     nav_home_title: 'Home',
     nav_contracts_title: 'Contracts — every contract lives here; open one for its document, negotiation and signing',
+    nav_negotiations_title: 'Negotiations — every agreement being argued over right now',
     nav_calendar_title: 'Calendar',
     nav_insights_title: 'Insights — how your portfolio is behaving',
     nav_templates_title: "Templates — the paper you draft from: company standards, counterparty paper and HaTi's own",
@@ -746,6 +751,11 @@ const STRINGS = {
     m_home: 'Home',
     m_contracts: 'Contracts',
     m_approvals: 'Approvals',
+    /* THE BAR'S SHORT FORM, not a second name for the place. "Negotiations"
+       does not fit four-across at the 14px this bar floors its labels at — see
+       the note in mobile.js. Everything else on the phone still says
+       Negotiations. */
+    m_negotiations: 'Negotiate',
     m_computer: 'Computer',
     m_more: 'More',
     m_rest_of_hati: 'The rest of HaTi. These are desk screens — they open on a computer.',
@@ -946,6 +956,13 @@ const STRINGS = {
     ct_this_contract: 'This contract',
     ct_round_n: 'Round {n}',
     ct_open_negotiate: 'Open Negotiate',
+    /* The same door, said three ways, because its state is worth knowing before
+       the press: nothing filed yet, filed and quiet, filed and owing you. */
+    ct_start_negotiating: 'Start negotiating',
+    ct_open_negotiate_n: 'Open Negotiate &middot; {n} waiting',
+    ct_open_negotiate_title: 'Argue the wording of this agreement — its own screen',
+    ct_round_needs_title: 'Open the negotiation — these are waiting on your answer',
+    ct_back_to_agreement: 'Back to this agreement',
     ct_between_parties: 'Between {us} and {them}',
     ct_working_text_short: 'working text',
     ct_export: 'Export',
@@ -1052,6 +1069,15 @@ const STRINGS = {
     ng_back_to_wording: '&larr; Back to wording',
     ng_no_contract_open: 'No contract open',
     ng_open_register: 'Open the register',
+    // ---- the negotiations door and the list behind it ----
+    ng_door_title: 'Negotiations',
+    ng_door_pick: 'Nothing open. Pick a negotiation to go into.',
+    ng_door_with: 'With {who}',
+    ng_door_them: 'the other side',
+    ng_door_clear: 'Nothing outstanding',
+    ng_door_none: 'Nothing is being negotiated',
+    ng_door_none_sub: 'Every agreement being argued over right now.',
+    ng_door_none_how: 'Open an agreement and press Start negotiating on its Document tab — the round, the changes and the discussion all land here.',
     ng_review_vs_playbook: '&#10022; Review vs Playbook',
     ng_exit_focus: 'Exit focus &middot; Esc',
     ng_no_clause_structure: 'This contract has no clause structure yet.',
@@ -3422,6 +3448,7 @@ const STRINGS = {
     // ---- skal / navigering ----
     nav_home: 'Hem',
     nav_contracts: 'Avtal',
+    nav_negotiations: 'Förhandlingar',
     nav_calendar: 'Kalender',
     nav_insights: 'Insikter',
     nav_templates: 'Mallar',
@@ -3434,6 +3461,7 @@ const STRINGS = {
     nav_new_badge: 'Ny',
     nav_home_title: 'Hem',
     nav_contracts_title: 'Avtal — alla avtal finns här; öppna ett för dokument, förhandling och undertecknande',
+    nav_negotiations_title: 'Förhandlingar — alla avtal som förhandlas just nu',
     nav_calendar_title: 'Kalender',
     nav_insights_title: 'Insikter — hur din avtalsportfölj utvecklas',
     nav_templates_title: 'Mallar — pappret du utgår från: företagets standarder, motpartens papper och HaTi:s egna',
@@ -4087,6 +4115,7 @@ const STRINGS = {
     m_home: 'Hem',
     m_contracts: 'Avtal',
     m_approvals: 'Godkännanden',
+    m_negotiations: 'Förhandla',
     m_computer: 'Dator',
     m_more: 'Mer',
     m_rest_of_hati: 'Resten av HaTi. Detta är skrivbordsvyer — de öppnas på en dator.',
@@ -4287,6 +4316,11 @@ const STRINGS = {
     ct_this_contract: 'Det här avtalet',
     ct_round_n: 'Runda {n}',
     ct_open_negotiate: 'Öppna Förhandla',
+    ct_start_negotiating: 'Börja förhandla',
+    ct_open_negotiate_n: 'Öppna Förhandla &middot; {n} väntar',
+    ct_open_negotiate_title: 'Förhandla avtalets formuleringar — på en egen skärm',
+    ct_round_needs_title: 'Öppna förhandlingen — de här väntar på ditt svar',
+    ct_back_to_agreement: 'Tillbaka till avtalet',
     ct_between_parties: 'Mellan {us} och {them}',
     ct_working_text_short: 'arbetstext',
     ct_export: 'Exportera',
@@ -4393,6 +4427,15 @@ const STRINGS = {
     ng_back_to_wording: '&larr; Tillbaka till formuleringen',
     ng_no_contract_open: 'Inget avtal öppet',
     ng_open_register: 'Öppna registret',
+    // ---- förhandlingsdörren och listan bakom den ----
+    ng_door_title: 'Förhandlingar',
+    ng_door_pick: 'Inget öppet. Välj en förhandling att gå in i.',
+    ng_door_with: 'Hos {who}',
+    ng_door_them: 'motparten',
+    ng_door_clear: 'Inget utestående',
+    ng_door_none: 'Inget förhandlas',
+    ng_door_none_sub: 'Alla avtal som förhandlas just nu.',
+    ng_door_none_how: 'Öppna ett avtal och tryck Börja förhandla på dess Dokument-flik — rundan, ändringarna och diskussionen hamnar här.',
     ng_review_vs_playbook: '&#10022; Granska mot förhandlingsguiden',
     ng_exit_focus: 'Lämna fokusläge &middot; Esc',
     ng_no_clause_structure: 'Avtalet har ingen klausulstruktur ännu.',

@@ -431,7 +431,7 @@ describe('f148 — the shared renderers follow the language in both shells', () 
     Object.assign(win, {
       FIRST_PARTY: 'X', PORTAL_MODE: false, canEdit: () => true, isUpload: () => false,
       openFindings: () => [], SEV_RANK: {}, icon: () => '', esc: s => String(s),
-      state: { settings: {} }, negoTabCountHtml: () => '', isMonetary: () => true,
+      state: { settings: {} }, isMonetary: () => true,
       TEMPLATES: new Proxy({}, { get: () => ({ folder: 'proc', valueType: 'standard', kind: 'C' }) }),
       lsGet: k => (store.has(k) ? store.get(k) : null),
       lsSet: (k, v) => { store.set(k, v); },
@@ -467,11 +467,35 @@ describe('f148 — the shared renderers follow the language in both shells', () 
       ['Draft', 'Under Review', 'Signed', 'Declined']);
   });
 
-  test('the room tab row — workspace view, redline view and phone', () => {
+  test('the room tab row — workspace view and phone (four tabs, both languages)', () => {
+    /* FOUR, not five. Negotiate left this row in Aug 2026 for a door of its own
+       in the sidebar; the workbench no longer draws the row at all. */
     win.langSet('en', { repaint: false });
-    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Key terms Document Negotiate Signing History');
+    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Key terms Document Signing History');
     win.langSet('sv', { repaint: false });
-    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Nyckelvillkor Dokument Förhandla Undertecknande Historik');
+    assert.equal(strip(win.roomTabsHtml({}, 'docs')), 'Nyckelvillkor Dokument Undertecknande Historik');
+  });
+
+  test('the negotiations door and its two doors in are translated', () => {
+    /* The sidebar's word is a NOUN in both languages, and the Document tab's
+       button keeps the verb — the distinction the design rests on has to
+       survive translation or it only holds in English. */
+    win.langSet('en', { repaint: false });
+    assert.equal(win.i18t('nav_negotiations'), 'Negotiations');
+    assert.equal(win.i18t('ct_start_negotiating'), 'Start negotiating');
+    assert.equal(win.i18t('ng_door_title'), 'Negotiations');
+    win.langSet('sv', { repaint: false });
+    assert.equal(win.i18t('nav_negotiations'), 'Förhandlingar');
+    assert.equal(win.i18t('ct_start_negotiating'), 'Börja förhandla');
+    assert.equal(win.i18t('ng_door_title'), 'Förhandlingar');
+    /* Not left in English, which is how a half-translated feature ships. */
+    for (const k of ['nav_negotiations_title', 'ct_open_negotiate_n', 'ct_back_to_agreement',
+      'ng_door_pick', 'ng_door_clear', 'ng_door_none', 'ng_door_none_how', 'm_negotiations']) {
+      win.langSet('en', { repaint: false });
+      const en = win.i18t(k);
+      win.langSet('sv', { repaint: false });
+      assert.notEqual(win.i18t(k), en, k + ' is still the English string in Swedish');
+    }
   });
 
   test('KPI labels — dashboard tiles and the phone figures list', () => {

@@ -274,24 +274,28 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     const shell = p.$('#view-redline .room-head');
     assert.ok(shell, 'the room\'s shared head sits on this tab too');
     assert.match(shell.textContent, /Supply and Services Agreement/);
-    /* The hand-written [Docs][Negotiate] pair this page carried is gone. Both
-       shells now call roomTabsHtml, so there is one row and it has five tabs. */
-    /* firstChild, not textContent: Negotiate carries its change count inside
-       the button, which is the point of it.
+    /* ---- AND THIS PAGE DRAWS NO ROOM TABS AT ALL ----
+       It carried a hand-written [Docs][Negotiate] pair, then the shared
+       roomTabsHtml row, then (12 Aug 2026, owner's call) nothing: Negotiate
+       stopped being a tab of the contract and became a place of its own, so
+       this page is its own screen rather than one of the room's faces.
 
-       THE ORDER IS THE WORK ORDER, and this assertion is here to hold it that
-       way. It read Document · Negotiate · Key terms · Signing, which is not
-       the order anything happens in: Key terms sat third and has to be done
-       FIRST — a contract with no counterparty and no value cannot be read for
-       sense, sent, or signed. A reader following the row left to right was
-       walked past the one thing blocking them. Agree the facts, read the
-       paper, argue the wording, sign it. */
-    assert.deepEqual([...tabrow.querySelectorAll('.room-tab')].map(b => b.firstChild.textContent.trim()),
-      ['Key terms', 'Document', 'Negotiate', 'Signing', 'History']);
-    assert.equal(tabrow.querySelector('[data-ws-tab="redline"] .rt-n').textContent, '1',
-      'and the count is the change on the table');
-    assert.ok(tabrow.querySelector('.room-tab.on').textContent.includes('Negotiate'),
-      'this tab knows which tab it is');
+       Asserted as an ABSENCE on the row that used to carry them, because the
+       failure this guards against is the row quietly coming back — a builder
+       nothing calls is how a removed feature returns the next time somebody
+       needs a tab. */
+    assert.deepEqual([...tabrow.querySelectorAll('.room-tab')], [],
+      'the negotiation screen carries no room tabs');
+    assert.equal(p.$('#view-redline #ws-tabs'), null, 'and not the row that holds them');
+    /* THE WAY OFF THE PAGE, which is what makes the absence survivable: with no
+       tab row, the head's arrow is the only exit, and it must say it goes back
+       to the agreement rather than to the register. */
+    const back = p.$('#view-redline #ws-back');
+    assert.ok(back, 'the head keeps its back arrow');
+    assert.equal(back.getAttribute('data-back'), 'contract',
+      'and on this page it goes back to the contract, not to the register');
+    assert.ok(p.$('#view-redline #ws-back-title'),
+      'the contract name is the second half of that door');
   });
 });
 

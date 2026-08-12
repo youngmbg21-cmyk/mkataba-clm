@@ -2538,11 +2538,12 @@ function wsTabDefaults(c){
    builder now and renderRedline calls it too, so a tab added here appears on
    both without anyone having to remember the second place.
 
-   FIVE TABS, AND NOTHING NEW BEHIND THEM. Key terms, Signing and History were
-   already in the room — key terms and signing behind a pair of sub-tabs on the
-   right-hand panel, history behind a button that opened a modal. Being three
-   clicks and a dialog deep is not the same as not existing, but it reads that
-   way. They are tabs now. */
+   NOTHING NEW BEHIND THEM. Key terms, Signing and History were already in the
+   room — key terms and signing behind a pair of sub-tabs on the right-hand
+   panel, history behind a button that opened a modal. Being three clicks and a
+   dialog deep is not the same as not existing, but it reads that way. They are
+   tabs now. (There were five for a while; Negotiate left in Aug 2026 — see
+   below.) */
 /* THE TABS READ IN THE ORDER THE WORK HAPPENS.
 
    They used to read Document · Negotiate · Key terms · Signing · History,
@@ -2554,46 +2555,58 @@ function wsTabDefaults(c){
    Now: agree the facts, read the paper, argue the wording, sign it. History is
    a record rather than a step, so it stays at the end.
 
-   The KEYS are untouched — 'docs', 'redline', 'terms', 'sign', 'history' —
-   because stored state, saved links and every route are built on them. Only
-   the order of the row moved. Opening a contract still LANDS on Document: you
+   The KEYS are untouched — 'docs', 'terms', 'sign', 'history' — because stored
+   state, saved links and every route are built on them. ('redline' is still a
+   key roomGoTab answers to; it just no longer names a tab. Every caller that
+   asks for it — the Document tab's button, a returned-changes notice — keeps
+   working and lands on the full-window view.) Only the order of the row moved.
+   Opening a contract still LANDS on Document: you
    opened it to look at it, and the next-step button says where to go from
    there. */
 /* The second entry is a DICTIONARY KEY, not a label: this row is drawn by both
    the workspace view and the redline view, and on the phone, so translating it
    here reaches every one of them. */
+/* ---- FOUR TABS. NEGOTIATE IS NOT ONE OF THEM ----
+   Owner's call, 12 Aug 2026. Negotiating is a place you go, not a way of
+   looking at this contract, so it left the row and became a door in the sidebar
+   (see openNegotiations in js/views/negotiation.js). It was never really a tab
+   anyway: renderRedline is its own full-window view and only DRESSED as one by
+   calling this builder.
+
+   The row is still written once and still drawn by both shells — renderRedline
+   simply no longer asks for it. Add a tab here and it appears on both. */
 const ROOM_TABS=[
-  ['terms','tab_key_terms'],['docs','tab_document'],['redline','tab_negotiate'],
+  ['terms','tab_key_terms'],['docs','tab_document'],
   ['sign','tab_signing'],['history','tab_history'],
 ];
 function roomTabsHtml(c,active){
   return `<div id="ws-tabs" class="room-tabs" role="tablist" aria-label="${i18t('tab_room_aria')}">${
     ROOM_TABS.map(([k,key])=>{
       const on=k===active;
-      return `<button type="button" data-ws-tab="${k}" data-room-tab="${k}" role="tab" aria-selected="${on}" class="room-tab${on?' on':''}">${t(key)}${k==='redline'?negoTabCountHtml(c):''}</button>`;
+      return `<button type="button" data-ws-tab="${k}" data-room-tab="${k}" role="tab" aria-selected="${on}" class="room-tab${on?' on':''}">${t(key)}</button>`;
     }).join('')}</div>`;
 }
-/* The count of changes on the tab itself, and WHOSE turn it is in its colour.
-   Amber and filled while some of them wait on this reader; plain once they are
-   all with the other side. A negotiation that needs an answer must not be
-   discoverable only by clicking. */
-function negoTabCountHtml(c){
-  if(!window.negoProgress) return '';
-  /* NARROWED FOR A REVIEWER, so the tab and the column it opens onto agree. A
-     pill reading 3 over a stack of 2 is the same "pill that counts something
-     other than the list it labels" fault redlineCardIds exists to prevent —
-     and here the third number is a change they were deliberately not handed. */
-  const mineOnly = (typeof window.reviewMyChangeIds==='function')
-    ? (()=>{ try{ return reviewMyChangeIds(c); }catch(_){ return null; } })() : null;
-  const p = mineOnly
-    ? (typeof negoChanges==='function' ? negoChanges(c) : [])
-        .filter(x=>x && mineOnly.has(String(x.id)) && x.status!=='superseded' && !x.withdrawn)
-        .reduce((a,x)=>({ total:a.total+1, pending:a.pending+(x.status==='pending'?1:0) }), { total:0, pending:0 })
-    : negoProgress(c);
-  const total=p.total||0;
-  if(!total) return '';
-  const due=p.pending||0;
-  return `<span id="nego-tab-count" class="rt-n${due?' due':''}" title="${due?due+' change'+(due===1?'':'s')+' waiting on a decision':total+' change'+(total===1?'':'s')+' on the table'}">${due||total}</span>`;
+/* ---- THE OTHER TABS STILL HAVE TO ADMIT A NEGOTIATION IS RUNNING ----
+   The amber count on the Negotiate tab was how a reader standing on Key terms
+   knew changes were waiting on them. Taking the tab away must not take that
+   signal with it, or the only way to discover an answer is owed is to go
+   looking for it.
+
+   So it reads on the round line under the contract's title, which every tab
+   draws from one place (roomHeadHtml's room-sub). Same number as the sidebar
+   door, the workbench toolbar and the Document tab's button — negoNeedsYouIds
+   is the one arithmetic. Pressable, because a line that reports work owed and
+   cannot be pressed makes the reader hunt for the door.
+
+   Drawn only where somebody actually owes an answer: "0 waiting" is furniture,
+   and the round itself is already stated beside it. */
+function negoRoundNeedsHtml(c){
+  if(!c||!window.negoNeedsYouIds) return '';
+  let n=0;
+  try{ n=negoNeedsYouIds(c).length; }catch(_){ return ''; }
+  if(!n) return '';
+  return ` &middot; <button type="button" id="ws-round-needs" class="room-sub-needs"
+    title="${esc(i18t('ct_round_needs_title'))}">${i18tn('ng_needs_you',n,{n})}</button>`;
 }
 /* ---- WHAT RIDES AT THE RIGHT-HAND END OF THE TAB ROW ----
    The text-size stepper, and — at the far right — the one door off the Document
@@ -2610,12 +2623,34 @@ function negoTabCountHtml(c){
 
    A FUNCTION, because it describes the tab you are ON and therefore has to be
    rebuilt when the tab changes. See the note at its slot in renderWorkspace. */
+/* ---- IT USED TO HIDE ITSELF, AND NOW IT MUST NOT ----
+   This button only drew once changes had actually been filed, on the reasoning
+   that a fresh draft's next act is stated by the head's own primary. That was
+   right while Negotiate was also a TAB: there was a second way in, sitting on
+   this very row, whatever this button did.
+
+   The tab is gone (12 Aug 2026), so hiding this leaves a draft with no door
+   into its own negotiation at all — the one failure the redesign could actually
+   produce. It is always drawn on the Document tab now, and only its WORD
+   follows the state: what you do to a draft is start negotiating it, what you
+   do to a running negotiation is open it, and how many answers it is waiting on
+   rides along so the reader knows before pressing.
+
+   The count is negoNeedsYouIds, like the sidebar door and the round line. */
 function wsTabRowEndHtml(c){
   if(!c || _wsTab!=='docs') return '';
   const step=window.rlTypeStepHtml?rlTypeStepHtml():'';
-  const door=(c.negotiation&&window.negoChanges&&negoChanges(c).length)
-    ? `<button type="button" id="ws-to-nego" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:7px 14px">${i18t('ct_open_negotiate')}</button>`
-    : '';
+  /* Raw, not negoChanges(): that call runs negoInit, which CREATES a
+     negotiation on a contract that has none — and this builder runs on every
+     paint of every Document tab. See negoNeedsYouIds for the same trap. */
+  const started=!!(c.negotiation&&Array.isArray(c.changes)&&c.changes.length);
+  let needs=0;
+  if(started&&window.negoNeedsYouIds){ try{ needs=negoNeedsYouIds(c).length; }catch(_){} }
+  const label=!started ? i18t('ct_start_negotiating')
+    : needs ? i18t('ct_open_negotiate_n',{n:needs})
+    : i18t('ct_open_negotiate');
+  const door=`<button type="button" id="ws-to-nego" class="ui-btn ui-btn-primary${needs?' ws-to-nego-due':''}"
+    style="flex:none;font-size:12.5px;padding:7px 14px" title="${esc(i18t('ct_open_negotiate_title'))}">${label}</button>`;
   return step+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
@@ -2652,6 +2687,24 @@ function wsPaintNotices(c){
    the old nodes — and their listeners — with it, so nothing stacks however many
    times a reader changes tab; rlWireTypeStep marks what it has wired, so it
    never doubles either. */
+/* Repaint the round line's count and re-arm its press. Drawn into a slot for
+   the same reason the tab row's right-hand end is: the head is built once per
+   workspace render, and this number changes underneath it — a change filed from
+   the Copilot, a colleague's answer arriving, a decision made on another tab.
+   The innerHTML replacement takes the old button and its listener with it, so
+   nothing stacks however many times this runs.
+
+   Never on the workbench: that page passes backToContract and draws no slot, so
+   this is a no-op there rather than a rule stated twice. */
+function wsPaintRoundNeeds(c){
+  const slot=document.getElementById('ws-round-needs-slot');
+  if(!slot) return;
+  slot.innerHTML=c?negoRoundNeedsHtml(c):'';
+  slot.querySelector('#ws-round-needs')?.addEventListener('click',e=>{
+    e.preventDefault(); e.stopPropagation();
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+  });
+}
 function wsPaintTabRowEnd(c){
   const end=document.getElementById('ws-tabrow-end');
   if(!end) return;
@@ -2684,6 +2737,11 @@ function applyWsTabs(c){
      slot the lesson above had not been applied to, and it is why that corner
      came up empty on a Document tab a reader had switched to. */
   wsPaintTabRowEnd(c);
+  /* AND THE ROUND LINE'S COUNT, which describes the CONTRACT rather than the
+     tab — but goes stale for the same reason, because the head that carries it
+     is built once per render. This is the tab change catching it up; see
+     wsPaintRoundNeeds. */
+  wsPaintRoundNeeds(c);
   /* The floating notices survive the tab change too. They describe the
      CONTRACT rather than the tab, so what this call is really for is re-arming
      their buttons after any repaint — see wsPaintNotices. */
@@ -4137,11 +4195,37 @@ function roomHeadHtml(c,opts={}){
   const newBtn=(opts.primary===undefined&&may&&!(typeof PORTAL_MODE!=='undefined'&&PORTAL_MODE))
     ? `<button id="ws-new" data-page-new class="ui-btn ui-btn-primary room-new" style="font-size:12.5px;padding:7px 14px">${icon('plus','w-3.5 h-3.5')} ${i18t('home_draft_new')}</button>`
     : '';
+  /* ---- THE WAY OUT OF A NEGOTIATION IS BACK TO ITS AGREEMENT ----
+     The negotiation screen carries no room tabs (owner's call, 12 Aug 2026), so
+     this arrow is the ONLY way off it — and every other door into a negotiation
+     (Home's decisions card, a returned-changes notice, a playbook finding, the
+     phone) lands on that same tabless page. Left pointing at the register it
+     would have stranded a reader one press from Key terms and no press at all
+     from getting there.
+
+     It lands on the DOCUMENT tab, always: that is where the door in lives, so
+     the journey closes on itself, and an arrow that returned to "wherever you
+     came from" is one button doing five different things.
+
+     The decision travels on the ELEMENT, not in a variable — wireRoomHead is
+     given the contract and not these options, and threading opts through a
+     second builder to reach one listener is how two copies of one rule start
+     disagreeing. */
+  const backC=!!opts.backToContract;
+  const backTitle=backC?i18t('ct_back_to_agreement'):backLabel;
   return `<section class="room-head" id="ws-head">
-    <button id="ws-back" title="${backLabel}" class="ui-btn room-back">${icon('arrowLeft','w-4 h-4')}</button>
+    <button id="ws-back" title="${esc(backTitle)}" class="ui-btn room-back"${backC?' data-back="contract"':''}>${icon('arrowLeft','w-4 h-4')}</button>
     <div class="room-id">
       <div class="room-name">
-        <h1>${esc(c.name)}</h1>
+        ${''/* THE NAME IS PART OF THE WAY BACK on the negotiation screen. It is
+               the biggest target on the page and readers aim at it; a title that
+               looks like the page's identity and does nothing is a door people
+               press twice and then give up on. A <button> so the keyboard and a
+               screen reader get it too — .room-title-back keeps the h1's own
+               type, so nothing about it looks different. */}
+        ${backC
+          ? `<h1><button type="button" id="ws-back-title" class="room-title-back" title="${esc(backTitle)}">${esc(c.name)}</button></h1>`
+          : `<h1>${esc(c.name)}</h1>`}
         <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c)
           :(window.statusChip?statusChip(c.status):esc(c.status||''))}</span>
       </div>
@@ -4155,6 +4239,20 @@ function roomHeadHtml(c,opts={}){
              nobody has redlined is a number about nothing. */}
       <div class="room-sub">${c.id}${F[c.folder]?' · '+esc(F[c.folder].name):''}${
         (c.negotiation&&window.negoRound)?' · '+i18t('ct_round_n',{n:negoRound(c)}):''}${
+        ''/* What the Negotiate tab's amber count used to say, now that the tab
+              is gone — see negoRoundNeedsHtml. Not drawn on the workbench: that
+              page IS the negotiation, and a line telling a reader three changes
+              need them, sitting above the column those three changes are in, is
+              the number said twice.
+
+              A SLOT, not inline text, and repainted rather than built once —
+              the same lesson #ws-tabrow-end learned. This head is built by
+              renderWorkspace and by nothing else, so a count baked into the
+              string describes the contract as it stood the moment the room was
+              opened: file a change, cross to Key terms, and the line still says
+              the negotiation is quiet. See wsPaintRoundNeeds. The separator
+              lives INSIDE the slot so it leaves with the count. */}${
+        `<span id="ws-round-needs-slot">${opts.backToContract?'':negoRoundNeedsHtml(c)}</span>`}${
         ''/* `typeof`, not window: fmtMoney is a top-level const in
               js/jurisdiction.js and a const is a LEXICAL binding, not a
               property of window — the trap THE MAP records against currentUser
@@ -4260,11 +4358,28 @@ function wireRoomHead(c){
     menu.addEventListener('click',()=>setTimeout(shut,0));
     document.addEventListener('click',ev=>{ if(!menu.contains(ev.target)&&ev.target!==btn) shut(); });
   }
-  document.getElementById('ws-back')?.addEventListener('click',()=>{
+  /* ONE HANDLER, TWO DESTINATIONS, decided by what the head drew rather than by
+     what state.view happens to say — the workbench and the contract page share
+     this wiring, and reading the view here would make the arrow's meaning a
+     property of the app's mode instead of a property of the page it is on. */
+  const back=document.getElementById('ws-back');
+  const goBack=()=>{
+    if(back&&back.getAttribute('data-back')==='contract'){
+      if(window.roomGoTab) roomGoTab(c,'docs');
+      else if(window.openWorkspace) openWorkspace(c.id);
+      return;
+    }
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&window.FOLDERS&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
     else setView(r.view&&r.view!=='workspace'?r.view:'register');
-  });
+  };
+  back?.addEventListener('click',goBack);
+  document.getElementById('ws-back-title')?.addEventListener('click',goBack);
+  /* The round line's "N need you" is wired where it is PAINTED — in
+     wsPaintRoundNeeds, which applyWsTabs calls on arrival and on every tab
+     change after it. Wiring it here as well would put a second handler on the
+     button that paint has just drawn, and this head is re-wired on every
+     render: the exact fault the note on wireWsTabs records for #ws-to-nego. */
   /* ---- DELETE BELONGS TO THE HEAD, NOT TO ONE OF THE TABS THAT WEARS IT ----
      roomHeadHtml draws this menu for BOTH the Document tab and the Negotiate
      workbench, but each tab used to wire the menu's buttons for itself, and
@@ -5629,5 +5744,5 @@ Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
+  wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});
