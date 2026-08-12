@@ -1635,3 +1635,62 @@ reason and the asker written beside it — never deleted. Five of them: two in
 the workbench suite (the button, and its styling), one in the six-round
 scenario, one in the party-badges suite, one fixture and one card assertion in
 the cards suite, and five checks in the browser pop-out file.
+
+THE STATUS WORDS ARE TRIMMED, AND FINALLY TRANSLATED
+
+The change card's status slot was carrying phrases: "Accepted · 🔒 held",
+"Rejected · sent", "Refused · withdraw or revise", "Refused · waiting on
+them", "🔒 Draft", "Held by review", "Out for review", "With Achieng Otieno".
+Two separate faults sat in the same strings, which is exactly why they were
+fixed in one pass rather than two.
+
+THE FIRST FAULT IS LENGTH. A status is read off the corner of a 285px card,
+at a glance, without stopping. Half of these were not states at all — they
+were instructions ("withdraw or revise") or explanations ("waiting on them")
+wearing a state's clothes, and at that width they elided. An elided
+instruction is worse than no instruction: the reader gets the first three
+words of advice and none of the verb.
+
+THE SECOND FAULT IS THAT THEY WERE NEVER IN THE DICTIONARY. They were typed
+into the renderer in English. So a Swedish user, reading Swedish buttons over
+a Kenyan or Swedish contract, found exactly one corner of the product still
+speaking English — and it was the corner that says where their work stands.
+Every one of them is a key now with a Swedish twin.
+
+THE RULE THAT MAKES TRIMMING SAFE: a sentence removed from a slot has to be
+findable somewhere else BEFORE it goes. Each badge now carries hover text, and
+the two entries that were genuinely carrying information keep their sentence
+whole there. "Withdraw or revise" was safe anyway — Withdraw and Edit are
+buttons on the same card, an inch below the word. "Waiting on them" was safe
+because the reader's own seat already answers whose move it is (and Task 8 in
+this same run makes that claim honest, which is why the two were done in
+order).
+
+The padlocks went. A padlock beside the word "Draft", and another beside the
+word "held", is decoration: the word already says the thing. Two glyphs stay
+and they earn it — ⏹ for a hold and ⌛ for out with somebody are the only
+difference between two states that would otherwise share a word in a corner
+with no room for a qualifier.
+
+THE REVIEW VOCABULARY IS SHARED AND THAT WAS THE POINT OF CHECKING IT. Cutting
+"Cleared to send" to "Cleared" changes the verdict button, the chip on both
+card renderers, and anywhere else reviewVerdictLabel reaches. Walked: the
+chip, the two verdict buttons, the review banner's rows, the dashboard's
+decisions card, and the phone's read-only notice — the phone turned out to
+carry its own sentences (rv_phone_*) and needed nothing.
+
+ONE SURFACE KEEPS THE LONG WORD, DELIBERATELY. "Cancel review" became "Cancel"
+on the card, where it sits beside the change it is about. In the CONFIRM
+dialog that same word would stand opposite "Leave it with them" and read as
+the dialog's own dismiss — two ways of saying no, one of which cancels a
+colleague's review. That door keeps the long form in its own key.
+
+AND THE RECORD'S WORDS ARE NOT TOUCHED. REVIEW_VERDICT_RECORD stays English
+forever, for the same reason ROLE_LABEL does: it is stamped into audit lines,
+and a record that changes language under a later reader is not a record.
+
+LEFT ALONE ON PURPOSE, said out loud: the contract tab's other card renderer
+prints the raw record status in lower case ("pending", "accepted") in its own
+pill. That is the record's word shown verbatim rather than one of the phrases
+in this vocabulary, nobody asked for it, and changing it would rewrite a large
+number of unrelated claims.

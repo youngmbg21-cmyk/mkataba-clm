@@ -146,7 +146,11 @@ describe('F62 — held here is not the same as already filed', () => {
     assert.equal(v.$(`[data-unsent="${id}"]`), null,
       'it went, it was applied, and their link now carries it');
     assert.ok(v.$(`[data-sent="${id}"]`), 'the card says the answer has gone');
-    assert.match(v.card(id).querySelector('.rl-badge').textContent, /Accepted .* sent/);
+    /* CLAIM UPDATED, 13 Aug 2026: the status words were trimmed and the
+       badge now reads "Accepted" alone. The fact that the answer has GONE is
+       still on the card — [data-sent] above, and the hover text — and the
+       state that has NOT gone is the one that still says so ("· held"). */
+    assert.equal(v.card(id).querySelector('.rl-badge').textContent.trim(), 'Accepted');
   });
 
   test('nor offered an Undo it does not have', async () => {

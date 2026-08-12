@@ -192,7 +192,10 @@ describe('f161 · a review is internal, and inside the company it is not public 
     const sales = seat(SALES, c);
     sales.win.reviewMark(c, six.id, 'held', { note: 'not at that tenor' });
     const asOther = seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' });
-    assert.match(asOther, /Held by review/, 'they can see it is held');
+    /* CLAIM UPDATED, 13 Aug 2026: the anonymous form was "Held by review" and
+       is now just "Held". The rule under test is untouched — an outsider sees
+       the STATUS and never the name. */
+    assert.match(asOther, /rl-badge-no"[^>]*>&#9209; Held</, 'they can see it is held');
     assert.ok(!/Simon Jordan/.test(asOther), 'and not who held it, nor why');
     const asMe = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
     assert.match(asMe, /Simon Jordan/, 'the requester is told, because they asked');
@@ -603,7 +606,8 @@ describe('f161 · a held change says it once, and says what to do', () => {
     const w = world();
     const { c, six } = await held(w);
     const one = card(w.win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
-    assert.match(one, /Held by Simon Jordan/, 'the card’s own status slot says it');
+    /* CLAIM UPDATED, 13 Aug 2026: trimmed from "Held by <name>". */
+    assert.match(one, /Held &middot; Simon Jordan/, 'the card’s own status slot says it');
     assert.ok(!/data-rv-chip/.test(one), 'and the review’s chip stands down beside it');
   });
 
@@ -611,7 +615,10 @@ describe('f161 · a held change says it once, and says what to do', () => {
     const w = world();
     const { c, six } = await held(w);
     const asOther = card(seat(OTHER, c).win.redlineChangeCardsHtml(c, { side: 'owner' }), six.id);
-    assert.match(asOther, /Held by review/, 'they can see it is held');
+    /* CLAIM UPDATED, 13 Aug 2026: the anonymous form is "Held", not "Held by
+       review". What is under test — that no name reaches an outsider — is
+       unchanged. */
+    assert.match(asOther, /&#9209; Held</, 'they can see it is held');
     assert.ok(!/Simon Jordan/.test(asOther), 'and not by whom');
   });
 

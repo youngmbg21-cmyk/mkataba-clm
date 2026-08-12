@@ -1900,7 +1900,13 @@ function reviewWireCards(c, host, opts = {}){
       if (window.confirmDialog){
         window.confirmDialog({ title: i18t('rv_cancel_confirm_title'),
           message: reviewCancelCost(c, rv),
-          confirmLabel: i18t('rv_cancel_btn'), cancelLabel: i18t('rv_cancel_keep'),
+          /* NOT rv_cancel_btn. That word was trimmed to "Cancel" on 13 Aug
+             2026 for the CARD, where it sits beside a change and reads
+             correctly. Here it would sit opposite "Leave it with them" and
+             read as this dialog's own dismiss — two ways of saying no, one of
+             which cancels a colleague's review. The long form stays on this
+             one door. */
+          confirmLabel: i18t('rv_cancel_confirm_do'), cancelLabel: i18t('rv_cancel_keep'),
           danger: true }).then(go);
       } else go(true);
       return;

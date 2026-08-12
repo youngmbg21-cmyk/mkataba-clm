@@ -145,7 +145,11 @@ describe('f157 · waiting is amber, held is ruby', () => {
     const html = win.redlineChangeCardsHtml(c, { side: 'owner' });
     /* The workbench card's ONE status badge carries it — the review's own chip
        stood down beside it rather than saying the same thing twice. */
-    assert.match(html, /With Achieng Otieno/, 'and it names who has it');
+    /* CLAIM UPDATED, 13 Aug 2026: the badge read "⌛ With Achieng Otieno" and
+       now reads "⌛ Achieng Otieno". The hourglass already says waiting; "With"
+       was the word doing least in a corner read at a glance. The NAME is what
+       this test is about and it is still there. */
+    assert.match(html, /&#8987; Achieng Otieno/, 'and it names who has it');
     assert.ok(!/data-rv-verdict="held"/.test(html), 'waiting is not a verdict');
     assert.match(html, /data-rv-waiting="1"/, 'and the card is flagged for the amber edge');
   });

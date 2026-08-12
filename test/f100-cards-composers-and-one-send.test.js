@@ -759,9 +759,17 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
   test('a decision that has been SENT folds to a line', async () => {
     const p = await page();
     const { card } = await decided(p, 'accepted', 'sent');
-    assert.match(card.querySelector('.rl-badge').textContent, /sent/,
+    /* CLAIM UPDATED, 13 Aug 2026: the status words were trimmed. "Accepted ·
+       sent" is now just "Accepted" — a decision on the card is only ever shown
+       there once it has gone, and the one that has NOT gone says "· held", so
+       the word "sent" was carrying nothing the other branch did not. The
+       hover text says it whole. */
+    assert.equal(card.querySelector('.rl-badge').textContent.trim(), 'Accepted',
       'the state under test is answered AND gone');
-    assert.ok(verbsOf(card).includes('Change decision'),
+    assert.match(card.querySelector('.rl-badge').getAttribute('title'), /gone to the other side/,
+      'and the sentence the word gave up is in the hover text');
+    /* And "Change decision" is "Reopen" — same button, same escape hatch. */
+    assert.ok(verbsOf(card).includes('Reopen'),
       'the escape hatch is still on the card — hidden, not removed');
     assert.equal(card.getAttribute('data-rl-popped'), '0', 'folded, like every card');
   });

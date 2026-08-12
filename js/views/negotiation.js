@@ -10850,19 +10850,59 @@ function redlineChangeCardsHtml(c, opts = {}){
     const sentHere = sentIds.has(ch.id) && ch.status !== 'pending' && !heldHere;
     const reopen = sentHere && redeciding(ch.id);
     const contested = ch.status === 'rejected' && !ch.withdrawn && !heldHere && !sentHere;
-    const badge = heldHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; &#128274; held'] : ['no', 'Rejected &middot; &#128274; held'])
-      : sentHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; sent'] : ['no', 'Rejected &middot; sent'])
-      : contested ? ['no', !theirs ? 'Refused &middot; withdraw or revise' : 'Refused &middot; waiting on them']
+    /* ---- THE STATUS WORD IS SHORT, AND IT IS IN THE READER'S LANGUAGE ----
+       (owner-asked, 13 Aug 2026.) Every one of these used to be a phrase typed
+       into this file in English: "Accepted · 🔒 held", "Refused · withdraw or
+       revise", "🔒 Draft". Two faults in one, which is why they are fixed in
+       one pass rather than two:
+
+       IT WAS TOO LONG FOR THE SLOT. A status is read at a glance, off a corner
+       of a 285px card, and half of these were instructions rather than states.
+       They elided, and an elided instruction is worse than no instruction.
+
+       AND IT NEVER WENT THROUGH THE DICTIONARY, so a Swedish reader — reading
+       Swedish buttons, over a Swedish contract — found this one corner in
+       English. Every word below is a key now, with a Swedish twin.
+
+       A SENTENCE REMOVED FROM THE SLOT IS FINDABLE BEFORE IT GOES, which is
+       the rule that makes the trimming safe. Each entry carries its own hover
+       text, and the two instructions that were carrying real information are
+       kept there whole: "withdraw or revise" (whose verbs, Withdraw and Edit,
+       are on the same card anyway) and "waiting on them" (which the reader's
+       own seat already tells them). The padlocks are gone from Draft and from
+       "· held": a padlock next to a word that already says the thing is
+       decoration.
+
+       Three entries KEEP a glyph, because it is the only difference between
+       two states that share a word: ⏹ for a hold and ⌛ for out with somebody.
+
+       [tone, word, hover] — the third slot is new. */
+    const badge = heldHere ? (ch.status === 'accepted'
+        ? ['ok', i18t('ng_badge_accepted_held'), i18t('ng_badge_held_title')]
+        : ['no', i18t('ng_badge_rejected_held'), i18t('ng_badge_held_title')])
+      : sentHere ? (ch.status === 'accepted'
+        ? ['ok', i18t('ng_badge_accepted'), i18t('ng_badge_answered_title')]
+        : ['no', i18t('ng_badge_rejected'), i18t('ng_badge_answered_title')])
+      : contested ? ['no', i18t('ng_badge_refused'),
+        !theirs ? i18t('ng_badge_refused_ours_title') : i18t('ng_badge_refused_theirs_title')]
       /* ---- ONE TAG, NOT TWO ----
          This badge and the review's own chip were both drawn, both ruby, both
          saying held — reported as "you are adding more and more tags which is
          also confusing" (Young, 09 Aug 2026). The card has ONE status slot and
          this is the card's status, so the badge keeps it and names who where
          the reader is entitled to the name; the chip stands down beside it. */
-      : rvHeld ? ['no', '&#9209; ' + (rvHeldBy ? i18t('rv_badge_held_by', { who: rvHeldBy }) : i18t('rv_badge_held'))]
-      : rvOut ? ['draft', '&#8987; ' + (rvOutNamed ? i18t('rv_badge_waiting_by', { who: rvOutNamed }) : i18t('rv_badge_waiting'))]
-      : mineUnsent ? ['draft', '&#128274; Draft']
-      : theirs ? ['sent', 'Awaiting you'] : ['sent', 'Sent'];
+      : rvHeld ? ['no', '&#9209; ' + (rvHeldBy ? i18t('rv_badge_held_by', { who: _ne(rvHeldBy) }) : i18t('rv_badge_held')),
+        rvHeldBy ? i18t('rv_held_what_now', { who: rvHeldBy }) : i18t('rv_held_what_now_anon')]
+      /* NAMED, AND NOTHING ELSE. It read "⌛ With Achieng Otieno"; the "With"
+         was the word doing least — the hourglass already says waiting and the
+         name says who. A name needs no dictionary, so this branch prints it
+         raw and rv_badge_waiting_by is retired (flag it as stale). */
+      : rvOut ? ['draft', '&#8987; ' + (rvOutNamed ? _ne(rvOutNamed) : i18t('rv_badge_waiting')),
+        rvOutNamed ? i18t('rv_waiting_title', { who: rvOutNamed }) : i18t('rv_waiting_title_anon')]
+      : mineUnsent ? ['draft', i18t('ng_badge_draft'), i18t('ng_badge_draft_title')]
+      : theirs ? ['sent', i18t('ng_badge_awaiting_you'), i18t('ng_badge_awaiting_title')]
+      : ['sent', i18t('ng_badge_sent'),
+        i18t('ng_badge_sent_title', { who: c.counterparty || i18t('ng_the_counterparty') })];
     /* The organisation is the AUTHOR's, not the viewer's. Written seat-relative
        ("theirs → counterparty, mine → us") this line flipped depending on who
        was reading it, so the counterparty's page attributed their own ask to
@@ -11237,7 +11277,8 @@ function redlineChangeCardsHtml(c, opts = {}){
                 badge when a card is narrow, and min-width:0 on it is what lets
                 anything in the head elide at all. */}
         <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span></span>
-          ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
+          ${rvChip}<span class="rl-badge rl-badge-${badge[0]}"${
+          badge[2] ? ` title="${_nea(badge[2])}"` : ''}>${badge[1]}</span>${
           ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${popBtn}</div>
         <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
         ${diff}

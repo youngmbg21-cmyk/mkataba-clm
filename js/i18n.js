@@ -1019,7 +1019,7 @@ const STRINGS = {
     ng_accept: 'Accept',
     ng_reject: 'Reject',
     ng_undo: 'Undo',
-    ng_change_decision: 'Change decision',
+    ng_change_decision: 'Reopen',
     ng_withdraw_ask: 'Withdraw this ask',
     ng_put_it_back: 'Put it back',
     ng_not_sent_yet_lc: 'not sent yet',
@@ -1119,6 +1119,29 @@ const STRINGS = {
     // one line above it, and a second confirmation on the one card that needs
     // nothing was not worth a button's width. ng_sent_waiting_title, its
     // tooltip, went with it.
+    /* ---- THE CHANGE CARD'S STATUS WORDS (owner-asked, 13 Aug 2026) ----
+    // Every one of these was a phrase typed into the card renderer in English:
+    // "Accepted · 🔒 held", "Refused · withdraw or revise", "🔒 Draft". They
+    // were too long for a corner read at a glance AND they were the one place
+    // a Swedish reader still found English, so they are trimmed and
+    // translated in the same pass. Each has its own _title, because a
+    // sentence taken out of the slot has to be findable somewhere before it
+    // goes — see the card's badge builder. */
+    ng_badge_draft: 'Draft',
+    ng_badge_draft_title: 'Not sent yet — it is still on this page',
+    ng_badge_sent: 'Sent',
+    ng_badge_sent_title: 'Sent to {who} — waiting on their answer',
+    ng_badge_awaiting_you: 'Awaiting you',
+    ng_badge_awaiting_title: 'They have asked for this — accept it or reject it',
+    ng_badge_accepted: 'Accepted',
+    ng_badge_rejected: 'Rejected',
+    ng_badge_answered_title: 'Answered, and the answer has gone to the other side',
+    ng_badge_accepted_held: 'Accepted &middot; held',
+    ng_badge_rejected_held: 'Rejected &middot; held',
+    ng_badge_held_title: 'Answered here — nothing has left this page yet. Press Send.',
+    ng_badge_refused: 'Refused',
+    ng_badge_refused_ours_title: 'Refused — withdraw the ask or revise the wording',
+    ng_badge_refused_theirs_title: 'Refused — waiting on them',
     ng_your_ask: 'Your ask',
     ng_you_are_viewing: 'You are viewing',
     ng_internal_threads_hidden: '. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.',
@@ -3237,14 +3260,16 @@ const STRINGS = {
     /* Platform wording, so it translates. The RECORD's words for a verdict do
        not — they are stamped into audit lines and live in REVIEW_VERDICT_RECORD
        (js/review.js) in English, for the same reason ROLE_LABEL does. */
-    rv_v_cleared: 'Cleared to send',
+    rv_v_cleared: 'Cleared',
     rv_v_held: 'Held back',
-    rv_v_adv_accept: 'Advise: accept',
-    rv_v_adv_reject: 'Advise: reject',
-    rv_v_adv_discuss: 'Advise: discuss',
-    rv_badge_held: 'Held by review',
-    rv_badge_held_by: 'Held by {who}',
-    rv_badge_waiting_by: 'With {who}',
+    rv_v_adv_accept: 'Accept',
+    rv_v_adv_reject: 'Reject',
+    rv_v_adv_discuss: 'Discuss',
+    rv_badge_held: 'Held',
+    rv_badge_held_by: 'Held &middot; {who}',
+    // rv_badge_waiting_by ("With {who}") is RETIRED — flag as stale. The card
+    // badge prints the reviewer's bare name beside the hourglass now: the
+    // glyph already says waiting and a name needs no dictionary.
     /* A held change had one verb on it and no route anywhere. Only the person
        who placed the hold can lift it, so the way forward is to ask them
        again — see the card's verbs. */
@@ -3253,7 +3278,7 @@ const STRINGS = {
     rv_held_what_now_k: 'What now',
     rv_held_what_now: 'Only {who} can lift this. Ask them to look again, or withdraw the ask.',
     rv_held_what_now_anon: 'Only the colleague who held this can lift it. Ask them to look again, or withdraw the ask.',
-    rv_moved_since: 'wording moved since',
+    rv_moved_since: 'moved',
     rv_your_reviewer: 'your reviewer',
     rv_already_open: 'This contract is already with a reviewer. Cancel that review before asking for another.',
     rv_pick_someone: 'Choose who should review this.',
@@ -3263,7 +3288,7 @@ const STRINGS = {
     /* A review is internal, and inside the company it is not public either —
        see reviewMaySee. These are what everybody ELSE reads. */
     rv_only_requester_cancels: 'Only {who}, who asked for this review, or an admin can cancel it.',
-    rv_out_for_review: 'Out for review',
+    rv_out_for_review: 'In review',
     rv_waiting_title_anon: 'A colleague is reviewing this change. It will not be sent until they answer.',
     rv_actor_locked_one: 'You are reviewing a change on this contract for {who}. Hand the review back before sending anything to the counterparty.',
     rv_actor_locked_other: 'You are reviewing {n} changes on this contract for {who}. Hand the review back before sending anything to the counterparty.',
@@ -3412,7 +3437,7 @@ const STRINGS = {
     rv_banner_waiting: 'With {who} for internal review.',
     rv_banner_waiting_sub_one: '{n} change went to them on {when}.',
     rv_banner_waiting_sub_other: '{n} changes went to them on {when}.',
-    rv_cancel_btn: 'Cancel review',
+    rv_cancel_btn: 'Cancel',
     rv_banner_returned: '{who} has reviewed this.',
     rv_banner_returned_sub: '{cleared} cleared to send, {held} held back, {advised} of the counterparty’s asks advised on.',
     rv_ask_again_btn: 'Ask again',
@@ -3507,6 +3532,11 @@ const STRINGS = {
     rv_cancel_confirm_title: 'Take this review back?',
     rv_cancel_cost: '{who} has ruled on {done} of {total} so far. Cancelling takes the whole review back and those verdicts go with it — the clauses return to you, unheld and unadvised, and {who} is told it was withdrawn. It covers {ids}.',
     rv_cancel_keep: 'Leave it with them',
+    // The CARD's button is now just "Cancel", which reads correctly beside a
+    // change. In the confirm dialog it would sit opposite "Leave it with
+    // them" and read as the dialog's own dismiss, so that one door keeps the
+    // long form.
+    rv_cancel_confirm_do: 'Cancel the review',
     rv_set_title: 'Internal review before redlines go out',
     rv_set_sub: 'Off unless you turn it on. When it is on, changes written here cannot be sent to a counterparty until a colleague has looked at them. This gates SENDING; the approval rules gate SIGNING.',
     rv_set_on: 'Require an internal review before changes are sent',
@@ -4466,7 +4496,7 @@ const STRINGS = {
     ng_accept: 'Godkänn',
     ng_reject: 'Avslå',
     ng_undo: 'Ångra',
-    ng_change_decision: 'Ändra beslut',
+    ng_change_decision: 'Öppna igen',
     ng_withdraw_ask: 'Dra tillbaka begäran',
     ng_put_it_back: 'Lägg tillbaka',
     ng_not_sent_yet_lc: 'inte skickat ännu',
@@ -4557,6 +4587,22 @@ const STRINGS = {
     ng_withdraw: 'Dra tillbaka',
     ng_retract: 'Återkalla',
     ng_sent: 'Skickat',
+    // Ändringskortets statusord — se den engelska listan.
+    ng_badge_draft: 'Utkast',
+    ng_badge_draft_title: 'Inte skickat än — det ligger kvar på den här sidan',
+    ng_badge_sent: 'Skickat',
+    ng_badge_sent_title: 'Skickat till {who} — väntar på deras svar',
+    ng_badge_awaiting_you: 'Väntar på dig',
+    ng_badge_awaiting_title: 'De har bett om det här — godkänn eller avslå',
+    ng_badge_accepted: 'Godkänd',
+    ng_badge_rejected: 'Avslagen',
+    ng_badge_answered_title: 'Besvarad, och svaret har gått till motparten',
+    ng_badge_accepted_held: 'Godkänd &middot; hålls kvar',
+    ng_badge_rejected_held: 'Avslagen &middot; hålls kvar',
+    ng_badge_held_title: 'Besvarad här — inget har lämnat sidan än. Tryck på Skicka.',
+    ng_badge_refused: 'Avslagen',
+    ng_badge_refused_ours_title: 'Avslagen — dra tillbaka begäran eller ändra lydelsen',
+    ng_badge_refused_theirs_title: 'Avslagen — väntar på dem',
     ng_your_ask: 'Din begäran',
     ng_you_are_viewing: 'Du tittar på',
     ng_internal_threads_hidden: '. Interna trådar, anteckningar och osända utkast finns inte här &mdash; och inget på den här sidan avslöjar att de finns.',
@@ -6655,20 +6701,19 @@ const STRINGS = {
     sh_rail_hide: 'Fäll ihop sidomenyn till ikoner',
 
     // ---- INTERN GRANSKNING: steget mellan att skriva en ändring och att skicka den ----
-    rv_v_cleared: 'Klar att skicka',
+    rv_v_cleared: 'Klar',
     rv_v_held: 'Hålls kvar',
-    rv_v_adv_accept: 'Råd: acceptera',
-    rv_v_adv_reject: 'Råd: avslå',
-    rv_v_adv_discuss: 'Råd: diskutera',
-    rv_badge_held: 'Hålls kvar av granskning',
-    rv_badge_held_by: 'Kvarhållen av {who}',
-    rv_badge_waiting_by: 'Hos {who}',
+    rv_v_adv_accept: 'Godkänn',
+    rv_v_adv_reject: 'Avslå',
+    rv_v_adv_discuss: 'Diskutera',
+    rv_badge_held: 'Hålls kvar',
+    rv_badge_held_by: 'Hålls kvar &middot; {who}',
     rv_held_ask_again: 'Fråga igen',
     rv_held_ask_again_title: 'Skicka tillbaka till kollegan som höll kvar den, så att de kan släppa den',
     rv_held_what_now_k: 'Vad nu',
     rv_held_what_now: 'Bara {who} kan släppa den här. Be dem titta igen, eller dra tillbaka önskemålet.',
     rv_held_what_now_anon: 'Bara kollegan som höll kvar den kan släppa den. Be dem titta igen, eller dra tillbaka önskemålet.',
-    rv_moved_since: 'lydelsen har ändrats sedan dess',
+    rv_moved_since: 'ändrad',
     rv_your_reviewer: 'din granskare',
     rv_already_open: 'Avtalet ligger redan hos en granskare. Avbryt den granskningen innan du begär en ny.',
     rv_pick_someone: 'Välj vem som ska granska.',
@@ -6807,7 +6852,7 @@ const STRINGS = {
     rv_banner_waiting: 'Hos {who} för intern granskning.',
     rv_banner_waiting_sub_one: '{n} ändring gick till dem {when}.',
     rv_banner_waiting_sub_other: '{n} ändringar gick till dem {when}.',
-    rv_cancel_btn: 'Avbryt granskning',
+    rv_cancel_btn: 'Avbryt',
     rv_banner_returned: '{who} har granskat det här.',
     rv_banner_returned_sub: '{cleared} klara att skicka, {held} kvarhållna, {advised} av motpartens önskemål har fått råd.',
     rv_ask_again_btn: 'Fråga igen',
@@ -6900,6 +6945,7 @@ const STRINGS = {
     rv_cancel_confirm_title: 'Ta tillbaka granskningen?',
     rv_cancel_cost: '{who} har bedömt {done} av {total} hittills. Att avbryta tar tillbaka hela granskningen och de bedömningarna följer med — klausulerna kommer tillbaka till dig, utan spärr och utan råd, och {who} får veta att den drogs tillbaka. Den omfattar {ids}.',
     rv_cancel_keep: 'Låt den ligga kvar hos dem',
+    rv_cancel_confirm_do: 'Avbryt granskningen',
     rv_set_title: 'Intern granskning innan ändringar går ut',
     rv_set_sub: 'Av tills du slår på den. När den är på kan ändringar som skrivs här inte skickas till en motpart förrän en kollega har sett på dem. Den styr UTSKICK; attestreglerna styr SIGNERING.',
     rv_set_on: 'Kräv intern granskning innan ändringar skickas',

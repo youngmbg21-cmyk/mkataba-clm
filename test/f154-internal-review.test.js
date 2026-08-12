@@ -436,7 +436,11 @@ describe('f154 · the verdict shows on both change cards', () => {
        the contract tab's card has no such slot and uses the shared chip. What
        must not differ is the FACT — a reader on one screen learning something
        the other screen is missing is the whole point of this block. */
-    assert.match(bench, /Held by/, 'the workbench badge says it');
+    /* CLAIM UPDATED, 13 Aug 2026: "Held by <name>" was trimmed to
+       "Held · <name>" — the corner is read at a glance and "by" was the word
+       doing least. Same slot, same fact, same name rule. */
+    assert.match(bench, /Held &middot; Achieng Otieno|Held · Achieng Otieno/,
+      'the workbench badge says it');
     assert.match(tab, /data-rv-verdict="held"/, 'the contract tab chip says it');
     assert.ok(!/data-rv-chip/.test(bench), 'and the workbench does not say it twice');
   });
