@@ -359,6 +359,18 @@ The Portfolio Health Report is DETERMINISTIC — the AI never writes a word. ope
 
 The Copilot brief travels in TWO parts: ctx.guideRules (the rulebook) and ctx.guideLive (the snapshot); buildCopilotSystem (server/server.js) stacks two system blocks, cache_control on the first. Failure bubbles carry err:true and are EXCLUDED from aiChatMessages (a stored error poisons later turns). f151 is the drift test: snapshot, health report and recipes must agree with arithmetic over state.contracts — a new figure in the prompt wants a row there.
 
+## A NOTE ON theme-tokens-verify
+
+It scores 20/40 and has done since well before this run — the recorded
+`theme-tokens-baseline.json` is a snapshot of every colour on twenty screens
+and this branch's design work has moved a great many of them. Checked by
+running the same file at the commit immediately before the 13 Aug 2026 batch:
+same 20/40, same screens. The twenty PASSING checks are the ones that matter
+and they still pass — switching to Navy repaints every screen, and no green
+survives the switch. Re-record the baseline (`--save`) when somebody is ready
+to own the current palette; until then it is a stale snapshot, not a
+regression, and it should not be read as one.
+
 ## Line numbers drift
 
 Line numbers were verified 2026-08-03. Code moves — treat them as starting points, re-verify with grep, and UPDATE THIS MAP when the layout changes.
