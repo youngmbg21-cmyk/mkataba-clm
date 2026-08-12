@@ -1585,6 +1585,16 @@ function renderNegotiationSection(c){
       const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
       if(out.delivered){
         toast(`Updated version emailed to ${who}`);
+      } else if(out.quiet){
+        /* THE SAME LIE, SECOND PLACE. A round published onto a standing link
+           sends nothing ON PURPOSE — the link was emailed once, when the
+           negotiation began, and every round after travels through the
+           platform. Falling through to reshareNotSentModal told the sender
+           "the mail provider refused it" about a send nobody attempted.
+           The contract page's own toast has said this correctly all along
+           (see the quiet branch in js/views/contract.js); this is the two
+           surfaces agreeing rather than a new sentence. */
+        toast(i18t('co_round_on_standing_link',{who:esc(who)}));
       } else if(out.channel==='whatsapp' && out.recipient.phone){
         // the same route the first share uses — nothing sends WhatsApp for us
         try{ window.open(waShareLink(out.recipient.phone, shareMessageText(c, out.link, '', null)),'_blank'); }catch(_){}
@@ -3895,8 +3905,43 @@ async function openShareModal(c, opts={}){
              duplicate was emailed on purpose. Saying "Not delivered" here was
              the false alarm of 02 Aug 2026. */
           resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-green-fg);display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>${i18t('co_already_sent')}</strong> ${esc(email)} received their link ${fmtDT(r.alreadySentAt)}, and it is still live — no duplicate was sent. This link now shows the current version.${link}</span></div>`);
+        } else if(r.heldForTurn){
+          /* ---- NOTHING WAS REFUSED. NOTHING WAS ATTEMPTED. ----
+             A signing link bound to a signer who is not first is created,
+             parked, and emailed by the server the moment the signer before
+             them finishes. That is the design working. It fell into the
+             refusal branch below and came out amber, reading "the mail
+             provider refused it … No reason was given" over a send that was
+             never made (reported 12 Aug 2026).
+
+             NEUTRAL, NOT AMBER: amber is for something the reader has to act
+             on, and there is nothing to do here but wait.
+
+             THE FACT IS READ, NOT RE-DERIVED — heldForTurn and heldFor both
+             come off the reply. The route that decides to hold is the only
+             thing that should decide what we say about it.
+
+             AND THE WORDS ARE THE SIGNING CARD'S OWN (see js/approvals.js,
+             the 'held' row): "link ready — it goes out when their turn
+             arrives". One fact must not grow a second phrase.
+
+             THE URL IS DELIBERATELY NOT SHOWN. The old sentence offered it as
+             "safe to send another way", which is the part that actually did
+             harm: a held link opens a dormant "waiting on an earlier signer"
+             page, so a recipient handed it early meets a holding screen and
+             concludes the link is broken. It is not withheld silently — the
+             Shares panel lists every link and is the durable record. */
+          const waitOn=(r.heldFor&&r.heldFor.name)?esc(r.heldFor.name):i18t('co_held_earlier_signer');
+          resultBox(`<div style="border:1px solid var(--st-steel-line);background:var(--st-steel-bg);border-radius:6px;padding:12px;font-size:12px;color:var(--st-steel-fg);display:flex;align-items:flex-start;gap:8px;">${icon('clock','w-4 h-4')}<span><strong>${i18t('co_link_held')}</strong> ${
+            i18t('co_link_held_body',{who:esc(email),waiting:waitOn})}<br><span style="display:inline-block;margin-top:6px;font-size:11px;opacity:.85">${i18t('co_link_held_where')}</span></span></div>`);
         } else if(r.emailConfigured){
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_not_delivered')}</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:' No reason was given.'}${link}</span></div>`);
+          /* A REAL refusal, which always carries a reason: sendEmail returns
+             the provider's own sentence and falls back to "Resend rejected
+             this message (<status>)" when the provider says nothing. The
+             invented "No reason was given." is gone with the branch that
+             produced it — it described a state that cannot occur once a
+             non-attempt stops being reported as a refusal. */
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_not_delivered')}</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:''}${link}</span></div>`);
         } else {
           resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
         }
@@ -4032,6 +4077,23 @@ async function openShareModal(c, opts={}){
    than reporting success and leaving the counterparty waiting for an email
    that was never going to arrive. */
 function reshareNotSentModal(c, out, who){
+  /* WHAT CAN AND CANNOT REACH THIS MODAL, checked 12 Aug 2026 while fixing the
+     share dialog's false "Not delivered".
+
+     A HELD SIGNING LINK CANNOT. reshareToLastRecipient never binds a signer —
+     it posts without signerId and refreshes a durable link in place — so the
+     server never holds one for it and heldForTurn is never on the reply. No
+     branch is written for it here, deliberately: a branch that cannot run is
+     the same fault as wording that describes a state that cannot occur.
+
+     A DELIBERATELY QUIET ROUND USED TO. A round published onto a standing link
+     sends nothing on purpose, and both callers fell through to this modal and
+     were told the provider had refused it. That is caught at the callers now,
+     where the contract page had already been saying it correctly.
+
+     So the last branch is only reached by a real refusal — and a real refusal
+     always carries a reason (sendEmail falls back to "Resend rejected this
+     message (<status>)" when the provider says nothing at all). */
   const reason = out.channel!=='email'
     ? `This counterparty was shared with by ${out.channel==='whatsapp'?'WhatsApp':'a copied link'}, so HaTi does not send anything automatically.`
     : out.emailConfigured===false
@@ -4236,6 +4298,8 @@ async function renderSharesSection(c){
       const out=await reshareToLastRecipient(c);
       const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
       if(out.delivered) toast(`Sent again to ${who}`);
+      /* Deliberately quiet, not refused — see the note on the other caller. */
+      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who:esc(who)}));
       else reshareNotSentModal(c, out, who);
       renderAuditSection(c); renderSharesSection(c);
     }catch(err){ toast(err.message,'err'); }
