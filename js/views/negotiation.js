@@ -8167,10 +8167,18 @@ function renderRedline(){
            table changed hands — see negoHandOver. */
         const moved = handed ? handed.moved !== false : false;
         const turnLine = moved ? ' — it is now their turn' : '';
-        if (window.toast) toast(out && out.delivered
+        /* A SECOND LIVE LINK IS SAID ON SCREEN, not only in the audit trail.
+           This is the state reported on MK-255: the round published, the owner
+           was told it had gone, and the counterparty reloaded the URL they
+           actually held to find nothing had moved — because it was not the URL
+           we had refreshed. Where the send could not reuse their copy, that is
+           the whole news, so it outranks the ordinary sentence. */
+        if (window.toast) toast(out && out.stranded
+          ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
+          : out && out.delivered
           ? `Sent to ${to}${turnLine}`
           : `Published to ${to}'s link${turnLine}. Send them the link if it was not emailed.`,
-          out && out.delivered ? undefined : 'err');
+          (out && out.delivered && !out.stranded) ? undefined : 'err');
       }catch(err){
         btns.forEach(b => { b.disabled = false; });
         if (window.toast) toast(`Could not send to ${to} — ${(err && err.message) || err}`, 'err');

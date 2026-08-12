@@ -1333,6 +1333,97 @@ parity-verify's measurement — a monstrous company name must not shove the
 status badge off the row — is re-asked as "there is no pill AND the badge is
 still on the row", which is the half that can be broken by accident.
 
+1a THE ROUND WENT ONTO A LINK NOBODY WAS READING (owner-reported, 12 Aug 2026)
+
+Reported against MK-255, and it took three passes to find because each pass
+answered a real question and none of them was the fault.
+
+WHAT WAS SEEN. The owner had refused a change the counterparty raised; their
+card read "Refused · waiting on them". On the counterparty's own page that
+change did not exist at all — their column said they had none of their own asks
+on the table. Publish Round was pressed. The counterparty reloaded. Nothing
+moved.
+
+WHAT WAS RULED OUT, by reproducing each one rather than reasoning about it:
+a refused counterparty ask travels and renders correctly on both sides when the
+copy is refreshed; an internal review hold cannot apply to it at all (held and
+awaiting are both scoped to OUR OWN unsent asks); closing the round does not
+drop it; and the phone makes no decisions, so it cannot be the surface that
+skipped the catch-up. What DID reproduce the symptom exactly was one thing: a
+copy that never got refreshed.
+
+WHY IT WAS NEVER REFRESHED. Three places in the client decide which existing
+link a new copy belongs on, and no two of them used the same rule:
+
+  · the ROUND SEND wanted a durable, unrevoked link whose recipient email
+    matched the contact's, exactly;
+  · the QUIET CATCH-UP took every durable, unrevoked link and matched no
+    address at all;
+  · the SHARE DIALOG wanted a durable link matching the address just typed.
+
+The round send was the strictest, and the address it matches on is not
+necessarily an address any link was ever created with. counterpartyContact
+answers "who is this" from the newest share and fills a MISSING address from
+the newest share that has one, or from the contract record — which is f126, and
+which is correct on its own terms. A link created by copying a URL to the
+clipboard carries no address whatsoever. So on a contract shared that way the
+match could never succeed, and the send fell through to its other branch: it
+POSTED A NEW SHARE. A second live link, an audit line reading "Updated version
+emailed", a cheerful toast — and the URL the counterparty actually had in their
+browser, untouched, for the rest of the negotiation.
+
+That is the whole bug, and its shape is worth remembering: not a failure, a
+SUCCESS REPORTED ABOUT THE WRONG OBJECT.
+
+THE FIX IS ONE PREDICATE AND ONE ORDERING.
+
+shareIsStanding(s) — durable, not revoked, not expired — is now the single
+answer to "can this link be refreshed in place", and it is deliberately written
+as the client's reading of what PUT /api/shares/:token/payload will accept, so
+no caller can form a plan the server is going to refuse. It replaced, among
+other things, a filter on `s.expired` — a field the shares list route does not
+send. That filter read undefined and passed everything, harmlessly, and hid the
+fact that two callers were reading one record by two different rules.
+
+standingShareFor(shares, contact) is the round send's ordering: the link the
+CONTACT ITSELF CAME FROM (lastShareRecipient carries its token, and that is the
+link the negotiation has actually been travelling on — the only one of these
+that cannot be wrong), then the address, then the name, and finally the newest
+standing link there is. That last step is what closes the reported hole: the
+quiet catch-up already refreshes every durable link on the contract, so a round
+send that refuses to touch one the catch-up would have updated a second earlier
+is stricter than the product's own behaviour.
+
+AND THE SHARE DIALOG DOES NOT GET THAT FALLBACK, deliberately. There the sender
+has just typed a name and an address, and taking the newest standing link
+because nothing matched would mean reusing a stranger's link — a worse bug than
+the one the ordering fixes. It shares the predicate and keeps matching the
+typed address. Two questions that look alike and are not: "where is this
+negotiation happening" and "who did I just address this to".
+
+A round send also catches up every OTHER standing link now, silently. One round
+is one audit line; the rest are copies being kept honest, and a reader whose URL
+was not the one we picked no longer watches a round fail to arrive.
+
+AND WHERE A SECOND LINK IS UNAVOIDABLE, IT IS SAID OUT LOUD. A link made before
+standing links existed cannot be refreshed in place and the server refuses to
+try, so minting is sometimes all that is left. What must not happen again is the
+owner being told "sent" while the reader's copy goes quietly dead. The result
+carries `stranded`, reshareStrandedLine is the one sentence, and all FOUR
+surfaces that report a round send print it — the negotiation section's resend,
+the seen-state resend, and onSendDirect on both the contract tab and the
+workbench — as does the audit line. The FIRST send strands nothing and says
+nothing: there is no earlier copy to warn about, and an always-on warning is
+furniture.
+
+THE STANDING WEAKNESS THIS EXPOSED, and it is bigger than the matching. The
+owner's screen makes claims about the counterparty's screen that nothing
+verifies. "Refused · waiting on them" was stated with full confidence about a
+page that did not contain the change at all. The product already refuses to say
+"waiting on them" about wording of OURS they have never seen — negoTurnBanner
+says so in those words — and does not apply the same honesty to a refusal of
+THEIR ask. Worth fixing next; not fixed here.
+
 1b A NEGOTIATION HAS NO DOOR TO THE OTHER NEGOTIATIONS (owner-asked, later on 12 Aug 2026)
 
 The sidebar's Negotiations reopens the negotiation you were last in. That is

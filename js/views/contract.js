@@ -3454,12 +3454,19 @@ function openNegotiationOwnerRoom(c){
            email goes — by design, the platform is the channel after the first
            send. delivered: the FIRST send, which emails the link. Otherwise the
            link went out on a channel that cannot deliver itself. */
-        toast(out.quiet
+        /* FOUR honest outcomes now. stranded goes FIRST and wears the error
+           colour: their copy could not be reused, so a second live link exists
+           and the URL they hold has stopped being the contract. Reported on
+           MK-255, where the round published and the counterparty reloaded the
+           link they actually had to find nothing had moved. */
+        toast(out.stranded
+          ? `${reshareStrandedLine(to)} It is now their turn.`
+          : out.quiet
           ? `Sent to ${to} — the new round is on their link, and it is now their turn`
           : out.delivered
           ? `Sent to ${to} — it is now their turn`
           : `Published to ${to}'s link — it is now their turn. ${out.channel==='email'?'It was not emailed; send them the link.':'Send them the link.'}`,
-          (out.quiet||out.delivered)?undefined:'err');
+          (!out.stranded&&(out.quiet||out.delivered))?undefined:'err');
       }catch(err){
         toast(`Could not send to ${to} — ${err.message}`,'err');
       }

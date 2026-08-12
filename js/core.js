@@ -1583,7 +1583,12 @@ function renderNegotiationSection(c){
     try{
       const out=await reshareToLastRecipient(c);
       const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
-      if(out.delivered){
+      /* FIRST, because it outranks every other outcome: if their copy could not
+         be reused, the news is not whether an email went — it is that the URL
+         they hold has stopped being the contract. */
+      if(out.stranded){
+        toast(reshareStrandedLine(who),'err');
+      } else if(out.delivered){
         toast(`Updated version emailed to ${who}`);
       } else if(out.quiet){
         /* THE SAME LIE, SECOND PLACE. A round published onto a standing link
@@ -3059,6 +3064,79 @@ function counterpartyContact(c, shares){
      See shareRouteRecipient. */
   return { name:(c&&c.counterpartyName)||(c&&c.counterparty)||'', email:recorded, phone:'', channel:'email', token:null };
 }
+/* ---------- WHICH LINK THE COUNTERPARTY IS ACTUALLY READING ----------
+   Reported (Young, 12 Aug 2026), on MK-255: the owner refused a change of the
+   counterparty's, their page never showed it, Publish Round was pressed, and
+   the counterparty reloaded their link to find nothing had moved.
+
+   THE CAUSE WAS THREE ANSWERS TO ONE QUESTION. Three places decided which
+   existing link a new copy belongs on, and they did not agree:
+
+     · the ROUND SEND (reshareToLastRecipient) wanted a durable link whose
+       recipient email matched the contact's, exactly;
+     · the QUIET CATCH-UP (refreshLiveShareQuietly) took every durable link
+       and matched no address at all;
+     · the SHARE DIALOG wanted a durable link matching the address just typed.
+
+   The round send was the strictest, and its address is not necessarily the
+   address any link was made with: counterpartyContact fills a missing one from
+   the newest share that has any, or from the contract record. A link created by
+   copying a URL carries no email at all. So the match failed, and the round
+   send did the one thing it must never do quietly — it MINTED A SECOND LINK,
+   reported "sent", and left the reader holding a copy nothing will ever update.
+
+   ONE PREDICATE, and everything asks it: can this link still be refreshed in
+   place? It is the client's reading of what PUT /api/shares/:token/payload will
+   accept — durable, not revoked, not expired — so a caller cannot form a plan
+   the server is going to refuse. */
+/* ONE SENTENCE, FOUR SURFACES. Every place that reports a round-send has to be
+   able to say that a second link was minted — the negotiation section's resend,
+   the seen-state resend, and the one-press send on both the contract tab and
+   the workbench. Four copies of this wording would drift, and the one that
+   drifted would be the one somebody read. */
+const reshareStrandedLine = who =>
+  `A NEW link was created for ${who}. The link they already have will NOT update — send them the new one.`;
+function shareIsStanding(s){
+  if(!s || !s.durable || s.revokedAt) return false;
+  if(s.state==='revoked' || s.state==='expired') return false;
+  /* The list route sends expiresAt, never an `expired` flag — a filter written
+     against `s.expired` reads undefined and passes everything. Compared as
+     dates, which is what the server does. */
+  if(s.expiresAt && String(s.expiresAt) < nowISO()) return false;
+  return true;
+}
+function standingShares(shares){
+  return (shares||[]).filter(shareIsStanding)
+    .sort((a,b)=>String((b&&b.createdAt)||'').localeCompare(String((a&&a.createdAt)||'')));
+}
+/* THE ONE A ROUND GOES ON. Only for the round send, where the question is
+   "where is this negotiation happening" — NOT for the share dialog, where the
+   sender has just typed a name and an address and may well mean somebody else.
+   Reusing a stranger's link because it happened to be the only one open is a
+   worse bug than the one this fixes.
+
+   In order: the link the CONTACT ITSELF CAME FROM (lastShareRecipient carries
+   its token, and that is the link the negotiation has actually been travelling
+   on — the only one of these that cannot be wrong), then the address, then the
+   name, and finally the newest standing link there is. That last step is the
+   one that closes the reported hole: the quiet catch-up already refreshes every
+   durable link on the contract, so a round send that refuses to touch one the
+   catch-up would have updated is stricter than the product's own behaviour a
+   second earlier. */
+function standingShareFor(shares, contact){
+  const live=standingShares(shares);
+  if(!live.length) return null;
+  const tok=contact&&contact.token;
+  const byToken=tok?live.find(s=>s.token===tok):null;
+  if(byToken) return byToken;
+  const email=String((contact&&contact.email)||'').trim().toLowerCase();
+  const byEmail=email?live.find(s=>String(s.recipientEmail||'').trim().toLowerCase()===email):null;
+  if(byEmail) return byEmail;
+  const name=String((contact&&contact.name)||'').trim();
+  const byName=name?live.find(s=>String(s.recipientName||'').trim()===name):null;
+  if(byName) return byName;
+  return live[0];
+}
 /* ---------- WHERE THIS CONTRACT'S CHANGES GO ----------
    The share dialog is not a confirmation step. It is the form that collects the
    address the app does not have yet — #nego-send takes a one-press route the
@@ -3179,13 +3257,13 @@ async function reshareToLastRecipient(c, opts={}){
   const docHash=await sha256(canonicalDoc(c));
   if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you',null,{auto:true}); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
-  /* If this counterparty already has a durable link, refresh THAT rather than
-     mint another one: the point of a durable link is that the other side keeps
-     one URL for the whole negotiation. A new link is created only when there
-     is none to refresh. */
-  const live=(shares||[]).find(s=>s.durable && !s.revokedAt &&
-    (last.email ? String(s.recipientEmail||'').toLowerCase()===String(last.email).toLowerCase()
-                : String(s.recipientName||'')===last.name));
+  /* If this counterparty already has a standing link, refresh THAT rather than
+     mint another one: the point of a standing link is that the other side keeps
+     one URL for the whole negotiation. A new link is created only when there is
+     none to refresh — and when that happens it is now SAID (see record below),
+     because a second live link is the state this whole path exists to avoid.
+     See standingShareFor for the order and for what went wrong before it. */
+  const live=standingShareFor(shares, last);
   /* WHAT "SENT" MEANS. Refreshing a link is not the same as telling anybody
      about it, and the two were conflated: the owner saw "updated version sent",
      the history recorded it, and on a copy-link or WhatsApp share — or a server
@@ -3193,9 +3271,24 @@ async function reshareToLastRecipient(c, opts={}){
      now reported per channel, and the audit line only says "sent" when
      something left. */
   const who=last.name||last.email||last.phone||'the counterparty';
+  /* LINKS THEY MAY BE HOLDING THAT WE CANNOT REFRESH — not revoked, so still
+     openable, but not standing, so PUT payload would refuse them. If we end up
+     minting, these are the copies that go quietly dead, and the reader is far
+     more likely to be sitting on one of them than to know a new link exists. */
+  const orphans=(shares||[]).filter(s=>s && !s.revokedAt && !shareIsStanding(s)).length;
   const record=(r,reused)=>{
     const ch=last.channel||'email';
     const delivered=ch==='email' && !!r.emailSent;
+    /* A SECOND LIVE LINK IS SAID OUT LOUD. Minting one is sometimes the only
+       thing left — a link made before standing links existed cannot be
+       refreshed in place, and the server refuses to try — but the owner used
+       to be told "Updated version emailed" and nothing else, while the URL the
+       counterparty actually had went stale forever. That is the fault this
+       whole section was rewritten for; the honest sentence is the half of the
+       fix that survives a case the matching cannot rescue. */
+    const stranded=!reused && orphans
+      ? ` — this is a NEW link: the copy they already hold cannot be refreshed and will not update, so they must use the new one`
+      : '';
     /* A round published to the standing link ON PURPOSE is not a failed email.
        The link was delivered once, when the negotiation began; every round
        after that travels through the platform, and the audit line says so
@@ -3208,9 +3301,12 @@ async function reshareToLastRecipient(c, opts={}){
       : ch==='email'
         ? `Updated version published to ${who}'s link${reused?' (existing link)':''} — NOT emailed${r.emailConfigured===false?': this workspace has no mail provider configured':r.emailError?': '+r.emailError:''}`
         : `Updated version published to ${who}'s link${reused?' (existing link)':''} — send it to them by ${ch==='whatsapp'?'WhatsApp':'link'}; nothing was sent automatically`;
-    logAudit(c,'Shared',detail);
+    logAudit(c,'Shared',detail+stranded);
     persist(c);
     return { share:r, recipient:last, reused:!!reused, delivered, quiet, channel:ch,
+             /* The caller says this on screen too — an audit line nobody opens
+                is not a warning. */
+             stranded:!!stranded,
              link:r.link||null, emailConfigured:r.emailConfigured!==false, emailError:r.emailError||null };
   };
   if(live){
@@ -3220,6 +3316,17 @@ async function reshareToLastRecipient(c, opts={}){
        send — the POST below, when no link exists yet — is the one that emails,
        because it is the one delivering a link. */
     const r=await api('shares/'+live.token+'/payload','PUT',{ payload, notify:false });
+    /* AND EVERY OTHER STANDING LINK ON THIS CONTRACT, quietly. The quiet
+       catch-up already refreshes all of them on a decision, so leaving one
+       behind on the round send would mean a reader whose URL is not the one
+       we picked sees the round arrive late — or not at all. Same payload, no
+       email, no second audit line: these are copies being kept honest, not
+       sends. Failures are swallowed for the reason refreshLiveShareQuietly
+       gives: a link that could not be caught up must not fail the round. */
+    for(const s of standingShares(shares)){
+      if(!s || s.token===live.token) continue;
+      try{ await api('shares/'+s.token+'/payload','PUT',{ payload, silent:true }); }catch(e){}
+    }
     return record(r||{}, true);
   }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
@@ -3866,11 +3973,17 @@ async function openShareModal(c, opts={}){
          place rather than duplicated. A SIGNING link is deliberately exempt:
          issuing one is what retires the negotiation links, and it has to be its
          own copy for one signature to bind one text. */
+      /* THE SAME "can this be refreshed" predicate as the round send, and
+         DELIBERATELY NOT its fallback. standingShareFor ends by taking the
+         newest standing link when nothing matches, which is right for a round
+         — the question there is where this negotiation is happening. Here the
+         sender has just typed a name and an address, and reusing a stranger's
+         link because it happened to be the only one open would be a worse bug
+         than the one that ordering fixes. The typed address is the match. */
       const wantDurable=durableEl?!!durableEl.checked:false;
       const reuse=(wantDurable && payloadObj.purpose!=='sign' && email)
-        ? (priorShares||[]).find(s=>s && s.durable && !s.revokedAt
-            && s.state!=='revoked' && s.state!=='expired'
-            && String(s.recipientEmail||'').toLowerCase()===String(email).toLowerCase())
+        ? standingShares(priorShares).find(s=>
+            String(s.recipientEmail||'').trim().toLowerCase()===String(email).trim().toLowerCase())
         : null;
       try{
         r = reuse
@@ -4297,7 +4410,9 @@ async function renderSharesSection(c){
     try{
       const out=await reshareToLastRecipient(c);
       const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
-      if(out.delivered) toast(`Sent again to ${who}`);
+      /* Their copy could not be reused — see the other caller; same order. */
+      if(out.stranded) toast(reshareStrandedLine(who),'err');
+      else if(out.delivered) toast(`Sent again to ${who}`);
       /* Deliberately quiet, not refused — see the note on the other caller. */
       else if(out.quiet) toast(i18t('co_round_on_standing_link',{who:esc(who)}));
       else reshareNotSentModal(c, out, who);
@@ -4796,7 +4911,12 @@ async function refreshLiveShareQuietly(c){
   if(!API_MODE() || !canEdit()) return;
   try{
     const shares=await contractShares(c);
-    const live=(shares||[]).filter(s=>s && s.durable && !s.revokedAt && !s.expired);
+    /* THE SAME PREDICATE THE ROUND SEND ASKS — see shareIsStanding. This used
+       to filter on `s.expired`, a field the shares list does not send, so an
+       expired link was fetched, PUT and refused every time. Harmless, and it
+       hid the fact that these two callers were reading the same record by two
+       different rules. */
+    const live=standingShares(shares);
     if(!live.length) return;
     const docHash=await sha256(canonicalDoc(c));
     for(const s of live){
@@ -5074,4 +5194,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,cachedSignerNotices,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});
