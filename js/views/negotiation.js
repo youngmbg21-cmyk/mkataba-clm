@@ -6325,12 +6325,42 @@ function redlineLayoutCss(){
      card carried over from an earlier round says so without being opened. */
   .redline-page .rl-card-round{font-family:var(--font-mono);font-size:10px;font-weight:700;
     color:var(--color-neutral-500);flex:none;margin-left:6px}
-  .redline-page .rl-badge{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;
-    border:1px solid transparent}
-  .redline-page .rl-badge-sent{background:var(--st-steel-bg);color:var(--st-steel-fg);border-color:var(--st-steel-line)}
-  .redline-page .rl-badge-draft{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line)}
-  .redline-page .rl-badge-ok{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line)}
-  .redline-page .rl-badge-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line)}
+  /* ---- THE STATUS CORNER IS A WORD, NOT A PILL (owner-asked, 12 Aug 2026) ----
+     It was a capsule: a tint, a border and 3px/9px of padding around 10.5px
+     text. On a 285px card whose head already carries an id, a round tag and
+     an open button, the capsule was one more enclosed shape in a row of
+     enclosed shapes, and the thing the reader actually wanted — the WORD —
+     was the smallest type on the card.
+
+     So the fill, the border and the padding go and the word carries the
+     colour on its own. It is larger and heavier than the pill's text was
+     (11.5px/700 against 10.5px/600) because it no longer has a background to
+     separate it from the card: weight is what does that job now.
+
+     WHAT DOES NOT CHANGE, and each of these is load-bearing:
+       · the ELEMENT, its .rl-badge class and its tone class. Half this
+         product and half the test suite asks that slot where a change
+         stands; it is the card's ONE status slot and it keeps its identity;
+       · the four TONES and their meanings — amber = not gone yet, steel =
+         in flight, green = agreed, ruby = refused or held — and the tokens
+         they are painted from. Only the -bg and -line halves of each token
+         stop being used here; the -fg half is the word.
+     The review mark beside it keeps its box on purpose: after this change it
+     is the only enclosed shape left in the row, which is what makes it read
+     as a mark rather than as another status. Do not tidy it away. */
+  .redline-page .rl-badge{font-size:11.5px;font-weight:700;white-space:nowrap;
+    padding:0;border:0;border-radius:0;background:none;line-height:1.3}
+  .redline-page .rl-badge-sent{color:var(--st-steel-fg)}
+  .redline-page .rl-badge-draft{color:var(--st-amber-fg)}
+  .redline-page .rl-badge-ok{color:var(--st-green-fg)}
+  .redline-page .rl-badge-no{color:var(--st-ruby-fg)}
+  /* DARK MODE DID SOME OF THE CONTRAST WORK IN THE FILL. The four -fg tokens
+     were chosen to sit on a 15% tint of their own colour; on the bare card
+     surface the two darkest of them — the amber and the steel — read thin, so
+     they are lifted here and only here. The light palette needs nothing: all
+     four of its -fg values are already dark saturated ink on white. */
+  html.dark .redline-page .rl-badge-sent{color:var(--color-accent-200)}
+  html.dark .redline-page .rl-badge-draft{color:#fcd34d}
   /* ---- THE ORIGIN PILL'S RULES WENT WITH THE PILL (12 Aug 2026) ----
      .rl-origin / .rl-origin-us / .rl-origin-them and their two dark overrides
      are DELETED, not left behind: an emerald-and-indigo pair, elided by

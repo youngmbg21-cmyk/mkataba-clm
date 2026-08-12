@@ -1549,3 +1549,46 @@ Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.
 
+
+----- 12–13 Aug 2026 run: the card, the message, the bell, the chip, one true
+sentence, and a contract that grows -----
+
+THE STATUS CORNER IS A WORD, NOT A PILL
+
+The change card's status slot was a capsule — a tinted fill, a 1px border and
+3px/9px of padding wrapped round 10.5px text. It had been a pill since the
+column was built, and it read fine on its own. What made it wrong was
+everything that arrived beside it: by 12 August the head of a 285px card
+carried a monospaced id chip, a round tag, an open-out button and, until that
+morning, an origin pill as well. Five enclosed shapes in one row, and the one
+the reader actually wanted — where does this change STAND — was the smallest
+type of the five.
+
+So the enclosure goes and the word carries the colour. It is 11.5px/700 where
+the pill's text was 10.5px/600, because a capsule separates itself from the
+card with a fill and a bare word has to do it with weight.
+
+WHAT SURVIVES, and it is the whole reason this was safe to do: the element,
+its .rl-badge class and its tone class. That slot is what the rest of the
+product and a large part of the test suite ask to learn where a change is —
+"the card has ONE status slot" is a rule from the day the review chip was
+made to stand down beside it. Changing what a slot LOOKS like is a design
+decision; changing what it IS would have been a refactor of half the suite.
+
+The four tones keep their exact meanings and their exact tokens: amber = not
+gone yet, steel = in flight, green = agreed, ruby = refused or held. Only the
+-bg and -line halves of each token stop being read here.
+
+DARK MODE HAD BEEN LEANING ON THE FILL. The four -fg values were picked to sit
+on a 15% tint of their own hue, not on the bare card. Read as plain text on
+the dark surface, the amber and the steel are the two that go thin, so they
+are lifted — and lifted THERE ONLY, in an html.dark rule of two lines, rather
+than by moving the shared token, which would have changed every tinted badge
+in the product to fix a card. The light palette needed nothing: all four of
+its -fg values are already dark saturated ink and they were always going to
+read on white.
+
+THE REVIEW MARK KEEPS ITS BOX. That is deliberate and it is easy to get wrong
+in a tidy-up: after this change the review mark is the only enclosed shape
+left in that row, and being the only one is exactly what makes it read as a
+MARK rather than as a second status. A tidier row would say less.

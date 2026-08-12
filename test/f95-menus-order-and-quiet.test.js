@@ -468,9 +468,22 @@ describe('F95 — the negotiate objects are one set of objects', () => {
     const verbs = nego.slice(nego.indexOf('.redline-page .rl-card-verbs button{'));
     assert.match(verbs.slice(0, verbs.indexOf('}')), /border-radius:8px/,
       'the verbs are the design\'s soft rectangles, not pills');
+    /* ---- CLAIM REVERSED, 12 Aug 2026, OWNER-ASKED ----
+       This used to read "and a status pill is still a pill", asserting
+       border-radius:999px. The owner asked for the status corner to stop
+       being a capsule and become the coloured WORD — the card's head already
+       carried an id, a round tag and a button, and the pill made the one
+       thing worth reading the smallest type on the card. The claim is turned
+       round rather than deleted: the shape is now deliberately NOT a pill,
+       and the word carries the tone colour instead. */
     const badge = nego.slice(nego.indexOf('.redline-page .rl-badge{'));
-    assert.match(badge.slice(0, badge.indexOf('}')), /border-radius:999px/,
-      'and a status pill is still a pill');
+    const badgeRule = badge.slice(0, badge.indexOf('}'));
+    assert.doesNotMatch(badgeRule, /border-radius:999px/,
+      'the status is a word now, not a pill');
+    assert.match(badgeRule, /border:0/, 'no border');
+    assert.match(badgeRule, /background:none/, 'and no fill');
+    assert.match(nego, /\.rl-badge-no\{color:var\(--st-ruby-fg\)\}/,
+      'the tone class survives and carries the colour on the word');
   });
 });
 
