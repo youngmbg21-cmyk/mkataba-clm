@@ -330,20 +330,27 @@ const CARD_EDIT = async () => {
         : 'every measured property matches');
   }
 
-  /* ---- 10. the origin badge names a party, and still fits the card ----
-     The badge read "Counterparty" until 2026-08-02 — the word both parties use
-     for the party opposite them, so on the counterparty's own page it labelled
-     the SENDER's ask with the reader's own word for themselves. It now names
-     the organisation that actually asked, which means it carries text of
-     unbounded length in a head that also holds the change id, the caret and the
-     status badge, on a column ~285px wide.
+  /* ---- 10. the origin pill is OFF the card, and the head still fits ----
+     THE CLAIM THIS REPLACES. The badge read "Counterparty" until 2026-08-02 —
+     the word both parties use for the party opposite them, so on the
+     counterparty's own page it labelled the SENDER's ask with the reader's own
+     word for themselves. It was then made to name the organisation that
+     actually asked, which meant carrying text of unbounded length ("APEX
+     LOGISTICS & WAREHOUSING KENYA LTD") in a head that also holds the change
+     id, the door into the panel and the status badge, on a column ~285px wide.
+     What was measured here was that a long name elided rather than shoving the
+     status badge off the row.
 
-     Measured rather than reasoned about, at the narrowest layout the grid
-     reaches: the status badge must still be on the row. That is the thing a
-     stylesheet cannot tell you. */
+     THE PILL CAME OFF ON 12 Aug 2026 — a third tag in a head with two,
+     answering a question the column's own Mine / Theirs filter and the meta
+     line underneath both already answer. So the measurement turns round: with
+     a monstrous company name on the record, the head must carry no pill AND
+     the status badge must still be on the row. The second half is the part
+     worth keeping — removing an element is exactly the kind of change that
+     silently relies on a flex rule that went with it. */
   const badges = await page.evaluate(() => {
-    /* A company name long enough to be a problem, pushed through the real
-       renderer rather than hoped for in the fixture. */
+    /* A company name long enough to have been a problem, pushed through the
+       real renderer rather than hoped for in the fixture. */
     window.CONTRACT.counterparty = 'APEX LOGISTICS & WAREHOUSING KENYA LTD';
     /* Through the page's OWN renderer. An earlier draft mounted redlineEmbed on
        a host that only exists on the counterparty's surface, so on this one it
@@ -352,27 +359,27 @@ const CARD_EDIT = async () => {
     renderRedline();
     const card = document.querySelector('#rl-changes [data-rl-origin="them"]');
     if (!card) return null;
-    const o = card.querySelector('.rl-origin');
     const st = card.querySelector('.rl-badge');
+    const meta = card.querySelector('.rl-card-meta');
     const head = card.querySelector('.rl-card-top').getBoundingClientRect();
-    return { label: o.textContent.trim(),
-      elided: o.scrollWidth > o.clientWidth + 1,
+    return { pill: !!card.querySelector('.rl-origin'),
+      headText: card.querySelector('.rl-card-top').textContent.replace(/\s+/g, ' ').trim(),
       statusOnRow: st.getBoundingClientRect().right <= head.right + 1,
-      badgeOnRow: o.getBoundingClientRect().right <= head.right + 1,
-      tooltip: o.getAttribute('title') || '' };
+      spine: getComputedStyle(card).borderLeftColor,
+      spineW: getComputedStyle(card).borderLeftWidth,
+      meta: (meta ? meta.textContent : '').replace(/\s+/g, ' ').trim() };
   });
   if (!badges){
-    check('10 the origin badge is on the card', false, 'no card carrying one');
+    check('10 there is a card to read the head of', false, 'no card carrying an origin');
   } else {
-    check('10 the badge names the party rather than the seat',
-      /APEX LOGISTICS/.test(badges.label) && badges.label !== 'Counterparty', badges.label);
-    check('10 a long name does not shove the status badge off the row',
-      badges.statusOnRow && badges.badgeOnRow,
-      `badge on row: ${badges.badgeOnRow}, status on row: ${badges.statusOnRow}`);
-    check('10 it is elided when it runs out, not wrapped or clipped silently',
-      badges.elided, `elided: ${badges.elided}`);
-    check('10 and the full name is still readable on hover',
-      /APEX LOGISTICS & WAREHOUSING KENYA LTD/.test(badges.tooltip), badges.tooltip);
+    check('10 THE ORIGIN PILL IS GONE FROM THE HEAD', !badges.pill && !/ask/i.test(badges.headText),
+      badges.headText);
+    check('10 and a monstrous company name no longer has anywhere to shove anything',
+      badges.statusOnRow, `status on row: ${badges.statusOnRow}`);
+    check('10 the coloured left edge still marks it as theirs',
+      parseFloat(badges.spineW) >= 2 && !!badges.spine, `${badges.spineW} ${badges.spine}`);
+    check('10 and the name reads on the line under the head',
+      /APEX LOGISTICS & WAREHOUSING KENYA LTD/.test(badges.meta), badges.meta);
   }
 
   /* The owner's side is the control: if these were absent there too, every

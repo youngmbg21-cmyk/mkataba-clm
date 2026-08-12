@@ -168,6 +168,114 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.match(b.$('#reg-tbody [data-row]').textContent, /Agreement MK-1/);
   });
 
+  /* ---- THE PAGE'S OWN DOOR BACK TO THE LIST (owner-asked, 12 Aug 2026) ----
+     The sidebar reopens the negotiation you are standing in — that is what it
+     is for and it has not been touched. Inside a negotiation that left no way
+     to the list at all, so the control row grew one at its far left. */
+  test('the negotiation page carries a "Live negotiations" door, far left of its row', () => {
+    const b = world(['MK-1', 'MK-2']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');
+    b.win.openRedlineWorkbench('MK-1');
+    const door = b.$('.redline-page [data-rl-live-list]');
+    assert.ok(door, 'the door is drawn on the workbench');
+    const row = b.$('.redline-page .rl-tabrow');
+    assert.equal(door.parentElement, row, 'it is a child of the control row');
+    assert.equal(row.children[0], door, 'and the FIRST thing on it — a way out reads at the start');
+    /* The spacer still pushes this page's own controls right, and the head is
+       still the last thing on the row. */
+    const kids = [...row.children];
+    assert.ok(kids.indexOf(b.$('.redline-page .rl-tabrow-gap')) > 0);
+    assert.ok(kids[kids.length - 1].classList.contains('rl-head'));
+    assert.match(door.textContent, /Live negotiations/);
+  });
+
+  test('THE COUNT ON THE DOOR IS THE COUNT IN THE LIST\'S HEADING', () => {
+    /* One count, many surfaces — the standing rule. The button reads
+       negoLiveList, which is what negoListHeadHtml prints, so a door saying 2
+       can never sit over a heading saying 3. */
+    const b = world(['MK-1', 'MK-2', 'MK-3']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');           // MK-3 has nothing on the table
+    b.win.openRedlineWorkbench('MK-1');
+    assert.equal(b.$('.redline-page .rl-livelist-n').textContent.trim(), '2');
+    b.$('[data-rl-live-list]').dispatchEvent(new b.win.Event('click'));
+    assert.equal(b.$('.ngl-live').textContent.trim(), '2 live');
+  });
+
+  test('pressing it lands on the LIST, not back on the negotiation it was pressed from', () => {
+    /* The trap the argument exists for: openNegotiations with no argument
+       reopens what is remembered, and what is remembered is this page. */
+    const b = world(['MK-1', 'MK-2']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');
+    b.win.openRedlineWorkbench('MK-1');
+    assert.equal(b.win.redlineHeldId(), 'MK-1');
+    b.$('[data-rl-live-list]').dispatchEvent(new b.win.Event('click'));
+    assert.ok(b.$('#reg-tbody'), 'the list is drawn');
+    assert.equal(b.$$('#reg-tbody [data-row]').length, 2);
+    /* And the sidebar is untouched: it still reopens the last one. */
+    b.win.openNegotiations();
+    assert.equal(b.win.redlineHeldId(), 'MK-1',
+      'the sidebar door still reopens the negotiation you were last in');
+  });
+
+  test('and it is ONE route — the sidebar\'s own door with an argument', () => {
+    const s = read('js/views/negotiation.js');
+    assert.match(s, /data-rl-live-list\]'\)\.forEach\([\s\S]{0,120}openNegotiations\(\{ list: true \}\)/,
+      'the button presses openNegotiations, never a second way to the list');
+    assert.ok(!/renderNegotiationsList\(host\);\s*\}\);/.test(
+      s.slice(s.indexOf('data-rl-live-list]'), s.indexOf('data-rl-live-list]') + 400)),
+      'and does not draw the list itself');
+    const fn = s.slice(s.indexOf('function openNegotiations'), s.indexOf('let _rlDoorAsked'));
+    assert.match(fn, /opts && opts\.list/);
+  });
+
+  test('THE DOOR STARTS NO NEGOTIATIONS — it reads c.changes raw', () => {
+    /* The standing trap on every count in this feature. negoChanges() runs
+       negoInit(), so a count asked about 145 contracts starts 145
+       negotiations. The button borrows negoLiveList, which asks negoIsLive,
+       which reads the record. */
+    const b = world(['MK-1', 'MK-2', 'MK-3'], { init: false });
+    b.win.negoInit(b.byId('MK-1'));
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    b.win.openRedlineWorkbench('MK-1');
+    assert.ok(b.$('[data-rl-live-list]'), 'the door drew');
+    assert.equal(b.byId('MK-2').negotiation, undefined,
+      'looking at the count did not start a negotiation on MK-2');
+    assert.equal(b.byId('MK-3').negotiation, undefined, 'nor on MK-3');
+  });
+
+  test('its word folds with the coloured buttons, and its text does not change', () => {
+    /* The fit ladder tightens before it wraps. A new control that could not
+       fold would push the row to a second line on a ThinkPad, which comes
+       straight out of the contract's height. */
+    const s = read('js/views/negotiation.js');
+    assert.match(s, /rl-tabrow-tight \.rl-livelist \.rl-word\{display:none\}/,
+      'the word stands down on the tight step');
+    assert.ok(!/rl-tabrow-tight \.rl-livelist \.rl-livelist-n\{display:none\}/.test(s),
+      'the count does not — a bare arrow says nothing about what is behind it');
+    const b = world(['MK-1']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    b.win.openRedlineWorkbench('MK-1');
+    const door = b.$('[data-rl-live-list]');
+    assert.ok(door.querySelector('.rl-word'), 'the word is in the foldable span');
+    assert.ok((door.getAttribute('title') || '').length > 20, 'and the sentence is in the tooltip');
+    /* Folding is CSS on a span, so the readable text is the same either way —
+       which is what the rest of the suite reads labels with. */
+    assert.match(door.textContent.replace(/\s+/g, ' ').trim(), /^Live negotiations ?1$/);
+  });
+
+  test('the door is worded in both languages', () => {
+    const { STRINGS } = require('../js/i18n.js');
+    assert.equal(STRINGS.en.ng_live_list, 'Live negotiations');
+    assert.equal(STRINGS.sv.ng_live_list, 'Pågående förhandlingar');
+    ['en', 'sv'].forEach(l => {
+      assert.ok(STRINGS[l].ng_live_list_title_one, `${l} has the singular sentence`);
+      assert.ok(/\{n\}/.test(STRINGS[l].ng_live_list_title_other), `${l} counts in the plural`);
+    });
+  });
+
   test('a row says whose move it is, and pressing it goes in', () => {
     const b = world(['MK-1', 'MK-2', 'MK-3']);
     theirAsk(b.byId('MK-1'), 'CHG-1');                       // waiting on us

@@ -2109,7 +2109,16 @@ function negoLiveCardsHtml(c, opts){
            role="button" tabindex="0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
           <span class="nego-id">#${_ne(ch.id)}</span>
-          ${negoWhoseHtml(c, ch, opts, mine)}
+          ${''/* THE ORIGIN PILL IS GONE FROM HERE TOO (owner-asked, 12 Aug 2026).
+                 It came off the workbench's card because it was a third tag in
+                 a corner that already had two, and the same is true on this
+                 one. It is removed from BOTH renderers on the same day and for
+                 the same reason — a fact drawn in two places and deleted from
+                 one is a fact the two screens now disagree about. What answers
+                 the question here is .is-mine on the card (the coloured edge)
+                 and the author line below. negoWhoseHtml survives for the
+                 PAST-ROUND cards in the history panel, which have no filter
+                 above them and no edge worth reading. */}
           ${negoVerifyPill(c, ch)}
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
           ${sent ? `<span class="nego-st sent" data-sent="${_ne(ch.id)}"
@@ -2203,7 +2212,23 @@ function negoLiveCardsHtml(c, opts){
 
    NAMED, NOT SIDED. "Nordfrakt Logistik AB asked" beats "counterparty asked" —
    the reader knows who they are talking to, and one component serves both
-   screens, so the card you see as yours is the card they see as ours. */
+   screens, so the card you see as yours is the card they see as ours.
+
+   ---- AND IT IS OFF THE LIVE CARDS (owner-asked, 12 Aug 2026) ----
+   The argument above is still the right argument; it just stopped being worth
+   a third tag in a corner that already had two. On a LIVE card the same
+   question is answered by the Mine / Theirs / All filter standing over the
+   column and by the author line under the head, so the pill was the third
+   answer and the one nobody needed. Removed from both live renderers on the
+   same day — this one and redlineChangeCardsHtml — because a fact deleted from
+   one of two screens is a fact those screens now disagree about.
+
+   THIS FUNCTION STAYS, and it has exactly one caller left:
+   negoHistoryCardHtml, the settled cards in the closed-round panel. Those have
+   no filter above them, no verbs to make the question urgent and no live
+   column to read them against — they are a record, and a record says who
+   asked. Deleting it there would have been tidiness applied where the reason
+   does not reach. */
 function negoWhoseHtml(c, ch, opts, mine){
   const side = opts.side || 'owner';
   const them = (side === 'owner'
@@ -5746,6 +5771,12 @@ function redlineLayoutCss(){
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-word{display:none}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-glyph{display:inline}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn{padding:6px 9px}
+  /* The way back folds on the same step. Its own rules rather than a shared
+     selector: the two are folded for the same reason and are not the same
+     control, and the tests read each rule by name. The COUNT never folds — a
+     door reading "3" still says what is behind it; a bare arrow does not. */
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-livelist .rl-word{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-livelist{padding:6px 8px;gap:5px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-send-detail{display:none}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-head{gap:5px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-seg{padding:0 7px}
@@ -6003,6 +6034,23 @@ function redlineLayoutCss(){
   html.dark .redline-page select.rl-jump option:checked{color:var(--color-accent-400)}
   /* The playbook pass wears the Copilot's violet — an AI act, visibly not one
      of the engine's own verbs, and disabled it says it is thinking. */
+  /* ---- THE WAY BACK TO THE LIST ----
+     NEUTRAL, not the purple of the two buttons beside it. Those are acts on
+     this negotiation; this is navigation off it, and a page and an act must
+     not share a colour any more than they share a word. It carries a count
+     chip rather than a bare label so the door says how many are behind it —
+     one reading, negoLiveList, shared with the list's own heading.
+     align-self:center because the row is align-items:stretch and a door has
+     no business being as tall as the control group. */
+  .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;gap:7px;
+    border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
+    border-radius:9px;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
+    transition:background .12s,border-color .12s,color .12s}
+  .redline-page .rl-livelist:hover{background:var(--color-neutral-100);
+    border-color:var(--color-neutral-400);color:var(--color-text)}
+  .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:10px;font-weight:700;
+    line-height:1.7;color:var(--color-neutral-600);background:var(--color-neutral-100);
+    border:1px solid var(--color-divider);border-radius:999px;padding:0 6px}
   .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
     border-radius:9px;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
     transition:background .12s}
@@ -6283,35 +6331,20 @@ function redlineLayoutCss(){
   .redline-page .rl-badge-draft{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line)}
   .redline-page .rl-badge-ok{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line)}
   .redline-page .rl-badge-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line)}
-  /* ---- WHOSE ASK: THE ORIGIN PAIR ----
-     Emerald for your side, indigo for theirs — the same families as the verbs
-     each side's cards carry (your asks travel on green Sends; theirs arrive
-     for a decision), and fixed hex for the same dark-mode reason the verbs
-     are. The dark overrides keep the hue and drop the fill to a tint so the
-     badge reads as a label, not a button. .rl-origin carries the .rl-badge
-     metrics itself rather than the class — see the card markup for why. */
-  /* ---- IT CARRIES A COMPANY NAME NOW, SO IT HAS TO BE ABLE TO RUN OUT ----
-     The badge names the organisation that asked (see the note at the origin
-     badge), and organisations are called things like "APEX LOGISTICS &
-     WAREHOUSING KENYA LTD". Left at nowrap with no bound, one of those would
-     push the status badge off the end of a 285px card. Bounded and elided
-     instead: the first words identify the party, and the full name is in the
-     title the badge already carried.
+  /* ---- THE ORIGIN PILL'S RULES WENT WITH THE PILL (12 Aug 2026) ----
+     .rl-origin / .rl-origin-us / .rl-origin-them and their two dark overrides
+     are DELETED, not left behind: an emerald-and-indigo pair, elided by
+     flex:0 1 auto so a long company name could give width back to the status
+     badge. All of it described an element no renderer draws any more, and a
+     stylesheet full of rules matching nothing is a stylesheet nobody can read.
+     Flag any mention of those five class names as stale.
 
-     BOUNDED BY THE ROW, not by a number. A fixed max-width was tried first and
-     is worse than it looks: it elides a name that would have fitted, and it
-     still cannot save a long one. flex:0 1 auto with min-width:0 lets the badge
-     take its natural width whenever the head has room and give width back only
-     when the id, the caret and the status badge need it — so the common name
-     reads in full and only a genuinely long one is cut. min-width:0 is what
-     makes that possible at all: a flex item will not shrink below its content
-     without it, and the ellipsis would never appear. */
-  .redline-page .rl-origin{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;
-    white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .redline-page .rl-origin-us{background:#d1fae5;color:#065f46;border:1px solid rgba(5,150,105,.35)}
-  .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
-  html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
-  html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
+     WHAT IS NOT DELETED is the ORIGIN ITSELF: data-rl-origin on the card is
+     still stamped, and the rule a few lines above — .rl-card[data-rl-origin]
+     painting the left spine amber for theirs — is the channel that survives.
+     The pill said whose ask it was in words; the edge says it in colour, and
+     the column's own Mine / Theirs filter and the card's meta line say it in
+     words twice over. */
   /* The on-behalf stamp reads as a CAUTION, not as decoration: it is the line
      that stops a card being taken as something the other side sent. */
   .redline-page .rl-card-behalf{margin-top:6px;border-left:2px solid var(--st-amber-dot);
@@ -6437,12 +6470,28 @@ function redlineLayoutCss(){
   .redline-page .rl-edit:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   html.dark .redline-page .rl-rej{color:#fda4af}
   html.dark .redline-page .rl-edit{color:var(--color-neutral-700)}
-  /* Amber, past tense, inert — the send after it has gone. Full opacity
-     despite being disabled: this is a STATE the reader is meant to read, not a
-     control being withheld, and the browser's default greying-out would make
-     the one card that has moved the hardest one to see. */
-  .redline-page .rl-sent{background:#fef3c7;color:#b45309;cursor:default}
-  html.dark .redline-page .rl-sent{background:rgba(245,158,11,.16);color:#fcd34d}
+  /* ---- THE SPENT SEND IS A QUIET MARKER, NOT A SECOND ANNOUNCEMENT ----
+     It was AMBER and it said "Sent" — a centimetre under a status pill saying
+     the same word, and the loudest thing on the one card in the column that
+     needs nothing from the reader (owner-asked, 12 Aug 2026). The word went to
+     the pill, which is the card's one status slot; the button keeps its slot,
+     its position and its dead state and wears the app's own neutral tokens.
+     The fixed-hex amber and its html.dark twin are DELETED — flag any mention
+     of #fef3c7 on this class as stale. Neutral tokens are the one family that
+     SHOULD remap with the theme: the reason the verbs are literal hex is that
+     a destructive verb changing colour is a verb pressed by mistake, and this
+     is not a verb.
+
+     FULL OPACITY DESPITE BEING DISABLED, and this rule survives untouched from
+     the amber: it is a STATE the reader is meant to read, not a control being
+     withheld, and the browser's default greying-out would make the one card
+     that has moved the hardest one to see. Quiet is not the same as faint.
+
+     FLAT, NOT OUTLINED. Edit and Reject are outlines and they are pressable;
+     a fill with no border is what says this one is not. */
+  .redline-page .rl-sent{background:var(--color-neutral-100);color:var(--color-neutral-600);
+    cursor:default;display:inline-flex;align-items:center;gap:5px}
+  .redline-page .rl-sent .rl-sent-tick{font-size:11px;line-height:1}
   .redline-page .rl-card-verbs button.rl-sent:disabled{opacity:1}
   .redline-page .rl-card-verbs button.rl-sent:hover{filter:none}
 
@@ -6687,9 +6736,9 @@ function redlineLayoutCss(){
      track. Nothing but closing it gave the width back.
 
      SO IT USES THE ACTIVITY PANEL'S MECHANISM, not a second one invented here:
-     fixed to a window edge, off-screen by a transform, over a dimmed scrim,
-     dismissed by the scrim, by Escape or by the control that opened it. Nothing
-     behind it moves — the grid is two tracks again and never changes.
+     off-screen by a transform, over a dimmed scrim, dismissed by the scrim, by
+     Escape or by the control that opened it. Nothing behind it moves — the grid
+     is two tracks again and never changes.
 
      IT SLIDES FROM THE LEFT, for two reasons. The queue has always been the
      left-hand column and is read first, so bringing it in from the right would
@@ -6697,16 +6746,40 @@ function redlineLayoutCss(){
      right-hand edge is already spoken for: the floating notices stack sits at
      bottom-right and the Copilot launcher beside it, and a panel arriving over
      both is a panel that covers the two controls a reader reaches for while
-     they work. */
+     they work.
+
+     ---- AND IT IS ANCHORED TO THE PAGE, NOT TO THE WINDOW (owner-asked,
+     12 Aug 2026). It was pinned to the viewport's own left edge, which is not
+     this page's edge: the sidebar and the shell's gutter sit between them, so
+     the panel and its door arrived on top of the app's furniture rather than
+     against the surface they belong to.
+
+     THE WALL IS .rl-grid, which is position:relative already (the resizer
+     needs it) and is the nearest positioned ancestor of both — so absolute
+     lands them on the working area's own left border: below the toolbar, down
+     to the foot of the page, flush with where the contract begins. That is the
+     page's inner left edge on the bench, on the contract tab's embed and on
+     the counterparty's page alike — each one against ITS OWN wall, which is
+     what a window-anchored panel could never do for a mount that is not
+     full-screen. .redline-page is positioned too (see FOCUS MODE above); the
+     grid simply wins, and it is the better of the two. */
   .redline-page .rl-queue{
-    position:fixed;left:0;top:0;bottom:0;z-index:56;
+    position:absolute;left:0;top:0;bottom:0;z-index:56;
     width:min(320px,88vw);min-width:0;border-radius:0;
     border:0;border-right:1px solid var(--color-divider);
     box-shadow:var(--shadow-lg);
     transform:translateX(-105%);
-    transition:transform .3s cubic-bezier(.22,.61,.36,1);
+    /* HIDDEN WHILE SHUT, and that is not belt-and-braces. Parked off the
+       WINDOW's edge there was nothing left to see; parked off the PAGE's edge
+       it sits over the sidebar — on screen, in the way, and still tabbable.
+       visibility takes it out of sight and out of the tab order. It is
+       switched with no delay on the way IN so the slide is still watched, and
+       only after the slide on the way out. */
+    visibility:hidden;
+    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s linear .3s;
   }
-  .redline-page .rl-queue.is-open{transform:none}
+  .redline-page .rl-queue.is-open{transform:none;visibility:visible;
+    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s}
   .redline-page .rl-q-scrim{
     position:fixed;inset:0;z-index:55;
     background:color-mix(in srgb,#020617 45%,transparent);
@@ -6722,23 +6795,43 @@ function redlineLayoutCss(){
   /* ---- AND THE SCORE SURVIVES THE CLOSE ----
      The folded rail's whole justification was that "2 of 7 decided" stayed
      legible at 34px, so reopening was never a guess. An overlay that simply
-     shut would have taken that away — so the score moves onto the door. A pill
-     pinned to the left edge, vertically centred, carrying the caption and the
-     two numbers: the way back in, and the reading, in one control.
+     shut would have taken that away — so the score moves onto the door. A tab
+     on the page's own left border wall, vertically centred, reading downwards
+     and carrying the caption and the two numbers: the way back in, and the
+     reading, in one control.
 
      It is built inside redlinePanesHtml rather than on the workbench toolbar,
      which is what makes it reach every mount — the owner's bench, the contract
      tab's embed and the COUNTERPARTY's page, which renders these panes and has
-     no toolbar of its own. */
+     no toolbar of its own.
+
+     ---- IT IS A TAB ON THE PAGE'S OWN BORDER WALL, AND IT READS DOWNWARDS
+     (owner-asked, 12 Aug 2026). Two things changed together and they are one
+     decision. It is ABSOLUTE, so it sits against this page's inner left border
+     rather than against the window's — see the panel above. And it is VERTICAL:
+     a horizontal pill on the wall of a page has to eat into the contract's
+     width to carry its caption, while a tab turned on its side costs the page
+     nothing but its own thickness. writing-mode is what turns it; in a vertical
+     writing mode a flex row runs top-to-bottom on its own, so the caption and
+     the score stack down the wall with no second rule.
+
+     AND IT SURVIVES FOCUS MODE. There used to be a rule hiding it there, from
+     when it rode the window's edge and read as app furniture. It is part of the
+     page now, and focus mode is the mode in which a reader is working THROUGH
+     the round — the one place the reading order matters most. Hidden, the queue
+     was unreachable in it, which is the fault. */
   .redline-page .rl-q-tab{
-    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:54;
+    position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:54;
+    writing-mode:vertical-rl;
     display:flex;align-items:center;gap:8px;
     font:inherit;font-size:11px;font-weight:700;cursor:pointer;
-    padding:9px 12px 9px 9px;border:1px solid var(--color-divider);border-left:0;
+    padding:13px 7px 13px 6px;border:1px solid var(--color-divider);border-left:0;
     border-radius:0 12px 12px 0;background:var(--color-surface);color:var(--color-text);
     box-shadow:var(--shadow-md);transition:background .12s,padding .12s;
   }
-  .redline-page .rl-q-tab:hover{background:var(--color-neutral-100);padding-left:13px}
+  /* Outward, away from the wall — padding-left would push it INTO the page's
+     border, which is the one edge it is fixed to. */
+  .redline-page .rl-q-tab:hover{background:var(--color-neutral-100);padding-right:11px}
   .redline-page .rl-q-tab .rl-q-tab-k{letter-spacing:.06em;text-transform:uppercase;
     font-size:9.5px;color:var(--color-neutral-600)}
   .redline-page .rl-q-tab .rl-q-tab-n{font-family:var(--font-mono);font-size:11px;
@@ -6747,7 +6840,6 @@ function redlineLayoutCss(){
      own close button and the scrim are the way out. */
   .redline-page .rl-queue.is-open ~ .rl-q-tab,
   .redline-page .rl-q-tab.is-open{display:none}
-  .redline-page.rl-focus .rl-q-tab{display:none}
   /* ---- THE SIDE MARGINS ARE HALVED, AND THE LABEL IS THE STATUS WORD'S SIZE
      The clause name is what this column is for and it was the only thing on a
      row being squeezed: 12px of card padding plus 10px of row padding put 22px
@@ -6973,6 +7065,7 @@ function redlineLayoutCss(){
        edge door, which have nothing to open on a page where the queue is
        already in flow and always visible. */
     .redline-page .rl-queue{position:static!important;transform:none!important;
+      visibility:visible!important;
       width:auto!important;grid-column:auto;min-height:0;max-height:46vh;
       border:1px solid var(--color-divider)!important;border-radius:14px!important;
       box-shadow:0 1px 2px rgba(15,23,42,.05)!important;z-index:auto!important}
@@ -7332,9 +7425,18 @@ function negoLastOpened(){
    bar) reopens the last negotiation; with nothing to reopen it lands on the
    list, which says so at the top. Both outcomes are the same view — renderRedline
    decides between them — so there is one route in and no way for the two to
-   drift. */
-function openNegotiations(){
-  _rlDoorAsked = true;
+   drift.
+
+   ---- AND IT TAKES {list:true} (owner-asked, 12 Aug 2026) ----
+   Once you are INSIDE a negotiation the sidebar is no use for reaching the
+   list: it reopens the negotiation you are standing in, which is exactly what
+   it is for. So the page grew a door of its own ("Live negotiations", far left
+   of its control row) and it presses THIS function with one argument rather
+   than routing to the list itself. A second route would be a second answer to
+   "where is the list", free to drift from the first — and the list is not a
+   view of its own, it is what renderRedline draws when nothing is named. */
+function openNegotiations(opts){
+  _rlDoorAsked = (opts && opts.list) ? 'list' : 'reopen';
   if (typeof setView === 'function') setView('redline');
   else renderRedline();
   return true;
@@ -7343,7 +7445,8 @@ function openNegotiations(){
    between "take me to my negotiations" (reopen the last one) and "take me to
    THIS negotiation" (openRedlineWorkbench named it), which state.activeId alone
    cannot tell apart — it still holds whatever contract the reader last opened
-   anywhere in the app. */
+   anywhere in the app. 'list' is the third answer: take me to ALL of them,
+   whatever is remembered. */
 let _rlDoorAsked = false;
 
 /* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----
@@ -7471,7 +7574,10 @@ function renderRedline(){
      would have opened a draft nobody has ever redlined. */
   const doorAsked = _rlDoorAsked; _rlDoorAsked = false;
   let c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
-  if (doorAsked) c = negoLastOpened();
+  /* 'list' is the page's own "Live negotiations" door: it asked for ALL of
+     them, so what is remembered is not consulted — otherwise the button would
+     re-open the negotiation the reader is pressing it FROM. */
+  if (doorAsked) c = (doorAsked === 'list') ? null : negoLastOpened();
   /* A named contract that turns out to have nothing on the table is still that
      contract's page — the workbench is where a negotiation STARTS. Only the
      door falls through to the list. */
@@ -7686,6 +7792,40 @@ function renderRedline(){
              own controls and its bottom rule, and the fit ladder (rlFitTabRow)
              measures it. Only roomTabsHtml's call is gone. */}
       <div class="room-tabrow rl-tabrow">
+        ${''/* ---- THE WAY BACK TO THE OTHER NEGOTIATIONS ----
+               Owner-asked, 12 Aug 2026: once you are inside one, there is no
+               door to the LIST. The sidebar's Negotiations is not it — it
+               reopens the negotiation you are standing in, which is what the
+               sidebar is for and is not being changed.
+
+               FAR LEFT OF THE ROW, ahead of the spacer that pushes this page's
+               own controls right: a way OUT reads at the start of a line, and
+               the acts read at the end. It presses openNegotiations({list:true})
+               — the sidebar's own door with one argument, never a second route
+               to the list, because the list is not a view of its own.
+
+               THE COUNT IS negoLiveList's, which is the same reading the list's
+               heading prints, so the number on the button and the number above
+               the table cannot disagree. And it READS WITHOUT WRITING: negoIsLive
+               looks at c.changes raw. Asking negoChanges() would run negoInit()
+               and start a negotiation on every contract in the workspace —
+               the trap the sidebar count is already written around.
+
+               ITS WORD FOLDS with the purple buttons on the tight step of the
+               fit ladder (see .rl-tabrow-tight): the icon and the count stay,
+               the word stands down, the title carries the sentence. textContent
+               never changes, which is what the suite reads. */
+        }${(() => {
+          const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
+          const tip = i18tn('ng_live_list_title', liveN, { n: liveN });
+          return `<button type="button" data-rl-live-list class="rl-livelist"
+            title="${_nea(tip)}" aria-label="${_nea(tip)}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+            ><path d="m15 18-6-6 6-6"/></svg
+            ><span class="rl-word">${i18t('ng_live_list')}</span
+            ><span class="rl-livelist-n">${liveN}</span></button>`;
+        })()}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -7781,6 +7921,11 @@ function renderRedline(){
      and the Docs tab are the same door: the workspace, on this contract. */
   host.querySelectorAll('[data-rl-back]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
+  /* THE WAY BACK TO THE OTHER NEGOTIATIONS — the sidebar's own door, told to
+     land on the list rather than to reopen what is remembered (which is this
+     page). One route, one argument; see openNegotiations. */
+  host.querySelectorAll('[data-rl-live-list]').forEach(el =>
+    el.addEventListener('click', () => openNegotiations({ list: true })));
   /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws
      no room tabs, so a querySelector for them would have matched nothing
      forever — dead wiring that reads like a live route and outlives everyone
@@ -10851,60 +10996,71 @@ function redlineChangeCardsHtml(c, opts = {}){
     /* ---- AND WHAT THE SEND BECOMES ----
        Not the button disappearing. A verb that vanishes on success leaves the
        reader wondering whether they pressed it, and on a column of six cards
-       there is nothing left to compare against. It stays where it was and
-       changes state — amber, past tense, inert — so "this one has gone" is
-       readable at a glance. Disabled because there is nothing further to do to
-       it: the next move is theirs.
+       there is nothing left to compare against. It stays where it was, in its
+       own slot, and goes inert. Disabled because there is nothing further to
+       do to it: the next move is theirs.
 
        Drawn from the same reading as the badge above it. Neither is a flag
-       anybody sets; both follow from the turn having actually moved. */
+       anybody sets; both follow from the turn having actually moved.
+
+       ---- BUT IT NO LONGER SAYS "SENT" (owner-asked, 12 Aug 2026) ----
+       It used to, in amber, about a centimetre below a status badge that says
+       exactly the same word. Both come from the same reading, so they could
+       never disagree — they just repeated, on the one card in the column that
+       needs no attention at all.
+
+       THE STATUS PILL KEEPS THE WORD. It is the card's ONE status slot, it
+       reads Draft / Held / Waiting on you / Accepted / Refused on every other
+       card, and half the product (and its tests) asks that slot where a change
+       stands. The word belongs there and nowhere else on the card.
+
+       SO THIS BECOMES A MARKER, not a second announcement: a tick and a small
+       caption saying where the change now IS ("With them" — the negotiations
+       list's own vocabulary for the same state), in the app's neutral tokens
+       rather than the amber, which was the loudest thing on a settled card.
+
+       THREE THINGS IT MUST KEEP, and each of them breaks something real:
+         · data-rl-sent, which is what RL_CARD_INERT reads to know this is not a
+           move waiting on anybody. Drop it and every sent card starts claiming
+           it needs the reader;
+         · disabled, for the same reason and because it is not pressable;
+         · FULL STRENGTH. .rl-card-verbs button.rl-sent:disabled{opacity:1} is
+           still there below: this is a state the reader is meant to READ, and
+           the browser's default greying-out of a disabled control would make
+           the marker illegible. */
     if (editable && mineSent) verbs.push(`<button type="button" class="rl-sent" data-rl-sent="${_nea(ch.id)}" disabled
-        title="${_nea(i18t('ng_sent_waiting_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_sent')}</button>`);
-    /* ---- WHOSE ASK THIS IS, SAID ON THE CARD ----
-       The status badge answers "where does this stand"; this one answers
-       "who put it on the table", which the meta line said only in small
-       print. Seat-relative like the verbs below it — "Your Ask" from the
-       counterparty's chair means theirs — and the colours are fixed hex for
-       the same reason the verbs' are: an origin that changes colour with the
-       theme is an origin somebody misreads. */
-    /* NOT a .rl-badge: that class is the card's one STATUS badge, and half
-       the product (and its tests) reads the status by querying it — a second
-       element wearing it would answer "Counterparty" to "where does this
-       stand". Same clothes, its own name.
+        title="${_nea(i18t('ng_sent_waiting_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}"
+        ><span class="rl-sent-tick" aria-hidden="true">&#10003;</span> <span class="rl-sent-cap">${i18t('ng_sent_marker')}</span></button>`);
+    /* ---- THE ORIGIN PILL IS GONE FROM THIS CARD (owner-asked, 12 Aug 2026) ----
+       It was a green "Your ask" — or, on their asks, the counterparty's own
+       name — in the card's lead group, and it had a long and careful history:
+       it started as "Counterparty", which is what BOTH parties call the party
+       opposite them, so on the counterparty's own page it labelled the SENDER's
+       ask with the word that reader uses for themselves ("why can I change a
+       decision on my own ask?"). Naming the organisation fixed that, and the
+       fix was right.
 
-       The tooltip names the AUTHOR's organisation, not the record's
-       counterparty field: on the portal the viewer IS c.counterparty, and
-       "the other side" there is the sender — opts.org, which is what the
-       portal passes. The badge label stays seat-relative ("Counterparty" =
-       the other side of your table), like the verbs beneath it. */
-    /* ---- NAMED, NOT SIDED ----
-       This badge used to read "Counterparty" for the other side of the
-       reader's table, which is correct from one chair and misleading from the
-       other: "counterparty" is what BOTH parties call the party opposite them.
-       On the counterparty's own page it therefore labelled the SENDER's ask
-       with the word that reader uses for themselves — reported from the field
-       as "why can I change a decision on my own ask?", when the card was in
-       fact the owner's ask and the decision was theirs to change.
+       WHAT WAS WRONG WAS THE PILL, NOT THE WORDING. The head of a 285px card
+       carries an id, a status badge and a round tag; the origin was a THIRD tag
+       in a corner that already had two, and the question it answered is answered
+       twice more within an inch of it — by the Mine / Theirs / All filter
+       standing over the whole column, and by the line directly under the head,
+       which names the author AND their organisation (see `who` above, which is
+       read from the AUTHOR's side on either seat and so says the same thing on
+       both pages). Three answers to one question is what the reader called
+       tags piling up.
 
-       So the badge names the organisation that actually wrote it. "Your ask"
-       stays as it is, because the one party a reader can never mistake is
-       themselves, and it is the same phrasing negoWhoseHtml settled on for the
-       room's cards — one wording for one idea, across the product.
-
-       originName is the AUTHOR's organisation on either seat and is read for
-       the label as well as the tooltip, so the two can never disagree. Empty
-       falls through to "Their ask" rather than to an apostrophe with nothing
-       in front of it: a contract with no counterparty filled in is a real
-       state, not a bug to render badly. */
-    const originName = String(ch.authorSide === 'counterparty'
-      ? (c.counterparty || '')
-      : (opts.org || window.FIRST_PARTY || '')).trim();
-    const originOrg = originName
-      || (ch.authorSide === 'counterparty' ? 'the counterparty' : 'the other side');
-    const theirLabel = originName ? `${originName}’s ask` : 'Their ask';
-    const origin = theirs
-      ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${_ne(theirLabel)}</span>`
-      : `<span class="rl-origin rl-origin-us" title="${_nea(i18t('ng_proposed_by_your_side'))}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${i18t('ng_your_ask')}</span>`;
+       WHAT DELIBERATELY STAYS, and none of it is the pill:
+         · data-rl-origin on the <article>, which is what paints the COLOURED
+           LEFT EDGE — the fastest fact on the card, and the one channel that
+           splits eight cards into two groups without being read;
+         · the ask TAGS inside the document, which mark which ask sits on which
+           clause and are the only thing doing that where it actually sits;
+         · the meta line naming the author and their organisation, which is
+           where the counterparty's name lives now.
+       Removed from BOTH card renderers on the same day, so the two cannot
+       drift; the styling went with it. The PAST-ROUND card in the history
+       panel keeps its own — see negoHistoryCardHtml. */
     /* Is this the change whose panel is open? The card never changes height
        either way — the only difference is that the popped one is marked, so a
        reader can see which card the floating panel belongs to. */
@@ -11050,7 +11206,12 @@ function redlineChangeCardsHtml(c, opts = {}){
              is a LABEL — the id, whose ask it is, where it stands, what is
              being asked for — and everything below is a control. */}
       <div class="rl-card-head">
-        <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}</span>
+        ${''/* The lead group is the id alone now that the origin pill has
+                gone (see above). It is KEPT as a group rather than collapsed to
+                the id: it is the flex item that gives width back to the status
+                badge when a card is narrow, and min-width:0 on it is what lets
+                anything in the head elide at all. */}
+        <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span></span>
           ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
           ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${popBtn}</div>
         <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
@@ -11366,7 +11527,10 @@ function rlQueueHtml(c, opts = {}){
   const open = rlQueueOpen();
   /* THE DOOR CARRIES THE SCORE. Everything the folded rail used to say at 34px
      is on it — the caption and "2 / 7" — so closing the panel never costs the
-     one number the column exists to give, and reopening is never a guess. */
+     one number the column exists to give, and reopening is never a guess. It
+     is a VERTICAL tab against the page's own left border wall (see .rl-q-tab):
+     the markup is unchanged, because the turning is done by writing-mode and
+     nothing here needs to know which way the words run. */
   return `<div class="rl-q-scrim${open ? ' is-open' : ''}" id="rl-q-scrim" data-rl-q-close="1" aria-hidden="true"></div>
   <button type="button" class="rl-q-tab" id="rl-q-tab" data-rl-q-open="1"
     aria-controls="rl-queue" aria-expanded="${open ? 'true' : 'false'}"

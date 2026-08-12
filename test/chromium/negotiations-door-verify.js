@@ -284,6 +284,102 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       started.length === 0,
       started.length ? 'STARTED ON: ' + started.join(', ') : 'none — the count read without writing');
 
+    /* ---- 11. THE PAGE'S OWN DOOR BACK TO THE LIST (owner-asked, 12 Aug 2026)
+       Once you are inside a negotiation the sidebar is no use for reaching the
+       list — it reopens the one you are standing in, which is what section 8
+       above proves it is FOR. So the control row carries a way back, far left,
+       reading "Live negotiations" with the live count beside it.
+
+       This is a browser file for the reason the header gives: the loop is four
+       real navigations, and the count has to survive the repaints on the way. */
+    const backDoor = await page.evaluate(seen => {
+      const b = document.querySelector('.redline-page [data-rl-live-list]');
+      const row = document.querySelector('.redline-page .rl-tabrow');
+      return { box: eval(seen)('.redline-page [data-rl-live-list]'),
+        first: !!b && !!row && row.children[0] === b,
+        flush: (!b || !row) ? null : Math.round(b.getBoundingClientRect().left
+          - row.getBoundingClientRect().left),
+        n: ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim() };
+    }, SEEN);
+    check('the negotiation page carries a way back to the list',
+      !!backDoor.box && backDoor.box.on, backDoor.box ? `${backDoor.box.text} ${backDoor.box.w}x${backDoor.box.h}` : 'MISSING');
+    check('it reads Live negotiations and carries the count',
+      /Live negotiations/.test(backDoor.box.text || '') && /^\d+$/.test(backDoor.n),
+      `${backDoor.box.text} · count "${backDoor.n}"`);
+    check('and it is the FIRST thing on the control row, at its far left',
+      backDoor.first && backDoor.flush != null && backDoor.flush < 6,
+      `first=${backDoor.first}, ${backDoor.flush}px from the row's left`);
+
+    /* Press it: the LIST, not the negotiation it was pressed from. */
+    await page.click('[data-rl-live-list]');
+    await page.waitForTimeout(1500);
+    const landed = await page.evaluate(seen => ({
+      table: eval(seen)('.reg-table'),
+      live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim(),
+      held: redlineHeldId(),
+    }), SEEN);
+    check('pressing it lands on the list, not back on the negotiation',
+      !!landed.table && landed.table.on, landed.table ? 'the table is drawn' : 'MISSING');
+    check('and the count on the button was the count in the heading',
+      landed.live.indexOf(backDoor.n) === 0, `button "${backDoor.n}" · heading "${landed.live}"`);
+    await page.screenshot({ path: path.join(OUT, '07-live-list-door.png') });
+
+    /* A SECOND live negotiation, deliberately started, so the loop has
+       somewhere else to go and the count has to move. This is an authoring
+       act — section 10 above has already proved that nothing STARTED one by
+       merely counting. */
+    const cid2 = await page.evaluate(one => {
+      const c = state.contracts.find(x => x.id !== one && x.status !== 'Signed'
+        && x.status !== 'Declined' && !x.negotiation);
+      if (!c) return null;
+      negoInit(c);
+      negoFileChange(c, { clauseId: (clauseSegment(negoBaseBody(c))[0] || {}).id || 'c1',
+        kind: 'edit', authorSide: 'counterparty', author: 'Erik Lindqvist',
+        before: 'thirty (30) days', after: 'forty-five (45) days', why: 'Second one.' });
+      return c.id;
+    }, cid);
+    await page.waitForTimeout(1600);
+    check('a second negotiation exists to travel to', !!cid2, cid2 || 'none available');
+
+    /* Back into the first one, and press the door again — the count has moved
+       and the other agreement is on the list to open. */
+    await page.evaluate(id => openRedlineWorkbench(id), cid);
+    await page.waitForTimeout(1600);
+    const two = await page.evaluate(() =>
+      ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim());
+    check('the door\'s count follows the book — two live now', two === '2', two);
+    await page.click('[data-rl-live-list]');
+    await page.waitForTimeout(1500);
+    const both = await page.evaluate(() => ({
+      live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim(),
+      rows: [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(r => r.getAttribute('data-row')),
+    }));
+    check('and the heading still agrees with it', both.live.indexOf('2') === 0,
+      `button "2" · heading "${both.live}"`);
+    check('both live negotiations are on the list',
+      both.rows.length === 2 && both.rows.includes(cid) && both.rows.includes(cid2),
+      both.rows.join(', '));
+
+    /* Open the OTHER one from the list, and press the door from there too. */
+    await page.click(`#reg-tbody tr[data-row="${cid2}"]`);
+    await page.waitForTimeout(1600);
+    check('a row opens the other negotiation',
+      await page.evaluate(() => redlineHeldId()) === cid2);
+    await page.click('[data-rl-live-list]');
+    await page.waitForTimeout(1500);
+    check('and the door works from that one as well',
+      await page.evaluate(() => !!document.querySelector('.reg-table')));
+
+    /* AND THE WHOLE LOOP STARTED NOTHING. Section 10's claim, re-asked after
+       four more navigations — the door reads negoLiveList over every contract
+       in the workspace on every paint of the page. */
+    const startedNow = await page.evaluate(ids => state.contracts
+      .filter(c => !ids.includes(c.id) && c.negotiation).map(c => c.id), [cid, cid2]);
+    check('the journey through the door started no negotiations of its own',
+      startedNow.length === 0,
+      startedNow.length ? 'STARTED ON: ' + startedNow.join(', ') : 'none — the count read without writing');
+    await page.screenshot({ path: path.join(OUT, '08-two-live.png') });
+
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e.message);

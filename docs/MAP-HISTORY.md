@@ -1163,6 +1163,228 @@ so the handle fell hundreds of pixels behind the cursor. Leaving a stale queue
 term in either half is how that comes back. There is one description of the
 geometry now and both halves ask for it.
 
+2a THE DOOR GOES ON THE PAGE'S OWN BORDER WALL (owner-asked, later on 12 Aug 2026)
+
+The overlay was right and its ANCHOR was wrong, and the two are separable. Both
+the panel and its door were position:fixed, which pins them to the WINDOW. On
+this page the window's left edge is not the page's left edge: the navigation
+rail is there, and the shell's gutter after it. So the rail that carries the
+score sat ON TOP OF the app's own furniture rather than against the surface it
+belongs to, and the panel slid in from behind the sidebar.
+
+THE WALL IS .rl-grid. It is position:relative already — the drag handle needs
+it — and it is the nearest positioned ancestor of both, so switching them to
+absolute lands them on the working area's own left border with nothing else to
+write: below the toolbar, down to the foot of the page, flush with where the
+contract begins. That is the point of doing it this way rather than by
+measuring: the owner's bench, the contract tab's embed and the counterparty's
+page each get their OWN wall, which a window-anchored panel can never do for a
+mount that is not full-screen.
+
+TWO CONSEQUENCES FELL OUT OF IT, both load-bearing.
+
+· A PANEL PARKED OFF THE PAGE'S EDGE IS STILL ON SCREEN. translateX(-105%) off
+  the window put it out of sight; off the page it puts it over the sidebar —
+  visible, and still in the tab order. So the shut state carries
+  visibility:hidden, switched with no delay on the way IN (the slide is still
+  watched) and only after the slide on the way out. The 1023px phone block,
+  which unwinds every overlay rule, restores it with the rest.
+
+· THE RAIL IS VERTICAL. A horizontal pill on the wall has to eat into the
+  contract to carry "THIS ROUND'S QUEUE"; a tab turned on its side costs the
+  page its own thickness and nothing else — measured at 31px. writing-mode
+  does the turning, and in a vertical writing mode a flex row already runs
+  top-to-bottom, so the caption and the score stack down the wall with no
+  second rule and no change to the markup. It reads the way a tab on a filing
+  box reads, which is what it is.
+
+AND IT SURVIVES FOCUS MODE. There was a rule standing it down there, and it was
+defensible while the rail was window furniture — focus mode hides the shell, and
+the rail looked like part of it. It is the page's own wall now, and focus mode
+is precisely where somebody is working THROUGH the round: hiding the reading
+order in the mode built for reading was the fault. The rule is deleted; the
+notices stack's own focus-mode rule is untouched, and a test says so, because
+two rules that look alike are exactly how a deletion takes a neighbour with it.
+
+WHAT NO NODE TEST CAN SEE, AND SO IS PINNED IN THE BROWSER FILE: that the rail's
+left edge equals the page's left edge (jsdom resolves no class rules, so it
+reports every box at zero), that the panel arrives from that same edge rather
+than from the window's, that the rail is under 60px thick, and that it is still
+there and still opens the panel with focus mode on.
+
+1d "SENT" WAS SAID TWICE ON THE SAME CARD (owner-asked, 12 Aug 2026)
+
+On a change of ours that had gone out, the card printed the word twice, about a
+centimetre apart: the status pill at the top right, and the yellow button in
+the action bar. Both are drawn from the same reading — negoUnsentAsks measured
+against the hand-over — so they could never contradict each other. They simply
+repeated, and they repeated on the ONE card in the column that needs nothing
+from the reader at all.
+
+WHICH ONE KEEPS THE WORD WAS NOT A COIN TOSS. The status pill is the card's ONE
+status slot. On every other card it reads Draft, Held, Waiting on you, Accepted
+or Refused, and half the product — and a good deal of the test suite — asks that
+slot where a change stands. A word that belongs to a slot belongs in the slot.
+
+WHAT THE BUTTON KEEPS. Its slot, its position and its dead state, all three
+deliberately. The note that put it there is still right and is worth repeating:
+a verb that VANISHES on success leaves the reader wondering whether they pressed
+it, and on a column of six cards there is nothing left to compare against. So
+it stays exactly where the green Send was and becomes a marker — a tick and a
+small caption saying where the change now IS. "With them", which is the
+negotiations list's own band wording for the same state, so the product says
+one thing one way; and explicitly NOT the pill's word, which would have solved
+nothing.
+
+THE COLOUR. Amber was the loudest thing on a settled card, which is the wrong
+emphasis for the only card in the column with no work on it. It wears the app's
+neutral tokens now, and TOKENS rather than the literal hex the verbs use — that
+rule exists because a destructive verb that changes colour with the theme is a
+verb somebody presses by mistake, and a marker is not a verb. Flat rather than
+outlined, too: Edit and Reject are outlines and they are pressable.
+
+THREE THINGS THAT LOOK COSMETIC AND ARE NOT:
+
+· data-rl-sent. RL_CARD_INERT reads that attribute to decide the card carries
+  no move waiting on anybody. Drop it with the label and every sent card starts
+  claiming it needs the reader — and stops collapsing.
+· disabled. Same classification, and it is genuinely not pressable.
+· FULL STRENGTH. .rl-card-verbs button.rl-sent:disabled{opacity:1} survives
+  untouched from the amber, and it matters more now than it did: a state the
+  reader is meant to READ, faded by the browser's default disabled styling, is
+  a marker nobody can make out. Quiet is not the same as faint, and the node
+  test that pinned the amber was rewritten to keep exactly this half.
+
+AND THE CARD'S REDRAW KEY IS BUILT FROM THE VERBS' MARKUP, so changing a label
+changes the key — which is why the rlCardNeedsYou fixture that hard-codes the
+button was updated too. The classification itself reads the attribute and so
+did not move; a fixture quoting a button nothing draws is a fixture that has
+stopped being evidence.
+
+The same builder draws the phone and the counterparty's embed. The marker only
+appears on our own seat (nobody else has a Send to spend), but all three were
+looked at, and the phone is checked in the browser file alongside the desktop.
+
+1c THE "YOUR ASK" PILL COMES OFF THE CHANGE CARD (owner-asked, 12 Aug 2026)
+
+This pill has a long and careful history and none of it was wasted; what
+changed is that the head of a 285px card ran out of room for the answer.
+
+WHERE IT CAME FROM. Every card looked alike, and the only thing separating an
+ask you had made from one you were being asked to answer was "(your side)" in
+grey italic at the bottom beside an author name — which on a deal where the
+same person is testing both sides says nothing at all. The pill replaced that.
+It then read "Counterparty" for the other side of the reader's table, which is
+correct from one chair and misleading from the other: "counterparty" is what
+BOTH parties call the party opposite them, so on the counterparty's own page it
+labelled the SENDER's ask with the word that reader uses for themselves.
+Reported from the field as "why can I change a decision on my own ask?", when
+the card was the owner's ask all along. Naming the organisation fixed that, and
+the fix was right.
+
+WHY IT STILL WENT. The card's head carries a change id, one status badge, a
+round tag and the door into the reasoning panel. The pill was a THIRD tag in a
+corner with two, and the question it answered is answered twice more within an
+inch of it: by the Mine / Theirs / All filter standing over the whole column
+(which did not exist when the pill was written), and by the line directly under
+the head, which names the author AND their organisation. Three answers to one
+question is what the owner had already called tags piling up.
+
+BOTH FACES, TOGETHER. "Your ask" and the counterparty's name came off in one
+change. A pill on one side only reads as a fault rather than as a decision —
+the reader sees a card missing its label, not a card that never had one.
+
+BOTH RENDERERS, TOGETHER, for the standing reason: this product draws a change
+card in two places, and a fact deleted from one of them is a fact the two
+screens now disagree about. The counterparty's page and the phone both mount
+the workbench's renderer, so they came with it.
+
+WHAT WAS KEPT, AND WHY EACH ONE:
+· data-rl-origin on the <article>. It is not decoration — it is what paints the
+  COLOURED LEFT EDGE, and the edge is the whole reason the pill could go. Colour
+  is what splits eight cards into two groups without being read, and unlike an
+  element inside the head it cannot be lost by a renderer forgetting to draw it.
+· the .rl-card-lead group, now holding the id alone. Collapsing it would have
+  been the tidy move and the wrong one: it is the flex item with min-width:0
+  that gives width back to the status badge when the column is narrow, which is
+  how anything in that head elides at all.
+· the ask TAGS inside the document. They are not the pill. They mark which ask
+  sits on which clause, which is the one thing nothing else on the page does.
+· the meta line. It reads from the AUTHOR's side on either seat, so the two
+  screens say the same thing about the same change — which the pill, being
+  seat-relative, never quite did.
+
+AND THE RULES WENT WITH IT. .rl-origin, .rl-origin-us, .rl-origin-them and the
+two html.dark overrides are deleted rather than left behind. They described an
+emerald-and-indigo pair elided by flex:0 1 auto so a long company name could
+give width back — an exact, careful description of an element nothing draws.
+
+THE ONE PLACE IT SURVIVES is negoHistoryCardHtml, the settled cards in the
+closed-round panel, and that is a decision rather than an oversight. Those have
+no filter above them, no verbs to make the question urgent, and no live column
+to read them against. They are a RECORD, and a record says who asked. Applying
+the removal there would have been tidiness reaching past its own reason.
+
+THE TESTS WERE REVERSED, NOT DELETED, in every file that pinned the pill: f93
+(1) now asserts its absence and the two channels that replaced it, f93 (5)
+asserts the seat flip on the attribute instead of in words, f70's live-card
+claim is turned round while its past-round claim is kept as it was, and
+parity-verify's measurement — a monstrous company name must not shove the
+status badge off the row — is re-asked as "there is no pill AND the badge is
+still on the row", which is the half that can be broken by accident.
+
+1b A NEGOTIATION HAS NO DOOR TO THE OTHER NEGOTIATIONS (owner-asked, later on 12 Aug 2026)
+
+The sidebar's Negotiations reopens the negotiation you were last in. That is
+what it is for, it is right, and it was not touched. What it means is that from
+INSIDE a negotiation there was no way to the list at all: pressing the only door
+labelled Negotiations put you back where you already were, and the reader was
+left with the browser's back button or a trip through Contracts.
+
+So the page grew a door of its own, at the FAR LEFT of its control row, ahead of
+the spacer that pushes this page's acts to the right. That position is the whole
+of the design decision: a way OUT reads at the start of a line and an act reads
+at the end, and the row already had nothing at its left since the room tabs left
+it. It reads "Live negotiations" — the noun the locked chip on that list already
+uses, because it is the same idea.
+
+IT IS THE SAME DOOR, WITH AN ARGUMENT. openNegotiations({list:true}) rather than
+a call to renderNegotiationsList. The list is not a view of its own — it is what
+renderRedline draws when nothing is named — so a button that drew it directly
+would be a second answer to "where is the list", free to drift from the sidebar's.
+The flag renderRedline already consumed had two values (a named contract, or the
+door asking for "my negotiations"); it has three now, and 'list' is the one that
+does NOT consult what is remembered. Without that, the button would reopen the
+very page it was pressed from, which is the fault it exists to fix.
+
+THE COUNT IS OPTION B, AND IT IS BORROWED. A bare label would have been the
+easier build; the owner asked for the number. It comes from negoLiveList, which
+is exactly what the list's own heading prints, so the door and the heading can
+never disagree — the standing rule on every count in this feature. And it READS
+WITHOUT WRITING: negoIsLive looks at c.changes off the record. negoChanges()
+runs negoInit(), so a count asked about a whole workspace starts a negotiation on
+every contract in it — the trap the sidebar count was already written around, and
+the browser file re-asks it after four more navigations through the new door.
+
+NEUTRAL, NOT PURPLE. The two buttons beside it are acts on this negotiation
+(Review vs Playbook, Internal review) and wear the violet wash. This is
+navigation off the page. A place and an act must not share a colour any more
+than they share a word, which is the rule that named the sidebar door in the
+first place.
+
+AND IT FOLDS. The control row has a fit ladder — it tightens before it wraps,
+because a second line there comes straight out of the contract's height on a
+ThinkPad. A new control that could not fold would have pushed the row over at
+1280px. Its WORD is in the foldable span and its count is not: an arrow alone
+says nothing about what is behind it, and "‹ 3" still does. Measured: full at
+1366 and above, tightened at 1280, and the row never wraps.
+
+WHAT DELIBERATELY DID NOT GET IT. The counterparty's page draws no control row —
+it renders the panes and nothing else — so the button cannot and should not
+appear there. And the PHONE does not get it either: its bottom bar already
+carries Negotiate, which lands on the list, and a second door to the same place
+on a 390px screen is a control that costs a label somewhere else.
+
 3 THE INTERNAL REVIEW REACHES THE REVIEWER, AND CAN BE CALLED OFF
 
 Neither half was a missing feature. Both were built, both were correct, and both

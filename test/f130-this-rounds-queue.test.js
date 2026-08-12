@@ -429,7 +429,14 @@ describe('what the column renders', () => {
        It is an overlay now — see rlQueueHtml — so the grid is two tracks and
        nothing behind it moves when it opens. It is still written FIRST, because
        it is read first and because the door that opens it has to exist before
-       the reader looks for it. */
+       the reader looks for it.
+
+       THE CLAIM WAS REWRITTEN LATER THE SAME DAY. It said the overlay hung off
+       the WINDOW's left edge; it hangs off the PAGE's now — inside .rl-grid,
+       which is the positioned ancestor, so the panel and its rail sit against
+       the working area's own left border on every mount rather than behind the
+       sidebar on one of them. What did not change is the thing this test is
+       named for: the queue is still written first and still takes no track. */
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
@@ -442,6 +449,13 @@ describe('what the column renders', () => {
       'the queue is read before the contract, so it comes first');
     assert.ok(html.indexOf('id="rl-q-tab"') < html.indexOf('id="rl-doc"'),
       'and so does the door that opens it');
+    /* AND BOTH ARE INSIDE THE GRID, which is what makes the page's own border
+       the wall they hang on. Written outside it they would fall back to
+       .redline-page, and on the counterparty's embed to whatever the host has
+       positioned — a rail on somebody else's edge. */
+    const grid = html.slice(html.indexOf('class="rl-grid nego-work"'));
+    assert.ok(grid.indexOf('id="rl-queue"') > -1 && grid.indexOf('id="rl-q-tab"') > -1,
+      'the panel and its rail hang inside the working area, on its left border');
   });
 
   test('every row carries the hooks the click handler binds to', async () => {

@@ -1077,6 +1077,12 @@ const STRINGS = {
     ng_door_clear: 'Nothing outstanding',
     ng_door_none: 'Nothing is being negotiated',
     ng_door_none_how: 'Open an agreement and press Start negotiating on its Document tab — the round, the changes and the discussion all land here.',
+    // The negotiation page's own way back to the list. Same word as the
+    // locked chip on that list, because it is the same idea; its own key
+    // because a chip and a door are not one string to edit together.
+    ng_live_list: 'Live negotiations',
+    ng_live_list_title_one: 'Go to the list of live negotiations — 1 on the table',
+    ng_live_list_title_other: 'Go to the list of live negotiations — {n} on the table',
     // ---- the Negotiations page: the Contracts table, grouped by whose move ----
     ngl_n_live_one: '1 live',
     ngl_n_live_other: '{n} live',
@@ -1107,6 +1113,10 @@ const STRINGS = {
     ng_withdraw: 'Withdraw',
     ng_retract: 'Retract',
     ng_sent: 'Sent',
+    // The spent Send button's caption. NOT the status pill's word — the pill
+    // says where the change stands, this says where it now IS. Same vocabulary
+    // as the negotiations list's "With the other side" band.
+    ng_sent_marker: 'With them',
     ng_your_ask: 'Your ask',
     ng_you_are_viewing: 'You are viewing',
     ng_internal_threads_hidden: '. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.',
@@ -4513,6 +4523,9 @@ const STRINGS = {
     ng_door_clear: 'Inget utestående',
     ng_door_none: 'Inget förhandlas',
     ng_door_none_how: 'Öppna ett avtal och tryck Börja förhandla på dess Dokument-flik — rundan, ändringarna och diskussionen hamnar här.',
+    ng_live_list: 'Pågående förhandlingar',
+    ng_live_list_title_one: 'Gå till listan över pågående förhandlingar — 1 på bordet',
+    ng_live_list_title_other: 'Gå till listan över pågående förhandlingar — {n} på bordet',
     // ---- Förhandlingssidan: avtalstabellen, grupperad efter vems tur det är ----
     ngl_n_live_one: '1 pågående',
     ngl_n_live_other: '{n} pågående',
@@ -4543,6 +4556,7 @@ const STRINGS = {
     ng_withdraw: 'Dra tillbaka',
     ng_retract: 'Återkalla',
     ng_sent: 'Skickat',
+    ng_sent_marker: 'Hos dem',
     ng_your_ask: 'Din begäran',
     ng_you_are_viewing: 'Du tittar på',
     ng_internal_threads_hidden: '. Interna trådar, anteckningar och osända utkast finns inte här &mdash; och inget på den här sidan avslöjar att de finns.',

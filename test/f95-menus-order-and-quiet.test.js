@@ -348,6 +348,49 @@ describe('F95 — the round’s queue slides over the page', () => {
     assert.ok(b.scrim());
   });
 
+  test('THE DOOR IS ON THE PAGE\'S BORDER WALL, NOT THE WINDOW\'S EDGE', () => {
+    /* THE CLAIM THIS REWRITES (12 Aug 2026). Both the panel and its door were
+       `position:fixed` — pinned to the WINDOW, which on this page is behind the
+       sidebar and the shell's gutter and is not the page's edge at all. They
+       are `absolute` now, so the nearest positioned ancestor (.rl-grid, which
+       the resizer already made position:relative) puts them against the working
+       area's own left border — on the bench, on the contract tab's embed and on
+       the counterparty's page, each against ITS OWN wall.
+
+       AND THE DOOR IS A TAB, TURNED ON ITS SIDE: a horizontal pill on the wall
+       has to eat into the contract to carry its caption; a vertical one costs
+       the page its own thickness and nothing else. The measurement lives in the
+       browser file — jsdom resolves no class rules — so what is pinned here is
+       the RULE, and that nothing re-pins either of them to the viewport. */
+    const nego = src('js/views/negotiation.js');
+    const panel = (nego.match(/\.redline-page \.rl-queue\{[\s\S]*?\n  \}/) || [''])[0];
+    assert.match(panel, /position:absolute;left:0;top:0;bottom:0/,
+      'the panel hangs off the page, not off the window');
+    assert.match(panel, /visibility:hidden/,
+      'and is hidden while shut — parked off the PAGE it would sit over the sidebar');
+    const tab = (nego.match(/\.redline-page \.rl-q-tab\{[\s\S]*?\n  \}/) || [''])[0];
+    assert.match(tab, /position:absolute;left:0;top:50%/, 'so does the door');
+    assert.match(tab, /writing-mode:vertical-rl/, 'and it reads down the wall');
+    assert.ok(!/\.redline-page \.rl-q-tab\{[^}]*position:fixed/.test(nego)
+      && !/\.redline-page \.rl-queue\{[^}]*position:fixed/.test(nego),
+      'nothing pins either of them back to the viewport');
+  });
+
+  test('AND FOCUS MODE KEEPS IT', () => {
+    /* THE OTHER HALF OF THE SAME CLAIM, and it was a rule rather than an
+       oversight: `.redline-page.rl-focus .rl-q-tab{display:none}` stood down
+       the door in focus mode, which was defensible while it was window
+       furniture. It is the page's own wall now, and focus mode is where a
+       reader works THROUGH the round — the one place the reading order matters
+       most — so hiding it there left the queue unreachable. */
+    const nego = src('js/views/negotiation.js');
+    assert.ok(!/\.rl-focus \.rl-q-tab\{display:none\}/.test(nego),
+      'focus mode no longer hides the way into the queue');
+    /* The notices stack IS still stood down in focus mode — that rule is a
+       different decision and this one must not have taken it with it. */
+    assert.match(nego, /\.redline-page\.rl-focus \.rl-notices\{display:none\}/);
+  });
+
   test('THE PHONE GETS NO DESKTOP OVERLAY', () => {
     const nego = src('js/views/negotiation.js');
     const narrow = nego.slice(nego.lastIndexOf('@media (max-width:1023px)'));

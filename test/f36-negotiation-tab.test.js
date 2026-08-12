@@ -298,10 +298,15 @@ describe('the change index card carries what a reader needs to decide', () => {
     assert.equal(card.querySelector('[data-nego-accept]'), null,
       'a party must not be able to mark its own wording adopted');
     assert.ok(card.querySelector('[data-nego-discuss]'), 'but they can still discuss it');
-    /* The marker moved out of the grey italic beside the author and into a
-       pill in the top row of the card — see f70. */
-    assert.match(card.textContent, /Your ask/);
+    /* THE CLAIM AS IT STOOD: the marker had moved out of the grey italic beside
+       the author and into a pill in the top row of the card (see f70). The
+       PILL came off on 12 Aug 2026 — a third tag in a head with two, answering
+       what the column's Mine / Theirs filter and the author line already
+       answer — so what is asserted is the channel that carried it alongside
+       the words all along, and still does. */
+    assert.equal(card.querySelector('.nego-whose'), null, 'the pill is off the live card');
     assert.match(card.className, /is-mine/, 'and the card carries an edge, so it reads without being read');
+    assert.match(card.textContent, /Erik Lindqvist/, 'with the author named under it');
   });
 });
 

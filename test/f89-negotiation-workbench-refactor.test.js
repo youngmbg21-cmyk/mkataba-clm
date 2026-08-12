@@ -1009,7 +1009,13 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 
-  test('and opening it again puts the amber Sent back where the Send was', async () => {
+  test('and opening it again puts the spent Send back where the Send was', async () => {
+    /* THE CLAIM AS IT STOOD said the button read "Sent". It does not any more
+       (12 Aug 2026): the status pill a centimetre above it says that word, and
+       saying it twice on the one card that needs nothing from the reader is
+       what the owner reported. The BUTTON's job — staying exactly where the
+       Send was, so a reader can see they pressed it — is unchanged, and that
+       is what this test is for. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
@@ -1018,14 +1024,39 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     p.win.renderRedline();
     const sent = p.$('#rl-changes button.rl-sent');
     assert.ok(sent, 'the verb is where it was rather than gone');
-    assert.equal(sent.textContent.trim(), 'Sent');
+    assert.equal(sent.textContent.replace(/\s+/g, ' ').trim(), '\u2713 With them',
+      'a tick and a caption saying where it now is');
+    assert.doesNotMatch(sent.textContent, /Sent/, 'and NOT the status pill\'s word');
+    assert.equal(p.$('#rl-changes .rl-badge').textContent.trim(), 'Sent',
+      'which the pill still carries, exactly once on the card');
     assert.ok(sent.disabled, 'there is nothing further to do to it');
+    assert.equal(sent.getAttribute('data-rl-sent'), p.c.changes[0].id,
+      'and it keeps the marker attribute that says this is not a move waiting on anyone');
   });
 
-  test('the amber is the specified one, and it is not greyed out', async () => {
+  test('the marker is quiet and neutral, and it is NOT greyed out', async () => {
+    /* THE CLAIM THIS REWRITES: "the amber is the specified one" —
+       background:#fef3c7, literal hex with an html.dark twin, matching the
+       other verbs' tint-and-tone clothing. The amber went with the word: it
+       was the loudest thing on a settled card, and a card that needs nothing
+       should not shout. Neutral TOKENS rather than literal hex, deliberately —
+       the reason the verbs are hex is that a destructive verb changing colour
+       with the theme is a verb pressed by mistake, and this is not a verb.
+
+       THE SECOND HALF OF THE OLD CLAIM SURVIVES WORD FOR WORD, because it is
+       the one that can be broken by accident: full opacity despite disabled.
+       A marker faded by the browser's default disabled styling is unreadable,
+       and this is a state the reader is meant to read. */
     const p = await page();
-    assert.match(p.rule('.redline-page .rl-sent') || '', /background:#fef3c7/,
-      'the amber wash, matching the other verbs\' tint-and-tone clothing');
+    const rule = p.rule('.redline-page .rl-sent') || '';
+    assert.match(rule, /background:var\(--color-neutral-100\)/, 'the app\'s own neutral fill');
+    assert.match(rule, /color:var\(--color-neutral-600\)/, 'and its own neutral ink');
+    /* Read off the DECLARATIONS, not off a selector shape: the note above the
+       rule names the deleted class and the deleted colour in prose, and a
+       loose selector regex matches the prose. */
+    assert.doesNotMatch(p.css(), /\.rl-sent\{[^}]*#fef3c7/, 'the amber is gone');
+    assert.doesNotMatch(p.css(), /rgba\(245,158,11,\.16\)/,
+      'and so is the dark-mode override that existed only to answer it');
     assert.match(p.css(), /button\.rl-sent:disabled\{opacity:1\}/,
       'a state the reader is meant to read must not be dimmed like a withheld control');
   });
