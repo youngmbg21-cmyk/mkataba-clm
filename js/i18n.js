@@ -1113,6 +1113,10 @@ const STRINGS = {
     ng_withdraw: 'Withdraw',
     ng_retract: 'Retract',
     ng_sent: 'Sent',
+    // The spent Send button's caption. NOT the status pill's word — the pill
+    // says where the change stands, this says where it now IS. Same vocabulary
+    // as the negotiations list's "With the other side" band.
+    ng_sent_marker: 'With them',
     ng_your_ask: 'Your ask',
     ng_you_are_viewing: 'You are viewing',
     ng_internal_threads_hidden: '. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.',
@@ -4552,6 +4556,7 @@ const STRINGS = {
     ng_withdraw: 'Dra tillbaka',
     ng_retract: 'Återkalla',
     ng_sent: 'Skickat',
+    ng_sent_marker: 'Hos dem',
     ng_your_ask: 'Din begäran',
     ng_you_are_viewing: 'Du tittar på',
     ng_internal_threads_hidden: '. Interna trådar, anteckningar och osända utkast finns inte här &mdash; och inget på den här sidan avslöjar att de finns.',

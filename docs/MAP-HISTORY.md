@@ -1212,6 +1212,59 @@ reports every box at zero), that the panel arrives from that same edge rather
 than from the window's, that the rail is under 60px thick, and that it is still
 there and still opens the panel with focus mode on.
 
+1d "SENT" WAS SAID TWICE ON THE SAME CARD (owner-asked, 12 Aug 2026)
+
+On a change of ours that had gone out, the card printed the word twice, about a
+centimetre apart: the status pill at the top right, and the yellow button in
+the action bar. Both are drawn from the same reading — negoUnsentAsks measured
+against the hand-over — so they could never contradict each other. They simply
+repeated, and they repeated on the ONE card in the column that needs nothing
+from the reader at all.
+
+WHICH ONE KEEPS THE WORD WAS NOT A COIN TOSS. The status pill is the card's ONE
+status slot. On every other card it reads Draft, Held, Waiting on you, Accepted
+or Refused, and half the product — and a good deal of the test suite — asks that
+slot where a change stands. A word that belongs to a slot belongs in the slot.
+
+WHAT THE BUTTON KEEPS. Its slot, its position and its dead state, all three
+deliberately. The note that put it there is still right and is worth repeating:
+a verb that VANISHES on success leaves the reader wondering whether they pressed
+it, and on a column of six cards there is nothing left to compare against. So
+it stays exactly where the green Send was and becomes a marker — a tick and a
+small caption saying where the change now IS. "With them", which is the
+negotiations list's own band wording for the same state, so the product says
+one thing one way; and explicitly NOT the pill's word, which would have solved
+nothing.
+
+THE COLOUR. Amber was the loudest thing on a settled card, which is the wrong
+emphasis for the only card in the column with no work on it. It wears the app's
+neutral tokens now, and TOKENS rather than the literal hex the verbs use — that
+rule exists because a destructive verb that changes colour with the theme is a
+verb somebody presses by mistake, and a marker is not a verb. Flat rather than
+outlined, too: Edit and Reject are outlines and they are pressable.
+
+THREE THINGS THAT LOOK COSMETIC AND ARE NOT:
+
+· data-rl-sent. RL_CARD_INERT reads that attribute to decide the card carries
+  no move waiting on anybody. Drop it with the label and every sent card starts
+  claiming it needs the reader — and stops collapsing.
+· disabled. Same classification, and it is genuinely not pressable.
+· FULL STRENGTH. .rl-card-verbs button.rl-sent:disabled{opacity:1} survives
+  untouched from the amber, and it matters more now than it did: a state the
+  reader is meant to READ, faded by the browser's default disabled styling, is
+  a marker nobody can make out. Quiet is not the same as faint, and the node
+  test that pinned the amber was rewritten to keep exactly this half.
+
+AND THE CARD'S REDRAW KEY IS BUILT FROM THE VERBS' MARKUP, so changing a label
+changes the key — which is why the rlCardNeedsYou fixture that hard-codes the
+button was updated too. The classification itself reads the attribute and so
+did not move; a fixture quoting a button nothing draws is a fixture that has
+stopped being evidence.
+
+The same builder draws the phone and the counterparty's embed. The marker only
+appears on our own seat (nobody else has a Send to spend), but all three were
+looked at, and the phone is checked in the browser file alongside the desktop.
+
 1c THE "YOUR ASK" PILL COMES OFF THE CHANGE CARD (owner-asked, 12 Aug 2026)
 
 This pill has a long and careful history and none of it was wasted; what

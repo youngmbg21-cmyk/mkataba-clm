@@ -268,10 +268,16 @@ describe('F100b — the card is a handle, not a copy', () => {
     const w = buildWorld({ negotiationView: true });
     assert.equal(w.win.rlCardNeedsYou(['<button data-rl-send="X">Send</button>']), true);
     assert.equal(w.win.rlCardNeedsYou(['<button data-nego-undo="X">Undo</button>']), true);
+    /* THE FIXTURE FOLLOWS THE MARKUP. The spent Send lost the word "Sent" on
+       12 Aug 2026 (the status pill above it already says it) and became a tick
+       and a caption — so the fixture says what the renderer says. The
+       classification is read off the ATTRIBUTE, which is exactly why it did
+       not have to change with the label; a fixture quoting a button nothing
+       draws any more is a fixture that stops being evidence. */
     assert.equal(w.win.rlCardNeedsYou([
       '<button data-rl-edit="X">Edit</button>',
-      '<button data-rl-sent="X" disabled>Sent</button>']), false,
-      'Edit navigates and Sent is a label — neither is a move waiting on you');
+      '<button data-rl-sent="X" disabled><span>\u2713</span> <span>With them</span></button>']), false,
+      'Edit navigates and the spent Send is a marker — neither is a move waiting on you');
     assert.equal(w.win.rlCardNeedsYou([]), false);
   });
 });
@@ -670,8 +676,13 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     const p = await page();
     const card = seat(p).querySelector('[data-rl-origin="us"]');
     assert.equal(card.querySelector('.rl-badge').textContent.trim(), 'Sent');
-    assert.deepEqual(verbsOf(card), ['Edit', 'Sent'],
+    /* THE WORD IS SAID ONCE (12 Aug 2026). The pill above keeps it — it is the
+       card's one status slot — and the spent Send keeps its SLOT and loses the
+       word, so the card no longer prints "Sent" twice a centimetre apart. */
+    assert.deepEqual(verbsOf(card), ['Edit', '\u2713 With them'],
       'two buttons, and no third: Retract is not honest once it has gone');
+    assert.equal((card.textContent.match(/Sent/g) || []).length, 1,
+      'and the word appears exactly once on the whole card');
     assert.equal(card.querySelector('[data-rl-sent]').disabled, true,
       'a state, not a control — the next move is theirs');
     assert.equal(card.querySelector('[data-rl-send]'), null,

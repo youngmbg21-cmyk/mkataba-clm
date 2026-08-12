@@ -240,17 +240,22 @@ describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', 
       'you do not rule on your own ask');
   });
 
-  test('once dispatched the card holds still, and the inert amber Sent is on it', async () => {
+  test('once dispatched the card holds still, and the inert marker is on it', async () => {
+    /* It was an AMBER "Sent" until 12 Aug 2026, which said the same word as the
+       status pill a centimetre above it. The word stayed on the pill; the
+       button kept its slot and went quiet. What this test is for is unchanged:
+       the verb does not vanish on success. */
     const p = await page({ theirChange: false, myChange: true });
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.win.renderRedline();
     let card = p.doc.querySelector('#rl-changes [data-rl-origin="us"]');
     assert.equal(card.getAttribute('data-rl-popped'), '0',
       'the next move is theirs — nothing is popped out');
-    /* The amber Sent is on the action bar, which nothing folds away. */
+    /* The marker is on the action bar, which nothing folds away. */
     const sent = card.querySelector('.rl-sent[data-rl-sent]');
     assert.ok(sent, 'the verb stays where it was and changes state');
     assert.ok(sent.disabled, 'nothing further to do to it — the next move is theirs');
+    assert.doesNotMatch(sent.textContent, /Sent/, 'and it does not repeat the pill\'s word');
     assert.ok(!card.querySelector('[data-rl-send]'), 'and the live Send is gone');
   });
 });

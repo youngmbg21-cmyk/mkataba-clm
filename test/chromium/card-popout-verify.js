@@ -301,6 +301,124 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     await phone.screenshot({ path: path.join(OUT, '04-phone-sheet.png') });
     await phone.close();
 
+    /* ---- 9. THE CARD'S HEAD AND ITS SPENT SEND (owner-asked, 12 Aug 2026) ----
+       Two changes to the same card, and both are about saying a thing ONCE.
+
+         · the origin pill ("Your ask" / "<their company>'s ask") came out of
+           the head: a third tag in a corner with two, answering what the
+           column's Mine / Theirs filter and the meta line already answer;
+         · the spent Send stopped saying "Sent", because the status pill a
+           centimetre above it says exactly that word. It keeps its slot, its
+           position and its dead state and becomes a quiet marker.
+
+       BROWSER, because both are claims about what a reader SEES: that the word
+       appears once on the whole card, that the coloured spine still tells the
+       two sides apart (a computed border colour), and that the marker is at
+       FULL strength rather than faded by the browser's own disabled styling —
+       which is the fault that would make it unreadable, and which jsdom
+       resolves not at all. */
+    const heads = await page.evaluate(([seen]) => {
+      const s = eval(seen);
+      const cards = [...document.querySelectorAll('#rl-changes .rl-card')];
+      const ours = cards.find(el => el.getAttribute('data-rl-origin') === 'us');
+      const theirs = cards.find(el => el.getAttribute('data-rl-origin') === 'them');
+      const read = el => el && ({
+        pill: !!el.querySelector('.rl-origin'),
+        headText: (el.querySelector('.rl-card-top').textContent || '').replace(/\s+/g, ' ').trim(),
+        spine: getComputedStyle(el).borderLeftColor,
+        meta: (el.querySelector('.rl-card-meta') || {}).textContent || '',
+        send: s(el.querySelector('[data-rl-send]')),
+        sendText: ((el.querySelector('[data-rl-send]') || {}).textContent || '').trim(),
+      });
+      return { ours: read(ours), theirs: read(theirs),
+        anyPill: document.querySelectorAll('#rl-changes .rl-origin').length,
+        tagsInDoc: document.querySelectorAll('#rl-doc .rl-asktag').length,
+        filter: !!document.querySelector('#rl-changes [data-rl-cardfilter], .rl-idx-head') };
+    }, [SEEN]);
+    check('NO ORIGIN PILL ON ANY CARD IN THE COLUMN', heads.anyPill === 0, heads.anyPill + ' found');
+    check('and none of the words it carried are left in a head',
+      !/ask/i.test(heads.ours.headText) && !/ask/i.test(heads.theirs.headText),
+      `${heads.ours.headText} | ${heads.theirs.headText}`);
+    check('THE COLOURED EDGE STILL TELLS THE TWO SIDES APART',
+      heads.ours.spine !== heads.theirs.spine, `${heads.ours.spine} vs ${heads.theirs.spine}`);
+    check('the name is still on the card, on the line under the head',
+      /Nordfrakt/.test(heads.theirs.meta), heads.theirs.meta.replace(/\s+/g, ' ').trim());
+    check('the ask tags INSIDE the document are untouched',
+      heads.tagsInDoc > 0, heads.tagsInDoc + ' tags on the wording');
+    check('the Tracked Changes head — where the Mine/Theirs filter lives — is still drawn',
+      heads.filter);
+    check('a change of ours that has NOT been sent still shows the green Send',
+      !!heads.ours.send && heads.ours.send.on && /Send/i.test(heads.ours.sendText),
+      heads.ours.sendText || 'MISSING');
+    await page.screenshot({ path: path.join(OUT, '05-heads.png') });
+
+    /* Hand the round over, which is the only thing that makes a change "sent". */
+    await page.evaluate(() => { negoHandOver(CONTRACT, { to: 'counterparty' }); renderRedline(); });
+    await pause(500);
+    const gone = await page.evaluate(([seen]) => {
+      const s = eval(seen);
+      const el = [...document.querySelectorAll('#rl-changes .rl-card')]
+        .find(x => x.getAttribute('data-rl-origin') === 'us');
+      if (!el) return { there: false };
+      const mark = el.querySelector('[data-rl-sent]');
+      const bar = [...el.querySelectorAll('.rl-card-actions .rl-card-verbs button')];
+      const cs = mark ? getComputedStyle(mark) : null;
+      return { there: true,
+        saysSent: (el.textContent.match(/Sent/g) || []).length,
+        badge: (el.querySelector('.rl-badge') || {}).textContent.trim(),
+        mark: s(mark),
+        markText: mark ? mark.textContent.replace(/\s+/g, ' ').trim() : null,
+        disabled: mark ? mark.disabled : null,
+        opacity: cs ? Number(cs.opacity) : null,
+        fill: cs ? cs.backgroundColor : null,
+        slot: bar.map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+        liveSend: !!el.querySelector('[data-rl-send]'),
+        bodyShown: s(el.querySelector('.rl-card-body')),
+      };
+    }, [SEEN]);
+    check('after the send there is a card of ours to read', gone.there);
+    check('THE WORD "SENT" APPEARS EXACTLY ONCE ON THE CARD',
+      gone.saysSent === 1 && gone.badge === 'Sent', `${gone.saysSent} time(s), pill says "${gone.badge}"`);
+    check('the spent Send is still in its place, last in the action bar',
+      !!gone.mark && gone.mark.on && gone.slot[gone.slot.length - 1] === gone.markText,
+      gone.slot.join(' · '));
+    check('and it is a tick and a caption, not the pill’s word',
+      /✓/.test(gone.markText || '') && !/Sent/.test(gone.markText || ''), gone.markText);
+    check('still dead — nothing further to do to it', gone.disabled === true);
+    check('AND STILL LEGIBLE: full strength, not the browser’s greyed-out disabled',
+      gone.opacity === 1, 'opacity ' + gone.opacity);
+    check('quiet, not amber — the app’s own neutral fill',
+      !!gone.fill && gone.fill !== 'rgb(254, 243, 199)', gone.fill);
+    check('the live Send is gone — it cannot be sent twice', !gone.liveSend);
+    check('and the card still collapses to a line — the reading matter is not shown',
+      !(gone.bodyShown && gone.bodyShown.on));
+    await page.screenshot({ path: path.join(OUT, '06-sent-marker.png') });
+
+    /* ---- 10. THE PHONE DRAWS THE SAME BUILDER, SO CHECK IT THERE TOO ---- */
+    const ph2 = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
+    ph2.on('pageerror', e => errors.push('phone2: ' + e.message));
+    await ph2.goto(PAGE, { waitUntil: 'load' });
+    await ph2.evaluate(() => window.READY);
+    await pause(500);
+    const onPhone = await ph2.evaluate(() => {
+      negoHandOver(CONTRACT, { to: 'counterparty' });
+      renderRedline();
+      const el = [...document.querySelectorAll('#rl-changes .rl-card')]
+        .find(x => x.getAttribute('data-rl-origin') === 'us');
+      if (!el) return { there: false };
+      const mark = el.querySelector('[data-rl-sent]');
+      const r = mark ? mark.getBoundingClientRect() : null;
+      return { there: true, pills: document.querySelectorAll('#rl-changes .rl-origin').length,
+        saysSent: (el.textContent.match(/Sent/g) || []).length,
+        markOn: !!r && r.width > 0 && r.height > 0,
+        markText: mark ? mark.textContent.replace(/\s+/g, ' ').trim() : null };
+    });
+    check('on a phone: no origin pill either', onPhone.there && onPhone.pills === 0, onPhone.pills);
+    check('on a phone: "Sent" still said exactly once', onPhone.saysSent === 1, onPhone.saysSent);
+    check('on a phone: the marker is on screen', onPhone.markOn, onPhone.markText);
+    await ph2.screenshot({ path: path.join(OUT, '07-phone-card.png') });
+    await ph2.close();
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();
