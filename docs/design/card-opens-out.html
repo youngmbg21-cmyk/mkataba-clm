@@ -457,6 +457,43 @@
     </div>
   </div>
 
+  <!-- ============================== THE TRIGGER ============================== -->
+  <section>
+    <h2>So what makes it pop out?</h2>
+    <p><strong>A correction to an earlier draft of this page, because it matters.</strong> Pressing a card today does not simply unfold it — it does <em>two</em> jobs at once:</p>
+    <ul>
+      <li>it takes you to that clause in the document, lighting it and scrolling the paper to it;</li>
+      <li>and it expands the card downwards.</li>
+    </ul>
+    <p>There is also a <strong>small chevron</strong> in the corner of every card which does only the second one — deliberately, without moving the document. The reason is written into the code: <em>somebody tidying a column is not asking to be taken anywhere.</em></p>
+    <p>That is the whole answer. There are already two controls with two meanings, and the fix is to <strong>separate the jobs rather than add a third</strong>.</p>
+
+    <div class="scroll-t">
+      <table>
+        <thead><tr><th>Control</th><th>Today</th><th>Proposed</th></tr></thead>
+        <tbody>
+          <tr><td>Press the card</td><td>Goes to the clause <em>and</em> unfolds the card</td><td class="yes">Goes to the clause. Only that.</td></tr>
+          <tr><td>Press the chevron</td><td>Unfolds the card, document stays put</td><td class="yes">Pops the change out into the window</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Nothing new is invented. The chevron already exists, already means <em>there is more here</em>, and already refuses to drag the document. It stops being the fold and becomes the door. And the card press stops doing double duty — which is the reason the column jumps today when all somebody wanted was to look at a clause.</p>
+
+    <h3>Two things must change with it, or it misleads</h3>
+    <ul>
+      <li><strong>The mark.</strong> A downward chevron promises something unfolds downwards. Opening a floating window needs the two-corner <em>expand</em> mark instead, and a tooltip saying what it opens.</li>
+      <li><strong>The size.</strong> It is about nine pixels today, which was fair when it was a secondary affordance beside a card that also opened. As the only door to the reasoning it is too small to find with a mouse and far too small for a thumb.</li>
+    </ul>
+
+    <h3>The two alternatives, honestly</h3>
+    <div class="cols">
+      <div><h4 style="color:var(--muted)">Press does both</h4><p>Navigate <em>and</em> pop out on one press — closest to today, nothing to learn. But the window has to float over the document (the column is against the right edge; there is nowhere else for it to go), so it covers the clause the same press just jumped to. The two jobs fight. I would not.</p></div>
+      <div><h4 style="color:var(--muted)">A "Why" button in the row</h4><p>The most obvious of the three: read rather than recognised. It costs a fourth button in a row deliberately kept compact beside Accept, Reject and Edit. The right fallback if the chevron is judged too quiet.</p></div>
+      <div><h4 style="color:var(--green)">What the separation buys</h4><p>Because the pop-out leaves the paper readable, it can light the clause behind it without scrolling it away — so the argument and the clause are on screen together. That is the whole reason this option beat the centred sheet.</p></div>
+    </div>
+  </section>
+
   <!-- ============================== PHONE ============================== -->
   <section>
     <h2>All three become the same thing on a phone</h2>
@@ -532,7 +569,7 @@
     <h2>What I need decided before building</h2>
     <ol class="qs">
       <li><b>Which option?</b><span>My recommendation is C with B's stepper. A is the safest to build and the worst to use; B is the best for a long session and the most work.</span></li>
-      <li><b>Does the pop-out open on the whole card, or on a "Details" press?</b><span>Today the card head opens it. Keeping that means one press does more than it used to — which is good, unless people press cards while scanning. The alternative is a small chevron that opens the window and leaves the head inert.</span></li>
+      <li><b>Is the chevron the door, or do you want a word?</b><span>See <em>So what makes it pop out?</em> above. My answer: the chevron becomes the pop-out, grown and re-marked, and the card press goes back to doing one job — taking you to the clause. A "Why" button in the action row is the fallback if the mark is too quiet.</span></li>
       <li><b>Should the verbs sit in the window as well as on the card?</b><span>I have drawn both. Duplicating them means the reader can decide without leaving; not duplicating them means one place to press and no risk of the two disagreeing.</span></li>
       <li><b>Does this reach the counterparty's page in the same change?</b><span>They render the same card, so it will unless deliberately held back. I would let it — their page is the one with the least room and the most need to read a reason properly.</span></li>
     </ol>
