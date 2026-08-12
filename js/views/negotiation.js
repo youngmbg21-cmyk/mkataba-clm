@@ -7311,7 +7311,11 @@ function renderNegotiationsList(host){
   el.innerHTML = `<div class="view-enter ngl-wrap">
     <header class="ngl-head">
       <h2>${i18t('ng_door_title')}</h2>
-      <p>${rows.length ? i18t('ng_door_pick') : i18t('ng_door_none_sub')}</p>
+      ${''/* The sub-line speaks only when there is a list to introduce. With
+             nothing running, the empty card below says the whole thing — and
+             "every agreement being argued over right now" printed above
+             "Nothing is being negotiated" is the page contradicting itself. */}
+      ${rows.length ? `<p>${i18t('ng_door_pick')}</p>` : ''}
     </header>
     ${rows.length ? `<div class="ngl-list">${rows.map(negoListRowHtml).join('')}</div>`
       : `<section class="ngl-empty">

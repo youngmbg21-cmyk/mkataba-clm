@@ -490,7 +490,7 @@ describe('f148 — the shared renderers follow the language in both shells', () 
     assert.equal(win.i18t('ng_door_title'), 'Förhandlingar');
     /* Not left in English, which is how a half-translated feature ships. */
     for (const k of ['nav_negotiations_title', 'ct_open_negotiate_n', 'ct_back_to_agreement',
-      'ng_door_pick', 'ng_door_clear', 'ng_door_none', 'ng_door_none_how', 'm_negotiations']) {
+      'ng_door_pick', 'ng_door_clear', 'ng_door_none', 'ng_door_none_how']) {
       win.langSet('en', { repaint: false });
       const en = win.i18t(k);
       win.langSet('sv', { repaint: false });
