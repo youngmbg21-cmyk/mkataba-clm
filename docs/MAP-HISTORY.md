@@ -1743,3 +1743,59 @@ the shortener's own, so a later change that reaches one of them fails loudly.
 
 Our own company name still prints on our own cards. The owner considered
 dropping it and chose to keep it.
+
+THE SENDER'S COVERING NOTE IS AN EMAIL, NOT A PAGE ELEMENT
+
+Reported with a photograph: the counterparty opens the negotiation link and
+the first thing on the page, above the wall line and before any of the
+contract, is an envelope strip reading "Message from <name>: …" — the sentence
+the sender typed into the share dialog, printed back at the reader who was
+already sent it in their inbox.
+
+FOUR DRAWINGS, not one, and finding all four was most of the work. The banner
+was the photographed one. There was also a box in the respond panel on the
+landing and signing screen under the same heading, a block at the foot of the
+Compare wording dialog, and — the one that would have been missed — a panel
+headed "What changed". That last one reads like something the product
+produced. It is not: it is filled from `changeSummary`, which is the sender's
+own step-1 textarea in the share dialog. A different field, a different title,
+the same typed paragraph. Removing three of four would have left the note on
+their screen wearing whichever title survived.
+
+AND THE SERVER HAD TO STOP SENDING IT, which is the difference between fixing
+new links and fixing the ones already sitting in inboxes. Every link calls
+GET /api/shares/:token on every open, so withholding the field there means no
+page can draw it however old it is, and nothing has to be migrated.
+
+WHAT WAS DELIBERATELY NOT TOUCHED, and each of these would have been a bad
+silent loss:
+
+  · THE EMAIL. The note is in the body, word for word, under "Message from
+    <name>". That is the whole point of the change — the note goes to their
+    inbox instead of their screen — so the change is only defensible while
+    that is true, and the test asserts it rather than assuming it.
+  · THE WHATSAPP TEXT, for the same reason.
+  · shares.message ON OUR SIDE. Still written at mint. This is a decision
+    about what leaves the building on a public token, not about what we keep.
+  · THE PER-CLAUSE DISCUSSION CHANNEL. A conversation between the two sides,
+    in its own table, that happens to use the same word. If a clause note ever
+    disappears, this is what was hit — which is why the test sends one over a
+    live link and reads it back.
+  · THE ONE COURTESY SENTENCE when the person handling our side hands over.
+    That is a fact about who they are dealing with, not a covering note.
+  · THE WALL LINE, which stays and stays FIRST. The banner sat above it; only
+    the banner goes.
+
+ONE CONSEQUENCE, AND IT IS THE PART THAT COULD HAVE GONE WRONG QUIETLY. With
+the page no longer reproducing it, the note's only roads are the email and the
+WhatsApp text. So "copy the link" became a channel that carries no message at
+all — and the sender would have typed a paragraph, pressed Create link, and
+never learned it reached nobody. A box that silently swallows what somebody
+typed is worse than the banner ever was. There is one quiet line under the box
+now, naming the channel, repainted whenever the channel changes, amber on the
+copy-link branch because that one is a warning rather than a statement.
+
+A SMALL THING WORTH KNOWING: the channel painter is called unconditionally on
+open now. It used to be skipped for email, because the markup already draws
+email as the active tab — but the new line has no markup default, so skipping
+the first paint left it blank until something was pressed.

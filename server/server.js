@@ -5890,8 +5890,24 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        purpose too, but that one falls back to a reading of the change set when
        nobody stated one — see buildSharePayload. W6 needs the choice. */
     purpose: s.purpose || null,
+    /* ---- THE COVERING NOTE DOES NOT COME DOWN THIS ROUTE (13 Aug 2026) ----
+       `message: s.message` used to ride here beside the recipient's name and
+       the expiry date, and the counterparty's page drew it in four places.
+       The owner asked for the note to live in the EMAIL instead — it is
+       already in the body, word for word, under "Message from <name>" — and
+       for their page to show the contract.
+
+       REMOVING THE FOUR DRAWINGS FIXES NEW PAGES; REMOVING IT HERE FIXES THE
+       LINKS ALREADY SITTING IN SOMEBODY'S INBOX. Every one of those still
+       calls this route on every open, so with the field withheld no page can
+       draw it however old it is, and nothing has to be migrated.
+
+       THE COLUMN IS NOT DROPPED. shares.message is still written at mint and
+       is still the OWNER's record of what they sent — the share panel and the
+       audit trail read it. This is a decision about what leaves the building
+       on a public token, not about what we keep. */
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
-      message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
+      expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
 });
 

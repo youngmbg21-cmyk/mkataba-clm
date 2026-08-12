@@ -275,7 +275,26 @@ describe('Share is two steps, and the summary travels', () => {
     assert.ok(m.$('#share-next'), 'and Next still works — sending a clean document is allowed');
   });
 
-  test('the summary reaches the counterparty’s landing page', async () => {
+  /* ---- CLAIMS REVERSED, 13 Aug 2026, OWNER-ASKED ----
+     The three tests below asserted the "What changed" panel on the
+     counterparty's landing page: that the sender's summary reached it, that
+     an empty one drew no box, and that it was escaped as text.
+
+     The panel is gone. It wore the title "What changed", which reads as
+     something the product produced, but it was filled from `changeSummary` —
+     the sender's OWN step-1 textarea in the share dialog, the same typed
+     words the page also printed as a banner, as a box in the respond panel
+     and at the foot of the Compare dialog. A covering note belongs in the
+     covering letter; the owner asked for all four drawings to come off, and
+     leaving this one would have meant the note was still on their screen
+     wearing a third title.
+
+     The claims are turned round rather than deleted, and the escaping one is
+     turned round the RIGHT way — markup that reaches no DOM cannot execute in
+     it, so the safety property is stronger, not weaker. What the sender sees
+     of their own words (the manifest, and the boxes themselves) is untouched
+     and is asserted above. */
+  test('the summary NO LONGER reaches the counterparty’s landing page', async () => {
     const p = buildPortal({ url: 'http://localhost/hati/' });
     const payload = sharePayloadFor(p, {
       id: 'MK-191', name: 'Warehousing Agreement', counterparty: 'Nordfrakt Logistik AB',
@@ -288,12 +307,12 @@ describe('Share is two steps, and the summary travels', () => {
       + '  • #CHG-002 · Clause 6 · Liability and Insurance — Liability capped at EUR 250,000 per contract year';
     p.open(payload);
 
-    const box = p.win.document.getElementById('pt-change-summary');
-    assert.ok(box, 'the landing page must show what changed');
-    assert.match(box.textContent, /What changed/);
-    assert.match(box.textContent, /#CHG-001/);
-    assert.match(box.textContent, /Payment terms extended from Net-30 to Net-45/);
-    assert.match(box.textContent, /Liability capped at EUR 250,000/);
+    assert.equal(p.win.document.getElementById('pt-change-summary'), null,
+      'the panel is gone — the note is in their inbox, not on their page');
+    const page = p.win.document.body.textContent;
+    assert.ok(!/Payment terms extended from Net-30 to Net-45/.test(page),
+      'and none of the sender\u2019s typed words are anywhere on it');
+    assert.ok(!/Liability capped at EUR 250,000/.test(page));
   });
 
   test('a link with no summary shows no empty box', () => {
@@ -304,11 +323,13 @@ describe('Share is two steps, and the summary travels', () => {
       audit: [], rounds: [], versions: [], signatures: [], comments: [],
       redlineText: F.protoRich(), format: 'rich' });
     p.open(payload);
+    /* Still true, and now true of every link rather than only the empty ones:
+       the panel is not drawn at all (13 Aug 2026). */
     assert.equal(p.win.document.getElementById('pt-change-summary'), null,
-      'an empty "what changed" panel is worse than none');
+      'an empty "what changed" panel is worse than none — and there is no full one either');
   });
 
-  test('a summary is text, never markup', () => {
+  test('and a summary that IS markup reaches no DOM at all', () => {
     const p = buildPortal({ url: 'http://localhost/hati/' });
     const payload = sharePayloadFor(p, {
       id: 'MK-193', name: 'X', counterparty: 'gg', template: 'WH', status: 'Under Review',
@@ -316,11 +337,13 @@ describe('Share is two steps, and the summary travels', () => {
       signatures: [], comments: [], redlineText: F.protoRich(), format: 'rich' });
     payload.contract.changeSummary = '<img src=x onerror=alert(1)> and <script>alert(2)</script>';
     p.open(payload);
-    const box = p.win.document.getElementById('pt-change-summary');
-    assert.ok(box);
-    assert.equal(box.querySelector('img'), null, 'no markup from a share reaches the DOM');
-    assert.equal(box.querySelector('script'), null);
-    assert.match(box.textContent, /onerror=alert\(1\)/, 'it is shown as the text it is');
+    /* The old claim was that a summary is ESCAPED. The stronger one now holds:
+       there is no element for it to be escaped into. */
+    assert.equal(p.win.document.getElementById('pt-change-summary'), null);
+    assert.equal(p.win.document.querySelector('#share-root img[src="x"]'), null,
+      'no markup from a share reaches the DOM');
+    assert.ok(!/onerror=alert\(1\)/.test(p.win.document.body.textContent),
+      'nor as text — the field is not drawn at all');
   });
 
   /* THE HISTORY BRANCH PREVIEWS THE RECORD, NOT THE MANIFEST. It shipped

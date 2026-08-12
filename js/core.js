@@ -3621,6 +3621,18 @@ async function openShareModal(c, opts={}){
         </div>
         <label style="display:block;margin-top:10px;"><span style="${LBL}">${i18t('co_personal_message')}</span>
           <textarea id="sh-msg" rows="2" placeholder="${esc(i18t('co_ph_share_msg'))}" style="${FLD}min-height:0;"></textarea></label>
+        ${''/* ---- A BOX MUST SAY WHERE WHAT YOU TYPE IN IT GOES (13 Aug 2026) ----
+               The counterparty's page used to reproduce this note in four
+               places. It does not any more — a covering note belongs in the
+               covering letter — so the note's ONLY road is the email or the
+               WhatsApp text. Which means "copy the link" is now a channel that
+               carries no message at all, and a box that silently swallows what
+               somebody typed is worse than the banner ever was.
+
+               One quiet line, naming the channel, repainted by setCh when the
+               channel changes. It speaks for BOTH boxes: the step-1 note and
+               this one are joined into one message before they travel. */}
+        <div id="sh-msg-where" style="margin-top:5px;font-size:11px;line-height:1.5;color:var(--color-neutral-600)"></div>
         ${server?`<div style="margin-top:11px;border:1px solid var(--color-divider);border-radius:5px;padding:9px 11px">
           <label style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--color-neutral-800);cursor:pointer">
             ${''/* A SIGNING LINK OPENS ONE-SHOT, and the dialog's own words say
@@ -3835,9 +3847,25 @@ async function openShareModal(c, opts={}){
     document.getElementById('sh-email-wrap').classList.toggle('hidden',k==='whatsapp');
     document.getElementById('sh-phone-wrap').classList.toggle('hidden',k!=='whatsapp');
     document.getElementById('sh-send-lbl').textContent=k==='email'?'Send by email':k==='whatsapp'?'Open WhatsApp':'Create link';
+    /* WHERE THE NOTE GOES, said under the box it is typed into. A copied link
+       carries no message at all now that the counterparty's page has stopped
+       reproducing it, so that branch is a WARNING and wears the warning
+       colour; the other two are a plain statement. */
+    const where=document.getElementById('sh-msg-where');
+    if(where){
+      const none=k!=='email'&&k!=='whatsapp';
+      where.textContent=i18t(k==='email'?'co_note_goes_email'
+        :k==='whatsapp'?'co_note_goes_whatsapp':'co_note_goes_nowhere');
+      where.style.color=none?'var(--st-amber-fg)':'var(--color-neutral-600)';
+      where.style.fontWeight=none?'600':'400';
+    }
   };
   document.querySelectorAll('[data-share-ch]').forEach(b=>b.addEventListener('click',()=>setCh(b.getAttribute('data-share-ch'))));
-  if(ch!=='email') setCh(ch);         // open on the channel they used last time
+  /* Called for EVERY channel, email included. It used to be skipped there
+     because the markup already draws email as the active one — but the line
+     saying where the note goes has no markup default, so an unconditional
+     first paint is what makes it present before anything is pressed. */
+  setCh(ch);
   document.getElementById('share-close').addEventListener('click',closeModal);
 
   /* Set when the send refreshed a link the recipient already had rather than
@@ -3877,7 +3905,17 @@ async function openShareModal(c, opts={}){
     const summary=fval('sh-summary').trim();
     const note=fval('sh-msg').trim();
     const msg=[summary,note].filter(Boolean).join('\n\n');
-    payloadObj.contract.changeSummary=summary||null;
+    /* ---- AND THE NOTE IS NOT WRITTEN INTO THE PAYLOAD (13 Aug 2026) ----
+       `payloadObj.contract.changeSummary = summary` used to put the sender's
+       own step-1 words onto the copy the counterparty downloads, where their
+       landing page drew them under the heading "What changed" — a third title
+       on the same typed paragraph. The owner asked for the covering note to
+       live in the email and for their page to show the contract, so the field
+       stops being written and a new link does not carry a copy. Older links
+       still hold one; the page draws nothing from it either way, and the
+       server no longer serves the message field at all. Flag changeSummary as
+       stale. `msg` above is untouched — that IS the email and the WhatsApp
+       text, which is where the note goes. */
     if(ch==='email' && !/.+@.+\..+/.test(email)){ toast(i18t('co_enter_recipient_email'),'err'); return false; }
     if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast(i18t('co_enter_whatsapp'),'err'); return false; }
     /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.

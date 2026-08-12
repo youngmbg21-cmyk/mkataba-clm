@@ -1398,6 +1398,13 @@ const STRINGS = {
     co_recipient_email: 'Recipient email *',
     co_whatsapp_number: 'WhatsApp number *',
     co_personal_message: 'Personal message (optional)',
+    // WHERE THE NOTE GOES. The counterparty's page stopped reproducing the
+    // sender's covering note on 13 Aug 2026, so the email and the WhatsApp
+    // text are its only roads — and a copied link is a channel that carries
+    // no message at all. The box says so under itself.
+    co_note_goes_email: 'This note is sent in the email. It is not shown on their page.',
+    co_note_goes_whatsapp: 'This note is sent in the WhatsApp text. It is not shown on their page.',
+    co_note_goes_nowhere: 'A copied link carries no message — this note will not reach them. Send by email or WhatsApp instead.',
     co_keep_link_open: 'Keep this link open for the whole negotiation.',
     co_one_link_current: 'They keep one link and always see the current wording, round after round. Untick for a',
     co_right_for_final: '— the right choice for a final signature, where one copy gets exactly one response.',
@@ -4858,6 +4865,9 @@ const STRINGS = {
     co_recipient_email: 'Mottagarens e-post *',
     co_whatsapp_number: 'WhatsApp-nummer *',
     co_personal_message: 'Personligt meddelande (valfritt)',
+    co_note_goes_email: 'Anteckningen skickas i e-postmeddelandet. Den visas inte på deras sida.',
+    co_note_goes_whatsapp: 'Anteckningen skickas i WhatsApp-meddelandet. Den visas inte på deras sida.',
+    co_note_goes_nowhere: 'En kopierad länk bär inget meddelande — anteckningen når dem inte. Skicka via e-post eller WhatsApp i stället.',
     co_keep_link_open: 'Håll länken öppen under hela förhandlingen.',
     co_one_link_current: 'De behåller en länk och ser alltid den aktuella formuleringen, runda efter runda. Avmarkera för en',
     co_right_for_final: '— rätt val för en slutlig underskrift, där ett exemplar får exakt ett svar.',

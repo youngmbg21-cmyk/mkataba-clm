@@ -143,7 +143,11 @@ function openPortalCompare(p){
   const ch=portalChangedText(); if(!ch) return;
   const st=(window.diffStats?diffStats(ch.before,ch.after):{add:0,del:0});
   const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
-  const msg=(PORTAL_OPTS.share&&PORTAL_OPTS.share.message)||'';
+  /* THE SENDER'S COVERING NOTE USED TO CLOSE THIS DIALOG, under its own
+     heading at the foot. Gone (13 Aug 2026, owner-asked): the dialog is opened
+     to read what changed and it now ends with the wording. The note is in
+     their inbox — see renderShareWorkbench for the whole rule and the other
+     three places it used to print. */
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
@@ -160,9 +164,6 @@ function openPortalCompare(p){
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
         <div style="${COL}">
           <div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(ch.before,ch.after)}</div>
-          ${msg?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px 16px">
-            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('po_note_from',{who:esc(p.sharedBy||i18t('po_the_sender'))})}</div>
-            <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${esc(msg)}</div></div>`:''}
         </div>
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
@@ -1108,19 +1109,19 @@ const portalResponderLabel = c =>
    contract because "what am I being asked about" comes before "here is
    everything". Escaped and rendered as plain lines: it is text a person typed,
    and it is never markup. */
-function portalChangeSummaryHtml(p){
-  const raw=String((p&&p.contract&&p.contract.changeSummary)||'').trim();
-  if(!raw) return '';
-  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
-  if(!lines.length) return '';
-  return `<div id="pt-change-summary" style="margin-bottom:12px;border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);border-radius:4px;background:var(--color-surface);padding:10px 12px;">
-    <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-accent-800);font-family:var(--font-mono);margin-bottom:5px;">${i18t('po_what_changed')}</span>
-    ${lines.map(l=>{
-      const bullet=/^[•\-*]\s*/.test(l);
-      return `<div style="font-size:11.5px;line-height:1.55;color:var(--color-neutral-800);${bullet?'padding-left:10px;':'font-weight:600;margin-bottom:3px;'}">${esc(l.replace(/^[•\-*]\s*/,bullet?'• ':''))}</div>`;
-    }).join('')}
-  </div>`;
-}
+/* ---- RETIRED, 13 Aug 2026 — THE FOURTH DRAWING OF THE SENDER'S NOTE ----
+   This panel was headed "What changed" and looked like a summary the product
+   had produced. It was not: it was filled from `changeSummary`, which is the
+   sender's own step-1 textarea in the share dialog — the same words the
+   banner and the respond-panel box printed, wearing a third title. Leaving it
+   would have meant the covering note was still on the counterparty's screen,
+   which is the thing being removed.
+
+   The function is kept as a stub rather than deleted so an older payload
+   still carrying the field cannot start drawing it again through some other
+   caller. Nothing calls it. It draws nothing. Flag any new call as stale.
+   The MINT stops writing the field at all — see doSend in js/core.js. */
+function portalChangeSummaryHtml(){ return ''; }
 
 /* ---------- WORK IN PROGRESS SURVIVES A RELOAD ----------
 
@@ -2379,9 +2380,33 @@ function renderShareWorkbench(p, opts={}){
   FIRST_PARTY=p.org;
   const c=portalNegoContract(p);
   const org=(p&&p.org)||'the sender';
-  const msg=(opts.share&&opts.share.message)
-    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#9993;</span><span>
-        <b>${i18t('po_message_from',{who:esc(p.sharedBy||org)})}</b> ${esc(opts.share.message)}</span></div>` : '';
+  /* ---- THE SENDER'S COVERING NOTE IS AN EMAIL, NOT A PAGE ELEMENT ----
+     (owner-asked, 13 Aug 2026.) An envelope strip reading "Message from
+     <name>: …" sat across the top of this page, above the wall line. It is
+     gone, and so are the three other places this page reproduced the same
+     typed words: the box in the respond panel, the block at the foot of the
+     Compare wording dialog, and the "What changed" panel — which wore a
+     different title but was filled from the sender's own textarea in the
+     share dialog.
+
+     THE NOTE ITSELF IS NOT LOST AND WAS NEVER PRIMARILY HERE. It travels in
+     the EMAIL, word for word, under "Message from <name>", and in the
+     WhatsApp text; both are untouched. What the reader opens the link for is
+     the contract, and the covering note belongs in the covering letter.
+
+     THE SERVER STOPS SENDING IT TOO, which is what makes this true of links
+     already sitting in somebody's inbox rather than only of new ones — see
+     GET /api/shares/:token. Nothing has to be migrated.
+
+     TWO THINGS THAT LOOK LIKE THIS AND ARE NOT:
+       · the per-clause DISCUSSION channel, which is a conversation between
+         the two sides stored separately and still reads on its own cards;
+       · the one COURTESY sentence when the person handling our side hands
+         over (leadNotice, immediately below). That is a fact about who they
+         are dealing with, not a covering note, and it stays.
+     AND THE WALL LINE STAYS, AND STAYS FIRST. The message banner sat above
+     it; only the message goes. */
+
   /* ---- THE CONTACT ON OUR SIDE HAS CHANGED, AND THEY ARE TOLD ----
      One sentence, on the round the handover happened and no other. It is the
      ONLY thing about our internal arrangements that ever reaches this page:
@@ -2442,7 +2467,6 @@ function renderShareWorkbench(p, opts={}){
       ${portalRevisedBanner()}
       ${portalRoundBanner(c,p)}
       ${handover}
-      ${msg}
     </div>
     <div class="pw-mount"><div id="pt-nego"></div></div>
   </div>`;
@@ -2726,8 +2750,13 @@ function renderSharePortal(p, opts={}){
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px;" class="portal-aside">
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px;">${i18t('po_respond_to',{org:esc(p.org)})}</h2>
-        ${opts.share&&opts.share.message?`<div style="margin-bottom:12px;border-left:3px solid var(--color-accent);border-radius:4px;background:var(--color-accent-100);padding:9px 11px;font-size:11.5px;color:var(--color-neutral-800);line-height:1.5;"><span style="display:block;font-size:10px;font-weight:600;color:var(--color-accent-800);font-family:var(--font-mono);margin-bottom:2px;">Message from ${esc(p.sharedBy)}</span>${esc(opts.share.message)}</div>`:''}
-        ${portalChangeSummaryHtml(p)}
+        ${''/* The sender's covering note was reproduced here too, headed
+                "Message from <name>". Gone with the other three drawings of it
+                (13 Aug 2026) — it is in their inbox, under that same heading.
+                portalChangeSummaryHtml went with it: the "What changed" panel
+                wore a different title but was filled from the sender's own
+                textarea in the share dialog, so leaving it would have meant
+                the note was still on their screen. */}
         ${opts.responded?`<div style="margin-bottom:14px;border-radius:4px;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:9px 11px;font-size:11px;color:var(--color-accent-800);display:flex;align-items:center;gap:6px;">${icon('check2','w-3.5 h-3.5')} A response was already submitted for this link.</div>`:''}
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5;">${opts.token?`Your response is delivered to ${esc(p.sharedBy)} automatically — nothing to send back.`:`Your response is packaged as a secure code — send it back to ${esc(p.sharedBy)} to record it on the contract.`}</p>
         ${input('pt-name','Full name *','e.g. Grace Njeri')}
