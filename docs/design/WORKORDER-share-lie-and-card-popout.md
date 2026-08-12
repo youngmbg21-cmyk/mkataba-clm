@@ -249,6 +249,35 @@ Each of these is a standing rule with a test already behind it.
 The `‹ ›` previous/next stepper through the queue (Option B in the design page).
 Note it as a follow-up; **do not build it.**
 
+## What a first attempt learned (12 Aug 2026) — read this before starting
+
+Task 2 was attempted and **reverted**. Nothing above is wrong, but two things
+were missed and they decide the shape of the implementation.
+
+**1. The panel must MOVE the body node, not re-render it.** The obvious version
+builds the reading matter as HTML and writes it into the panel. It looks right
+and the notes composer is dead: the engine wires that composer by element id
+(`nego-ti-<change>`), so a second copy rendered elsewhere has no handlers, and
+the reply box would accept typing and never send. Move the existing
+`.rl-card-body` node into the panel on open and put it back on close — one
+subtree, wiring intact, no duplicate ids. Re-take it after every repaint of the
+column, because the repaint destroys the node the panel was holding.
+
+**2. Keeping `.rl-card-body` in the card changes the test story.** It stays in
+the DOM (hidden) rather than disappearing, so most of the suite keeps working
+unchanged — which matters more than it sounds: **fourteen suites beyond the six
+named above** reach into the card body to assert a note, a reviser's name, the
+internal/shared switch or a reply surviving a repaint (f137, f158, f166, f173,
+f58, f59, f84, and the counterparty-parity files). Rendering the body somewhere
+else breaks all of them at once. Moving it breaks almost none.
+
+So the test list above is **incomplete**: budget for the whole set, and check
+`grep -rn "rl-card-body\|rl-cnotes" test/` before starting.
+
+The card-side work — the press doing one job, the caret becoming a real corner
+button, the panel's own CSS and placement, the phone sheet — was written and is
+sound; it is the body's home that has to change.
+
 ---
 
 # Both tasks
