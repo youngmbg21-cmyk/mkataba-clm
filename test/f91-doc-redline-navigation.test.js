@@ -273,32 +273,60 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
   test('the one door off the tab is at the right, and filled', () => {
     const s = code();
     /* On the tab row — the right-hand end of it, past the text-size stepper —
-       rather than on a band of its own. */
+       rather than on a band of its own. The row carries a SLOT and the slot's
+       contents are built by wsTabRowEndHtml; see the test below for why that
+       matters. */
     const row = s.slice(s.indexOf('class="room-tabrow"'), s.indexOf('id="ws-actionbar"'));
-    assert.match(row, /id="ws-to-nego"/, 'the door rides on the tab row');
-    assert.ok(row.indexOf('rlTypeStepHtml()') < row.indexOf('id="ws-to-nego"'),
-      'and at the far right of it');
+    assert.match(row, /id="ws-tabrow-end"[^>]*>\$\{wsTabRowEndHtml\(c\)\}/,
+      'the door and the stepper ride at the right-hand end of the tab row');
+    const end = s.slice(s.indexOf('function wsTabRowEndHtml'), s.indexOf('function wsNoticesHtml'));
+    assert.match(end, /id="ws-to-nego"/, 'the door is what is in that slot');
+    assert.ok(end.indexOf('rlTypeStepHtml()') < end.indexOf('id="ws-to-nego"'),
+      'and it sits past the text-size stepper');
     /* Shaded like Draft new agreement — which is ui-btn-primary, the head's
        own solid fill. Read against that button rather than against a colour,
        so restyling the primary restyles both. */
-    assert.match(row, /id="ws-to-nego" class="ui-btn ui-btn-primary"/);
+    assert.match(end, /id="ws-to-nego" class="ui-btn ui-btn-primary"/);
     assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-primary/,
       'the button it is drawn to match');
-    /* Only where there is a negotiation to open. */
-    assert.match(row, /c\.negotiation&&window\.negoChanges&&negoChanges\(c\)\.length/);
+    /* Only on the Document tab, and only where there is a negotiation to open. */
+    assert.match(end, /_wsTab!=='docs'/);
+    assert.match(end, /c\.negotiation&&window\.negoChanges&&negoChanges\(c\)\.length/);
+  });
+
+  test('and the slot is repainted when the tab changes — the bug that emptied it', () => {
+    /* Reported (Young, 12 Aug 2026): the stepper and Open Negotiate were
+       sometimes simply missing from the Document tab, and back later on the
+       same contract. The slot was built ONCE per workspace render from
+       whatever _wsTab happened to be current then — so a reader sitting on Key
+       terms when the room last rendered, who then pressed Document, arrived on
+       a Document tab with an empty corner. A tab press runs applyWsTabs, which
+       repainted the panes and the action bar and never touched this. */
+    const s = code();
+    const apply = s.slice(s.indexOf('function applyWsTabs'), s.indexOf('function roomGoTab'));
+    assert.match(apply, /wsPaintTabRowEnd\(c\)/,
+      'the tab change has to repaint the slot, or it describes the tab you left');
+    assert.match(apply, /renderActionBar\(c\)/,
+      'the same lesson the action bar above it already carries');
   });
 
   test('and it is wired with the row it sits on, exactly once', () => {
     const s = code();
     /* It used to be wired in wireActionBar, which runs again on every tab
-       change — and the tab row is not redrawn by one, so binding it there
-       would stack a handler per press. */
+       change — and the tab row was not redrawn by one, so binding it there
+       stacked a handler per press. It is wired where it is DRAWN now, which is
+       the only arrangement that survives the slot being repainted. */
     const bar = s.slice(s.indexOf('function wireActionBar'), s.indexOf('function focusKeyTerms'));
     assert.ok(!/ws-to-nego/.test(bar), 'not on the strip\'s wiring, which re-runs per tab');
-    const tabs = s.slice(s.indexOf('function wireWsTabs'), s.indexOf('function ktReadValue'));
-    assert.match(tabs, /getElementById\('ws-to-nego'\)/, 'on the row\'s own wiring');
-    assert.match(tabs, /roomGoTab\(c,'redline'\)/,
+    const paint = s.slice(s.indexOf('function wsPaintTabRowEnd'), s.indexOf('function applyWsTabs'));
+    assert.match(paint, /querySelector\('#ws-to-nego'\)/, 'wired where it is painted');
+    assert.match(paint, /roomGoTab\(c,'redline'\)/,
       'and through the room\'s router, so the landing rules apply however you arrived');
+    /* And NOT a second time from the row's own wiring: the paint replaces the
+       button, so a listener added there as well would be the second one on it. */
+    const tabs = s.slice(s.indexOf('function wireWsTabs'), s.indexOf('function ktReadValue'));
+    assert.ok(!/getElementById\('ws-to-nego'\)/.test(tabs),
+      'one draw, one wiring — a second here is a handler that stacks');
   });
 
   test('the room has five tabs, built once for both shells', () => {

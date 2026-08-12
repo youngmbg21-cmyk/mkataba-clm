@@ -1922,8 +1922,14 @@ function negoLiveCardsHtml(c, opts){
   /* Narrowed to what this reader was handed, when they are reviewing here. See
      rlMyCardIds — the twin of the filter on the workbench's column. */
   const _mineOnly = rlMyCardIds(c, opts);
-  const changes = negoChanges(c).filter(x => x.status !== 'superseded'
-    && (!_mineOnly || _mineOnly.has(String(x.id))));
+  /* THE SAME ORDER AS THE WORKBENCH'S COLUMN, from the same function — this is
+     the second of the two card renderers this app draws a change with, and the
+     project's own duplication rule says a fix in one is not a fix in the other.
+     This list keeps settled changes (it shows everything not superseded), so it
+     is the list where sinking them matters most. See rlCardSort. */
+  const changes = rlCardSort(negoChanges(c).filter(x => x.status !== 'superseded'
+    && (!_mineOnly || _mineOnly.has(String(x.id)))),
+    new Set(opts.holdsDecisions ? (opts.heldDecisionIds || []) : []));
   const history = negoHistoryHtml(c, opts);
   if (!changes.length) return `
     <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
@@ -3020,7 +3026,12 @@ function negoTabHtml(c, opts = {}){
   negoInit(c);
   return `<div id="nego-root">
     ${negoHeadHtml(c, opts)}
-    ${window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : ''}
+    ${''/* THE REVIEW BANNER AND THE DESK BAND HAVE LEFT THIS SLOT TOO. They
+           were the first thing above the work here, exactly as they were on the
+           workbench before it moved them — and the rule is the page's, not one
+           screen's: nothing draws as a full-width band across the top of the
+           contract (Young, 12 Aug 2026). They float bottom-right now, from the
+           same builder and the same stack the workbench uses. */}
     ${negoTurnBannerHtml(c, opts)}
     ${negoCompareBarHtml(c)}
     ${negoCleanBarHtml(c)}
@@ -3028,6 +3039,7 @@ function negoTabHtml(c, opts = {}){
       ${negoPanesHtml(c, opts)}
       ${negoStatusHtml(c, opts)}
     </div>
+    ${window.rlFloatingNoticesHtml ? rlFloatingNoticesHtml(c, opts) : ''}
   </div>`;
 }
 
@@ -5353,6 +5365,22 @@ function rlOpsAsSide(ops, which){
 function rlRepaintFrom(node){
   const embed = node && node.closest && node.closest('.rl-embed');
   if (embed && typeof embed._rlRerender === 'function'){ embed._rlRerender(); return true; }
+  /* THE ROOM'S STACK REPAINTS ITSELF AND NOTHING ELSE. The Document tab is not
+     the workbench: falling through to renderNegotiationTab would replace the
+     room a reader is standing in with the negotiation component. It owns one
+     container, so pressing its bell repaints that container. */
+  if (node && node.closest && node.closest('#ws-notices') && window.wsPaintNotices
+      && window.getContract && window.state){
+    wsPaintNotices(getContract(state.activeId) || null);
+    return true;
+  }
+  /* AND THE PHONE REPAINTS ITSELF. Its shell is not the desktop's and none of
+     the renderers below exist on it; mRender is the phone's whole answer to
+     "draw this again". */
+  if (node && node.closest && node.closest('#m-root') && typeof window.mRender === 'function'){
+    mRender();
+    return true;
+  }
   if (document.getElementById('view-redline') && window.renderRedline){ renderRedline(); return true; }
   if (window.renderNegotiationTab && window.getContract && window.state){
     renderNegotiationTab(getContract(state.activeId) || null, {});
@@ -5802,19 +5830,19 @@ function redlineLayoutCss(){
      at the markup for why. Capped so a long sentence cannot become a panel,
      and pointer-events only on the cards themselves so the empty column below
      them does not swallow clicks on the document. */
-  .redline-page .rl-notices{position:fixed;right:22px;bottom:22px;z-index:55;display:flex;
+  .rl-notices{position:fixed;right:22px;bottom:22px;z-index:55;display:flex;
     flex-direction:column;gap:9px;width:344px;max-width:calc(100vw - 44px);pointer-events:none}
-  .redline-page .rl-note-card{pointer-events:auto;border:1px solid var(--color-divider);
+  .rl-note-card{pointer-events:auto;border:1px solid var(--color-divider);
     background:var(--color-surface);border-radius:12px;padding:12px 14px;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
-  .redline-page .rl-note-k{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:700;
+  .rl-note-k{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:700;
     letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)}
-  .redline-page .rl-note-dot{width:6px;height:6px;border-radius:999px;background:var(--color-neutral-400);flex:none}
-  .redline-page .rl-note-t{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:var(--color-neutral-600)}
-  .redline-page .rl-note-btn{margin-top:10px;height:29px;border:1px solid var(--color-divider);
+  .rl-note-dot{width:6px;height:6px;border-radius:999px;background:var(--color-neutral-400);flex:none}
+  .rl-note-t{margin:6px 0 0;font-size:12.5px;line-height:1.5;color:var(--color-neutral-600)}
+  .rl-note-btn{margin-top:10px;height:29px;border:1px solid var(--color-divider);
     border-radius:8px;background:var(--color-surface);padding:0 12px;font:inherit;font-size:12px;
     font-weight:600;color:var(--color-accent-700);cursor:pointer}
-  .redline-page .rl-note-btn:hover{border-color:var(--color-accent-700)}
+  .rl-note-btn:hover{border-color:var(--color-accent-700)}
   /* ---- THE NOTICES THAT USED TO BE BANDS ----
      The review's banner and the desk's reading band are built elsewhere (
      js/review.js and js/desk.js) and carry their own colours, because those
@@ -5822,37 +5850,72 @@ function redlineLayoutCss(){
      back cleared. What they do NOT carry any more is the shape of a band:
      inside this stack they are cards, so the bottom margin they used to need
      to clear the document comes off and the stack's own gap spaces them. */
-  .redline-page .rl-notices .rv-banner,
-  .redline-page .rl-notices .dk-notice{pointer-events:auto;margin:0;
+  .rl-notices .rv-banner,
+  .rl-notices .dk-notice{pointer-events:auto;margin:0;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
   /* They were laid out as one wide row — tag, sentence, button, all on a line
      that had the width of the page. In a 344px card that line has to wrap, and
      the button belongs under the sentence rather than squeezed beside it. */
-  .redline-page .rl-notices .dk-notice{flex-wrap:wrap}
-  .redline-page .rl-notices .dk-notice .dk-notice-txt{flex:1 1 100%;min-width:0}
-  .redline-page .rl-notices .rv-banner [data-rv-act]{white-space:nowrap}
+  .rl-notices .dk-notice{flex-wrap:wrap}
+  .rl-notices .dk-notice .dk-notice-txt{flex:1 1 100%;min-width:0}
+  .rl-notices .rv-banner [data-rv-act]{white-space:nowrap}
   /* ---- THE BELL AND THE HIDE CHIP ----
      The alerts fold to one small button (see rlFloatingNoticesHtml). Amber,
      because that is this product's "something is waiting" colour, with a dot
      riding the rim so a glance says there is news behind it. The Hide chip is
      quiet — minimising is housekeeping, not an act. Both hug the corner
      (flex-end) rather than stretching to the stack's width. */
-  .redline-page .rl-notices-fab{pointer-events:auto;align-self:flex-end;position:relative;
+  .rl-notices-fab{pointer-events:auto;align-self:flex-end;position:relative;
     width:42px;height:42px;border-radius:999px;border:1px solid var(--st-amber-line);
     background:var(--st-amber-bg);color:var(--st-amber-fg);cursor:pointer;font-size:17px;line-height:1;
     display:flex;align-items:center;justify-content:center;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
-  .redline-page .rl-notices-fab:hover{filter:brightness(.97)}
-  .redline-page .rl-fab-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;
+  .rl-notices-fab:hover{filter:brightness(.97)}
+  .rl-fab-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;
     border-radius:999px;background:var(--st-amber-dot);border:2px solid var(--color-surface)}
-  .redline-page .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--color-divider);
+  .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--color-divider);
     background:var(--color-surface);border-radius:999px;padding:5px 11px;font:inherit;font-size:11px;
     font-weight:600;color:var(--color-neutral-600);cursor:pointer;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
-  .redline-page .rl-notices-min:hover{color:var(--color-text);border-color:var(--color-neutral-400)}
+  .rl-notices-min:hover{color:var(--color-text);border-color:var(--color-neutral-400)}
   /* Focus mode is the document and nothing else, and a floating card over it
      is the "nothing else". */
   .redline-page.rl-focus .rl-notices{display:none}
+  /* ---- AND THE STRIPS THAT USED TO BAND THE TOP OF THE CONTRACT ----
+     "Changes returned" and "ready to sign" were full-width bands above the
+     document on the Document tab, and the readiness signal was one above the
+     three columns on Negotiate. They are cards in this stack now (Young, 12 Aug
+     2026: "nothing draws as a full-width band across the top of the contract").
+     They keep their own colours, which mean something — amber is waiting, green
+     came back cleared — and lose the band's geometry: no top and bottom rule
+     across the page, no flex:none row in the page's column, and their contents
+     wrap inside 344px instead of stretching on one line. The inline styles on
+     the builders are the band's, so these have to outrank them. */
+  .rl-notices #ready-strip,
+  .rl-notices #changes-strip{display:block!important;padding:12px 14px!important;
+    border:1px solid var(--color-divider)!important;border-radius:12px!important;
+    box-shadow:0 16px 36px -14px rgba(15,23,42,.34);pointer-events:auto}
+  .rl-notices #ready-strip{border-color:var(--st-green-line)!important}
+  .rl-notices #ready-strip[data-stale="1"]{border-color:var(--st-amber-line)!important}
+  .rl-notices #changes-strip{border-color:var(--st-amber-line)!important}
+  .rl-notices #ready-strip > span,
+  .rl-notices #changes-strip > span{display:block}
+  .rl-notices #ready-strip > span + span,
+  .rl-notices #changes-strip > span + span{margin-top:6px}
+  .rl-notices #ready-strip > span:first-child,
+  .rl-notices #changes-strip > span:first-child{display:inline-block}
+  .rl-notices #ready-strip button,
+  .rl-notices #changes-strip button{margin-top:10px}
+  /* The spacer that pushed the button to the far right of a page-wide band has
+     nothing to push against in a card, and an empty flex child with flex:1
+     still claims a line of its own. */
+  .rl-notices #ready-strip > span[style*="flex:1"],
+  .rl-notices #changes-strip > span[style*="flex:1"]{display:none}
+  /* The readiness signal keeps its own clothes (it is already a bordered box)
+     and only loses the margin it needed to clear the page. */
+  .rl-notices .nego-readysig{margin:0!important;pointer-events:auto;
+    box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
+  .rl-notices .nego-readysig .nego-tbtn{align-self:flex-start}
   .redline-page .rl-btn{border:1px solid transparent;font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;
     border-radius:9px;cursor:pointer;white-space:nowrap}
   .redline-page .rl-btn:disabled{opacity:.45;cursor:not-allowed}
@@ -9411,6 +9474,54 @@ function rlPaperFootHtml(c){
    decision — the OTHER side's ask, on a copy that can still move the
    negotiation. Nobody rules on their own ask. */
 const _rlIsLive = ch => !!ch && ch.status === 'pending' && !ch.withdrawn;
+
+/* ---- STILL BEING ARGUED ABOUT FIRST, SETTLED AT THE BOTTOM ----
+   Asked for (Young, 12 Aug 2026): on the All tab a change that was decided
+   rounds ago could sit above one still waiting for an answer, because the
+   column was drawn in filing order whatever state anything was in.
+
+   THIS IS A SORT AND NOT A FILTER, and the difference is the whole safety
+   argument: nothing leaves the column, nothing is hidden, and no count moves —
+   the All / Mine / Theirs chips still say exactly what they said. redlineCardIds
+   applies the SAME order as the card stack, so the pill above the column and
+   the column itself can never disagree about the population or the order.
+
+   THREE RANKS, read off the change RECORD so every list-builder can ask the
+   same question without rebuilding the verbs first:
+
+     0  NOBODY HAS ANSWERED IT — pending and not withdrawn; or the reader has
+        answered it on a page that HOLDS decisions until they press Send, so it
+        has settled nowhere yet and is still theirs to change.
+     1  ANSWERED, STILL OUTSTANDING — refused and not withdrawn. Decided, so it
+        belongs below anything still awaiting an answer; but NOT finished, and
+        deliberately not at the very bottom: it is the one state that blocks the
+        whole deal (negoAlignment), somebody has to withdraw it before either
+        side can signal readiness, and burying it under a stack of adopted
+        wording would hide the cause of a contract that will not move.
+     2  SETTLED — adopted, withdrawn, or an answer that has already gone.
+
+   Newest first inside each group, because that is where the work is. Ties fall
+   back to the filing sequence and then to the original position, so the order
+   is deterministic on a record whose timestamps collide. */
+function rlCardRank(ch, held){
+  if (!ch) return 2;
+  if (!ch.withdrawn && ch.status === 'pending') return 0;
+  if (held && held.has && held.has(ch.id)) return 0;
+  if (!ch.withdrawn && ch.status === 'rejected') return 1;
+  return 2;
+}
+const _rlFiledAt = ch => Date.parse(String((ch && ch.createdAt) || '')) || 0;
+function rlCardSort(list, held){
+  return (list || []).map((ch, i) => ({ ch, i })).sort((a, b) => {
+    const r = rlCardRank(a.ch, held) - rlCardRank(b.ch, held);
+    if (r) return r;
+    const t = _rlFiledAt(b.ch) - _rlFiledAt(a.ch);          // newest ask first
+    if (t) return t;
+    const s = (Number(b.ch && b.ch.seq) || 0) - (Number(a.ch && a.ch.seq) || 0);
+    if (s) return s;
+    return b.i - a.i;
+  }).map(x => x.ch);
+}
 /* How many redline actions sit with the OWNER seat on one contract: the other
    side's live asks awaiting a decision, plus our own drafts that have not left
    the building — the same two readings the cards and the wall are drawn from.
@@ -9727,7 +9838,7 @@ function redlineCardIds(c, opts = {}){
   const sentIds = new Set(opts.sentDecisionIds || []);
   const contestedAny = x => x && x.status === 'rejected' && !x.withdrawn;
   const mineOnly = rlMyCardIds(c, opts);
-  return all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
+  const kept = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
     || sentIds.has(x.id)) && !hidden.has(x.id)
     && (!mineOnly || mineOnly.has(String(x.id)))
     /* The reader's own cut, applied HERE as well as in the card list — this
@@ -9735,7 +9846,13 @@ function redlineCardIds(c, opts = {}){
        that ignored the filter would label a column it was not describing.
        Not applied to a reviewer's narrowed column: opts.countAll lets the
        chips ask for the unfiltered totals they print. */
-    && (opts.countAll || rlCardFilterPass(x, side))).map(x => x.id);
+    && (opts.countAll || rlCardFilterPass(x, side)));
+  /* THE SAME ORDER THE STACK DRAWS. This function is the stack's own predicate
+     and it is also what the pill counts — so it sorts as well as filters, or
+     the two lists would agree about the population and disagree about the
+     sequence. Sorting cannot change the length, so every chip's number is
+     untouched. See rlCardSort. */
+  return rlCardSort(kept, heldIds).map(x => x.id);
 }
 /* ---- YOU WERE ASKED TO LOOK AT A CLAUSE, NOT TO RUN THE ROUND ----
    While a review is open with this person, nothing they do on this contract
@@ -9905,24 +10022,49 @@ if (typeof document !== 'undefined' && !document._rlNoteMoreWired){
   });
 }
 
-function rlFloatingNoticesHtml(c, opts = {}){
-  const alerts = (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : '') || '';
-  const note = rlReadNoticeHtml() || '';
+/* ---- THE ONE STACK, AND EVERY BAND NOW ARRIVES IN IT ----
+   `opts.extraNotices` is how a caller hands over a notice that used to be a
+   band of its own: the readiness signal on the workbench, and the room's two
+   strips ("changes returned", "ready to sign") on the Document tab. They come
+   in as markup because they are built by their own screens and carry their own
+   colours and their own buttons — what they must NOT carry any more is a place
+   at the top of the page.
+
+   Deliberately one parameter rather than a second builder. A second notice
+   system is how a message ends up on a screen nobody reads: this stack already
+   folds behind one bell, clears per notice, and knows not to draw when it is
+   empty, and anything joining it inherits all three. */
+/* THE SHELL — the container, the fold, the bell and the Hide chip — with
+   whatever cards it has been given. Pulled out so the room's tabs can reach the
+   same mechanism without reaching the workbench's own notices with it: the
+   Document tab has no reading mode and no review banner of its own, and a
+   shared BUILDER that quietly brought both would be a change of behaviour
+   wearing a refactor's clothes. One shell, two doors, no second system.
+   `id` differs per door so two mounts on one page cannot collide. */
+function rlNoticeStackHtml(c, alerts, note, id){
+  const a = String(alerts || ''), n = String(note || '');
   /* Empty means empty: an always-present container would sit over the bottom
      corner of the contract catching clicks meant for the document. No alerts
      means NO BELL either — a bell with nothing behind it is furniture. */
-  if (!alerts && !note) return '';
+  if (!a && !n) return '';
   const cid = _nea(String((c && c.id) || ''));
   let stack;
-  if (!alerts) stack = note;
+  if (!a) stack = n;
   else if (rlNoticesFolded(c))
-    stack = note + `<button type="button" class="rl-notices-fab" data-rl-notices-open="${cid}"
+    stack = n + `<button type="button" class="rl-notices-fab" data-rl-notices-open="${cid}"
       aria-label="${_nea(i18t('ng_notices_fab'))}" title="${_nea(i18t('ng_notices_fab'))}">&#128276;<span class="rl-fab-dot"></span></button>`;
   else
     stack = `<button type="button" class="rl-notices-min" data-rl-notices-min="${cid}"
       aria-label="${_nea(i18t('ng_notices_min_title'))}" title="${_nea(i18t('ng_notices_min_title'))}">${i18t('ng_notices_min')} &#9662;</button>`
-      + alerts + note;
-  return `<div class="rl-notices" id="rl-notices">${stack}</div>`;
+      + a + n;
+  return `<div class="rl-notices" id="${_nea(id || 'rl-notices')}">${stack}</div>`;
+}
+function rlFloatingNoticesHtml(c, opts = {}){
+  const alerts = [
+    (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : '') || '',
+    String(opts.extraNotices || ''),
+  ].filter(Boolean).join('');
+  return rlNoticeStackHtml(c, alerts, rlReadNoticeHtml() || '', 'rl-notices');
 }
 /* ---- TWO REASONS THIS PERSON CANNOT REACH THE OTHER SIDE, ONE ANSWER ----
    A reviewer mid-review, and somebody who is not the lead of this negotiation.
@@ -10071,13 +10213,16 @@ function redlineChangeCardsHtml(c, opts = {}){
   const sentIds = new Set(opts.sentDecisionIds || []);
   const redeciding = id => _negoRedeciding[id];
   const mineOnly = rlMyCardIds(c, opts);
-  const changes = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
+  const changes = rlCardSort(all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
     || sentIds.has(x.id)) && !hidden.has(x.id)
     && (!mineOnly || mineOnly.has(String(x.id)))
     /* Whose asks the reader asked to see. The SAME predicate redlineCardIds
        applies, so the count above this list and the list itself cannot
        disagree — see rlCardFilterPass. */
-    && rlCardFilterPass(x, side));
+    && rlCardFilterPass(x, side)),
+    /* AND THE SAME ORDER, from the same function: still-open work first,
+       settled sinking to the bottom. See rlCardSort. */
+    heldIds);
   /* Named on the module so the tab pill above reads the same answer — see
      redlineCardIds directly below. */
   /* Which of OUR asks have never left the building. The engine already answers
@@ -10922,18 +11067,30 @@ function redlinePanesHtml(c, opts = {}){
            rlFloatingNoticesHtml at the foot of this builder, which is also
            where the note about the portal never learning of a review has gone.
 
-           What is left in this slot is the WALL LINE, which is not news: on the
-           counterparty's page it is the sentence explaining that their
-           decisions stay on the page until they press Send, and it belongs
-           where they will read it before they start. */
+           What is left in this slot is the WALL LINE, and it is the ONE
+           deliberate exception to "no bands" (Young, 12 Aug 2026). It is not
+           news: on the counterparty's page it is the sentence explaining that
+           their decisions stay on this page until they press Send, and a reader
+           who has not read it can start answering under a false idea of what
+           their clicks do. Folding it into the bottom-right stack would put it
+           behind a press — which is exactly the state it exists to prevent. It
+           stays, and it stays alone. */
       }${opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
       ''/* THE SET-ONCE EMAIL STRIP USED TO SIT HERE, and it was the last full
            width band between the top of this page and the first word of the
            contract. The address is a fact about the counterparty, so it is a
            Key terms row now — asked where their name is asked, not across a
            working surface. Nothing about sending changed: the dialog still
-           collects an address at send time for a contract that has none. */
-    }${window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : ''}</div>
+           collects an address at send time for a contract that has none.
+
+           AND THE READINESS SIGNAL HAS GONE THE SAME WAY (12 Aug 2026). "They
+           signalled they are ready to sign" was a full-width amber band above
+           the three columns, on both sides — useful the first time it is read
+           and furniture for the rest of the sitting, which is the case against
+           every band this page has already lost. It is a card in the
+           bottom-right stack now, with its own "Issue a signing link" button
+           still on it; see rlFloatingNoticesHtml at the foot of this builder. */
+    }</div>
     <div class="rl-turnwrap">${negoTurnBannerHtml(c, opts)}</div>
     <!-- nego-work is kept on the grid because the engine scopes its clause
          tooling under it (.nego-work .nego-pane …). Without it Change and
@@ -11076,8 +11233,12 @@ function redlinePanesHtml(c, opts = {}){
     </div>
     ${''/* OVER THE PAGE, NOT ABOVE IT — see rlFloatingNoticesHtml. Last in the
            markup and position:fixed, so it floats clear of the grid rather than
-           taking a row from it. */}
-    ${rlFloatingNoticesHtml(c, opts)}
+           taking a row from it. The readiness signal rides in as an extra: it
+           was a band in #rl-banner until 12 Aug 2026, it is a card here now, and
+           it is passed rather than built inside the stack because it is this
+           page's own notice with this page's own button on it. */}
+    ${rlFloatingNoticesHtml(c, { ...opts,
+      extraNotices: (window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : '') })}
   </div>`;
 }
 
@@ -11196,7 +11357,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
-  redlineCardIds, rlOneNoticeHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
+  redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
   rlCardForgetPins, rlCardOpenState,

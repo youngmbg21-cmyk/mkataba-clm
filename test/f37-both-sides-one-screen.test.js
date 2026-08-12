@@ -374,6 +374,16 @@ describe('an action by one side shows up on the other', () => {
     // he signals; Wanjiru's page carries the signal and the hand-off
     o.win.negoSignalReady(o.c, { side: 'counterparty', by: 'Erik Lindqvist' });
     o.win.renderRedline();
+    /* IT IS NOT A BAND ANY MORE (12 Aug 2026). "They signalled they are ready
+       to sign" was a full-width strip above the three columns; it is a card in
+       the bottom-right stack now, arriving folded behind the bell like every
+       other notice, with the bell's dot saying there is news. So the reader's
+       own press comes first, and the assertions below are unchanged: the same
+       sentences, one press away instead of across the top of the contract. */
+    const bell = o.ownerDoc().querySelector('[data-rl-notices-open]');
+    assert.ok(bell, 'the bell says something arrived');
+    bell.click();
+    o.win.renderRedline();
     const sig = o.ownerDoc().querySelector('#nego-ready-signal');
     assert.ok(sig, 'the signal reaches the owner\'s page');
     assert.match(sig.textContent, /Erik Lindqvist/);
@@ -382,6 +392,7 @@ describe('an action by one side shows up on the other', () => {
 
     // and the signal travels back to Erik's copy too, still without the owner's verb
     const v2 = counterpartyView(o.c);
+    v2.$('[data-rl-notices-open]')?.click();
     assert.ok(v2.$('#nego-ready-signal'), 'his own signal is visible on his page');
     assert.equal(v2.$('#nego-issue-signing'), null);
   });

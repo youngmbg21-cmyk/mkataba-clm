@@ -188,16 +188,41 @@ function mDocNoticesHtml(c){
     </div>`;
 }
 
+/* ---- AND THE PHONE'S NOTICES CAME OFF THE TOP OF THE CONTRACT TOO ----
+   They were drawn in flow, above .m-paper, which on a single-column screen is
+   exactly the band the desktop was asked to lose (Young, 12 Aug 2026). They
+   float bottom-right now, folded behind one bell, clear of the Copilot
+   launcher — and they share the DESKTOP's fold state (rlNoticesFolded), so a
+   contract whose notices a reader has put away stays that way whichever shell
+   they open it in. One mechanism, two shells, no second notice system.
+
+   Not the desktop's markup, though: a 42px bell and 12px type are a desk's
+   measurements. This is the phone's own drawing of the same idea, which is the
+   arrangement mDeskNoticeHtml already uses for the desk band. */
+function mNoticeStackHtml(c){
+  const cards = mDocNoticesHtml(c);
+  if(!cards) return '';
+  const id = mEsc(String((c && c.id) || ''));
+  const folded = (typeof rlNoticesFolded==='function') ? rlNoticesFolded(c) : true;
+  if(folded) return `<div class="m-notices" id="m-notices">
+    <button type="button" class="m-notices-fab" data-rl-notices-open="${id}"
+      aria-label="${mEsc(i18t('ng_notices_fab'))}">&#128276;<span class="m-notices-dot"></span></button>
+  </div>`;
+  return `<div class="m-notices m-notices-open" id="m-notices">
+    <button type="button" class="m-notices-min" data-rl-notices-min="${id}">${mEsc(i18t('ng_notices_min'))} &#9662;</button>
+    ${cards}
+  </div>`;
+}
 function mDocHtml(c){
   let body = '';
   try{ body = (typeof docBody==='function') ? docBody(c) : ''; }
   catch(e){ body = `<div class="m-note">${i18t('mc_could_not_draw')}</div>`; }
   return `
     <div class="m-scroll" style="padding:12px">
-      ${mDocNoticesHtml(c)}
       <div class="m-paper">${body}</div>
       <div style="height:8px"></div>
-    </div>`;
+    </div>
+    ${mNoticeStackHtml(c)}`;
 }
 
 /* ------------------------------------------------------ THE KEY-TERMS TAB --
@@ -658,5 +683,5 @@ function mWireContract(root){
 
 Object.assign(window,{ mContract, mLocked, mContractHtml, mDocHtml, mTermsHtml, mHistHtml,
   mActionBarHtml, mOverflowSheetHtml, mShareSheetHtml, mRenumberSheetHtml,
-  mContractAct, mWireContract, mDoNextAction, mShareCreate, mOpenShareSheet,
+  mContractAct, mWireContract, mDoNextAction, mShareCreate, mOpenShareSheet, mNoticeStackHtml,
   M_HIST_GROUP, M_SHARE_KINDS });
