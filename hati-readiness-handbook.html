@@ -1,0 +1,1219 @@
+<title>HaTi Readiness Handbook</title>
+<style>
+/* ============================================================
+   TOKENS — light is the base. Dark redefines tokens only.
+   ============================================================ */
+:root{
+  --ground:#F4F6F8;
+  --surface:#FFFFFF;
+  --surface-sunk:#EDF1F4;
+  --ink:#131A22;
+  --ink-soft:#5B6774;
+  --ink-faint:#8593A0;
+  --rule:#DBE2E8;
+  --rule-strong:#C2CCD6;
+  --accent:#16506B;
+  --accent-ink:#0E394D;
+  --accent-soft:#E2EDF3;
+  --accent-line:#9CC0D2;
+
+  --strong:#0F6E45;   --strong-bg:#E2F0E9;
+  --adequate:#8A6708; --adequate-bg:#F5EBD6;
+  --gap:#B0531A;      --gap-bg:#F7E7DA;
+  --missing:#96201D;  --missing-bg:#F7E1E0;
+
+  --shadow:0 1px 2px rgba(19,26,34,.05), 0 8px 24px -12px rgba(19,26,34,.18);
+
+  --serif:"Iowan Old Style","Charter","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+
+  --measure:68ch;
+  --wide:1120px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1319;
+    --surface:#151C24;
+    --surface-sunk:#111820;
+    --ink:#DCE4EC;
+    --ink-soft:#96A4B2;
+    --ink-faint:#6C7B8A;
+    --rule:#26313C;
+    --rule-strong:#36434F;
+    --accent:#77BAD9;
+    --accent-ink:#A9D6EC;
+    --accent-soft:#13303F;
+    --accent-line:#2E576E;
+
+    --strong:#55C293;   --strong-bg:#123326;
+    --adequate:#DCB255; --adequate-bg:#332913;
+    --gap:#E68F55;      --gap-bg:#3A2416;
+    --missing:#E97C76;  --missing-bg:#3A1B1A;
+
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1319;
+  --surface:#151C24;
+  --surface-sunk:#111820;
+  --ink:#DCE4EC;
+  --ink-soft:#96A4B2;
+  --ink-faint:#6C7B8A;
+  --rule:#26313C;
+  --rule-strong:#36434F;
+  --accent:#77BAD9;
+  --accent-ink:#A9D6EC;
+  --accent-soft:#13303F;
+  --accent-line:#2E576E;
+
+  --strong:#55C293;   --strong-bg:#123326;
+  --adequate:#DCB255; --adequate-bg:#332913;
+  --gap:#E68F55;      --gap-bg:#3A2416;
+  --missing:#E97C76;  --missing-bg:#3A1B1A;
+
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+a{color:var(--accent);text-underline-offset:2px;text-decoration-thickness:.06em}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+.kicker{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--ink-faint);
+  font-weight:600;
+}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+.shell{max-width:var(--wide);margin:0 auto;padding:0 24px 120px}
+
+/* ---- cover ---- */
+.cover{
+  padding:72px 0 40px;
+  border-bottom:2px solid var(--ink);
+  margin-bottom:0;
+}
+.cover .kicker{display:block;margin-bottom:22px}
+.cover h1{
+  font-size:clamp(38px,6.2vw,66px);
+  line-height:1.02;
+  margin:0 0 18px;
+  font-weight:600;
+  letter-spacing:-.018em;
+  text-wrap:balance;
+}
+.cover .standfirst{
+  font-size:clamp(18px,2.1vw,21px);
+  line-height:1.5;
+  color:var(--ink-soft);
+  max-width:56ch;
+  margin:0 0 36px;
+}
+.covermeta{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:20px 28px;
+  padding-top:26px;
+  border-top:1px solid var(--rule);
+}
+.covermeta dt{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-faint);margin:0 0 5px;font-weight:600;
+}
+.covermeta dd{margin:0;font-size:15px;line-height:1.4}
+
+/* ---- layout: rail + main ---- */
+.body{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:0;
+  padding-top:44px;
+}
+@media (min-width:1000px){
+  .body{grid-template-columns:206px minmax(0,1fr);gap:56px}
+}
+.rail{display:none}
+@media (min-width:1000px){
+  .rail{
+    display:block;
+    position:sticky;top:28px;align-self:start;
+    max-height:calc(100vh - 56px);overflow-y:auto;
+    padding-right:8px;
+  }
+}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rail a{
+  display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:baseline;
+  padding:7px 8px;border-radius:3px;
+  font-family:var(--mono);font-size:11.5px;line-height:1.35;letter-spacing:.02em;
+  color:var(--ink-soft);text-decoration:none;
+  border-left:2px solid transparent;
+}
+.rail a:hover{background:var(--surface-sunk);color:var(--ink)}
+.rail a .n{color:var(--ink-faint);font-size:10px}
+.rail a.on{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+.rail a.on .n{color:var(--accent)}
+.railhead{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-faint);padding:0 8px 10px;border-bottom:1px solid var(--rule);margin-bottom:10px;font-weight:600;
+}
+
+main{min-width:0}
+
+/* ============================================================
+   TYPE INSIDE MAIN
+   ============================================================ */
+.part{padding-top:8px;margin-bottom:76px;scroll-margin-top:24px}
+.parthead{margin-bottom:30px;padding-bottom:18px;border-bottom:1px solid var(--rule-strong)}
+.parthead .kicker{display:block;margin-bottom:12px;color:var(--accent)}
+.parthead h2{
+  font-size:clamp(27px,3.7vw,38px);line-height:1.12;margin:0 0 10px;
+  font-weight:600;letter-spacing:-.014em;text-wrap:balance;max-width:24ch;
+}
+.parthead p{margin:0;color:var(--ink-soft);font-size:17px;max-width:var(--measure)}
+
+main h3{
+  font-size:22px;line-height:1.25;margin:44px 0 12px;font-weight:600;
+  letter-spacing:-.008em;max-width:34ch;text-wrap:balance;
+}
+main h4{
+  font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent);margin:30px 0 8px;font-weight:600;
+}
+main p{margin:0 0 16px;max-width:var(--measure)}
+main ul,main ol{max-width:var(--measure);margin:0 0 18px;padding-left:22px}
+main li{margin-bottom:8px}
+main li::marker{color:var(--ink-faint)}
+strong{font-weight:600}
+em{font-style:italic}
+
+.term{
+  font-family:var(--mono);font-size:.87em;
+  background:var(--surface-sunk);border:1px solid var(--rule);
+  padding:.08em .38em;border-radius:3px;
+  color:var(--ink);white-space:nowrap;
+}
+
+/* ---- pull / analogy ---- */
+.analogy{
+  max-width:var(--measure);
+  margin:0 0 20px;
+  padding:16px 20px;
+  background:var(--surface);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--accent-line);
+  border-radius:0 4px 4px 0;
+}
+.analogy p{margin:0}
+.analogy p + p{margin-top:10px}
+.analogy .kicker{display:block;margin-bottom:7px;color:var(--accent)}
+
+/* ---- margin note / honesty flag ---- */
+.note{
+  max-width:var(--measure);
+  margin:0 0 20px;
+  padding:14px 18px;
+  border:1px dashed var(--rule-strong);
+  border-radius:4px;
+  background:var(--surface-sunk);
+  font-size:15.5px;
+  color:var(--ink-soft);
+}
+.note p{margin:0;max-width:none}
+.note p + p{margin-top:9px}
+.note .kicker{display:block;margin-bottom:6px}
+
+/* ---- found-in-code evidence ---- */
+.found{
+  max-width:var(--measure);
+  margin:0 0 22px;padding:16px 20px;
+  background:var(--accent-soft);
+  border-radius:4px;
+  border:1px solid var(--accent-line);
+  font-size:16px;
+}
+.found .kicker{display:block;margin-bottom:8px;color:var(--accent)}
+.found p{margin:0;max-width:none;color:var(--ink)}
+.found p + p{margin-top:10px}
+.found ul{margin:10px 0 0;max-width:none}
+.found li{margin-bottom:6px}
+
+/* ============================================================
+   PLATES (diagrams)
+   ============================================================ */
+.plate{
+  margin:34px 0 30px;
+  background:var(--surface);
+  border:1px solid var(--rule);
+  border-radius:5px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.plate-top{
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  padding:11px 18px;border-bottom:1px solid var(--rule);
+  background:var(--surface-sunk);
+}
+.plate-top .n{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.plate-top .t{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink-soft);text-align:right}
+.plate-body{padding:26px 20px;overflow-x:auto}
+.plate svg{display:block;margin:0 auto;max-width:100%;height:auto}
+.plate figcaption{
+  padding:13px 18px;border-top:1px solid var(--rule);
+  font-size:14.5px;color:var(--ink-soft);background:var(--surface-sunk);
+}
+/* svg theming */
+.sv-box{fill:var(--surface);stroke:var(--rule-strong);stroke-width:1.25}
+.sv-box-a{fill:var(--accent-soft);stroke:var(--accent-line);stroke-width:1.25}
+.sv-box-d{fill:none;stroke:var(--rule-strong);stroke-width:1.25;stroke-dasharray:4 4}
+.sv-line{stroke:var(--rule-strong);stroke-width:1.25;fill:none}
+.sv-line-a{stroke:var(--accent);stroke-width:1.5;fill:none}
+.sv-t{fill:var(--ink);font-family:var(--serif);font-size:13px}
+.sv-t-b{fill:var(--ink);font-family:var(--serif);font-size:13.5px;font-weight:600}
+.sv-l{fill:var(--ink-faint);font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:600}
+.sv-l-a{fill:var(--accent);font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:600}
+.sv-s{fill:var(--ink-soft);font-family:var(--serif);font-size:11.5px}
+.sv-arrow{fill:var(--rule-strong)}
+.sv-arrow-a{fill:var(--accent)}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+.tablewrap{
+  margin:26px 0 30px;
+  overflow-x:auto;
+  border:1px solid var(--rule);
+  border-radius:5px;
+  background:var(--surface);
+  box-shadow:var(--shadow);
+}
+table{border-collapse:collapse;width:100%;min-width:660px;font-size:15.5px}
+thead th{
+  text-align:left;padding:12px 16px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-faint);font-weight:600;
+  background:var(--surface-sunk);
+  border-bottom:1px solid var(--rule-strong);
+  white-space:nowrap;
+}
+tbody td{padding:13px 16px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:0}
+tbody th{
+  text-align:left;padding:13px 16px;border-bottom:1px solid var(--rule);
+  font-weight:600;vertical-align:top;line-height:1.5;
+}
+tbody tr:last-child th{border-bottom:0}
+.num{font-variant-numeric:tabular-nums}
+
+/* rating chips */
+.chip{
+  display:inline-block;white-space:nowrap;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;
+  padding:4px 8px;border-radius:3px;border:1px solid;
+}
+.c-strong{color:var(--strong);background:var(--strong-bg);border-color:var(--strong)}
+.c-adequate{color:var(--adequate);background:var(--adequate-bg);border-color:var(--adequate)}
+.c-gap{color:var(--gap);background:var(--gap-bg);border-color:var(--gap)}
+.c-missing{color:var(--missing);background:var(--missing-bg);border-color:var(--missing)}
+
+/* severity stripe on scorecard rows */
+.score tbody th{border-left:4px solid transparent}
+.score tr.s-strong th{border-left-color:var(--strong)}
+.score tr.s-adequate th{border-left-color:var(--adequate)}
+.score tr.s-gap th{border-left-color:var(--gap)}
+.score tr.s-missing th{border-left-color:var(--missing)}
+
+/* ============================================================
+   VERDICT PANEL
+   ============================================================ */
+.verdict{
+  margin:44px 0 8px;
+  border:1px solid var(--rule-strong);
+  border-radius:5px;
+  background:var(--surface);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.verdict-head{
+  padding:20px 24px 16px;border-bottom:1px solid var(--rule);
+  background:var(--surface-sunk);
+}
+.verdict-head .kicker{display:block;margin-bottom:9px;color:var(--accent)}
+.verdict-head h2{margin:0;font-size:25px;line-height:1.2;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.verdict-body{padding:22px 24px 6px}
+.verdict-body p{max-width:72ch}
+.tally{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:1px;background:var(--rule);border-top:1px solid var(--rule);
+}
+.tally div{background:var(--surface);padding:16px 18px}
+.tally .v{font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;display:block;margin-bottom:6px}
+.tally .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.tally .t-strong .v{color:var(--strong)}
+.tally .t-adequate .v{color:var(--adequate)}
+.tally .t-gap .v{color:var(--gap)}
+.tally .t-missing .v{color:var(--missing)}
+
+/* ============================================================
+   ACTION LIST
+   ============================================================ */
+.actions{list-style:none;padding:0;margin:22px 0 30px;max-width:var(--measure);display:flex;flex-direction:column;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+.actions li{margin:0;background:var(--surface);padding:16px 20px;display:grid;grid-template-columns:30px 1fr;gap:14px;align-items:start}
+.actions .num{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent);padding-top:3px}
+.actions .h{font-weight:600;display:block;margin-bottom:4px}
+.actions .d{color:var(--ink-soft);font-size:15.5px;line-height:1.5}
+.size{
+  display:inline-block;margin-left:8px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+  color:var(--ink-faint);border:1px solid var(--rule-strong);padding:2px 6px;border-radius:3px;
+  vertical-align:1px;white-space:nowrap;
+}
+
+/* questions */
+.qs{counter-reset:q;list-style:none;padding:0;margin:20px 0 30px;max-width:var(--measure)}
+.qs li{
+  counter-increment:q;margin:0 0 14px;padding:16px 20px 16px 20px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  border-left:3px solid var(--accent-line);
+}
+.qs .q{font-weight:600;display:block;margin-bottom:6px}
+.qs .a{color:var(--ink-soft);font-size:15.5px;line-height:1.5}
+
+hr.rule{border:0;border-top:1px solid var(--rule);margin:44px 0}
+
+.foot{
+  margin-top:60px;padding-top:26px;border-top:2px solid var(--ink);
+  font-size:14.5px;color:var(--ink-soft);max-width:var(--measure);
+}
+.foot p{max-width:none}
+
+@media (prefers-reduced-motion:no-preference){
+  html{scroll-behavior:smooth}
+}
+@media print{
+  .rail{display:none}
+  .body{grid-template-columns:1fr}
+  body{background:#fff;color:#000}
+}
+</style>
+
+<div class="shell">
+
+<!-- ============================ COVER ============================ -->
+<header class="cover">
+  <span class="kicker">Field guide &amp; readiness assessment</span>
+  <h1>How a platform gets built — and where HaTi actually stands</h1>
+  <p class="standfirst">A plain-English course in software architecture for someone who doesn't write code, followed by an unsentimental audit of HaTi against what a buyer's security team will actually check.</p>
+  <dl class="covermeta">
+    <div><dt>Prepared for</dt><dd>Young — HaTi</dd></div>
+    <div><dt>Date</dt><dd>12 August 2026</dd></div>
+    <div><dt>Basis</dt><dd>Direct reading of the <span class="term">mkataba-clm</span> repository</dd></div>
+    <div><dt>Reading time</dt><dd>About 45 minutes</dd></div>
+  </dl>
+</header>
+
+<div class="body">
+
+<!-- ============================ RAIL ============================ -->
+<nav class="rail" aria-label="Contents">
+  <div class="railhead">Contents</div>
+  <ol>
+    <li><a href="#verdict"><span class="n">00</span><span>Bottom line</span></a></li>
+    <li><a href="#p1"><span class="n">01</span><span>The vocabulary</span></a></li>
+    <li><a href="#p2"><span class="n">02</span><span>Where code lives</span></a></li>
+    <li><a href="#p3"><span class="n">03</span><span>Hosting</span></a></li>
+    <li><a href="#p4"><span class="n">04</span><span>What robust means</span></a></li>
+    <li><a href="#p5"><span class="n">05</span><span>The benchmark</span></a></li>
+    <li><a href="#p6"><span class="n">06</span><span>The scorecard</span></a></li>
+    <li><a href="#p7"><span class="n">07</span><span>What to do next</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ============================ VERDICT ============================ -->
+<section id="verdict" class="part" style="margin-bottom:64px">
+  <div class="verdict">
+    <div class="verdict-head">
+      <span class="kicker">Bottom line, before the detail</span>
+      <h2>HaTi is a genuinely well-built application sitting on a fragile operational foundation.</h2>
+    </div>
+    <div class="verdict-body">
+      <p>The <em>product</em> is stronger than most things at this stage. The logic that decides who may see, edit, send and sign a contract is enforced on the server, not just hidden in the interface, and it is covered by 3,020 automated tests across 195 files — many of them deliberately hostile, testing what happens when a dishonest browser lies to the server. I ran the suite while writing this: all 3,020 pass. The security document in the repository is more candid about its own limitations than most funded startups' are. That is real engineering, and you should not undersell it.</p>
+      <p>The <em>operations</em> around it are where a due-diligence meeting would get uncomfortable. There is no automated backup. There is no monitoring, so if HaTi went down at 2am you would find out from a customer. There is no staging environment, so every change is tested in production. The database is a single file on a single 1&nbsp;GB disk on a single server, unencrypted at rest. And the system is <strong>single-tenant by design</strong> — the code's own notes say it plainly — so you cannot put two customers on one installation without a real risk of one seeing the other's contracts.</p>
+      <p>None of these are hard problems. Most are a day or a week of work each. But they are the exact list a buyer's IT reviewer works through, and today most of the answers are "no".</p>
+    </div>
+    <div class="tally">
+      <div class="t-strong"><span class="v num">5</span><span class="k">Strong</span></div>
+      <div class="t-adequate"><span class="v num">4</span><span class="k">Adequate</span></div>
+      <div class="t-gap"><span class="v num">7</span><span class="k">Gap</span></div>
+      <div class="t-missing"><span class="v num">5</span><span class="k">Missing</span></div>
+    </div>
+  </div>
+  <p style="margin-top:20px;color:var(--ink-soft);font-size:15.5px;max-width:var(--measure)">Every claim about HaTi below comes from reading the actual files. Where I could not verify something from inside the repository, I say so rather than guess — those places are marked.</p>
+</section>
+
+<!-- ============================ PART 1 ============================ -->
+<section id="p1" class="part">
+  <div class="parthead">
+    <span class="kicker">Part one</span>
+    <h2>The vocabulary</h2>
+    <p>Roughly a dozen words carry most of a technical conversation. Once these are solid, you can follow almost any discussion about a web platform.</p>
+  </div>
+
+  <h3>The three pieces every platform has</h3>
+
+  <div class="analogy">
+    <span class="kicker">The restaurant</span>
+    <p>Think of a restaurant. The <strong>dining room</strong> is what the customer sees and touches — the menu, the table, the waiter taking the order. The <strong>kitchen</strong> is where the actual work happens, out of sight, and where all the rules live: what can be cooked, who is allowed to order what, whether you've paid. The <strong>store room</strong> holds the ingredients permanently, so that closing for the night doesn't lose everything.</p>
+    <p>Dining room = <strong>frontend</strong>. Kitchen = <strong>backend</strong>. Store room = <strong>database</strong>.</p>
+  </div>
+
+  <p>The <strong>frontend</strong> is everything that runs inside the user's own web browser: the buttons, the layout, the contract text on screen, the animations. It is downloaded to their computer and runs there. This matters enormously for security: <em>anything in the frontend, the user can read and change.</em> A determined person can open their browser's developer tools and rewrite it. So the frontend can never be where a rule is enforced — it is only where a rule is <em>displayed</em>.</p>
+
+  <p>The <strong>backend</strong> is a program running on a computer you control, somewhere else. The browser sends it messages ("give me contract 47", "save this change") and it decides whether to obey. Because the user cannot touch it, this is the only place a rule is genuinely enforced. When an engineer says "we enforce that server-side", they mean the real lock is on the kitchen door, not just a sign in the dining room.</p>
+
+  <p>The <strong>database</strong> is organised, permanent storage. Not a folder of files — a structured system that can answer questions quickly ("every contract expiring next month, worth over 5 million, in the Procurement stream") and that guarantees a half-finished write doesn't corrupt everything.</p>
+
+  <figure class="plate">
+    <div class="plate-top"><span class="n">Plate 1</span><span class="t">The three tiers, and where the trust boundary sits</span></div>
+    <div class="plate-body">
+      <svg viewBox="0 0 700 250" role="img" aria-label="Diagram: browser frontend on the user's computer, connected across a trust boundary to a backend server and database that you control.">
+        <!-- user side -->
+        <rect x="14" y="46" width="200" height="130" rx="4" class="sv-box-d"/>
+        <text x="24" y="38" class="sv-l">Their computer — untrusted</text>
+        <rect x="34" y="74" width="160" height="74" rx="3" class="sv-box-a"/>
+        <text x="114" y="103" class="sv-t-b" text-anchor="middle">Frontend</text>
+        <text x="114" y="122" class="sv-s" text-anchor="middle">Buttons, layout, the</text>
+        <text x="114" y="137" class="sv-s" text-anchor="middle">document on screen</text>
+
+        <!-- boundary -->
+        <line x1="252" y1="18" x2="252" y2="232" class="sv-line" stroke-dasharray="3 5"/>
+        <text x="252" y="14" class="sv-l-a" text-anchor="middle">Trust boundary</text>
+        <text x="252" y="246" class="sv-l" text-anchor="middle">Internet</text>
+
+        <!-- arrows -->
+        <path d="M198 100 H300" class="sv-line-a"/>
+        <polygon points="300,100 292,96 292,104" class="sv-arrow-a"/>
+        <text x="249" y="92" class="sv-l-a" text-anchor="middle">Request</text>
+        <path d="M300 128 H198" class="sv-line"/>
+        <polygon points="198,128 206,124 206,132" class="sv-arrow"/>
+        <text x="249" y="146" class="sv-l" text-anchor="middle">Response</text>
+
+        <!-- your side -->
+        <rect x="304" y="46" width="382" height="130" rx="4" class="sv-box-d"/>
+        <text x="314" y="38" class="sv-l">Your server — trusted</text>
+        <rect x="324" y="74" width="150" height="74" rx="3" class="sv-box-a"/>
+        <text x="399" y="103" class="sv-t-b" text-anchor="middle">Backend</text>
+        <text x="399" y="122" class="sv-s" text-anchor="middle">Decides who may</text>
+        <text x="399" y="137" class="sv-s" text-anchor="middle">do what. The lock.</text>
+
+        <path d="M478 111 H510" class="sv-line"/>
+        <polygon points="510,111 502,107 502,115" class="sv-arrow"/>
+
+        <rect x="514" y="74" width="150" height="74" rx="3" class="sv-box"/>
+        <text x="589" y="103" class="sv-t-b" text-anchor="middle">Database</text>
+        <text x="589" y="122" class="sv-s" text-anchor="middle">Contracts, users,</text>
+        <text x="589" y="137" class="sv-s" text-anchor="middle">signatures, audit</text>
+
+        <text x="14" y="212" class="sv-s">A rule enforced only on the left is a suggestion. A rule enforced on the right is a rule.</text>
+      </svg>
+    </div>
+    <figcaption>The single most important idea in this document. Everything to the left of the dashed line belongs to whoever is sitting at that computer — including a hostile counterparty.</figcaption>
+  </figure>
+
+  <h3>The rest of the words</h3>
+
+  <p>An <strong>API</strong> (Application Programming Interface) is the fixed menu of messages the backend will accept. Instead of the frontend rummaging around in the kitchen, it can only place orders from a defined list: <span class="term">GET /api/contracts</span> means "list the contracts", <span class="term">POST /api/shares</span> means "create a share link". The API is the shape of the kitchen door. A well-designed API is narrow — few doors, each carefully guarded.</p>
+
+  <p>A <strong>framework</strong> is a pre-built skeleton for an application: it makes most of the structural decisions for you, and you fill in the rest. A <strong>library</strong> is smaller — a specific tool you call when you need it. The blunt distinction: <em>your code calls a library; a framework calls your code.</em> A framework saves months but locks in someone else's assumptions; a library saves hours and stays out of your way.</p>
+
+  <p>A <strong>dependency</strong> is any code written by someone else that your platform needs in order to run. This is normal and universal — nobody writes everything from scratch. But every dependency is a company or a volunteer you are now trusting: if they ship a bug, you ship a bug; if their account gets hacked and malicious code is published, it can end up running on your server. This is called <strong>supply chain risk</strong>, and it is one of the questions an enterprise buyer will ask.</p>
+
+  <p>A <strong>repository</strong> ("repo") is the project — all its files, plus its complete history. See Part 2.</p>
+
+  <p>An <strong>environment</strong> is one running copy of the whole system. Professional teams keep at least three: <strong>development</strong> (on an engineer's own laptop, breakable), <strong>staging</strong> (a full copy that looks exactly like the real thing, for final checks), and <strong>production</strong> (the real one, with real customers' real contracts in it). The reason for staging is simple and expensive to learn the hard way: you want to discover a mistake on fake data.</p>
+
+  <p>A <strong>build</strong> is the step that converts what engineers write into what actually runs — compressing files, converting newer language features into ones older browsers understand, bundling hundreds of files into a few. A <strong>deploy</strong> is the act of putting the new version onto the production server so real users get it.</p>
+
+  <h3>What a programming language is, and how one gets chosen</h3>
+
+  <p>A programming language is a precise way of writing instructions that a computer can carry out with no ambiguity. Languages differ in the same way that a legal contract differs from a memo: some are extremely strict and verbose, catching errors before anything runs; others are loose and quick, catching errors only when they happen.</p>
+
+  <p>In practice, a language is almost never chosen on technical merit alone. The four real reasons are:</p>
+  <ul>
+    <li><strong>Who you can hire.</strong> A brilliant language nobody in your city writes is a liability.</li>
+    <li><strong>What already exists.</strong> If mature, well-tested libraries for your problem exist in one language, that usually settles it.</li>
+    <li><strong>What the team already knows.</strong> Speed of building beats theoretical elegance at early stage, every time.</li>
+    <li><strong>Where it has to run.</strong> Anything running inside a web browser must ultimately be JavaScript, because that is the only language browsers execute.</li>
+  </ul>
+
+  <h3>What HaTi is actually built with</h3>
+
+  <div class="found">
+    <span class="kicker">Found in the repository</span>
+    <ul>
+      <li><strong>Language:</strong> JavaScript, on both sides. The frontend is roughly 66,000 lines across about 55 files in <span class="term">js/</span>. The backend is a single file, <span class="term">server/server.js</span>, of 8,111 lines.</li>
+      <li><strong>Backend runtime:</strong> Node.js, version 22.5 or newer.</li>
+      <li><strong>Backend framework:</strong> Express 4 — and it is the <em>only</em> production dependency in the entire project.</li>
+      <li><strong>Database:</strong> SQLite, using the version built into Node itself (<span class="term">node:sqlite</span>) rather than an add-on. About 26 tables — contracts, users, sessions, shares, signatures, templates, an AI usage log, and more.</li>
+      <li><strong>Frontend framework:</strong> none. No React, no Vue. Plain JavaScript modules loaded by the browser directly.</li>
+      <li><strong>Build step:</strong> none. The files you write are the files that run.</li>
+      <li><strong>Styling:</strong> Tailwind CSS, but vendored — copied into <span class="term">index.html</span> rather than fetched from the internet at page load. There are <em>no</em> external scripts or fonts loaded from third-party servers. Fonts are self-hosted in <span class="term">fonts/</span>.</li>
+    </ul>
+  </div>
+
+  <p>What this choice means in practice — the honest version, both directions:</p>
+
+  <p><strong>The good.</strong> One production dependency is remarkable restraint. A typical Node application of this size pulls in 800–1,500 third-party packages, each one a small trust decision and a potential vulnerability. HaTi has one. No external CDN scripts means no third-party can push code into your users' browsers and no outage elsewhere takes your app down. No build step means what an engineer reads is exactly what runs — no class of bugs where the build produces something different from the source. One language across both sides means one skill to hire for. These are real, defensible engineering decisions, and you should say so confidently.</p>
+
+  <p><strong>The cost.</strong> An 8,111-line single backend file and a 306,000-character single frontend file (<span class="term">js/core.js</span>) are past the size where one person can hold them in their head. This is the kind of thing that makes a technical reviewer wince, and makes onboarding a second engineer slow and risky. SQLite is a superb database, but it is a <em>file on one machine</em> — it cannot be shared by several servers at once, which caps how you can grow (Part 3). And JavaScript's looseness means a whole category of mistakes that a stricter language would catch before running are only caught by tests — which is presumably why there are 195 test files.</p>
+
+  <div class="note">
+    <span class="kicker">Worth knowing</span>
+    <p>You will hear "monolith" used as an insult. It isn't one. A monolith is one program that does everything, and for a product at HaTi's stage it is almost always the correct choice — it is simpler to run, cheaper to host, and easier to reason about than the "microservices" alternative. The problem with HaTi is not that it is a monolith; it is that individual <em>files</em> inside it have grown too large.</p>
+  </div>
+</section>
+
+<!-- ============================ PART 2 ============================ -->
+<section id="p2" class="part">
+  <div class="parthead">
+    <span class="kicker">Part two</span>
+    <h2>Where code lives</h2>
+    <p>Three places at once — your laptop, Git, and GitHub — and understanding why is the difference between a hobby project and a company asset.</p>
+  </div>
+
+  <h3>The three places, and what each one is actually for</h3>
+
+  <p><strong>Your computer</strong> is the workshop. It is where files get edited and where the app runs while you are building it. It is fast, private, and completely disposable — nothing important should exist only here.</p>
+
+  <p><strong>Git</strong> is a system that records the history of a project. It lives <em>on</em> your computer, inside a hidden folder in the project. Every time you deliberately record a snapshot — a <strong>commit</strong> — Git stores exactly what every file looked like at that moment, who did it, when, and a short note about why. It never overwrites; it accumulates. This means you can go back to any past state, and you can see precisely what changed between any two moments.</p>
+
+  <div class="analogy">
+    <span class="kicker">The contract analogy</span>
+    <p>Git is version control for code, and you already know version control — it is what an executed contract with a full amendment history gives you. A commit is an executed amendment: dated, attributed, describing what changed and why, and never erased. "What did clause 12 say in March, and who changed it?" is a question Git answers in one second, forever.</p>
+  </div>
+
+  <p><strong>GitHub</strong> is a company that hosts Git repositories on the internet. It is not the same thing as Git — Git is the technology, GitHub is a service built around it. Three reasons professionals use it:</p>
+  <ul>
+    <li><strong>It is the off-site copy.</strong> Your laptop can be stolen, dropped, or encrypted by ransomware.</li>
+    <li><strong>It is where more than one person can work.</strong> Everyone has their own full copy; GitHub is the agreed meeting point.</li>
+    <li><strong>It is where the safety machinery runs.</strong> Automated tests, code review, deployment triggers — all hang off GitHub.</li>
+  </ul>
+
+  <p>So the answer to "why not just pick one?" is that they do different jobs. Your computer is where work happens; Git is the memory; GitHub is the safe, the meeting room, and the alarm system.</p>
+
+  <figure class="plate">
+    <div class="plate-top"><span class="n">Plate 2</span><span class="t">The path a change takes, from an idea to a customer</span></div>
+    <div class="plate-body">
+      <svg viewBox="0 0 720 290" role="img" aria-label="Diagram: a change moves from a laptop through a Git commit, a branch pushed to GitHub, a pull request with automated tests and review, a merge to the main branch, and an automatic deploy to the live server.">
+        <text x="8" y="18" class="sv-l">1 — Your computer</text>
+        <rect x="8" y="28" width="148" height="60" rx="3" class="sv-box"/>
+        <text x="82" y="53" class="sv-t-b" text-anchor="middle">Edit files</text>
+        <text x="82" y="72" class="sv-s" text-anchor="middle">Run it locally</text>
+
+        <path d="M160 58 H196" class="sv-line"/><polygon points="196,58 188,54 188,62" class="sv-arrow"/>
+
+        <text x="200" y="18" class="sv-l">2 — Git (local)</text>
+        <rect x="200" y="28" width="148" height="60" rx="3" class="sv-box"/>
+        <text x="274" y="53" class="sv-t-b" text-anchor="middle">Commit</text>
+        <text x="274" y="72" class="sv-s" text-anchor="middle">A dated snapshot</text>
+
+        <path d="M352 58 H388" class="sv-line"/><polygon points="388,58 380,54 380,62" class="sv-arrow"/>
+
+        <text x="392" y="18" class="sv-l-a">3 — GitHub</text>
+        <rect x="392" y="28" width="320" height="150" rx="4" class="sv-box-d"/>
+        <rect x="408" y="42" width="132" height="52" rx="3" class="sv-box-a"/>
+        <text x="474" y="64" class="sv-t-b" text-anchor="middle">Branch</text>
+        <text x="474" y="82" class="sv-s" text-anchor="middle">A side copy</text>
+
+        <path d="M544 68 H568" class="sv-line-a"/><polygon points="568,68 560,64 560,72" class="sv-arrow-a"/>
+        <rect x="572" y="42" width="126" height="52" rx="3" class="sv-box-a"/>
+        <text x="635" y="64" class="sv-t-b" text-anchor="middle">Pull request</text>
+        <text x="635" y="82" class="sv-s" text-anchor="middle">"Please check"</text>
+
+        <rect x="408" y="108" width="290" height="54" rx="3" class="sv-box"/>
+        <text x="553" y="129" class="sv-t-b" text-anchor="middle">Automated tests + human review</text>
+        <text x="553" y="148" class="sv-s" text-anchor="middle">Both must pass before it may merge</text>
+        <path d="M474 98 V104" class="sv-line"/>
+        <path d="M635 98 V104" class="sv-line"/>
+
+        <path d="M553 182 V206" class="sv-line-a"/><polygon points="553,206 549,198 557,198" class="sv-arrow-a"/>
+        <text x="566" y="198" class="sv-l-a">Merge to main</text>
+
+        <text x="392" y="228" class="sv-l">4 — Deploy</text>
+        <rect x="392" y="238" width="320" height="46" rx="3" class="sv-box-a"/>
+        <text x="552" y="266" class="sv-t-b" text-anchor="middle">Live server — customers see it</text>
+
+        <text x="8" y="238" class="sv-l">The rule</text>
+        <text x="8" y="258" class="sv-s">Nothing reaches a customer that</text>
+        <text x="8" y="274" class="sv-s">has not passed the tests.</text>
+      </svg>
+    </div>
+    <figcaption>A <strong>branch</strong> is a private side copy where you can break things safely. A <strong>pull request</strong> is the formal proposal to merge that branch back into the official version — and it is the natural place to run tests and require a second pair of eyes.</figcaption>
+  </figure>
+
+  <h3>Branches, commits, pull requests, review</h3>
+
+  <p>A <strong>commit</strong> is one recorded change with a message. Good practice is small and frequent: each commit does one thing and its message says what and why. This is what makes it possible, months later, to find the exact change that broke something.</p>
+
+  <p>A <strong>branch</strong> is a parallel line of history. The official one is called <span class="term">main</span>. When you start a piece of work you make a branch off <span class="term">main</span>, work on it freely — including breaking things — and <span class="term">main</span> stays untouched and shippable the whole time.</p>
+
+  <p>A <strong>pull request</strong> (PR) is the request to fold your branch back into <span class="term">main</span>. It shows exactly what changed, line by line. Two things get attached to it: automated tests that must pass, and a human who must approve. <strong>Code review</strong> is that human step, and its value is not mainly catching bugs — it is that a second person now understands that part of the system. In a one-person company that sounds pointless; it is what makes the company survivable when there are two people, and it is what an acquirer looks for.</p>
+
+  <p><strong>Branch protection</strong> is the setting on GitHub that makes this real rather than aspirational: it forbids anyone — including you — from writing directly to <span class="term">main</span>, and refuses a merge until tests pass. Without it, the whole process is a habit that gets skipped at 11pm.</p>
+
+  <h3>What happens if your laptop dies</h3>
+
+  <p>If your work is committed and <strong>pushed</strong> to GitHub: you buy a new laptop, run one command to <strong>clone</strong> the repository, and you have every file and every commit back. You lose only what you hadn't pushed.</p>
+
+  <p>If it is <em>not</em> pushed: it is gone. There is no recovery. This is why "the truth lives on GitHub" is the operating rule — your laptop holds a working copy, not the asset. If it isn't on GitHub, it doesn't exist.</p>
+
+  <div class="note">
+    <span class="kicker">Important distinction</span>
+    <p>GitHub protects your <strong>code</strong>. It does <em>not</em> protect your customers' <strong>data</strong> — the contracts, users and signatures live in the database on the production server, which GitHub never sees. Those need a separate backup, and that is a different problem, covered in Part 4.</p>
+  </div>
+
+  <h3>How HaTi is set up today</h3>
+
+  <div class="found">
+    <span class="kicker">Found in the repository</span>
+    <ul>
+      <li>Git is in use, hosted on GitHub at <span class="term">youngmbg21-cmyk/mkataba-clm</span>. There is a <span class="term">main</span> branch and feature branches.</li>
+      <li>Secrets are handled correctly: <span class="term">.env</span> files are excluded from Git, and a placeholder-only <span class="term">.env.example</span> is committed so a new engineer knows what to fill in. The Render deployment file explicitly refuses to store the email API key. This is textbook and you should keep doing it.</li>
+      <li>Automated tests run on GitHub on every push and every pull request (<span class="term">.github/workflows/tests.yml</span>). This is the single most valuable piece of professional infrastructure in the project. Running the suite while writing this gave 3,020 tests across 660 groups, all passing, in under four minutes.</li>
+      <li>The visible history is 62 commits by 2 authors, with the earliest dated 9 August 2026 — three days before this assessment.</li>
+      <li><span class="term">package-lock.json</span> is deliberately <em>excluded</em> from Git, and the workflow comment says so explicitly. CI therefore runs <span class="term">npm install</span> rather than <span class="term">npm ci</span>.</li>
+      <li>There is no <span class="term">CODEOWNERS</span> file, no Dependabot configuration, and no LICENSE file.</li>
+    </ul>
+  </div>
+
+  <p>Three things about that are worth being direct about.</p>
+
+  <p><strong>The missing lockfile is a genuine problem, not a style preference.</strong> A lockfile records the exact version of every dependency, down to the digit. With one, a build today and a build in six months produce byte-for-byte the same thing. Without one, the server installs "whatever is newest that roughly fits" at the moment it happens to deploy — so a dependency author can change your production system without you doing anything. HaTi's exposure is unusually small because it has one production dependency, but the same command also installs the test tooling, and "we can't reproduce a build from six months ago" is a bad answer in a security questionnaire. This is a five-minute fix: delete two lines from <span class="term">.gitignore</span>, commit the lockfile, change <span class="term">npm install</span> to <span class="term">npm ci</span> in the workflow.</p>
+
+  <p><strong>Three days of history and 62 commits does not match a codebase this size.</strong> A 75,000-line application is many months of work. So the history was almost certainly reset, squashed, or the project was re-created at some point. That is not a disaster, but it does mean you have lost the ability to answer "when did this change and why" for everything before 9 August — the single most useful thing Git gives you.</p>
+
+  <div class="note">
+    <span class="kicker">I could not verify this</span>
+    <p>From inside the repository I cannot see whether branch protection is switched on, whether pull requests are required, or whether an older repository exists elsewhere with the earlier history. Check on GitHub under <em>Settings → Branches</em>, and tell me what you find — it changes two ratings in Part 6.</p>
+  </div>
+
+  <p><strong>52 of the 62 commits are authored by "Claude".</strong> That is simply a fact about how this was built, and it is not inherently a problem. But it means there is no record of a second human having reviewed this code, and that is a question a serious investor or acquirer will ask about a platform holding other companies' contracts. The answer they want to hear is "here is our review process, and here is an independent audit". Part 7 covers how to get there.</p>
+</section>
+
+<!-- ============================ PART 3 ============================ -->
+<section id="p3" class="part">
+  <div class="parthead">
+    <span class="kicker">Part three</span>
+    <h2>Hosting, explained properly</h2>
+    <p>Whose computer is it, where does it physically sit, who pays for it, and what breaks when it stops.</p>
+  </div>
+
+  <h3>What hosting actually is</h3>
+
+  <p>Strip away the language and hosting is this: <strong>a computer, owned by someone else, sitting in a warehouse, that is switched on permanently and connected to the internet with a permanent address.</strong> You rent a share of it by the month. That warehouse is a <strong>data centre</strong> — a building full of racks of computers with industrial power, backup generators, cooling, and physical security.</p>
+
+  <p>That rented computer is what people mean by "a <strong>server</strong>". The word describes a job, not a special kind of machine: a server is any computer whose job is to sit and wait for requests and answer them. Your laptop could do it; it just isn't switched on permanently, doesn't have a fixed address, and would go down when you close the lid.</p>
+
+  <p>"The <strong>cloud</strong>" means only that you are renting rather than owning — you never see the machine and can rent more of it in a minute. It is not vague. It is someone's warehouse.</p>
+
+  <h3>Domain, DNS, and HTTPS</h3>
+
+  <p>A <strong>domain name</strong> is a name you rent annually from a registrar — <span class="term">hati.co.ke</span>, say. You rent it; you never own it. Letting it lapse is one of the classic ways a company loses its product overnight.</p>
+
+  <p><strong>DNS</strong> (Domain Name System) is the internet's phone book. Computers find each other by number (an IP address like <span class="term">216.24.57.1</span>), not by name. DNS is the lookup that turns your name into that number. When someone types your address, their computer asks DNS "where is this?", gets a number back, and connects. When engineers say "it's a DNS issue", they mean the phone book entry is wrong or hasn't spread yet — changes can take minutes to hours to reach everyone.</p>
+
+  <p><strong>HTTPS</strong> is the encrypted version of the web's basic protocol, and it does two separate jobs. It <em>scrambles</em> everything travelling between the browser and your server, so anyone watching the network — an airport wifi operator, an internet provider — sees unreadable noise instead of contract text. And it <em>proves identity</em>: an <strong>SSL/TLS certificate</strong>, issued by an authority browsers already trust, confirms the server really is who it claims to be, which is what stops someone impersonating your site. The padlock in the browser is the visible result. For a contract platform HTTPS is not optional; it is the floor.</p>
+
+  <h3>Why frontend and backend are often hosted separately</h3>
+
+  <p>They have genuinely different needs. The frontend is a fixed set of files that never change between users — everyone downloads the same thing. That can be copied to dozens of machines around the world so it loads instantly everywhere, and it is extremely cheap, often free. The backend is a running program that must think, check permissions and read a database. It needs real computing power, it costs proper money, and it must be near the database.</p>
+
+  <p>So the common professional pattern is: frontend on a global distribution network (Netlify, Vercel, Cloudflare Pages), backend on an application host (Render, Fly.io, AWS, a rented server), database managed separately.</p>
+
+  <p>It is entirely legitimate to serve both from one program instead. It is simpler, it removes a whole class of configuration problems, and at HaTi's scale the performance difference is irrelevant. HaTi does exactly this, and it is the right call for now.</p>
+
+  <h3>Where the database sits, and whose problem it is</h3>
+
+  <p>Two models, and the difference matters more than almost anything else in this document.</p>
+
+  <p><strong>Self-managed:</strong> the database is a file or program on your own server. You are responsible for backups, for upgrades, for making sure it doesn't fill the disk, for recovery when it corrupts. It is cheap and completely under your control.</p>
+
+  <p><strong>Managed:</strong> you rent a database as a service (Amazon RDS, Supabase, Neon, Render Postgres). The provider handles backups, replication, patching and point-in-time recovery. It costs more and you have less control. Almost every company selling software to other businesses uses managed, for one reason: <em>a provider whose entire business is not losing databases will lose yours less often than you will.</em></p>
+
+  <h3>How HaTi is hosted today, and what it costs you in risk</h3>
+
+  <div class="found">
+    <span class="kicker">Found in the repository</span>
+    <ul>
+      <li><span class="term">render.yaml</span> defines a deployment to <strong>Render</strong>: one web service, <span class="term">plan: starter</span>, running <span class="term">npm start</span> — a single Node process serving both the API and the frontend.</li>
+      <li>A <strong>1&nbsp;GB persistent disk</strong> is mounted at <span class="term">/var/data</span>, and <span class="term">HATI_DATA</span> points the app at it. The file's own comment warns that without this, every deploy wipes all contracts and accounts.</li>
+      <li>The database is a single SQLite file, <span class="term">hati.db</span>, on that disk. Uploaded documents are stored in the same database.</li>
+      <li>A health check is configured at <span class="term">/api/status</span>, so Render can tell whether the app is alive.</li>
+      <li>HTTPS is handled by Render; the app sets <span class="term">HTTPS=true</span>, which switches on secure cookies, HSTS and an http→https redirect.</li>
+      <li><span class="term">DEPLOYMENT.md</span> also documents self-hosting behind Caddy or nginx with a systemd service — a genuinely good, complete runbook.</li>
+      <li>Only one service is defined. There is no staging environment.</li>
+    </ul>
+  </div>
+
+  <figure class="plate">
+    <div class="plate-top"><span class="n">Plate 3</span><span class="t">HaTi as deployed today — every box is the same box</span></div>
+    <div class="plate-body">
+      <svg viewBox="0 0 700 240" role="img" aria-label="Diagram: a browser connects over HTTPS to a single Render server that runs the frontend, backend and SQLite database together on one one-gigabyte disk, with no second instance and no backup.">
+        <rect x="10" y="70" width="126" height="62" rx="3" class="sv-box"/>
+        <text x="73" y="96" class="sv-t-b" text-anchor="middle">Browser</text>
+        <text x="73" y="115" class="sv-s" text-anchor="middle">Anywhere</text>
+
+        <path d="M140 101 H196" class="sv-line-a"/><polygon points="196,101 188,97 188,105" class="sv-arrow-a"/>
+        <text x="168" y="93" class="sv-l-a" text-anchor="middle">HTTPS</text>
+
+        <rect x="200" y="34" width="392" height="150" rx="4" class="sv-box-d"/>
+        <text x="210" y="26" class="sv-l">Render — one machine, "starter" plan</text>
+
+        <rect x="218" y="54" width="160" height="50" rx="3" class="sv-box-a"/>
+        <text x="298" y="76" class="sv-t-b" text-anchor="middle">Node process</text>
+        <text x="298" y="93" class="sv-s" text-anchor="middle">Frontend + backend</text>
+
+        <rect x="218" y="116" width="160" height="50" rx="3" class="sv-box"/>
+        <text x="298" y="138" class="sv-t-b" text-anchor="middle">hati.db</text>
+        <text x="298" y="155" class="sv-s" text-anchor="middle">SQLite, unencrypted</text>
+        <path d="M298 108 V112" class="sv-line"/>
+
+        <rect x="396" y="54" width="178" height="112" rx="3" class="sv-box-d"/>
+        <text x="485" y="98" class="sv-t" text-anchor="middle">1 GB disk</text>
+        <text x="485" y="118" class="sv-s" text-anchor="middle">Contracts, files, users</text>
+        <text x="485" y="136" class="sv-s" text-anchor="middle">all live here only</text>
+        <path d="M382 141 H392" class="sv-line"/>
+
+        <text x="612" y="86" class="sv-l">No second</text>
+        <text x="612" y="102" class="sv-l">instance</text>
+        <text x="612" y="126" class="sv-l">No automatic</text>
+        <text x="612" y="142" class="sv-l">backup</text>
+
+        <text x="10" y="212" class="sv-s">Single point of failure: if this machine or this disk is lost, so is everything on it.</text>
+        <text x="10" y="230" class="sv-s">Nothing here is wrong for a prototype. All of it is wrong for a paying customer.</text>
+      </svg>
+    </div>
+    <figcaption>Render's "starter" plan is a single instance. That is not a criticism of Render — it is the correct cheap tier for pre-revenue. It becomes a liability the moment someone pays you.</figcaption>
+  </figure>
+
+  <p><strong>The risks this creates, in order of how much they should worry you:</strong></p>
+
+  <ul>
+    <li><strong>Everything lives in one place, with no automatic copy.</strong> The database, the uploaded documents and the audit trails are all on one 1&nbsp;GB disk. The documented backup is "an admin clicks export" or "stop the process and copy the file". If that disk is lost, corrupted, or if someone deletes the wrong thing, your customers' executed contracts are gone. For a contract platform this is the single most serious finding in this document.</li>
+    <li><strong>You cannot run a second copy.</strong> SQLite is a file — two servers cannot safely share it. The code confirms this from another angle: the security document notes that rate limiting is held in memory and "would need a shared store (e.g. Redis)" for multiple instances. So you cannot scale out, and you cannot do a zero-downtime deploy. Every update is a brief outage.</li>
+    <li><strong>1&nbsp;GB is smaller than it sounds,</strong> because uploaded PDFs and DOCX files are stored in the database. A few hundred scanned contracts will approach it. The failure mode when a disk fills is ugly and abrupt.</li>
+    <li><strong>Deploying <em>is</em> testing.</strong> With no staging environment, the first time a change runs against real data is when customers are using it.</li>
+    <li><strong>Data residency is undefined.</strong> Render's default regions are in the US and Europe. If HaTi is sold in Kenya under the Data Protection Act 2019, where the data physically rests is a question you will be asked, and today the answer depends on a dropdown someone picked. The repository's own security note says the MVP assumes the customer self-hosts, which sidesteps this — but the Render deployment does not.</li>
+  </ul>
+
+  <div class="note">
+    <span class="kicker">I could not verify this</span>
+    <p>Whether Render's persistent disks are snapshotted, how often, and how long snapshots are kept is a property of your Render plan, not of the code. Check it in the Render dashboard. Even if snapshots exist, they are <em>not</em> a backup strategy until you have restored from one and confirmed it worked — see Part 4.</p>
+  </div>
+</section>
+
+<!-- ============================ PART 4 ============================ -->
+<section id="p4" class="part">
+  <div class="parthead">
+    <span class="kicker">Part four</span>
+    <h2>What "robust" means for a contract platform</h2>
+    <p>Ten questions a buyer's security team will ask. For each: why it matters, and what bad, adequate and professional look like.</p>
+  </div>
+
+  <p>A contract platform is held to a higher standard than most software, for three reasons: the documents are legally operative, they are commercially sensitive, and they belong to someone else. Losing a customer's photos is bad; losing the executed contract they are relying on in a dispute is existential — for them and for you.</p>
+
+  <h3>1. Backups, and whether you can actually restore</h3>
+  <p><strong>Why it matters:</strong> everything else on this list protects you from an attacker. Backups protect you from yourself — a bad deploy, a wrong command, a corrupted file. Most data loss is self-inflicted.</p>
+  <p>The critical distinction, and the one that catches people: <strong>a backup you have never restored from is not a backup.</strong> It is a hope. Backups fail silently and routinely — the job stops running, the file is truncated, the format changed, the encryption key is on the machine that died. The only proof is a restore drill.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Manual, occasional, on the same machine as the original — or none.</td>
+      <td>Automatic daily copy to different storage in a different location, retained for 30 days.</td>
+      <td>The above, plus point-in-time recovery, plus a restore drill performed on a schedule with the recovery time written down, plus backups encrypted with keys held separately.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> the mechanisms exist and are well documented — a full workspace ZIP export via the admin screen or <span class="term">GET /api/export/workspace.zip</span>, and copying <span class="term">hati.db</span>. Both require a human to remember. There is no scheduled job, nothing writes off the machine, and there is no evidence of a restore ever having been tested. <strong>Rating: Gap.</strong></p>
+
+  <h3>2. Encryption in transit</h3>
+  <p><strong>Why it matters:</strong> without it, contract text travels the internet as readable text that anyone on the path can capture.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Plain HTTP, or HTTPS available but not enforced.</td>
+      <td>HTTPS everywhere, valid certificate, http redirected to https.</td>
+      <td>The above, plus HSTS so browsers refuse to try plain http at all, modern TLS only, and automatic certificate renewal that has been observed to work.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> handled properly. With <span class="term">HTTPS=true</span> set — and it is, in <span class="term">render.yaml</span> — the app issues Secure cookies, sends HSTS, and 301-redirects plain http. The one caveat is that this is <em>configuration-dependent</em>: a deployment where someone forgets the flag silently loses all three. <strong>Rating: Strong.</strong></p>
+
+  <h3>3. Encryption at rest</h3>
+  <p><strong>Why it matters:</strong> this is about what happens when someone gets hold of the storage itself rather than the running system — a stolen backup file, a decommissioned disk, a misconfigured cloud bucket, an attacker who reaches the filesystem. If the data is encrypted at rest, they have noise. If not, they can read every contract in a text editor.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Plain files on an unencrypted disk. Anyone with the file has the data.</td>
+      <td>Full-disk encryption at the host level (most cloud providers do this by default), so a physically removed disk is useless.</td>
+      <td>The above, plus encryption at the database or field level for the most sensitive columns, with keys in a dedicated key-management service that rotates them — so even a compromised application server cannot read everything.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> the database file is plain SQLite with no application-level encryption — I searched, and the only matches for "encrypt" in the server are code that detects password-protected <em>PDFs</em>. So it rests on whatever Render's disk encryption provides, which is real but which you have not verified or documented, and which does not protect a backup ZIP downloaded to a laptop. <strong>Rating: Missing at the application level.</strong></p>
+
+  <h3>4. Authentication — proving who someone is</h3>
+  <p><strong>Why it matters:</strong> every other control assumes the system knows who is asking. Two technical points worth understanding, because you will be asked about both. Passwords must never be stored as text, nor as a simple hash — they must be <strong>salted</strong> (a unique random value per user, so identical passwords don't look identical) and <strong>slow-hashed</strong> with an algorithm deliberately designed to be expensive, so guessing millions of candidates is impractical. <span class="term">scrypt</span>, <span class="term">bcrypt</span> and <span class="term">argon2</span> are the accepted choices; <span class="term">MD5</span> and plain <span class="term">SHA-256</span> are not.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Passwords stored plainly or with a fast hash; sessions that never expire; no lockout on repeated guesses.</td>
+      <td>Salted slow hash, server-side sessions in HttpOnly cookies, expiry, rate limiting on login, self-serve reset with single-use expiring tokens.</td>
+      <td>The above, plus mandatory two-factor authentication for administrators, single sign-on for enterprise customers, session listing and revocation, and alerts on suspicious sign-in.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> the fundamentals are right. Passwords use <span class="term">scryptSync</span> with a per-user salt. Sessions are server-side, HttpOnly, SameSite, Secure under HTTPS, expire after 30 days, rotate on login, and can be listed and revoked from settings. Login is rate-limited to 10 attempts per 15 minutes. Counterparties verify by emailed one-time code before a signature is accepted. What is missing is two-factor authentication for your own admins — and an admin account on a contract platform is a very high-value target. <strong>Rating: Adequate.</strong></p>
+
+  <h3>5. Access control — what a known person may do</h3>
+  <p><strong>Why it matters:</strong> in a contract system the same document must be visible to some colleagues and invisible to others. The professional standard is that the check happens on the server, on every single request, and that the interface merely reflects a decision made elsewhere. The classic failure is hiding a button while leaving the door open.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Permissions enforced in the browser. Anyone who edits their own page gets in.</td>
+      <td>Server-side role checks on every route that changes data.</td>
+      <td>The above, plus row-level filtering applied before data is serialised, denial by default, tested adversarially against raw requests, and identifiers that reveal nothing on refusal.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> this is the strongest part of the entire system, and it is genuinely above benchmark. Roles are enforced server-side for every mutating route. Folder-level ("value stream") restrictions are resolved from settings on every request and applied as a SQL filter <em>before</em> anything is serialised — across the contract list, single fetch, search, statistics, exports, and the AI prompts. A request for a contract outside your scope returns <span class="term">404</span>, not <span class="term">403</span>, so a refusal doesn't confirm the record exists. There is a separate per-member right controlling whether monetary values are visible, and the server strips those fields from responses rather than hiding them in the browser. Executed contracts are immutable server-side — the sealed wording, negotiation record and audit trail are restored from storage on any attempt to modify them. And all of it is tested against raw requests, not just through the UI. <strong>Rating: Strong.</strong></p>
+
+  <h3>6. Tenant isolation</h3>
+  <p><strong>Why it matters:</strong> if two customers share one installation, one query written without a customer filter shows Company A's contracts to Company B. There is no recovering from that commercially. It is the defining risk of multi-customer software.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Shared database, customer filtering applied inconsistently or in the browser.</td>
+      <td>Every query scoped to the tenant, enforced centrally so it cannot be forgotten, and tested.</td>
+      <td>The above, plus database-enforced row-level security or a database per customer, plus automated tests that specifically attempt cross-tenant access.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> the repository is admirably honest here. <span class="term">MULTITENANCY-NOTES.md</span> states the status as single-tenant: an <span class="term">org_id</span> column exists on contracts and users but defaults to one workspace, and the queries are <em>not</em> scoped by it — safe today only because there is exactly one tenant. Its own recommendation is not to enable multi-org signup until that work is done, and to run one process per customer in the meantime. That is the correct call, and it is a genuinely defensible architecture — but it means every customer needs their own installation, with its own cost, its own deploy, its own backup. <strong>Rating: Gap</strong> (as an architecture; <strong>Missing</strong> if you intend to sell shared hosting).</p>
+
+  <h3>7. Audit trails</h3>
+  <p><strong>Why it matters:</strong> for a contract platform the audit trail is not an operational convenience, it is part of the product's legal value. "Who changed clause 12, when, and what did it say before?" must be answerable years later, and the answer must be tamper-evident.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Records overwritten in place; no history of who did what.</td>
+      <td>Append-only log of significant actions with actor, timestamp and before/after.</td>
+      <td>The above, plus cryptographic hashing so alteration is detectable, exportable evidence packs, and an audit trail that cannot be edited even by an administrator.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> strong, and clearly built by someone who understood why it matters. Every contract carries an audit array. On signature the fully rendered text is frozen and hashed with SHA-256, and signed contracts always render from that frozen copy, so what is displayed provably equals what was sealed. Each signature records the signer, the capacity they signed in, the method, timestamp, user agent and server-side IP. A downloadable evidence pack and printable certificate accompany every executed contract. Every AI Copilot exchange is separately logged to its own table. Divergence between live and sealed wording is <em>reported, never repaired</em> — which is exactly right. <strong>Rating: Strong.</strong></p>
+
+  <h3>8. Uptime and monitoring</h3>
+  <p><strong>Why it matters:</strong> the question is not whether you will have an outage — you will. It is whether you find out from your monitoring or from an angry customer. These are different companies.</p>
+  <p>Three distinct things, often confused: <strong>monitoring</strong> watches whether the system is up and how it is performing; <strong>error tracking</strong> captures the details of individual failures so you can fix them; <strong>alerting</strong> is what wakes a human.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Nothing. You learn about outages from customers.</td>
+      <td>An external uptime check every minute that emails or texts you, plus an error-tracking service capturing crashes with enough context to debug.</td>
+      <td>The above, plus dashboards for response time and error rate, alerts on <em>degradation</em> not just death, a public status page, and a written on-call process.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> there is a health endpoint at <span class="term">/api/status</span> and Render is configured to use it, which means Render will restart a dead process. Beyond that there is nothing: no error-tracking service, no metrics, and 18 <span class="term">console</span> statements in an 8,111-line server. If HaTi threw an error for one specific customer this afternoon, you would not know, and you would have no way to find out what happened. <strong>Rating: Missing.</strong></p>
+
+  <h3>9. Disaster recovery</h3>
+  <p><strong>Why it matters:</strong> backups are the ingredient; disaster recovery is the recipe. Two numbers define it, and enterprise buyers ask for both by name. <strong>RTO</strong> (Recovery Time Objective): how long until we are running again. <strong>RPO</strong> (Recovery Point Objective): how much recent work we accept losing. "Four hours and one hour" is a real answer; "we'd sort it out" is not.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>No plan. Recovery would be improvised by one person.</td>
+      <td>A written runbook, tested at least once, with stated RTO and RPO.</td>
+      <td>The above, rehearsed on a schedule, with infrastructure defined as code so the environment can be rebuilt from the repository, and a documented failover region.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> half of this exists and is better than average — <span class="term">DEPLOYMENT.md</span> is a real runbook with restore instructions, and <span class="term">render.yaml</span> means the server itself can be rebuilt from the repository in minutes. What is absent is the data half: no off-site copy to restore <em>from</em>, no tested drill, no stated RTO or RPO. <strong>Rating: Gap.</strong></p>
+
+  <h3>10. Secrets management</h3>
+  <p><strong>Why it matters:</strong> a "secret" is any credential the system needs — API keys, database passwords, signing keys. The classic catastrophe is committing one to Git, where it lives in the history forever and gets scraped by bots within minutes of the repository becoming public.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Bad</th><th>Adequate</th><th>Professional</th></tr></thead>
+    <tbody><tr>
+      <td>Keys written into the code or committed to Git.</td>
+      <td>Keys supplied as environment variables, excluded from Git, set in the host's dashboard.</td>
+      <td>The above, plus a dedicated secrets manager, rotation on a schedule, per-environment separation, automated scanning that blocks a commit containing a key, and an audit of who accessed which secret.</td>
+    </tr></tbody>
+  </table></div>
+  <p><strong>HaTi:</strong> the hygiene is genuinely good. <span class="term">.env</span> and <span class="term">.env.*</span> are excluded from Git; a placeholder-only <span class="term">.env.example</span> is committed as documentation; <span class="term">render.yaml</span> marks the email key <span class="term">sync: false</span> with a comment saying it must never be committed. Two soft spots: an admin can paste an Anthropic API key into the settings screen, where it is stored in the database — which is unencrypted at rest — and the security document records that in static/local mode the AI key sits in the browser, noting this is scheduled for retirement. <strong>Rating: Adequate.</strong></p>
+
+  <h3>11. Data residency and data protection</h3>
+  <p><strong>Why it matters:</strong> Kenya's Data Protection Act 2019 imposes real obligations on anyone processing personal data, including registration with the Office of the Data Protection Commissioner, a lawful basis for processing, defined retention, and a route for individuals to access or delete their data. If you host on behalf of customers you are a <strong>data processor</strong> and they will require a <strong>Data Processing Agreement</strong> before signing.</p>
+  <p><strong>HaTi:</strong> the security document addresses this head-on and lists what is outstanding: ODPC registration, a DPA for any hosted offering, documented retention and deletion, and a subject-access path beyond the admin backup. It also notes the MVP assumes customer self-hosting, which places residency with them. That is an honest and workable position for a pilot — it is not a position you can hold once you host anyone yourself. <strong>Rating: Gap.</strong></p>
+</section>
+
+<!-- ============================ PART 5 ============================ -->
+<section id="p5" class="part">
+  <div class="parthead">
+    <span class="kicker">Part five</span>
+    <h2>The benchmark</h2>
+    <p>Not a perfect platform. The <em>minimum professional</em> one — what has to exist on the day you sell to your first real customer.</p>
+  </div>
+
+  <p>The benchmark below is deliberately modest. It is not what a company with 200 engineers has. It is the floor beneath which a serious buyer's IT reviewer, or a competent technical investor, starts asking uncomfortable questions.</p>
+
+  <figure class="plate">
+    <div class="plate-top"><span class="n">Plate 4</span><span class="t">The benchmark shape — three environments, one path</span></div>
+    <div class="plate-body">
+      <svg viewBox="0 0 720 250" role="img" aria-label="Diagram: development on a laptop, staging with fake data, and production with real customer data, all fed from a single tested pipeline, with backups and monitoring attached to production.">
+        <rect x="8" y="42" width="200" height="88" rx="4" class="sv-box"/>
+        <text x="18" y="34" class="sv-l">Development</text>
+        <text x="108" y="72" class="sv-t-b" text-anchor="middle">Your laptop</text>
+        <text x="108" y="92" class="sv-s" text-anchor="middle">Fake data. Break it freely.</text>
+        <text x="108" y="110" class="sv-s" text-anchor="middle">Nobody notices.</text>
+
+        <path d="M212 86 H248" class="sv-line-a"/><polygon points="248,86 240,82 240,90" class="sv-arrow-a"/>
+        <text x="230" y="78" class="sv-l-a" text-anchor="middle">Tests</text>
+
+        <rect x="252" y="42" width="200" height="88" rx="4" class="sv-box-a"/>
+        <text x="262" y="34" class="sv-l">Staging</text>
+        <text x="352" y="72" class="sv-t-b" text-anchor="middle">Identical copy</text>
+        <text x="352" y="92" class="sv-s" text-anchor="middle">Fake data, real setup.</text>
+        <text x="352" y="110" class="sv-s" text-anchor="middle">Last chance to be wrong.</text>
+
+        <path d="M456 86 H492" class="sv-line-a"/><polygon points="492,86 484,82 484,90" class="sv-arrow-a"/>
+        <text x="474" y="78" class="sv-l-a" text-anchor="middle">Approve</text>
+
+        <rect x="496" y="42" width="212" height="88" rx="4" class="sv-box"/>
+        <text x="506" y="34" class="sv-l-a">Production</text>
+        <text x="602" y="72" class="sv-t-b" text-anchor="middle">Real customers</text>
+        <text x="602" y="92" class="sv-s" text-anchor="middle">Real contracts.</text>
+        <text x="602" y="110" class="sv-s" text-anchor="middle">Never experimented on.</text>
+
+        <path d="M560 134 V162" class="sv-line"/><polygon points="560,162 556,154 564,154" class="sv-arrow"/>
+        <rect x="472" y="166" width="118" height="44" rx="3" class="sv-box-d"/>
+        <text x="531" y="187" class="sv-t" text-anchor="middle">Backups</text>
+        <text x="531" y="203" class="sv-s" text-anchor="middle">off-site, tested</text>
+
+        <path d="M648 134 V162" class="sv-line"/><polygon points="648,162 644,154 652,154" class="sv-arrow"/>
+        <rect x="600" y="166" width="112" height="44" rx="3" class="sv-box-d"/>
+        <text x="656" y="187" class="sv-t" text-anchor="middle">Monitoring</text>
+        <text x="656" y="203" class="sv-s" text-anchor="middle">alerts a human</text>
+
+        <text x="8" y="180" class="sv-l">The two things that</text>
+        <text x="8" y="196" class="sv-l">only production needs</text>
+        <text x="8" y="228" class="sv-s">HaTi today has the left box and the right box, and nothing in between or underneath.</text>
+      </svg>
+    </div>
+    <figcaption>Staging exists so that the sentence "we'll find out when we deploy" is never said about customer data.</figcaption>
+  </figure>
+
+  <h3>What has to exist</h3>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:22%">Area</th><th>The minimum professional standard</th><th style="width:26%">What a buyer or investor actually checks</th></tr></thead>
+    <tbody>
+      <tr><th>Automated testing</th><td>A test suite covering the paths where money and legal effect live, run automatically on every change, with a policy that a failing suite blocks release.</td><td>"Show me the last ten builds." They want green, and they want to see a red one that was fixed.</td></tr>
+      <tr><th>CI/CD</th><td>Continuous Integration: every push runs the whole suite. Continuous Deployment: merging to <span class="term">main</span> deploys automatically, with a one-command rollback.</td><td>How long from commit to production, and how you undo a bad release.</td></tr>
+      <tr><th>Environments</th><td>Three: development, staging, production. Production data never copied to the others without anonymising.</td><td>"Do you test against production?" The wrong answer ends the conversation.</td></tr>
+      <tr><th>Source control</th><td>Protected <span class="term">main</span>, changes via pull request, at least one review, committed lockfile, no secrets in history.</td><td>Branch protection settings, and whether anyone can push to <span class="term">main</span> unreviewed.</td></tr>
+      <tr><th>Backups</th><td>Automatic, daily, off-site, retained 30 days, encrypted — and restored at least once, with the time it took written down.</td><td>"When did you last restore from a backup?" Silence is the finding.</td></tr>
+      <tr><th>Error monitoring</th><td>An error-tracking service capturing every unhandled failure with context, and an external uptime check that alerts a human.</td><td>Your error rate for the last 30 days. Not having the number is the answer.</td></tr>
+      <tr><th>Logging</th><td>Structured logs of significant events, retained 30–90 days, searchable, with no passwords or contract text in them.</td><td>"A customer says a document vanished on Tuesday. Show me." </td></tr>
+      <tr><th>Access &amp; identity</th><td>Roles enforced server-side, least privilege, two-factor for administrators, sessions revocable, joiner/leaver process.</td><td>Whether an ex-employee could still get in.</td></tr>
+      <tr><th>Data protection</th><td>Registered where required, a DPA customers can sign, documented retention and deletion, a subject-access route, a named data protection contact.</td><td>They send a security questionnaire. Every "no" costs weeks.</td></tr>
+      <tr><th>Documentation</th><td>A runbook covering deploy, rollback, restore and common failures — written so a second engineer could follow it alone. Plus an architecture overview.</td><td>"What happens if you're unavailable for two weeks?"</td></tr>
+      <tr><th>Onboarding &amp; support</th><td>A defined path from signed contract to working workspace, a support channel with a stated response time, and a changelog.</td><td>Who they call at 9am when it isn't working.</td></tr>
+      <tr><th>Incident response</th><td>A written procedure: who is called, how customers are told, what the breach-notification obligation is and within what deadline.</td><td>"Walk me through your last incident."</td></tr>
+      <tr><th>Independent assurance</th><td>At minimum an external penetration test with the findings remediated. SOC&nbsp;2 or ISO&nbsp;27001 only when enterprise deals require it.</td><td>The report, and what you fixed.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <span class="kicker">Perspective</span>
+    <p>Nothing in that table is exotic and none of it requires a large team. Most of it is configuration and discipline rather than engineering. A competent engineer could close the majority of HaTi's gaps in three to four focused weeks. The reason companies fail this list is not difficulty — it is that none of it makes the product visibly better, so it keeps losing to features.</p>
+  </div>
+</section>
+
+<!-- ============================ PART 6 ============================ -->
+<section id="p6" class="part">
+  <div class="parthead">
+    <span class="kicker">Part six</span>
+    <h2>Where HaTi stands</h2>
+    <p>Twenty-one areas, rated against the benchmark. Read the Gap and Missing rows as your work list, and the Strong rows as things to say out loud in a sales meeting.</p>
+  </div>
+
+  <div class="tablewrap"><table class="score">
+    <thead><tr><th style="width:23%">Area</th><th style="width:15%">Rating</th><th>The honest one-sentence version</th></tr></thead>
+    <tbody>
+      <tr class="s-strong"><th>Access control</th><td><span class="chip c-strong">Strong</span></td><td>Roles, folder scoping and value-masking are all enforced on the server before data is serialised, tested adversarially — genuinely above benchmark.</td></tr>
+      <tr class="s-strong"><th>Audit trail &amp; evidence</th><td><span class="chip c-strong">Strong</span></td><td>Signed text is frozen and SHA-256 hashed, signatures capture capacity and IP, executed contracts are immutable server-side, and every AI exchange is logged.</td></tr>
+      <tr class="s-strong"><th>Automated testing</th><td><span class="chip c-strong">Strong</span></td><td>3,020 tests across 195 files plus 20 browser harnesses, many written to attack the server with raw requests rather than exercise the UI — and all 3,020 pass today.</td></tr>
+      <tr class="s-strong"><th>Encryption in transit</th><td><span class="chip c-strong">Strong</span></td><td>HTTPS enforced with HSTS, secure cookies and an http→https redirect — provided the environment flag is set, which it is on Render.</td></tr>
+      <tr class="s-strong"><th>Internal documentation</th><td><span class="chip c-strong">Strong</span></td><td>An unusually thorough architecture map, a real deployment runbook, and a security document more candid than most funded companies publish.</td></tr>
+
+      <tr class="s-adequate"><th>Authentication</th><td><span class="chip c-adequate">Adequate</span></td><td>Salted scrypt, rotating server-side sessions, revocation and login rate limits are all correct — but there is no two-factor authentication for admins.</td></tr>
+      <tr class="s-adequate"><th>Secrets handling</th><td><span class="chip c-adequate">Adequate</span></td><td>Good discipline throughout, weakened by the AI key being storable in an unencrypted database and, in local mode, in a browser.</td></tr>
+      <tr class="s-adequate"><th>Dependency surface</th><td><span class="chip c-adequate">Adequate</span></td><td>One production dependency and zero third-party browser scripts is exceptional restraint — undercut by the lockfile not being committed.</td></tr>
+      <tr class="s-adequate"><th>Deploy &amp; rollback</th><td><span class="chip c-adequate">Adequate</span></td><td>A Render blueprint rebuilds the server from the repository, but every deploy is a brief outage and rollback is undocumented.</td></tr>
+
+      <tr class="s-gap"><th>Backups</th><td><span class="chip c-gap">Gap</span></td><td>Export and file-copy mechanisms exist and are documented, but nothing runs automatically, nothing leaves the machine, and no restore has been tested.</td></tr>
+      <tr class="s-gap"><th>Disaster recovery</th><td><span class="chip c-gap">Gap</span></td><td>A good runbook for rebuilding the server, no plan at all for recovering the data, and no stated recovery time or acceptable data loss.</td></tr>
+      <tr class="s-gap"><th>Tenant isolation</th><td><span class="chip c-gap">Gap</span></td><td>Single-tenant by design and honestly documented as such; queries are not scoped by organisation, so every customer needs a separate installation.</td></tr>
+      <tr class="s-gap"><th>CI coverage</th><td><span class="chip c-gap">Gap</span></td><td>Tests run on every push, but the workflow runs three of the thirteen suites the project defines — ten checks only run when someone remembers.</td></tr>
+      <tr class="s-gap"><th>Source-control practice</th><td><span class="chip c-gap">Gap</span></td><td>Only three days and 62 commits of visible history, no lockfile, no CODEOWNERS, and no evidence of pull-request review.</td></tr>
+      <tr class="s-gap"><th>Scalability headroom</th><td><span class="chip c-gap">Gap</span></td><td>SQLite on one 1&nbsp;GB disk with in-memory rate limiting means one server, forever, until the storage layer changes.</td></tr>
+      <tr class="s-gap"><th>Logging</th><td><span class="chip c-gap">Gap</span></td><td>Eighteen console statements across an 8,111-line server, unstructured and unretained — you cannot reconstruct what happened last Tuesday.</td></tr>
+      <tr class="s-gap"><th>Data protection compliance</th><td><span class="chip c-gap">Gap</span></td><td>The obligations are identified in writing and none of them are discharged: no ODPC registration, no signable DPA, no retention policy.</td></tr>
+
+      <tr class="s-missing"><th>Monitoring &amp; alerting</th><td><span class="chip c-missing">Missing</span></td><td>No error tracking and no uptime alerting — an outage or a crash reaches you only when a customer complains.</td></tr>
+      <tr class="s-missing"><th>Staging environment</th><td><span class="chip c-missing">Missing</span></td><td>One Render service is defined, so production is where changes are first tried against real data.</td></tr>
+      <tr class="s-missing"><th>Encryption at rest</th><td><span class="chip c-missing">Missing</span></td><td>The database is plain SQLite with no application-level encryption; protection depends entirely on unverified host disk encryption.</td></tr>
+      <tr class="s-missing"><th>Incident response</th><td><span class="chip c-missing">Missing</span></td><td>No written procedure for who is called, how customers are told, or how a breach-notification deadline would be met.</td></tr>
+      <tr class="s-missing"><th>Independent assurance</th><td><span class="chip c-missing">Missing</span></td><td>No third-party penetration test has been performed, and the security document says so.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <span class="kicker">Two things I could not judge from the code</span>
+    <p><strong>Onboarding and support.</strong> Whether a customer has a defined path from signature to working workspace, and a support channel with a stated response time, is a commercial fact I cannot read from a repository. If it doesn't exist, add it to the "before first customer" list below.</p>
+    <p><strong>GitHub settings.</strong> Branch protection, required reviews and secret scanning are configured on GitHub, not in the files. If they are already on, the source-control rating rises from Gap to Adequate.</p>
+  </div>
+
+  <h3>What must be fixed before your first paying customer</h3>
+
+  <p>These are ordered. Doing them in this order means that at every point you have made the biggest remaining reduction in risk.</p>
+
+  <ol class="actions">
+    <li><span class="num">1</span><span><span class="h">Automated off-site backups, with one tested restore <span class="size">2–3 days</span></span><span class="d">A scheduled job that copies the database and files to separate storage daily, retained 30 days, encrypted. Then delete nothing, but restore a copy into a fresh environment and confirm the contracts are there. Write down how long it took. Until this is done, one bad afternoon destroys the company.</span></span></li>
+    <li><span class="num">2</span><span><span class="h">Monitoring and error tracking <span class="size">1 day</span></span><span class="d">An external uptime check hitting <span class="term">/api/status</span> every minute and alerting your phone, plus an error-tracking service capturing unhandled failures. This is mostly configuration, and it converts "we don't know" into "we know" for a low monthly cost.</span></span></li>
+    <li><span class="num">3</span><span><span class="h">Decide and document the tenancy model <span class="size">2–5 days</span></span><span class="d">Take the repository's own advice and run one installation per customer. Script it so provisioning a new customer is one command, not an afternoon of clicking, and so each has its own backup. Do <em>not</em> relax the single-workspace restriction until the scoping work in the notes is finished and tested.</span></span></li>
+    <li><span class="num">4</span><span><span class="h">A staging environment <span class="size">1 day</span></span><span class="d">A second Render service from the same blueprint, pointed at the staging branch, with fake data. Every change goes there first. This is the cheapest quality improvement available to you.</span></span></li>
+    <li><span class="num">5</span><span><span class="h">Close the source-control gaps <span class="size">Half a day</span></span><span class="d">Commit the lockfile and switch CI to <span class="term">npm ci</span>. Turn on branch protection for <span class="term">main</span>. Make CI run every suite the project defines, not three of thirteen. Turn on GitHub secret scanning.</span></span></li>
+    <li><span class="num">6</span><span><span class="h">Confirm and document encryption at rest <span class="size">1–2 days</span></span><span class="d">Verify in writing that Render's disk is encrypted; if it is not, or you cannot confirm it, move the database to a managed encrypted store. Separately, ensure backup files are encrypted before they leave the machine — that is the copy most likely to end up somewhere careless.</span></span></li>
+    <li><span class="num">7</span><span><span class="h">Two-factor authentication for administrators <span class="size">3–4 days</span></span><span class="d">Admin accounts can see every contract in the workspace. A stolen admin password should not be sufficient on its own.</span></span></li>
+    <li><span class="num">8</span><span><span class="h">The data-protection paperwork <span class="size">1–2 weeks, mostly legal</span></span><span class="d">ODPC registration where applicable, a Data Processing Agreement your customers can sign, a written retention and deletion policy, and a named contact. Your first serious customer will ask for the DPA before they sign, and not having one delays the deal by weeks.</span></span></li>
+    <li><span class="num">9</span><span><span class="h">A one-page incident procedure <span class="size">Half a day</span></span><span class="d">Who is called, in what order, how customers are notified, and the notification deadline you are bound by. One page is enough. Nobody writes this during an incident.</span></span></li>
+  </ol>
+
+  <h3>What can wait — and what it should wait for</h3>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th style="width:34%">Item</th><th style="width:18%">Size</th><th>Wait until</th></tr></thead>
+    <tbody>
+      <tr><th>Third-party penetration test</th><td>1–2 weeks + cost</td><td>Your first enterprise or regulated customer asks — but budget for it, because they will, and remediation takes longer than the test.</td></tr>
+      <tr><th>True multi-tenancy</th><td>4–8 weeks</td><td>Per-customer installations become genuinely painful — realistically past ten customers. The one-instance-per-customer model is a legitimate architecture, not a stopgap.</td></tr>
+      <tr><th>Moving off SQLite to Postgres</th><td>2–4 weeks</td><td>You need more than one server, or a single customer's data outgrows the disk. SQLite is not the weak point today; the lack of backups is.</td></tr>
+      <tr><th>Structured logging platform</th><td>2–3 days</td><td>After error tracking is in place. Error tracking answers "what broke"; logs answer "what happened to this customer".</td></tr>
+      <tr><th>SSO for enterprise customers</th><td>2–3 weeks</td><td>A customer with more than about fifty seats requires it. Not before.</td></tr>
+      <tr><th>SOC 2 / ISO 27001</th><td>6–12 months + cost</td><td>A deal is genuinely blocked on it. It is a sales tool, not a security measure, and starting early burns money.</td></tr>
+      <tr><th>Breaking up the large files</th><td>Ongoing</td><td>You hire a second engineer. Do it gradually, guarded by the existing test suite — which is exactly what a good test suite is for.</td></tr>
+      <tr><th>Zero-downtime deploys</th><td>Included with Postgres move</td><td>Customers notice the restarts. At current scale they almost certainly do not.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================ PART 7 ============================ -->
+<section id="p7" class="part">
+  <div class="parthead">
+    <span class="kicker">Part seven</span>
+    <h2>What to do next</h2>
+    <p>A list you can hand to a developer without translating it, and the five questions to ask anyone you hire.</p>
+  </div>
+
+  <h3>The brief, ready to hand over</h3>
+
+  <div class="note" style="max-width:var(--measure)">
+    <span class="kicker">Copy from here</span>
+    <p>The items below are written for an engineer. They assume familiarity with the repository and require no decisions from me beyond the ones already stated.</p>
+  </div>
+
+  <ol class="actions">
+    <li><span class="num">1</span><span><span class="h">Commit <span class="term">package-lock.json</span>; switch the workflow to <span class="term">npm ci</span>.</span><span class="d">Remove the lockfile entry from <span class="term">.gitignore</span>. This makes builds reproducible.</span></span></li>
+    <li><span class="num">2</span><span><span class="h">Make CI run <span class="term">npm run test:all</span>, not three suites.</span><span class="d">The project defines thirteen; <span class="term">.github/workflows/tests.yml</span> runs <span class="term">test</span>, <span class="term">test:browser</span> and <span class="term">test:selection</span>. Split them into parallel jobs if the run gets slow.</span></span></li>
+    <li><span class="num">3</span><span><span class="h">Enable branch protection on <span class="term">main</span>: no direct pushes, tests must pass, one approving review.</span><span class="d">Also switch on GitHub secret scanning and push protection.</span></span></li>
+    <li><span class="num">4</span><span><span class="h">Build a nightly backup job.</span><span class="d">Copy <span class="term">$HATI_DATA/hati.db</span> (using SQLite's own backup command, not a plain file copy, so it is consistent) plus any file storage to off-site object storage. Encrypt before upload. Retain 30 days. Alert on failure — a silent backup job is the standard failure mode.</span></span></li>
+    <li><span class="num">5</span><span><span class="h">Perform and document a restore drill.</span><span class="d">Restore last night's backup into a fresh environment, confirm contract count and that an executed contract still verifies against its hash. Record the elapsed time as the RTO.</span></span></li>
+    <li><span class="num">6</span><span><span class="h">Add uptime monitoring and error tracking.</span><span class="d">External check on <span class="term">/api/status</span> every minute with phone alerting; an error-tracking SDK capturing unhandled exceptions and failed requests, with contract text and personal data scrubbed before sending.</span></span></li>
+    <li><span class="num">7</span><span><span class="h">Create a staging service from <span class="term">render.yaml</span> with its own disk and seeded fake data.</span><span class="d">Point it at a staging branch. Nothing reaches production without passing through it.</span></span></li>
+    <li><span class="num">8</span><span><span class="h">Confirm in writing whether the Render disk is encrypted at rest, and what its snapshot policy is.</span><span class="d">If the answer is unsatisfactory, plan the move to a managed encrypted database.</span></span></li>
+    <li><span class="num">9</span><span><span class="h">Script per-customer provisioning.</span><span class="d">One command that creates a new isolated instance with its own <span class="term">HATI_DATA</span>, its own backup schedule and its own monitoring entry, per <span class="term">MULTITENANCY-NOTES.md</span>.</span></span></li>
+    <li><span class="num">10</span><span><span class="h">Add two-factor authentication for the Admin role.</span><span class="d">Time-based one-time codes are sufficient. The one-time-code machinery already exists for counterparty signing and can be reused.</span></span></li>
+  </ol>
+
+  <h3>Five questions to ask any engineer or vendor</h3>
+
+  <p>Ask these in this order. What you are testing is not whether they know the answer — it is whether they have <em>lived</em> the answer. Specifics mean experience; generalities mean they have read about it.</p>
+
+  <ol class="qs">
+    <li><span class="q">"When did you last restore a production system from a backup, and how long did it take?"</span><span class="a">The single most revealing question you can ask. Anyone who has run something real has a story with a number in it. "We have backups" is a non-answer — everyone has backups; the question is whether they work.</span></li>
+    <li><span class="q">"Walk me through what happens between you finishing a change and a customer seeing it."</span><span class="a">You are listening for tests, a review, a staging environment, and a rollback plan. If the honest answer is "I push it", that is workable in a prototype and disqualifying for a contract platform.</span></li>
+    <li><span class="q">"How would you find out that the system was broken for one customer this afternoon?"</span><span class="a">A good answer names monitoring, error tracking and logs. A weak answer describes checking manually. If the answer is "they'd tell us", you have found your next hire's first task.</span></li>
+    <li><span class="q">"If someone got a copy of our database file, what could they read?"</span><span class="a">This tests whether they think about defence in depth or only about the front door. The right answer for HaTi today is uncomfortable — everything — and a good engineer will say so plainly rather than reassure you.</span></li>
+    <li><span class="q">"What in this codebase would you not want to be responsible for, and why?"</span><span class="a">The most useful question of the five. Anyone who says "nothing, it all looks fine" has either not looked or is telling you what you want to hear. You want the person who names the 8,000-line server file, or the missing backups, within thirty seconds.</span></li>
+  </ol>
+
+  <hr class="rule">
+
+  <h3>A closing note on proportion</h3>
+
+  <p>It would be easy to read Part 6 and conclude that HaTi is in bad shape. That is not the conclusion. The hard part of a contract platform — the part that takes years and that most competitors get wrong — is the correctness of the negotiation, permission and sealing logic, and HaTi's is genuinely good: enforced in the right place, tested adversarially, and documented honestly by people who understood why each rule existed.</p>
+
+  <p>What is missing is the operational shell around it: backups, monitoring, staging, and the paperwork. That work is unglamorous, largely a matter of configuration, and mostly measured in days rather than months. It is also the work that separates a product that impresses in a demo from one a company will trust with its executed contracts.</p>
+
+  <p>Do the nine items in Part 6 first, in that order. Then sell with confidence — because at that point the honest answers to the security questionnaire will be good ones.</p>
+</section>
+
+<footer class="foot">
+  <p><strong>How this was produced.</strong> Every statement about HaTi comes from reading the files in the repository on 12 August 2026 — <span class="term">package.json</span>, <span class="term">render.yaml</span>, <span class="term">server/server.js</span>, <span class="term">index.html</span>, the <span class="term">js/</span> modules, the test directory, the GitHub workflow, <span class="term">SECURITY.md</span>, <span class="term">DEPLOYMENT.md</span> and <span class="term">MULTITENANCY-NOTES.md</span>. Where a fact lives outside the repository — GitHub settings, Render plan details, commercial processes — it is marked as unverified rather than assumed. No claim here is inferred from what a project like this usually looks like.</p>
+</footer>
+
+</main>
+</div>
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.rail a'));
+  var map = {};
+  links.forEach(function(a){
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) map[id] = a;
+  });
+  var ids = Object.keys(map);
+  if (!ids.length || !('IntersectionObserver' in window)) return;
+
+  var visible = {};
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ visible[e.target.id] = e.isIntersecting ? e.intersectionRatio : 0; });
+    var best = null, bestVal = 0;
+    ids.forEach(function(id){
+      var v = visible[id] || 0;
+      if (v > bestVal){ bestVal = v; best = id; }
+    });
+    links.forEach(function(a){ a.classList.remove('on'); });
+    if (best) map[best].classList.add('on');
+  }, { rootMargin: '-10% 0px -55% 0px', threshold: [0, .05, .25, .6, 1] });
+
+  ids.forEach(function(id){ obs.observe(document.getElementById(id)); });
+})();
+</script>
