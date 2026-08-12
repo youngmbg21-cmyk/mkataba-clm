@@ -1000,6 +1000,63 @@ contributor the send; f168 gained the server's two halves; sign-links-verify's f
 section measures the control in a browser, because "the button was live" is a claim about
 pixels and jsdom has none.
 
+A DAY WITH SEVERAL CONTRACTS ALWAYS LANDS ON THE LIST (added 2026-08-12)
+
+Owner-asked, stated flat: pressing ANYTHING inside a calendar day box goes to the register
+narrowed to that day's contracts. The document opens only when the day carries exactly one.
+
+THE CELL ALREADY DID THIS, since 11 Aug — one contract opens it, several go to the register
+narrowed to exactly those, and it counts CONTRACTS rather than events, because one agreement
+marks a day twice whenever the renewal decision falls back to the expiry. "+N more" was
+deliberately not its own button and fell through to the cell. None of that changed.
+
+THE EXCEPTION WAS THE NAME CHIPS. They were their own <button>s, they stopPropagation'd, and
+they opened their own contract however many the day held.
+
+WHY THE EXCEPTION WENT, and the reasoning is worth keeping because the argument FOR it was
+perfectly good: a named thing should open the thing it names. What kills it is what those
+names look like at 9.5px in a 90px column. On the reported screen 30 August carried nine
+contracts and its three visible chips all read "Mutual Non-Discl…" — truncated to the point
+of being identical. Pressing one is a guess between nine similarly named agreements, and the
+register is the surface that shows them with counterparty, status, value and expiry, which
+is what makes them tellable apart in the first place.
+
+IT IS A DELETION RATHER THAN AN ADDITION. The day box already asks the count question in one
+place (openDay); the chips now fall through to it instead of answering separately, so there
+is no second copy of the test to keep in step. On a one-contract day the cell opens that
+contract, so a chip press lands exactly where it always did — the behaviour is unchanged on
+every day where the old behaviour was unambiguous.
+
+FOUR THINGS THAT WOULD HAVE BROKEN QUIETLY:
+
+  · ONE SELECTOR, TWO SURFACES. [data-sel] was shared with the "Next 60 days" agenda beside
+    the calendar. That agenda is a list of individual EVENTS, not a day box, and a named row
+    there is the one place on this screen where "open that contract" is the whole answer. A
+    change scoped to [data-sel] would have taken it out. The change is scoped to the CHIPS:
+    they carry no data-sel at all now, the agenda's handler is untouched, and it lost only
+    the stopPropagation that existed solely for the chips.
+  · IT STOPS BEING A BUTTON. A nested button that does precisely what its container does is
+    a keyboard stop leading nowhere new, announced to a screen reader as a control of its
+    own. The chips are spans; the cell keeps role="button", its tab stop and its Enter/Space
+    handling, and is the only thing in the box a keyboard can reach.
+  · A CHIP THAT NO LONGER GOES WHERE ITS LABEL POINTS MUST STOP PROMISING IT. Its tooltip
+    named one event on one contract ("Expiry: …"). That is still true of where the press
+    goes on a ONE-contract day, so it is kept there and dropped everywhere else — with no
+    title of its own the browser walks up and shows the cell's, "choose from N on 30
+    August", which is where the press actually leads.
+  · THE COUNT IS STILL OF CONTRACTS. A two-mark, one-contract day must not become a list of
+    one row, and the chip inherits that for free by falling through to the same function.
+
+The phone draws no calendar (it is listed under More as desk work), so there is nothing to
+fix there.
+
+Tests: calendar-day-verify, rewritten to the new rule rather than having the old claim
+deleted. It keeps every property the exception was protecting — a press inside a day box
+always lands somewhere, the landing says what it is narrowed to with the way back on the
+same chip — and adds the chips-are-spans shape, the absence of any focusable stop inside the
+box, the tooltip following the press, the one-contract and twice-marked days from the chip,
+and the agenda row still opening its own named contract.
+
 Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.

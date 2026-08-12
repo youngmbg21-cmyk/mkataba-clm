@@ -19,6 +19,17 @@
    from a broken register — the rule the origin filter on the negotiation
    column already obeys.
 
+   AND THE CHIPS FOLLOW THE SAME RULE NOW (owner-asked, 12 Aug 2026). They were
+   the one exception: their own buttons, opening their own contract however many
+   the day held. On the reported screen 30 August carried nine contracts and its
+   three visible chips all read "Mutual Non-Discl…" — pressing one is a guess
+   between nine. This file used to assert the exception; it asserts the rule,
+   and keeps every claim the exception was protecting: a press inside a day box
+   always lands somewhere, the landing says what it is narrowed to with the way
+   back on the same chip, a one-contract day still opens its contract, and the
+   agenda list beside the calendar — which shares nothing with a day box but a
+   selector — still opens its own named contract.
+
    Run: node test/chromium/calendar-day-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -155,22 +166,114 @@ const check = (name, pass, detail) => {
     check('a day with one contract opens that contract instead',
       single.id === 'CAL4' && single.only == null, `${single.view} · ${single.id}`);
 
-    /* ---- a chip inside a day still opens its own contract, once ---- */
+    /* ---- A CHIP INSIDE A DAY BOX IS NOT ITS OWN DOOR ANY MORE ----
+       (owner-asked, 12 Aug 2026, reversing the 11 Aug decision this file used to
+       assert.) The old claim was "a named contract inside the box still opens
+       that contract, not the list", and the reasoning behind it was sound: a
+       named thing should open the thing it names. What killed it is what the
+       names actually look like at 9.5px in a 90px column — on the reported
+       screen, 30 August carried nine contracts and its three visible chips all
+       read "Mutual Non-Discl…". Pressing one is a guess between nine similarly
+       named agreements; the register shows counterparty, status, value and
+       expiry, which is what tells them apart.
+
+       WHAT MUST STAY TRUE EITHER WAY, and is asserted below: pressing anything
+       in a day box LANDS somewhere, and the landing says what it is narrowed to
+       with the way back on the same chip. */
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(1000);
+    const chipShape = await page.evaluate(d => {
+      const cell = document.querySelector(`[data-cal-day="${d.many}"]`);
+      const chips = Array.from(cell.querySelectorAll('.cal-chip'));
+      const one = document.querySelector(`[data-cal-day="${d.one}"]`);
+      return {
+        n: chips.length,
+        selectors: cell.querySelectorAll('[data-sel]').length,
+        buttons: cell.querySelectorAll('button').length,
+        focusable: cell.querySelectorAll('button,[tabindex],a[href],input').length,
+        title: chips[0] ? chips[0].getAttribute('title') : 'MISSING',
+        oneTitle: one.querySelector('.cal-chip')
+          ? one.querySelector('.cal-chip').getAttribute('title') : 'MISSING',
+        cellTab: cell.getAttribute('tabindex'), cellRole: cell.getAttribute('role'),
+      };
+    }, days);
+    check('the chips are still drawn — nothing was hidden', chipShape.n === 3,
+      `${chipShape.n} chip(s)`);
+    check('but they are no longer doors of their own',
+      chipShape.selectors === 0 && chipShape.buttons === 0,
+      `${chipShape.selectors} data-sel, ${chipShape.buttons} button(s)`);
+    check('and no keyboard stop inside the box leads nowhere new',
+      chipShape.focusable === 0 && chipShape.cellTab === '0' && chipShape.cellRole === 'button',
+      `${chipShape.focusable} focusable inside, cell tabindex=${chipShape.cellTab}`);
+    check('a chip that no longer goes where its label points stops promising it',
+      chipShape.title === null,
+      'on a many-contract day the cell’s own tooltip is what the reader sees');
+    check('and on a one-contract day it still names the event, because that is still where it goes',
+      /^(Expiry|Renewal|Obligation)/i.test(chipShape.oneTitle || ''), chipShape.oneTitle);
+
     const chipGo = await page.evaluate(d => {
       const cell = document.querySelector(`[data-cal-day="${d.many}"]`);
-      const chip = cell.querySelector('[data-sel]');
-      const want = chip.getAttribute('data-sel');
-      chip.click();
-      return { want };
+      cell.querySelector('.cal-chip').click();
     }, days);
-    await page.waitForTimeout(1200);
-    const afterChip = await page.evaluate(() => ({ view: state.view, id: state.activeId,
+    await page.waitForTimeout(1400);
+    const afterChip = await page.evaluate(() => ({ view: state.view,
+      only: state.reg && state.reg.only ? state.reg.only.ids.slice().sort() : null,
+      rows: Array.from(document.querySelectorAll('#reg-tbody .reg-mk')).map(e => e.textContent.trim()).sort(),
+      chip: !!document.getElementById('reg-only-chip'),
+      chipText: (document.getElementById('reg-only-chip') || {}).textContent || '',
+      canClear: !!document.getElementById('reg-only-clear') }));
+    check('pressing a chip on a many-contract day lands on the narrowed list',
+      afterChip.view === 'register'
+      && JSON.stringify(afterChip.rows) === JSON.stringify(['CAL1', 'CAL2', 'CAL3']),
+      `${afterChip.view} · ${afterChip.rows.join(', ')}`);
+    check('and that list still says what it is narrowed to, with the way back on it',
+      afterChip.chip && /Due on/.test(afterChip.chipText.replace(/\s+/g, ' ')) && afterChip.canClear,
+      afterChip.chipText.replace(/\s+/g, ' ').trim());
+
+    /* ---- and a chip on a ONE-contract day lands exactly where it always did ---- */
+    await page.evaluate(() => { document.getElementById('reg-only-clear')?.click(); });
+    await page.waitForTimeout(400);
+    await page.evaluate(() => setView('calendar'));
+    await page.waitForTimeout(1000);
+    await page.evaluate(d => document.querySelector(`[data-cal-day="${d.one}"] .cal-chip`).click(), days);
+    await page.waitForTimeout(1400);
+    const chipOne = await page.evaluate(() => ({ id: state.activeId,
       only: state.reg && state.reg.only }));
-    check('a named contract inside the box still opens that contract, not the list',
-      afterChip.id === chipGo.want && afterChip.only == null,
-      `${afterChip.view} · ${afterChip.id} (wanted ${chipGo.want})`);
+    check('a chip on a one-contract day still opens that contract',
+      chipOne.id === 'CAL4' && chipOne.only == null, `${chipOne.id}`);
+
+    /* ---- a day marked TWICE by one contract is one contract, from the chip too ---- */
+    await page.evaluate(() => setView('calendar'));
+    await page.waitForTimeout(1000);
+    await page.evaluate(d => document.querySelector(`[data-cal-day="${d.twice}"] .cal-chip`).click(), days);
+    await page.waitForTimeout(1400);
+    const chipTwice = await page.evaluate(() => ({ id: state.activeId,
+      only: state.reg && state.reg.only }));
+    check('a day marked twice by one contract still opens the contract',
+      chipTwice.id === 'CAL5' && chipTwice.only == null,
+      'the count is of contracts, not marks — from the chip as well as the cell');
+
+    /* ---- THE AGENDA BESIDE THE CALENDAR IS NOT A DAY BOX ----
+       It is a list of individual events, and a named row there is the one place
+       on this screen where "open that contract" is the whole answer. The old
+       chip handler was shared with it through [data-sel]; a change scoped to
+       that selector rather than to the chips would have taken this out. */
+    await page.evaluate(() => setView('calendar'));
+    await page.waitForTimeout(1000);
+    const agenda = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('[data-sel]'))
+        .filter(el => !el.closest('[data-cal-day]'));
+      if (!rows.length) return { none: true };
+      const want = rows[0].getAttribute('data-sel');
+      rows[0].click();
+      return { want, n: rows.length };
+    });
+    await page.waitForTimeout(1200);
+    const afterAgenda = await page.evaluate(() => ({ id: state.activeId,
+      only: state.reg && state.reg.only }));
+    check('the agenda list beside the calendar still opens its own named contract',
+      !agenda.none && afterAgenda.id === agenda.want && afterAgenda.only == null,
+      agenda.none ? 'no agenda rows to press' : `${afterAgenda.id} (wanted ${agenda.want}), ${agenda.n} row(s)`);
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
