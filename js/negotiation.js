@@ -3065,6 +3065,57 @@ function negoMigrate(c){
   return { migrated, flagged, already: false };
 }
 
+/* ---- "WAITING ON THEM" HAS TO BE TRUE BEFORE IT IS SAID ----
+   (owner-reported on MK-255, 13 Aug 2026.) We refused a change the
+   counterparty had raised. Their card read "Refused · waiting on them", the
+   negotiations list banded the whole agreement under "With the other side",
+   and the row pill said the same — and the change was not on their copy at
+   all. So the product asserted a wait against somebody who could not see the
+   thing they were supposedly holding up, and the deal simply stopped.
+
+   THE MODEL IS THE TURN BANNER, which has refused to make this claim about
+   our own unsent asks since it was written: it states the wait as what it
+   actually IS and offers the send beside it. Copy the honesty, not the code.
+
+   WHAT CAN HONESTLY BE ASKED, and it is less than it looks. Nothing records
+   WHEN their copy was last refreshed — the silent catch-up deliberately does
+   not stamp the share when it succeeds — so "have they seen THIS refusal"
+   cannot be answered exactly. Three options were weighed and A was chosen:
+
+     A  claim it only where a STANDING LINK EXISTS; otherwise say the truth,
+        that they have no live copy, and offer the send.        <- BUILT
+     B  also use whether they have opened it since.             <- refused
+     C  stamp the contract when a payload refresh succeeds.     <- not now
+
+   B IS WORSE THAN IT LOOKS and is the one to argue with later: "they opened
+   it" is true of a link opened last week, before this refusal existed, so it
+   would replace one untruth with a subtler one — a card reading "opened" that
+   the reader takes to mean "seen this". If more precision is ever wanted, C is
+   the honest upgrade, not B.
+
+   THREE ANSWERS, NOT TWO, and the third is the whole safety of this. An empty
+   share cache means "nobody has asked" as often as it means "there is
+   nothing", and reading the first as the second would invent a NEW untruth to
+   replace the old one. 'unknown' says nothing and changes nothing.
+
+   shareIsStanding / standingShares (js/core.js) is the ONE predicate for
+   "durable, not revoked, not expired" — it is the client's reading of what the
+   payload-refresh route will actually accept. NOTE FOR THE NEXT READER: the
+   work order for this change said that test was still written out inline in
+   two places and asked for it to be named once. It was already named, on 12
+   August, by the MK-255 fix — both callers ask the one predicate, and there is
+   no third copy to fold in. Nothing to do, said out loud rather than silently
+   skipped. */
+function negoTheirCopy(c){
+  if (typeof window === 'undefined') return 'unknown';
+  /* Their own page has no view of our links at all, and never should — asking
+     from that seat could only ever produce a guess. */
+  if (window.PORTAL_MODE) return 'unknown';
+  if (!window.sharesKnown || !window.standingShares) return 'unknown';
+  if (!sharesKnown(c)) return 'unknown';
+  return standingShares(cachedShares(c)).length ? 'live' : 'none';
+}
+
 /* ---- A NAME ON A CARD IS A GLANCE, NOT A RECORD (owner-asked, 13 Aug 2026) ----
    "Young Mbagaya" becomes "Young M." — first name, then the initial of the
    surname. ONE function, reached by every card that needs it, because the
@@ -3121,7 +3172,7 @@ function cardName(name, org){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  cardName,
+  cardName, negoTheirCopy,
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,

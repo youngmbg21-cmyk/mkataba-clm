@@ -568,6 +568,13 @@ function regPrimaryAction(c){
    "waiting" only repeats the column heading. */
 function negoMovePillHtml(c){
   const m=(typeof window.negWhoseMove==='function')?window.negWhoseMove(c):{k:'clear',n:0};
+  /* ---- WAITING ON US, BUT NOT TO DECIDE ANYTHING (13 Aug 2026) ----
+     negWhoseMove bands an agreement whose counterparty holds no live copy
+     under "Waiting on you", because sending them one is the move. Counting
+     decisions here would be wrong twice over — there are none to make, and
+     the number would send the reader to a column with nothing in it. It says
+     what the move IS instead. See negWhoseMove for the whole rule. */
+  if(m.why==='nocopy') return `<span class="ngl-w ngl-w-you">${esc(i18t('ng_no_live_copy'))}</span>`;
   if(m.k==='you') return `<span class="ngl-w ngl-w-you">${i18tn('ng_needs_you',m.n,{n:m.n})}</span>`;
   if(m.k==='them') return `<span class="ngl-w ngl-w-them">${esc(i18t('ng_door_with',{who:c.counterparty||i18t('ng_door_them')}))}</span>`;
   return `<span class="ngl-w ngl-w-clear">${i18t('ng_door_clear')}</span>`;

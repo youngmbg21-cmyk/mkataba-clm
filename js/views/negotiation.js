@@ -1952,6 +1952,10 @@ function negoLiveCardsHtml(c, opts){
     const _liveOrg = ch.authorSide === 'counterparty'
       ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us');
     const _liveShort = n => (window.cardName ? cardName(n, _liveOrg) : String(n || ''));
+    /* Three answers, one predicate — see negoTheirCopy. Only 'none' changes
+       what this card says; 'unknown' leaves every sentence exactly as it was. */
+    const _liveNoCopy = side !== 'counterparty' && !opts.readonly
+      && (window.negoTheirCopy ? negoTheirCopy(c) === 'none' : false);
     /* BOTH HALVES OF THE CONVERSATION. The thread written onto the record and
        the replies filed through the discussion channel are one exchange; see
        negoThreadOf. Reading only ch.thread is how a card could show the
@@ -2140,9 +2144,18 @@ function negoLiveCardsHtml(c, opts){
                  was the day that stopped being advice. */}
           ${window.reviewChipHtml ? reviewChipHtml(ch, opts, c) : ''}
         </div>
+        ${''/* THE SAME HONESTY AS THE WORKBENCH CARD (13 Aug 2026). "It stops
+                being outstanding when <them> withdraws it" is a claim about
+                their screen, and it is false where they hold no live copy of
+                the contract. Both renderers carry the correction, on the same
+                day, from the same reading — the project's own duplication
+                rule, and this is exactly the kind of sentence that gets fixed
+                in one renderer and left in the other. */}
         ${ch.status === 'rejected' && !ch.withdrawn ? `<div class="nego-contested" data-contested="${_ne(ch.id)}">
-          <b>${i18t('ng_still_between_you')}</b> This was refused. It stops being outstanding when
-          ${mine ? 'you withdraw it' : `${_ne(_liveShort(ch.author))} withdraws it`} — until then neither side can signal readiness to sign.</div>` : ''}
+          <b>${i18t('ng_still_between_you')}</b> This was refused. ${
+          (!mine && _liveNoCopy)
+            ? _ne(i18t('ng_nocopy_say', { who: c.counterparty || i18t('ng_the_counterparty') }))
+            : `It stops being outstanding when ${mine ? 'you withdraw it' : `${_ne(_liveShort(ch.author))} withdraws it`} — until then neither side can signal readiness to sign.`}</div>` : ''}
         <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
         ${''/* The "(your side)" italic that used to live here is gone. It was
@@ -7491,7 +7504,27 @@ function negWhoseMove(c){
   if (needs) return { k: 'you', n: needs };
   const open = (Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.status === 'pending' && !x.withdrawn).length;
-  return open ? { k: 'them', n: open } : { k: 'clear', n: 0 };
+  if (!open) return { k: 'clear', n: 0 };
+  /* ---- AND "WITH THE OTHER SIDE" HAS TO BE TRUE TO BE SAID ----
+     (owner-reported on MK-255, 13 Aug 2026.) This answered 'them' whenever
+     anything was pending, without ever asking whether they could SEE it — and
+     it feeds three surfaces at once: the list's bands, the row pill and the
+     phone's cards. A whole agreement was banded "With the other side" while
+     the counterparty held no live copy of it.
+
+     WHERE THEY HAVE NO LIVE COPY THE MOVE IS OURS, and that is not a
+     softening of the claim, it is the correct one: the thing that has to
+     happen next is that somebody sends them a link. So it bands under
+     "Waiting on you", where work this reader can actually do already lives,
+     and carries `why` so the pill can say which kind of waiting it is rather
+     than counting decisions that are not there.
+
+     'unknown' — nobody has asked the server for this contract's links — falls
+     through to the old answer untouched. See negoTheirCopy: inventing a new
+     untruth to replace the old one would be no better. */
+  const reach = (window.negoTheirCopy ? negoTheirCopy(c) : 'unknown');
+  if (reach === 'none') return { k: 'you', n: open, why: 'nocopy', reach };
+  return { k: 'them', n: open, reach };
 }
 /* ---- THE LIST BEHIND THE DOOR — IT IS THE CONTRACTS TABLE NOW ----
    Owner's decision, 12 Aug 2026, and it REVERSES the position that stood here
@@ -7649,6 +7682,29 @@ function renderRedline(){
       .then(r => { c._messages = (r && r.messages) || [];
         if (document.getElementById('view-redline') && _redlineHeldId === c.id) renderRedline(); })
       .catch(() => { c._messages = c._messages || []; });
+  }
+  /* ---- AND WHETHER THE OTHER SIDE HOLDS A LIVE COPY ----
+     Same shape, same reason, one fetch per sitting: this page decides whether
+     to CLAIM that the deal is waiting on them (negoTheirCopy), and the share
+     list is what that reading is made from. Without it this screen — the one
+     the fault was reported from — would answer 'unknown' forever and the
+     honesty would never reach the place it was asked for. The contract room
+     already fills the same cache through its shares panel; this is the door
+     that does not go through the room. Fire and forget: paint now, repaint
+     only if the answer landed. */
+  /* ONCE PER SITTING, ON THE CONTRACT — exactly as c._msgFetch above, and the
+     flag is the load-bearing part rather than a tidiness. Guarding on
+     "is the cache filled" instead looks equivalent and is not: where there is
+     nothing to fetch (local mode, a failed request) the cache never fills, so
+     every repaint would schedule another repaint and the page would spin
+     forever. Caught by the browser journey, which simply stopped responding to
+     a click. */
+  if (window.API_MODE && API_MODE() && window.ensureSharesCached
+      && window.sharesKnown && !sharesKnown(c) && !c._shareFetch){
+    c._shareFetch = true;
+    ensureSharesCached(c).then(() => {
+      if (document.getElementById('view-redline') && _redlineHeldId === c.id) renderRedline();
+    }).catch(() => {});
   }
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
@@ -9390,6 +9446,18 @@ function rlWireClauseTools(c, host, opts){
     if (window.toast) toast(i18t('ng_nothing_to_send'), 'err');
   }));
 
+  /* ---- AND THE WAY OUT OF "THEY HAVE NO LIVE COPY" ----
+     A proxy onto the share dialog, which is the one door a live link is made
+     through. Same discipline as the Send above: never a second transport,
+     never a second way of minting a link. It only exists on cards where the
+     product has just declined to claim a wait, so the sentence and the verb
+     are read together. */
+  host.querySelectorAll('[data-rl-sendcopy]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    if (window.openShareModal) openShareModal(c);
+    else if (window.toast) toast(i18t('ng_nothing_to_send'), 'err');
+  }));
+
   /* The card's Retract — an unsent draft of your own comes off the table
      entirely. The engine (negoRetractDraft) holds the rules: yours, pending,
      and never handed over; anything else is refused with a reason. */
@@ -10872,6 +10940,14 @@ function redlineChangeCardsHtml(c, opts = {}){
        counterparty filing under their own company name is not initialled into
        a different company. Every caller keeps the whole name in hover text. */
     const _short = n => (window.cardName ? cardName(n, metaOrg) : String(n == null ? '' : n));
+    /* Can the counterparty actually SEE this contract right now? Three answers
+       — see negoTheirCopy. Asked once per card and only used where the card is
+       about to claim the wait is theirs. Never from their own seat: they are
+       reading this page through a link, and our view of our own links is not
+       something their copy has or should have. */
+    const whoThem = c.counterparty || i18t('ng_the_counterparty');
+    const theirNoCopy = side !== 'counterparty' && !opts.readonly
+      && (window.negoTheirCopy ? negoTheirCopy(c) === 'none' : false);
     /* ---- THE STATUS WORD IS SHORT, AND IT IS IN THE READER'S LANGUAGE ----
        (owner-asked, 13 Aug 2026.) Every one of these used to be a phrase typed
        into this file in English: "Accepted · 🔒 held", "Refused · withdraw or
@@ -10905,8 +10981,17 @@ function redlineChangeCardsHtml(c, opts = {}){
       : sentHere ? (ch.status === 'accepted'
         ? ['ok', i18t('ng_badge_accepted'), i18t('ng_badge_answered_title')]
         : ['no', i18t('ng_badge_rejected'), i18t('ng_badge_answered_title')])
+      /* ---- AND THE WAIT IS ONLY CLAIMED WHERE IT IS TRUE (13 Aug 2026) ----
+         "Refused — waiting on them" is a claim about THEIR screen. Where they
+         hold no live copy of this contract it is false, and on MK-255 it was:
+         the change was not on their copy at all. The word in the slot does not
+         change — the card has ONE status slot and "Refused" is still the
+         state — but the sentence under it does, and the card grows a way out.
+         See negoTheirCopy for why 'unknown' keeps the old wording. */
       : contested ? ['no', i18t('ng_badge_refused'),
-        !theirs ? i18t('ng_badge_refused_ours_title') : i18t('ng_badge_refused_theirs_title')]
+        !theirs ? i18t('ng_badge_refused_ours_title')
+        : theirNoCopy ? i18t('ng_badge_refused_nocopy_title', { who: whoThem })
+        : i18t('ng_badge_refused_theirs_title')]
       /* ---- ONE TAG, NOT TWO ----
          This badge and the review's own chip were both drawn, both ruby, both
          saying held — reported as "you are adding more and more tags which is
@@ -11191,6 +11276,18 @@ function redlineChangeCardsHtml(c, opts = {}){
        A tag is a state, not an explanation. This is the sentence a reader needs
        when the Send button has gone: who stopped it, that only they can lift
        it, and the two things that can be done about it. */
+    /* ---- THE SENTENCE THAT REPLACES THE CLAIM, AND ITS WAY OUT ----
+       A refusal of ours on an ask of theirs, with no live copy on their side:
+       the card says what we actually know and offers the act that makes the
+       wait real. It rides in the action bar's own stack, beside the review
+       hold's "what now" — the same shape, for the same reason: an absence with
+       no sentence reads as a broken page, and a sentence with no verb reads as
+       a dead end. THE STATUS SLOT IS NOT DOUBLED; this is prose under it. */
+    const noCopyBlock = (contested && theirs && theirNoCopy)
+      ? `<div class="rl-card-why" style="border-left-color:var(--st-amber-line)">
+          <span class="rl-card-why-k rl-said-k">${i18t('ng_nocopy_k')}</span>
+          <span>${_ne(i18t('ng_nocopy_say', { who: whoThem }))}</span>
+        </div>` : '';
     const rvStuckBlock = (rvHeld && window.reviewSeatShowsReview && reviewSeatShowsReview(opts))
       ? `<div class="rl-card-why" style="border-left-color:var(--st-ruby-line)">
           <span class="rl-card-why-k rl-said-k">${i18t('rv_held_what_now_k')}</span>
@@ -11265,7 +11362,15 @@ function redlineChangeCardsHtml(c, opts = {}){
        predicates go with it: requester or admin only, never the reviewer, never
        the counterparty. */
     const rvCancel = window.reviewCardCancelHtml ? reviewCardCancelHtml(c, ch, opts) : '';
+    /* THE WAY OUT, ON THE SAME SCREEN — the share dialog, which is where a
+       live link is made. A proxy onto the one door rather than a second
+       transport, exactly like the card's Send. Never on their seat and never
+       on a read-only copy: theirNoCopy already refuses both. */
+    if (theirNoCopy && contested && theirs && editable)
+      verbs.push(`<button type="button" class="rl-send" data-rl-sendcopy="1"
+        title="${_nea(i18t('ng_send_copy_title', { who: whoThem }))}">${i18t('ng_send_copy')}</button>`);
     const actions = [
+      noCopyBlock,
       rvStuckBlock,
       (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : '',
       dkInstead,

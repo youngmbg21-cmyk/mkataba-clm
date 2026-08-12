@@ -1858,3 +1858,70 @@ THE PHONE draws its own version of this line and used to be silent when nobody
 was assigned. That was defensible while the desktop's version was a control
 the phone deliberately did not offer; it is not, now that both are statements.
 It says the same sentence, without a face, and not on an executed contract.
+
+"WAITING ON THEM" HAS TO BE TRUE BEFORE IT IS SAID
+
+Reported on MK-255. We refused a change the counterparty had raised. Their card
+read "Refused · waiting on them", the negotiations list banded the whole
+agreement under "With the other side", and the row pill said the same thing a
+third time. The change was not on their copy at all. So three surfaces agreed
+with each other and all three were wrong, and the deal stopped with nobody able
+to see why.
+
+THE MODEL WAS ALREADY IN THE CODEBASE. The turn banner has refused to make this
+claim about our own unsent asks since it was written — its comment says so in
+these words — and it states the wait as what it actually is with the send
+offered beside it. The instruction was to copy its honesty, not its code.
+
+WHAT CAN HONESTLY BE ASKED IS LESS THAN IT LOOKS. Nothing records when their
+copy was last refreshed: the silent catch-up deliberately does not stamp the
+share when it succeeds. So "have they seen THIS refusal" cannot be answered
+exactly today. Three options were on the table and A was built:
+
+  A  claim it only where a STANDING LINK exists; otherwise say the truth and
+     offer the send.
+  B  also use whether they have opened it since.
+  C  stamp the contract when a payload refresh succeeds, and compare that
+     against when the change was resolved.
+
+B IS THE ONE TO ARGUE WITH LATER, because it looks like more precision and is
+not. "They opened it" is true of a link opened last week, before this refusal
+existed — so a card reading "opened" would be taken to mean "seen this", and one
+untruth would be replaced by a subtler one. If precision is ever wanted, C is
+the honest upgrade. It is a new stored fact and was not built now.
+
+THREE ANSWERS, NOT TWO, AND THAT IS THE SAFETY OF THE WHOLE THING. The share
+cache returns an empty list both when there are no links and when nobody has
+asked the server yet. Reading the second as the first would have invented a
+brand new untruth — "they have no live copy" said about a contract nobody had
+looked up. So negoTheirCopy answers 'live', 'none' or 'unknown', and 'unknown'
+changes nothing anywhere: every sentence stays exactly as it was.
+
+THE PREDICATE WAS ALREADY NAMED. The work order said the "durable, not revoked,
+not expired" test was still written out inline in two places and asked for it to
+be named once as part of this job. It had been named the day before, by the
+MK-255 link-reuse fix — shareIsStanding — and both callers already ask it. There
+was no third copy to fold in. Recorded here rather than silently skipped,
+because a work order item that produces no diff otherwise looks forgotten.
+
+WHERE THEY HOLD NO COPY, THE MOVE IS OURS, and that is the correct answer rather
+than a softer one: the thing that has to happen next is that somebody sends them
+a link. So the list bands the agreement under "Waiting on you", where work this
+reader can actually do already lives, and the pill says what the move IS instead
+of counting decisions that do not exist.
+
+The card keeps its ONE status slot — "Refused" is still the state, and adding a
+second slot was explicitly ruled out. What changes is the hover text above it
+and a sentence under it, plus a verb: "Send a copy", a proxy onto the share
+dialog. Never a second transport, and never on the counterparty's seat, where
+the same change correctly reads "withdraw or revise" because that is their move.
+
+AND THE TRAP THAT BIT, which no node test could have caught. The negotiation
+page has to fill the share cache itself — it is the screen the fault was
+reported from and it does not go through the contract room, which is what
+normally fills that cache. The first version guarded the fetch on "is the cache
+filled". Wherever there is nothing to fetch — local mode, a failed request — the
+cache never fills, so every repaint scheduled another repaint and the page span
+forever. The browser journey found it as a click that never landed. The flag
+belongs ON THE CONTRACT, exactly like the one-per-sitting message fetch a few
+lines above it, and that pattern was already there to be copied.

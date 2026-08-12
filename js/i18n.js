@@ -1131,6 +1131,17 @@ const STRINGS = {
     // text is where the whole one stays reachable.
     ng_last_updated_by: 'Last updated by {who}',
     ng_asked_by_full: 'Asked by {who}',
+    /* ---- "WAITING ON THEM" HAS TO BE TRUE BEFORE IT IS SAID ----
+       Reported on MK-255, 13 Aug 2026: we refused a change of theirs and every
+       surface said the deal was with them, while they held no live copy of the
+       contract at all. Where that is the case the product says what it knows
+       and offers the act that makes the wait real. See negoTheirCopy. */
+    ng_no_live_copy: 'No live copy — send one',
+    ng_nocopy_k: 'They cannot see this',
+    ng_nocopy_say: '{who} holds no live copy of this contract, so they have not seen the refusal and cannot answer it. Send them a link.',
+    ng_badge_refused_nocopy_title: 'Refused — but {who} holds no live copy, so they have not seen it',
+    ng_send_copy: 'Send a copy',
+    ng_send_copy_title: 'Open the share dialog and give {who} a live link',
     ng_badge_draft: 'Draft',
     ng_badge_draft_title: 'Not sent yet — it is still on this page',
     ng_badge_sent: 'Sent',
@@ -4608,6 +4619,12 @@ const STRINGS = {
     // Ändringskortets statusord — se den engelska listan.
     ng_last_updated_by: 'Senast ändrad av {who}',
     ng_asked_by_full: 'Begärd av {who}',
+    ng_no_live_copy: 'Ingen aktiv kopia — skicka en',
+    ng_nocopy_k: 'De kan inte se det här',
+    ng_nocopy_say: '{who} har ingen aktiv kopia av avtalet, så de har inte sett avslaget och kan inte svara på det. Skicka dem en länk.',
+    ng_badge_refused_nocopy_title: 'Avslagen — men {who} har ingen aktiv kopia och har därför inte sett det',
+    ng_send_copy: 'Skicka en kopia',
+    ng_send_copy_title: 'Öppna delningsdialogen och ge {who} en aktiv länk',
     ng_badge_draft: 'Utkast',
     ng_badge_draft_title: 'Inte skickat än — det ligger kvar på den här sidan',
     ng_badge_sent: 'Skickat',
