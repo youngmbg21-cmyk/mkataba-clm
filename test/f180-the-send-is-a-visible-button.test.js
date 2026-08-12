@@ -111,13 +111,19 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
     assert.ok(v.$('#pw-page'), 'a negotiation link lands on the full-window workbench');
     const foot = v.$('#pt-nego-foot');
     assertVisible(foot, 'the deal-verb bar');
-    /* Nothing decided yet, so no send — but the bar already speaks, and
-       already carries the two whole-deal verbs. A page whose only verbs
-       appear after a decision is a page that never explains itself. */
-    assert.match(foot.textContent, /held here until you send them/i,
-      'the bar says where decisions wait');
+    /* Nothing decided yet, so no send — but the verbs are already there. A
+       page whose only verbs appear after a decision is a page that never
+       explains itself. */
     assertVisible(v.$('#pt-nego-ready'), 'Ready to sign');
     assertVisible(v.$('#pt-nego-decline'), 'Decline');
+    /* WHERE THE SENTENCE WENT (12 Aug 2026). The bar moved out of a full-width
+       strip and into the header row, which has room for verbs and none for
+       paragraphs — so it no longer prints "held here until you send them"
+       itself. The sentence is not lost: the wall line the workbench draws for
+       this same reader says it, and that wall is the one band this page is
+       allowed to keep precisely so it is read BEFORE any decision. */
+    assert.match(v.$('#rl-banner').textContent, /stay on this page until you press Send/i,
+      'the reader is still told where decisions wait, before they make one');
   });
 
   test('deciding draws the send, visible, with its count', async () => {
@@ -128,8 +134,38 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
     assertVisible(send, 'the Send button');
     assert.match(send.textContent, /Send 1 decision/,
       'the button says what the press will do');
-    assert.match(v.$('#pt-nego-foot').textContent, /Nothing has reached/,
-      'and the bar says the answer has not travelled yet');
+    /* The count that used to sit beside the buttons now rides on the button's
+       own label above, and the "nothing has travelled yet" half is on the wall
+       line — which counts the held answers itself. */
+    assert.match(v.$('#rl-banner').textContent, /nothing has reached/i,
+      'and the reader is told the answer has not travelled yet');
+    assert.match(v.$('#rl-banner').textContent, /1 answer/i,
+      'counted, so the sentence is about what they actually did');
+  });
+
+  /* THE ROLL CALL. The bug this file is named for was one verb losing its
+     pixels in a layout change; the 12 Aug header move was another layout
+     change over the same buttons. So the claim is made once, by name, over
+     every deal-level verb the page has — a future move that drops one fails
+     here rather than in a screenshot. */
+  test('every deal verb the page has is visible pixels, by name', async () => {
+    const o = await ownerProposed();
+    const v = counterpartyView(o.c);
+    v.$(`[data-nego-accept="${o.filed[0].id}"]`).click();
+    const VERBS = [
+      ['#pt-nego-send', 'Send decisions — the page\'s one postbox'],
+      ['#pt-nego-ready', 'Ready to sign'],
+      ['#pt-nego-decline', 'Decline'],
+      ['#pt-derive', 'Share a read-only copy'],
+    ];
+    for (const [sel, what] of VERBS) assertVisible(v.$(sel), what);
+    /* And exactly one of each — the header once carried a MIRROR of Ready to
+       sign, which is how deleting the strip could have left a page with a
+       button that hides itself and no real one. Two doors onto one act is a
+       thing this app does deliberately elsewhere; here it is not wanted. */
+    for (const [sel] of VERBS)
+      assert.equal(v.p.win.document.querySelectorAll(sel).length, 1,
+        `${sel} exists exactly once — no mirror to keep in step`);
   });
 
   test('and the send is ON THE CARD the decision was made on', async () => {
@@ -178,7 +214,7 @@ describe('F180 — the visible send closes the loop the bug report was about', (
     const v = counterpartyView(o.c);
     v.$(`[data-nego-accept="${id}"]`).click();
     assertVisible(v.$('#pt-nego-send'), 'the Send button');
-    v.p.setValue('nego-cp-name', 'Erik Lindqvist');
+    v.p.setResponderName('Erik Lindqvist');
     const cardSend = v.$(`[data-nego-card="${id}"] [data-rl-send="${id}"]`);
     assertVisible(cardSend, 'the card\'s own Send');
     cardSend.dispatchEvent(new v.p.win.Event('click', { bubbles: true }));

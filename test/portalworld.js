@@ -209,6 +209,43 @@ function buildPortal(opts = {}) {
       return el;
     },
     has: id => !!win.document.getElementById(id),
+    /* WHO IS ANSWERING, once the box stopped being a box (12 Aug 2026). The
+       workbench header used to carry #nego-cp-name and a test simply typed
+       into it; the header now carries verbs instead, and the name comes off
+       the chain portalResponderName reads — the reader's own remembered name
+       is the link a test can set. Prefer this over setValue('nego-cp-name'),
+       which only exists on the signing screen now. */
+    setResponderName(v) {
+      this.rememberingWorks();
+      if (win.negoRememberName) win.negoRememberName(v);
+      const box = win.document.getElementById('nego-cp-name')
+        || win.document.getElementById('pt-name');
+      if (box) box.value = v;
+    },
+    /* GIVE THIS STAGE A MEMORY, for the one key the page remembers a name in.
+       Call it when the test is about the REMEMBERING rather than about the
+       name — a reader answering the "who are you?" question once and not being
+       asked again on the next press.
+
+       This stage sits on an opaque origin, where READING window.localStorage
+       throws — deliberate, and the plain assignment further up does not take
+       because jsdom defines it as an accessor, so the product's own try/catch
+       has always swallowed both the read and the write. The store is DEFINED
+       here the way win.crypto is, and only for that key: everything else
+       answers null, which is what the no-op stub already promised. */
+    rememberingWorks() {
+      if (win._responderStore) return win._responderStore;
+      const KEY = win.NEGO_NAME_KEY || 'hati.v1.responderName';
+      let held = null;
+      win._responderStore = {
+        getItem: k => (k === KEY ? held : null),
+        setItem: (k, val) => { if (k === KEY) held = String(val); },
+        removeItem: k => { if (k === KEY) held = null; },
+      };
+      Object.defineProperty(win, 'localStorage',
+        { value: win._responderStore, configurable: true, writable: true });
+      return win._responderStore;
+    },
     setValue(id, v) {
       const el = win.document.getElementById(id);
       if (!el) throw new Error(`no field "${id}"`);

@@ -352,58 +352,37 @@ function portalReadingBtnsHtml(){
       ${cmp?`<button id="pt-compare" class="ui-btn pt-verb pw-id-verb"
         title="${i18t('po_two_versions_side')}">${
         icon('columns','w-3.5 h-3.5',2)}Compare wording</button>`:''}
-      ${portalReadyProxyHtml()}
+      ${''/* READY TO SIGN USED TO BE MIRRORED HERE, and it is the real button
+             now (owner-asked, 12 Aug 2026). The mirror existed because the act
+             had two homes — a copy up here and the live one in the strip below
+             — and a copy that recomputed the readiness gate would have been two
+             sentences free to disagree. The strip is gone and the verbs moved
+             into this row wholesale, so there is one button again, carrying its
+             own gate, its own tooltip and its own handler. See
+             portalNegoFootHtml, whose slot is now inside .pw-id. */}
     </span>
     <span class="pw-id-rule" aria-hidden="true"></span>`;
 }
-/* ---- READY TO SIGN, WHERE THE READER IS ALREADY LOOKING ----
-   Asked for beside Compare wording (12 Aug 2026). It is the SAME act as the
-   strip's Ready to sign, reached from a second place — never a second path:
-   the click forwards to #pt-nego-ready and portalRespond runs exactly once,
-   carrying the held decisions with the signal as it always has.
+/* ---- READY TO SIGN HAD A MIRROR HERE, AND DOES NOT NEED ONE ----
+   From 12 Aug 2026 it was drawn twice: the live button in the strip under the
+   header, and a copy beside Compare wording that forwarded its click to it. The
+   copy held no opinion of its own on purpose — the readiness gate (negoAlignment)
+   lives on the real button, and a second copy of that rule would have been free
+   to disagree the day either was edited — so it rendered hidden and mirrored the
+   real one's existence, disabled state, label and tooltip.
 
-   WHICH MEANS THIS BUTTON MUST NEVER KNOW ANYTHING OF ITS OWN. The strip's
-   button is gated on negoAlignment — a reader with a refused ask still on the
-   table is not ready, and saying so over a contested point is the untruth that
-   gate exists to prevent. Recomputing that here would be two copies of one
-   sentence, free to disagree the day one of them is edited (the settings page
-   learned this the expensive way). So it renders SHUT and mirrors: whether it
-   exists at all, whether it is pressable, what it says and what its tooltip
-   explains are all copied off the real button by portalSyncReadyProxy. The
-   safe default is deliberate — if the mirror never ran, this button would be
-   absent rather than a live door onto a refusal.
+   The strip is gone (owner-asked, same day: nothing sits in a card across the
+   page) and its verbs moved into the identity row wholesale, so there is ONE
+   Ready to sign again, in the place the mirror used to stand, carrying its own
+   gate. The mirror, its sync, its click forward and its CSS all went with the
+   duplication that justified them.
 
-   It is NOT added to portalCompareBar, the page's other builder of these
-   verbs, and that is a decision rather than an oversight: that bar renders on
-   the SIGNING screen, where readiness is already spent and the reader's verb
-   is Sign. There is no #pt-nego-ready live on that screen to mirror — the
-   agreed-banner layout keeps its strip hidden behind "Review what changed" —
-   so the button would have had nothing to press. Its absence there is the
-   same rule as here, applied to a seat that has moved past this question. */
-function portalReadyProxyHtml(){
-  return `<button type="button" id="pt-ready-top" class="ui-btn pt-verb pw-id-verb pt-ready-top" hidden
-    title="Ready to sign">${''/* check2, not check — icon() answers ICONS[n]||'' and
-      a mistyped name draws an EMPTY svg rather than failing, so the button
-      would have shipped iconless beside two verbs that have one. */
-    }${icon('check2','w-3.5 h-3.5',2)}<span class="pt-ready-top-lbl">Ready to sign</span></button>`;
-}
-/* The mirror. Called from wirePortalNegoFoot — the one funnel every refill of
-   the strip already goes through, so a future third refill site inherits this
-   without knowing it exists. */
-function portalSyncReadyProxy(){
-  const top=document.getElementById('pt-ready-top');
-  if(!top) return;
-  const real=document.getElementById('pt-nego-ready');
-  /* No readiness verb on the strip — a read-only, superseded, executed or
-     already-answered link — so there is none up here either. */
-  if(!real){ top.hidden=true; return; }
-  top.hidden=false;
-  top.disabled=!!real.disabled;
-  top.title=real.title||'Ready to sign';
-  const lbl=top.querySelector('.pt-ready-top-lbl');
-  const said=(real.textContent||'').replace(/\s+/g,' ').trim();
-  if(lbl && said) lbl.textContent=said;
-}
+   THE TRAP THIS RECORDS, because it nearly shipped: deleting the strip and
+   keeping the mirror would have left NO button at all. The mirror renders
+   hidden and un-hides only when it finds the real one — a deliberately safe
+   default, and exactly the wrong survivor. Move the real button; delete the
+   copy. */
+
 /* ---- THE SAME HISTORY THE OWNER READS, ON THEIR SIDE OF THE GLASS ----
    openHistoryTimeline is the owner's screen and it is mounted here unchanged:
    one component, both chairs, exactly as the workbench itself already is. What
@@ -543,11 +522,12 @@ const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-declin
      nothing had happened — the exact invitation to press twice this list
      exists to remove. */
   'nego-cp-ready','nego-cp-decline','nego-send-decisions',
-  /* The header's Ready to sign. It forwards to #pt-nego-ready, which a
-     disabled button would swallow anyway — but a door that still LOOKS live
-     while the request is in flight is the second and third press this list
-     exists to remove, and both doors onto one act must dim together. */
-  'pt-ready-top'];
+  /* The identity row's deal verbs. Ready to sign and Decline were reached
+     through a mirror that carried this duty for them; the mirror is gone and
+     the real buttons stand where it stood, so they take the duty directly. A
+     door that still LOOKS live while the request is in flight is the second
+     and third press this list exists to remove. */
+  'pt-nego-ready','pt-nego-decline'];
 function portalActionButtons(){
   return PORTAL_ACTIONS.map(id=>document.getElementById(id)).filter(Boolean);
 }
@@ -1066,8 +1046,56 @@ function portalCanDerive(){
    name of whoever pressed the button would put a company where a signature
    needs a human. It is a display fallback only — see portalResponderLabel. */
 function portalResponderName(){
+  /* ---- THE HEADER'S NAME BOX IS GONE, AND THE CHAIN GREW A LINK ----
+     #nego-cp-name stays first because the signing screen and the retired room
+     still draw a box; the remembered name is what the workbench's box used to
+     leave behind, and it is a PERSON, typed by them.
+
+     share.recipientName is LAST rather than gone. It is whatever the sender
+     typed into the recipient field, which on real links is regularly the
+     counterparty COMPANY — and the box carried exactly that as its seed, so a
+     reader who pressed Send without touching it filed the organisation anyway.
+     Keeping it here therefore preserves today's behaviour rather than changing
+     it; what is lost is the chance to correct it, and what replaces that is
+     the remembered name above it, which the reader's own typing sets. */
   return fval('nego-cp-name') || fval('pt-name')
+    || (window.negoRememberedName ? negoRememberedName() : '')
     || (PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName) || '';
+}
+/* ---- ASKED ONCE, WHEN IT MATTERS ----
+   The box that used to stand in the header for the whole sitting collected one
+   string: the person stamped on every change filed and every comment posted
+   from this page. The owner asked for the box to go (12 Aug 2026); the fact it
+   collected cannot go with it — portalRespond and portalNegoComment both refuse
+   without it, and refusing while pointing at a box that no longer exists is the
+   "a page whose Send could never succeed" fault this file already carries a
+   scar from.
+
+   So the chain above answers first — and on almost every link it does, because
+   the sender addressed the link to somebody. The question is asked ONLY when
+   every link in that chain is empty, which is the state that used to be a hard
+   refusal pointing at a box: a dead end, and now a way forward. Remembered on
+   the way through, so it is asked once per browser and not once per press.
+   Returns '' when the reader cancels, and the caller refuses exactly as it did.
+
+   NOT asked on the common path, deliberately. A modal between a reader and the
+   Send they just pressed is a worse interruption than the box it replaces, and
+   it would be asking a question the page can already answer. */
+async function portalEnsureResponderName(){
+  const have=portalResponderName();
+  if(have) return have;
+  if(!window.promptDialog) return '';
+  const given=await promptDialog({
+    title:i18t('po_who_are_you'),
+    message:i18t('po_who_are_you_why'),
+    label:i18t('ng_your_full_name'),
+    value:'', placeholder:i18t('ng_your_full_name'),
+    confirmLabel:i18t('act_save'),
+  });
+  const name=String(given==null?'':given).trim();
+  if(!name) return '';
+  if(window.negoRememberName) negoRememberName(name);
+  return name;
 }
 /* The same name, for showing on the screen, where an organisation is a better
    answer than a blank. Never used to attribute a response. */
@@ -1457,9 +1485,23 @@ function portalAgreedHtml(p){
     ${changes.length?`<div id="pt-nego" class="hidden"></div><div id="pt-nego-foot" class="hidden"></div>`:''}`;
 }
 
+/* ---- WHERE THE DEAL VERBS ARE STANDING ----
+   Two pages draw #pt-nego-foot from this one builder. On the SIGNING screen it
+   is the foot of the negotiation card, with room for a sentence beside the
+   buttons. On the negotiation workbench it is a group inside the identity row
+   (owner-asked, 12 Aug 2026) — a header has room for verbs and none for
+   paragraphs, so the words stand down there and are said where they are
+   already said. Set by whichever renderer built the slot; read by the builder.
+   A flag rather than a DOM probe: the builder must give the same answer
+   whether or not the slot happens to be mounted when it runs. */
+let PORTAL_FOOT_COMPACT=false;
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const live=!!PORTAL_OPTS.token && !portalReadOnly();
+  /* WHY THERE ARE NO VERBS, on the page that has room to say it. In the header
+     the same sentence travels to the workbench as readonlyWhy and is said
+     once, where the verbs would have been — see renderShareWorkbench. */
+  if(!live && PORTAL_FOOT_COMPACT) return '';
   if(!live) return `<span id="nego-readonly-why" style="font-size:11.5px;color:var(--color-neutral-600)">${esc(
     portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
     : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
@@ -1488,14 +1530,23 @@ function portalNegoFootHtml(p){
      decided anything — affordable at the foot of the page, not at the top of
      it now the strip sits under the header. Stacked here instead, so the
      strip is one row of verbs with its explanation to the left. */
-  return `
+  /* THE TWO SENTENCES STAND DOWN IN THE HEADER, and neither is lost.
+     "Your decisions are held here until you send them" is the wall line's own
+     sentence, printed a second time twelve pixels above it — the workbench
+     draws that wall for exactly this reader and it is the one band this page
+     keeps. The count it carries when decisions are held rides on the Send
+     button's own label ("Send 2 decisions"). And "1 change still waiting on a
+     decision" is on the Ready button's tooltip and, larger, in the round queue
+     down the left, which names the outstanding clause rather than counting it. */
+  const words=PORTAL_FOOT_COMPACT?'':`
     <span style="flex:1;min-width:150px;display:grid;gap:2px">
       <span style="font-size:11.5px;color:${n?'var(--st-amber-fg)':'var(--color-neutral-600)'}">
         ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
           :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
       </span>
       ${readyOk||spent?'':`<span id="pt-ready-why" style="font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${esc(whyNot)}</span>`}
-    </span>
+    </span>`;
+  return `${words}
     ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
     <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
       title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
@@ -1584,12 +1635,8 @@ function openDerivedLinkDialog(d, org){
    the next repaint. */
 const portalNegoComment = p => async (_c, ch, msg) => {
   if(!PORTAL_OPTS.token){ toast(i18t('po_no_channel_back'),'err'); return; }
-  const author=portalResponderName();
-  if(!author){
-    toast(i18t('po_enter_full_name'),'err');
-    try{ document.getElementById('nego-cp-name')?.focus(); }catch(_){}
-    return;
-  }
+  const author=await portalEnsureResponderName();
+  if(!author){ toast(i18t('po_enter_full_name'),'err'); return; }
   try{
     const res=await api('shares/'+PORTAL_OPTS.token+'/messages','POST',
       { author, topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+(ch&&ch.id)),
@@ -1664,10 +1711,20 @@ function wirePortalNego(c, p){
        while "this is a signing link" only explains the absence of buttons.
        So this one speaks only when it is the ONLY thing to say — otherwise it
        would talk over the notice the reader actually needs. */
+    /* AND THE OTHER READ-ONLY REASONS COME THROUGH THE SAME LINE NOW. They used
+       to be said by the strip, which stood on the page whether or not it had
+       verbs on it; the strip is a group in the header and a header has no room
+       for a sentence, so the reason travels here — one voice, in the place the
+       verbs would have been, exactly as the note above intends. */
     readonlyWhy:(signing && !portalReadOnly() && !PORTAL_OPTS.superseded)
       ? 'This is the agreed wording, shown so you can see what changed before you sign. '
         + 'The negotiation is closed on this link — ask ' + esc(org) + ' if something still needs to change.'
-      : undefined,
+      : (!live
+        ? (portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+          : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
+          : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
+          : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.')
+        : undefined),
     holdsDecisions:true,
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
     seenScope:PORTAL_OPTS.token||'',
@@ -1792,11 +1849,6 @@ function wirePortalNegoFoot(c, p){
     if(!String(reason).trim()){ toast(i18t('po_reason_required'),'err'); return; }
     portalRespond(p,'decline',{ comment:String(reason).trim() });
   });
-  /* The header's Ready to sign copies its whole state off the button wired
-     just above. Here rather than at the three call sites, so the mirror is
-     part of "the strip was refilled" rather than something each caller has to
-     remember — the funnel rule, applied to a two-line function. */
-  portalSyncReadyProxy();
 }
 /* The negotiation room is RETIRED. Both sides of the table use the one
    workbench now — see wirePortalNego — and the code that opened the room from
@@ -2222,7 +2274,13 @@ function portalWorkbenchStyle(){
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .pw-id-sub{display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .pw-id .nego-who{margin-left:auto;flex:none;display:flex;align-items:center;gap:7px;}
+    /* THE DEAL VERBS SIT WHERE THE NAME BOX USED TO (owner-asked, 12 Aug 2026).
+       The strip that carried them across the page is gone and its slot moved in
+       here — same id, same builder, same wiring funnel, so every refill site
+       and portalSetBusy reach it exactly as before. margin-left:auto pushes the
+       group to the right-hand end, which is the corner the reader's eye already
+       goes to for an act on this page. */
+    .pw-id .pw-foot{margin-left:auto;}
     /* The two reading verbs — see portalReadingBtnsHtml for why they stopped
        being ui-btn-secondary. The tint is mixed against whatever surface is
        under it, so the pair reads the same in either theme. */
@@ -2237,24 +2295,6 @@ function portalWorkbenchStyle(){
     /* Verbs on the left of it, reading controls on the right. Without this the
        row is one undifferentiated run of pills. */
     .pw-id-rule{width:1px;height:22px;flex:none;background:var(--color-divider);margin:0 1px;}
-    /* THE HIDE HAS TO BEAT .ui-btn, AND [hidden] ALONE DOES NOT. index.html's
-       .ui-btn sets a display, and an author rule beats the browser's own
-       [hidden]{display:none} every time. MEASURED, not reasoned: with this
-       rule deleted, Chromium reports display:flex on a button carrying the
-       attribute — it stays on screen, on exactly the links that have no
-       readiness to signal, which is the "a button that always fails is worse
-       than no button" fault portalCanDerive exists to avoid. jsdom cannot see
-       any of this (it resolves no class rules at all and reports the UA
-       inline-block), so the proof lives in ready-proxy-verify, not in f181.
-       Specificity alone would win today; !important is what keeps it winning
-       wherever this sheet happens to land, which is the lesson portalVerbStyle
-       paid for one bug earlier. */
-    .ui-btn.pt-ready-top[hidden]{display:none!important;}
-    .pw-id .nego-who .lbl{font-size:11px;font-weight:600;color:var(--color-neutral-700);
-      font-family:var(--font-mono);}
-    .pw-id .nego-who input{min-height:32px;min-width:180px;border:1px solid var(--color-divider);
-      border-radius:4px;padding:6px 10px;font:inherit;font-size:12.5px;background:var(--color-surface);
-      color:var(--color-text);outline:none;}
     /* The banners the old page carried in its main column — closed, revised,
        round, compare, message-from-sender. They carry facts the workbench does
        not render, so they are re-homed rather than dropped. */
@@ -2291,12 +2331,14 @@ function portalWorkbenchStyle(){
          work order asks, instead of inheriting the desktop grid. */
       .pw-page{height:auto;overflow:visible;}
       .pw-mount{min-height:70vh;}
-      /* The identity row now carries the two reading buttons and Ready to sign
-         as well as the stepper and the name box. On a desktop that fits on one
-         line; on a phone it must be allowed to fall onto a second rather than
-         squeeze the contract's name to nothing. */
+      /* The identity row now carries the two reading buttons, the stepper AND
+         every deal verb — Send, Ready to sign, Decline, Share a read-only copy.
+         On a desktop that fits on one line; on a phone it must be allowed to
+         fall onto a second rather than squeeze the contract's name to nothing.
+         The verbs keep their own row when they wrap, which is what stops Send
+         landing beside the contract's title with no gap. */
       .pw-id{flex-wrap:wrap;}
-      .pw-id .nego-who{margin-left:0;}
+      .pw-id .pw-foot{margin-left:0;flex-basis:100%;}
       /* A group separator means nothing once the groups have wrapped onto
          different lines. */
       .pw-id-rule{display:none;}
@@ -2306,6 +2348,9 @@ function portalWorkbenchStyle(){
 
 function renderShareWorkbench(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  /* The verbs stand in the identity row on this page, so the builder drops the
+     paragraph that used to sit beside them. See portalNegoFootHtml. */
+  PORTAL_FOOT_COMPACT=true;
   portalLoadHeld();          // before the room is built — the room is built FROM these
   portalWorkbenchStyle();
   portalVerbStyle();   // renderShareWorkbench is also reached directly, not only via renderSharePortal
@@ -2337,23 +2382,18 @@ function renderShareWorkbench(p, opts={}){
           &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
             ?` &middot; link expires ${esc(String(opts.share.expiresAt).slice(0,10))}`:''}</span>
       </span>
-      ${''/* W3 — THE NAME, and it is load-bearing. It is stamped on every
-             fingerprinted change they file and every comment they post, and
-             portalNegoComment refuses to send without it. It used to live in
-             the aside this screen replaces, so deleting that aside without
-             putting the field back would have left a page whose Send could
-             never succeed. The workbench's own field is used rather than a
-             second one of this page's making — the send path already prefers
-             #nego-cp-name over the old #pt-name, so there is one box, not two
-             that can disagree.
-
-             Filled ONLY from the share's named recipient, never from the
-             counterparty ORGANISATION — see negoNameFieldHtml. An empty box
-             asks the question; a wrong one answers it. */}
-      ${''/* Negotiation history, Compare wording and Ready to sign — the two
-             reading verbs and the one deal verb that earns a place beside
-             them, on the row with the other reading controls rather than in
-             a card of their own below. See portalReadingBtnsHtml. */}
+      ${''/* THE NAME BOX HAS GONE (owner-asked, 12 Aug 2026), AND THE FACT IT
+             COLLECTED HAS NOT. It stood in this row for the whole sitting to
+             collect one string — the person stamped on every change they file
+             and every comment they post. It is asked at the moment of sending
+             now, once, and remembered: see portalEnsureResponderName, which
+             also explains why NOT asking would have been the wrong kind of
+             tidy (the box arrived pre-filled with whatever the sender addressed
+             the link to, which on a real link was the counterparty COMPANY —
+             a person's box answered with an organisation, and now with nowhere
+             to correct it). */}
+      ${''/* Negotiation history and Compare wording — the reading verbs, on
+             the row with the other reading controls. See portalReadingBtnsHtml. */}
       ${portalReadingBtnsHtml()}
       ${''/* The same reading control the owner's bench carries — the
              counterparty is the customer, and squinting at 11px wording is
@@ -2361,19 +2401,22 @@ function renderShareWorkbench(p, opts={}){
              (rlSetDocType updates every mounted .redline-page, this embed
              included). */}
       ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
-      ${window.negoNameFieldHtml
-        ? negoNameFieldHtml({ recipientName:(opts.share&&opts.share.recipientName)||'' }) : ''}
+      ${''/* ---- AND EVERY DEAL VERB, WHERE THE NAME BOX USED TO BE ----
+             Send / Ready to sign / Decline / Share a read-only copy. They were
+             a strip across the page under this row until the owner asked for
+             that card to go so the contract could have the space (12 Aug 2026)
+             — the second such move: it was a card at the FOOT of the page until
+             11 Aug.
+
+             THE SLOT MOVED, NOTHING ELSE DID. Same id, same builder
+             (portalNegoFootHtml), same wiring funnel (wirePortalNegoFoot), so
+             every refill site, portalSetBusy and f180 reach it exactly as
+             before, and the signing screen's own #pt-nego-foot — a different
+             page, inside its own card — is untouched. NEVER hidden: see the
+             .pw-foot note in portalWorkbenchStyle for the week this bar spent
+             as [hidden] and what that cost. */}
+      <div id="pt-nego-foot" class="pw-foot"></div>
     </section>
-    ${''/* NOT hidden. This strip carries the page's whole-deal verbs — Send /
-           Ready to sign / Decline / Share a read-only copy — see the .pw-foot
-           note in portalWorkbenchStyle for the week it spent as [hidden] and
-           what that cost. It sat at the BOTTOM of the page as a card until the
-           owner asked (11 Aug 2026) for that card to go and the workbench to
-           take the space; the verbs moved up here rather than out — a page
-           with no Ready to sign / Decline is the "no way to answer" fault all
-           over again. wirePortalNego fills it and refills it on every
-           decision. */}
-    <div id="pt-nego-foot" class="pw-foot"></div>
     <div class="pw-notes">
       ${portalClosedBanner()}
       ${portalRevisedBanner()}
@@ -2393,16 +2436,6 @@ function renderShareWorkbench(p, opts={}){
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
   portalWireRevisedBanner(p);
-  /* ---- THE HEADER'S READY TO SIGN IS A DOOR, NOT A SECOND VERB ----
-     It presses the strip's own #pt-nego-ready and does nothing else. Exactly
-     the card Send's shape (data-rl-send onto #nego-send-decisions): one act,
-     two doors, never a second transport — so the readiness signal, the
-     decisions that ride with it and every refusal on the way stay in the one
-     path portalRespond already owns. What this button KNOWS is only what the
-     real one tells it; see portalSyncReadyProxy. */
-  document.getElementById('pt-ready-top')?.addEventListener('click',()=>{
-    document.getElementById('pt-nego-ready')?.click();
-  });
   /* The shared component, wired exactly as the old page wired it. Same
      function, same options — this changes the room the workbench stands in,
      never the workbench. */
@@ -2522,6 +2555,11 @@ function renderShareHistory(p, opts={}){
 }
 
 function renderSharePortal(p, opts={}){
+  /* The signing screen draws the verbs at the foot of a card, which has room
+     for the sentence beside them. Reset here rather than only set on the
+     workbench, because one browser reaches both screens in one sitting —
+     "Review what changed" and back. */
+  PORTAL_FOOT_COMPACT=false;
   /* Before any branch below picks a screen: every one of them can render the
      reading verbs, and each used to depend on whichever stylesheet its own
      screen happened to inject. See portalVerbStyle. */
@@ -2904,7 +2942,7 @@ async function portalRespond(p, action, extra){
     toast(i18t('po_no_signers_toast',{org:(p&&p.org)||'the sender'}),'err');
     return;
   }
-  const name=portalResponderName(), title=fval('pt-title'), email=fval('pt-email');
+  const name=await portalEnsureResponderName(), title=fval('pt-title'), email=fval('pt-email');
   /* The comment box lives on the respond panel, which is on the page
      UNDERNEATH the full-window room — the same trap that made the name check
      unpassable. Declining requires a reason, so a decline pressed in the room
@@ -2912,12 +2950,11 @@ async function portalRespond(p, action, extra){
      here, and everything reached from the panel still reads the panel. */
   const comment=(extra&&extra.comment!=null)?String(extra.comment):fval('pt-comment');
   if(!name){
-    /* Say where the box is. The room can be the whole window, so "enter your
-       name" without pointing at a field is an instruction with no object — and
-       putting the cursor in it is faster than describing it. */
-    const inRoom=document.getElementById('nego-cp-name');
+    /* They were ASKED and said no — portalEnsureResponderName put the question
+       in front of them rather than pointing at a box somewhere on the page,
+       which is what this used to do and what stopped being possible when the
+       box left the header. Nothing to focus, so nothing is claimed about it. */
     toast(i18t('po_enter_full_name'),'err');
-    try{ (inRoom||document.getElementById('pt-name'))?.focus(); }catch(_){}
     return;
   }
   /* Decisions on the other side's fingerprinted changes. This is not a change
@@ -3697,4 +3734,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalReadyProxyHtml,portalSyncReadyProxy});
+Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});

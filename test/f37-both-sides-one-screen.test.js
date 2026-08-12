@@ -435,8 +435,14 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
 
     v.$(`[data-nego-accept="${id}"]`).click();
     assert.ok(v.$('#pt-nego-send'), 'now there is');
-    assert.match(v.$('#pt-nego-foot').textContent,
-      /1 decision ready to send.*Nothing has reached .* yet/s);
+    /* WHERE THE SENTENCE IS SAID (12 Aug 2026). The verb bar moved into the
+       header row, which has room for buttons and none for paragraphs, so the
+       count rides on the button's own label and the "it has not travelled"
+       half is on the wall line the page draws above the document. Both halves
+       are still read before anything is sent, which is the claim. */
+    assert.match(v.$('#pt-nego-send').textContent, /Send 1 decision/);
+    assert.match(v.$('#rl-banner').textContent,
+      /1 answer.*nothing has reached .* yet/is);
     assert.equal(v.p.lastSent(), null, 'and nothing has actually been sent');
   });
 
@@ -448,7 +454,7 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     /* The name field moved out of the respond aside (deleted by W2) and into
        the workbench's own #nego-cp-name, which the send path already
        preferred. One box, not two that can disagree. */
-    v.p.setValue('nego-cp-name', 'Erik Lindqvist');
+    v.p.setResponderName('Erik Lindqvist');
     await v.p.click('pt-nego-send');
 
     /* CORRECTED, and the old shape is why the bug lived.
@@ -726,7 +732,12 @@ describe('the durable link keeps showing current state', () => {
     p.open(sharePayloadFor(p, o.c), { superseded: { at: '2026-07-27T09:00:00Z' } });
     assert.equal(p.win.document.querySelector('[data-nego-accept]'), null,
       'an older copy must not be able to answer');
-    assert.match(p.win.document.getElementById('pt-nego-foot').textContent,
+    /* ONE VOICE, in the place the verbs would have been. The strip used to say
+       this because it stood on the page whether or not it had buttons; it is a
+       group in the header now, and a header has no room for a paragraph — so
+       the reason travels into the component as readonlyWhy and is said once,
+       where a reader looking for the missing verbs is already looking. */
+    assert.match(p.win.document.getElementById('nego-readonly-why').textContent,
       /superseded — a newer link was sent to you/);
   });
 });

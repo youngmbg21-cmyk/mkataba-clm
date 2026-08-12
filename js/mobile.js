@@ -392,10 +392,13 @@ const M_CSS = `
     position:absolute; top:-2px; right:-2px; width:13px; height:13px; border-radius:50%;
     background:var(--st-amber-dot); border:2.5px solid var(--color-bg);
   }
+  /* Coloured like a control, for the same reason the desk's is — see
+     .rl-notices-min. The two shells draw their own chip and must not disagree
+     about whether Hide looks pressable. */
   .m-notices-min{
-    pointer-events:auto; min-height:44px; border:1px solid var(--color-divider); border-radius:999px;
-    background:var(--color-surface); color:var(--color-neutral-700); padding:0 16px;
-    font:inherit; font-size:15px; font-weight:600; cursor:pointer;
+    pointer-events:auto; min-height:44px; border:1px solid var(--color-accent-300); border-radius:999px;
+    background:var(--color-accent-100); color:var(--color-accent-800); padding:0 16px;
+    font:inherit; font-size:15px; font-weight:700; cursor:pointer;
     box-shadow:0 8px 22px -8px rgba(15,23,42,.28);
   }
   /* The stack scrolls on its own where a contract has more to say than the
