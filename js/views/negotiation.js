@@ -2166,6 +2166,13 @@ function negoLiveCardsHtml(c, opts){
                twice would be the "one tag per card" fault the review feature
                was reported for. */}
         ${window.deskCardInsteadHtml ? deskCardInsteadHtml(c, ch, opts) : ''}
+        ${''/* The requester's way out of their own escalation — see
+               reviewCardCancelHtml. Both card renderers carry it, which is the
+               project's own duplication rule and exactly the kind of thing this
+               feature has been fixed in one renderer and forgotten in the other
+               before. */}
+        ${(() => { const x = window.reviewCardCancelHtml ? reviewCardCancelHtml(c, ch, opts) : '';
+          return x ? `<div class="nego-acts" style="margin-top:7px">${x}</div>` : ''; })()}
         ${window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}
         ${held ? `<div class="nego-hold" data-hold="${_ne(ch.id)}">
           <span aria-hidden="true">▲</span>
@@ -10212,7 +10219,22 @@ function rlOneNoticeHtml(c, opts = {}){
 const _rlNoticeFold = new Map();
 function rlNoticesFolded(c){
   const k = String((c && c.id) || '');
-  return _rlNoticeFold.has(k) ? !!_rlNoticeFold.get(k) : true;   // folded until summoned
+  if (_rlNoticeFold.has(k)) return !!_rlNoticeFold.get(k);       // the reader has decided
+  /* ---- ONE EXCEPTION TO "FOLDED UNTIL SUMMONED" (12 Aug 2026) ----
+     A review that is still IN PLAY is not news; it is a job with a name on it,
+     and it is the one notice carrying a control — Cancel — that its own reader
+     has to be able to find. Folded behind the bell, that button existed and
+     effectively nobody could reach it, and the review read as one that could
+     not be called off. So while a review is open with this reader (theirs to
+     rule on, or theirs to call off) the stack arrives OPEN, and the moment they
+     fold it the decision above wins for the rest of the sitting.
+
+     Everything else still arrives folded: a review that came back days ago, a
+     desk notice, a readiness signal. reviewWantsAttention answers only for
+     reviews still in play — see reviewInPlay, which is what "spent" is measured
+     against. */
+  try{ if (window.reviewWantsAttention && reviewWantsAttention(c)) return false; }catch(_){}
+  return true;                                                    // folded until summoned
 }
 function rlSetNoticesFolded(cOrId, v){
   const k = (cOrId && typeof cOrId === 'object') ? String(cOrId.id || '') : String(cOrId || '');
@@ -10874,9 +10896,19 @@ function redlineChangeCardsHtml(c, opts = {}){
        desk's "instead" line and the review hold's "what now" — come with them.
        An action bar with a hole in it and the explanation folded away is
        worse than either. */
+    /* ---- AND THE REQUESTER'S WAY OUT OF THEIR OWN ESCALATION ----
+       Cancel used to live only in the review notice, which since 10 Aug 2026
+       arrives folded behind a bell — a verb that existed and could not be
+       found. It rides in the action bar now, beside the status that explains
+       why this change cannot be sent, which is where somebody is standing when
+       they decide the ask was a mistake. Built in js/review.js so this card and
+       the contract tab's card cannot disagree about who may see it, and the
+       predicates go with it: requester or admin only, never the reviewer, never
+       the counterparty. */
+    const rvCancel = window.reviewCardCancelHtml ? reviewCardCancelHtml(c, ch, opts) : '';
     const actions = [
       rvStuckBlock,
-      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : '',
+      (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : '',
       dkInstead,
       window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : '',
     ].filter(Boolean).join('');

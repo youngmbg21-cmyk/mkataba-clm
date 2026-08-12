@@ -10,8 +10,15 @@
    This is the next step: they arrive FOLDED, behind one small bell, and the
    reader summons them and folds them again at will.
 
+   ONE EXCEPTION WAS ADDED ON 12 AUG 2026, and it is worth stating with the
+   rule: a review that is still IN PLAY arrives OPEN. The fold worked exactly as
+   asked for and had one victim — Cancel lives in the review's own banner, so a
+   requester who wanted to call their escalation off had a button that existed
+   and effectively could not be found. News still folds; a job with a name on it
+   does not, until the reader folds it, and then their decision wins.
+
    What must stay true around the fold:
-   - the alerts arrive folded — a bell, not the cards;
+   - news arrives folded — a bell, not the cards;
    - the bell summons them, the Hide chip folds them, per contract, in memory;
    - the READING notice never folds: "As agreed" quietly hiding the document's
      strikes is the most expensive thing this page could get wrong (f84), so
@@ -43,6 +50,9 @@ function world(opts = {}){
   w.win.saveSettings = () => {};
   return w;
 }
+/* `withReview` — 'open' leaves a review in play (the exception: it arrives
+   OPEN); 'news' asks and then hands it straight back, which leaves a banner row
+   that is news rather than a job, and news folds. */
 async function mounted(w, withReview){
   const c = contract();
   w.win.negoInit(c);
@@ -51,6 +61,13 @@ async function mounted(w, withReview){
     '<p>Prices are fixed for twenty-four months.</p>',
     { side: 'owner', author: ME.name, summary: 'ask on 5' });
   if (withReview) w.win.reviewAsk(c, { reviewer: SALES, ids: [five.id] });
+  if (withReview === 'news'){
+    /* A reviewer cannot hand back with one of our clauses unruled — so rule on
+       it, then hand it back. What is left is a returned review with its clause
+       still on the table, which is exactly the "news" the banner draws. */
+    w.win.reviewMark(c, five.id, 'cleared', { force: true, by: SALES.name, byId: SALES.id });
+    w.win.reviewReturn(c, { force: true, by: SALES.name, byId: SALES.id });
+  }
   w.win.state = Object.assign({}, w.win.state,
     { contracts: [c], activeId: c.id, view: 'redline', settings: {} });
   w.win.getContract = id => (String(id) === String(c.id) ? c : null);
@@ -65,18 +82,34 @@ const press = (w, sel) => {
 };
 
 describe('f172 · the alerts arrive folded and are summoned at will', () => {
-  test('folded by default: a bell, not the cards', async () => {
+  test('news is folded by default: a bell, not the cards', async () => {
     const w = world();
-    await mounted(w, true);
+    await mounted(w, 'news');
     assert.ok($(w, '.rl-notices [data-rl-notices-open]'), 'the bell is drawn');
-    assert.equal($(w, '.rl-notices .rv-banner'), null, 'the review banner is behind it');
+    assert.equal($(w, '.rl-notices .rv-banner'), null, 'the returned-review card is behind it');
+  });
+
+  test('A REVIEW STILL IN PLAY ARRIVES OPEN', async () => {
+    /* Added 12 Aug 2026. The banner is the only notice carrying a control its
+       own reader must be able to reach — Cancel — and behind the bell it could
+       not be found. A job with a name on it is not news. */
+    const w = world();
+    const c = await mounted(w, 'open');
+    assert.equal(w.win.rlNoticesFolded(c), false, 'it arrives open');
+    assert.ok($(w, '.rl-notices .rv-banner'), 'so the banner is on screen without a press');
+    assert.ok($(w, '.rl-notices [data-rv-act^="rv-cancel"]'),
+      'and the Cancel it carries is reachable');
+    /* But the reader still wins: fold it and it stays folded for the sitting. */
+    press(w, '[data-rl-notices-min]');
+    assert.equal(w.win.rlNoticesFolded(c), true);
+    assert.ok($(w, '[data-rl-notices-open]'), 'the bell is back');
   });
 
   test('the bell summons them; Hide folds them again', async () => {
     const w = world();
-    await mounted(w, true);
+    await mounted(w, 'news');
     press(w, '[data-rl-notices-open]');
-    assert.ok($(w, '.rl-notices .rv-banner'), 'summoned: the review banner is on screen');
+    assert.ok($(w, '.rl-notices .rv-banner'), 'summoned: the review card is on screen');
     assert.ok($(w, '[data-rl-notices-min]'), 'with the way back beside it');
     assert.equal($(w, '[data-rl-notices-open]'), null, 'and the bell stands down');
     press(w, '[data-rl-notices-min]');
@@ -86,7 +119,7 @@ describe('f172 · the alerts arrive folded and are summoned at will', () => {
 
   test('the reading notice never folds — it stands beside the bell', async () => {
     const w = world();
-    await mounted(w, true);
+    await mounted(w, 'news');
     press(w, '.rl-head [data-rl-read="agreed"]');
     assert.ok($(w, '.rl-note-card'), 'a non-default reading always says so (f84\'s rule)');
     assert.ok($(w, '[data-rl-notices-open]'), 'while the alerts stay folded behind the bell');
@@ -102,7 +135,7 @@ describe('f172 · the alerts arrive folded and are summoned at will', () => {
 
   test('the fold is per contract and per sitting', async () => {
     const w = world();
-    const c = await mounted(w, true);
+    const c = await mounted(w, 'news');
     assert.equal(w.win.rlNoticesFolded(c), true, 'starts folded');
     w.win.rlSetNoticesFolded(c, false);
     assert.equal(w.win.rlNoticesFolded(c), false, 'summoned');

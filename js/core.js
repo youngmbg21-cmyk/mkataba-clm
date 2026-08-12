@@ -1358,8 +1358,16 @@ function openFromHash(){
   setView('workspace');
   /* The tab is asked for AFTER the room exists, through the room's own router —
      never by writing its private state from out here. An unknown tab name is
-     simply not asked for, and the room opens where it always would. */
-  if(tab && window.roomGoTab && ['terms','docs','sign','history'].includes(tab)){
+     simply not asked for, and the room opens where it always would.
+
+     'redline' IS ON THE LIST AND IS NOT A TAB. Negotiate left the room's tab row
+     on 12 Aug 2026 and became a place; the KEY still routes through roomGoTab,
+     which opens the negotiation workbench for that agreement. It is here because
+     the internal review's email asks a colleague to rule on named changes, and
+     the one place they can do that is the negotiation — the same reason the
+     signer's mail asks for 'sign'. Both links are built by one function on the
+     server (contractUrl), and this is the one place either is honoured. */
+  if(tab && window.roomGoTab && ['terms','docs','sign','history','redline'].includes(tab)){
     try{ roomGoTab(c, tab); }catch(_){}
   }
   return true;

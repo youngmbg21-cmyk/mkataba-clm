@@ -38,6 +38,18 @@ describe('f155 — the review request notification', () => {
     assert.match(String(mail.body), /Is Net-45 defensible\?/, 'their question travels');
     assert.match(String(mail.body), /clear or hold each change/i, 'and it says what to do');
     assert.match(String(mail.body), /Nothing you hold back will reach the counterparty/i);
+    /* AND IT NAMES THE AGREEMENT IN THE LINK (12 Aug 2026). It used to point at
+       the site root: telling somebody a named set of changes on a named
+       agreement needs them, then asking them to go and find it. */
+    assert.match(String(mail.body), /#contract=MK-A2&tab=redline/,
+      'the link opens the contract on its negotiation');
+    /* And the answer says enough to act on. Three things look identical from the
+       requester's chair when nothing arrives — no provider configured, a
+       refusal, or a cleared tick-box — so the route reports which. */
+    assert.equal(typeof r.emailConfigured, 'boolean');
+    assert.equal(r.outbox, !r.emailConfigured);
+    assert.equal(r.to, reviewer.email, 'and where it went, so the record can say');
+    assert.ok('emailError' in r, 'with the provider\'s own sentence when it refused');
   });
 
   test('the address comes from the users table, never from the request body', async () => {

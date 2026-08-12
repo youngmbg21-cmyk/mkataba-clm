@@ -4818,7 +4818,14 @@ app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => 
   if (!inScope(folderScopeFor(u), row.folder))
     return res.status(400).json({ error: `${u.name} does not have access to this contract's value stream, so they could never open it` });
   const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
-  const appUrl = `${req.protocol}://${req.get('host')}/`;
+  /* ---- THE LINK LANDS ON THE CONTRACT, ON ITS NEGOTIATION ----
+     It used to be the site root: somebody told that a NAMED set of changes on a
+     NAMED agreement needs them, and then asked to go and find it. The internal
+     signer's mail had the identical fault and was fixed the same week, so the
+     two build their link through ONE function — contractUrl — rather than
+     through two that will drift. `redline` is honoured by openFromHash in
+     js/core.js, on the far side of the sign-in wall. */
+  const url = contractUrl(req, req.params.id, 'redline');
   const note = clean(b.note).slice(0, 1000);
   const due = clean(b.due).slice(0, 40);
   const sent = await sendEmail(u.email,
@@ -4828,15 +4835,29 @@ app.post('/api/contracts/:id/review-request', auth, editor, async (req, res) => 
     + `before they go to the counterparty.\n`
     + (note ? `\nWhat they want you to look at:\n"${note}"\n` : '')
     + (due ? `\nNeeded by: ${due}\n` : '')
-    + `\nOpen the contract in HaTi, go to Negotiate, and clear or hold each change:\n${appUrl}\n\n`
+    + `\nOpen the agreement and clear or hold each change:\n${url}\n\n`
     + `Nothing you hold back will reach the counterparty.\n\nThis is an automated message from HaTi.`,
     `review request: ${req.params.id} -> ${u.email}`);
   /* `sent` is sendEmail's own verdict — 1 only when a provider actually took
-     it. Reported honestly rather than as "ok", because the dialog's toast tells
-     the requester whether their colleague will get a mail or has to be told,
-     and a cheerful lie there is how the review sits unopened for two days. */
+     it. Reported honestly rather than as "ok", because the requester is owed
+     the answer and a cheerful lie there is how the review sits unopened for two
+     days.
+
+     AND THE REASON TRAVELS WITH IT. Three different things look identical from
+     the owner's side — email is not configured on this server at all (there is
+     an internal outbox for exactly that case), the provider refused the
+     message, or it went. Reported as "it did not go" they are one shrug; named,
+     they are three different actions. sendEmail already keeps the provider's
+     own sentence in `detail`; it is passed straight through, and the browser
+     files it beside the review and in the audit trail so the answer outlives a
+     toast. The two refusals BEFORE this point — not a member, and no access to
+     this value stream — are their own 4xx and say so in words. */
   res.json({ ok: true, emailSent: !!(sent && sent.sent),
-    emailConfigured: EMAIL_ON(), reviewer: { id: u.id, name: u.name } });
+    emailConfigured: EMAIL_ON(),
+    emailError: (sent && sent.detail) || null,
+    outbox: !EMAIL_ON(),
+    to: u.email,
+    reviewer: { id: u.id, name: u.name } });
 });
 
 /* ---------- team management ---------- */
@@ -5247,8 +5268,10 @@ function internalSignerRecipient(row) {
    needs them to go and find it. Honoured by startApp in js/core.js, on the far
    side of the sign-in wall — the hash survives the wall, and that is what makes
    this safe to send to a page that will refuse to load without a session. */
-const contractSignUrl = (req, contractId) =>
-  `${req.protocol}://${req.get('host')}/#contract=${encodeURIComponent(contractId)}&tab=sign`;
+const contractUrl = (req, contractId, tab) =>
+  `${req.protocol}://${req.get('host')}/#contract=${encodeURIComponent(contractId)}`
+  + (tab ? `&tab=${encodeURIComponent(tab)}` : '');
+const contractSignUrl = (req, contractId) => contractUrl(req, contractId, 'sign');
 /* ONE WORDING, BOTH TRIGGERS, BOTH LANGUAGES. The two mails this replaces said
    different things and only one of them was translated. */
 function internalTurnEmail({ signer, plan, contractName, url, L }) {
