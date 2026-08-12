@@ -169,169 +169,97 @@ describe('F100b — the card is a handle, not a copy', () => {
       'the clause reads with its marks, in its own surroundings');
   });
 
-  test('a draft arrives shut, like every other card', async () => {
+  test('a draft arrives with nothing popped out, and a door to open', async () => {
     const p = await page();
     const card = p.$('#rl-changes .rl-card');
-    assert.equal(card.getAttribute('data-rl-open'), '0',
-      'a card is open only because somebody opened it');
-    assert.ok(card.querySelector('[data-rl-caret]'), 'and the caret says there is more under it');
+    assert.equal(card.getAttribute('data-rl-popped'), '0',
+      'a panel is open only because somebody opened it');
+    assert.ok(card.querySelector('[data-rl-pop]'),
+      'and a real button says the reason and the notes are behind it');
+    assert.ok(card.querySelector('.rl-card-body'),
+      'the reading matter is on the card, ready for the panel to borrow');
   });
 
-  test('once sent it still reads as sent, on the part that never folds', async () => {
+  test('the reading matter is on the card and never shown there', async () => {
+    /* It stays in the card so the engine wires it with everything else — the
+       reply box is bound by element id, scoped to this mount. The panel MOVES
+       this node rather than rendering a second copy, which would be a composer
+       with no handlers at all. */
+    const p = await page();
+    const css = p.win.document.getElementById('redline-layout-css').textContent;
+    assert.match(css, /\.redline-page \.rl-card \.rl-card-body\{display:none\}/,
+      'hidden on the card');
+    assert.match(css, /\.rl-pop-body \.rl-card-body\{display:block\}/,
+      'and shown once the panel has it');
+  });
+
+  test('pressing its head takes you to the change and leaves the card alone', async () => {
     const p = await page();
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.again();
+    p.$('#rl-changes .rl-card .rl-card-head')
+      .dispatchEvent(new p.win.Event('click', { bubbles: true }));
+    assert.equal(p.win.rlPopId(), null, 'no panel opened');
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-popped'), '0',
+      'and the column holds still');
+  });
+
+  test('the button opens the panel, and the body MOVES into it', async () => {
+    /* The move is the whole design. A rendered copy looks identical and its
+       reply box never sends. */
+    const p = await page();
+    const card = () => p.$('#rl-changes .rl-card');
+    const bodyBefore = card().querySelector('.rl-card-body');
+    assert.ok(bodyBefore, 'the body starts on the card');
+    p.$('#rl-changes .rl-card [data-rl-pop]').click();
+    const pop = p.$('#rl-pop');
+    assert.ok(pop, 'the panel is drawn');
+    assert.equal(card().querySelector('.rl-card-body'), null, 'the card lent it out');
+    assert.equal(pop.querySelector('.rl-card-body'), bodyBefore,
+      'and it is the very same node, listeners and all');
+    assert.equal(p.$$('.rl-card-body').length, 1, 'never two copies in the document');
+  });
+
+  test('and closing it gives the body back to its card', async () => {
+    const p = await page();
+    const btn = () => p.$('#rl-changes .rl-card [data-rl-pop]');
+    btn().click();
+    btn().click();
+    assert.equal(p.$('#rl-pop'), null, 'the panel is gone');
     const card = p.$('#rl-changes .rl-card');
-    assert.equal(card.getAttribute('data-rl-open'), '0');
-    assert.ok(card.classList.contains('rl-card-shut'), 'the body is folded away');
-    assert.match(card.querySelector('.rl-badge').textContent.trim(), /^Sent$/,
-      'the fact lives on the part that never folds');
-    assert.ok(card.querySelector('.rl-card-meta'), 'and so does the clause it is on');
+    assert.ok(card.querySelector('.rl-card-body'), 'and the body is home');
+    assert.ok(card.querySelector('.rl-card-body').nextElementSibling.classList.contains('rl-card-actions'),
+      'in its own place, above the action bar');
   });
 
-  test('pressing its head opens it AND takes you to the change', async () => {
+  test('the panel carries the wording in full, which the card only clamps', async () => {
     const p = await page();
+    p.$('#rl-changes .rl-card [data-rl-pop]').click();
+    const pop = p.$('#rl-pop');
+    assert.ok(pop.querySelector('.rl-pop-word'), 'the wording, unclamped');
+    assert.ok(pop.querySelector('[data-rl-pop-close]'), 'and a way to shut it');
+  });
+
+  test('an open panel survives the card changing state underneath it', async () => {
+    const p = await page();
+    p.$('#rl-changes .rl-card [data-rl-pop]').click();
+    const id = p.win.rlPopId();
+    assert.ok(id);
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.again();
-    p.$('#rl-changes .rl-card .rl-card-head').click();
-    p.again();
-    const card = p.$('#rl-changes .rl-card');
-    assert.equal(card.getAttribute('data-rl-open'), '1', 'one press, not two');
-    assert.ok(card.querySelector('button.rl-sent'), 'the amber Sent is back where the Send was');
+    assert.equal(p.win.rlPopId(), id, 'still open on the same change');
+    assert.ok(p.$('#rl-pop .rl-card-body'),
+      'and it took the rebuilt card\'s body — the one it held went with the repaint');
+    assert.equal(p.$$('.rl-card-body').length, 1, 'still exactly one');
   });
 
-  test('pressing it again folds it, and the caret does the same', async () => {
+  test('and it closes when its change leaves the list', async () => {
     const p = await page();
-    p.win.negoHandOver(p.c, { to: 'counterparty' });
+    p.$('#rl-changes .rl-card [data-rl-pop]').click();
+    p.win.rlPopSet('CHG-DOES-NOT-EXIST');
     p.again();
-    const head = () => p.$('#rl-changes .rl-card .rl-card-head');
-    head().click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
-    head().click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
-      'the same press closes it — that is the whole rule');
-    /* The caret is the affordance for the same act, and it does NOT drag the
-       document: a reader tidying a column is not asking to be taken anywhere. */
-    p.$('#rl-changes [data-rl-caret]').click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
-    p.$('#rl-changes [data-rl-caret]').click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
-  });
-
-  test('a hand-closed card stays closed through a repaint', async () => {
-    const p = await page();
-    p.win.negoHandOver(p.c, { to: 'counterparty' });
-    p.again();
-    const head = () => p.$('#rl-changes .rl-card .rl-card-head');
-    head().click(); p.again();
-    head().click();
-    p.again(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
-      'a preference the next paint forgets is not a preference');
-  });
-
-  /* ---------- the follow-up defect, reported from a live session ----------
-     "After send the cards are not collapsing." They were. What had happened is
-     that the reader pressed the sent card to check it had gone — the most
-     natural move there is — and the open/shut choice was remembered against the
-     ID, forever. So that card never folded again through every later state
-     change, and the feature read as broken.
-
-     The answer at the time was to key the choice on the card's VERBS, so a
-     choice lapsed when the card became a different kind of card. That whole
-     mechanism is gone (10 Aug 2026). It existed to stop an automatic default
-     being overridden by a stale choice — and there is no automatic default any
-     more. A card is shut until a reader opens it, and pressing it again shuts
-     it, so "the cards are not collapsing" cannot happen: the press that opened
-     one is the press that closes it.
-
-     The dangerous half of the old behaviour is gone with it. Accept and Reject
-     can no longer be hidden behind a preference expressed about a different
-     card state, because a preference is never carried across a state — it is
-     simply what the reader last did to this card. */
-  test('a choice is the reader\'s last press, whatever the card became', () => {
-    const w = buildWorld({ negotiationView: true });
-    const { rlCardIsOpen, rlCardSetOpen, rlCardStateKey } = w.win;
-    const SENT = ['<button data-rl-edit="c1">Edit</button>',
-      '<button data-rl-sent="CHG-1" disabled>Sent</button>'];
-    const DRAFT = ['<button data-rl-edit="c1">Edit</button>',
-      '<button data-rl-retract="CHG-1">Retract</button>',
-      '<button data-rl-send="CHG-1">Send</button>'];
-    const ch = { id: 'CHG-1' };
-
-    assert.equal(rlCardIsOpen(ch, SENT), false, 'shut until somebody opens it');
-    rlCardSetOpen('CHG-1', true, rlCardStateKey(SENT));
-    assert.equal(rlCardIsOpen(ch, SENT), true, 'opened');
-    /* AND IT DOES NOT LAPSE UNDERNEATH THE READER. The card changing state —
-       a draft becoming a sent ask, an ask coming back answered — must not fold
-       a card the reader is working in. */
-    assert.equal(rlCardIsOpen(ch, DRAFT), true,
-      'the card changing shape is not the reader closing it');
-    rlCardSetOpen('CHG-1', false, rlCardStateKey(DRAFT));
-    assert.equal(rlCardIsOpen(ch, SENT), false, 'and shutting it shuts it, in every state');
-  });
-
-  test('nothing re-opens a card the reader has closed', () => {
-    /* The old rule did: a shut card carrying Accept and Reject was forced open
-       again, so that a live control could not hide behind a stale preference.
-       It is not needed now — a reader who closes a card closed the card they
-       could see, verbs and all — and it is the behaviour that was reported as
-       wrong ("you click again and they disappear"). */
-    const w = buildWorld({ negotiationView: true });
-    const { rlCardIsOpen, rlCardSetOpen, rlCardStateKey } = w.win;
-    const MINE = ['<button data-rl-send="CHG-9">Send</button>'];
-    const THEIRS = ['<button data-nego-accept="CHG-9">Accept</button>',
-      '<button data-nego-reject="CHG-9">Reject</button>'];
-    const ch = { id: 'CHG-9' };
-    rlCardSetOpen('CHG-9', false, rlCardStateKey(MINE));
-    assert.equal(rlCardIsOpen(ch, MINE), false, 'shut, as asked');
-    assert.equal(rlCardIsOpen(ch, THEIRS), false, 'and it stays shut, as asked');
-  });
-
-  test('the state key is the actions on offer, not the ids inside them', () => {
-    /* A clause renamed under a card, or a change re-parented, must not read as
-       "this is a different card now" and throw the reader's choice away. */
-    const { rlCardStateKey } = buildWorld({ negotiationView: true }).win;
-    assert.equal(
-      rlCardStateKey(['<button data-rl-edit="clause-1" data-rl-edit-change="CHG-1">Edit</button>']),
-      rlCardStateKey(['<button data-rl-edit="clause-7" data-rl-edit-change="CHG-1">Edit</button>']));
-    assert.notEqual(
-      rlCardStateKey(['<button data-rl-send="CHG-1">Send</button>']),
-      rlCardStateKey(['<button data-rl-sent="CHG-1">Sent</button>']));
-    assert.equal(rlCardStateKey([]), '');
-  });
-
-  test('the card carries the state its choice is measured against', async () => {
-    const p = await page();
-    const card = p.$('#rl-changes .rl-card');
-    assert.ok(card.getAttribute('data-rl-state'),
-      'without it the click handler has nothing to record the choice against');
-    assert.match(card.getAttribute('data-rl-state'), /data-rl-send/,
-      'a draft names its own verbs');
-  });
-
-  test('the reported sequence, end to end', async () => {
-    /* send → shut → press → open → press → shut. The original report was "after
-       send the cards are not collapsing", and the answer then was to make a
-       remembered choice lapse when the card changed state. The answer now is
-       simpler and is what was asked for on 10 Aug 2026: the press that opened
-       a card is the press that closes it, so there is no state to be stuck in. */
-    const p = await page();
-    p.win.negoHandOver(p.c, { to: 'counterparty' });
-    p.again();
-    const head = () => p.$('#rl-changes .rl-card .rl-card-head');
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0', 'shut on send');
-
-    head().click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1', 'a press opens it');
-
-    head().click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
-      'and the same press puts it back');
-
-    /* And the caret, which is the same act with an affordance on it. */
-    p.$('#rl-changes [data-rl-caret]').click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
+    assert.equal(p.win.rlPopId(), null);
+    assert.equal(p.$('#rl-pop'), null);
   });
 
   test('the rule is read off the verbs, not off a list of statuses', () => {
@@ -550,24 +478,20 @@ describe('F100d — a second batch of asks can still be sent', () => {
 });
 
 /* ============================================================ */
-describe('F100e — a card is open only because somebody opened it', () => {
+describe('F100e — the card pops out; it does not grow', () => {
   /* ---- WHAT THIS BLOCK USED TO PIN, AND WHY IT DOES NOT ----
-     Three rules decided a card's state for the reader: a card carrying a verb
-     opened itself, hovering peeked one open, and opening one shut the rest.
-     They were built to solve a real problem — working through a round left a
-     column of open cards to close one at a time — and they solved it by taking
-     the decision away, which produced three faults of their own: a busy round
-     arrived as a wall of open cards, the column moved under a pointer merely
-     crossing it, and two changes could not be compared side by side.
+     Three rules once decided a card's state for the reader — a card carrying a
+     verb opened itself, hovering peeked one open, and opening one shut the rest
+     — and all three were replaced by a plain in-place toggle in Aug 2026.
 
-     Replaced with a plain toggle (Young, 10 Aug 2026): "the cards you only
-     open when you click on them and you click again and they disappear."
+     The toggle went too (owner, 12 Aug 2026). Unfolding in place put the
+     reason, the reviewer's note and the whole thread into the narrowest column
+     on the screen, and moved every card below down the page while somebody was
+     reading one of them. It pops out into a floating panel instead.
 
-     THE OLD SAFETY ARGUMENT IS NOW STRUCTURAL. The exemption existed so a
-     button could not vanish while the reader's hand was travelling toward it.
-     Nothing automatic moves a card any more, and only the HEAD toggles — so
-     the body cannot fold the body away. That is what the last test here
-     checks, and it is the one that would hurt if it broke. */
+     WHAT SURVIVES, and matters more than the layout: pressing a card takes you
+     to its clause and now does only that; the verbs are on the card whatever is
+     open; and nothing but a press opens or closes the panel. */
 
   async function page(){
     const w = buildWorld({ negotiationView: true });
@@ -595,117 +519,91 @@ describe('F100e — a card is open only because somebody opened it', () => {
     new el.ownerDocument.defaultView.Event(type, Object.assign({ bubbles: false }, init)));
   const head = p => p.$('#rl-changes .rl-card .rl-card-head');
 
-  test('every card arrives shut, whatever is on it', async () => {
-    /* A draft carries Edit, Retract and Send — the set that used to force the
-       card open. It arrives shut like everything else. */
+  const popBtn = p => p.$('#rl-changes .rl-card [data-rl-pop]');
+
+  test('every card arrives with nothing popped out', async () => {
     const p = await page();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
-    const q = await sent();
-    assert.equal(q.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
+    assert.equal(p.win.rlPopId(), null);
+    assert.equal(p.$('#rl-pop'), null, 'no panel until somebody opens one');
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-popped'), '0');
   });
 
-  test('one press opens it, the next shuts it', async () => {
+  test('one press opens it, the same press closes it', async () => {
     const p = await page();
-    head(p).click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1',
-      'a press is the whole of the rule');
-    head(p).click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
-      'and the same press again closes it');
+    const id = p.$('#rl-changes .rl-card').getAttribute('data-nego-card');
+    popBtn(p).click();
+    assert.equal(p.win.rlPopId(), id);
+    assert.ok(p.$('#rl-pop'));
+    popBtn(p).click();
+    assert.equal(p.win.rlPopId(), null);
+    assert.equal(p.$('#rl-pop'), null, 'gone, not merely hidden');
   });
 
-  test('the caret is the same toggle, said out loud', async () => {
-    /* It is the affordance — the one thing on a shut card saying there is more
-       under it. It used to be inert on a card that could not fold, which is a
-       control that does nothing on the cards a reader meets most. */
+  test('THE ONE THAT WOULD HURT: the panel is inside the mount, outside the column', async () => {
+    /* Outside the mount, the engine's own wiring — which is scoped to it — does
+       not reach the reply box, and the composer accepts typing and never sends.
+       Inside the COLUMN, the scroller clips it. It has to be both. */
     const p = await page();
-    p.$('#rl-changes [data-rl-caret]').click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
-    p.$('#rl-changes [data-rl-caret]').click(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
+    popBtn(p).click();
+    const pop = p.$('#rl-pop');
+    assert.ok(pop, 'the panel exists');
+    assert.equal(pop.closest('#rl-changes'), null, 'not in the scroller');
+    assert.ok(pop.closest('.redline-page'), 'but inside the page the engine wires');
+  });
+
+  test('the conversation moves WITH the node, never as a second copy', async () => {
+    /* The claim that matters. The engine binds the reply box by element id and
+       scopes every lookup to its own mount, so a rendered copy is a composer
+       with no handlers — it accepts typing and never sends. Proving the node
+       MOVED, and that there is only ever one of it, is proving that cannot
+       happen. */
+    const p = await page();
+    const notesBefore = p.$('#rl-changes .rl-card .rl-cnotes');
+    assert.ok(notesBefore, 'the thread starts on the card');
+    popBtn(p).click();
+    const pop = p.$('#rl-pop');
+    assert.equal(pop.querySelector('.rl-cnotes'), notesBefore, 'the same node, moved');
+    assert.equal(p.doc.querySelectorAll('.rl-cnotes').length, 1,
+      'and only ever one in the document');
+  });
+
+  test('pressing a card takes you to its clause and pops nothing out', async () => {
+    const p = await page();
+    p.$('#rl-changes .rl-card .rl-card-head')
+      .dispatchEvent(new p.win.Event('click', { bubbles: true }));
+    assert.equal(p.win.rlPopId(), null);
   });
 
   test('hovering does nothing at all', async () => {
-    const p = await sent();
+    const p = await page();
     const card = p.$('#rl-changes .rl-card');
-    fire(card, 'mouseenter');
-    fire(card, 'focusin', { bubbles: true });
-    assert.equal(card.getAttribute('data-rl-open'), '0', 'a look is not a press');
-    assert.ok(!card.classList.contains('is-peek'), 'and there is no peek state left to enter');
-    assert.equal(p.doc.querySelector('#rl-doc .is-linked'), null,
-      'nor does the document move for one');
+    card.dispatchEvent(new p.win.Event('mouseenter'));
+    card.dispatchEvent(new p.win.Event('mouseover'));
+    assert.equal(p.win.rlPopId(), null, 'the column does not move under a passing pointer');
   });
 
-  test('an open card stays open through the repaints', async () => {
+  test('an open panel survives a repaint', async () => {
     const p = await page();
-    head(p).click();
-    p.again(); p.again();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
+    popBtn(p).click();
+    const id = p.win.rlPopId();
+    p.again();
+    assert.equal(p.win.rlPopId(), id);
+    assert.ok(p.$('#rl-pop'));
   });
 
-  test('pressing outside the column leaves it alone', async () => {
-    /* It used to close every open card, on the reasoning that a press outside
-       was the reader moving on. Clicking into the document to read a clause is
-       not a request to lose your place in the column. */
+  test('and it does not travel to another contract', async () => {
     const p = await page();
-    head(p).click(); p.again();
-    p.doc.body.click();
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1',
-      'only the reader closes what the reader opened');
+    popBtn(p).click();
+    assert.ok(p.win.rlPopId());
+    p.win.rlCardForgetPins('SOME-OTHER-CONTRACT');
+    assert.equal(p.win.rlPopId(), null);
   });
 
-  test('two cards can be open at once', async () => {
-    const { rlCardSetOpen, rlCardIsOpen } = buildWorld({ negotiationView: true }).win;
-    rlCardSetOpen('CHG-1', true, 'k');
-    rlCardSetOpen('CHG-2', true, 'k');
-    assert.equal(rlCardIsOpen({ id: 'CHG-1' }, []), true,
-      'comparing two changes is the ordinary thing to want');
-    assert.equal(rlCardIsOpen({ id: 'CHG-2' }, []), true);
-  });
-
-  test('the choice does not turn on which verbs the card happens to carry', async () => {
-    /* It used to be keyed on the verbs, so a card whose buttons changed fell
-       back to the default. Harmless when the default was "open" and wrong now:
-       answering a change would have folded the card you were working in. */
-    const { rlCardSetOpen, rlCardIsOpen } = buildWorld({ negotiationView: true }).win;
-    rlCardSetOpen('CHG-1', true, 'data-rl-send');
-    assert.equal(rlCardIsOpen({ id: 'CHG-1' }, ['<b data-nego-accept=1>']), true);
-  });
-
-  test('open cards do not travel to another contract', async () => {
-    const w = buildWorld({ negotiationView: true });
-    const { rlCardSetOpen, rlCardIsOpen, rlCardForgetPins } = w.win;
-    rlCardSetOpen('CHG-1', true, 'k');
-    rlCardForgetPins('MK-OTHER');
-    assert.equal(rlCardIsOpen({ id: 'CHG-1' }, []), false,
-      'a card cannot arrive open on a change the reader has never seen');
-  });
-
-  test('and the choice is not persisted anywhere', async () => {
-    /* A working preference is not a setting. */
-    const src = read('js/views/negotiation.js');
-    const block = src.slice(src.indexOf('const _rlCardChoice'), src.indexOf('function rlLinkFocus'));
-    assert.doesNotMatch(block, /localStorage|lsSet|persist\(/,
-      'an open card must not outlive the visit');
-  });
-
-  test('THE ONE THAT WOULD HURT: only the head toggles, never the body', async () => {
-    /* The body holds the verbs and the note composer. A press on Accept, on
-       Send, or into the note box must not fold the card up underneath the hand
-       doing it — which is the whole of what the old exemption was protecting,
-       kept as a fact about the markup rather than as a rule about states. */
+  test('the choice is not persisted anywhere', async () => {
     const p = await page();
-    head(p).click(); p.again();
-    const card = p.$('#rl-changes .rl-card');
-    assert.equal(card.getAttribute('data-rl-open'), '1');
-    const body = card.querySelector('.rl-card-body');
-    assert.ok(body, 'an open card has a body');
-    assert.ok(!body.closest('.rl-card-head'),
-      'the body must not be inside the toggle at any depth');
-    /* And the head carries only labels — nothing pressable that acts. */
-    const acting = card.querySelectorAll('.rl-card-head [data-nego-accept], .rl-card-head [data-nego-reject],'
-      + '.rl-card-head [data-rl-send], .rl-card-head [data-rl-retract], .rl-card-head textarea');
-    assert.equal(acting.length, 0, 'the head is labels; the controls are below it');
+    popBtn(p).click();
+    assert.ok(!/rlPop|rl-pop/i.test(JSON.stringify(p.win.localStorage)),
+      'a working preference is not a setting');
   });
 });
 
@@ -786,11 +684,13 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
        construction — but "by construction" is the claim, not the proof. */
     const p = await page();
     const done = seat(p).querySelector('[data-rl-origin="us"]');
-    assert.equal(done.getAttribute('data-rl-open'), '0');
+    assert.equal(done.getAttribute('data-rl-popped'), '0');
     const live = seat(p, { unsentIds: [p.c.changes[0].id] }).querySelector('[data-rl-origin="us"]');
-    assert.equal(live.getAttribute('data-rl-open'), '0',
+    assert.equal(live.getAttribute('data-rl-popped'), '0',
       'a card with something to press is not an exception any more — nothing is');
-    assert.ok(live.querySelector('.rl-card-head'), 'and its head is the toggle');
+    assert.ok(live.querySelector('.rl-card-head'), 'its head takes them to the clause');
+    assert.ok(live.querySelector('[data-rl-pop]'),
+      'and the door to its reasoning is beside it — this seat has the least room of anybody');
   });
 
   /* ---- A DECISION THAT HAS GONE IS FINISHED BUSINESS ----
@@ -837,7 +737,7 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
       'the state under test is answered AND gone');
     assert.ok(verbsOf(card).includes('Change decision'),
       'the escape hatch is still on the card — hidden, not removed');
-    assert.equal(card.getAttribute('data-rl-open'), '0', 'folded, like every card');
+    assert.equal(card.getAttribute('data-rl-popped'), '0', 'folded, like every card');
   });
 
   test('a REJECTION that has been sent folds the same way', async () => {
@@ -848,7 +748,7 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     const p = await page();
     const { card } = await decided(p, 'rejected', 'sent');
     assert.match(card.querySelector('.rl-badge').textContent, /Rejected/);
-    assert.equal(card.getAttribute('data-rl-open'), '0');
+    assert.equal(card.getAttribute('data-rl-popped'), '0');
     assert.ok(card.querySelector('.rl-card-head'), 'and one press away, like every card');
   });
 
@@ -881,10 +781,10 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
        state that looks finished and is not, and the second after a click, when
        a mis-press is likeliest. It is one press away now, and the alternative
        was worse: a card that opened itself could not be closed. */
-    assert.equal(card.getAttribute('data-rl-open'), '0');
+    assert.equal(card.getAttribute('data-rl-popped'), '0');
   });
 
-  test('the verbs are NOT behind the fold — a shut card still carries its action bar', async () => {
+  test('the verbs are on the card, and there is no fold left to hide them in', async () => {
     /* This has moved twice and the direction is the point. It first insisted
        those states stayed OPEN; then, when the automatic opening went, it
        settled for "rendered, one press away". Asked for on 11 Aug 2026: a shut
@@ -903,13 +803,13 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     for (const [what, over, id] of cases){
       const card = seat(p, over).querySelector(`[data-nego-card="${id}"]`);
       assert.ok(card, `${what} is on the column`);
-      assert.equal(card.getAttribute('data-rl-open'), '0', `${what} arrives shut`);
+      assert.equal(card.getAttribute('data-rl-popped'), '0', `${what} arrives with nothing popped out`);
       assert.ok(card.querySelector('.rl-card-head'), `${what} has a head to press`);
       assert.ok(card.querySelector('.rl-card-actions .rl-card-verbs button'),
         `${what} carries its verbs on the action bar`);
-      const folded = card.querySelector('.rl-card-body');
-      assert.ok(!folded || !folded.querySelector('.rl-card-verbs'),
-        `${what}: no verb may sit inside the part that folds away`);
+      const hidden = card.querySelector('.rl-card-body');
+      assert.ok(!hidden || !hidden.querySelector('.rl-card-verbs'),
+        `${what}: no verb may sit in the part that moves into the panel`);
     }
   });
 
@@ -947,24 +847,25 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     p.doc.getElementById('content').innerHTML = '<b id="owner-mount-untouched"></b>';
     const host = mountPortal(p);
     const card = () => host.querySelector('#rl-changes .rl-card');
-    assert.equal(card().getAttribute('data-rl-open'), '0');
-    card().querySelector('.rl-card-head').click();
-    assert.equal(card().getAttribute('data-rl-open'), '1', 'a press opens it here too');
-    card().querySelector('.rl-card-head').click();
-    assert.equal(card().getAttribute('data-rl-open'), '0', 'and closes it here too');
+    assert.equal(card().getAttribute('data-rl-popped'), '0');
+    card().querySelector('[data-rl-pop]').click();
+    assert.equal(card().getAttribute('data-rl-popped'), '1', 'it opens on this seat too');
+    assert.ok(host.querySelector('#rl-pop'), 'and the panel is inside THIS mount');
+    card().querySelector('[data-rl-pop]').click();
+    assert.equal(card().getAttribute('data-rl-popped'), '0', 'and closes here too');
     assert.ok(p.doc.getElementById('owner-mount-untouched'),
       'and the owner\'s workbench was not painted from inside their portal');
   });
 
-  test('WO-2 · an open card does not survive the mount being handed another contract', async () => {
+  test('WO-2 · an open panel does not survive the mount being handed another contract', async () => {
     /* The owner's page forgets what was open when the reader moves on
        (renderRedline); a mount is not exempt from the rule, or a card arrives
        open on a change this reader has never seen. */
     const p = await page();
     const host = mountPortal(p);
-    host.querySelector('#rl-changes .rl-card .rl-card-head').click();
-    assert.equal(host.querySelector('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
+    host.querySelector('#rl-changes .rl-card [data-rl-pop]').click();
+    assert.equal(host.querySelector('#rl-changes .rl-card').getAttribute('data-rl-popped'), '1');
     p.win.redlineEmbed(host, Object.assign({}, p.c, { id: 'MK-OTHER' }), seatOpts());
-    assert.equal(host.querySelector('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
+    assert.equal(p.win.rlPopId(), null, 'the panel let go with the contract');
   });
 });

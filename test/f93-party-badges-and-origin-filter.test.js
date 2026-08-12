@@ -206,15 +206,14 @@ describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', 
       'you do not rule on your own ask');
   });
 
-  test('once dispatched the card folds, and opening it shows the inert amber Sent', async () => {
+  test('once dispatched the card holds still, and the inert amber Sent is on it', async () => {
     const p = await page({ theirChange: false, myChange: true });
     p.win.negoHandOver(p.c, { to: 'counterparty' });
     p.win.renderRedline();
     let card = p.doc.querySelector('#rl-changes [data-rl-origin="us"]');
-    assert.equal(card.getAttribute('data-rl-open'), '0', 'the next move is theirs, so it is a line');
-    card.click();
-    p.win.renderRedline();
-    card = p.doc.querySelector('#rl-changes [data-rl-origin="us"]');
+    assert.equal(card.getAttribute('data-rl-popped'), '0',
+      'the next move is theirs — nothing is popped out');
+    /* The amber Sent is on the action bar, which nothing folds away. */
     const sent = card.querySelector('.rl-sent[data-rl-sent]');
     assert.ok(sent, 'the verb stays where it was and changes state');
     assert.ok(sent.disabled, 'nothing further to do to it — the next move is theirs');

@@ -6330,56 +6330,72 @@ function redlineLayoutCss(){
   .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:7px}
   .redline-page .rl-card-verbs{margin-top:8px}
-  /* ---- OPEN, OR A LINE ----
-     A collapsed card is the head alone. The caret is the only thing saying
-     there is more under it, so it is always drawn rather than revealed on
-     hover — a control you have to discover by hovering is a control half the
-     readers never find. It is a button in its own right because collapsing is
-     its job alone: pressing the CARD means "take me to this change", and a
-     reader navigating to a clause must not have the card fold up for it. */
-  .redline-page .rl-caret{flex:none;border:0;background:none;padding:0 2px;margin:0;cursor:pointer;
-    font-size:9px;line-height:1;color:var(--color-neutral-500);transition:transform .15s,color .15s;
-    display:inline-block;transform:rotate(0deg)}
-  .redline-page .rl-caret:hover{color:var(--color-text)}
-  .redline-page .rl-caret-open{transform:rotate(180deg)}
-  .redline-page .rl-caret:focus-visible{outline:2px solid var(--color-accent);border-radius:3px}
-  /* Tighter, because a collapsed card is a row in a list rather than a panel. */
-  /* ---- THE TWO REVIEW STATES, TOLD BY THE EDGE ----
-     Amber: out with a colleague, still in flight. Ruby: they held it, and it is
-     not going anywhere. Deliberately NOT the same colour — see the note on
-     reviewChipHtml in js/review.js. The edge is drawn as an inset shadow rather
-     than a border so it cannot shift the card's geometry when the state
-     changes; a row that jumps two pixels on repaint is how a column of eight
-     cards reads as unstable. */
-  .redline-page .rl-card[data-rv-waiting]{box-shadow:inset 3px 0 0 var(--st-amber-dot)}
-  .redline-page .rl-card[data-rv-held]{box-shadow:inset 3px 0 0 var(--st-ruby-dot)}
-  .redline-page .rl-card-shut{padding:11px 14px}
-  .redline-page .rl-card-shut .rl-card-top{margin-bottom:3px}
-  /* ---- SHUT HIDES THE BODY ----
-     display:none rather than height or opacity, so a hidden verb is out of the
-     tab order and out of the accessibility tree as well as off the screen.
-
-     THE PEEK IS GONE. A shut card used to open under the pointer and shut
-     again a moment after it left, which meant the column moved while somebody
-     was crossing it and a card could be open without anybody having asked for
-     it. One press opens it now, and only a press closes it. */
-  .redline-page .rl-card-shut .rl-card-body{display:none}
-  /* ---- AND THE ACTION BAR IS NOT PART OF WHAT SHUTS ----
-     A collapsed card is the header block and the verbs (Young, 11 Aug 2026).
-     There is deliberately no .rl-card-shut rule for it: a verb hidden behind a
-     fold is a verb the reader has to go looking for, and Send is the commonest
-     press on this page. It carries the card's own top rule when the body above
-     it is folded away, so a shut card still reads as two areas rather than one
-     run-on block. */
-  .redline-page .rl-card-actions{cursor:default}
-  .redline-page .rl-card-shut .rl-card-actions{border-top:1px solid var(--color-divider);
-    margin-top:9px;padding-top:8px}
-  .redline-page .rl-card-shut .rl-card-actions .rl-card-verbs{margin-top:0}
-  /* The head is the press target, so it says so — and only the head. */
+  /* ---- THE DOOR INTO THE PANEL ----
+     This was .rl-caret: 9px, neutral grey, between the origin pill and the
+     status. It read as punctuation rather than as a control. A real button now,
+     at the end of the row, carrying an open-out mark — a downward chevron
+     promising a floating panel is a lie about which way the thing goes. */
+  .redline-page .rl-pop-btn{flex:none;width:26px;height:26px;margin-left:2px;padding:0;
+    display:grid;place-items:center;cursor:pointer;font-size:13px;line-height:1;
+    border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);
+    color:var(--color-neutral-600);transition:border-color .13s,color .13s,background .13s}
+  .redline-page .rl-pop-btn:hover{border-color:var(--color-accent);color:var(--color-accent-700);
+    background:var(--color-accent-100)}
+  .redline-page .rl-pop-btn.on{border-color:var(--color-accent);color:var(--color-accent-800);
+    background:var(--color-accent-100)}
+  .redline-page .rl-pop-btn:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  /* Which card the open panel belongs to. A ring, not a fill: the card is still
+     a row in a list, not a selected object. */
+  .redline-page .rl-card-popped{border-color:var(--color-accent);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 22%,transparent)}
+  /* The head is the press target — it takes you to the clause — and says so. */
   .redline-page .rl-card-head{cursor:pointer}
   .redline-page .rl-card-body{cursor:default}
-  /* .rl-card-note is gone with the amber provenance bar it painted — see the
-     card renderer for why the label is no longer on the card. */
+  /* ---- THE BODY LIVES ON THE CARD AND IS NEVER SHOWN THERE ----
+     It stays in the card so the engine wires it with everything else and so a
+     hundred assertions elsewhere still find the thread where they look for it.
+     The panel MOVES this node when it opens; inside the panel the rule below
+     does not apply and it shows. */
+  .redline-page .rl-card .rl-card-body{display:none}
+
+  /* ---- THE PANEL ----
+     FIXED, which escapes the change column's overflow — the column is a
+     scroller and would clip anything sticking out of its left edge. It is
+     appended INSIDE .redline-page all the same, because the engine scopes every
+     lookup to its own mount and a panel outside that mount is a reply box with
+     no handlers. */
+  .rl-pop{position:fixed;z-index:70;display:flex;flex-direction:column;
+    background:var(--color-surface);border:1px solid var(--color-divider);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 18px 48px -12px rgba(15,23,42,.34),0 2px 6px rgba(15,23,42,.08)}
+  html.dark .rl-pop{box-shadow:0 20px 54px -12px rgba(0,0,0,.8),0 2px 8px rgba(0,0,0,.5)}
+  /* Its card scrolled out of the column: out of the way, still open. */
+  .rl-pop.rl-pop-away{opacity:0;pointer-events:none}
+  .rl-pop-head{flex:none;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;
+    border-bottom:1px solid var(--color-divider);background:var(--color-bg)}
+  .rl-pop-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .rl-pop-sub{font-size:11px;color:var(--color-neutral-600);line-height:1.45}
+  .rl-pop-x{flex:none;width:26px;height:26px;padding:0;display:grid;place-items:center;
+    border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);
+    color:var(--color-neutral-600);cursor:pointer;font-size:12px;line-height:1}
+  .rl-pop-x:hover{border-color:var(--color-accent);color:var(--color-accent-700)}
+  .rl-pop-x:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  /* THE SCROLL IS HERE. A long reason and a long thread are exactly what the
+     card could not hold, and this is the room they get. */
+  .rl-pop-body{flex:1;min-height:0;overflow-y:auto;padding:13px 14px 16px}
+  .rl-pop-body .rl-card-body{display:block}
+  .rl-pop-k{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--color-neutral-500);margin-bottom:5px}
+  .rl-pop-word{font-size:var(--rl-type);line-height:1.65;border:1px solid var(--color-divider);
+    border-radius:9px;padding:10px 12px;margin-bottom:14px;
+    background:var(--color-doc-warm,var(--color-bg))}
+  /* ---- AND ON A PHONE IT IS A SHEET ----
+     No room beside a 390px column and nothing to float over: the phone stacks
+     the document and the column in one scroller. Same content, same scroll,
+     pinned where a thumb reaches. */
+  .rl-pop-sheet{left:0!important;right:0;top:auto!important;bottom:0;width:auto!important;
+    max-height:78vh!important;border-radius:16px 16px 0 0}
+
   /* Compact pills, right-aligned: each verb is only as wide as its word, so the
      card's information leads and the actions follow. flex:1 stretched them into
      a wall of colour that outweighed the change itself. */
@@ -8616,7 +8632,13 @@ async function rlAiPropose(ctx){
    must not vanish while the hand is travelling toward it) is now structural
    instead: only the HEAD toggles, so nothing inside the body can fold the body
    away, and nothing but a press changes the state at all. */
-const _rlCardChoice = new Map();    // id -> { open, key } — what the reader opened
+/* ---- ONE CHANGE IS POPPED OUT, OR NONE ----
+   This was a Map of per-card open/shut. The card does not open in place any
+   more (owner's call, 12 Aug 2026): its reading matter moves into a floating
+   panel with a scroll of its own, so the column holds still and a long reason
+   or a long thread gets the width of the document instead of the width of a
+   card. One panel, so one value. */
+let _rlPopId = null;
 /* An open card belongs to the contract it was opened on, and to this visit.
    Not persisted (a working preference is not a setting) and dropped when the
    reader moves to another contract, so a card cannot arrive open on a change
@@ -8632,105 +8654,199 @@ function rlCardForgetPins(contractId){
   const id = String(contractId == null ? '' : contractId);
   if (_rlPinnedFor === id) return;
   _rlPinnedFor = id;
-  _rlCardChoice.clear();
+  /* A panel cannot arrive open on a change this reader has never seen. */
+  _rlPopId = null;
 }
 /* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
    so that a clause being renamed underneath a card does not count as a state
    change. */
-function rlCardStateKey(verbs){
-  return (verbs || [])
-    .map(v => (String(v).match(/data-(?:rl|nego)-[a-z]+(?:-[a-z]+)*(?==)/g) || []).join('+'))
-    .sort().join('|');
-}
 /* READ OFF THE VERBS, not off the status. Enumerating states here would be a
    second copy of the rule that builds the verbs a hundred lines below, and the
-   two would disagree the first time either moved — a held decision whose Undo
-   the reader cannot see, or a settled card kept open for nothing.
+   two would disagree the first time either moved.
 
-   So the question is asked of the card itself: does it offer anything to DO?
-   Edit and Sent do not count. Edit navigates (it opens the clause in the
-   document, which pressing the card does anyway) and Sent is a disabled label.
+   Edit and Sent do not count: Edit navigates and Sent is a disabled label.
    Everything else — Accept, Reject, Withdraw, Undo, Retract, Send — is a move
-   waiting on this reader, and a move you cannot see is a move you do not make.
-   Matched on the data attributes the handlers and the tests both query, so a
-   new verb cannot be added without this seeing it.
-
-   ---- AND "CHANGE DECISION" IS NOT A MOVE WAITING ON ANYBODY ----
-   It used to count, so a counterparty who had answered a dozen changes and
-   sent them was left with a dozen full-height cards, each still offering a
-   button, on a column where nothing was outstanding. Their page stayed loud
-   after the work was finished, while the owner's went quiet — the owner's
-   settled changes leave the column entirely, and their own sent asks collapse
-   to a line because "Sent" is inert. Same component, opposite feel, for no
-   reason either reader could see.
-
-   The distinction that matters is not "is there a button" but "is anyone
-   waiting". A sent decision is finished business: it has gone, the other side
-   is holding it, and Change decision is an ESCAPE HATCH rather than a task.
-   Escape hatches belong behind the peek, which is exactly what the collapsed
-   state is for — hover, or tab to the card, and it is there.
-
-   UNDO IS DELIBERATELY NOT IN HERE, and it is the same reasoning rather than
-   an exception to it. Undo appears on a decision that is answered and has NOT
-   been sent — the one state on this screen that looks finished and is not. It
-   is also the state a reader is in for the second after a click, which is when
-   a mis-click is most likely and the worst possible moment to have hidden the
-   way back. It collapses on its own once the round is sent. */
+   waiting on this reader, and a move you cannot see is a move you do not
+   make. */
 const RL_CARD_INERT = /data-rl-edit|data-rl-sent|data-nego-redecide/;
 function rlCardNeedsYou(verbs){
   return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
 }
-/* ---- A CARD IS SHUT UNTIL SOMEBODY OPENS IT, AND OPEN UNTIL THEY SHUT IT ----
-   Asked for in one sentence (Young, 10 Aug 2026): "the cards you only open when
-   you click on them and you click again and they disappear."
-
-   That is a plain toggle, and it replaces three rules that between them decided
-   the state for the reader:
-
-   - cards carrying a verb OPENED THEMSELVES, on the argument that a move you
-     cannot see is a move you do not make. True, and the cost was a column that
-     arrived as a wall of open cards on any round with work in it — which is
-     the state the fold was introduced to prevent in the first place;
-   - hovering PEEKED one open, so the column moved under a pointer crossing it;
-   - opening one card SHUT every other, so a reader comparing two changes could
-     not hold both.
-
-   All three are gone. The reader opens what they want open and closes it the
-   same way, and nothing else on the page changes it. What they cannot see on a
-   shut card, they can see in one click — and the verbs are still reachable in
-   exactly the number of presses the old peek needed.
-
-   The choice is keyed on the change id alone. It used to be keyed on the card's
-   VERBS too, so a card whose buttons changed underneath the reader fell back to
-   the default — which mattered when the default could be "open" and is simply
-   wrong now: pressing Accept would have folded the card you were working in. */
-function rlCardIsOpen(ch, verbs){
-  const id = ch && ch.id;
-  const choice = id ? _rlCardChoice.get(id) : null;
-  return choice ? !!choice.open : false;
+/* ---- WHICH CHANGE IS POPPED OUT ----
+   Nothing on the page sets this but a press. No repaint, no decision landing,
+   no message arriving opens or closes the panel — the same rule the fold had,
+   and the reason three earlier schemes (open-if-it-has-a-verb, peek-on-hover,
+   one-at-a-time-by-force) were removed. */
+function rlPopId(){ return _rlPopId; }
+function rlPopIsOpen(ch){
+  const id = ch && ch.id != null ? String(ch.id) : (ch == null ? '' : String(ch));
+  return !!id && _rlPopId === id;
 }
-/* Pressing a card's head toggles it. Nothing else does: the verbs inside it,
-   the notes composer and the caret are all inside the card, and a reader
-   pressing Accept must not have the card fold up underneath them for it. */
-function rlCardSetOpen(id, open, stateKey){
-  if (!id) return;
-  _rlCardChoice.set(id, { open: !!open, key: String(stateKey == null ? '' : stateKey) });
+function rlPopSet(id){ _rlPopId = (id == null || id === '') ? null : String(id); return _rlPopId; }
+function rlPopClose(){ if (_rlPopId == null) return false; _rlPopId = null; return true; }
+
+/* ============================================================
+   THE PANEL — it BORROWS the card's body, it does not rebuild it
+   ============================================================
+   THE MISTAKE THIS AVOIDS, made and reverted on 12 Aug 2026: rendering the
+   reading matter into the panel as fresh HTML. It looks perfect and the reply
+   box is dead. The engine wires that composer by ELEMENT ID and scopes every
+   lookup to its own mount (see wireNegotiationTab, and the note there about the
+   counterparty's page carrying two copies of the component) — so a second copy
+   rendered anywhere has no handlers, accepts typing, and never sends.
+
+   So the node is MOVED. One subtree, its listeners travelling with it, no
+   duplicate ids in the document. It goes back into its card when the panel
+   closes, and after a repaint the panel takes the NEW card's body — the old one
+   went with the rebuild.
+
+   AND THE PANEL LIVES INSIDE THE MOUNT. Appending it to the page or to <body>
+   would put it outside the host the engine wires from, which is the same fault
+   in a different coat. It is appended to .redline-page — inside the mount,
+   outside the change column — and positioned `fixed`, which escapes the
+   column's overflow without leaving the host it has to stay in. */
+function rlPopMount(){
+  /* THE COLUMN'S OWN PARENT, and the reasoning is exact. The panel has to be
+     inside the element the engine wires from — otherwise its reply box has no
+     handlers, which is the whole fault this design exists to avoid — and the
+     engine's host is an id this function has no way to know (it differs
+     between the workbench, the room and the counterparty's embed).
+
+     What IS knowable: the cards are wired, and the cards are inside #rl-changes.
+     So anything inside #rl-changes's parent is inside the host too. Going any
+     higher — .redline-page, say — climbs OUT of the mount on the owner's page,
+     where the host is a descendant of it. That was tried: the panel drew
+     perfectly and the note typed into it never posted. */
+  const col = document.getElementById('rl-changes');
+  return (col && col.parentElement) || null;
 }
-/* Whether this card is currently open, without the verbs — what the toggle
-   asks before it flips. */
-function rlCardOpenState(id){
-  const choice = id ? _rlCardChoice.get(id) : null;
-  return !!(choice && choice.open);
+function rlPopEl(){ return document.getElementById('rl-pop'); }
+function rlPopCardEl(id){
+  const q = window.CSS && CSS.escape ? CSS.escape(String(id)) : String(id);
+  return document.querySelector('[data-nego-card="' + q + '"]');
 }
-/* Close every open card. Nothing on the page calls this any more — pressing
-   outside the column used to, and that was the rule that made an open card
-   feel like something the page was lending you rather than something you had
-   set. Kept because the paint-time reset (a different contract arriving on the
-   bench) genuinely wants it: see rlCardForgetPins. */
-function rlCardUnpinAll(){
-  if (!_rlCardChoice.size) return false;
-  _rlCardChoice.clear();
-  return true;
+/* Put a borrowed body back where it came from: after the head, before the
+   action bar, which is where the card renders it. */
+function rlPopReturnBody(){
+  const el = rlPopEl();
+  const body = el && el.querySelector('.rl-card-body');
+  if (!body) return;
+  const home = rlPopCardEl(body.getAttribute('data-rl-body-of'));
+  if (!home){ body.remove(); return; }
+  const acts = home.querySelector('.rl-card-actions');
+  if (acts) home.insertBefore(body, acts); else home.appendChild(body);
+}
+const RL_POP_W = 420, RL_POP_GAP = 12, RL_POP_EDGE = 12;
+/* Positioned against its card and pulled back inside the window. A panel that
+   opens half off-screen because its card sits low in a long column is the
+   commonest way this kind of layer fails. */
+function rlPopPlace(){
+  const el = rlPopEl();
+  if (!el || _rlPopId == null || el.classList.contains('rl-pop-sheet')) return;
+  const card = rlPopCardEl(_rlPopId);
+  if (!card){ el.classList.add('rl-pop-away'); return; }
+  const r = card.getBoundingClientRect();
+  const col = document.getElementById('rl-changes');
+  if (col){
+    const cr = col.getBoundingClientRect();
+    /* Its card scrolled out of the column. The panel stays OPEN — the reader
+       did not close it — and comes back when the card does. */
+    if (r.bottom < cr.top + 4 || r.top > cr.bottom - 4){ el.classList.add('rl-pop-away'); return; }
+  }
+  const vh = window.innerHeight || 800;
+  const w = Math.min(RL_POP_W, Math.max(260, r.left - RL_POP_GAP - RL_POP_EDGE));
+  el.style.width = w + 'px';
+  el.style.left = Math.max(RL_POP_EDGE, r.left - w - RL_POP_GAP) + 'px';
+  el.style.maxHeight = (vh - RL_POP_EDGE * 2) + 'px';
+  const h = Math.min(el.offsetHeight || 360, vh - RL_POP_EDGE * 2);
+  let top = r.top;
+  if (top + h > vh - RL_POP_EDGE) top = vh - RL_POP_EDGE - h;
+  el.style.top = Math.max(RL_POP_EDGE, top) + 'px';
+  el.classList.remove('rl-pop-away');
+}
+/* Draw, move or remove the panel to match _rlPopId. Called by the button and
+   again after every repaint of the column, so a panel left open survives a
+   decision landing on another change. */
+function rlPopPaint(c){
+  document.querySelectorAll('[data-nego-card]').forEach(el => {
+    const on = rlPopIsOpen(el.getAttribute('data-nego-card'));
+    el.classList.toggle('rl-card-popped', on);
+    el.setAttribute('data-rl-popped', on ? '1' : '0');
+    const b = el.querySelector('[data-rl-pop]');
+    if (b){
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-expanded', on ? 'true' : 'false');
+      b.setAttribute('title', i18t(on ? 'ng_pop_close' : 'ng_pop_open'));
+    }
+  });
+  const existing = rlPopEl();
+  if (existing){ rlPopReturnBody(); existing.remove(); }
+  if (_rlPopId == null) return;
+  const card = rlPopCardEl(_rlPopId);
+  const mount = rlPopMount();
+  /* The change has gone — withdrawn, superseded, filtered off this seat. The
+     panel goes with it rather than describing something no longer there. */
+  if (!card || !mount){ rlPopClose(); return; }
+  const meta = card.querySelector('.rl-card-meta');
+  const ch = (typeof negoChangeById === 'function') ? negoChangeById(c, _rlPopId) : null;
+  const ops = ch ? rlOpsAsSide(ch.ops, rlReadSideOf(ch, rlReadMode())) : null;
+  /* THE WORDING IN FULL. The card clamps it to two lines, which is right for
+     something you skim down a column and useless for the thing being argued
+     over. This is the one part the panel builds itself — it is a projection of
+     the change, not a wired control. */
+  const wording = (window.redlineOpsHtml && Array.isArray(ops) && ops.length)
+    ? `<div class="rl-pop-word">${redlineOpsHtml(ops)}</div>`
+    : (ch && String(ch.proposedText || ch.newText || '').trim()
+      ? `<div class="rl-pop-word">${_ne(String(ch.proposedText || ch.newText).trim())}</div>` : '');
+  mount.insertAdjacentHTML('beforeend', `<section id="rl-pop" class="rl-pop" role="dialog"
+      aria-label="${_nea(i18t('ng_pop_aria', { id: String(_rlPopId) }))}">
+    <header class="rl-pop-head">
+      <div class="rl-pop-id"><span class="rl-card-id">${_ne(String(_rlPopId))}</span>${
+        meta ? `<span class="rl-pop-sub">${_ne((meta.textContent || '').trim())}</span>` : ''}</div>
+      <button type="button" class="rl-pop-x" data-rl-pop-close="1"
+        title="${_nea(i18t('ng_pop_close'))}" aria-label="${_nea(i18t('ng_pop_close'))}">&#10005;</button>
+    </header>
+    <div class="rl-pop-body">${wording ? `<div class="rl-pop-k">${i18t('ng_pop_wording')}</div>${wording}` : ''}</div>
+  </section>`);
+  const el = rlPopEl();
+  /* AND THE BODY MOVES IN, listeners and all. */
+  const body = card.querySelector('.rl-card-body');
+  if (body){
+    body.setAttribute('data-rl-body-of', String(_rlPopId));
+    el.querySelector('.rl-pop-body').appendChild(body);
+  }
+  /* THE SHEET IS THE PHONE'S ANSWER: no room beside a 390px column and nothing
+     to float over, since the phone stacks the document and the column in one
+     scroller. Decided by width, not by which shell drew the card — the
+     counterparty's page narrows to the same shape and gets the same treatment. */
+  if ((window.innerWidth || 1200) < 768) el.classList.add('rl-pop-sheet');
+  el.querySelector('[data-rl-pop-close]')?.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    rlPopClose(); rlPopPaint(c);
+  });
+  rlPopPlace();
+}
+/* Escape closes it, a press outside closes it, scrolling and resizing move it.
+   ONE delegated set, armed once for the life of the page: the panel is built
+   and thrown away on every open, so per-instance listeners would leak a set
+   per press. */
+let _rlPopWired = false;
+function rlPopWireOnce(c){
+  if (_rlPopWired || typeof document === 'undefined' || !document.addEventListener) return;
+  _rlPopWired = true;
+  const shut = () => { if (rlPopClose()) rlPopPaint(c); };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') shut(); });
+  document.addEventListener('click', e => {
+    if (_rlPopId == null) return;
+    const t = e.target;
+    if (!t || !t.closest) return;
+    if (t.closest('#rl-pop') || t.closest('[data-rl-pop]')) return;
+    shut();
+  }, true);
+  /* Capture: the column and the page are separate scrollers and scroll does
+     not bubble. */
+  document.addEventListener('scroll', () => rlPopPlace(), true);
+  if (typeof addEventListener === 'function') addEventListener('resize', () => rlPopPlace());
 }
 
 function rlLinkFocus(c, changeId, source){
@@ -8854,14 +8970,12 @@ function rlWireClauseTools(c, host, opts){
        render is a highlight the reader has already stopped believing in. */
     rlQueueSelect(c, id);
     rlQueueMark(row.closest('.redline-page') || host, id);
-    /* Opening the card is a repaint, so it happens FIRST and the focus runs
-       against the card that comes back — the node this handler could reach is
-       about to be replaced. Mirrors the card stack's own collapsed-card path. */
-    const card = id ? host.querySelector(`[data-nego-card="${window.CSS && CSS.escape ? CSS.escape(id) : id}"]`) : null;
-    if (card && card.getAttribute('data-rl-open') === '0'){
-      rlCardSetOpen(id, true, card.getAttribute('data-rl-state'));
-      again();
-    }
+    /* THE ROW NO LONGER FORCES A CARD OPEN. It used to unfold the card as well
+       as scroll the document, because the card was where the wording and the
+       verbs both were. The verbs are on the card whatever else is happening,
+       the wording is in the document this press just scrolled to, and opening
+       a panel over that document would cover the very thing the reader asked
+       to see. */
     if (id && rlLinkFocus(c, id, 'queue')) return;
     /* No card and no anchor — a clause whose change has left the live set.
        Falling back to the clause itself still answers "take me to it", and
@@ -8896,48 +9010,40 @@ function rlWireClauseTools(c, host, opts){
   /* ---- FOLDING THE QUEUE ---- */
   rlWireQueueMin(host);
 
-  /* ---- THE CARD IS A TOGGLE, AND ONLY ITS HEAD IS ----
-     One press opens it, the next shuts it (Young, 10 Aug 2026). What was here
-     before decided the state for the reader three ways over — a card with a
-     verb opened itself, a hover peeked one open, and opening one shut the rest
-     — and all three are gone. See rlCardIsOpen for why.
+  /* ---- PRESSING A CARD TAKES YOU TO ITS CLAUSE, AND DOES NOTHING ELSE ----
+     It used to do two jobs on one press: scroll the document to the change AND
+     unfold the card. Navigating is the more valuable of the two — it is what a
+     card IS, a handle on a passage — and unfolding is what made the column jump
+     under a reader who only wanted to look at a clause. The reading matter has
+     its own door now, so this press means one thing.
 
-     ONLY THE HEAD. The body holds the verbs and the notes composer, and a
-     press on Accept, on Send, or into the note box must not fold the card up
-     underneath the hand doing it. So the listener sits on .rl-card-head and
-     the body is not a toggle at any depth.
-
-     AND IT STILL NAVIGATES. Pressing a card has always meant "take me to this
-     change in the contract", and that is the more valuable of the two things
-     the press does — so it happens on every press, opening or shutting. */
+     STILL ONLY THE HEAD. The action bar is a sibling, so pressing Accept, Send
+     or Undo does its own job and never navigates as a side effect. */
   host.querySelectorAll('#rl-changes [data-nego-card] .rl-card-head').forEach(headEl =>
     headEl.addEventListener('click', ev => {
       const card = headEl.closest('[data-nego-card]');
       if (!card) return;
-      /* The caret is inside the head and has its own handler; without this the
-         two would fight and the card would flip twice for one press. */
-      if (ev.target && ev.target.closest && ev.target.closest('[data-rl-caret]')) return;
-      const id = card.getAttribute('data-nego-card');
-      rlCardSetOpen(id, !rlCardOpenState(id), card.getAttribute('data-rl-state'));
-      again();
-      /* The card was re-rendered underneath us, so the focus runs against the
-         new one rather than the node this handler was bound to. */
-      rlLinkFocus(c, id, 'card');
+      if (ev.target && ev.target.closest && ev.target.closest('[data-rl-pop]')) return;
+      rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card');
     }));
 
-  /* ---- AND THE CARET IS THE SAME TOGGLE, SAID OUT LOUD ----
-     It is the affordance: the one thing on a shut card that says there is more
-     under it. It stops propagation so it does not also run the head's handler,
-     and it does NOT drag the document to the clause — somebody tidying a
-     column is not asking to be taken anywhere. */
-  host.querySelectorAll('#rl-changes [data-rl-caret]').forEach(btn =>
+  /* ---- AND THE POP BUTTON OPENS THE PANEL ----
+     One press opens it, the same press closes it, and another card's button
+     moves it rather than stacking a second one. It does NOT drag the document
+     to the clause: somebody reading why a change was asked for has not asked to
+     be taken anywhere — the rule the old caret already kept. */
+  rlPopWireOnce(c);
+  host.querySelectorAll('#rl-changes [data-rl-pop]').forEach(btn =>
     btn.addEventListener('click', ev => {
       ev.preventDefault(); ev.stopPropagation();
-      const id = btn.getAttribute('data-rl-caret');
-      const card = btn.closest ? btn.closest('[data-nego-card]') : null;
-      rlCardSetOpen(id, !rlCardOpenState(id), card && card.getAttribute('data-rl-state'));
-      again();
+      const id = btn.getAttribute('data-rl-pop');
+      if (rlPopIsOpen(id)) rlPopClose(); else rlPopSet(id);
+      rlPopPaint(c);
     }));
+  /* A repaint rebuilt the column, so the panel takes the NEW card's body — the
+     one it was holding went with the rebuild. Runs LAST, after the engine has
+     wired this paint's nodes, so the listeners travel with the node. */
+  if (_rlPopId != null) rlPopPaint(c);
 
   /* PRESSING ANYWHERE ELSE USED TO CLOSE THEM ALL, on the reasoning that a
      press outside the column was the reader moving on. It is gone with the
@@ -10717,11 +10823,10 @@ function redlineChangeCardsHtml(c, opts = {}){
     const origin = theirs
       ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${_ne(theirLabel)}</span>`
       : `<span class="rl-origin rl-origin-us" title="${_nea(i18t('ng_proposed_by_your_side'))}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${i18t('ng_your_ask')}</span>`;
-    /* Open or a line — see rlCardIsOpen. A collapsed card keeps its head and
-       nothing else; the note and the verbs are what unfold. The caret is the
-       only affordance saying there is more, so it is drawn on every card that
-       can collapse rather than on hover. */
-    const open = rlCardIsOpen(ch, verbs);
+    /* Is this the change whose panel is open? The card never changes height
+       either way — the only difference is that the popped one is marked, so a
+       reader can see which card the floating panel belongs to. */
+    const popped = rlPopIsOpen(ch);
     /* THE BODY IS ALWAYS RENDERED, and hidden by CSS when the card is shut, so
        the open/shut flip costs one class rather than a rebuild of the column. */
     /* The reviewer's verdict, and — on the reviewer's own screen — the buttons
@@ -10826,30 +10931,36 @@ function redlineChangeCardsHtml(c, opts = {}){
        waiting on anybody. */
     const body = `<div class="rl-card-body">${dkBy}${behalfBlock}${revisedBlock}${whyBlock}${rvNoteBlock}${notes}</div>`;
     const actionBar = actions ? `<div class="rl-card-actions">${actions}</div>` : '';
-    const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
-        data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"
-        title="${open ? 'Collapse this card' : 'Open this card'}"
-        aria-label="${open ? 'Collapse' : 'Open'} ${_nea(ch.id)}">&#9662;</button>`;
-    return `<article class="rl-card${open ? '' : ' rl-card-shut'}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+    /* ---- THE DOOR INTO THE PANEL ----
+       This was .rl-caret: a 9px &#9662; in neutral grey between the origin pill
+       and the status. Reported as invisible — and it was: at that size it reads
+       as punctuation, and the owner did not know it was a control (12 Aug
+       2026), which is exactly why the reading matter was hard to reach.
+
+       A real button now, at the end of the row, big enough to aim at. The mark
+       is an open-out arrow rather than a chevron: a chevron pointing down
+       promises something unfolds downwards, and this opens a window to the
+       side. */
+    const popBtn = `<button type="button" class="rl-pop-btn${popped ? ' on' : ''}"
+        data-rl-pop="${_nea(ch.id)}" aria-expanded="${popped ? 'true' : 'false'}"
+        title="${_nea(i18t(popped ? 'ng_pop_close' : 'ng_pop_open'))}"
+        aria-label="${_nea(i18t(popped ? 'ng_pop_close' : 'ng_pop_open'))} ${_nea(ch.id)}">&#10530;</button>`;
+    return `<article class="rl-card${popped ? ' rl-card-popped' : ''}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
       rvOut ? ' data-rv-waiting="1"' : ''}${
       rvHeld ? ' data-rv-held="1"' : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
-      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}"${
-      ''/* What the reader's open/shut choice was made ABOUT. The choice no
-             longer turns on it — see rlCardIsOpen — but it is what the tests
-             and the wiring name the card's shape by, so it is still stamped. */
-      } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
+      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-popped="${popped ? '1' : '0'}" tabindex="0">
       ${''/* ---- THE HEAD IS THE TOGGLE ----
              Wrapped, so the press that opens and shuts the card has an element
              of its own and the body underneath it has none. Everything in here
              is a LABEL — the id, whose ask it is, where it stands, what is
              being asked for — and everything below is a control. */}
       <div class="rl-card-head">
-        <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
+        <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}</span>
           ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
-          ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}</div>
+          ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${popBtn}</div>
         <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
         ${diff}
       </div>
@@ -11550,8 +11661,11 @@ if (typeof window !== 'undefined') Object.assign(window, {
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
-  rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
-  rlCardForgetPins, rlCardOpenState,
+  /* The per-card open/shut model went with the fold (12 Aug 2026):
+     rlCardIsOpen, rlCardSetOpen, rlCardOpenState, rlCardStateKey and
+     rlCardUnpinAll with it. One panel, one value — see rlPopId. */
+  rlCardNeedsYou, rlCardForgetPins,
+  rlPopId, rlPopIsOpen, rlPopSet, rlPopClose, rlPopPaint, rlPopPlace,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlRestoreScroll,
   /* ---- THE NEGOTIATIONS DOOR ----

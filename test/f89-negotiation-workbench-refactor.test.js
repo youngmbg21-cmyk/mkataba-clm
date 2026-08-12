@@ -724,13 +724,25 @@ describe('F89 (9) — one sidebar, and one face left in it', () => {
     assert.ok(p.$('#rl-changes-col'), 'and the cards are still drawn');
   });
 
-  test('the conversation moved onto the card, it did not disappear', async () => {
+  test('the conversation moved onto the change, it did not disappear', async () => {
+    /* It moved twice: off the Discussion column onto the card, then (12 Aug
+       2026) out of the card's fold into the card's own panel. Both moves say
+       the same thing — the thread belongs to the CHANGE, not to a column of its
+       own and not to a strip too narrow to read it in.
+
+       It is still rendered ON the card, hidden there, and MOVED into the panel
+       when it opens: the engine binds this composer by element id and scopes
+       its lookups to its own mount, so a second copy would never send. */
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
-    assert.ok(card.querySelector('.rl-cnotes'), 'the notes block is on the change');
     const id = card.getAttribute('data-nego-card');
+    assert.ok(card.querySelector('.rl-cnotes'), 'the notes block is on the change');
     assert.ok(card.querySelector(`[id="nego-ti-${id}"]`), 'with the engine\'s own composer');
     assert.ok(card.querySelector(`[data-nego-send="${id}"]`), 'and its own send');
+    card.querySelector('[data-rl-pop]').click();
+    assert.equal(p.$('#rl-pop .rl-cnotes'), card.querySelector('.rl-cnotes') || p.$('#rl-pop .rl-cnotes'),
+      'and the panel borrows that very node');
+    assert.equal(p.$$('.rl-cnotes').length, 1, 'never two copies of one thread');
   });
 });
 
@@ -975,7 +987,7 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     assert.equal(p.post.reshared, 1, 'and the send really goes, on the one click');
   });
 
-  test('after the send the card collapses, and the badge is what says so', async () => {
+  test('after the send the card says so on its badge, and holds its height', async () => {
     /* THE CARD FOLDS WHEN THE MOVE IS NOT YOURS. A sent ask has nothing left
        for this reader to press — Edit navigates, Sent is a label — so it
        becomes a line, and the head carries the fact. Opening it again brings
@@ -987,13 +999,13 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
     assert.match(p.$('#rl-changes .rl-badge').textContent, /^Sent$/,
-      'the fact stays on the head, which is the part that never folds');
+      'the fact is on the card, where nothing can hide it');
     const card = p.$('#rl-changes .rl-card');
-    assert.equal(card.getAttribute('data-rl-open'), '0');
-    /* The body is in the DOM and hidden by the shut class rather than removed,
-       so opening it is a class flip rather than a rebuild of the column. */
-    assert.ok(card.classList.contains('rl-card-shut'), 'and the body folds away with it');
-    assert.ok(card.querySelector('.rl-card-head'), 'with the head that opens it again');
+    /* The fold is gone (12 Aug 2026): the reading matter opens in a floating
+       panel, so the card is one height whatever is being read. */
+    assert.equal(card.getAttribute('data-rl-popped'), '0', 'nothing popped out');
+    assert.ok(card.querySelector('.rl-card-head'), 'the head takes you to the clause');
+    assert.ok(card.querySelector('[data-rl-pop]'), 'and the button opens its reasoning');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 

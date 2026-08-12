@@ -142,8 +142,8 @@ describe('F92 — the six-round negotiation, end to end', () => {
     /* The card folds once it is theirs to answer: no verb on it is a move
        this reader can make. The badge above carries the fact, and opening the
        card brings the amber Sent back — f89 pins that half. */
-    assert.equal(t.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
-      'a sent ask is a line, not a panel');
+    assert.equal(t.$('#rl-changes .rl-card').getAttribute('data-rl-popped'), '0',
+      'a sent ask sits quiet — nothing is popped out over the contract');
     assert.ok(!t.$('[data-rl-blast]'), 'nothing unsent, no flashing control');
 
     /* ================= ROUND 2 — the counterparty answers ================= */
@@ -244,10 +244,12 @@ describe('F92 — the six-round negotiation, end to end', () => {
        lives after that is the record and the archive, which this file already
        checks at the end. */
     win.renderRedline();
-    t.$(`[data-nego-card="${storage.id}"] .rl-caret`)
+    /* The reading matter — our own internal note among it — is behind the
+       card's own button now, in a panel rather than a fold. */
+    t.$(`[data-nego-card="${storage.id}"] [data-rl-pop]`)
       ?.dispatchEvent(new win.Event('click', { bubbles: true }));
-    assert.ok(t.$$('#rl-changes .rl-cnotes').some(n => /walk if they push past/.test(n.textContent)),
-      'our own internal note is ours to read, on the change it is about');
+    assert.ok(t.$$('#rl-pop .rl-cnotes').some(n => /walk if they push past/.test(n.textContent)),
+      'our own internal note is ours to read, in the change\'s own window');
     // Send the new ask.
     t.$('#rl-changes [data-rl-send]').click();
     await t.pause();

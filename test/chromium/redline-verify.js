@@ -399,71 +399,61 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
          place that would notice. */
       clampedShort: !!diff && diff.scrollHeight >= diff.clientHeight,
       marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
-      caret: !!card.querySelector('[data-rl-caret]'),
+      popBtn: !!card.querySelector('[data-rl-pop]'),
       sample: sq(card.textContent).slice(0, 70) };
   });
   check('14 the card carries the delta, clamped to two lines',
     delta.hasDiff && delta.clampLines === '2' && delta.clampedShort,
     `${delta.clampLines} lines — ${delta.sample}`);
   check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
-  check('14 the card says it can fold', delta.caret);
+  check('14 the card carries the door to its reasoning', delta.popBtn);
 
-  /* ---- 14b. THE CARD IS A TOGGLE ----
-     Asked for in one sentence (Young, 10 Aug 2026): "the cards you only open
-     when you click on them and you click again and they disappear." A jsdom
-     test can read data-rl-open, but only a browser can prove the three things
-     that make it usable: that it starts shut, that the same press closes it,
-     and — the one that would hurt — that pressing a VERB inside an open card
-     does not fold the card away underneath the hand pressing it. */
-  const toggle = await page.evaluate(async () => {
+  /* ---- 14b. THE CARD POPS OUT; IT DOES NOT GROW ----
+     The card used to unfold in place. It opens a floating panel now (owner,
+     12 Aug 2026), and the deep version of this — the panel's clipping, the
+     borrowed reply box actually posting, the phone sheet — lives in
+     card-popout-verify.js. What is checked HERE is the part that belongs to
+     this file's subject, the column: that opening a change does not move the
+     column, and that pressing a card still takes you to the clause. */
+  const pop = await page.evaluate(async () => {
     const settle = () => new Promise(r => setTimeout(r, 260));
-    /* FOLLOWED BY ID, not by position. Every press below repaints the column,
-       and a verb that settles a change takes its card out of it — so "the first
-       card" would silently become a different change halfway through and the
-       test would be measuring something else. */
+    /* FOLLOWED BY ID, not by position: every press repaints the column. */
     const ID = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
     const card = () => document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(ID)}"]`);
     const press = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    const state = () => card().getAttribute('data-rl-open');
-    const bodyShown = () => {
-      const b = card().querySelector('.rl-card-body');
-      return !!b && getComputedStyle(b).display !== 'none';
-    };
-    const start = { open: state(), body: bodyShown() };
+    const h = () => Math.round(card().getBoundingClientRect().height);
+    const colH = () => Math.round(document.getElementById('rl-changes').scrollHeight);
+    const start = { h: h(), col: colH(), panel: !!document.getElementById('rl-pop'),
+      popped: card().getAttribute('data-rl-popped') };
+    press(card().querySelector('[data-rl-pop]')); await settle();
+    const opened = { h: h(), col: colH(), panel: !!document.getElementById('rl-pop'),
+      popped: card().getAttribute('data-rl-popped') };
+    press(card().querySelector('[data-rl-pop]')); await settle();
+    const closed = { panel: !!document.getElementById('rl-pop'),
+      popped: card().getAttribute('data-rl-popped') };
+    /* Pressing the card itself navigates and opens nothing. */
     press(card().querySelector('.rl-card-head')); await settle();
-    const opened = { open: state(), body: bodyShown() };
-    press(card().querySelector('.rl-card-head')); await settle();
-    const shut = { open: state(), body: bodyShown() };
-    /* Open it again, then press INTO THE NOTE BOX — the realistic version of
-       the risk this guards: a reader reaching for the composer inside an open
-       card must not have the card fold up under the pointer. Deliberately not
-       Accept or Send: those settle the change and take the card out of the
-       column, so a fold could not be told from a decision. */
-    press(card().querySelector('.rl-card-head')); await settle();
-    const inner = card().querySelector('.rl-card-body textarea, .rl-card-body .rl-cnote-add');
-    const innerWhat = inner ? (inner.outerHTML || '').slice(0, 90) : '';
-    if (inner) press(inner);
-    await settle();
-    const afterInner = { open: state(), body: bodyShown(), pressed: !!inner, innerWhat };
-    /* And hovering must do nothing at all. */
-    press(card().querySelector('.rl-card-head')); await settle();   // back to shut
+    const afterHead = { panel: !!document.getElementById('rl-pop') };
+    /* And hovering does nothing at all — the peek has been gone for a while
+       and must stay gone. */
     card().dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     card().dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     await settle();
-    const hovered = { open: state(), body: bodyShown() };
-    return { start, opened, shut, afterInner, hovered };
+    const hovered = { panel: !!document.getElementById('rl-pop') };
+    return { start, opened, closed, afterHead, hovered };
   });
-  check('14b a card arrives shut', toggle.start.open === '0' && !toggle.start.body,
-    JSON.stringify(toggle.start));
-  check('14b one press opens it', toggle.opened.open === '1' && toggle.opened.body,
-    JSON.stringify(toggle.opened));
-  check('14b and the next press shuts it again',
-    toggle.shut.open === '0' && !toggle.shut.body, JSON.stringify(toggle.shut));
-  check('14b pressing a verb inside it does NOT fold it away',
-    toggle.afterInner.pressed && toggle.afterInner.open === '1' && toggle.afterInner.body,
-    JSON.stringify(toggle.afterInner));
-  check('14b and hovering opens nothing — the peek is gone',
-    toggle.hovered.open === '0' && !toggle.hovered.body, JSON.stringify(toggle.hovered));
+  check('14b nothing is popped out to begin with',
+    !pop.start.panel && pop.start.popped === '0', JSON.stringify(pop.start));
+  check('14b the button opens the panel', pop.opened.panel && pop.opened.popped === '1',
+    JSON.stringify(pop.opened));
+  check('14b AND THE COLUMN DOES NOT MOVE — the whole point of the change',
+    pop.opened.h === pop.start.h && pop.opened.col === pop.start.col,
+    `card ${pop.start.h}→${pop.opened.h}px, column ${pop.start.col}→${pop.opened.col}px`);
+  check('14b the same press closes it', !pop.closed.panel && pop.closed.popped === '0',
+    JSON.stringify(pop.closed));
+  check('14b pressing the card takes you to the clause and opens nothing',
+    !pop.afterHead.panel, JSON.stringify(pop.afterHead));
+  check('14b and hovering opens nothing — the peek is gone', !pop.hovered.panel);
 
   /* ---- 14c. THE NOTICES NEVER SIT ON THE CONTRACT ----
      "these pop ups should never appear on top of the contract. They can appear
