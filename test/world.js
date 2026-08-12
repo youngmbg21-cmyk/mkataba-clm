@@ -85,6 +85,12 @@ const PLAYBOOK = 'js/playbook.js';
    the tests drive is the pair of pure functions the readiness surface is built
    from, not the full boot. */
 const HOME_VIEW = 'js/views/home.js';
+/* The register (buildWorld({registerView:true})). Loaded on request because it
+   now draws TWO pages: Contracts, and — since 12 Aug 2026 — the Negotiations
+   list, which is the same table with a scope. A test about the negotiations
+   door therefore needs this file on the floor beside js/views/negotiation.js;
+   everything else keeps the lighter stage. */
+const REGISTER_VIEW = 'js/views/register.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
@@ -296,6 +302,56 @@ function buildWorld(opts = {}) {
   if (opts.contractView) files.push(CONTRACT_VIEW);
   if (opts.playbook) files.push(PLAYBOOK);
   if (opts.homeView) files.push(HOME_VIEW);
+  /* The register draws against the whole application shell — value streams,
+     status chips, share marks, the money formatter. This stage has the change
+     model, not that shell, so the pieces it reaches for are stood in for here
+     exactly as renderWorkspace and friends already are. The LOGIC under test —
+     which rows the filters resolve to, how they are grouped, what a row says —
+     is the real one; only the chrome around it is a stand-in. */
+  if (opts.registerView) {
+    const F = { proc:{id:'proc',name:'Procurement',ic:'folder',color:'#4a7'},
+      sales:{id:'sales',name:'Sales',ic:'folder',color:'#47a'} };
+    Object.assign(win, {
+      FOLDERS: win.FOLDERS || F,
+      folderColor: win.folderColor || (c => (F[(c && c.folder) || c] || {}).color || '#999'),
+      folderContracts: win.folderContracts || (id => (win.state.contracts || []).filter(c => c.folder === id)),
+      folderLegendHtml: win.folderLegendHtml || (() => ''),
+      shareLinkCell: win.shareLinkCell || (() => ''),
+      questionDot: win.questionDot || (() => ''),
+      statusChip: win.statusChip || (c => `<span class="chip">${(c && c.status) || c}</span>`),
+      contractStatusChip: win.contractStatusChip || (c => `<span class="chip">${c.status}</span>`),
+      statusLabel: win.statusLabel || (s2 => String(s2 || '')),
+      familyCounts: win.familyCounts || (cs => ({ agreements: cs.length, documents: cs.length, amendments: 0 })),
+      agreementsIn: win.agreementsIn || (cs => cs),
+      contractRisk: win.contractRisk || (() => 0),
+      canViewValues: win.canViewValues || (() => true),
+      userFolderAccess: win.userFolderAccess || (() => '*'),
+      icon: win.icon || (() => ''),
+      cIcon: win.cIcon || (() => 'file'),
+      cKind: win.cKind || (() => 'Contract'),
+      cParty: win.cParty || (c => (c && c.counterparty) || ''),
+      isUpload: win.isUpload || (() => false),
+      openFindings: win.openFindings || (() => []),
+      RELATION_LABEL: win.RELATION_LABEL || {},
+      META_FIELDS: win.META_FIELDS || [],
+      metaOptLabel: win.metaOptLabel || (k => k),
+      csvValueCell: win.csvValueCell || (c => c.value || ''),
+      setActiveNav: win.setActiveNav || (() => {}),
+      wireOpens: win.wireOpens || (() => {}),
+      selectContract: win.selectContract || (() => {}),
+      openWorkspace: win.openWorkspace || (() => {}),
+      STREAM_SHORT: win.STREAM_SHORT || {},
+      effectiveExpiry: win.effectiveExpiry || (c => (c && c.expiry) || ''),
+      expirySource: win.expirySource || (() => null),
+      daysUntil: win.daysUntil || (d => { const t = Date.parse(d + 'T00:00:00'); return isNaN(t) ? 0 : Math.round((t - Date.now()) / 86400000); }),
+      isMonetary: win.isMonetary || (() => true),
+      fmtMoneyShort: win.fmtMoneyShort || (v => 'KES ' + Number(v || 0).toLocaleString('en')),
+      contractExpired: win.contractExpired || (() => false),
+      renewalDecisionDate: win.renewalDecisionDate || (() => null),
+      obState: win.obState || (() => 'open'),
+    });
+    files.push(REGISTER_VIEW);
+  }
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3

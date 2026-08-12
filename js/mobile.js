@@ -359,6 +359,19 @@ const M_CSS = `
      it and the phone has three pixels, so they are the same three colours. */
   .m-stripe{ position:absolute; left:0; top:10px; bottom:10px; width:3px; border-radius:0 2px 2px 0; }
 
+  /* ---- the negotiations screen's group headings ----
+     The desktop's three bands in the phone's own idiom: a coloured dot, the
+     name, the count. Same order, same three colours, and the name and number
+     ride beside the colour so the page works in grey-scale. Not a row and not
+     pressable — a heading between two stacks of cards. */
+  .m-ngband{ display:flex; align-items:center; gap:9px; padding:0 16px 7px; }
+  .m-ngband-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
+  .m-ngband-k{ font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--color-neutral-600); }
+  .m-ngband-n{ font-family:var(--font-mono); font-size:12px; font-weight:700;
+    color:var(--color-neutral-600); background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:99px; padding:0 8px; }
+
   /* ---- the contract screen ---- */
   .m-ctab{
     flex:1; height:44px; background:none; border:0; cursor:pointer; font:inherit;
@@ -820,6 +833,16 @@ function mRender(){
   if(!root) return;
   const s = mS();
 
+  /* ---- WHICH PAGE THE SHARED REGISTER IS ANSWERING FOR ----
+     Contracts and Negotiations are the same filtered set on both shells (see
+     regSetScope in js/views/register.js), and regFiltered reads a module flag
+     rather than an argument — so the phone has to say which screen it is
+     drawing BEFORE anything asks. Set here, in the one paint, rather than in
+     each screen builder: a builder that forgot would inherit the last screen's
+     scope and quietly draw the wrong book. */
+  if(typeof window.regSetScope==='function')
+    window.regSetScope(s.screen==='negotiations' ? 'negotiations' : null);
+
   /* The workbench keeps the desktop shell and takes the screen; the phone
      gives it back and draws only the bar above it. */
   const onRedline = s.screen==='redline';
@@ -856,11 +879,17 @@ function mRender(){
   else if(s.screen==='portfolio') body = mPortfolioHtml();
   else if(s.screen==='more')      body = mMoreHtml();
   else if(s.screen==='handoff')   body = mHandoffHtml();
-  /* Left EMPTY on purpose and filled after the wiring below: the negotiations
-     list is the desktop's own builder, drawn into this screen unchanged. The
-     phone builds no second version of it — the same rule that keeps the
-     workbench itself a desktop renderer under a back bar. */
-  else if(s.screen==='negotiations') body = '';
+  /* ---- THE NEGOTIATIONS SCREEN IS PHONE-SHAPED NOW ----
+     It used to be the desktop's own builder drawn into this screen unchanged,
+     which was right while that builder was a column of rows. It is the
+     CONTRACTS TABLE now (12 Aug 2026) — eight columns, a filter bar and a
+     footer — and a wide table on a 390px handset is not a list, it is a
+     horizontal scroll. So the phone draws its own row shape, exactly as it
+     already does for Contracts, over the same filtered set, the same three
+     bands in the same order and the same pill. mNegotiationsHtml computes
+     nothing of its own: regFiltered, NEGO_BANDS and negoMovePillHtml are the
+     desktop's, so the two shells cannot disagree about a row. */
+  else if(s.screen==='negotiations') body = (typeof mNegotiationsHtml==='function') ? mNegotiationsHtml() : '';
   else                            body = mHomeHtml();
 
   /* The tab bar shows on the tabbed screens only. A contract, a sheet route or
@@ -875,8 +904,6 @@ function mRender(){
     + (typeof mAiLauncherHtml==='function' ? mAiLauncherHtml() : '')
     + mSheetHtml();
   mWire();
-  if(s.screen==='negotiations' && window.renderNegotiationsList)
-    renderNegotiationsList(root.querySelector('.m-screen'));
 }
 
 /* Is the owner's app the thing on screen at all? A share link renders the

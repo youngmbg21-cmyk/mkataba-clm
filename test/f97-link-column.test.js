@@ -108,7 +108,10 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
     /* An empty-state row that still spans 7 of 8 columns leaves a ragged gap —
        the kind of thing only a rendered page shows. */
     assert.ok(!/colspan="7"/.test(reg), 'no row still spans the old column count');
-    assert.equal((reg.match(/colspan="8"/g) || []).length, 3);
+    /* Four now: the register's own three (two empty states and the folder
+       page's), plus the Negotiations page's band header, which is a full-width
+       row between groups — see negoBandRowHtml. */
+    assert.equal((reg.match(/colspan="8"/g) || []).length, 4);
   });
 });
 

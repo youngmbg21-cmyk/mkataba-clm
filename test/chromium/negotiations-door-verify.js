@@ -184,7 +184,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       back.view === 'redline' && back.held === cid && !back.list, `${back.view} / ${back.held}`);
     await page.screenshot({ path: path.join(OUT, '05-reopened.png') });
 
-    /* ---- 9. AND FALLS THROUGH TO THE LIST WHEN THERE IS NOTHING TO REOPEN ---- */
+    /* ---- 9. AND FALLS THROUGH TO THE LIST WHEN THERE IS NOTHING TO REOPEN ----
+       Which since 12 Aug 2026 is the CONTRACTS TABLE, grouped by whose move it
+       is. Everything below is about pixels for the reason the header of this
+       file gives: the bands have to be real full-width rows in the real table,
+       and the locked chip has to be a chip a reader cannot press away. */
     await page.evaluate(() => { try{ localStorage.removeItem(
       'hati.v1.lastNegotiation.' + (currentUser().id || currentUser().email)); }catch(e){} });
     await page.evaluate(() => setView('dashboard'));
@@ -192,29 +196,81 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1400);
     const list = await page.evaluate(seen => ({
-      wrap: eval(seen)('.ngl-wrap'),
-      rows: [...document.querySelectorAll('.ngl-row')].map(r => ({
-        id: r.getAttribute('data-ngl-open'),
+      head: eval(seen)('.ngl-head-table'),
+      live: (document.querySelector('.ngl-live') || {}).textContent,
+      table: eval(seen)('.reg-table'),
+      cols: [...document.querySelectorAll('.reg-table thead th')]
+        .map(t => t.textContent.replace(/[\u25b2\u25bc\u2195]/g, '').trim()),
+      bands: [...document.querySelectorAll('#reg-tbody tr.ngl-band')].map(r => ({
+        k: (r.querySelector('.ngl-band-k') || {}).textContent,
+        n: (r.querySelector('.ngl-band-n') || {}).textContent,
+        w: Math.round(r.getBoundingClientRect().width),
+        role: r.getAttribute('role'),
+        press: r.querySelectorAll('button,a,input').length,
+        row: r.getAttribute('data-row'),
+      })),
+      rows: [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(r => ({
+        id: r.getAttribute('data-row'),
         w: Math.round(r.getBoundingClientRect().width),
         state: (r.querySelector('.ngl-w') || {}).textContent })),
-      says: (document.querySelector('.ngl-head p') || {}).textContent,
-      /* A signpost, not a second register. */
-      filters: document.querySelectorAll('.ngl-wrap input, .ngl-wrap select').length,
+      lock: eval(seen)('#reg-lock-chip'),
+      lockOut: document.querySelectorAll('#reg-lock-chip button').length,
+      /* It IS the register now — the filter bar is the point, not the fault. */
+      filters: document.querySelectorAll('#reg-stage-sel, #reg-type-sel, #reg-sort').length,
+      showing: (document.querySelector('#reg-showing') || {}).textContent,
     }), SEEN);
-    check('with nothing to reopen it lands on the list', !!list.wrap && list.wrap.on,
-      list.wrap ? `${list.wrap.w}x${list.wrap.h}` : 'MISSING');
-    check('which says so at the top', /Nothing open/i.test(list.says || ''), list.says);
+    check('with nothing to reopen it lands on the table', !!list.table && list.table.on,
+      list.table ? `${list.table.w}x${list.table.h}` : 'MISSING');
+    check('the heading carries the page\'s own live count', /\b1 live\b/.test(list.live || ''), list.live);
+    check('the columns are the Contracts table\'s, ending in Whose move',
+      list.cols.length === 8 && list.cols[0] === 'MK' && /Whose move/i.test(list.cols[7] || ''),
+      list.cols.join(' | '));
+    check('three bands, in fixed order, each a full-width row of its own',
+      list.bands.length === 3
+        && /Waiting on you/i.test(list.bands[0].k || '')
+        && /other side/i.test(list.bands[1].k || '')
+        && /Nothing outstanding/i.test(list.bands[2].k || '')
+        && list.bands.every(b => b.w > 400),
+      list.bands.map(b => `${b.k} ${b.n} ${b.w}px`).join(' · '));
+    check('and a band is not a row — nothing to press, nothing to open',
+      list.bands.every(b => b.role === 'presentation' && b.press === 0 && !b.row),
+      list.bands.map(b => `${b.role}/${b.press}`).join(' '));
     check('the live negotiation is a real, pressable row',
       list.rows.length === 1 && list.rows[0].id === cid && list.rows[0].w > 0,
       list.rows.map(r => `${r.id} ${r.w}px ${r.state}`).join(' · '));
     check('and it says the answer is owed to this reader',
       /needs you/i.test((list.rows[0] || {}).state || ''), (list.rows[0] || {}).state);
-    check('no filter, no search — it is a signpost, not a second register',
-      list.filters === 0, list.filters + ' inputs');
+    check('the filter bar is there — this page IS the register now',
+      list.filters === 3, list.filters + ' controls');
+    check('led by a LOCKED chip with no way out of it',
+      !!list.lock && list.lock.on && list.lockOut === 0,
+      list.lock ? `${list.lock.text} · ${list.lockOut} buttons` : 'MISSING');
+    check('and the footer counts contract rows, never a band',
+      /1/.test(list.showing || '') && !/of 4/.test(list.showing || ''), list.showing);
     await page.screenshot({ path: path.join(OUT, '06-list.png') });
 
-    /* Pressing a row goes in. */
-    await page.click(`.ngl-row[data-ngl-open="${cid}"]`);
+    /* ---- 9b. CLEAR CANNOT WIDEN THE PAGE ---- */
+    await page.evaluate(() => { const R = regState(); R.stage = 'Draft'; regRepaint(); });
+    await page.waitForTimeout(700);
+    const cleared = await page.evaluate(() => {
+      const b = document.getElementById('reg-clear-filters');
+      if (b) b.click();
+      return null;
+    });
+    void cleared;
+    await page.waitForTimeout(900);
+    const after = await page.evaluate(() => ({
+      scope: regScope(),
+      rows: document.querySelectorAll('#reg-tbody tr[data-row]').length,
+      total: state.contracts.length,
+      lock: !!document.getElementById('reg-lock-chip'),
+    }));
+    check('pressing Clear puts the reader\'s filters back and leaves the page alone',
+      after.scope === 'negotiations' && after.rows === 1 && after.rows < after.total && after.lock,
+      `${after.rows} of ${after.total} rows · scope ${after.scope}`);
+
+    /* Pressing a row goes in — to the NEGOTIATION, not the contract page. */
+    await page.click(`#reg-tbody tr[data-row="${cid}"]`);
     await page.waitForTimeout(1500);
     check('pressing a row opens that negotiation',
       await page.evaluate(() => redlineHeldId()) === cid);

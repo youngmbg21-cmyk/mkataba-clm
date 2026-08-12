@@ -7275,69 +7275,105 @@ function openNegotiations(){
    anywhere in the app. */
 let _rlDoorAsked = false;
 
-/* ---- THE LIST BEHIND THE DOOR ----
-   What the door shows when there is no last negotiation to reopen: the ones
-   actually being argued over, one line each, newest movement first.
-
-   IT IS A SIGNPOST, NOT A SECOND REGISTER, and three rules keep it one — they
-   are the whole reason this is twenty lines rather than a page. LIVE
-   NEGOTIATIONS ONLY (the register is where you go for all 145, and two lists of
-   every contract eventually disagree); NO FILTER, NO SEARCH, NO SORTABLE
-   COLUMNS (the moment it needs those it HAS become the register); and it counts
-   with negoNeedsYouIds like every other surface, so a door reading 3 cannot sit
-   over a list reading 2.
-
-   The one question a row answers is the one worth asking from outside the
-   agreement: is this one waiting on me? */
-function negoListRowHtml(c){
+/* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----
+   Three readings, one function, asked by every surface that draws the state:
+   the desktop table's last column, the phone's card, and the band a row is
+   filed under. Counted with negoNeedsYouIds like everything else, so a door
+   reading 3 cannot sit over a list reading 2 — and, like it, it READS `c.changes`
+   RAW rather than through negoChanges(), which would start a negotiation on
+   every contract it was asked about. */
+function negWhoseMove(c){
   const needs = negoNeedsYouIds(c).length;
-  const open = (Array.isArray(c.changes) ? c.changes : [])
+  if (needs) return { k: 'you', n: needs };
+  const open = (Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.status === 'pending' && !x.withdrawn).length;
-  const lead = (typeof window.deskLead === 'function') ? deskLead(c) : null;
-  const round = (c.negotiation && typeof c.negotiation.round === 'number') ? c.negotiation.round : 1;
-  /* Three states, and the middle one names THEM rather than saying "waiting":
-     a reader scanning this list is deciding what to pick up, and "with Saw Sawa
-     LLC" answers that where "waiting" only repeats the column heading. */
-  const state_ = needs
-    ? `<span class="ngl-w ngl-w-you">${i18tn('ng_needs_you', needs, { n: needs })}</span>`
-    : open
-      ? `<span class="ngl-w ngl-w-them">${_ne(i18t('ng_door_with', { who: c.counterparty || i18t('ng_door_them') }))}</span>`
-      : `<span class="ngl-w ngl-w-clear">${i18t('ng_door_clear')}</span>`;
-  return `<button type="button" class="ngl-row" data-ngl-open="${_nea(c.id)}">
-    <span class="ngl-main">
-      <span class="ngl-name">${esc(c.name || c.id)}</span>
-      <span class="ngl-sub">${esc(c.id)} &middot; ${_ne(i18t('ct_round_n', { n: round }))}${
-        lead && lead.name ? ' &middot; ' + esc(lead.name) : ''}</span>
-    </span>
-    ${state_}
-  </button>`;
+  return open ? { k: 'them', n: open } : { k: 'clear', n: 0 };
+}
+/* ---- THE LIST BEHIND THE DOOR — IT IS THE CONTRACTS TABLE NOW ----
+   Owner's decision, 12 Aug 2026, and it REVERSES the position that stood here
+   for two days. This page used to be a signpost of twenty lines, and the
+   argument written above it was that a filterable, sortable, searchable table
+   of contracts on a second page would eventually disagree with the register
+   about what a row says. That argument was not wrong; it was overruled, and the
+   fear it names is answered a different way — BY REUSE. There is still exactly
+   one table of contracts in this product. renderRegister builds this page:
+   its filter bar, its columns, its row builder, its footer, its wiring. Nothing
+   about a row is written twice, so nothing about a row can drift.
+
+   FOUR THINGS ARE DIFFERENT, and they are the whole design:
+
+     1  the last column is WHOSE MOVE it is — a state, not an action;
+     2  the rows sit under three banded headers in a fixed order (waiting on
+        you, with the other side, nothing outstanding), each carrying its own
+        count. A band is the thing a flat register cannot produce and it is what
+        stops this page being mistaken for Contracts;
+     3  the heading carries the live count, so the number above the table is
+        this page's own and never 145;
+     4  the filter bar opens with a LOCKED chip reading "Live negotiations" —
+        not a filter the reader chose and not one they can clear.
+
+   AND THE ONE THING THAT DID NOT CHANGE: live negotiations only. That narrowing
+   is a property of the page, applied above every filter and untouched by Clear
+   — see regSetScope in js/views/register.js, which is where the reuse and the
+   lock both live. */
+function negoListHeadHtml(shown){
+  const live = negoLiveList().length;
+  const R = (window.regState ? window.regState() : null);
+  /* Is anything the READER chose narrowing this? Not the live-negotiations
+     scope, which is the page itself. */
+  const filtered = !!(R && (String(R.query || '').trim() || R.stage !== 'all' || R.type !== 'all'
+    || R.view || (R.renewal && R.renewal !== 'all') || (R.category && R.category !== 'all') || R.only));
+  const n = Array.isArray(shown) ? shown.length : live;
+  /* TWO COUNTS ABOUT THE SAME THING ARE ON SCREEN AT ONCE and they measure
+     different units, so the page says which is which rather than letting a
+     reader discover it. The sidebar door counts CHANGES waiting on this person
+     across every negotiation; the bands count AGREEMENTS in the view they can
+     see. And when a filter is on, the bands are counting the filtered view —
+     said out loud, because a band reading 1 under a door reading 3 with no
+     explanation is the contradiction this page was written to avoid. */
+  return `<header class="ngl-head ngl-head-table">
+    <h2>${i18t('ng_door_title')} <span class="ngl-live">${_ne(i18tn('ngl_n_live', live, { n: live }))}</span></h2>
+    <p>${_ne(filtered ? i18t('ngl_sub_filtered', { n, live }) : i18t('ngl_sub'))}</p>
+  </header>`;
 }
 function renderNegotiationsList(host){
   const el = host || document.getElementById('content');
   if (!el) return;
-  const rows = negoLiveList();
-  el.innerHTML = `<div class="view-enter ngl-wrap">
-    <header class="ngl-head">
-      <h2>${i18t('ng_door_title')}</h2>
-      ${''/* The sub-line speaks only when there is a list to introduce. With
-             nothing running, the empty card below says the whole thing — and
-             "every agreement being argued over right now" printed above
-             "Nothing is being negotiated" is the page contradicting itself. */}
-      ${rows.length ? `<p>${i18t('ng_door_pick')}</p>` : ''}
-    </header>
-    ${rows.length ? `<div class="ngl-list">${rows.map(negoListRowHtml).join('')}</div>`
-      : `<section class="ngl-empty">
-          <h3>${i18t('ng_door_none')}</h3>
-          <p>${i18t('ng_door_none_how')}</p>
-          <button type="button" data-ngl-register class="ui-btn ui-btn-primary" style="padding:8px 16px">${i18t('ng_open_register')}</button>
-        </section>`}
-  </div>`;
-  el.querySelectorAll('[data-ngl-open]').forEach(b => b.addEventListener('click', () =>
-    openRedlineWorkbench(b.getAttribute('data-ngl-open'))));
-  el.querySelectorAll('[data-ngl-register]').forEach(b => b.addEventListener('click', () => {
-    if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
-    setView('register');
-  }));
+  const live = negoLiveList();
+  /* ---- AN EMPTY GROUP IS INFORMATION; THREE OVER NOTHING IS NOT ----
+     With no live negotiation anywhere, this is not a table that filtered to
+     zero — it is a page with no subject, and the empty state that explains how
+     one starts is the whole content. The table (with its filter bar, its bands
+     and its "nothing matches · clear the filters" state) is drawn only once
+     there is something for a filter to narrow. */
+  if (!live.length){
+    if (window.regSetScope) regSetScope(null);
+    el.innerHTML = `<div class="view-enter ngl-wrap">
+      <header class="ngl-head">
+        <h2>${i18t('ng_door_title')}</h2>
+      </header>
+      <section class="ngl-empty">
+        <h3>${i18t('ng_door_none')}</h3>
+        <p>${i18t('ng_door_none_how')}</p>
+        <button type="button" data-ngl-register class="ui-btn ui-btn-primary" style="padding:8px 16px">${i18t('ng_open_register')}</button>
+      </section>
+    </div>`;
+    el.querySelectorAll('[data-ngl-register]').forEach(b => b.addEventListener('click', () => {
+      if (window.regSetScope) regSetScope(null);
+      if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
+      setView('register');
+    }));
+    if (typeof setActiveNav === 'function') setActiveNav('redline');
+    return;
+  }
+  /* Through `window`, like every other cross-module call in this app: these are
+     two files, and a bare name resolves only because the browser puts every
+     top-level declaration in one scope. A stage without the register has no
+     Negotiations page to draw — this page IS that table — so it draws nothing
+     rather than a second, quietly different one. */
+  if (typeof window.renderRegister !== 'function') return;
+  window.renderRegister({ scope: 'negotiations', nav: 'redline',
+    hostId: (el.id || 'content'), head: cs => negoListHeadHtml(cs) });
 }
 
 function renderRedline(){
@@ -11563,7 +11599,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      year because nobody put it here. */
   negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
-  renderNegotiationsList, negoListRowHtml,
+  renderNegotiationsList, negoListHeadHtml, negWhoseMove,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
      in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls

@@ -778,12 +778,13 @@
   /* ============ THE NEGOTIATIONS LIST ============
      What the sidebar door shows when there is no last negotiation to reopen.
 
-     IT IS A SIGNPOST, NOT A SECOND REGISTER, and the styling says so as much as
-     the code does: rows, not a table with sortable heads; no filter bar, no
-     search box, nowhere for either to be added without it plainly becoming a
-     different kind of page. The one thing a row states loudly is whether it is
-     waiting on the reader, because that is the only question worth asking about
-     a negotiation you are standing outside of. */
+     IT IS THE CONTRACTS TABLE NOW (owner's call, 12 Aug 2026), built by
+     renderRegister with a scope — so the rules below dress two things and no
+     more: the page's own heading, and the band that heads each group. The .ngl-w
+     pill survives unchanged because it is the one thing both shells draw, and
+     the .ngl-row / .ngl-list rules survive because the EMPTY state (no live
+     negotiation anywhere) is still a page of its own rather than an empty table
+     under a filter bar. */
   .ngl-wrap{ padding:18px 20px 32px; max-width:900px; }
   .ngl-head h2{ font-family:var(--font-heading); font-weight:600; font-size:20px;
     margin:0 0 4px; line-height:1.2; }
@@ -810,6 +811,28 @@
   .ngl-w-clear{ background:var(--st-green-bg); color:var(--st-green-fg); border-color:var(--st-green-line); }
   .ngl-empty{ background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:16px; padding:34px; text-align:center; box-shadow:var(--shadow-sm); }
+  /* ---- THE BAND ----
+     A full-width heading between rows: a coloured dot, the name in small caps,
+     the count. It is the thing a flat register cannot produce, and it is what
+     stops this page being mistaken for Contracts. NOT A ROW — no hover tint, no
+     pointer, no cell padding, and the markup carries role="presentation" so it
+     is never announced as one either. */
+  .ngl-band > td{ padding:0!important; border-bottom:0!important;
+    background:var(--color-bg); position:sticky; top:38px; z-index:2; }
+  .reg-table tbody tr.ngl-band:hover{ background:none; }
+  .ngl-band-in{ display:flex; align-items:center; gap:9px; padding:7px 16px;
+    border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider); }
+  .ngl-band-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .ngl-band-k{ font-size:10px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--color-neutral-600); }
+  .ngl-band-n{ font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+    color:var(--color-neutral-600); background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:99px; padding:0 7px; }
+  .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
+  .ngl-head-table p{ margin:2px 0 0; }
+  .ngl-live{ font-family:var(--font-mono); font-size:12px; font-weight:700;
+    color:var(--color-accent-800); background:var(--color-accent-100);
+    border:1px solid var(--color-accent-300); border-radius:99px; padding:1px 9px; }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:700; }
   .ngl-empty p{ margin:0 0 16px; font-size:12.5px; color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
