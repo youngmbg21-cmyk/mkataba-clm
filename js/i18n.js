@@ -1346,6 +1346,15 @@ const STRINGS = {
     co_email_sent: 'Email sent',
     co_already_sent: 'Already sent.',
     co_not_delivered: 'Not delivered — the mail provider refused it.',
+    /* A signing link bound to a signer who is not first. Nothing was refused
+       and nothing was attempted — the server sends it the moment the signer
+       before them finishes. The words match the signing-order card's own
+       "link ready — it goes out when their turn arrives". */
+    co_link_held: 'Link ready — it goes out when their turn arrives.',
+    co_link_held_body: 'Nothing has been sent yet. {who} gets it automatically the moment {waiting} signs.',
+    co_held_earlier_signer: 'the signer before them',
+    co_link_held_where: 'It is listed in the Shares panel if you need it — but it opens a holding page until their turn, so it is not one to forward.',
+    co_round_on_standing_link: 'The new round is on {who}\'s existing link — nothing was emailed, by design.',
     co_queued_not_sent: 'Queued, not sent.',
     co_link_updated_not_sent: 'Link updated — but not sent',
     co_if_they_open: 'if they open their link',
@@ -4703,6 +4712,11 @@ const STRINGS = {
     co_email_sent: 'E-post skickad',
     co_already_sent: 'Redan skickat.',
     co_not_delivered: 'Inte levererat — e-postleverantören avvisade det.',
+    co_link_held: 'Länken är klar — den skickas när det blir deras tur.',
+    co_link_held_body: 'Inget har skickats ännu. {who} får den automatiskt så snart {waiting} har undertecknat.',
+    co_held_earlier_signer: 'undertecknaren före dem',
+    co_link_held_where: 'Den finns i delningspanelen om du behöver den — men den öppnar en väntsida fram till deras tur, så den bör inte vidarebefordras.',
+    co_round_on_standing_link: 'Den nya rundan ligger på {who}s befintliga länk — inget e-postmeddelande skickades, helt enligt plan.',
     co_queued_not_sent: 'Köat, inte skickat.',
     co_link_updated_not_sent: 'Länken uppdaterad — men inte skickad',
     co_if_they_open: 'om de öppnar sin länk',

@@ -5266,7 +5266,13 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      is the row an incoming signature is recorded against. Validated against
      the STORED contract's plan, not the request's say-so — a signerId the
      route does not carry would mint a link that can never be matched back. */
-  let signerId = null, heldForTurn = false, signerRow = null, signerPlanAll = null;
+  /* heldFor: WHO the link is waiting on, carried rather than left to be worked
+     out again in the browser. signerTurn already found them — it is the whole
+     reason it knows the turn has not come — and a second computation on the
+     other side of the wire is a second thing to keep in step with the route
+     that actually decides. The dialog names them; without this it could only
+     say "an earlier signer". */
+  let signerId = null, heldForTurn = false, heldFor = null, signerRow = null, signerPlanAll = null;
   if ((req.body || {}).signerId != null && String(req.body.signerId).trim()) {
     if (purp !== 'sign') return res.status(400).json({ error: 'Only a signing link can be bound to a signer' });
     const rt = signerRouteFor(shareId);
@@ -5278,6 +5284,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     signerPlanAll = rt.plan;
     const turn = signerTurn(shareId, signerId);
     heldForTurn = !turn.ok;
+    if (heldForTurn && turn.waitingOn)
+      heldFor = { name: turn.waitingOn.name || null, order: turn.waitingOn.order || null,
+        party: turn.waitingOn.party || null };
     /* ONE SIGNER, ONE LINK — the same rule the share dialog keeps for durable
        negotiation links, held here for the same reason: pressing "issue the
        signing links" twice must not put two live signing links for one signer
@@ -5310,7 +5319,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
          of 02 Aug 2026). */
       return res.json({ ok: true, token: existing.token, link: exLink, reused: true,
         expiresAt: existing.expires_at, channel: existing.channel || ch, durable: false,
-        signerId, heldForTurn, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr,
+        signerId, heldForTurn, heldFor, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr,
         alreadySentAt: (!exSent && existing.sent_at) ? existing.sent_at : null });
     }
   }
@@ -5362,6 +5371,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   }
   res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
     signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
+    heldFor: heldFor || undefined,
     /* What the wall took out of the envelope, reported rather than left silent:
        a sender told "sent" about a round one change lighter has been misled. */
     withheldByReview: req.rvStripped || undefined,

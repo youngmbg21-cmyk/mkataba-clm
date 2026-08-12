@@ -155,3 +155,143 @@ describe('f116 — a dormant link is a waiting page, not an error page', () => {
     assert.ok(d.getElementById('pt-sign'), 'and the signing page is live');
   });
 });
+
+/* ============================================================
+   f116 (W7 fault 5) — a held link is not a delivery failure
+   ============================================================
+   REPORTED 12 Aug 2026, with a screenshot: pressing "Send by email" for a
+   counterparty signer who is SECOND on the route produced an amber box —
+
+     "Not delivered — the mail provider refused it. The link was created and is
+      safe to send another way, but <address> has not received anything. No
+      reason was given."
+
+   Nothing was refused. Nothing was attempted. A bound signing link whose turn
+   has not come is created, parked, and emailed by the server the moment the
+   signer before it finishes — which is what then happened. The behaviour was
+   right and only the sentence was wrong.
+
+   THE PROOF THAT NOTHING WAS ATTEMPTED, so nobody re-argues it: sendEmail
+   always carries the provider's own sentence back on a refusal, and falls back
+   to "Resend rejected this message (<status>)" when the provider says nothing.
+   A refusal can never come back blank, so a blank reason can only mean no
+   attempt was made.
+
+   These are the source-level halves — that the fact is on the wire, that the
+   dialog reads it, and that the branches stay in the one order that works.
+   What the BOX SAYS is a claim about pixels and lives in
+   test/chromium/held-link-verify.js: every assertion here passed while the
+   screen was lying. */
+describe('f116 (W7 fault 5) — a held link is never reported as a refusal', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const core = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
+  const srv = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
+  /* The chain of outcomes inside doSend, as source. */
+  const chain = core.slice(core.indexOf("if(ch==='email'){", core.indexOf('const doSend=')),
+    core.indexOf("} else if(ch==='whatsapp'){"));
+
+  test('the dialog has an outcome of its own for a held link', () => {
+    assert.match(chain, /else if\(r\.heldForTurn\)\{/,
+      'heldForTurn must be a branch, not something that falls into the refusal');
+    assert.match(chain, /co_link_held/, 'and it says the link is held, not refused');
+  });
+
+  test('and it READS the fact rather than working it out again', () => {
+    /* The route that decides to hold is the only thing that should decide what
+       we say about it. A second computation here is a second thing to keep in
+       step with it. */
+    assert.ok(!/signerPlan|signerTurn|\.order\s*<|signed/.test(chain),
+      'the dialog must not re-derive whose turn it is');
+    assert.match(chain, /r\.heldFor/, 'who we are waiting on is read off the reply too');
+  });
+
+  test('the branch order that already had one bug in it is preserved', () => {
+    /* alreadySentAt is checked BEFORE the refusal branch because of the false
+       "Not delivered" of 02 Aug 2026. The new branch goes between them: after
+       the two that mean "something did go out", before the refusal. */
+    const at = s => chain.indexOf(s);
+    assert.ok(at('r.emailSent') > -1 && at('r.alreadySentAt') > -1
+      && at('r.heldForTurn') > -1 && at('r.emailConfigured') > -1, 'all four branches present');
+    assert.ok(at('r.emailSent') < at('r.alreadySentAt'), 'sent first');
+    assert.ok(at('r.alreadySentAt') < at('r.heldForTurn'), 'already-sent still beats the new branch');
+    assert.ok(at('r.heldForTurn') < at('r.emailConfigured'), 'and held beats the refusal');
+  });
+
+  test('the invented reason is gone, because it described an impossible state', () => {
+    /* sendEmail guarantees a sentence on every real refusal. Once a
+       non-attempt stops being reported as one, "No reason was given" describes
+       a state that cannot occur. */
+    /* The RENDERED form — the ternary's else-half — not the phrase wherever it
+       appears: the note above the fixed branch quotes the old sentence on
+       purpose, and a test that cannot tell a quotation from the thing itself
+       would forbid writing down why the change was made. */
+    assert.ok(!/:' No reason was given\.'/.test(core),
+      'a refusal always carries a reason; the fabricated fallback must not survive');
+    assert.match(srv, /Resend rejected this message/,
+      'and that guarantee is the thing this rests on');
+  });
+
+  test('a real refusal is still reported as one', () => {
+    assert.match(chain, /else if\(r\.emailConfigured\)\{/, 'the refusal branch survives');
+    assert.match(chain, /co_not_delivered/);
+    assert.match(chain, /esc\(r\.emailError\)/, 'and it quotes the provider\'s own sentence');
+  });
+
+  test('the URL is withheld from the held box, and says where it lives', () => {
+    /* "Safe to send another way" is the part that did harm: a held link opens
+       a dormant waiting page, so a recipient handed it early meets a holding
+       screen and concludes the link is broken. Not withheld silently — the
+       Shares panel is the durable record and the box says so. */
+    const held = chain.slice(chain.indexOf('else if(r.heldForTurn)'), chain.indexOf('else if(r.emailConfigured)'));
+    assert.ok(!/\$\{link\}/.test(held), 'the held box does not hand over the URL');
+    assert.match(held, /co_link_held_where/, 'it says where the link is instead');
+  });
+
+  test('the server carries who we are waiting on, so the browser need not guess', () => {
+    assert.match(srv, /if \(heldForTurn && turn\.waitingOn\)/);
+    assert.match(srv, /heldFor: heldFor \|\| undefined/, 'on the fresh POST');
+    assert.match(srv, /signerId, heldForTurn, heldFor,/, 'and on the reused-bound-link branch');
+  });
+
+  test('a deliberately quiet round is not a refusal either', () => {
+    /* The same lie, second place: a round published onto a standing link sends
+       nothing ON PURPOSE, and both resend paths fell through to
+       reshareNotSentModal, which blamed the provider. The contract page's own
+       toast had been saying this correctly all along. */
+    /* The trailing semicolon is what separates a CALL from the declaration —
+       `function reshareNotSentModal(c, out, who){` carries the same substring
+       and is not a caller. */
+    const callers = core.split('reshareNotSentModal(c, out, who);');
+    assert.equal(callers.length, 3, 'both callers are still there, and only those two');
+    /* A generous window: one caller has the WhatsApp branch between its quiet
+       check and the fall-through, and the point is that quiet is checked
+       somewhere in the same chain — not how many branches sit after it. */
+    for (const before of callers.slice(0, -1))
+      assert.match(before.slice(-1200), /out\.quiet/,
+        'each caller must check quiet before falling through to the modal');
+    assert.match(core, /co_round_on_standing_link/);
+  });
+});
+
+/* ---- STILL OUTSTANDING: THE BOX ITSELF ----
+   The work order asked for the pixels — a check that presses Send and reads
+   the sentence out of the result box. It is not here, and that is a gap rather
+   than a decision.
+
+   Two attempts failed for the same reason, and the reason is worth recording
+   so the next person does not spend the afternoon I did. The box is built
+   inside doSend, which is a closure in openShareModal — there is no way to ask
+   for it directly, so it has to be driven through the dialog. Driving it means
+   getting past a three-step form and then the address echo, the explicit
+   confirmation a binding signing link asks for before it posts. That gate
+   cannot be stubbed: confirmDialog is a top-level function in js/core.js, a
+   LEXICAL binding, so assigning window.confirmDialog does nothing (the trap
+   THE MAP records against currentUser and friends). Pressing its own #cf-ok
+   is the only way through it, and in both a real browser and jsdom the send
+   never reached that overlay — no toast, no request, the button left reading
+   "Sending…".
+
+   What IS covered above: which branch is written, the order they are tested in,
+   the words each one uses, and that the URL is withheld from the held one. What
+   is NOT covered is that the held branch is the one a real press lands on. */
