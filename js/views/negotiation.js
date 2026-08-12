@@ -5805,6 +5805,12 @@ function redlineLayoutCss(){
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-head{gap:5px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-seg{padding:0 7px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-needs{padding:0 9px;gap:6px}
+  /* The text stepper joined this row on 13 Aug 2026 and folds like everything
+     else on it: the readout stands down and the two buttons stay, because A⁻
+     and A⁺ are the control and "15px" is the commentary. display:none rather
+     than a rewrite — textContent never changes, which is what the suite
+     reads. */
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-type-out{display:none}
   .redline-page .rl-tabrow.rl-tabrow-wrap{border-bottom:0}
   .redline-page .rl-tabrow.rl-tabrow-wrap .rl-tabrow-gap{flex-basis:100%;min-width:0;height:0;
     border-bottom:1px solid var(--color-divider)}
@@ -6167,7 +6173,45 @@ function redlineLayoutCss(){
      values are tokens (index.html) because the Document tab, the counterparty's
      page and the phone paint the SAME sheet, and because the dark theme has to
      be able to answer differently — cream on a dark page is a stain. */
-  .redline-page .rl-paper{padding:34px 40px 44px;max-width:720px;
+  /* ---- AND IT GROWS WITH THE COLUMN, NOT WITH THE MARGIN ----
+     (owner-asked, 13 Aug 2026: "widening the negotiation and counterparty
+     pages must make the WORDING bigger, not the margin".) The measure was a
+     flat 720px, so dragging the divider on a 1920px screen bought about
+     450px of empty gutter and not one more word of contract.
+
+     TWO OPTIONS WERE WEIGHED AND A WAS BUILT. B was to move this paper to the
+     Document tab's model — a fixed sheet with a fit-to-width zoom over it,
+     identical on all three screens, one mechanism instead of two. It is the
+     tidier answer and it is the dangerous one HERE: the Document tab's paper
+     is a clean read and nothing inside it is measured, while this one is a
+     working surface full of interactive geometry — the selection menu is
+     positioned from a range rectangle inside the paper, the card pop-out is
+     fixed and placed from its card's rectangle, the resizer tracks the cursor
+     against the grid's own width, and the queue overlay and its vertical rail
+     hang off the grid as absolute children. Putting a zoom layer between
+     fourteen rectangle readers and the viewport is exactly where this codebase
+     has already been burned (the handle that fell hundreds of pixels behind
+     the cursor). A gives the reader the same two outcomes — the paper fills
+     the column, and the text can be made bigger — for a fraction of the risk.
+     If the sheet-facsimile look is ever wanted here, B is a deliberate
+     upgrade and must not arrive as a side effect of a sizing fix.
+
+     THE CEILING, AND WHY THIS ONE. A line of contract text running the full
+     width of a 2560px monitor is unreadable for its own reason, so the measure
+     is capped — but capped in TYPE, not in pixels: 62 times --rl-doc-type,
+     which is 930px at the default 15px. Tying it to the type is what makes the
+     stepper and the divider work together instead of against each other: step
+     the type up and the ceiling rises with it, so the character count per line
+     stays where a reader put it and a bigger contract is allowed to be a wider
+     one. At the stepper's top (20px) the ceiling is 1240px, which fills the
+     contract column of a 1920px window outright.
+
+     Nothing else changes. There is no zoom, no transform and no second
+     geometry: the sheet is still a plain block that fills its column up to a
+     max-width, which is what every rectangle on this page is already measured
+     against. */
+  .redline-page .rl-paper{padding:34px 40px 44px;
+    max-width:calc(var(--rl-doc-type,15px) * 62);
     background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);
     border-radius:14px;box-shadow:var(--shadow-paper);margin:0 auto}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
@@ -7961,6 +8005,25 @@ function renderRedline(){
               i18tn('ng_needs_you', needsYou.length, { n: needsYou.length })}<span class="rl-needs-go">&rarr;</span></button>` : ''}
           </div>
           <div class="rl-actions">
+            ${''/* ---- THE TEXT SIZE, WHICH THIS PAGE NEVER HAD ----
+                   (owner-asked, 13 Aug 2026.) The Document tab and the
+                   counterparty's page both draw this stepper; the negotiation
+                   page — the screen a redline is actually worked on — drew no
+                   stepper at all, because the builder lives here and was only
+                   ever called by the other three screens.
+
+                   ONE PREFERENCE, NOT A SECOND KEY. rlTypeStepHtml /
+                   rlWireTypeStep / rlSetDocType are the same three functions
+                   the other screens call, writing the same RL_TYPE_KEY, so a
+                   size chosen here is the size the Document tab opens at and
+                   the reverse. A second key would be two settings for one
+                   fact, and the two would disagree the first time either was
+                   used.
+
+                   ITS READOUT FOLDS ON THE TIGHT STEP of this row's fit ladder,
+                   like every other word here — by CSS, so textContent never
+                   changes and the suite still reads "15px". */}
+            ${window.rlTypeStepHtml ? rlTypeStepHtml() : ''}
             ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about
                    the round, and the round is not the reviewer's job. It also
                    mounts a whole second surface for somebody whose task is one

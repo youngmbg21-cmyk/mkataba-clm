@@ -1925,3 +1925,76 @@ cache never fills, so every repaint scheduled another repaint and the page span
 forever. The browser journey found it as a click that never landed. The flag
 belongs ON THE CONTRACT, exactly like the one-per-sitting message fetch a few
 lines above it, and that pattern was already there to be copied.
+
+THE CONTRACT GROWS WITH ITS COLUMN, NOT WITH THE MARGIN
+
+The Document tab sizes beautifully on a small laptop and on a big desktop. The
+negotiation page and the counterparty's page did not, and it came down to one
+missing feature and one number. The redline paper was capped at a flat 720px
+and centred, so on a 1920px window with the divider dragged right the contract
+column was around 1180px and roughly 450 of those were empty gutter. Dragging
+bought margin. Measured before the fix: the words occupied 646px with 263px of
+air on each side; after it, 856px with 158px.
+
+TWO OPTIONS WERE WEIGHED AND THE ARGUMENT IS THE DECISION.
+
+B was to move this paper to the Document tab's model: a fixed sheet, one
+fit-to-width zoom, the stepper as a multiplier on top. Identical on all three
+screens, one mechanism instead of two. It is the tidier answer and it is the
+dangerous one HERE, and the reason is a difference between the two papers that
+is easy to miss: the Document tab's paper is a CLEAN READ and nothing inside it
+is measured. The redline paper is the opposite — it is a working surface full
+of interactive geometry. The selection menu is positioned from a range
+rectangle inside the paper. The card pop-out is position:fixed and placed from
+its card's rectangle. The resizer tracks the cursor against the grid's own
+width. The queue overlay and its vertical rail hang off the grid as absolute
+children. Putting a zoom layer between fourteen rectangle readers and the
+viewport, on the one page in the product that is full of them, is exactly where
+this codebase has already been burned — the handle that fell hundreds of pixels
+behind the cursor.
+
+A gives the reader the same two outcomes — the paper fills the column, and the
+text can be made bigger — for a fraction of the risk. If the sheet-facsimile
+look is ever wanted on the negotiation page, B is an upgrade to make
+deliberately; it must not arrive as a side effect of a sizing fix.
+
+THE CEILING, AND WHY IT IS EXPRESSED IN TYPE. A ceiling is wanted: a line of
+contract text running the full width of a 2560px monitor is unreadable for its
+own reason. A flat pixel ceiling would just have been a bigger version of the
+problem being fixed. So the measure is 62 times the contract's own type size —
+930px at the default 15px, 1240px at the stepper's top of 20px. That is what
+makes the two controls work together rather than against each other: the
+characters per line stay where the reader put them, and a bigger contract is
+allowed to be a wider one. On a large monitor the sheet reaches its ceiling and
+stops, deliberately, and the answer for a reader who wants more of that column
+filled is to step the type up — which raises the ceiling with it.
+
+AND THE STEPPER THIS PAGE NEVER HAD. The builder lives in this very file and
+was drawn only by the other three screens. That was a decision, taken on 10
+August: the stepper is set once and left alone for the life of a contract, and
+the design puts it where the reading happens rather than where the deciding
+does. That reasoning held while the paper was a fixed 720px measure — the size
+was somebody else's decision, made elsewhere, and nothing on this page depended
+on it. It stopped being true the moment the paper's measure started following
+the type, because the type is now the lever that decides how much of the column
+the contract fills. A page whose main sizing lever lives on another screen is
+the fault, not the tidiness.
+
+ONE PREFERENCE, NOT A SECOND KEY: the same builder, the same wiring, the same
+stored key, so a size chosen on the negotiation page is the size the Document
+tab opens at and the reverse. Focus mode did NOT come back with it — it is
+still a row in the room head's "…" menu, and that half of the old claim is kept
+exactly as it was.
+
+TWO MOUNTS, NOT THREE, said out loud. The work order named the owner's bench,
+"the contract tab's embed" and the counterparty's page. The contract tab's
+embed no longer exists: Negotiate left the room's tab row on 12 August and is
+its own page, so redlinePanesHtml has exactly two callers today. Both are
+measured rather than two being checked and three reported.
+
+A NOTE ON THE RESIZER CHECK, because it looks like a failure and is not. Driven
+with a real mouse the handle travels 128px for 120px of pointer, and it does so
+on the tree BEFORE this change as well as after — verified by running the same
+drag on both. That few-pixel over-travel is the drag's own rounding. The fault
+that check guards multiplied the RATIO, not the remainder, so it is the travel
+that is compared rather than a coincidence of coordinates.

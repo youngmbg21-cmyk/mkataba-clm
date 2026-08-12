@@ -68,11 +68,22 @@ describe('F94 — the toggle has left the strip, and focus still works', () => {
 
      THE MODE ITSELF IS UNTOUCHED, and that is what the rest of this file
      tests: the class, the flag, the Escape key and the way out. */
-  test('the strip carries neither of the two set-once controls', async () => {
+  test('the strip carries no FOCUS button — and the stepper is back', async () => {
+    /* ---- HALF THIS CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
+       The two controls left this strip together on 10 Aug 2026 and for one
+       reason: neither is pressed twice in the life of a contract. That is
+       still true of focus mode, which stays in the room head's "..." menu —
+       and it stopped being true of the type stepper on the day the redline
+       paper's measure started following the type. The size is now the lever
+       that decides how much of the column the contract fills, so it belongs on
+       the page the contract is worked on. See f84, which carries the argument.
+
+       The group they shared is still gone: the stepper rides in .rl-actions
+       with the row's other controls rather than in a wrapper of its own. */
     const p = await page();
     assert.equal(p.$('.rl-head [data-rl-focus]'), null, 'no focus button on the strip');
-    assert.equal(p.$('.rl-head .rl-type-step'), null, 'and no type stepper');
-    assert.equal(p.$('.rl-setwrap'), null, 'the group they shared is gone with them');
+    assert.ok(p.$('.rl-head .rl-type-step'), 'but the type stepper is here again');
+    assert.equal(p.$('.rl-setwrap'), null, 'and the group they shared is still gone');
   });
 
   test('the head\'s menu is the way in, and it presses the same function', async () => {

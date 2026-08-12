@@ -23,7 +23,8 @@
     "test:sharerecipient": "node test/chromium/share-recipient-verify.js",
     "test:insights": "node test/chromium/insights-panels-verify.js",
     "test:cardcollapse": "node test/chromium/card-collapse-verify.js",
-    "test:roomnotices": "node test/chromium/room-order-and-notices-verify.js"
+    "test:roomnotices": "node test/chromium/room-order-and-notices-verify.js",
+    "test:papergrows": "node test/chromium/paper-grows-verify.js"
   },
   "engines": {
     "node": ">=22.5"

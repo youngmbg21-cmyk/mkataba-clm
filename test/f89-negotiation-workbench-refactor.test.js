@@ -308,7 +308,17 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
     const p = await page();
     const r = p.rule('.redline-page .rl-paper');
     assert.ok(r, '.rl-paper must carry a rule');
-    assert.match(r, /max-width:720px/, 'the Doc page bounds the contract\'s measure; so does this one');
+    /* ---- CLAIM UPDATED, 13 Aug 2026, OWNER-ASKED ----
+       It used to assert a flat max-width:720px, "the Doc page bounds the
+       contract's measure; so does this one". Reported: dragging the divider
+       wider on this page bought MARGIN, not words. The measure is bounded
+       still — an unbounded line on a 2560px monitor is unreadable for its own
+       reason — but the bound is in TYPE rather than in pixels, so the stepper
+       and the divider work together: step the type up and the ceiling rises
+       with it, keeping the characters per line where the reader put them. */
+    assert.match(r, /max-width:calc\(var\(--rl-doc-type,15px\) \* 62\)/,
+      'bounded, but in type — so a bigger contract may be a wider one');
+    assert.ok(!/max-width:720px/.test(r), 'and no longer pinned to a flat 720');
     assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly as the window widens');
     /* WARM PAPER, ON ITS OWN TOKENS. Not --color-surface any more: the sheet
        and the cards beside it were the same white, so the paper never read as

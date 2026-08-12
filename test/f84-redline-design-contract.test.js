@@ -321,19 +321,34 @@ describe('F84 — how the contract reads, as three words', () => {
   });
 });
 
-describe('F84 — the text size is the Document tab\'s control now', () => {
-  /* IT USED TO LEAD THIS PAGE'S VERB STRIP. It is set once and then left alone
-     for the life of a contract, and the design puts it where the reading
-     happens rather than where the deciding does (10 Aug 2026). The control,
-     its bounds and its stored preference are untouched — only where it is
-     drawn moved — so what is worth pinning is that it went, that nothing else
-     went with it, and that the one place it now lives still renders it. */
-  test('the workbench strip no longer carries it', async () => {
+describe('F84 — the text size is a control on this page again', () => {
+  /* ---- CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
+     THE ARGUMENT THAT TOOK IT OFF, on 10 Aug 2026: the stepper is set once and
+     left alone for the life of a contract, and the design puts it where the
+     READING happens rather than where the deciding does. That reasoning held
+     while the redline paper was a fixed 720px measure — the size was somebody
+     else's decision, made on another screen, and nothing on this page depended
+     on it.
+
+     IT IS NOT TRUE ANY MORE, and the owner reported the consequence: this page
+     never had a stepper at all, and widening the divider bought margin instead
+     of words. The paper's measure now follows the type (62 × --rl-doc-type),
+     so the type is the control that decides how much of this column the
+     contract fills. A page whose main sizing lever lives on a different screen
+     is the fault, not the tidiness.
+
+     ONE PREFERENCE STILL, which is what makes this safe: the same builder, the
+     same wiring, the same stored key. The block below — untouched — is what
+     pins that, and it is the half of this file that matters most.
+
+     FOCUS MODE DID NOT COME BACK. It is still a row in the room head's "..."
+     menu, and that claim is kept exactly as it was. */
+  test('the workbench strip carries the stepper, and only the stepper', async () => {
     const p = await page();
-    assert.equal(p.$('#view-redline .rl-head .rl-type-step'), null,
-      'the stepper is not on the verb strip');
+    assert.ok(p.$('#view-redline .rl-head .rl-type-step'),
+      'the size of the contract is decided where the contract is worked on');
     assert.equal(p.$('#view-redline [data-rl-focus]'), null,
-      'and neither is the fullscreen toggle — focus mode is in the head\'s "..."');
+      'but the fullscreen toggle did NOT come back — focus mode is in the head\'s "..."');
   });
 
   test('the preference and its bounds are untouched', async () => {

@@ -166,11 +166,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     sheet.paperShadow);
   check('2 the sheet reads as paper against the column behind it',
     sheet.paperBg !== sheet.colBg, `${sheet.paperBg} on ${sheet.colBg}`);
-  /* The measure the Doc page sets, so the two tabs typeset the contract to the
-     same line length. Bounded is the point: a sheet that grew with the window
-     would be the edge-to-edge look this replaced. */
-  check('2 the sheet is bounded to the design\'s 720px measure',
-    Math.abs(sheet.paperWidth - 720) <= 1 && sheet.paperWidth < sheet.colWidth - 24,
+  /* ---- CLAIM UPDATED, 13 Aug 2026, OWNER-ASKED ----
+     This pinned the sheet to exactly 720px. Reported: on this page and on the
+     counterparty's, dragging the divider wider bought MARGIN and not one more
+     word of contract. The measure is still BOUNDED — that half of the old
+     claim is the half that matters, and a sheet growing to the full width of
+     a large monitor is unreadable for its own reason — but the bound is now
+     62 × the contract's own type size, so it rises with the stepper. At the
+     default 15px that is 930px.
+
+     STILL A REAL MEASUREMENT: the sheet must be wider than it was, must not
+     reach the ceiling's own value plus a pixel, and must still leave the
+     column's gutters — the check below reads those separately. */
+  check('2 the sheet is bounded, in type rather than in pixels',
+    sheet.paperWidth > 720 && sheet.paperWidth <= 931
+      && sheet.paperWidth <= sheet.colWidth,
     `${Math.round(sheet.paperWidth)} of ${Math.round(sheet.colWidth)}px`);
   /* THE REGRESSION THIS SECTION IS NOW FOR. 6662667: the type-scale rule
      out-specified the centring rule and pinned the sheet to the left of the
