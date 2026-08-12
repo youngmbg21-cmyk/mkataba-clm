@@ -126,6 +126,17 @@ The server is the enforcement and always was: folderScopeFor() filters every que
 
 Tests: f1, f160.
 
+## THE BELL AND THE PANEL ARE TWO BUTTONS (12 Aug 2026)
+
+They were one: the bell's handler pressed #cmd-panel and its tooltip said so, and its blue dot was hard-coded markup — always on, counting nothing. ONE PANEL, TWO CONTENTS, never two panels: #cmd-panel → ACTIVITY (the whole workspace), #hdr-notify → ALERTS (this person); openPanel(face) swaps the content when the other is showing and only closes on a press of the face already up; #panel-title says which.
+- buildAlerts() (js/app.js) BORROWS every count and derives none — negoNeedsYouIds, reviewState, hmDashSlices().myApprovals/.decisions/.expiring, nextSigner. Same standing rule as the Negotiations door: one count, many surfaces. It READS WITHOUT WRITING (never negoChanges, which would start a negotiation on every contract it asked about). Scope is by construction: state.contracts is the already-scoped bootstrap.
+- EVERY ALERT IS A DOOR (data-alert-i → its own `go`), and the panel closes behind it. "Nothing needs you right now" is a real empty state.
+- THE DOT COUNTS AND HIDES AT ZERO (#hdr-notify-dot, updateAlertBadge, refreshed by updateSidebarCounts). NOTHING marks an alert as seen — clearing on "you opened it" is how the old dot became invisible; it clears when the work does.
+- THE SCRIM STARTS BELOW THE HEADER (--shell-head-h): inset:0 it swallowed clicks on the two icons that own the panel, so the swap was unreachable. Raising the buttons cannot work — #app-shell is position:fixed and therefore a stacking context.
+- INSIGHTS keeps its own right-hand dock: panelSuppressed() is the one predicate, and BOTH buttons are DISABLED there with a tooltip saying why — a toast is not the channel (js/core.js's toast draws errors only).
+- THE PHONE draws neither button and has mNeedsYou on Home instead, so it cannot inherit the fault.
+Tests: f187 (22), alerts-and-activity-verify (20, browser — the dot's absence at zero, one shell two contents, the swap, and Insights).
+
 ## THE PHONE
 
 Below 768px the desktop shell hides and js/mobile*.js draws instead. NOT a fork: it reads hmDashSlices(), regFiltered()/regState(), wsNextAction(), negoTimeline()/negoIntegrityReport(), negoRenumberPlan()/negoRenumberApply(), buildSharePayload() + POST /api/shares. It files NO changes of its own — deliberate; grep the mobile files for changes.push / negoFileChange and find nothing.

@@ -1057,6 +1057,181 @@ same chip — and adds the chips-are-spans shape, the absence of any focusable s
 box, the tooltip following the press, the one-contract and twice-marked days from the chip,
 and the agenda row still opening its own named contract.
 
+FOUR CHANGES ASKED FOR TOGETHER (added 2026-08-12)
+
+1 THE NEGOTIATIONS LIST BECOMES THE CONTRACTS TABLE
+
+Two days earlier this page was written as a twenty-line signpost, and the
+comment above it argued the case: "IT IS A SIGNPOST, NOT A SECOND REGISTER ...
+LIVE NEGOTIATIONS ONLY ... NO FILTER, NO SEARCH, NO SORTABLE COLUMNS (the
+moment it needs those it HAS become the register)". The fear behind it was
+specific and correct — two tables of contracts, built by two functions, will
+eventually disagree about what a row says.
+
+The owner read that position and overruled it: the page should be the Contracts
+table, grouped by whose move it is. The fear is answered a different way, by
+REUSE rather than by refusal. renderRegister now draws both pages; the
+Negotiations page passes a scope, a heading and a nav key and gets the
+register's filters, columns, row builder, footer and wiring unchanged. Nothing
+about a row is written twice, so nothing about a row can drift.
+
+THE SEVEN TRAPS THE WORK ORDER NAMED, and what each cost:
+
+· THE NARROWING MUST NOT BE THE CLEARABLE ONE. regShowOnly's `only` exists for
+  exactly this shape — a set somebody else chose, applied first — and it is
+  deliberately clearable by its own ✕, by both Clear-all handlers and by the
+  phone's. Reused as-is, the reader presses Clear and is looking at all 145
+  contracts under a heading that says Negotiations. So the scope is a property
+  of the PAGE (regSetScope), asked above `only`, offered by no control. Clear
+  still clears everything the reader chose. And the two pages got two filter
+  states: a stage chosen while looking at negotiations is not an opinion about
+  the register.
+
+· THE TRAP THAT NEARLY SHIPPED. Every filter control inside register.js called
+  renderRegister() bare. With two pages sharing the renderer that resets the
+  scope to null through the argument nobody passed — so the first press of any
+  dropdown on Negotiations would have turned it into Contracts. regRepaint()
+  re-renders the page that is actually on screen.
+
+· TWO COUNTS ABOUT THE SAME THING. The sidebar door counts CHANGES waiting on
+  this reader; the bands count AGREEMENTS in the view. Different units, on
+  screen at once, and the code already carries a rule about a door reading 3
+  over a column reading 2. The page says which is which, and says so again when
+  a filter is on.
+
+· PAGING ACROSS A BAND. Decided by not paging: live negotiations are the handful
+  being argued over, and a band header stranded at the foot of a page (or
+  repeated with a count that is either the group's or the page's) is worse than
+  a long list. The footer still counts contract rows — a band is generated at
+  render, never a member of the filtered set.
+
+· AN EMPTY GROUP IS INFORMATION until the page is. "Waiting on you · 0" is worth
+  reading; three bands over nothing is not, so with no live negotiation anywhere
+  the page draws its old empty card rather than a table under a filter bar.
+
+· A BAND IS NOT A ROW. role="presentation" on the tr and the td, a heading
+  inside for anything that announces headings, no data-row (which is what the
+  row click binds to), no tab stop, nothing pressable.
+
+· THE PHONE RENDERS THE SAME FUNCTION — and that stopped being safe the moment
+  the function became an eight-column table. It gets phone-shaped cards under
+  the same three headings, from the same filtered set and the same pill; only
+  the row shape differs, which is exactly how Contracts already works on that
+  shell. The scope is set in mRender, once per paint, because a screen builder
+  that forgot would draw the wrong book.
+
+The ⋯ menu went with the action column, said out loud: every row on this page
+does one thing, and a menu whose first line reads "Open workspace" and lands
+somewhere else is a trap on the one page where the destination is not in doubt.
+
+2 THE ROUND'S QUEUE STOPS TAKING WIDTH FROM THE CONTRACT
+
+The comment where the queue was placed argued the opposite too: "It is a grid
+column rather than an overlay so it scrolls and stacks with the panes instead
+of floating over the contract." What that argument could not answer is that the
+300px came off the CONTRACT — the thing being judged — and that the chevron
+folded it to a rail which still held a track. Nothing but closing it gave the
+width back, and it could not be closed.
+
+It moved onto the ACTIVITY PANEL'S mechanism rather than a second one: fixed to
+a window edge, off-screen by a transform, over a dimmed scrim, dismissed by the
+scrim, Escape or its own close. From the LEFT, because the queue has always been
+the left-hand column and is read first, and because the right edge is already
+the floating notices stack's and the Copilot launcher's.
+
+WHAT THE FOLD USED TO BUY, AND WHERE IT WENT. The rail's justification was that
+"2 of 7 decided" stayed legible at 34px, so reopening was never a guess. An
+overlay that simply shuts takes that away — so the score moved onto the door: an
+edge pill carrying the caption and the two numbers, built inside the panes
+builder rather than on the workbench toolbar, which is what makes it reach the
+counterparty's page (they have no toolbar and the same complaint). The fold's
+other property was kept whole: opening and closing is two class flips and never
+a repaint, because a repaint throws away the reader's place in the contract.
+
+DEFAULT SHUT, AND NOT REMEMBERED. The old fold defaulted to open and was stored
+per person, which is right for a column and wrong for a layer: an overlay that
+remembers "open" slides itself over the contract on every arrival, which is the
+complaint this change answers.
+
+A ROW CLOSES IT. A queue row jumps the contract to that clause; with the panel
+standing over the contract that is a door onto a wall.
+
+AND THE RESIZER WAS RE-DERIVED, NOT PATCHED. Its three-track version produced a
+real reported bug once: the drag measured a distance travelled and divided by
+the TWO-column available width while the layout divided by the three-column one,
+so the handle fell hundreds of pixels behind the cursor. Leaving a stale queue
+term in either half is how that comes back. There is one description of the
+geometry now and both halves ask for it.
+
+3 THE INTERNAL REVIEW REACHES THE REVIEWER, AND CAN BE CALLED OFF
+
+Neither half was a missing feature. Both were built, both were correct, and both
+failed the same way — by being invisible.
+
+THE EMAIL. The tick-box arrives ticked, the recipient is resolved from the users
+table and never from the body, a colleague outside the contract's value stream
+is refused by name, and the route already reported honestly whether a message
+left. What it did not do was let the requester tell the three "nothing arrived"
+cases apart — no mail provider configured on this server (there is an internal
+outbox for exactly that), the tick-box cleared, or a provider refusal — and it
+said whatever it said in a TOAST, which is gone in seconds. The outcome is now
+named and written twice: on the review (rv.notice) and in the audit trail. The
+provider's own sentence travels with it.
+
+The link went to the front door. Somebody told that a NAMED set of changes on a
+NAMED agreement needs them, and then asked to go and find it. It deep-links to
+the contract on its negotiation, through the SAME server function that builds
+the internal signer's link — that mail had the identical fault, and two builders
+for one idea is two that drift.
+
+CANCEL. Everything about it was right except where it lives. It is in the review
+notice, and since 10 August every notice on that page arrives folded behind a
+bell in the bottom-right corner — so the button existed and effectively nobody
+could find it, and the review read as one that could not be called off. Two
+answers, both taken because they cover different moments: the notice stack now
+arrives UNFOLDED while a review is still in play (news still folds; the reader's
+own fold still wins once they make it), and the change card carries its own
+Cancel beside the status that says why the change cannot be sent. Requester or
+admin only, named by the CHANGE ids it covers, never drawn on the counterparty's
+seat, and a confirm in front of it saying what the reviewer has already ruled on
+and that those verdicts go with the review.
+
+4 THE BELL AND THE PANEL STOP BEING THE SAME BUTTON
+
+The bell's click handler was one line: press the other button. Its own tooltip
+admitted it. And the blue dot beside it was a hard-coded <span> in index.html —
+always on, counting nothing, and long since trained out of everybody who uses
+the product. An always-on badge is worse than no badge.
+
+One panel, two contents: the panel icon is the workspace's activity, the bell is
+what is waiting on this person. Pressing one while the other shows swaps the
+content, and the panel says which it is showing.
+
+EVERY COUNT IS BORROWED. The rule the Negotiations door already carries — one
+count, many surfaces — applies here or a bell saying 4 sits over a dashboard
+saying 3. Each kind of alert calls the function that already answers it, and the
+same read-without-writing trap applies: this runs over every contract on every
+view change, and negoChanges() would have started a negotiation on all of them.
+
+THE DOT CLEARS WHEN THE WORK IS DONE, not when the panel is opened. There is no
+seen-state anywhere, deliberately: clearing on a glance is precisely how the dot
+it replaces became invisible.
+
+TWO THINGS THE BROWSER FOUND THAT NO NODE TEST COULD. First, the scrim was
+inset:0, so with the panel open it lay across the header and swallowed clicks on
+the two icons that control it — the swap was unreachable by a real press.
+Raising the buttons does not work and it is worth knowing why: #app-shell is
+position:fixed, which makes it a stacking context, so nothing inside it can be
+lifted above a sibling of the shell however high its z-index goes. The scrim
+gives way instead, starting below the header. Second, a panel translated
+off-screen still reports a box, so an "is it visible" check that does not ask
+whether it is inside the viewport reads a closed panel as open.
+
+INSIGHTS keeps its own right-hand dock, and both buttons are DISABLED there with
+a tooltip naming the page that took the space. A toast was the obvious channel
+and is the wrong one: this product draws only error toasts, so an informational
+one is a message nobody ever sees.
+
 Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.
