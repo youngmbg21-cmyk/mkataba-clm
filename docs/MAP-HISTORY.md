@@ -1163,6 +1163,55 @@ so the handle fell hundreds of pixels behind the cursor. Leaving a stale queue
 term in either half is how that comes back. There is one description of the
 geometry now and both halves ask for it.
 
+2a THE DOOR GOES ON THE PAGE'S OWN BORDER WALL (owner-asked, later on 12 Aug 2026)
+
+The overlay was right and its ANCHOR was wrong, and the two are separable. Both
+the panel and its door were position:fixed, which pins them to the WINDOW. On
+this page the window's left edge is not the page's left edge: the navigation
+rail is there, and the shell's gutter after it. So the rail that carries the
+score sat ON TOP OF the app's own furniture rather than against the surface it
+belongs to, and the panel slid in from behind the sidebar.
+
+THE WALL IS .rl-grid. It is position:relative already — the drag handle needs
+it — and it is the nearest positioned ancestor of both, so switching them to
+absolute lands them on the working area's own left border with nothing else to
+write: below the toolbar, down to the foot of the page, flush with where the
+contract begins. That is the point of doing it this way rather than by
+measuring: the owner's bench, the contract tab's embed and the counterparty's
+page each get their OWN wall, which a window-anchored panel can never do for a
+mount that is not full-screen.
+
+TWO CONSEQUENCES FELL OUT OF IT, both load-bearing.
+
+· A PANEL PARKED OFF THE PAGE'S EDGE IS STILL ON SCREEN. translateX(-105%) off
+  the window put it out of sight; off the page it puts it over the sidebar —
+  visible, and still in the tab order. So the shut state carries
+  visibility:hidden, switched with no delay on the way IN (the slide is still
+  watched) and only after the slide on the way out. The 1023px phone block,
+  which unwinds every overlay rule, restores it with the rest.
+
+· THE RAIL IS VERTICAL. A horizontal pill on the wall has to eat into the
+  contract to carry "THIS ROUND'S QUEUE"; a tab turned on its side costs the
+  page its own thickness and nothing else — measured at 31px. writing-mode
+  does the turning, and in a vertical writing mode a flex row already runs
+  top-to-bottom, so the caption and the score stack down the wall with no
+  second rule and no change to the markup. It reads the way a tab on a filing
+  box reads, which is what it is.
+
+AND IT SURVIVES FOCUS MODE. There was a rule standing it down there, and it was
+defensible while the rail was window furniture — focus mode hides the shell, and
+the rail looked like part of it. It is the page's own wall now, and focus mode
+is precisely where somebody is working THROUGH the round: hiding the reading
+order in the mode built for reading was the fault. The rule is deleted; the
+notices stack's own focus-mode rule is untouched, and a test says so, because
+two rules that look alike are exactly how a deletion takes a neighbour with it.
+
+WHAT NO NODE TEST CAN SEE, AND SO IS PINNED IN THE BROWSER FILE: that the rail's
+left edge equals the page's left edge (jsdom resolves no class rules, so it
+reports every box at zero), that the panel arrives from that same edge rather
+than from the window's, that the rail is under 60px thick, and that it is still
+there and still opens the panel with focus mode on.
+
 3 THE INTERNAL REVIEW REACHES THE REVIEWER, AND CAN BE CALLED OFF
 
 Neither half was a missing feature. Both were built, both were correct, and both

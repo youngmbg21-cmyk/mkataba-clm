@@ -72,17 +72,31 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
       scrim: eval(box)('#rl-q-scrim'),
       doc: eval(box)('#rl-doc'),
       cards: eval(box)('#rl-side'),
+      wall: eval(box)('.rl-grid'),
+      tabWrite: getComputedStyle(document.querySelector('#rl-q-tab')).writingMode,
       tracks: getComputedStyle(document.querySelector('.rl-grid')).gridTemplateColumns,
     }), BOX);
     check('the page arrives with the queue shut — nothing over the contract',
       !!shut.queue && !shut.queue.on, shut.queue ? `x=${shut.queue.x} w=${shut.queue.w}` : 'MISSING');
-    check('and it is a fixed layer, not a column', shut.queue && shut.queue.pos === 'fixed',
-      shut.queue && shut.queue.pos);
+    /* THE CLAIM THIS REPLACED (12 Aug 2026): "it is a FIXED layer". It was
+       pinned to the WINDOW's left edge, which is behind the sidebar and the
+       shell's gutter — not this page's edge at all. It is anchored to the page
+       now, which is a different word for the same "it takes no track". */
+    check('and it is a layer anchored to the page, not a column',
+      shut.queue && shut.queue.pos === 'absolute', shut.queue && shut.queue.pos);
     check('THE GRID HAS TWO TRACKS, NOT THREE',
       (shut.tracks || '').trim().split(/\s+/).length === 2, shut.tracks);
     check('the door is on screen and reads out the round',
       !!shut.tab && shut.tab.on && /\d+\/\d+/.test(shut.tab.text || ''),
       shut.tab ? shut.tab.text : 'MISSING — closing it would cost the score');
+    /* ---- NEW, 12 Aug 2026: THE RAIL IS ON THE PAGE'S OWN BORDER WALL ---- */
+    check('THE RAIL SITS AGAINST THE PAGE\'S LEFT BORDER, NOT THE WINDOW\'S',
+      !!shut.tab && !!shut.wall && Math.abs(shut.tab.x - shut.wall.x) <= 1 && shut.wall.x > 40,
+      shut.tab ? `rail at ${shut.tab.x}, page wall at ${shut.wall && shut.wall.x}` : 'MISSING');
+    check('and it reads DOWN the wall, the way a tab on a filing box does',
+      /vertical/.test(shut.tabWrite || ''), shut.tabWrite);
+    check('a vertical rail costs the page almost no width',
+      !!shut.tab && shut.tab.w < 60, shut.tab && shut.tab.w + 'px thick');
     check('the scrim is there and inert', !!shut.scrim, shut.scrim ? shut.scrim.pos : 'MISSING');
     await page.screenshot({ path: path.join(OUT, '01-shut.png') });
 
@@ -125,8 +139,12 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
     check('a dimmed scrim sits behind it', Number(open.scrimOn) > 0.2, open.scrimOn);
     await page.screenshot({ path: path.join(OUT, '02-open.png') });
 
-    /* ---- 4. IT SLIDES FROM THE LEFT, WHERE THE QUEUE HAS ALWAYS BEEN ---- */
-    check('it arrives from the left edge', open.queue.x === 0, 'x=' + open.queue.x);
+    /* ---- 4. IT SLIDES FROM THE LEFT, WHERE THE QUEUE HAS ALWAYS BEEN ----
+       And from the PAGE's left, which is the same edge the rail is on. It used
+       to arrive at x=0 — the window's edge, over the sidebar. */
+    check('it arrives from the page\'s own left edge, the rail\'s edge',
+      Math.abs(open.queue.x - shut.wall.x) <= 1,
+      `panel at ${open.queue.x}, page wall at ${shut.wall.x}`);
 
     /* ---- 5. ESCAPE, THE SCRIM AND THE CLOSE ALL SHUT IT ---- */
     await page.keyboard.press('Escape');
@@ -184,6 +202,32 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
     check('and 120px of pointer buys about 120px of column',
       Math.abs((moved.after - moved.before) - 120) < 25,
       `${moved.before} → ${moved.after} (${moved.after - moved.before}px)`);
+
+    /* ---- 8. FOCUS MODE KEEPS THE RAIL (owner-asked, 12 Aug 2026) ----
+       There was a rule hiding it there, from when it rode the window's edge and
+       read as app furniture. Focus mode is where a reader works THROUGH the
+       round, so hiding the reading order in it is the wrong way round. */
+    await page.evaluate(() => { rlSetQueueShown(document, false); rlSetFocus(true); });
+    await page.waitForTimeout(700);
+    const foc = await page.evaluate(box => ({
+      onFocus: document.querySelector('#view-redline').classList.contains('rl-focus'),
+      tab: eval(box)('#rl-q-tab'),
+      wall: eval(box)('.rl-grid'),
+    }), BOX);
+    check('focus mode is on', foc.onFocus);
+    check('THE RAIL IS STILL THERE IN FOCUS MODE',
+      !!foc.tab && foc.tab.on, foc.tab ? `x=${foc.tab.x} w=${foc.tab.w}` : 'MISSING');
+    check('and still on the page\'s wall, which has moved with the page',
+      !!foc.tab && Math.abs(foc.tab.x - foc.wall.x) <= 1,
+      foc.tab ? `rail at ${foc.tab.x}, wall at ${foc.wall.x}` : 'MISSING');
+    await page.click('#rl-q-tab');
+    await page.waitForTimeout(600);
+    const focOpen = await page.evaluate(box => eval(box)('#rl-queue'), BOX);
+    check('and it still opens the panel from in there',
+      !!focOpen && focOpen.on, focOpen ? `x=${focOpen.x} w=${focOpen.w}` : 'MISSING');
+    await page.screenshot({ path: path.join(OUT, '04-focus.png') });
+    await page.evaluate(() => { rlSetQueueShown(document, false); rlSetFocus(false); });
+    await page.waitForTimeout(400);
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

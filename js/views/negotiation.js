@@ -6687,9 +6687,9 @@ function redlineLayoutCss(){
      track. Nothing but closing it gave the width back.
 
      SO IT USES THE ACTIVITY PANEL'S MECHANISM, not a second one invented here:
-     fixed to a window edge, off-screen by a transform, over a dimmed scrim,
-     dismissed by the scrim, by Escape or by the control that opened it. Nothing
-     behind it moves — the grid is two tracks again and never changes.
+     off-screen by a transform, over a dimmed scrim, dismissed by the scrim, by
+     Escape or by the control that opened it. Nothing behind it moves — the grid
+     is two tracks again and never changes.
 
      IT SLIDES FROM THE LEFT, for two reasons. The queue has always been the
      left-hand column and is read first, so bringing it in from the right would
@@ -6697,16 +6697,40 @@ function redlineLayoutCss(){
      right-hand edge is already spoken for: the floating notices stack sits at
      bottom-right and the Copilot launcher beside it, and a panel arriving over
      both is a panel that covers the two controls a reader reaches for while
-     they work. */
+     they work.
+
+     ---- AND IT IS ANCHORED TO THE PAGE, NOT TO THE WINDOW (owner-asked,
+     12 Aug 2026). It was pinned to the viewport's own left edge, which is not
+     this page's edge: the sidebar and the shell's gutter sit between them, so
+     the panel and its door arrived on top of the app's furniture rather than
+     against the surface they belong to.
+
+     THE WALL IS .rl-grid, which is position:relative already (the resizer
+     needs it) and is the nearest positioned ancestor of both — so absolute
+     lands them on the working area's own left border: below the toolbar, down
+     to the foot of the page, flush with where the contract begins. That is the
+     page's inner left edge on the bench, on the contract tab's embed and on
+     the counterparty's page alike — each one against ITS OWN wall, which is
+     what a window-anchored panel could never do for a mount that is not
+     full-screen. .redline-page is positioned too (see FOCUS MODE above); the
+     grid simply wins, and it is the better of the two. */
   .redline-page .rl-queue{
-    position:fixed;left:0;top:0;bottom:0;z-index:56;
+    position:absolute;left:0;top:0;bottom:0;z-index:56;
     width:min(320px,88vw);min-width:0;border-radius:0;
     border:0;border-right:1px solid var(--color-divider);
     box-shadow:var(--shadow-lg);
     transform:translateX(-105%);
-    transition:transform .3s cubic-bezier(.22,.61,.36,1);
+    /* HIDDEN WHILE SHUT, and that is not belt-and-braces. Parked off the
+       WINDOW's edge there was nothing left to see; parked off the PAGE's edge
+       it sits over the sidebar — on screen, in the way, and still tabbable.
+       visibility takes it out of sight and out of the tab order. It is
+       switched with no delay on the way IN so the slide is still watched, and
+       only after the slide on the way out. */
+    visibility:hidden;
+    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s linear .3s;
   }
-  .redline-page .rl-queue.is-open{transform:none}
+  .redline-page .rl-queue.is-open{transform:none;visibility:visible;
+    transition:transform .3s cubic-bezier(.22,.61,.36,1),visibility 0s}
   .redline-page .rl-q-scrim{
     position:fixed;inset:0;z-index:55;
     background:color-mix(in srgb,#020617 45%,transparent);
@@ -6722,23 +6746,43 @@ function redlineLayoutCss(){
   /* ---- AND THE SCORE SURVIVES THE CLOSE ----
      The folded rail's whole justification was that "2 of 7 decided" stayed
      legible at 34px, so reopening was never a guess. An overlay that simply
-     shut would have taken that away — so the score moves onto the door. A pill
-     pinned to the left edge, vertically centred, carrying the caption and the
-     two numbers: the way back in, and the reading, in one control.
+     shut would have taken that away — so the score moves onto the door. A tab
+     on the page's own left border wall, vertically centred, reading downwards
+     and carrying the caption and the two numbers: the way back in, and the
+     reading, in one control.
 
      It is built inside redlinePanesHtml rather than on the workbench toolbar,
      which is what makes it reach every mount — the owner's bench, the contract
      tab's embed and the COUNTERPARTY's page, which renders these panes and has
-     no toolbar of its own. */
+     no toolbar of its own.
+
+     ---- IT IS A TAB ON THE PAGE'S OWN BORDER WALL, AND IT READS DOWNWARDS
+     (owner-asked, 12 Aug 2026). Two things changed together and they are one
+     decision. It is ABSOLUTE, so it sits against this page's inner left border
+     rather than against the window's — see the panel above. And it is VERTICAL:
+     a horizontal pill on the wall of a page has to eat into the contract's
+     width to carry its caption, while a tab turned on its side costs the page
+     nothing but its own thickness. writing-mode is what turns it; in a vertical
+     writing mode a flex row runs top-to-bottom on its own, so the caption and
+     the score stack down the wall with no second rule.
+
+     AND IT SURVIVES FOCUS MODE. There used to be a rule hiding it there, from
+     when it rode the window's edge and read as app furniture. It is part of the
+     page now, and focus mode is the mode in which a reader is working THROUGH
+     the round — the one place the reading order matters most. Hidden, the queue
+     was unreachable in it, which is the fault. */
   .redline-page .rl-q-tab{
-    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:54;
+    position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:54;
+    writing-mode:vertical-rl;
     display:flex;align-items:center;gap:8px;
     font:inherit;font-size:11px;font-weight:700;cursor:pointer;
-    padding:9px 12px 9px 9px;border:1px solid var(--color-divider);border-left:0;
+    padding:13px 7px 13px 6px;border:1px solid var(--color-divider);border-left:0;
     border-radius:0 12px 12px 0;background:var(--color-surface);color:var(--color-text);
     box-shadow:var(--shadow-md);transition:background .12s,padding .12s;
   }
-  .redline-page .rl-q-tab:hover{background:var(--color-neutral-100);padding-left:13px}
+  /* Outward, away from the wall — padding-left would push it INTO the page's
+     border, which is the one edge it is fixed to. */
+  .redline-page .rl-q-tab:hover{background:var(--color-neutral-100);padding-right:11px}
   .redline-page .rl-q-tab .rl-q-tab-k{letter-spacing:.06em;text-transform:uppercase;
     font-size:9.5px;color:var(--color-neutral-600)}
   .redline-page .rl-q-tab .rl-q-tab-n{font-family:var(--font-mono);font-size:11px;
@@ -6747,7 +6791,6 @@ function redlineLayoutCss(){
      own close button and the scrim are the way out. */
   .redline-page .rl-queue.is-open ~ .rl-q-tab,
   .redline-page .rl-q-tab.is-open{display:none}
-  .redline-page.rl-focus .rl-q-tab{display:none}
   /* ---- THE SIDE MARGINS ARE HALVED, AND THE LABEL IS THE STATUS WORD'S SIZE
      The clause name is what this column is for and it was the only thing on a
      row being squeezed: 12px of card padding plus 10px of row padding put 22px
@@ -6973,6 +7016,7 @@ function redlineLayoutCss(){
        edge door, which have nothing to open on a page where the queue is
        already in flow and always visible. */
     .redline-page .rl-queue{position:static!important;transform:none!important;
+      visibility:visible!important;
       width:auto!important;grid-column:auto;min-height:0;max-height:46vh;
       border:1px solid var(--color-divider)!important;border-radius:14px!important;
       box-shadow:0 1px 2px rgba(15,23,42,.05)!important;z-index:auto!important}
@@ -11366,7 +11410,10 @@ function rlQueueHtml(c, opts = {}){
   const open = rlQueueOpen();
   /* THE DOOR CARRIES THE SCORE. Everything the folded rail used to say at 34px
      is on it — the caption and "2 / 7" — so closing the panel never costs the
-     one number the column exists to give, and reopening is never a guess. */
+     one number the column exists to give, and reopening is never a guess. It
+     is a VERTICAL tab against the page's own left border wall (see .rl-q-tab):
+     the markup is unchanged, because the turning is done by writing-mode and
+     nothing here needs to know which way the words run. */
   return `<div class="rl-q-scrim${open ? ' is-open' : ''}" id="rl-q-scrim" data-rl-q-close="1" aria-hidden="true"></div>
   <button type="button" class="rl-q-tab" id="rl-q-tab" data-rl-q-open="1"
     aria-controls="rl-queue" aria-expanded="${open ? 'true' : 'false'}"
