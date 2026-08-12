@@ -5746,6 +5746,12 @@ function redlineLayoutCss(){
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-word{display:none}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-glyph{display:inline}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn{padding:6px 9px}
+  /* The way back folds on the same step. Its own rules rather than a shared
+     selector: the two are folded for the same reason and are not the same
+     control, and the tests read each rule by name. The COUNT never folds — a
+     door reading "3" still says what is behind it; a bare arrow does not. */
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-livelist .rl-word{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-tight .rl-livelist{padding:6px 8px;gap:5px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-send-detail{display:none}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-head{gap:5px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-seg{padding:0 7px}
@@ -6003,6 +6009,23 @@ function redlineLayoutCss(){
   html.dark .redline-page select.rl-jump option:checked{color:var(--color-accent-400)}
   /* The playbook pass wears the Copilot's violet — an AI act, visibly not one
      of the engine's own verbs, and disabled it says it is thinking. */
+  /* ---- THE WAY BACK TO THE LIST ----
+     NEUTRAL, not the purple of the two buttons beside it. Those are acts on
+     this negotiation; this is navigation off it, and a page and an act must
+     not share a colour any more than they share a word. It carries a count
+     chip rather than a bare label so the door says how many are behind it —
+     one reading, negoLiveList, shared with the list's own heading.
+     align-self:center because the row is align-items:stretch and a door has
+     no business being as tall as the control group. */
+  .redline-page .rl-livelist{flex:none;align-self:center;display:inline-flex;align-items:center;gap:7px;
+    border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
+    border-radius:9px;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
+    transition:background .12s,border-color .12s,color .12s}
+  .redline-page .rl-livelist:hover{background:var(--color-neutral-100);
+    border-color:var(--color-neutral-400);color:var(--color-text)}
+  .redline-page .rl-livelist .rl-livelist-n{font-family:var(--font-mono);font-size:10px;font-weight:700;
+    line-height:1.7;color:var(--color-neutral-600);background:var(--color-neutral-100);
+    border:1px solid var(--color-divider);border-radius:999px;padding:0 6px}
   .redline-page .rl-pb-btn{flex:none;border:1px solid #ddd6fe;background:#f5f3ff;color:#6d28d9;
     border-radius:9px;padding:6px 11px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;
     transition:background .12s}
@@ -7376,9 +7399,18 @@ function negoLastOpened(){
    bar) reopens the last negotiation; with nothing to reopen it lands on the
    list, which says so at the top. Both outcomes are the same view — renderRedline
    decides between them — so there is one route in and no way for the two to
-   drift. */
-function openNegotiations(){
-  _rlDoorAsked = true;
+   drift.
+
+   ---- AND IT TAKES {list:true} (owner-asked, 12 Aug 2026) ----
+   Once you are INSIDE a negotiation the sidebar is no use for reaching the
+   list: it reopens the negotiation you are standing in, which is exactly what
+   it is for. So the page grew a door of its own ("Live negotiations", far left
+   of its control row) and it presses THIS function with one argument rather
+   than routing to the list itself. A second route would be a second answer to
+   "where is the list", free to drift from the first — and the list is not a
+   view of its own, it is what renderRedline draws when nothing is named. */
+function openNegotiations(opts){
+  _rlDoorAsked = (opts && opts.list) ? 'list' : 'reopen';
   if (typeof setView === 'function') setView('redline');
   else renderRedline();
   return true;
@@ -7387,7 +7419,8 @@ function openNegotiations(){
    between "take me to my negotiations" (reopen the last one) and "take me to
    THIS negotiation" (openRedlineWorkbench named it), which state.activeId alone
    cannot tell apart — it still holds whatever contract the reader last opened
-   anywhere in the app. */
+   anywhere in the app. 'list' is the third answer: take me to ALL of them,
+   whatever is remembered. */
 let _rlDoorAsked = false;
 
 /* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----
@@ -7515,7 +7548,10 @@ function renderRedline(){
      would have opened a draft nobody has ever redlined. */
   const doorAsked = _rlDoorAsked; _rlDoorAsked = false;
   let c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
-  if (doorAsked) c = negoLastOpened();
+  /* 'list' is the page's own "Live negotiations" door: it asked for ALL of
+     them, so what is remembered is not consulted — otherwise the button would
+     re-open the negotiation the reader is pressing it FROM. */
+  if (doorAsked) c = (doorAsked === 'list') ? null : negoLastOpened();
   /* A named contract that turns out to have nothing on the table is still that
      contract's page — the workbench is where a negotiation STARTS. Only the
      door falls through to the list. */
@@ -7730,6 +7766,40 @@ function renderRedline(){
              own controls and its bottom rule, and the fit ladder (rlFitTabRow)
              measures it. Only roomTabsHtml's call is gone. */}
       <div class="room-tabrow rl-tabrow">
+        ${''/* ---- THE WAY BACK TO THE OTHER NEGOTIATIONS ----
+               Owner-asked, 12 Aug 2026: once you are inside one, there is no
+               door to the LIST. The sidebar's Negotiations is not it — it
+               reopens the negotiation you are standing in, which is what the
+               sidebar is for and is not being changed.
+
+               FAR LEFT OF THE ROW, ahead of the spacer that pushes this page's
+               own controls right: a way OUT reads at the start of a line, and
+               the acts read at the end. It presses openNegotiations({list:true})
+               — the sidebar's own door with one argument, never a second route
+               to the list, because the list is not a view of its own.
+
+               THE COUNT IS negoLiveList's, which is the same reading the list's
+               heading prints, so the number on the button and the number above
+               the table cannot disagree. And it READS WITHOUT WRITING: negoIsLive
+               looks at c.changes raw. Asking negoChanges() would run negoInit()
+               and start a negotiation on every contract in the workspace —
+               the trap the sidebar count is already written around.
+
+               ITS WORD FOLDS with the purple buttons on the tight step of the
+               fit ladder (see .rl-tabrow-tight): the icon and the count stay,
+               the word stands down, the title carries the sentence. textContent
+               never changes, which is what the suite reads. */
+        }${(() => {
+          const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
+          const tip = i18tn('ng_live_list_title', liveN, { n: liveN });
+          return `<button type="button" data-rl-live-list class="rl-livelist"
+            title="${_nea(tip)}" aria-label="${_nea(tip)}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+            ><path d="m15 18-6-6 6-6"/></svg
+            ><span class="rl-word">${i18t('ng_live_list')}</span
+            ><span class="rl-livelist-n">${liveN}</span></button>`;
+        })()}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -7825,6 +7895,11 @@ function renderRedline(){
      and the Docs tab are the same door: the workspace, on this contract. */
   host.querySelectorAll('[data-rl-back]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
+  /* THE WAY BACK TO THE OTHER NEGOTIATIONS — the sidebar's own door, told to
+     land on the list rather than to reopen what is remembered (which is this
+     page). One route, one argument; see openNegotiations. */
+  host.querySelectorAll('[data-rl-live-list]').forEach(el =>
+    el.addEventListener('click', () => openNegotiations({ list: true })));
   /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws
      no room tabs, so a querySelector for them would have matched nothing
      forever — dead wiring that reads like a live route and outlives everyone

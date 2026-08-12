@@ -1212,6 +1212,58 @@ reports every box at zero), that the panel arrives from that same edge rather
 than from the window's, that the rail is under 60px thick, and that it is still
 there and still opens the panel with focus mode on.
 
+1b A NEGOTIATION HAS NO DOOR TO THE OTHER NEGOTIATIONS (owner-asked, later on 12 Aug 2026)
+
+The sidebar's Negotiations reopens the negotiation you were last in. That is
+what it is for, it is right, and it was not touched. What it means is that from
+INSIDE a negotiation there was no way to the list at all: pressing the only door
+labelled Negotiations put you back where you already were, and the reader was
+left with the browser's back button or a trip through Contracts.
+
+So the page grew a door of its own, at the FAR LEFT of its control row, ahead of
+the spacer that pushes this page's acts to the right. That position is the whole
+of the design decision: a way OUT reads at the start of a line and an act reads
+at the end, and the row already had nothing at its left since the room tabs left
+it. It reads "Live negotiations" — the noun the locked chip on that list already
+uses, because it is the same idea.
+
+IT IS THE SAME DOOR, WITH AN ARGUMENT. openNegotiations({list:true}) rather than
+a call to renderNegotiationsList. The list is not a view of its own — it is what
+renderRedline draws when nothing is named — so a button that drew it directly
+would be a second answer to "where is the list", free to drift from the sidebar's.
+The flag renderRedline already consumed had two values (a named contract, or the
+door asking for "my negotiations"); it has three now, and 'list' is the one that
+does NOT consult what is remembered. Without that, the button would reopen the
+very page it was pressed from, which is the fault it exists to fix.
+
+THE COUNT IS OPTION B, AND IT IS BORROWED. A bare label would have been the
+easier build; the owner asked for the number. It comes from negoLiveList, which
+is exactly what the list's own heading prints, so the door and the heading can
+never disagree — the standing rule on every count in this feature. And it READS
+WITHOUT WRITING: negoIsLive looks at c.changes off the record. negoChanges()
+runs negoInit(), so a count asked about a whole workspace starts a negotiation on
+every contract in it — the trap the sidebar count was already written around, and
+the browser file re-asks it after four more navigations through the new door.
+
+NEUTRAL, NOT PURPLE. The two buttons beside it are acts on this negotiation
+(Review vs Playbook, Internal review) and wear the violet wash. This is
+navigation off the page. A place and an act must not share a colour any more
+than they share a word, which is the rule that named the sidebar door in the
+first place.
+
+AND IT FOLDS. The control row has a fit ladder — it tightens before it wraps,
+because a second line there comes straight out of the contract's height on a
+ThinkPad. A new control that could not fold would have pushed the row over at
+1280px. Its WORD is in the foldable span and its count is not: an arrow alone
+says nothing about what is behind it, and "‹ 3" still does. Measured: full at
+1366 and above, tightened at 1280, and the row never wraps.
+
+WHAT DELIBERATELY DID NOT GET IT. The counterparty's page draws no control row —
+it renders the panes and nothing else — so the button cannot and should not
+appear there. And the PHONE does not get it either: its bottom bar already
+carries Negotiate, which lands on the list, and a second door to the same place
+on a 390px screen is a control that costs a label somewhere else.
+
 3 THE INTERNAL REVIEW REACHES THE REVIEWER, AND CAN BE CALLED OFF
 
 Neither half was a missing feature. Both were built, both were correct, and both
