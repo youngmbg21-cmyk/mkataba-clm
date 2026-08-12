@@ -203,6 +203,26 @@
     background:var(--surface);border-right:1px solid var(--line);border-top:1px solid var(--line);
     transform:rotate(45deg);}
 
+  /* ---- the blown-up card, for the "what do I press" drawing ---- */
+  .bigcard{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--amber-dot);
+    border-radius:11px;padding:13px 15px;box-shadow:var(--shadow);font-size:12px;}
+  .bc-head{position:relative;padding-right:6px;}
+  .bc-caret{margin-left:auto;font-size:11px;color:var(--muted);width:18px;height:18px;
+    display:grid;place-items:center;flex:none;}
+  .bc-caret-new{width:28px;height:28px;font-size:14px;border:1px solid var(--teal);border-radius:8px;
+    color:var(--teal);background:color-mix(in srgb,var(--teal) 10%,transparent);font-weight:700;}
+  .bc-mark{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--ink);
+    color:var(--ground);font-family:var(--mono);font-size:11px;font-weight:700;
+    display:grid;place-items:center;}
+  .bc-mark-card{left:-10px;bottom:2px;}
+  .bc-mark-caret{right:-10px;top:-8px;background:var(--teal);color:#fff;}
+  .bc-key{list-style:none;padding:0;margin:14px 0 0;font-size:14px;line-height:1.5;}
+  .bc-key li{position:relative;padding-left:28px;margin-bottom:9px;color:var(--ink-2);}
+  .bc-key li b{position:absolute;left:0;top:1px;width:20px;height:20px;border-radius:50%;
+    background:var(--ink);color:var(--ground);font-family:var(--mono);font-size:11px;
+    display:grid;place-items:center;}
+  .bc-key li:last-child b{background:var(--teal);color:#fff;}
+
   /* ---- phone ---- */
   .phone{width:250px;border:1px solid var(--line);border-radius:20px;overflow:hidden;
     background:var(--surface);box-shadow:var(--shadow);flex:none;}
@@ -466,7 +486,46 @@
       <li>and it expands the card downwards.</li>
     </ul>
     <p>There is also a <strong>small chevron</strong> in the corner of every card which does only the second one — deliberately, without moving the document. The reason is written into the code: <em>somebody tidying a column is not asking to be taken anywhere.</em></p>
-    <p>That is the whole answer. There are already two controls with two meanings, and the fix is to <strong>separate the jobs rather than add a third</strong>.</p>
+    <p>That is the whole answer. There are already two things you can click, and the fix is to <strong>give each of them one job instead of adding a third thing</strong>. Here is the same card, twice.</p>
+
+    <div class="pair" style="gap:18px;margin:24px 0 8px">
+      <div style="flex:1;min-width:290px">
+        <p class="blk-k" style="margin-bottom:8px">Today — one press, two results</p>
+        <div class="bigcard">
+          <div class="bc-head">
+            <div class="card-top" style="margin-bottom:6px"><span class="cid">CHG-006</span><span class="pill p-them">Their ask</span><span class="bc-caret">⌄</span></div>
+            <div class="cmeta">Clause 4 · Governing Law</div>
+            <div class="cdiff">…governed by the laws of <ins>Sweden</ins><del>Kenya</del>, and the Parties submit…</div>
+            <span class="bc-mark bc-mark-card">1</span>
+            <span class="bc-mark bc-mark-caret">2</span>
+          </div>
+          <div class="cacts"><button class="v v-ok">Accept</button><button class="v v-no">Reject</button><button class="v v-mut">Edit</button></div>
+        </div>
+        <ol class="bc-key">
+          <li><b>1</b> Press the card &rarr; the contract jumps to that clause, <em>and</em> the card gets taller</li>
+          <li><b>2</b> Press the little arrow &rarr; the card gets taller, contract stays put</li>
+        </ol>
+      </div>
+
+      <div style="flex:1;min-width:290px">
+        <p class="blk-k" style="margin-bottom:8px">Proposed — one press, one result</p>
+        <div class="bigcard">
+          <div class="bc-head">
+            <div class="card-top" style="margin-bottom:6px"><span class="cid">CHG-006</span><span class="pill p-them">Their ask</span><span class="bc-caret bc-caret-new">⤢</span></div>
+            <div class="cmeta">Clause 4 · Governing Law</div>
+            <div class="cdiff">…governed by the laws of <ins>Sweden</ins><del>Kenya</del>, and the Parties submit…</div>
+            <span class="bc-mark bc-mark-card">1</span>
+            <span class="bc-mark bc-mark-caret">2</span>
+          </div>
+          <div class="cacts"><button class="v v-ok">Accept</button><button class="v v-no">Reject</button><button class="v v-mut">Edit</button></div>
+        </div>
+        <ol class="bc-key">
+          <li><b>1</b> Press the card &rarr; the contract jumps to that clause. Nothing else moves.</li>
+          <li><b>2</b> Press the arrow &rarr; <strong>the window pops out.</strong> Bigger target, and the mark says <em>open</em> rather than <em>unfold</em>.</li>
+        </ol>
+      </div>
+    </div>
+    <p style="font-size:14.5px;color:var(--muted);max-width:66ch">Nothing is added and nothing is taken away — the card keeps its buttons, the arrow keeps its place. The only change is what each press <em>does</em>.</p>
 
     <div class="scroll-t">
       <table>
