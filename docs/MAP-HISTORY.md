@@ -904,6 +904,102 @@ one where pressing it would always fail), and sign-links-verify's fourth section
 browser — the card the owner actually looks at, the resend reporting honestly rather than
 flashing a green light, and the emailed link landing on the contract's Signing tab.
 
+A NAMED SIGNER WAS REFUSED THEIR OWN SIGNATURE (added 2026-08-12)
+
+Reported off the screen. Young Ochoka, signer 3 of 3 on the signing route, internal,
+marked SIGNING NOW / "their turn now", under a banner reading "Approved and ready — apply
+the sealed signature". He pressed a live, full-width, primary "Sign as Young Ochoka" and
+got a red refusal:
+
+  "Not signed — You are not on this negotiation. Young Mbagaya leads it — ask them to add
+   you. Fill these in on Key terms, or in the document, before signing."
+
+FOUR FAULTS IN ONE PRESS, and fixing the message would have fixed none of them.
+
+THE DESK WAS GATING SIGNING. contractReadiness folds deskSendBlock in as a 'block';
+readinessBlocks returns every 'block'; signDocument refused on readinessBlocks. And
+deskSendBlock is deskMaySend, which is TRUE FOR THE LEAD ALONE — so with the setting on
+and a desk claimed, ONLY THE NEGOTIATION LEAD COULD EVER SIGN. Not only this person and
+not only non-members: a roster CONTRIBUTOR was refused too, in different words. Every
+multi-signer internal route in a workspace with that setting on was broken past the first
+signature. It shipped because the rule is OFF by default and has four escapes, so the
+state has to be built deliberately — which is how it was reproduced before anything was
+touched.
+
+THE RULEBOOK ALREADY SAID SO, in its own words, in three places: the review gate gates
+SENDING, the approval chain gates SIGNING, the desk gates REDLINING. A signature is not a
+redline. The desk exists so two colleagues do not both push wording at the counterparty;
+it has no opinion at all about who may execute. The fault was never in deskMaySend, which
+was right throughout — it was one caller folding a SEND predicate into a list a different
+act happened to read.
+
+NOT FIXED BY GIVING SIGNERS A SEAT, and that matters because it is the obvious fix: a
+named signer could have been made a desk member, and it would not have worked. deskMaySend
+answers true for the lead alone, so a correctly-seated contributor would still have been
+refused. The sign path stops asking the question instead.
+
+AND THE REVIEW GATE, WHICH RIDES IN THE SAME LIST, WAS DECIDED RATHER THAN SWEPT ALONG.
+By the same mapping it gates SENDING, so by the rule it goes. But there is a second,
+stronger reason and it is worth recording: on this path it cannot change an outcome. An
+open review is one with PENDING changes in it — reviewInPlay is the population, and a
+review with nothing in play is spent and holds nobody — and a pending change is already
+refused by negoSigningBlockers, in words that name the clauses. Two refusals for one state,
+one of them about a colleague's inbox, is strictly worse than one.
+
+THE SERVER ALREADY AGREED, and that was checked before the browser was touched rather than
+assumed. Its desk guard on PUT /api/contracts/:id refuses a reader seat only when
+ourChangesTouched, and a signature moves c.signatures and stamps a plan row without
+touching a single change — so a signature save from a non-roster signer has always passed.
+That is what makes this a browser-only fix, and f168 now pins BOTH halves: the signature
+passes, and the same reader still cannot slip a redline in beside it.
+
+ONE LIST, TWO READERS. signBlockers(c) is what stops a signature, and it lives in
+js/views/contract.js BESIDE its two readers rather than in js/core.js where the readiness
+list is built. That is not filing preference: the negotiation gate is the most serious rule
+in that file (F71 — nothing is sealed while a change is still on the table), and a gate
+that lives in another module and is reached through `window` is a gate a stage without that
+module simply does not have. Moving it there was the second attempt; the first put it in
+core.js and F71 went green over a contract with an unanswered change on it, which is
+exactly the fault F71 exists to catch, caught by F71.
+
+It asks, in the order a reader should act on them: intent to sign, the approval chain,
+whose turn it is, the negotiation, the readiness BLANKS, and the template form's own
+fields. It asks the desk and the review gate about nothing.
+
+EACH BLOCKER PRINTS ITS OWN SENTENCE. The old refusal wrapped whatever readinessBlocks
+returned in "Fill these in on Key terms, or in the document, before signing" — so somebody
+refused by a rule about PEOPLE was told to go and fill in a blank that does not exist.
+Every entry carries its own `label` now, and that tail belongs to the three blockers it is
+true of (counterparty, value, placeholders — READINESS_FIELD_KEYS). deskBlockMessage's own
+comment has said "every door that refuses prints exactly what these return" since the desk
+shipped; the Sign handler was the door that broke it.
+
+AND THE BUTTON STOPPED PROMISING. renderSignButton's `ready` was a SHORTER list than the
+handler's — counterparty, value, consent, approvals, whose turn — while signDocument
+refused on three more: an unsettled negotiation, unfilled placeholders, a template form
+with problems. So a live, full-width, primary "Sign as X" stood on screens where the press
+could not work, and the reader found out by pressing it. That is the same untruth as a
+green "Ready to sign" over a contract nobody was named to sign, and it gets the same
+answer: one list, read on both sides. The label wears the first blocker; the full list
+prints under the disabled button in each blocker's own words, which is what
+readinessPanelHtml has done on Key terms all along and the Signing tab was simply not
+asking.
+
+EVERY SEAT AGAINST EVERY STATE, walked rather than reported: the lead signs (unchanged), a
+roster contributor signs (and still cannot send), a named signer on no roster signs (the
+reported case), an admin who is not on the desk signs when it is their turn (an admin is
+not exempt from the desk and never was — they are exempt from nothing here, because the
+desk is not in the question), and somebody who is neither a signer nor on the desk is STILL
+refused — by the reserved-step rule, which is untouched. The phone renders no signing card
+of its own and reaches signDocument directly, so it inherits all of it.
+
+Tests: f167 gained a sixth section stating the rule in one sentence and proving it FROM THE
+SIGN PATH — a predicate nobody consults proves nothing about a button, which is precisely
+how this shipped — plus that the desk still refuses that same person a redline and a
+contributor the send; f168 gained the server's two halves; sign-links-verify's fifth
+section measures the control in a browser, because "the button was live" is a claim about
+pixels and jsdom has none.
+
 Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.

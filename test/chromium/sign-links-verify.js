@@ -24,6 +24,11 @@
       something to press about a send that failed, and whether the link in that
       email actually lands on the contract's Signing tab.
 
+   5  (12 Aug 2026) The Sign button does not promise what the press will refuse.
+      f167 pins the rule and the list; this measures the control — pressable or
+      not, wearing the obstacle or the promise, with the whole list under it
+      before anybody presses anything.
+
    Run: node test/chromium/sign-links-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -285,6 +290,58 @@ const ROUTE = [
     });
     check('the Signing tab is the live one on screen', !!(tabPixels && tabPixels.on && tabPixels.w > 20),
       tabPixels ? `${tabPixels.w}px on=${tabPixels.on}` : 'no tab row');
+
+    /* ============= 5. THE BUTTON DOES NOT PROMISE WHAT THE PRESS REFUSES ====
+       (owner-reported, 12 Aug 2026.) "Sign as Young Ochoka" was drawn live,
+       full-width and primary under a banner reading "Approved and ready", on a
+       screen where the press could not work — because renderSignButton's
+       `ready` and signDocument's refusals were two different lists. They are one
+       list now (signBlockers), and this measures the result where the reader
+       looks: is the control pressable, and does the page say what is stopping it
+       BEFORE the press rather than in a red toast after it. jsdom can answer
+       neither question — it has no layout and no disabled semantics to speak of. */
+    const blocked = await page.evaluate(async () => {
+      const c = getContract(state.activeId);
+      await ensureFull(c);
+      c.compliance = { ...(c.compliance || {}), consent: false };   // intent not ticked
+      state.activeId = c.id; state.selId = c.id;
+      setView('workspace');
+      await new Promise(r => setTimeout(r, 400));
+      roomGoTab(c, 'sign');
+      await new Promise(r => setTimeout(r, 400));
+      const b = document.getElementById('sign-btn');
+      if (!b) return { there: false };
+      const r = b.getBoundingClientRect();
+      return { there: true, disabled: b.disabled, label: b.textContent.replace(/\s+/g, ' ').trim(),
+        w: Math.round(r.width), h: Math.round(r.height),
+        says: (document.getElementById('sign-wrap') || {}).textContent
+          ? document.getElementById('sign-wrap').textContent.replace(/\s+/g, ' ') : '' };
+    });
+    check('the Sign button is on the screen and refuses before the press',
+      blocked.there && blocked.disabled === true && blocked.w > 100,
+      `${blocked.label} · ${blocked.w}x${blocked.h} disabled=${blocked.disabled}`);
+    check('and it wears the obstacle rather than the promise',
+      /^Sign — /.test(blocked.label || ''), blocked.label);
+    check('with the whole list under it, in each blocker’s own words',
+      /Intent to sign has not been confirmed/.test(blocked.says || ''),
+      (blocked.says || '').slice(0, 120));
+
+    const live = await page.evaluate(async () => {
+      const c = getContract(state.activeId);
+      c.compliance = { ...(c.compliance || {}), consent: true };
+      /* This fixture's value trips the workspace's own approval rule, which is a
+         real blocker and correctly on the list. Cleared here so the last claim
+         is about the EMPTY list rather than about approvals. */
+      state.settings = { ...(state.settings || {}), approvalRules: [] };
+      renderSignButton(c);
+      await new Promise(r => setTimeout(r, 200));
+      const b = document.getElementById('sign-btn');
+      return { disabled: b ? b.disabled : null, label: b ? b.textContent.replace(/\s+/g, ' ').trim() : '',
+        blockers: (window.signBlockers ? signBlockers(c) : []).map(x => x.key) };
+    });
+    check('and once nothing blocks, it is live and says so',
+      live.disabled === false && !live.blockers.length && !/^Sign — /.test(live.label),
+      `${live.label} · [${live.blockers.join(', ')}]`);
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

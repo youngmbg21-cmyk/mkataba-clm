@@ -5188,28 +5188,32 @@ function renderSignButton(c){
   const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>openPaperSignatureModal(c));
   const appr=approvalState(c);
   const ns=nextSigner(c), planned=signerPlan(c).length>0;
-  // With a signer plan, the in-app button only acts when it's an internal
-  // signer's turn; counterparty turns are collected via the share link.
-  const signerReady = !planned || (ns && ns.party==='internal');
-  const ready=c.counterparty&&(!isMonetary(c)||Number(c.value)>0)&&c.compliance.consent&&appr.ok&&signerReady;
-  const missing=[];
-  if(!c.counterparty)missing.push('counterparty name');
-  if(isMonetary(c)&&!(Number(c.value)>0))missing.push('contract value');
-  if(!c.compliance.consent)missing.push('intent-to-sign consent');
-  if(!appr.ok)missing.push('approvals');
+  /* ---- THE BUTTON ASKS EXACTLY WHAT THE HANDLER ASKS ----
+     (owner-reported, 12 Aug 2026.) `ready` used to be its own shorter list —
+     counterparty, value, consent, approvals, whose turn — while signDocument
+     refused on three more: an unsettled negotiation, unfilled placeholders and a
+     template form with problems. So a live, full-width, primary "Sign as Young
+     Ochoka" stood under a banner reading "Approved and ready" on screens where
+     the press could not work, and the reader found out by pressing it. That is
+     the same untruth as a green "ready to sign" over a contract nobody was named
+     to sign, and the answer is the same: one list, read here and there.
+
+     signBlockers (below, beside signDocument) is that list. It deliberately does NOT ask the
+     desk or the review gate — the desk gates redlining, the review gate gates
+     sending, and the approval chain gates signing. */
+  const blockers=(window.signBlockers?signBlockers(c):[]);
+  const ready=!blockers.length;
   /* ---- THE BUTTON SAYS WHAT IS STOPPING IT ----
      It used to grey out and print the reason in 11px underneath, which is the
      one arrangement guaranteed to be missed: the eye goes to the disabled
      control, finds no explanation on it, and concludes the page is broken.
      The blocker IS the label now, and the small print underneath explains the
-     act rather than repeating the obstacle. */
-  const blockLabel = !c.counterparty ? 'Sign — add the counterparty'
-    : (isMonetary(c)&&!(Number(c.value)>0)) ? 'Sign — add the contract value'
-    : !appr.ok ? 'Sign — approvals outstanding'
-    : !c.compliance.consent ? 'Sign — tick intent to sign first'
-    : (planned&&ns&&ns.party==='counterparty') ? `Sign — waiting on ${ns.name}`
-    : 'Sign Document';
-  const signLabel = ready ? (planned&&ns ? `Sign as ${ns.name}` : 'Sign Document') : blockLabel;
+     act rather than repeating the obstacle. The FIRST blocker wins the label —
+     signBlockers is ordered by what the reader should do next — and the rest are
+     listed under it, because a button that names one obstacle over a page that
+     has three is a queue nobody can see the end of. */
+  const signLabel = ready ? (planned&&ns ? `Sign as ${ns.name}` : 'Sign Document')
+    : `Sign — ${blockers[0].short}`;
   /* WHO SIGNS, AND IN WHAT ORDER — asked BEFORE the button that ends it.
 
      This was an 11px text link UNDERNEATH "Sign Document": a decision about
@@ -5239,7 +5243,14 @@ function renderSignButton(c){
       ${icon('finger','w-[18px] h-[18px]')} ${signLabel}
     </button>
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
-           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Their link collects it — share the contract to start their turn.`:`Signing freezes the wording and seals it. It cannot be undone.`}</p>`}
+           :`<div class="mt-2 text-[11px] text-brand-800/65 leading-relaxed">
+              ${''/* WHAT BLOCKS, IN FULL, BEFORE THE PRESS. The label names the
+                     first one; this names all of them in each blocker's own
+                     sentence, which is what readinessPanelHtml has done on the
+                     Key terms panel all along. The Signing tab simply was not
+                     asking. */}
+              ${blockers.map(b=>`<div class="flex items-start gap-1.5 justify-center text-center"><span>${esc(b.label)}</span></div>`).join('')}
+            </div>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
       return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${i18tn('ct_high_findings',oh,{n:oh})}</p>`:''; })()}
     ${paperRoute}`;
@@ -5289,72 +5300,172 @@ function renderSignSide(c){
     </section>`;
   host.querySelector('#sp-add-signer')?.addEventListener('click',()=>openSignerPlanEditor(c));
 }
+/* ---- WHICH BLOCKERS ARE A BLANK TO FILL IN ----
+   readinessBlocks mixes categories — a missing field, an outstanding approval,
+   a desk refusal, a review hold — and the Sign handler used to wrap whatever it
+   got in "Fill these in on Key terms, or in the document, before signing." A
+   desk refusal is not a blank, so the reader was told to do something
+   impossible. Only these three are answered by filling something in. */
+const READINESS_FIELD_KEYS = ['counterparty','value','placeholders'];
+
+/* ============================================================
+   WHAT STOPS A SIGNATURE — ONE LIST, TWO READERS
+   ============================================================
+   (owner-reported, 12 Aug 2026: a named internal signer, marked SIGNING NOW
+   under a banner reading "Approved and ready", pressed "Sign as Young Ochoka"
+   and was told "You are not on this negotiation.")
+
+   THE DESK WAS GATING SIGNING, AND IT IS NOT SUPPOSED TO. contractReadiness
+   folds deskSendBlock in as a 'block', readinessBlocks returns every 'block',
+   and the Sign handler refused on readinessBlocks — so with the desk rule on
+   and a desk claimed, ONLY THE NEGOTIATION LEAD COULD EVER SIGN. Not just this
+   person and not just non-members: deskMaySend is true for the LEAD ALONE, so a
+   properly-seated contributor was refused too, in different words. Every
+   multi-signer internal route in a workspace with that setting on was broken
+   past the first signer.
+
+   THE RULEBOOK ALREADY SAID SO, in its own words: the review gate gates
+   SENDING, the approval chain gates SIGNING, the desk gates REDLINING. A
+   signature is not a redline. The desk exists so two colleagues do not both push
+   wording at the counterparty; it has no opinion about who may execute. So the
+   sign path stops consulting it — and NOT by handing named signers a desk seat,
+   which would not have worked: deskMaySend answers true for the lead only, so a
+   correctly-seated contributor would still have been refused.
+
+   AND THE REVIEW GATE, WHICH RIDES IN THE SAME LIST, was decided rather than
+   swept along. By the same mapping it gates SENDING. It is also, on this path,
+   incapable of changing an outcome: an open review is one with PENDING changes
+   in it (reviewInPlay; a spent review stops holding anybody), and a pending
+   change is already refused by the negotiation gate below in more useful words —
+   which name the clauses. Two refusals for one state, one of them about a
+   colleague's inbox, is worse than one. So it goes with the desk.
+
+   THE LIST IS THE SAME ONE THE BUTTON READS. That is the other half of the
+   report: "Sign as Young Ochoka" was drawn live and primary on a screen where
+   the press could not work. Two readers, one rule — renderSignButton disables
+   itself and wears the first blocker as its label, and signDocument refuses with
+   all of them. A verb that cannot work is not drawn.
+
+   Each entry carries its OWN sentence (`label`) and a short form for the
+   button (`short`), because a refusal that wraps every category in the
+   field-shaped sentence is how a reader is told to fill in a blank that does not
+   exist.
+
+   IT LIVES HERE, BESIDE ITS TWO READERS, rather than in js/core.js where the
+   readiness list is built — because it must not be able to be ABSENT. The
+   negotiation gate is the most serious rule in this file (F71: nothing is
+   sealed while a change is still on the table), and a gate that lives in
+   another module and is called through `window` is one a stage without that
+   module simply does not have. Every question it asks of another module is
+   asked through `window` with the same fallback the old checks carried. */
+function signBlockers(c){
+  const out=[];
+  if(!c) return out;
+  const add=(key,label,short)=>out.push({ key, label, short });
+  /* THE INTENT, FIRST. It is the one thing the reader can settle on this very
+     screen, so it leads — the rest send them somewhere else. */
+  if(!(c.compliance&&c.compliance.consent))
+    add('consent','Intent to sign has not been confirmed on the Signing tab.','tick intent to sign first');
+  try{
+    const ap=(window.approvalState)?window.approvalState(c):null;
+    if(ap && ap.required && !ap.ok){
+      const refused=(ap.rejected||[])[0], stale=(ap.stale||[])[0];
+      add('approval', refused
+          ? `Internal approval was refused${refused.by?` by ${refused.by}`:''} — “${refused.name}” is unresolved.`
+          : stale
+          ? `“${stale.name}” was approved and the contract has changed since — it needs approving again.`
+          : `Internal approval is outstanding: “${ap.next?ap.next.name:'approval'}” is waiting on ${ap.approverLabel||'an approver'}.`,
+        'approvals outstanding');
+    }
+  }catch(_){}
+  /* WHOSE TURN IT IS. A counterparty step is collected on their own link, so
+     the in-app button has nothing to do — which the panel has always said and
+     the handler has always refused. */
+  try{
+    const plan=(window.signerPlan?signerPlan(c):[]);
+    const ns=(window.nextSigner?nextSigner(c):null);
+    if(plan.length && ns && ns.party!=='internal')
+      add('turn',`The next signature is ${ns.name}'s, and they sign on their own link — not here.`,
+        `waiting on ${ns.name}`);
+  }catch(_){}
+  /* THE NEGOTIATION. A signature freezes the wording, and it does not go on top
+     of an argument that is still running. */
+  try{
+    const nb=(window.negoSigningBlockers?negoSigningBlockers(c)
+      :((window.unresolvedRedlines&&unresolvedRedlines(c))?[`${unresolvedRedlines(c)} proposed edit(s) from the counterparty are still open`]:[]));
+    if(nb.length) add('negotiation',
+      `${nb.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,
+      'the negotiation is not settled');
+  }catch(_){}
+  /* THE BLANKS — and only these three wear the "fill these in" sentence. */
+  const readiness=(window.contractReadiness?contractReadiness(c):[]);
+  for(const b of readiness.filter(x=>x.severity==='block'&&READINESS_FIELD_KEYS.includes(x.key)))
+    add(b.key, b.label, b.key==='counterparty'?'add the counterparty'
+      : b.key==='value'?'add the contract value' : 'fill the blanks in the wording');
+  try{
+    if(c.templateForm && window.templateFormProblems){
+      const probs=templateFormProblems(c.templateForm);
+      if(probs.length) add('fields',
+        `${probs.length} field${probs.length===1?' needs':'s need'} attention first: ${probs.slice(0,3).map(p=>p.label).join(', ')}${probs.length>3?'…':''}`,
+        'fill the remaining fields');
+    }
+  }catch(_){}
+  return out;
+}
+/* The refusal, in the words each blocker chose for itself. The field-shaped ones
+   share one tail, because "fill these in on Key terms" is true of all three and
+   of nothing else. */
+function signBlockMessage(c, list){
+  const bl=list||signBlockers(c);
+  if(!bl.length) return '';
+  const fields=bl.filter(x=>READINESS_FIELD_KEYS.includes(x.key));
+  const other=bl.filter(x=>!READINESS_FIELD_KEYS.includes(x.key));
+  return [ other.map(x=>x.label).join(' '),
+    fields.length ? fields.map(x=>x.label).join(' ')+' Fill these in on Key terms, or in the document, before signing.' : ''
+  ].filter(Boolean).join(' ').trim();
+}
 async function signDocument(c){
   if(!canEdit()){ toast(i18t('ct_viewers_no_sign'),'err'); return; }
   if(!c.compliance.consent){ toast(i18t('ct_tick_intent_first'),'err'); return; }
   if(!approvalState(c).ok){ toast(i18t('ct_needs_approval'),'err'); return; }
-  // The document is out in Word: the counterparty may be mid-edit on wording
-  // this signature would seal. Bring the file back (or cancel) before signing.
-  /* E2-T5: don't seal over an unsettled negotiation. Admin/Legal may override.
+  /* ---- THE DESK DOES NOT GATE SIGNING, AND NEVER DID BY THE RULEBOOK ----
+     (owner-reported, 12 Aug 2026.) What stood here asked readinessBlocks, which
+     returns EVERY 'block' on the readiness list — including deskSendBlock, which
+     is deskMaySend, which is true for the negotiation LEAD ALONE. So with the
+     desk rule on and a desk claimed, a named internal signer marked SIGNING NOW
+     under a banner reading "Approved and ready" pressed Sign and was told "You
+     are not on this negotiation" — and so would a properly-seated contributor
+     have been, in different words. The desk gates redlining, the review gate
+     gates sending, the approval chain gates signing; a signature is not a
+     redline. signBlockers (directly above) is that list, and it is the same one the
+     BUTTON reads, so a verb that cannot work is not drawn in the first place.
 
-     Through negoSigningBlockers, which asks BOTH generations of the
-     negotiation. This read `unresolvedRedlines` alone — open ROUNDS carrying
-     proposed text — and the room creates no round at all, so a contract with
-     four unanswered changes on it reported nothing outstanding and was sealed
-     mid-argument. See js/negotiation.js. */
-  /* AND IT IS A REFUSAL, not a warning.
-
-     This used to let Admin or Legal sign anyway behind a confirmation, on the
-     reading that an approver should be able to overrule the gate. There are
-     three roles — Admin, Legal and Viewer — and a Viewer cannot sign at all.
-     So "Admin or Legal" was everybody who could reach the button: the override
-     granted no one anything, and the gate was a dialog rather than a gate.
-
-     A signature is the one act in this product that cannot be taken back. It
-     freezes the wording, seals it with a fingerprint and sends both parties
-     their copy as the record of the deal. It does not go on top of an argument
-     that is still running. The room has verbs for every way out — accept,
-     refuse, withdraw — and the refusal names which ones are outstanding. */
-  const blockers=(window.negoSigningBlockers?negoSigningBlockers(c):
-    (unresolvedRedlines(c)?[`${unresolvedRedlines(c)} proposed edit(s) from the counterparty are still open`]:[]));
-  if(blockers.length){
-    toast(`Not signed — ${blockers.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,'err');
-    return;
+     EACH BLOCKER PRINTS ITS OWN SENTENCE. The old message wrapped whatever came
+     back in "Fill these in on Key terms, or in the document, before signing",
+     which told somebody refused by a rule about people to go and fill in a
+     blank that does not exist. signBlockMessage keeps that tail for the three
+     blockers it is actually true of. */
+  if(window.signBlockers){
+    const bl=signBlockers(c);
+    if(bl.length){ toast(`Not signed — ${signBlockMessage(c,bl)}`,'err'); return; }
   }
-  /* ---- THE SAME BAR THE SHARE DIALOG ALREADY HOLDS THIS CONTRACT TO ----
-     contractReadiness has listed the blanks that make a contract unsafe to
-     send since it was written — no counterparty, no value on a contract type
-     that carries one, and placeholders still sitting in the wording — and
-     readinessBlocks has filtered them to the refusing kind. NOTHING EVER
-     CALLED IT. So Share showed you the list and Sign, the one act in this
-     product that cannot be taken back, asked for none of it: a contract that
-     did not come through the template form could be sealed with [COUNTERPARTY]
-     still in the text, and the seal makes that wording the record of the deal.
+  /* ---- WHAT USED TO STAND HERE, AND WHERE IT WENT ----
+     Three separate refusals in a row — the unsettled negotiation (E2-T5, a
+     REFUSAL rather than a warning, because the only roles that could have
+     overridden it are the only roles that can reach this button at all), the
+     readiness blanks (which Share had held contracts to for months while Sign,
+     the one act that cannot be taken back, asked for none of it), and the
+     template form's own fields. All three are in signBlockers now, above,
+     unchanged in substance and in the same order.
 
-     Through window, because readinessBlocks is a const in js/core.js and a
-     bare name here would never reach it.
+     THEY WERE MOVED SO THE BUTTON COULD ASK THE SAME QUESTION. Not one of them
+     was in renderSignButton's `ready`, so each was a live, primary "Sign as X"
+     over a press that could not work — the second half of the same report the
+     desk fix above answers. One list, two readers.
 
-     The template-form check below is the same rule for contracts that DID come
-     through the form, and is left exactly as it was; this is every other way a
-     contract arrives — uploaded, imported, or drafted before the form existed. */
-  if(window.readinessBlocks){
-    const unfilled=readinessBlocks(c);
-    if(unfilled.length){
-      toast(`Not signed — ${unfilled.map(x=>x.label).join(' ')} Fill these in on Key terms, or in the document, before signing.`,'err');
-      return;
-    }
-  }
-  /* A template contract signs only when its form holds together: every
-     required blank filled and every value valid per the shared registry. The
-     signature seals the RENDERED wording, so a blank that slipped through
-     would be sealed as the label of a missing answer. */
-  if(c.templateForm && window.templateFormProblems){
-    const probs=templateFormProblems(c.templateForm);
-    if(probs.length){
-      toast(`Not signed — ${probs.length} field${probs.length===1?' needs':'s need'} attention first: ${probs.slice(0,3).map(p=>p.label).join(', ')}${probs.length>3?'…':''}`,'err');
-      return;
-    }
-  }
+     The template-form check keeps its own reason for existing: the signature
+     seals the RENDERED wording, so a blank that slipped through would be sealed
+     as the label of a missing answer. */
   const u=currentUser(), at0=nowISO();
   // capture server-stamped IP + time where available (honest attribution)
   let meta={ ip:null, at:at0 };
@@ -5743,7 +5854,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

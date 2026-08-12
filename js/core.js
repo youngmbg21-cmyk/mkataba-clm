@@ -2067,7 +2067,6 @@ function contractReadiness(c){
   return p;
 }
 const readinessBlocks = c => contractReadiness(c).filter(x=>x.severity==='block');
-
 /* ---------- counterparty share links ---------- */
 const b64e = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(String(str).trim().replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } };
