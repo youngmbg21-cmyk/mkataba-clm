@@ -1998,3 +1998,86 @@ on the tree BEFORE this change as well as after — verified by running the same
 drag on both. That few-pixel over-travel is the drag's own rounding. The fault
 that check guards multiplied the RATIO, not the remainder, so it is the travel
 that is compared rather than a coincidence of coordinates.
+
+THE COUNTERPARTY GETS A BELL — AND THEIR PAGE KEEPS ONLY ONE
+
+The owner has a bell in the top bar: a count, and a panel that slides in from
+the right listing everything waiting on them, each row a door to the thing
+itself. The counterparty had nothing of the kind. They get a page and are left
+to work out for themselves what is outstanding.
+
+THE OWNER'S BELL AND PANEL CANNOT BE REUSED, and understanding why is most of
+this job rather than a footnote. They live inside #app-shell — and the
+counterparty's page hides that shell completely, because the shell is the
+workspace: the sidebar, the register, every contract in the book. Reaching for
+the existing bell means un-hiding it, which drops all of that onto a page that
+must never show any of it. So this is its own bell and its own panel, built in
+their screen, wearing the same shape. A test asserts the shell is never
+un-hidden, because that is the shortcut a later change would reach for.
+
+EVERY COUNT IS BORROWED, NEVER INVENTED — the standing rule that a door reading
+3 cannot sit over a column showing 2. The held decisions come from the same
+maps the wall line counts and the Send button labels itself from. The undecided
+changes are the cards' own population. "The wording changed" is the Compare
+button's own reading, so the alert and the button cannot disagree about whether
+there is anything to compare. "A reply arrived" is the predicate that puts the
+dot on a card's Discuss. And "they are waiting for you to sign" is read off the
+Ready-to-sign button's own disabled state rather than from a second copy of the
+alignment rule — a copy would be free to disagree with the button an inch
+below it.
+
+AND COUNTING MUST NOT WRITE. c.changes is read raw. negoChanges() runs
+negoInit(), which creates a negotiation on any contract that has none, and this
+page rebuilds its contract on every repaint — so the mistake would have been
+constant and silent. The browser check creates an untouched contract before the
+link opens and asserts it still has no negotiation afterwards.
+
+THE COUNT HIDES AT ZERO, and the bell itself stands down when there is nothing
+at all. The owner's old dot was hard-coded markup, always on, counting nothing,
+and it had been trained out of everybody who used the product. A read-only page
+— executed, superseded, already answered — says so plainly in one row and wears
+no number: those are facts, not doors, and a panel offering four things to do
+on a sealed contract is worse than no panel.
+
+ONE BELL ON THEIR PAGE, and this is the part that had to be got right rather
+than merely added. Their page already folded its notices behind a floating
+amber bell in the bottom-right corner. Two bells on one page, both amber, both
+about the same contract, is worse than none — so the floating one stands down
+THERE, and only there. The owner's workbench keeps its own, and the reason is
+that on the owner's page they are genuinely two questions: the header bell is
+about the whole workspace, the floating one is about this contract. On the
+counterparty's page there is only one contract, so there is one question and it
+gets one door.
+
+STANDING A BELL DOWN MUST NOT MAKE A NOTICE DISAPPEAR, and the suite caught
+exactly that. The first version simply refused to draw the fab on their seat —
+and the readiness signal ("you signalled ready to sign… they will send a
+signing link") became unreachable on the counterparty's page. Two tests failed
+and both were right to. The fix names the population: rlSeatAlertsHtml is one
+list, folded by the owner's stack and printed at the top of the counterparty's
+panel. The readiness signal moved INTO that list rather than being passed in
+separately, so a notice added later reaches both seats instead of existing on
+one. A notice keeps the bell on screen without adding to the number — it is
+something to read, not something waiting.
+
+THE WALL LINE IS UNTOUCHED AND STILL FIRST. "Decisions and counter-proposals
+stay on this page until you press Send" is read before they start, and folding
+it behind a bell produces exactly the mistake it exists to prevent. It was
+never part of the notice stack and it is not part of this.
+
+NOTHING INTERNAL LEAKS, and it cannot: every reading is about the
+counterparty's own work, taken from the payload and from what their browser is
+holding. On their seat the two sources that could have carried internal words —
+the review banner and the desk band — both refuse before drawing anything. A
+test names the vocabulary and asserts none of it appears, because the risk is
+not today's five rows, it is the sixth somebody adds.
+
+NO BELL ON THE PHONE. Below 768px the page draws its notices in flow and the
+header has no room for another control. Said in the stylesheet rather than left
+as an accident of width.
+
+NOT BUILT, said out loud: the landing and signing screen. It has no header row
+of this shape, and its respond panel is already a single visible column with
+everything on it. The bell is on the negotiation page, which is the page the
+work order named and the one where a reader has a column of cards to work
+through.

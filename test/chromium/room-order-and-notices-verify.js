@@ -343,13 +343,40 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
       const wall = document.querySelector('#rl-banner .rl-wall');
       return { wall: seenFn(wall), said: wall ? wall.textContent.replace(/\s+/g, ' ').trim().slice(0, 90) : '',
         readyBand: seenFn(document.getElementById('nego-ready-signal')),
-        bell: seenFn(document.querySelector('[data-rl-notices-open]')) };
+        /* ON THE PAGE, not merely in the document. The signal now lives inside
+           a panel parked off the right-hand edge, and an element inside a
+           translated container still reports a box — reading "it has a box" as
+           "the reader can see it" is the exact fault the alerts panel's own
+           checks are written around. So this asks whether it is inside the
+           window. */
+        readyOnPage: (() => { const el=document.getElementById('nego-ready-signal');
+          if(!el) return false; const r=el.getBoundingClientRect();
+          return r.width>0 && r.height>0 && r.left < innerWidth-1 && r.right > 1; })(),
+        floatBell: seenFn(document.querySelector('[data-rl-notices-open]')),
+        headBell: seenFn(document.getElementById('pt-bell')),
+        panel: !!document.getElementById('pt-alerts'),
+        inPanel: !!(document.getElementById('pt-alerts')
+          && document.getElementById('nego-ready-signal')
+          && document.getElementById('pt-alerts').contains(document.getElementById('nego-ready-signal'))) };
     }, [seen]);
     check('the counterparty still reads the wall line before they start',
       !!cp.wall && cp.wall.on && /until you press Send/i.test(cp.said), cp.said);
-    check('but the readiness signal is behind their bell, like ours',
-      (!cp.readyBand || !cp.readyBand.on) && !!cp.bell && cp.bell.on,
-      `bell ${JSON.stringify(cp.bell)}`);
+    /* ---- CLAIM UPDATED, 13 Aug 2026, OWNER-ASKED ----
+       This used to read "the readiness signal is behind THEIR bell, like ours",
+       and the bell it looked for was the floating amber one. On 13 August the
+       counterparty's page got a bell of its own, in the header, with an alerts
+       panel behind it — and two bells about one contract, both amber, is worse
+       than none, so the floating one stood down on that page (and only there;
+       the owner's workbench keeps its own, checked above).
+
+       The SUBJECT of the check is unchanged and is why it is kept: the signal
+       is not a band across the top of their contract, it is one press away.
+       What moved is which press. */
+    check('but the readiness signal is one press away, behind their header bell',
+      !cp.readyOnPage && !!cp.headBell && cp.headBell.on && cp.inPanel,
+      `on the page ${cp.readyOnPage}, head bell ${JSON.stringify(cp.headBell)}, in panel ${cp.inPanel}`);
+    check('and there is only ONE bell on their page',
+      !cp.floatBell || !cp.floatBell.on, JSON.stringify(cp.floatBell));
     check('no page errors on the counterparty page', cerrors.length === 0,
       cerrors.join(' | ') || 'clean');
     await cctx.close();

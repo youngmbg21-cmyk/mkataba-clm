@@ -10743,15 +10743,36 @@ if (typeof document !== 'undefined' && !document._rlNoteMoreWired){
    shared BUILDER that quietly brought both would be a change of behaviour
    wearing a refactor's clothes. One shell, two doors, no second system.
    `id` differs per door so two mounts on one page cannot collide. */
-function rlNoticeStackHtml(c, alerts, note, id){
+function rlNoticeStackHtml(c, alerts, note, id, opts){
   const a = String(alerts || ''), n = String(note || '');
   /* Empty means empty: an always-present container would sit over the bottom
      corner of the contract catching clicks meant for the document. No alerts
      means NO BELL either — a bell with nothing behind it is furniture. */
   if (!a && !n) return '';
+  /* Their seat draws only the reading notice; with none there is nothing to
+     contain, and an empty container sits over the corner of the contract
+     catching clicks meant for the document. */
+  if (!n && opts && opts.side === 'counterparty') return '';
   const cid = _nea(String((c && c.id) || ''));
   let stack;
-  if (!a) stack = n;
+  /* ---- ONE BELL PER PAGE, AND ON THEIR PAGE IT IS THE HEADER'S ----
+     (owner-asked, 13 Aug 2026.) The counterparty's page has its own bell now,
+     in their header row, with an alerts panel behind it. Two bells on one
+     page, both amber, both about the same contract, is worse than none at
+     all — so the floating one is not drawn on that seat, and their notices
+     are read through the header's panel instead.
+
+     THE OWNER'S WORKBENCH KEEPS ITS FLOATING BELL EXACTLY AS IT IS, and the
+     reason is that there they are genuinely two questions: the header bell is
+     about the whole WORKSPACE and the floating one is about THIS contract. On
+     the counterparty's page there is only one contract, so there is only one
+     question and it gets one door.
+
+     THE READING NOTICE IS NOT AN ALERT and is unaffected on either seat — it
+     never folded and it still does not (see below). */
+  const theirs = !!(opts && opts.side === 'counterparty');
+  if (theirs) stack = n;
+  else if (!a) stack = n;
   else if (rlNoticesFolded(c))
     stack = n + `<button type="button" class="rl-notices-fab" data-rl-notices-open="${cid}"
       aria-label="${_nea(i18t('ng_notices_fab'))}" title="${_nea(i18t('ng_notices_fab'))}">&#128276;<span class="rl-fab-dot"></span></button>`;
@@ -10761,12 +10782,26 @@ function rlNoticeStackHtml(c, alerts, note, id){
       + a + n;
   return `<div class="rl-notices" id="${_nea(id || 'rl-notices')}">${stack}</div>`;
 }
-function rlFloatingNoticesHtml(c, opts = {}){
-  const alerts = [
+/* ---- THE ALERTS THAT FOLD, AS THEIR OWN POPULATION (13 Aug 2026) ----
+   ONE list, TWO readers. The owner's floating stack folds it behind its bell;
+   the COUNTERPARTY's header panel prints it, because their page's floating
+   bell stood down when they got a bell of their own (see rlNoticeStackHtml and
+   portalAlertsBodyHtml). Naming the list is what stops the two drifting: a
+   notice added here reaches both, and the alternative — the portal
+   re-assembling the same two pieces itself — is how a notice comes to exist on
+   one seat and not the other.
+
+   The readiness signal moved INTO this list rather than riding in as
+   opts.extraNotices from redlinePanesHtml. Same two pieces, one place. */
+function rlSeatAlertsHtml(c, opts = {}){
+  return [
     (window.rlOneNoticeHtml ? rlOneNoticeHtml(c, opts) : '') || '',
+    (window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : '') || '',
     String(opts.extraNotices || ''),
   ].filter(Boolean).join('');
-  return rlNoticeStackHtml(c, alerts, rlReadNoticeHtml() || '', 'rl-notices');
+}
+function rlFloatingNoticesHtml(c, opts = {}){
+  return rlNoticeStackHtml(c, rlSeatAlertsHtml(c, opts), rlReadNoticeHtml() || '', 'rl-notices', opts);
 }
 /* ---- TWO REASONS THIS PERSON CANNOT REACH THE OTHER SIDE, ONE ANSWER ----
    A reviewer mid-review, and somebody who is not the lead of this negotiation.
@@ -12106,8 +12141,11 @@ function redlinePanesHtml(c, opts = {}){
            was a band in #rl-banner until 12 Aug 2026, it is a card here now, and
            it is passed rather than built inside the stack because it is this
            page's own notice with this page's own button on it. */}
-    ${rlFloatingNoticesHtml(c, { ...opts,
-      extraNotices: (window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : '') })}
+    ${''/* The readiness signal is part of rlSeatAlertsHtml now — one named
+           population, read both by this stack and by the counterparty's own
+           alerts panel, so a notice cannot exist on one seat and not the
+           other. */}
+    ${rlFloatingNoticesHtml(c, opts)}
   </div>`;
 }
 
@@ -12223,7 +12261,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlOwnerOpenActions, rlOwnerOpenTotal, rlJumpHtml,
   rlPbFindClause, rlPlaybookProposals, rlFilePlaybookProposal, rlOpenPlaybookReview,
-  rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
+  rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding, rlSeatAlertsHtml,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter, rlCardFilterPass,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlStandardAction,
   redlineCardIds, rlCardRank, rlCardSort, rlOneNoticeHtml, rlNoticeStackHtml, rlFloatingNoticesHtml, rlNoticesFolded, rlSetNoticesFolded,

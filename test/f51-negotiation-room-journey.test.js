@@ -1016,14 +1016,23 @@ describe('the awkward cases', () => {
     win.negoSignalReady(c, { side: 'counterparty', by: 'Erik Lindqvist' });
     const v = theirLink(c);
     assert.ok(v.$('#pt-nego .rl-embed'), 'until a signing link exists, this link is what they have');
-    /* The readiness signal stopped being a band across the top of the contract
-       on 12 Aug 2026 and became a card in the bottom-right stack, folded behind
-       the bell like every other notice. Same sentences, one press away — which
-       is what this presses for. */
-    const bell = v.$('[data-rl-notices-open]');
-    assert.ok(bell, 'the bell says there is something to read');
-    bell.click();
+    /* ---- CLAIM MOVED TWICE, AND THE SECOND MOVE IS THE OWNER'S ----
+       The readiness signal stopped being a band across the top of the contract
+       on 12 Aug 2026 and became a card in the bottom-right stack, folded
+       behind a floating amber bell. On 13 Aug the counterparty's page got a
+       bell of its own, in the header, with an alerts panel behind it — and two
+       bells about one contract is worse than none, so the floating one stood
+       down HERE (and only here; the owner's workbench keeps its own).
+
+       So the notice is in the header panel now. The sentences are unchanged
+       and that is the whole point of keeping this test: what a notice must
+       never do is become unreachable when its door moves. */
+    assert.equal(v.$('[data-rl-notices-open]'), null,
+      'no second bell on their page');
+    assert.ok(v.$('#pt-bell'), 'the header bell is the one door');
     assert.ok(v.$('#nego-ready-signal'), 'and it tells them where the deal stands');
+    assert.ok(v.$('#pt-alerts').contains(v.$('#nego-ready-signal')),
+      'the notice is in the panel behind that bell, not loose on the page');
     const banner = v.$('#nego-ready-signal').textContent.replace(/\s+/g, ' ');
     assert.match(banner, /You signalled ready to sign/);
     assert.match(banner, /will send a signing link when they are ready/,

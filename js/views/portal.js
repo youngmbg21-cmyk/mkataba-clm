@@ -1789,6 +1789,12 @@ function wirePortalNego(c, p){
       portalSaveHeld();
       const foot=document.getElementById('pt-nego-foot');
       if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
+      /* ONE COUNT, MANY SURFACES: the number on the bell has to move at the
+         same moment the wall line's and the Send button's do, or the bell
+         says 3 over a column saying 2 — which is the fault this feature would
+         otherwise create. Repaint, never re-render: a reader may have the
+         panel open. */
+      if(window.portalPaintAlerts) portalPaintAlerts(c, p);
     },
     onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; portalSaveHeld(); },
     onComment:portalNegoComment(p),
@@ -2274,6 +2280,301 @@ function renderShareViewer(p, opts={}){
    with no clause in front of the reader. The per-card verbs are unchanged and
    the head counts what is left, so the answer is still reachable — six presses
    instead of one. See redlinePanesHtml, which is where it was drawn. */
+/* ============================================================
+   THE COUNTERPARTY'S OWN BELL, AND THEIR OWN ALERTS PANEL
+   ============================================================
+   (owner-asked, 13 Aug 2026.) The owner has a bell in the top bar: it carries
+   a count, and pressing it slides an ALERTS panel in from the right listing
+   everything waiting on them, each row a door to the thing itself. The
+   counterparty had nothing of the kind — they get a page and are left to work
+   out for themselves what is outstanding.
+
+   THE OWNER'S BELL AND PANEL CANNOT BE REUSED, and that is the whole shape of
+   this job rather than a detail. They live inside the app shell, and this page
+   hides that shell completely (renderShareWorkbench adds `hidden` to
+   #app-shell). Un-hiding it to get at them would drop the entire workspace —
+   the sidebar, the register, every contract in the book — onto a page that
+   must never show any of it. So this is its own bell and its own panel, built
+   in this screen, wearing the same shape.
+
+   EVERY COUNT IS BORROWED, NEVER INVENTED. The same standing rule the owner's
+   panel follows: a bell saying 3 over a column showing 2 is the fault this
+   feature would otherwise create. Each row below reads the SAME thing the page
+   already prints — the held decisions come from PORTAL_NEGO_DECISIONS, which
+   is what the wall line counts and what the Send button's own label says; the
+   undecided changes are the cards' own population; "the wording changed" is
+   portalChangedText, which is what the Compare button exists for.
+
+   AND COUNTING MUST NOT WRITE. c.changes is read RAW. negoChanges() runs
+   negoInit(), which CREATES a negotiation on any contract that has none — the
+   trap the owner's own panel is already written around, and one that would be
+   silent here because this page rebuilds its contract on every repaint.
+
+   NOTHING INTERNAL EVER LEAKS. There is nothing to leak by construction: every
+   reading below is about the counterparty's own work, taken from the payload
+   and from what this browser is holding. No reviewer, no colleague, no roster
+   and no hint that a review happened — none of those facts exist on this side
+   of the wall at all. */
+const PT_ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
+  ruby:'var(--st-ruby-dot)', gray:'var(--color-neutral-400)' };
+/* Days before expiry at which the link's end date stops being trivia and
+   becomes something to act on. A date three weeks out is a fact nobody needs
+   in an alerts list. */
+const PT_EXPIRY_SOON = 10;
+function portalAlerts(c, p){
+  const out = [];
+  const push = (kind, tone, text, go) => out.push({ kind, tone, text, go: go || null });
+  /* READ-ONLY PAGES DO NOT LIST WORK. Executed, superseded, already answered:
+     those are facts, not doors, and a panel offering four things to do on a
+     sealed contract is worse than no panel. Said plainly and nothing else. */
+  const ex = portalExecuted();
+  if (ex) return [{ kind:'closed', tone:'green', text:i18t('pa_executed'), go:null }];
+  if (PORTAL_OPTS.superseded) return [{ kind:'closed', tone:'amber', text:i18t('pa_superseded'), go:null }];
+  if (PORTAL_OPTS.responded) return [{ kind:'closed', tone:'gray', text:i18t('pa_answered'), go:null }];
+
+  const changes = (c && Array.isArray(c.changes)) ? c.changes : [];
+  /* 1. WHAT IS WAITING ON THEIR ANSWER — the other side's live asks that this
+        browser is not already holding a decision on. The same population the
+        change cards draw and the round queue counts. */
+  const waiting = changes.filter(x => x && x.authorSide === 'owner'
+    && x.status === 'pending' && !x.withdrawn && !PORTAL_NEGO_DECISIONS[x.id]);
+  if (waiting.length) push('answer', 'amber', i18tn('pa_awaiting', waiting.length, { n:waiting.length }),
+    () => portalGoToChange(waiting[0].id));
+  /* 2. WHAT THEY HAVE DECIDED AND NOT SENT. Exactly the number the wall line
+        prints and the Send button carries — one reading, three surfaces. */
+  const held = Object.keys(PORTAL_NEGO_DECISIONS).length
+    + Object.keys(PORTAL_NEGO_PROPOSED).length;
+  if (held) push('held', 'amber', i18tn('pa_held', held, { n:held }),
+    () => portalPressSend());
+  /* 3. THE WORDING MOVED SINCE THEY LAST LOOKED — the Compare button's own
+        reading, so the alert and the button cannot disagree about whether
+        there is anything to compare. */
+  if (portalChangedText()) push('changed', 'amber', i18t('pa_wording_changed'),
+    () => { const b = document.getElementById('pt-compare'); if (b) b.click(); });
+  /* 4. A REPLY ARRIVED ON A CLAUSE. negoThreadUnread is the cards' own
+        predicate — the same one that puts the dot on a card's Discuss. */
+  if (window.negoThreadUnread && window.negoMergedThread){
+    const msgs = PORTAL_OPTS.messages || [];
+    const replied = changes.filter(ch => {
+      try {
+        const t = negoMergedThread(c, ch, msgs);
+        return negoThreadUnread(t, 'counterparty',
+          window.negoThreadSeenAt ? negoThreadSeenAt(PORTAL_OPTS.token || '', ch.id) : 0);
+      } catch (_) { return false; }
+    });
+    if (replied.length) push('reply', 'gray', i18tn('pa_reply', replied.length, { n:replied.length }),
+      () => portalGoToChange(replied[0].id));
+  }
+  /* 5. THEY ARE WAITING FOR YOU TO SIGN — only where this page actually offers
+        the act, read off the button's own gate rather than recomputed. A
+        second copy of negoAlignment here would be free to disagree with the
+        button an inch below it. */
+  const ready = document.getElementById('pt-nego-ready');
+  if (ready && !ready.disabled && !waiting.length && !held)
+    push('sign', 'green', i18t('pa_ready_to_sign'), () => ready.click());
+  /* 6. WHEN THE LINK DIES. A fact, stated once, and only when it is close —
+        no door, because there is nothing on this page that changes it. */
+  const exp = PORTAL_OPTS.share && PORTAL_OPTS.share.expiresAt;
+  if (exp){
+    const days = Math.ceil((Date.parse(exp) - Date.now()) / 86400000);
+    if (isFinite(days) && days <= PT_EXPIRY_SOON)
+      push('expiry', days <= 2 ? 'ruby' : 'gray',
+        days <= 0 ? i18t('pa_expired') : i18tn('pa_expires', days, { n:days, when:String(exp).slice(0,10) }),
+        null);
+  }
+  return out;
+}
+/* A ROW IS A DOOR, and a door that leaves the panel covering the thing it
+   pointed at is not one — so every `go` runs with the panel already shut. */
+function portalGoToChange(id){
+  const card = document.querySelector(`[data-nego-card="${(window.CSS && CSS.escape) ? CSS.escape(String(id)) : String(id)}"]`);
+  if (!card) return;
+  card.scrollIntoView({ block:'center', behavior:'smooth' });
+  try { card.focus({ preventScroll:true }); } catch (_) {}
+}
+/* The page's ONE postbox, pressed by proxy — never a second transport. Same
+   discipline as the card's own Send. */
+function portalPressSend(){
+  const btn = document.querySelector('#pt-nego-foot [data-pt-send], #nego-send-decisions');
+  if (btn && !btn.disabled) btn.click();
+}
+/* ---- THE BELL, IN THEIR HEADER ROW ----
+   Beside Negotiation history and Compare wording, wearing the same treatment.
+   IT COUNTS AND IT HIDES AT ZERO. The owner's old dot was hard-coded markup —
+   always on, counting nothing — and an always-on badge is one people learn to
+   ignore, which is exactly what had happened to it. */
+function portalBellHtml(){
+  return `<button id="pt-bell" class="ui-btn pt-verb pw-id-verb pt-bell" type="button"
+    aria-haspopup="dialog" aria-expanded="false" aria-controls="pt-alerts"
+    title="${esc(i18t('pa_bell_title'))}" aria-label="${esc(i18t('pa_bell_title'))}"
+    >&#128276;<span id="pt-bell-dot" class="pt-bell-dot" hidden>0</span></button>`;
+}
+/* ---- AND THE PANEL, FROM THE RIGHT ----
+   The owner's shape: a title saying ALERTS, a dimmed backdrop, and three ways
+   out — the ✕, the backdrop and Escape. Rendered once into the page (not into
+   the workbench mount, which the embed rebuilds on every change). */
+function portalAlertsShellHtml(){
+  return `<div id="pt-alerts-scrim" class="pt-alerts-scrim" hidden></div>
+  <aside id="pt-alerts" class="pt-alerts" role="dialog" aria-modal="false"
+    aria-label="${esc(i18t('pa_title'))}" aria-hidden="true">
+    <header class="pt-alerts-head">
+      <span class="pt-alerts-title">${esc(i18t('pa_title'))}</span>
+      <button id="pt-alerts-close" class="pt-alerts-x" type="button"
+        title="${esc(i18t('pa_close'))}" aria-label="${esc(i18t('pa_close'))}">&times;</button>
+    </header>
+    <div id="pt-alerts-body" class="pt-alerts-body"></div>
+  </aside>`;
+}
+let PT_ALERT_ROWS = [];
+/* ---- AND THE PAGE'S OWN NOTICES COME IN HERE ----
+   The workbench folds its notices behind a floating amber bell. On THIS page
+   that bell stood down when the header got one (two bells about one contract
+   is worse than none), so the notices it used to fold are printed at the top
+   of this panel instead — the header bell is the one door, and nothing it
+   replaced may become unreachable. rlSeatAlertsHtml is the ONE population, so
+   a notice added to the workbench's stack arrives here too rather than
+   existing on one seat only.
+
+   NOTHING INTERNAL COMES WITH THEM: on this seat rlOneNoticeHtml's two
+   sources — the review banner and the desk band — both refuse before they
+   draw a word, so what reaches this panel is the readiness signal and
+   whatever else is explicitly meant for the counterparty. */
+function portalSeatNoticesHtml(c){
+  if (!window.rlSeatAlertsHtml) return '';
+  try { return rlSeatAlertsHtml(c, { side:'counterparty', readonly:portalReadOnly() }) || ''; }
+  catch (_) { return ''; }
+}
+function portalAlertsBodyHtml(rows, notices){
+  const n = String(notices || '');
+  const wrap = n ? `<div class="pt-alerts-notices">${n}</div>` : '';
+  if (!rows.length) return wrap + `<div class="pt-alerts-empty">
+    <div class="pt-alerts-tick">&#10003;</div>
+    <div class="pt-alerts-none">${esc(i18t('pa_nothing'))}</div>
+    <div class="pt-alerts-sub">${esc(i18t('pa_nothing_sub'))}</div>
+  </div>`;
+  return wrap + `<div class="pt-alerts-scope">${esc(i18t('pa_scope'))}</div>`
+    + rows.map((a, i) => a.go
+      ? `<button class="pt-alert" data-pt-alert="${i}" data-pt-kind="${esc(a.kind)}" type="button">
+          <span class="pt-alert-dot" style="background:${PT_ALERT_TONE[a.tone] || PT_ALERT_TONE.gray}"></span>
+          <span class="pt-alert-t">${esc(a.text)}</span></button>`
+      /* A FACT IS NOT A DOOR. The expiry date and the read-only reasons have
+         nowhere to send anybody, so they are not drawn as pressable. */
+      : `<div class="pt-alert pt-alert-flat" data-pt-kind="${esc(a.kind)}">
+          <span class="pt-alert-dot" style="background:${PT_ALERT_TONE[a.tone] || PT_ALERT_TONE.gray}"></span>
+          <span class="pt-alert-t">${esc(a.text)}</span></div>`).join('');
+}
+function portalAlertsOpen(on){
+  const panel=document.getElementById('pt-alerts');
+  const scrim=document.getElementById('pt-alerts-scrim');
+  const bell=document.getElementById('pt-bell');
+  if(!panel) return;
+  panel.classList.toggle('open', !!on);
+  panel.setAttribute('aria-hidden', on?'false':'true');
+  if(scrim) scrim.hidden=!on;
+  if(bell) bell.setAttribute('aria-expanded', on?'true':'false');
+}
+const portalAlertsClose = () => portalAlertsOpen(false);
+/* Repainted rather than re-rendered, so the count and the rows follow the page
+   without the panel closing under a reader who has it open. */
+function portalPaintAlerts(c, p){
+  const bell=document.getElementById('pt-bell');
+  if(!bell) return;
+  let rows=[]; try{ rows=portalAlerts(c,p)||[]; }catch(_){ rows=[]; }
+  PT_ALERT_ROWS=rows;
+  const notices=portalSeatNoticesHtml(c);
+  const dot=document.getElementById('pt-bell-dot');
+  /* THE COUNT COUNTS, AND IT HIDES AT ZERO. A read-only page's single sentence
+     is not a count — there is nothing waiting on anybody — so it does not
+     wear a number. */
+  const n=rows.filter(r=>r.kind!=='closed').length;
+  if(dot){ dot.textContent=n>9?'9+':String(n); dot.hidden=!n; }
+  /* AND THE BELL ITSELF STANDS DOWN WHEN THERE IS NOTHING AT ALL, which is
+     what stops it being furniture on a finished contract. */
+  /* A NOTICE IS NOT A COUNT, but it is still something to read — so it keeps
+     the bell on screen without putting a number on it. Hiding the bell with a
+     notice behind it would make that notice unreachable, which is the one
+     thing the floating bell standing down must not cost. */
+  bell.hidden=!rows.length && !notices;
+  const body=document.getElementById('pt-alerts-body');
+  if(body) body.innerHTML=portalAlertsBodyHtml(rows, notices);
+}
+function wirePortalAlerts(c, p){
+  portalPaintAlerts(c, p);
+  const root=document.getElementById('share-root');
+  if(!root || root._ptAlertsWired) return;
+  root._ptAlertsWired=true;
+  /* ONE DELEGATED LISTENER on the page root: the header and the panel body are
+     both repainted by paths that run after this, and an element-bound handler
+     is dropped by the first of them. */
+  document.addEventListener('click', ev => {
+    const t=ev.target;
+    if(!t || !t.closest) return;
+    if(t.closest('#pt-bell')){ ev.preventDefault();
+      portalAlertsOpen(document.getElementById('pt-alerts')
+        && !document.getElementById('pt-alerts').classList.contains('open'));
+      return; }
+    if(t.closest('#pt-alerts-close') || t.closest('#pt-alerts-scrim')){ portalAlertsClose(); return; }
+    const row=t.closest('[data-pt-alert]');
+    if(row){
+      const a=PT_ALERT_ROWS[Number(row.getAttribute('data-pt-alert'))];
+      /* THE PANEL CLOSES BEHIND THE DOOR, before the door is opened, so
+         nothing lands under a panel that is still covering it. */
+      portalAlertsClose();
+      if(a && typeof a.go==='function') a.go();
+    }
+  });
+  document.addEventListener('keydown', ev => {
+    if(ev.key==='Escape') portalAlertsClose();
+  });
+}
+function portalAlertsStyle(){
+  if(document.getElementById('pt-alerts-style')) return;
+  const el=document.createElement('style'); el.id='pt-alerts-style';
+  el.textContent=`
+    .pt-bell{position:relative;}
+    .pt-bell-dot{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;
+      border-radius:99px;background:var(--st-amber-fg);color:var(--color-surface);
+      font-family:var(--font-mono);font-size:9.5px;font-weight:700;line-height:16px;text-align:center;}
+    .pt-alerts-scrim{position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:70;}
+    .pt-alerts{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:71;
+      background:var(--color-surface);border-left:1px solid var(--color-divider);
+      box-shadow:-14px 0 40px rgba(15,23,42,.18);display:flex;flex-direction:column;
+      transform:translateX(102%);transition:transform .22s ease,visibility 0s linear .22s;
+      visibility:hidden;}
+    .pt-alerts.open{transform:none;visibility:visible;transition:transform .22s ease;}
+    .pt-alerts-head{flex:none;display:flex;align-items:center;gap:8px;
+      padding:12px 14px;border-bottom:1px solid var(--color-divider);}
+    .pt-alerts-title{flex:1;font-size:10.5px;font-weight:700;letter-spacing:.12em;
+      text-transform:uppercase;color:var(--color-neutral-600);}
+    .pt-alerts-x{border:0;background:none;font:inherit;font-size:19px;line-height:1;cursor:pointer;
+      color:var(--color-neutral-600);padding:0 4px;}
+    .pt-alerts-body{flex:1;min-height:0;overflow-y:auto;padding:10px 12px;}
+    /* The workbench's own notice cards, printed here instead of folded behind
+       a second bell. They are built for a floating stack about 320px wide, so
+       they need nothing but room to be a block. */
+    .pt-alerts-notices{display:grid;gap:8px;margin-bottom:10px;}
+    .pt-alerts-notices>*{max-width:100%;position:static;}
+    .pt-alerts-scope{font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--color-neutral-600);margin-bottom:8px;}
+    .pt-alert{display:flex;gap:9px;width:100%;padding:9px 2px;border:0;
+      border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);
+      background:none;font:inherit;text-align:left;color:inherit;cursor:pointer;align-items:flex-start;}
+    .pt-alert-flat{cursor:default;}
+    .pt-alert:not(.pt-alert-flat):hover{background:color-mix(in srgb,var(--color-text) 5%,transparent);}
+    .pt-alert-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:5px;}
+    .pt-alert-t{flex:1;min-width:0;font-size:12px;line-height:1.45;font-weight:600;}
+    .pt-alerts-empty{padding:26px 6px;text-align:center;}
+    .pt-alerts-tick{width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;
+      border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);}
+    .pt-alerts-none{font-size:13px;font-weight:600;color:var(--color-text);}
+    .pt-alerts-sub{font-size:11.5px;color:var(--color-neutral-600);margin-top:4px;line-height:1.5;}
+    /* ---- NO BELL ON THE PHONE, AND THAT IS DELIBERATE ----
+       Below 768px this page draws its notices in flow and the header has no
+       room for another control. The phone keeps what it has. */
+    @media (max-width:767px){ .pt-bell{display:none;} .pt-alerts,.pt-alerts-scrim{display:none;} }
+  `;
+  document.head.appendChild(el);
+}
 function portalWorkbenchStyle(){
   if(document.getElementById('pw-style')) return;
   const el=document.createElement('style'); el.id='pw-style';
@@ -2440,6 +2741,13 @@ function renderShareWorkbench(p, opts={}){
       ${''/* Negotiation history and Compare wording — the reading verbs, on
              the row with the other reading controls. See portalReadingBtnsHtml. */}
       ${portalReadingBtnsHtml()}
+      ${''/* ---- AND THEIR OWN BELL (owner-asked, 13 Aug 2026) ----
+             The owner has one in the top bar with a count and a panel behind
+             it; the counterparty had nothing, and was left to work out for
+             themselves what was outstanding. The owner's cannot be reused —
+             it lives in the app shell, which this page hides completely — so
+             this is its own, wearing the same shape. See portalAlerts. */}
+      ${portalBellHtml()}
       ${''/* The same reading control the owner's bench carries — the
              counterparty is the customer, and squinting at 11px wording is
              not a seat-relative fact. The stepper is the shared component
@@ -2469,7 +2777,13 @@ function renderShareWorkbench(p, opts={}){
       ${handover}
     </div>
     <div class="pw-mount"><div id="pt-nego"></div></div>
-  </div>`;
+  </div>
+  ${''/* The panel is a LAYER over the page, rendered beside .pw-page rather
+         than inside the workbench mount — the embed rebuilds that mount on
+         every change, and a panel inside it would close under a reader who
+         had it open. */}
+  ${portalAlertsShellHtml()}`;
+  portalAlertsStyle();
   /* The reading control: the stepper presses the shared rlSetDocType, which
      updates every mounted workbench root, this embed included. */
   if(window.rlWireTypeStep) rlWireTypeStep(root);
@@ -2484,6 +2798,12 @@ function renderShareWorkbench(p, opts={}){
      function, same options — this changes the room the workbench stands in,
      never the workbench. */
   wirePortalNego(c, p);
+  /* ---- AND THE BELL, AFTER THE WORKBENCH ----
+     Wired LAST, deliberately: two of its readings are taken off the page the
+     workbench has just drawn — the Ready-to-sign button's own disabled gate,
+     and the change cards it counts — so painting before the mount exists
+     would read an empty page and hide a bell that should be lit. */
+  wirePortalAlerts(c, p);
   /* Polling is NOT started here. portalEntry owns it — it holds the token and
      the fetched envelope, which is what portalStartPolling actually takes.
      Starting it from the renderer passed the wrong arguments AND left a live
@@ -3792,4 +4112,6 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});
+Object.assign(window,{portalAlerts,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+  portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
+  portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName});
