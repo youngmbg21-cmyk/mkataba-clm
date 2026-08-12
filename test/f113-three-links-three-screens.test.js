@@ -73,7 +73,12 @@ describe('f113 — a negotiation link cannot sign', () => {
     const v = open_('negotiate');
     assert.ok(v.has('pw-page'), 'the full-window workbench');
     assert.ok(v.has('pt-nego'), 'with the shared component mounted');
-    assert.ok(v.has('nego-cp-name'), 'and the field that gates every send');
+    /* The name box that used to stand here is gone (owner-asked, 12 Aug 2026:
+       the header carries verbs now, not fields). What gated every send was the
+       NAME, not the box — the page reads it off the reader's remembered answer
+       or off whoever the link was addressed to, and asks once if neither
+       exists. So the claim moved to the verb the box used to gate. */
+    assert.ok(v.has('pt-nego-ready'), 'and the deal verbs a negotiation link carries');
   });
 
   test('even with every change resolved, it does not become a signing page', () => {

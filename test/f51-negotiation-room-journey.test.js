@@ -126,7 +126,19 @@ function theirLink(c, o = {}){
       return el;
     },
     readyBtn: () => $('#pt-nego-ready'),
-    why: () => ($('#pt-ready-why') || {}).textContent?.replace(/\s+/g, ' ').trim() || '',
+    /* WHY THE GATE IS SHUT, read where the page now says it. It was a sentence
+       beside the button in the full-width strip; the strip became a group in
+       the header row (owner-asked, 12 Aug 2026) and a header has room for
+       buttons and none for paragraphs. The sentence is not lost — it is the
+       button's own tooltip, which is what a reader gets when they go to press
+       it, and the outstanding clauses are named at length in the round queue
+       down the left. Same string, one source: the builder writes both. */
+    why: () => {
+      const b = $('#pt-nego-ready');
+      const sentence = (b && b.getAttribute('title')) || '';
+      const beside = ($('#pt-ready-why') || {}).textContent || '';
+      return (beside || sentence).replace(/\s+/g, ' ').trim();
+    },
     /* The response IS the body, on every action. Read exactly that, so a
        regression that re-wrapped it would fail here rather than be tolerated. */
     sent: () => p.log.sent.map(x => x.body).filter(Boolean),
@@ -339,12 +351,17 @@ describe('they work through the changes', () => {
   test('and a comment with nobody\'s name on it is not sent', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c, { recipientName: '' });
+    /* Nobody's name means nobody's name: the page has nothing on record, so it
+       ASKS (the box that used to stand in the header went with the strip on
+       12 Aug 2026). Declining the question is what "nobody's name" is now, and
+       the refusal it produces is the same one the empty box produced. */
+    v.win.promptDialog = async () => null;
     const id = filed[0].id;
     await v.press(`[data-nego-vis="shared"][data-for="${id}"]`);
     v.$(`[id="nego-ti-${id}"]`).value = 'Who is this from?';
     await v.press(`[data-nego-send="${id}"]`);
     assert.equal(v.p.log.messages.length, 0);
-    assert.match(v.toasts(), /Enter your full name/);
+    assert.match(v.toasts(), /nothing is sent without it/);
   });
 
   test('and the sidebar has one face, which nothing can take away', async () => {
@@ -380,42 +397,74 @@ describe('they work through the changes', () => {
 /* ============================================================
    STEP 4 — who is answering, asked in the room
    ============================================================ */
+/* THE BOX BECAME A QUESTION (owner-asked, 12 Aug 2026: the "YOU / Nordfrakt
+   Logistik AB" box in the header is deleted, and the deal verbs move up into
+   the space it held). The FACT it collected could not go with it — every send
+   is attributed to a person, and refusing while pointing at a box that no
+   longer exists is the dead end this file already has a scar from. So the page
+   answers from what it knows first, and asks only when it knows nothing:
+
+     the name they typed earlier in this browser (remembered)
+       → else whoever the sender addressed the link to
+       → else the question, once, remembered on the way through.
+
+   The order is deliberate, and the last link is honest about what it is: on
+   real links the recipient field is regularly the counterparty COMPANY, and
+   the deleted box carried exactly that as its seed — so a reader who pressed
+   Send without touching it filed the organisation then too. Keeping it here
+   preserves what happened before rather than changing it. */
 describe('their name is collected where the sending happens', () => {
-  test('the field is on the page and prefilled from the share\'s recipient', async () => {
+  test('the box is gone from the header, and the fact it collected is not', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
-    /* #pt-name lived in the respond aside, which W2 deleted along with the
-       duplicate document and the standalone clause editor. The field itself is
-       not gone — it could not be, it gates every send — it is the workbench's
-       own #nego-cp-name, which portalAuthor() already preferred over #pt-name.
-       One box, on the page that sends, exactly as this test has always said. */
-    const box = v.$('#nego-cp-name');
-    assert.ok(box, 'the field that gates every send must be on the page that sends');
-    assert.equal(box.value, 'Erik Lindqvist');
+    assert.equal(v.$('#nego-cp-name'), null, 'no field in the header — verbs live there now');
+    assert.equal(v.win.portalResponderName(), 'Erik Lindqvist',
+      'the page still knows who is answering: the link was addressed to him');
   });
 
-  test('with nobody named on the share it opens empty, not filled with the company', async () => {
-    const { c } = await ownerProposed();
-    const v = theirLink(c, { recipientName: '' });
-    assert.equal(v.$('#nego-cp-name').value, '',
-      'filing "Nordfrakt Logistik AB" as the person who answered would be a lie told quietly');
-  });
+  test('with nobody named on the share it knows nothing, rather than guessing the company',
+    async () => {
+      const { c } = await ownerProposed();
+      const v = theirLink(c, { recipientName: '' });
+      assert.equal(v.win.portalResponderName(), '',
+        'filing "Nordfrakt Logistik AB" as the person who answered would be a lie told quietly');
+    });
 
-  test('an empty name blocks the send and says where the box is', async () => {
+  test('knowing nothing, it asks — and a refusal to answer blocks the send', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c, { recipientName: '' });
+    let asked = 0;
+    v.win.promptDialog = async () => { asked++; return null; };
     await v.press(`[data-nego-accept="${filed[0].id}"]`);
     await v.press('#nego-send-decisions');
+    assert.equal(asked, 1, 'the question is put in front of them, not a box somewhere');
     assert.equal(v.last(), null, 'nothing may be filed without a name against it');
-    assert.match(v.toasts(), /Enter your full name — the box is at the top of this page/);
+    assert.match(v.toasts(), /name/i, 'and they are told why nothing was sent');
   });
 
-  test('the name typed on the page is the one that travels', async () => {
+  test('the name they give is the one that travels, and it is asked once', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c, { recipientName: '' });
-    v.$('#nego-cp-name').value = 'Erik Lindqvist';
+    v.p.rememberingWorks();     // this stage has no localStorage of its own
+    let asked = 0;
+    v.win.promptDialog = async () => { asked++; return 'Erik Lindqvist'; };
     await v.press(`[data-nego-accept="${filed[0].id}"]`);
     await v.press('#nego-send-decisions');
+    assert.equal(v.last().name, 'Erik Lindqvist');
+    assert.equal(v.win.portalResponderName(), 'Erik Lindqvist',
+      'remembered, so the next press does not ask again');
+    assert.equal(asked, 1, 'once per browser, not once per press');
+  });
+
+  test('the name the link was addressed to travels without asking anybody', async () => {
+    const { c, filed } = await ownerProposed();
+    const v = theirLink(c);
+    let asked = 0;
+    v.win.promptDialog = async () => { asked++; return null; };
+    await v.press(`[data-nego-accept="${filed[0].id}"]`);
+    await v.press('#nego-send-decisions');
+    assert.equal(asked, 0,
+      'a modal between a reader and the Send they just pressed is worse than the box was');
     assert.equal(v.last().name, 'Erik Lindqvist');
   });
 });

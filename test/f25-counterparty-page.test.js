@@ -100,6 +100,12 @@ describe('F25 — proposing edits, clause by clause', () => {
   test('he cannot submit without saying who he is', async () => {
     const p2 = buildPortal();
     p2.open(sharePayloadFor(p2, supplyContract()));
+    /* HE IS ASKED NOW, RATHER THAN REFUSED AT A BOX (12 Aug 2026). The header
+       box went with the strip; the page reads the name it already has and puts
+       the question in front of him only when it has none. Cancelling that
+       question is this test's "without saying who he is" — and the refusal it
+       produces must be exactly the one the box produced. */
+    p2.win.promptDialog = async () => null;
     await p2.click('pt-redline');
     const host = p2.win.document.getElementById('pt-clause-editor');
     const row = Array.from(host.querySelectorAll('[data-cl]'))

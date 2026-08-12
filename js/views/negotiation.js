@@ -5873,11 +5873,19 @@ function redlineLayoutCss(){
   .rl-notices-fab:hover{filter:brightness(.97)}
   .rl-fab-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;
     border-radius:999px;background:var(--st-amber-dot);border:2px solid var(--color-surface)}
-  .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--color-divider);
-    background:var(--color-surface);border-radius:999px;padding:5px 11px;font:inherit;font-size:11px;
-    font-weight:600;color:var(--color-neutral-600);cursor:pointer;
+  /* ---- AND HIDE IS A CONTROL, SO IT IS COLOURED LIKE ONE ----
+     Reported (Young, 12 Aug 2026): "the hide button needs to be more visible".
+     It was grey on white at the corner of a floating card and read as a caption
+     rather than as something to press. It takes the accent wash the rest of the
+     app's quiet controls wear — the same three tokens, not a new colour — which
+     is enough to say "pressable" without competing with the amber bell it turns
+     back into. */
+  .rl-notices-min{pointer-events:auto;align-self:flex-end;border:1px solid var(--color-accent-300);
+    background:var(--color-accent-100);border-radius:999px;padding:5px 11px;font:inherit;font-size:11px;
+    font-weight:700;color:var(--color-accent-800);cursor:pointer;
     box-shadow:0 16px 36px -14px rgba(15,23,42,.34)}
-  .rl-notices-min:hover{color:var(--color-text);border-color:var(--color-neutral-400)}
+  .rl-notices-min:hover{background:var(--color-accent-200,var(--color-accent-100));
+    border-color:var(--color-accent)}
   /* Focus mode is the document and nothing else, and a floating card over it
      is the "nothing else". */
   .redline-page.rl-focus .rl-notices{display:none}
