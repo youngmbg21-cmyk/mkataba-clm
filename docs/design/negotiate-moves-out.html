@@ -294,7 +294,7 @@
     <p class="standfirst">Negotiation stops being a tab inside one agreement and becomes a place of its own in the main menu — with a door in from the Document tab and a way back out.</p>
     <div class="meta">
       <span>Agreed 12 Aug 2026</span>
-      <span>Design only · nothing built yet</span>
+      <span>Settled · nothing built yet</span>
       <span>Desktop and phone</span>
     </div>
   </header>
@@ -302,14 +302,17 @@
   <div class="tag">Decision</div>
   <section class="tagged">
     <h2>What was decided</h2>
-    <p class="lead">Four things, and everything below follows from them.</p>
+    <p class="lead">Everything below follows from these. Nothing here is still open.</p>
     <ul>
       <li>The contract room keeps its tab row, minus one: <strong>Key terms · Document · Signing · History</strong>.</li>
-      <li><strong>Negotiate becomes its own door in the left menu</strong>, directly under Contracts.</li>
-      <li>You get into a negotiation by pressing <strong>Open Negotiate on the Document tab</strong>.</li>
+      <li><strong>Negotiations becomes its own door in the left menu</strong>, directly under Contracts.</li>
+      <li>You get into one by pressing <strong>Open Negotiate on the Document tab</strong>.</li>
       <li>The negotiation screen carries <strong>no room tabs</strong> — it is its own screen, not a tab of the contract.</li>
+      <li>The menu door <strong>reopens the last negotiation you were in</strong>; when there isn't one, it <strong>lists the live ones</strong>.</li>
+      <li>The negotiation screen carries a <strong>back arrow to that agreement's Document tab</strong>.</li>
+      <li>The <strong>phone changes the same way</strong>.</li>
     </ul>
-    <p>Two follow-up answers shape the rest: pressing Negotiate in the menu <strong>reopens the last negotiation you were in</strong>, and the negotiation screen <strong>carries a back arrow to the contract</strong>. The phone changes the same way.</p>
+    <p><strong>A place is a noun, an act is a verb.</strong> The menu door reads <em>Negotiations</em> — it sits among Contracts, Calendar, Insights, Templates, and it is a place you go. The button on the Document tab stays <em>Open Negotiate</em> — it is a thing you do, to this one agreement. The two words are different on purpose.</p>
     <div class="note">
       <p class="h">Worth knowing</p>
       <p>Negotiate is already a full screen behind the scenes — it only <em>dressed up</em> as a tab by drawing the same tab row at the top. So this is a change of doors and signposts, not a rebuild of the negotiation desk itself.</p>
@@ -319,7 +322,7 @@
   <div class="tag">The menu</div>
   <section class="tagged">
     <h2>A new door, second in the list</h2>
-    <p>Negotiate sits directly under Contracts, above Calendar. It carries its own count — and that count means something new (see <em>The number</em> below).</p>
+    <p><strong>Negotiations</strong> sits directly under Contracts, above Calendar. It carries its own count — and that count means something new (see <em>The number</em> below).</p>
     <div class="mocks">
       <div class="mock">
         <p class="mock-cap"><b>Today</b></p>
@@ -337,7 +340,7 @@
         <div class="nav">
           <i><span class="dot"></span>Home</i>
           <i><span class="dot"></span>Contracts<span class="n">145</span></i>
-          <i class="new"><span class="dot"></span>Negotiate<span class="n">3</span></i>
+          <i class="new"><span class="dot"></span>Negotiations<span class="n">3</span></i>
           <i><span class="dot"></span>Calendar<span class="n">0</span></i>
           <i><span class="dot"></span>Insights</i>
           <i><span class="dot"></span>Templates<span class="n">29</span></i>
@@ -345,8 +348,8 @@
         </div>
       </div>
     </div>
-    <h3>When you are standing in a negotiation, Negotiate is the lit door</h3>
-    <p>Today the negotiation screen lights up <em>Contracts</em>, because it had no door of its own. It now lights <strong>Negotiate</strong> — and only Negotiate. One screen, one lit door, or the menu starts disagreeing with the page beside it.</p>
+    <h3>When you are standing in a negotiation, Negotiations is the lit door</h3>
+    <p>Today the negotiation screen lights up <em>Contracts</em>, because it had no door of its own. It now lights <strong>Negotiations</strong> — and only that one. One screen, one lit door, or the menu starts disagreeing with the page beside it.</p>
     <h3>The tooltip should name what it will open</h3>
     <p>Because the door reopens the last negotiation, hovering it should say which one: <em>“Reopen: Mutual NDA — Saw Sawa LLC.”</em> Cheap to do, and it removes the only real surprise in the design.</p>
   </section>
@@ -415,7 +418,7 @@
       <span class="arrow">→</span>
       <div class="step"><span class="s">Work</span><span class="t">Negotiate screen</span><span class="d">Its own screen. No room tabs. Back arrow in the header.</span></div>
       <span class="arrow">→</span>
-      <div class="step"><span class="s">Return</span><span class="t">Menu · Negotiate</span><span class="d">Reopens exactly where you left off, from anywhere in the app.</span></div>
+      <div class="step"><span class="s">Return</span><span class="t">Menu · Negotiations</span><span class="d">Reopens exactly where you left off, from anywhere in the app.</span></div>
     </div>
   </section>
 
@@ -425,19 +428,37 @@
     <p>The rule is simple; three situations sit underneath it and each needs an answer, or the door breaks the first week.</p>
     <div class="scroller">
       <table>
-        <thead><tr><th>When you press Negotiate</th><th>What happens</th></tr></thead>
+        <thead><tr><th>When you press Negotiations</th><th>What happens</th></tr></thead>
         <tbody>
           <tr><td>You were in one, and it is still live</td><td>It opens, on the same reading and the same filter you left it on. This is the normal case.</td></tr>
-          <tr><td>You have never opened one</td><td>An empty screen that says so and offers the way in: <em>“No negotiation open. Pick an agreement to negotiate”</em> — with a short list of the agreements that currently have one running.</td></tr>
-          <tr><td>The last one is signed, closed, or no longer yours to see</td><td>Same empty screen with the same list. Reopening a finished argument would be worse than showing nothing.</td></tr>
+          <tr><td>You have never opened one</td><td>The list (below). It says so plainly at the top: <em>“Nothing open. Pick a negotiation to go into.”</em></td></tr>
+          <tr><td>The last one is signed, closed, or no longer yours to see</td><td>The same list. Reopening a finished argument would be worse than showing nothing.</td></tr>
         </tbody>
       </table>
     </div>
     <p>The memory is <strong>per person, per computer</strong>, and survives closing the browser. It never travels to anyone else.</p>
-    <div class="note">
-      <p class="h">Said once, then left alone</p>
-      <p>That empty screen is doing the job a list of live negotiations would have done permanently. If people press Negotiate and land on it often — or start using it to jump between agreements — that is the signal the door wants to be a list after all. Worth watching, not worth arguing about now.</p>
+
+    <h3>The list</h3>
+    <p>Every agreement with a negotiation running that you are allowed to see — newest movement at the top. One line each, and the line answers the only question worth asking from outside: <em>is this one waiting on me?</em></p>
+    <div class="mock" style="margin:18px 0 22px">
+      <p class="mock-cap"><b>Negotiations · the list</b><span style="text-transform:none;letter-spacing:0">Nothing open. Pick a negotiation to go into.</span></p>
+      <div class="scroller">
+        <table style="margin:0;border:none;box-shadow:none">
+          <thead><tr><th>Agreement</th><th>Where it is</th><th>Waiting</th></tr></thead>
+          <tbody>
+            <tr><td>Mutual NDA — Saw Sawa LLC</td><td>MK-348 · Round 1 · You lead</td><td><span class="pill">1 needs you</span></td></tr>
+            <tr><td>Supply Agreement — Bahari Foods</td><td>MK-311 · Round 3 · Amina leads</td><td><span class="no">With them</span></td></tr>
+            <tr><td>Lease — Westlands Unit 4</td><td>MK-296 · Round 2 · You lead</td><td><span class="yes">Nothing outstanding</span></td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+    <p>Pressing a line goes into that negotiation, exactly as the Document tab's button would. Three rules keep this a signpost rather than a second Contracts register:</p>
+    <ul>
+      <li><strong>Live negotiations only.</strong> Not every agreement — the register is where you go for those, and two lists of all 145 contracts would eventually disagree.</li>
+      <li><strong>No filters, no search, no columns to sort.</strong> The moment it needs those, it has become the register.</li>
+      <li><strong>It obeys who may see what.</strong> A negotiation on a stream you cannot reach does not appear here, exactly as it does not appear in Contracts.</li>
+    </ul>
   </section>
 
   <div class="tag">The number</div>
@@ -456,7 +477,7 @@
   <section class="tagged">
     <h2>The phone changes the same way</h2>
     <p>Half of this is already true on the phone. The contract screen there has only Document, Key terms and History — <strong>Negotiate was never a tab</strong> — and the negotiation opens as its own full screen under a back bar. That back bar is exactly the back door this design asks for.</p>
-    <p>So the phone needs one thing: <strong>Negotiate joins the bottom bar</strong>, with the same count and the same reopen-the-last-one behaviour.</p>
+    <p>So the phone needs one thing: <strong>Negotiations joins the bottom bar</strong>, with the same count, the same reopen-the-last-one behaviour and the same list behind it.</p>
     <div class="mocks">
       <div class="mock">
         <p class="mock-cap"><b>Today</b></p>
@@ -464,10 +485,11 @@
       </div>
       <div class="mock">
         <p class="mock-cap"><b>Proposed</b></p>
-        <div class="phone"><div class="body"></div><div class="phonebar"><span class="on">Home</span><span>Contracts</span><span class="new">Negotiate</span><span>Approvals</span></div></div>
+        <div class="phone"><div class="body"></div><div class="phonebar"><span class="on">Home</span><span>Contracts</span><span class="new">Negotiations</span><span>Approvals</span></div></div>
       </div>
     </div>
     <p>Four is the most that bar will hold comfortably. If a fifth is ever wanted, something has to move to More first.</p>
+    <p><strong>One thing to measure rather than decide here:</strong> “Negotiations” is a long word for a bar that has to hold four labels on a small phone. It gets measured on the narrowest phone we support, and if it crowds its neighbours the phone label shortens — the <em>place</em> is still Negotiations everywhere it has room to say so. Shrinking a word to fit a bar is not renaming the door.</p>
   </section>
 
   <div class="tag">Elsewhere</div>
@@ -490,18 +512,18 @@
     <p>The counterparty's page never had these tabs and is untouched. Sharing, signing links, the approval chain, internal review, the negotiation desk and every rule about who may do what all sit underneath this and are unaffected. Nothing about how a change is filed, held or sent moves.</p>
   </section>
 
-  <div class="tag">Open</div>
+  <div class="tag">Settled</div>
   <section class="tagged">
-    <h2>Still to decide</h2>
+    <h2>The last three answers, and why they went that way</h2>
     <ol class="qs">
-      <li><b>Where does the back arrow land — Document, or wherever you came from?</b><span>The design says always Document. It is predictable, and “wherever you came from” means the same button does five different things.</span></li>
-      <li><b>Does the empty screen list live negotiations, or just point at Contracts?</b><span>A short list is more useful and costs little. It is also, quietly, the negotiations list — which is why I would keep it short and plain rather than let it grow into a second register.</span></li>
-      <li><b>Should “Negotiate” be renamed “Negotiations”?</b><span>Everything else in that menu is a noun — Contracts, Calendar, Insights, Templates. A verb in the list reads as a button rather than a place. Small, but it is the word people will see a hundred times a day.</span></li>
+      <li><b>The back arrow always lands on Document.</b><span>Not “wherever you came from” — that makes one button do five different things, and a way out you cannot predict is not really a way out. Document is also where the door in lives, so the journey closes on itself.</span></li>
+      <li><b>The list of live negotiations is in.</b><span>It shows only what is actually being argued over, and it stays deliberately plain — no filters, no search, no sorting. Those are the things that would turn a signpost into a second Contracts register, and two registers eventually disagree.</span></li>
+      <li><b>The door is called Negotiations.</b><span>A noun among nouns. The button on the Document tab keeps its verb — <em>Open Negotiate</em> — because a place and an act should not share a word.</span></li>
     </ol>
   </section>
 
   <footer>
-    <p>Design only. No code has been written or changed. Once these three are settled the build is a navigation change — a door added, a tab removed, a header rewritten and a phone bar widened — plus the tests that keep them honest.</p>
+    <p>Design only. No code has been written or changed. Every question this design raised is now answered, so the build is a navigation change — a door added, a tab removed, a header rewritten, a plain list built and a phone bar widened — plus the tests that keep each of them honest.</p>
   </footer>
 
 </div>
