@@ -249,12 +249,33 @@ describe('the signer row reports sent → opened → signed, not route order', (
     assert.match(html, /NOT SENT YET/, 'the live truth: they currently have no way in');
   });
 
+  /* An internal row is never a LINK state — they sign in-app — but from
+     12 Aug 2026 it is not silent either: the turn email is recorded, so the row
+     says whether they have been told. Untold and it is their turn is still
+     SIGNING NOW, which is the claim this test has always made. */
   test('an INTERNAL signer whose turn it is still reads SIGNING NOW — they sign in-app', () => {
+    const { html } = panel({ plan: [
+      { id: 'S1', order: 1, party: 'internal', name: 'Amina', memberId: 'u1', email: 'amina@x.com', signed: false },
+      { id: 'S2', order: 2, party: 'counterparty', name: 'Erik', email: 'e@n.se', signed: false },
+    ] });
+    assert.match(html, /SIGNING NOW/);
+    assert.match(html, /not told yet/, 'and says the nudge has not gone, which used to be invisible');
+    assert.match(html, /data-sp-notify="S1"/, 'with the door that sends it');
+  });
+
+  /* AND AN INTERNAL ROW NOBODY CAN BE WRITTEN TO SAYS SO. Both send paths used
+     to do nothing at all when there was no address — the owner was told
+     nothing and the signer was told nothing, which is the state this row exists
+     to make impossible. No resend is offered, because the fix is the route or
+     the team record rather than another press. */
+  test('an internal signer with no address anywhere says so, and offers no useless press', () => {
     const { html } = panel({ plan: [
       { id: 'S1', order: 1, party: 'internal', name: 'Amina', memberId: 'u1', signed: false },
       { id: 'S2', order: 2, party: 'counterparty', name: 'Erik', email: 'e@n.se', signed: false },
     ] });
-    assert.match(html, /SIGNING NOW/);
+    assert.match(html, /NO ADDRESS/);
+    assert.match(html, /no email address on file, so they cannot be told/);
+    assert.ok(!/data-sp-notify/.test(html), 'a button that always fails is worse than no button');
   });
 
   test('static mode (no tracked links) keeps the legacy wording rather than claiming "not sent"', () => {

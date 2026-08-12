@@ -1350,6 +1350,7 @@ const STRINGS = {
     co_link_updated_not_sent: 'Link updated — but not sent',
     co_if_they_open: 'if they open their link',
     co_send_again: 'Send it again',
+    co_open_link_gone: 'That contract ({id}) is not in your workspace, or you do not have access to it.',
     co_shares: 'Shares',
     co_copy_link: 'Copy link',
     co_resend: 'Resend',
@@ -1385,6 +1386,18 @@ const STRINGS = {
     mail_open_link: "Open your personal signing link — no account is needed:",
     mail_code_note: "A one-time code will be emailed to this address to confirm it's you before your signature is recorded. This link was issued to you personally and should not be forwarded — a forwarded copy cannot be used to sign.",
     mail_link_expires: "This link expires on {date}.",
+    /* ---- the INTERNAL signer's turn ----
+       One wording for every trigger (route issued, a colleague signed, the
+       counterparty signed), where there used to be two that said different
+       things and only one of which was translated. It deliberately does NOT
+       read like the counterparty's: there is no personal link and no code,
+       because an internal signer signs inside HaTi as themselves, on a
+       session — which is what makes the signature theirs. */
+    mail_int_turn_subject: "Your signature is needed — \"{name}\"",
+    mail_int_turn_pos: " (signer {n} of {total} on the agreed order)",
+    mail_int_turn_body: "It's your turn to sign \"{name}\"{pos}. Everybody before you on the signing order has signed, so the agreement is now waiting on you.",
+    mail_int_turn_open: "Open the contract on its Signing tab:",
+    mail_int_turn_signin: "You sign inside HaTi with your own account, so you will be asked to sign in first — that is what records the signature as yours.",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Compare versions',
@@ -4707,6 +4720,7 @@ const STRINGS = {
     co_link_updated_not_sent: 'Länken uppdaterad — men inte skickad',
     co_if_they_open: 'om de öppnar sin länk',
     co_send_again: 'Skicka igen',
+    co_open_link_gone: 'Avtalet ({id}) finns inte i din arbetsyta, eller så har du inte behörighet till det.',
     co_shares: 'Delningar',
     co_copy_link: 'Kopiera länk',
     co_resend: 'Skicka igen',
@@ -4739,6 +4753,11 @@ const STRINGS = {
     mail_open_link: "Öppna din personliga signeringslänk — inget konto behövs:",
     mail_code_note: "En engångskod skickas till den här adressen för att bekräfta att det är du innan din underskrift registreras. Länken utfärdades personligen till dig och bör inte vidarebefordras — en vidarebefordrad kopia kan inte användas för att underteckna.",
     mail_link_expires: "Länken slutar gälla den {date}.",
+    mail_int_turn_subject: "Din underskrift behövs — \"{name}\"",
+    mail_int_turn_pos: " (undertecknare {n} av {total} i den överenskomna ordningen)",
+    mail_int_turn_body: "Det är din tur att underteckna \"{name}\"{pos}. Alla före dig i undertecknandeordningen har skrivit under, så avtalet väntar nu på dig.",
+    mail_int_turn_open: "Öppna avtalet på fliken Underskrift:",
+    mail_int_turn_signin: "Du undertecknar inne i HaTi med ditt eget konto, så du kommer först att ombes logga in — det är det som registrerar underskriften som din.",
 
     // ---- negotiation support modules ----
     ve_compare_versions: 'Jämför versioner',

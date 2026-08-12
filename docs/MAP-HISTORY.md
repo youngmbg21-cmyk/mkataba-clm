@@ -802,6 +802,108 @@ presses the real button on a real signing link served by the real server and mea
 dialog as pixels — a box, painted over the page — and that no workbench is mounted before
 or after. Nothing here is "deleted" by display:none: the check reads for absent elements.
 
+AN INTERNAL SIGNER IS TOLD WHEN IT IS THEIR TURN (added 2026-08-12)
+
+Owner-asked: "internal signers should get an email like the counterparty does, saying a
+contract is ready for their signature, with a link that takes them to it inside HaTi."
+
+WHAT WAS ACTUALLY TRUE, walked rung by rung before a line was written, because the ask
+reads like one missing feature and was three different things:
+
+  · Route issued and the FIRST signer is internal — NOTHING was sent, ever.
+    issueSigningRouteLinks filters the plan to counterparty rows and nothing else fired,
+    so the commonest arrangement in the product (we sign, then they do) began with the
+    first signer never being told. This is the gap the request was really about.
+  · Internal signs, next is internal — a mail went, from the OWNER'S BROWSER, through
+    /api/contracts/:id/notify-signer, in the recipient's own language.
+  · Counterparty signs, next is internal — a DIFFERENT mail went, from
+    releaseNextSignerLink on the server, hard-coded English, addressed straight off the
+    route row.
+  · Internal signing completes — the counterparty links are issued and emailed. That
+    already worked, and is untouched.
+
+So two "it's your turn" emails already existed, written in two places, saying different
+things, one of them untranslated, neither recorded anywhere — plus a hole where the
+commonest case was. The duplication warning in its usual shape.
+
+ONE DOOR: notifyInternalSignerTurn. Every trigger calls it and it composes, sends and
+records in one place. The triggers are the PUT that saves the contract (when the turn
+MOVED — asked as a difference exactly like every other guard on that route, which is what
+stops it firing on every repaint, autosave and poll), releaseNextSignerLink, and the
+resend button. The browser's old call survives as a belt: it flushes its save first and
+gets 'already-sent' for its trouble, which is the correct answer.
+
+FIRED FROM THE SERVER, and that is the point rather than a preference. Firing from a
+browser means firing from whoever happens to have one open: a route issued on a Friday
+afternoon would wait for somebody to load a page. The same argument releaseNextSignerLink
+was written with, applied to the other three rungs.
+
+"LIKE THE COUNTERPARTY" MUST NOT MEAN "A LINK LIKE THE COUNTERPARTY'S". Theirs is a
+tokenised, no-login share bound to a plan row. An internal signer signs INSIDE the app, as
+themselves, on a session — that is what makes the signature attributable, and the signing
+card says so on screen. Minting share tokens for internal signers would have created a way
+to sign without signing in, which is a worse product than the one with the missing email.
+The internal mail carries an ordinary app URL and says out loud that they will be asked to
+sign in.
+
+AND THAT URL NAMES THE CONTRACT. Both older mails pointed at the site root, which is
+telling somebody a specific agreement is waiting on them and then asking them to go and
+find it. `#contract=<id>&tab=sign` now, honoured by openFromHash — called from startApp
+and NOT from boot(), which is the whole trick: boot runs before anybody is signed in, so
+an internal signer following their link hits the sign-in wall, and startApp is what runs on
+the far side of it as well as on a resumed session. One place, both journeys. The hash is
+spent once honoured, so a refresh an hour later reopens the contract where the reader left
+it rather than jumping them back to the signing step.
+
+THE ROUTE THAT SENDS IT WAS AN OPEN RELAY, and the rule it was breaking is stated in a
+comment on the very next route in the file: "THE RECIPIENT IS RESOLVED FROM THE USERS
+TABLE, never taken from the body." /notify-signer read `email` off the request and mailed
+it. It takes a signerId now, REFUSES a body carrying an address rather than ignoring it
+(so nothing goes on believing it works), and resolves through internalSignerRecipient —
+the member record first, the address typed on the stored route second. The member record
+outranks the route on purpose: a route saved months ago is not where a colleague lives.
+
+AN INTERNAL ROW MAY HAVE NO ADDRESS AT ALL, and both send paths used to do nothing when
+that was true — the owner was told nothing and the signer was told nothing. Decided: the
+editor is NOT made to refuse (an internal signer bound to a member is reachable through
+their team record whether or not anybody typed an address on the route, so refusing would
+be a wall in front of the common case). Instead the owner is told plainly, on the row:
+"their turn now — no email address on file, so they cannot be told", with NO resend beside
+it, because the fix is the route or the team record rather than another press.
+
+THE OWNER CAN SEE IT WENT, which is the half of the request that is not about email at
+all. A counterparty signer's progress is a fact about their SHARE — created, sent, opened,
+responded — and the card has read it for a long time. An internal signer has no share, so
+signer_notices is the internal half of shares.sent_at: one row per notice, carrying whether
+the provider took it and why not. It rides back with the shares the card already fetches
+(one round trip, one cache — the reason _shareCache exists), and signerNoticeState answers
+the internal version of signerLinkState's question. The badge and sentence say told /
+email failed / no address / not told yet, and a resend sits beside the three where pressing
+it does something.
+
+ONE EMAIL PER TURN, and a resend is a deliberate act with a visible result rather than a
+silent retry. A notice row for (contract, signer) means the turn has been announced and
+the automatic paths stand down; `force` is what the button sends. This is also what makes
+the double-trigger safe: a counterparty signature fires releaseNextSignerLink immediately
+and then the owner's browser applies it and saves, which moves the turn a second time.
+
+NEVER on an executed contract, a completed route, a counterparty row, a signer who has
+already signed, or one whose turn has not arrived — five refusals, each with its own
+sentence, each asked of the STORED record. And it can never fail the thing that triggered
+it: the signature is saved before any of this runs, and every path swallows its own errors.
+
+THE PHONE draws no signing-order card and did not before; the mail and the deep link work
+from a phone browser like any other, and the phone's shell picks the contract up through
+its own setView wrapper.
+
+Tests: f185 (19, against a real server — the gap, both existing rungs, the six-rung walk,
+the refused body address, the member record outranking a stale route address, one-per-turn
+across repeated saves, the five refusals, and a counterparty signature surviving a nudge
+that could not go), f136 (the internal row's two new states and the missing button on the
+one where pressing it would always fail), and sign-links-verify's fourth section in the
+browser — the card the owner actually looks at, the resend reporting honestly rather than
+flashing a green light, and the emailed link landing on the contract's Signing tab.
+
 Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.

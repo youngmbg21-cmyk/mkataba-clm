@@ -325,6 +325,48 @@ function signerLinkState(c, s){
   if(loose.length) return loose.some(x=>x.firstOpenedAt)?'opened':'sent';
   return 'unsent';
 }
+/* ---- THE SAME QUESTION, ASKED OF AN INTERNAL ROW ----
+   signerLinkState above answers "where has their LINK got to", and a link is
+   something only a counterparty row has. An internal signer signs in the app as
+   themselves, so what there is to know about them is narrower: have they been
+   told it is their turn, and did that email actually go.
+
+   That was invisible until now — the nudge was fire-and-forget, nothing was
+   recorded and nothing was shown, so an owner could not tell a colleague who
+   had been asked and was ignoring it from one who had never been written to.
+   The server records every notice (signer_notices) and hands them back with the
+   shares the card already fetches, so this reads the same one cache.
+
+     'signed'      — their mark is on the record
+     'notified'    — the turn email went
+     'notify-failed' — it was attempted and the provider refused it
+     'no-address'  — nowhere to write: they cannot be told at all
+     'waiting'     — not their turn yet, so there is nothing to have sent
+     'untold'      — it IS their turn and nothing has gone out
+     'unknown'     — static mode, where notices are not tracked */
+function signerNotices(c){
+  const all=(typeof cachedSignerNotices==='function'?cachedSignerNotices(c):[])||[];
+  return all;
+}
+function signerNoticeState(c, s){
+  if(!s || s.party==='counterparty') return 'link';
+  if(s.signed) return 'signed';
+  if(!(typeof API_MODE==='function' && API_MODE())) return 'unknown';
+  const mine=signerNotices(c).filter(n=>n && String(n.signerId||'')===String(s.id));
+  if(mine.length) return mine.some(n=>n.sent) ? 'notified' : 'notify-failed';
+  const ns=nextSigner(c);
+  if(!ns || String(ns.id)!==String(s.id)) return 'waiting';
+  /* NOWHERE TO WRITE IS A FACT, NOT A SILENT NO-OP. Both send paths used to do
+     nothing at all when an internal row carried no address, so the owner was
+     told nothing and the signer was told nothing. The address is resolved
+     server-side from the member record first and the route row second, so the
+     browser answers this the same way: a row bound to a member can always be
+     reached, whatever the route says. */
+  const member=(s.memberId && typeof userById==='function') ? userById(s.memberId) : null;
+  const reachable=(member && /.+@.+\..+/.test(String(member.email||'')))
+    || /.+@.+\..+/.test(String(s.email||''));
+  return reachable ? 'untold' : 'no-address';
+}
 function nextSigner(c){ return signerPlan(c).slice().sort((a,b)=>a.order-b.order).find(s=>!s.signed)||null; }
 function allSigned(c){ const p=signerPlan(c); return p.length>0 && p.every(s=>s.signed); }
 // The internal-then-counterparty gate: every internal signer must be done
@@ -690,8 +732,22 @@ function signerRouteHtml(c, opts){
              it is: not sent → sent → opened → signed. "SIGNING NOW" only
              appears once the contract is genuinely in front of them. */
           const ls=signerLinkState(c,s);
+          /* ---- AN INTERNAL ROW SAYS THE SAME THING ABOUT ITSELF ----
+             Their turn email was fire-and-forget: nothing recorded, nothing
+             shown, so this row read "their turn now" whether they had been
+             written to, written to unsuccessfully, or never written to at all.
+             It now answers the internal version of the counterparty row's own
+             question, and offers the same deliberate resend beside it. */
+          const nst=(s.party!=='counterparty') ? signerNoticeState(c,s) : 'link';
+          const notice=mine=>({
+            notified:`${ord(mine.order)} · their turn now — told by email`,
+            'notify-failed':`${ord(mine.order)} · their turn now — the email did not go, resend it below`,
+            'no-address':`${ord(mine.order)} · their turn now — no email address on file, so they cannot be told`,
+            untold:`${ord(mine.order)} · their turn now — not told yet`,
+          })[nst]||null;
           const meta=s.signed
             ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+s.signature.form+' signature':''}`
+            : notice(s) ? notice(s)
             : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
             : ls==='sent' ? `${ord(s.order)} · contract sent — not opened yet`
             : ls==='failed' ? `${ord(s.order)} · the automatic email did not go — resend it below`
@@ -704,6 +760,10 @@ function signerRouteHtml(c, opts){
             : `${ord(s.order)} · waiting`;
           const tag=(cls,txt)=>`<span class="text-[8.5px] font-mono px-1 py-px rounded ${cls}">${txt}</span>`;
           const badge=s.signed ? ''
+            : nst==='notified' ? tag('bg-gold-100 text-gold-700','TOLD')
+            : nst==='notify-failed' ? tag('bg-rose-50 text-rose-600','EMAIL FAILED')
+            : nst==='no-address' ? tag('bg-rose-50 text-rose-600','NO ADDRESS')
+            : nst==='untold' ? tag('bg-gold-100 text-gold-700','SIGNING NOW')
             : ls==='opened' ? tag('bg-gold-100 text-gold-700','OPENED')
             : ls==='sent' ? tag('bg-gold-100 text-gold-700','SENT')
             : ls==='failed' ? tag('bg-rose-50 text-rose-600','SEND FAILED')
@@ -723,6 +783,19 @@ function signerRouteHtml(c, opts){
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
               ${(!s.signed&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
                 ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
+                : ''}
+              ${''/* THE INTERNAL ROW'S OWN DOOR. A resend is a deliberate act
+                     with a visible result, never a silent retry — so it is
+                     offered on exactly the three states where pressing it does
+                     something: told (say it again), the email failed, and never
+                     told. Not on 'no-address', where the fix is the route or the
+                     team record and the row says so. */}
+              ${(!s.signed&&s.party!=='counterparty'&&canEdit()
+                 &&['notified','notify-failed','untold'].includes(nst))
+                ? `<button data-sp-notify="${String(s.id).replace(/"/g,'&quot;')}" class="mt-1 rounded-lg border border-brand-200 text-brand-700 px-2 py-1 text-[10px] font-600 hover:bg-brand-50">${
+                    nst==='untold'?'Tell them it is their turn'
+                    : nst==='notify-failed'?'Try the email again'
+                    : 'Remind them'}</button>`
                 : ''}
             </div></div>`; }).join('')}
       </div>
@@ -782,6 +855,28 @@ function wireApprovalPanel(c){
       if(typeof renderSharesSection==='function') renderSharesSection(c);
     }catch(_){}
   }));
+  /* ---- AND THE INTERNAL ROW'S "TELL THEM" ----
+     It names a ROW and nothing else: the address is the server's to resolve
+     from the member record and the stored route, which is what stopped that
+     route being an open relay. `force` is what makes this a resend rather than
+     a duplicate of the automatic one-per-turn send, and the toast reports what
+     actually happened — including the two honest failures (the provider refused
+     it, or email is not configured here at all). */
+  document.querySelectorAll('[data-sp-notify]').forEach(b=>b.addEventListener('click',async()=>{
+    const id=b.getAttribute('data-sp-notify');
+    const was=b.textContent; b.disabled=true; b.textContent='Sending…';
+    try{
+      const r=await api('contracts/'+c.id+'/notify-signer','POST',{ signerId:id, force:true });
+      const who=(r&&r.signer)||'They';
+      toast(r&&r.ok ? `${who} has been emailed — the link opens this contract on its Signing tab`
+        : `${who} could not be emailed${r&&r.emailConfigured===false
+            ? ' — email is not configured on this server (Team & Settings → Email)'
+            : (r&&r.detail?' — '+r.detail:'')}`, r&&r.ok?undefined:'err');
+    }catch(e){ toast((e&&e.message)||'The notice could not be sent','err'); }
+    b.disabled=false; b.textContent=was;
+    try{ if(typeof renderSharesSection==='function') await renderSharesSection(c); }catch(_){}
+    try{ if(typeof renderSignButton==='function') renderSignButton(c); }catch(_){}
+  }));
 }
 
 /* THE ENGAGEMENT CARD (loadEngagement) IS GONE.
@@ -798,4 +893,4 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});

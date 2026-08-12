@@ -5671,16 +5671,34 @@ async function distributeExecuted(c, opts={}){
   persist(c); renderSignButton(c);
 }
 
-/* Best-effort "it's your turn" nudge to the next INTERNAL signer — internal
-   only, on purpose. This early return used to be W7's fault 1: counterparty
-   signers were skipped in silence, because the only email anyone could send
-   them said "sign in to HaTi" and they have no account. They are now emailed
-   their own bound link by the signing route instead — issueSigningRouteLinks
-   at issue time, the server's releaseNextSignerLink for every turn after —
-   so a counterparty landing here is handled elsewhere, not unhandled. */
+/* ---- THE TURN EMAIL IS THE SERVER'S JOB NOW, AND THIS IS THE BELT ----
+   Every internal turn — a route saved with an internal signer first, a
+   colleague signing ahead of them, the counterparty signing ahead of them — is
+   fired by the server (notifyInternalSignerTurn), because firing from the
+   browser means firing from whoever happens to have it open, and a route issued
+   on a Friday must not wait for somebody to load a page.
+
+   THE SAVE THAT MOVES THE TURN IS THE TRIGGER, and this signature's save has
+   just happened, so by the time this runs the mail has usually gone. It is kept
+   as a second knock for the one case the difference-check cannot see — a client
+   that could not save — and it is idempotent by construction: the server sends
+   ONE notice per turn and answers 'already-sent' to the second asking. Nothing
+   is passed but the signer's ID; the address is the server's to resolve, which
+   is what stopped this route being an open relay.
+
+   Counterparty signers are not this function's business: they are emailed their
+   own bound link by the route (issueSigningRouteLinks at issue time, the
+   server's releaseNextSignerLink for every turn after). */
 async function notifyNextSigner(c, nxt){
-  if(!API_MODE() || !nxt || nxt.party!=='internal' || !/.+@.+\..+/.test(nxt.email||'')) return;
-  try{ await api('contracts/'+c.id+'/notify-signer','POST',{ email:nxt.email, name:nxt.name, order:nxt.order }); }catch(e){}
+  if(!API_MODE() || !nxt || nxt.party!=='internal') return;
+  /* The server answers off the STORED contract, and `persist` is a 400ms timer:
+     asking before this signature has landed would have it read a route whose
+     turn has not moved yet and refuse "not their turn" — the same overtaking
+     issueSigningRouteLinks flushes for. */
+  try{ await flushSaves(); }catch(_){}
+  try{ await api('contracts/'+c.id+'/notify-signer','POST',{ signerId:nxt.id }); }
+  catch(e){ /* the signature is recorded; the card says whether the notice went */ }
+  try{ if(typeof renderSharesSection==='function') renderSharesSection(c); }catch(_){}
 }
 
 /* Distribution panel shown in the sign area once a contract is executed. */

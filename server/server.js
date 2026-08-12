@@ -118,6 +118,21 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS resets (
     id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
   CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
+  -- "It is your turn to sign", to somebody who works here.
+  --
+  -- A COUNTERPARTY SIGNER'S TURN IS RECORDED ON THEIR SHARE — created / sent /
+  -- opened / responded — and the Signature-progress card reads that row to say
+  -- whether their link has gone out and to offer a resend. An INTERNAL signer
+  -- has no share and never will (they sign in the app, as themselves, session-
+  -- authenticated, which is what makes the signature theirs), so their nudge had
+  -- nowhere to be written down: it was fire-and-forget, with nothing recorded
+  -- and nothing shown. This is the internal half of shares.sent_at, and it is
+  -- what makes "one email per turn" and a visible resend possible at all.
+  CREATE TABLE IF NOT EXISTS signer_notices (
+    id TEXT PRIMARY KEY, contract_id TEXT NOT NULL, signer_id TEXT NOT NULL,
+    email TEXT, sent INTEGER NOT NULL DEFAULT 0, detail TEXT,
+    by_user TEXT, kind TEXT NOT NULL DEFAULT 'turn', created_at TEXT NOT NULL);
+  CREATE INDEX IF NOT EXISTS idx_signer_notices ON signer_notices(contract_id, signer_id);
   CREATE TABLE IF NOT EXISTS activation (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event TEXT NOT NULL, contract_id TEXT, actor TEXT, at TEXT NOT NULL);
@@ -2252,6 +2267,31 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   }
   upsertContract(c, next);
   if (req.body.uid) setSetting('uid', req.body.uid);
+  /* ---- WHOSE TURN IT IS MAY HAVE JUST CHANGED ----
+     Two of the six rungs of the signing ladder land here and nowhere else: a
+     route SAVED with an internal signer first (nothing was ever sent for that
+     — issueSigningRouteLinks only knows about counterparty rows), and an
+     internal signature followed by another internal step. Fired from the
+     server rather than from the browser that happened to make the save, so the
+     wording, the address resolution and the one-per-turn record are the same
+     three things whatever moved the route.
+
+     ASKED AS A DIFFERENCE, like every other guard on this route: only when the
+     next unsigned row actually MOVED (or a route appeared where there was
+     none). A save that leaves the turn where it was sends nothing, which is
+     what stops this firing on every repaint, poll and autosave.
+
+     Deliberately not awaited: this save is finished and stored, and an email
+     provider must never hold up a contract write or be able to fail it. */
+  try {
+    const turnOf = s => {
+      const plan = (Array.isArray(s && s.signerPlan) ? s.signerPlan : [])
+        .filter(x => x && x.id != null).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+      const nx = plan.find(x => !x.signed);
+      return nx ? String(nx.id) : '';
+    };
+    if (turnOf(c) && turnOf(prev) !== turnOf(c)) notifyInternalSignerTurn(req, c.id);
+  } catch (_) { /* the save is the thing that matters */ }
   res.json({ ok: true, version: next });
 });
 
@@ -4703,22 +4743,49 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   res.json({ at: now(), fullyExecuted: st.fully, attached: !!attachment, recipients: out });
 });
 
-// "It's your turn to sign" nudge to the next internal signer on a route.
+/* "It's your turn to sign" — the internal signer's nudge, and the RESEND door.
+   See notifyInternalSignerTurn, which is the one place this is composed, sent
+   and recorded; this route only names a row and reports what happened.
+
+   IT NO LONGER TAKES AN ADDRESS. It used to read `email` straight off the body
+   and mail it, which is an open relay wearing this workspace's name on the
+   envelope — the exact rule the review-request route below states for itself.
+   The client names a SIGNER; the server decides where that signer's post goes,
+   from the stored plan and the users table. A body carrying an address is
+   refused outright rather than ignored, so nothing goes on believing it works.
+
+   `force` is what makes a resend a resend: the automatic paths send once per
+   turn, and pressing the button on the signing card is a deliberate act with a
+   visible result. */
 app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
-  const { email, name, order } = req.body || {};
-  if (!/.+@.+\..+/.test(String(email || ''))) return res.status(400).json({ error: 'A valid signer email is required' });
+  const b = req.body || {};
+  if (b.email || b.to || b.address)
+    return res.status(400).json({ error: 'This route resolves the signer’s address from the workspace’s own records. Send signerId, not an email address.' });
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
-  const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
-  const appUrl = `${req.protocol}://${req.get('host')}/`;
-  const L = langForEmail(email, req.user && req.user.lang);
-  await sendEmail(String(email), tFor(L, 'mail_sig_requested_subject', { name: cName }),
-    `${tFor(L, 'mail_hello')}${name ? ' ' + name : ''},\n\n`
-    + tFor(L, 'mail_your_turn_body', { name: cName,
-        order: order ? tFor(L, 'mail_signer_n', { n: order }) : '' })
-    + `\n${appUrl}\n\n${tFor(L, 'mail_automated_notice')}`,
-    `sign turn: ${req.params.id}`);
-  res.json({ ok: true });
+  const r = await notifyInternalSignerTurn(req, req.params.id,
+    { signerId: b.signerId || null, force: !!b.force });
+  /* A refusal that is about the CONTRACT's state (executed, not their turn,
+     nobody to write to) is a 409 with its reason: the owner pressed a button
+     and is owed the answer. A send the provider refused is not a refusal of the
+     act — it happened, it is on the record, and the card shows it failed. */
+  if (!r.ok && r.reason !== 'send-failed') {
+    const say = {
+      executed: 'This contract is executed — there is nothing left to sign.',
+      'no-route': 'No signing route has been set on this contract.',
+      'route-complete': 'Every signer on the route has signed.',
+      'unknown-signer': 'That signer is not on this contract’s route.',
+      'already-signed': 'They have already signed.',
+      counterparty: 'That signer is on the other side — their signing link is sent from the Shares panel, not from here.',
+      'not-their-turn': `It is not their turn yet${r.waitingOn ? ` — the route is waiting on ${r.waitingOn}` : ''}.`,
+      'no-address': `There is no email address on file for ${r.signer || 'this signer'}, so they cannot be told it is their turn. Add one on their team record or on the signing route.`,
+      'already-sent': 'They have already been told it is their turn.',
+    }[r.reason] || 'The notice could not be sent.';
+    return res.status(409).json({ error: say, reason: r.reason });
+  }
+  res.json({ ok: !!r.ok, reason: r.reason, detail: r.detail || null,
+    signer: r.signer || null, email: r.email || null,
+    emailConfigured: EMAIL_ON(), notices: signerNoticesFor(req.params.id) });
 });
 
 /* "Please look at this before it goes out" — the internal review request.
@@ -5108,6 +5175,146 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
   };
 }
 
+/* ============================================================
+   AN INTERNAL SIGNER IS TOLD WHEN IT IS THEIR TURN, ONCE, FROM ONE PLACE
+   ============================================================
+   (owner-asked, 12 Aug 2026: "internal signers should get an email like the
+   counterparty does, saying a contract is ready for their signature, with a
+   link that takes them to it inside HaTi.")
+
+   WHAT WAS TRUE BEFORE, and it was three different things at once. A route
+   issued with an INTERNAL signer first sent nothing at all — issueSigningRouteLinks
+   filters the plan to counterparty rows, and there was no other trigger, so the
+   commonest arrangement in the product (we sign, then they do) began with the
+   first signer never being told. Internal→internal fired a nudge from the
+   OWNER'S BROWSER through /notify-signer, written in the recipient's language.
+   Counterparty→internal fired a different nudge from releaseNextSignerLink,
+   hard-coded English. Two wordings, one gap, nothing recorded anywhere.
+
+   FOUR RULES THIS FUNCTION EXISTS TO KEEP:
+
+   1  IT IS NOT A LINK LIKE THE COUNTERPARTY'S. Their link is a tokenised,
+      no-login share. An internal signer signs INSIDE the app, as themselves, on
+      a session — that is what makes the signature attributable, and it is what
+      the signing card says on screen. Minting a share token for them would
+      create a way to sign without signing in. The mail carries an ordinary app
+      URL, deep-linked to the contract's Signing tab, which lands on the sign-in
+      wall exactly as it should.
+
+   2  THE ADDRESS COMES FROM OUR RECORDS, NEVER FROM A REQUEST BODY. The route
+      below used to mail whatever `email` the client sent — an open relay
+      wearing this workspace's name, which is the very thing the review-request
+      route beside it states as its own rule. Resolved here from the STORED plan
+      row: their member record first (the row carries memberId, and the user
+      table is where a colleague's post actually goes), then the address typed
+      on the route itself, which is also a stored fact about this contract.
+
+   3  ONE EMAIL PER TURN. Not per repaint, per save or per poll. A turn arrives
+      once, so a notice row for (contract, signer) means it has been sent and the
+      automatic paths stand down. A RESEND is a deliberate act with a visible
+      result — the button on the signing card — and it writes its own row.
+
+   4  IT CAN NEVER FAIL THE THING THAT TRIGGERED IT. Same rule
+      releaseNextSignerLink already carries: the signature is stored, and a
+      refused email is a row saying so with a resend beside it. */
+function signerNoticesFor(contractId) {
+  try {
+    return db.prepare(`SELECT id, signer_id AS signerId, email, sent, detail, by_user AS by, kind,
+      created_at AS at FROM signer_notices WHERE contract_id=? ORDER BY created_at ASC`).all(contractId);
+  } catch (_) { return []; }
+}
+/* WHERE A COLLEAGUE'S POST GOES. The row is off the stored contract; the member
+   record is the workspace's own answer and outranks it, because a route saved
+   months ago can carry an address somebody has since changed. Returns null when
+   there is nowhere to write — which is a FACT the owner is shown, not a silent
+   no-op (see the signing card's "no address on file" line). */
+function internalSignerRecipient(row) {
+  if (!row) return null;
+  let u = null;
+  try {
+    if (row.memberId) u = db.prepare('SELECT * FROM users WHERE id=?').get(String(row.memberId));
+    if (!u && row.email) u = db.prepare('SELECT * FROM users WHERE LOWER(email)=?')
+      .get(String(row.email).trim().toLowerCase());
+  } catch (_) { u = null; }
+  if (u && /.+@.+\..+/.test(String(u.email || '')))
+    return { email: u.email, name: row.name || u.name, lang: u.lang || null, from: 'member record' };
+  if (/.+@.+\..+/.test(String(row.email || '')))
+    return { email: String(row.email).trim(), name: row.name || '', lang: null, from: 'the signing route' };
+  return null;
+}
+/* THE LINK LANDS ON THE CONTRACT, ON ITS SIGNING STEP. Both older mails pointed
+   at the site root, which asks somebody who has been told a specific agreement
+   needs them to go and find it. Honoured by startApp in js/core.js, on the far
+   side of the sign-in wall — the hash survives the wall, and that is what makes
+   this safe to send to a page that will refuse to load without a session. */
+const contractSignUrl = (req, contractId) =>
+  `${req.protocol}://${req.get('host')}/#contract=${encodeURIComponent(contractId)}&tab=sign`;
+/* ONE WORDING, BOTH TRIGGERS, BOTH LANGUAGES. The two mails this replaces said
+   different things and only one of them was translated. */
+function internalTurnEmail({ signer, plan, contractName, url, L }) {
+  const total = (plan || []).length;
+  const pos = signer.order && total ? tFor(L, 'mail_int_turn_pos', { n: signer.order, total }) : '';
+  return {
+    subject: tFor(L, 'mail_int_turn_subject', { name: contractName }),
+    body: `${tFor(L, 'mail_hello')}${signer.name ? ' ' + signer.name : ''},\n\n`
+      + tFor(L, 'mail_int_turn_body', { name: contractName, pos })
+      + `\n\n${tFor(L, 'mail_int_turn_open')}\n${url}\n\n`
+      + tFor(L, 'mail_int_turn_signin')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`,
+  };
+}
+/* THE ONE DOOR. Every trigger comes through here, and every refusal is asked of
+   the STORED record: never on an executed contract, a completed route, a signer
+   who has already signed, or somebody whose turn has not arrived.
+
+   Returns a small report rather than throwing: the resend route shows it to the
+   owner, and the automatic callers ignore it by design. */
+async function notifyInternalSignerTurn(req, contractId, opts = {}) {
+  try {
+    if (contractIsExecuted(contractId)) return { ok: false, reason: 'executed' };
+    const rt = signerRouteFor(contractId);
+    if (!rt) return { ok: false, reason: 'no-route' };
+    const next = rt.plan.find(s => !rt.signedRow(s));
+    if (!next) return { ok: false, reason: 'route-complete' };
+    /* A NAMED SIGNER, OR WHOEVER IS UP. The resend button names its row, and
+       naming a row whose turn has not arrived is refused rather than queued —
+       "it is your turn" is either true when it is sent or it is not worth
+       sending. */
+    const row = opts.signerId
+      ? rt.plan.find(s => String(s.id) === String(opts.signerId)) : next;
+    if (!row) return { ok: false, reason: 'unknown-signer' };
+    if (rt.signedRow(row)) return { ok: false, reason: 'already-signed' };
+    if (String(row.party || '') === 'counterparty') return { ok: false, reason: 'counterparty' };
+    if (String(row.id) !== String(next.id)) return { ok: false, reason: 'not-their-turn', waitingOn: next.name || null };
+    const to = internalSignerRecipient(row);
+    if (!to) return { ok: false, reason: 'no-address', signer: row.name || null };
+    /* ONE PER TURN. Any notice already on the record for this row means the turn
+       has been announced; only a deliberate resend goes past it. */
+    if (!opts.force) {
+      const had = db.prepare('SELECT id FROM signer_notices WHERE contract_id=? AND signer_id=? LIMIT 1')
+        .get(contractId, String(row.id));
+      if (had) return { ok: false, reason: 'already-sent' };
+    }
+    const cName = (rt.contract && rt.contract.name) || contractId;
+    const L = langForEmail(to.email, req && req.user && req.user.lang);
+    const mail = internalTurnEmail({ signer: row, plan: rt.plan, contractName: cName,
+      url: contractSignUrl(req, contractId), L });
+    const r = await sendEmail(to.email, mail.subject, mail.body, `sign turn (internal): ${contractId}`);
+    const detail = r.sent ? null
+      : String(r.detail || (EMAIL_ON() ? 'The email provider refused the message.'
+        : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300);
+    db.prepare(`INSERT INTO signer_notices (id,contract_id,signer_id,email,sent,detail,by_user,kind,created_at)
+      VALUES (?,?,?,?,?,?,?,?,?)`).run('sn_' + rid(8), contractId, String(row.id), to.email,
+      r.sent ? 1 : 0, detail, (req && req.user && req.user.name) || null,
+      opts.force ? 'resend' : 'turn', now());
+    return { ok: !!r.sent, reason: r.sent ? 'sent' : 'send-failed', detail,
+      signer: row.name || null, email: to.email, addressFrom: to.from };
+  } catch (e) {
+    /* Whatever triggered this — a signature, a saved route — is already stored. */
+    return { ok: false, reason: 'error', detail: String((e && e.message) || e).slice(0, 200) };
+  }
+}
+
 /* The moment signer n signs, signer n+1's link sends itself — the release half
    of sequential dispatch. Called from the public respond route because that is
    where a counterparty signature actually arrives; anything hung off the
@@ -5124,16 +5331,12 @@ async function releaseNextSignerLink(req, contractId) {
     const next = rt.plan.find(s => !rt.signedRow(s));
     if (!next) return;                                   // route complete — the seal is the client's act
     if (next.party !== 'counterparty') {
-      // A mixed route can put an internal signer after a counterparty one.
-      // They sign in the app, so their nudge is the sign-in wording.
-      if (/.+@.+\..+/.test(String(next.email || ''))) {
-        const cName = (rt.contract && rt.contract.name) || contractId;
-        await sendEmail(String(next.email), `Your signature is requested — "${cName}"`,
-          `Hello${next.name ? ' ' + next.name : ''},\n\nIt's your turn to sign "${cName}"` +
-          `${next.order ? ` (signer ${next.order})` : ''}. Sign in to HaTi to review and add your signature:\n` +
-          `${req.protocol}://${req.get('host')}/\n\nThis is an automated notice from HaTi CLM.`,
-          `sign turn: ${contractId}`);
-      }
+      /* A mixed route can put an internal signer after a counterparty one. They
+         sign in the app, so their nudge is the sign-in wording — and it is the
+         SAME wording every other internal turn gets, from the one builder, in
+         the recipient's own language. This branch used to write its own mail,
+         in English, addressed straight off the route row, recording nothing. */
+      await notifyInternalSignerTurn(req, contractId);
       return;
     }
     const ns = db.prepare(
@@ -5773,7 +5976,12 @@ function priorCopySeenBy(s) {
 app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shares panel
   if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
   const rows = db.prepare('SELECT * FROM shares WHERE contract_id=? ORDER BY created_at DESC LIMIT 50').all(req.params.id);
-  res.json({ shares: rows.map(shareInfo) });
+  /* THE INTERNAL HALF OF THE SAME QUESTION rides with it. The Signature-progress
+     card asks "has this signer been told it is their turn" of every row, and a
+     counterparty row is answered by their share. An internal row has no share,
+     so its answer travels here — one fetch, one cache, and no chance of the two
+     halves of one card disagreeing because they asked at different moments. */
+  res.json({ shares: rows.map(shareInfo), signerNotices: signerNoticesFor(req.params.id) });
 });
 
 /* ---------- discussion: talking about a point without proposing wording ----------

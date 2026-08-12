@@ -18,6 +18,12 @@
    3  A review link cannot sign — and this is asserted against the SERVER, not
       the screen. The browser already hid the button; the wall did not exist.
 
+   4  (12 Aug 2026) An internal signer is told when it is their turn, and the
+      owner can SEE that it went. The model is pinned by f185; what only a
+      browser can answer is whether the signing card says it, whether there is
+      something to press about a send that failed, and whether the link in that
+      email actually lands on the contract's Signing tab.
+
    Run: node test/chromium/sign-links-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -198,6 +204,87 @@ const ROUTE = [
       wall.negoAccept.status === 200, String(wall.negoAccept.status));
     check('and a real signing link is not caught by it',
       wall.signSign.status !== 403, `${wall.signSign.status} ${wall.signSign.error.slice(0, 60)}`);
+
+    /* ============= 4. THE INTERNAL SIGNER IS TOLD, AND THE OWNER SEES IT =====
+       (owner-asked, 12 Aug 2026.) An internal signer's turn used to be
+       fire-and-forget: nothing recorded, nothing shown, so this row read "their
+       turn now" whether they had been written to, written to unsuccessfully, or
+       never written to at all. The server records every notice and hands it back
+       with the shares the card already fetches; this reads the card the owner
+       actually looks at, in a browser, after a real save and a real send.
+
+       f185 pins the server. What only a browser can answer is whether the row
+       says it and whether there is something to press. */
+    const noticed = await page.evaluate(async () => {
+      const c = getContract(state.contracts.find(x => x.status !== 'Signed').id);
+      await ensureFull(c);
+      c.signerPlan = [
+        { id: 'in1', party: 'internal', name: 'Amina Otieno', role: 'CEO',
+          email: 'admin@example.co.ke', order: 1, signed: false },
+        { id: 'cp1', party: 'counterparty', name: 'Patrick Wesamba Were', role: 'COO',
+          email: 'patrick@juno.co.ke', order: 2, signed: false },
+      ];
+      persist(c);
+      await flushSaves();
+      await new Promise(r => setTimeout(r, 700));    // the send is not awaited by the save
+      await renderSharesSection(c);                   // fills the shares AND the notices cache
+      const d = document.createElement('div');
+      d.innerHTML = window.signerRouteHtml(c);
+      const rows = Array.from(d.querySelectorAll('.text-\\[10px\\].font-mono'));
+      return { id: c.id,
+        text: d.textContent.replace(/\s+/g, ' '),
+        resend: !!d.querySelector('[data-sp-notify="in1"]'),
+        cpResend: !!d.querySelector('[data-sp-notify="cp1"]'),
+        notices: (window.cachedSignerNotices ? cachedSignerNotices(c) : []).filter(n => n.signerId === 'in1').length,
+        meta: rows.map(r => r.textContent.trim()) };
+    });
+    check('the internal turn notice is recorded server-side and reaches the card',
+      noticed.notices === 1, `${noticed.notices} notice(s)`);
+    check('the row says the email did not go — no provider is configured here',
+      /the email did not go/i.test(noticed.text), noticed.meta.join(' | ').slice(0, 120));
+    check('and the row carries the badge that says so', /EMAIL FAILED/.test(noticed.text));
+    check('there is something to press about it', noticed.resend,
+      'a resend is a deliberate act with a visible result, never a silent retry');
+    check('the counterparty row does NOT get the internal door',
+      !noticed.cpResend, 'their link is sent from its own button, on its own record');
+
+    /* pressing it is a real send that says what happened */
+    const resent = await page.evaluate(async id => {
+      const c = getContract(id);
+      const r = await api('contracts/' + id + '/notify-signer', 'POST',
+        { signerId: 'in1', force: true });
+      await renderSharesSection(c);
+      return { ok: r.ok, reason: r.reason, configured: r.emailConfigured,
+        notices: (window.cachedSignerNotices ? cachedSignerNotices(c) : []).filter(n => n.signerId === 'in1').length };
+    }, noticed.id);
+    check('the resend runs and reports honestly rather than flashing a green light',
+      resent.reason === 'send-failed' && resent.configured === false, resent.reason);
+    check('and it is on the record beside the first', resent.notices === 2,
+      `${resent.notices} notice(s)`);
+
+    /* ---- THE LINK IN THAT EMAIL LANDS ON THE CONTRACT ---- */
+    const landed = await page.evaluate(id => {
+      location.hash = '#contract=' + id + '&tab=sign';
+      const done = window.openFromHash();
+      return { done, view: state.view, active: state.activeId,
+        tab: window.roomCurrentTab ? roomCurrentTab() : null,
+        hash: location.hash };
+    }, noticed.id);
+    await page.waitForTimeout(500);
+    check('#contract=<id>&tab=sign opens that contract on its signing step',
+      landed.done && landed.view === 'workspace' && landed.active === noticed.id
+      && landed.tab === 'sign',
+      `${landed.view}/${landed.tab}`);
+    check('and the hash is spent, so a refresh does not jump them back',
+      !landed.hash || landed.hash === '#' || landed.hash === '', `"${landed.hash}"`);
+    const tabPixels = await page.evaluate(() => {
+      const el = document.querySelector('#ws-tabs [data-ws-tab="sign"]');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { on: el.classList.contains('on'), w: Math.round(r.width) };
+    });
+    check('the Signing tab is the live one on screen', !!(tabPixels && tabPixels.on && tabPixels.w > 20),
+      tabPixels ? `${tabPixels.w}px on=${tabPixels.on}` : 'no tab row');
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
