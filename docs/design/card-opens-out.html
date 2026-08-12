@@ -1,0 +1,545 @@
+<title>Three Ways The Card Opens</title>
+<style>
+  :root{
+    --ground:#F5F7FA; --surface:#FFFFFF; --surface-2:#EEF1F6;
+    --ink:#111A2C; --ink-2:#3C4763; --muted:#69748C;
+    --line:#DCE2EC; --line-soft:#E9EDF4;
+    --navy:#16233F; --navy-ink:#C6D0E4;
+    --amber:#B45309; --amber-bg:#FEF3C7; --amber-line:#E0C48A; --amber-dot:#F59E0B;
+    --ruby:#9B2C3C; --ruby-bg:#FBE9EC; --ruby-line:#E7BFC7;
+    --green:#047857; --green-bg:#D1FAE5; --green-line:#A8CBB8;
+    --indigo:#3730A3; --indigo-bg:#E0E7FF; --indigo-line:#B3BAF5;
+    --teal:#0F766E;
+    --paper:#FBF7EF; --paper-line:#E9E0CE;
+    --shadow:0 1px 2px rgba(17,26,44,.05), 0 8px 24px -12px rgba(17,26,44,.18);
+    --shadow-lift:0 18px 48px -12px rgba(17,26,44,.34), 0 2px 6px rgba(17,26,44,.08);
+    --display:ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0C1220; --surface:#141D2E; --surface-2:#1B2536;
+      --ink:#E8ECF5; --ink-2:#BAC4D8; --muted:#8C97AE;
+      --line:#26314A; --line-soft:#1E2739;
+      --navy:#0F1829; --navy-ink:#A8B5CE;
+      --amber:#E0A75C; --amber-bg:#2A2113; --amber-line:#4A3A1E; --amber-dot:#F59E0B;
+      --ruby:#E08A97; --ruby-bg:#2C161B; --ruby-line:#4A2630;
+      --green:#7CC7A4; --green-bg:#12261E; --green-line:#1F4736;
+      --indigo:#C7D2FE; --indigo-bg:#1E2145; --indigo-line:#343A72;
+      --teal:#5EEAD4;
+      --paper:#1A2233; --paper-line:#2A3348;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+      --shadow-lift:0 20px 54px -12px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1220; --surface:#141D2E; --surface-2:#1B2536;
+    --ink:#E8ECF5; --ink-2:#BAC4D8; --muted:#8C97AE;
+    --line:#26314A; --line-soft:#1E2739;
+    --navy:#0F1829; --navy-ink:#A8B5CE;
+    --amber:#E0A75C; --amber-bg:#2A2113; --amber-line:#4A3A1E; --amber-dot:#F59E0B;
+    --ruby:#E08A97; --ruby-bg:#2C161B; --ruby-line:#4A2630;
+    --green:#7CC7A4; --green-bg:#12261E; --green-line:#1F4736;
+    --indigo:#C7D2FE; --indigo-bg:#1E2145; --indigo-line:#343A72;
+    --teal:#5EEAD4;
+    --paper:#1A2233; --paper-line:#2A3348;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+    --shadow-lift:0 20px 54px -12px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);
+    font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1120px;margin:0 auto;padding:56px 28px 96px;}
+  @media (max-width:820px){ .wrap{padding:36px 18px 72px;} }
+
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px;}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(32px,5.4vw,50px);
+    line-height:1.06;letter-spacing:-.015em;margin:0;text-wrap:balance;}
+  .standfirst{font-size:19px;line-height:1.55;color:var(--ink-2);max-width:62ch;margin:16px 0 0;}
+  .masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:40px;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:20px;font-family:var(--mono);
+    font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+
+  section{margin-bottom:56px;}
+  h2{font-family:var(--display);font-weight:600;font-size:27px;line-height:1.2;
+    letter-spacing:-.01em;margin:0 0 12px;text-wrap:balance;}
+  h3{font-weight:650;font-size:15px;margin:26px 0 8px;}
+  p{margin:0 0 14px;max-width:68ch;}
+  ul{margin:0 0 14px;padding-left:22px;max-width:68ch;}
+  li{margin-bottom:6px;}
+  li::marker{color:var(--muted);}
+  strong{font-weight:650;}
+  em{font-style:italic;color:var(--ink-2);}
+
+  /* ---------- option heading ---------- */
+  .opt{border-top:1px solid var(--line);padding-top:26px;margin-bottom:52px;}
+  .opt-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+  .opt-tag{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--amber);background:var(--amber-bg);border:1px solid var(--amber-line);
+    border-radius:99px;padding:3px 11px;font-weight:700;flex:none;}
+  .opt-head h2{margin:0;}
+  .opt-sub{color:var(--ink-2);font-size:17px;margin:0 0 20px;max-width:66ch;}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px;margin-top:22px;}
+  .cols h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    margin:0 0 7px;font-weight:700;}
+  .cols p{font-size:14.5px;line-height:1.55;margin:0;color:var(--ink-2);}
+  .c-keeps h4{color:var(--green);}
+  .c-costs h4{color:var(--ruby);}
+  .c-watch h4{color:var(--muted);}
+
+  /* ================= THE MOCKUP FRAME ================= */
+  .shot{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface-2);
+    box-shadow:var(--shadow);}
+  .shot-cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:12px;align-items:center;}
+  .shot-cap b{color:var(--ink-2);font-weight:700;letter-spacing:.13em;}
+  .scroller{overflow-x:auto;}
+  .ui{position:relative;display:flex;gap:14px;padding:14px;min-width:840px;height:498px;
+    background:var(--surface-2);font-size:12px;}
+
+  /* the document behind */
+  .ui-doc{flex:1;min-width:0;background:var(--paper);border:1px solid var(--paper-line);
+    border-radius:10px;padding:22px 26px;overflow:hidden;}
+  html[data-theme="dark"] .ui-doc, :root:not([data-theme="light"]) .ui-doc{}
+  .ui-doc h5{margin:0 0 3px;font-size:13px;font-weight:700;color:var(--ink);letter-spacing:.01em;}
+  .ui-doc p{font-size:11.5px;line-height:1.75;color:var(--ink-2);margin:0 0 14px;max-width:none;}
+  .ui-doc .ttl{text-align:center;font-weight:700;font-size:13.5px;letter-spacing:.04em;
+    color:var(--ink);margin-bottom:16px;}
+  .ui-doc mark{background:var(--amber-bg);color:var(--ink);border-bottom:1px solid var(--amber-line);
+    padding:0 2px;}
+
+  /* the tracked-changes column */
+  .ui-col{width:322px;flex:none;display:flex;flex-direction:column;gap:8px;}
+  .ui-colhead{border-top:3px solid var(--teal);padding:8px 2px 6px;display:flex;
+    justify-content:space-between;align-items:baseline;gap:8px;}
+  .ui-colhead span{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .ui-colhead b{font-size:10px;color:var(--muted);font-weight:600;}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--amber-dot);
+    border-radius:11px;padding:11px 13px;}
+  .card.sel{border-color:var(--teal);border-left-color:var(--teal);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--teal) 22%,transparent);}
+  .card.dim{opacity:.5;}
+  .card-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;}
+  .cid{font-family:var(--mono);font-size:9.5px;font-weight:700;background:var(--surface-2);
+    border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--ink-2);}
+  .pill{font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid;white-space:nowrap;}
+  .p-them{background:var(--indigo-bg);color:var(--indigo);border-color:var(--indigo-line);}
+  .p-us{background:var(--green-bg);color:var(--green);border-color:var(--green-line);}
+  .p-wait{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-line);}
+  .p-held{background:var(--ruby-bg);color:var(--ruby);border-color:var(--ruby-line);}
+  .cmeta{font-size:9.5px;color:var(--muted);line-height:1.5;margin-bottom:5px;}
+  .cdiff{font-size:11px;line-height:1.55;color:var(--ink-2);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .cdiff del{color:var(--ruby);text-decoration:line-through;}
+  .cdiff ins{color:var(--green);text-decoration:none;background:var(--green-bg);}
+  .cacts{display:flex;justify-content:flex-end;gap:5px;margin-top:9px;padding-top:8px;
+    border-top:1px solid var(--line-soft);}
+  .v{border:0;border-radius:7px;padding:5px 11px;font:inherit;font-size:9.5px;font-weight:700;
+    line-height:1.5;}
+  .v-ok{background:var(--green-bg);color:var(--green);}
+  .v-no{background:var(--ruby-bg);color:var(--ruby);}
+  .v-mut{background:var(--surface-2);color:var(--muted);}
+
+  /* ---- the opened detail, shared by all three treatments ---- */
+  .det{background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+  .det-head{padding:14px 18px;border-bottom:1px solid var(--line);flex:none;
+    background:linear-gradient(to bottom,color-mix(in srgb,var(--teal) 7%,var(--surface)),var(--surface));}
+  .det-head .r1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;}
+  .det-head h6{margin:0;font-size:14px;font-weight:700;letter-spacing:-.01em;}
+  .det-head .sub{font-size:10.5px;color:var(--muted);}
+  .det-x{margin-left:auto;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    border-radius:7px;width:24px;height:24px;font-size:12px;line-height:1;flex:none;}
+  .det-body{padding:16px 18px;overflow-y:auto;flex:1;min-height:0;}
+  .det-foot{flex:none;padding:11px 18px;border-top:1px solid var(--line);background:var(--surface-2);
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .det-foot .grow{flex:1;font-size:10px;color:var(--muted);}
+  .det-foot .v{padding:7px 15px;font-size:11px;}
+
+  .blk{margin-bottom:16px;}
+  .blk-k{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:5px;}
+  .word{background:var(--paper);border:1px solid var(--paper-line);border-radius:8px;
+    padding:11px 13px;font-size:11.5px;line-height:1.7;color:var(--ink-2);}
+  .word del{color:var(--ruby);text-decoration:line-through;}
+  .word ins{color:var(--green);text-decoration:none;background:var(--green-bg);padding:0 2px;}
+  .why{border-left:2px solid var(--teal);background:color-mix(in srgb,var(--teal) 6%,transparent);
+    border-radius:0 8px 8px 0;padding:9px 12px;font-size:11.5px;line-height:1.65;color:var(--ink-2);}
+  .rev{border-left:2px solid var(--amber-dot);background:var(--amber-bg);border-radius:0 8px 8px 0;
+    padding:9px 12px;font-size:11.5px;line-height:1.65;color:var(--ink-2);}
+  .rev b, .why b{color:var(--ink);}
+  .note{border:1px solid var(--line);border-radius:9px;padding:9px 12px;margin-bottom:7px;
+    font-size:11.5px;line-height:1.6;color:var(--ink-2);background:var(--surface);}
+  .note .who{display:block;font-size:9.5px;color:var(--muted);margin-bottom:3px;font-weight:600;}
+  .composer{border:1px dashed var(--line);border-radius:9px;padding:10px 12px;font-size:11px;
+    color:var(--muted);background:var(--surface-2);}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;
+    font-size:9.5px;font-weight:700;margin-bottom:8px;}
+  .seg i{font-style:normal;padding:4px 10px;color:var(--muted);}
+  .seg i.on{background:var(--teal);color:#fff;}
+
+  /* ---- A: centred sheet ---- */
+  .scrim{position:absolute;inset:0;background:color-mix(in srgb,#020617 46%,transparent);}
+  .sheet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(560px,74%);height:420px;border-radius:16px;box-shadow:var(--shadow-lift);
+    border:1px solid var(--line);}
+  /* ---- B: docked panel ---- */
+  .drawer{position:absolute;top:14px;bottom:14px;right:350px;width:430px;border-radius:14px;
+    box-shadow:var(--shadow-lift);border:1px solid var(--line);}
+  .stepper{display:flex;gap:4px;margin-left:auto;}
+  .stepper i{font-style:normal;border:1px solid var(--line);background:var(--surface);
+    border-radius:6px;width:22px;height:22px;display:grid;place-items:center;font-size:10px;
+    color:var(--muted);}
+  /* ---- C: anchored pop-out ---- */
+  .pop{position:absolute;top:52px;right:346px;width:412px;height:352px;border-radius:14px;
+    box-shadow:var(--shadow-lift);border:1px solid var(--line);}
+  .pop::after{content:"";position:absolute;right:-7px;top:26px;width:12px;height:12px;
+    background:var(--surface);border-right:1px solid var(--line);border-top:1px solid var(--line);
+    transform:rotate(45deg);}
+
+  /* ---- phone ---- */
+  .phone{width:250px;border:1px solid var(--line);border-radius:20px;overflow:hidden;
+    background:var(--surface);box-shadow:var(--shadow);flex:none;}
+  .phone .ph-top{height:74px;background:var(--paper);border-bottom:1px solid var(--paper-line);}
+  .phone .ph-sheet{border-top:1px solid var(--line);background:var(--surface);}
+  .ph-grab{width:34px;height:4px;border-radius:99px;background:var(--line);margin:8px auto 4px;}
+  .pair{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+
+  /* ---- table ---- */
+  .scroll-t{overflow-x:auto;margin:20px 0 0;}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--surface);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:640px;}
+  th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;padding:11px 14px;background:var(--surface-2);
+    border-bottom:1px solid var(--line);}
+  td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2);}
+  tr:last-child td{border-bottom:none;}
+  td:first-child{color:var(--ink);font-weight:600;}
+  .yes{color:var(--green);font-weight:700;}
+  .no{color:var(--ruby);font-weight:700;}
+  .mid{color:var(--amber);font-weight:700;}
+
+  .note-box{border-left:3px solid var(--amber-dot);background:var(--amber-bg);padding:14px 18px;
+    border-radius:0 10px 10px 0;margin:22px 0;}
+  .note-box p{margin:0;color:var(--ink);max-width:64ch;}
+  .note-box .h{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--amber);margin:0 0 6px;font-weight:700;}
+
+  .qs{counter-reset:q;list-style:none;padding:0;}
+  .qs li{counter-increment:q;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px 14px 52px;position:relative;margin-bottom:10px;box-shadow:var(--shadow);}
+  .qs li::before{content:counter(q);position:absolute;left:16px;top:14px;font-family:var(--mono);
+    font-size:12px;font-weight:700;color:var(--amber);background:var(--amber-bg);
+    border:1px solid var(--amber-line);width:24px;height:24px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;}
+  .qs li b{display:block;margin-bottom:3px;}
+  .qs li span{color:var(--muted);font-size:14.5px;}
+
+  footer{border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--muted);max-width:68ch;}
+  :focus-visible{outline:2px solid var(--amber-dot);outline-offset:2px;border-radius:4px;}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">HaTi · Negotiation · Design options</p>
+    <h1>Three Ways The Card Opens</h1>
+    <p class="standfirst">A change card should stop growing downwards inside a 320-pixel column and open into a window big enough to read the reason and the notes in. Three ways to do that, drawn to scale.</p>
+    <div class="meta">
+      <span>12 Aug 2026</span>
+      <span>Design only · nothing built</span>
+      <span>Same change shown in all three</span>
+    </div>
+  </header>
+
+  <section>
+    <h2>What is wrong with opening downwards</h2>
+    <p>Today the card is shut, and pressing its header unfolds the rest <em>in place</em>: who filed it, why they asked, the reviewer's note, and the notes-and-reply box, all stacked into a column about 320 pixels wide. Three things go wrong at once.</p>
+    <ul>
+      <li><strong>The column jumps.</strong> One card opening pushes every card below it down the page. If you were comparing two changes, the second one has moved.</li>
+      <li><strong>The reading matter is squeezed into the narrowest space on the screen.</strong> A three-sentence reason and a thread of replies are exactly the content that needs width, and they are getting the least of it.</li>
+      <li><strong>You scroll the whole column to read one card.</strong> There is no way to stay put and read down through a single change.</li>
+    </ul>
+    <p>All three options below fix the same thing: the card stays a compact row in the column, and pressing it opens a proper window with its own scroll. What differs is <em>where that window sits</em> — and that choice decides what you can still see while you read.</p>
+    <div class="note-box">
+      <p class="h">One rule none of them may break</p>
+      <p>Accept, Reject and Edit are the commonest presses on this page, and today they sit on the card whether it is open or shut — deliberately, after the last redesign. Wherever the reading matter goes, <strong>the verbs must stay reachable without opening anything</strong>. In all three drawings the shut card keeps its own action bar, and the window carries a second copy for when you are already in it.</p>
+    </div>
+  </section>
+
+  <!-- ============================== OPTION A ============================== -->
+  <div class="opt">
+    <div class="opt-head"><span class="opt-tag">Option A</span><h2>The change sheet</h2></div>
+    <p class="opt-sub">A centred dialog over the whole page, wearing the same clothes as the review dialog you already know. The biggest reading area of the three.</p>
+
+    <div class="shot">
+      <p class="shot-cap"><b>Option A — centred sheet</b><span>Workbench, 1440px</span></p>
+      <div class="scroller"><div class="ui">
+        <div class="ui-doc">
+          <p class="ttl">MUTUAL NON-DISCLOSURE AGREEMENT — SAW SAWA LLC</p>
+          <h5>3. Term</h5>
+          <p>This Agreement commences on the Effective Date and continues for three (3) years, unless terminated earlier in accordance with clause 7.</p>
+          <h5>4. Governing Law</h5>
+          <p>This Agreement is governed by the laws of <mark>Sweden</mark>, and the Parties submit to the exclusive jurisdiction of the courts of Stockholm.</p>
+        </div>
+        <div class="ui-col">
+          <div class="ui-colhead"><span>Tracked changes</span><b>3 on the table</b></div>
+          <div class="card dim"><div class="card-top"><span class="cid">CHG-006</span><span class="pill p-them">Saw Sawa LLC's ask</span><span class="pill p-wait">Awaiting you</span></div>
+            <div class="cmeta">Clause 4 · Governing Law</div>
+            <div class="cdiff">This Agreement is governed by the laws of <ins>Sweden</ins><del>Kenya</del>, and the Parties submit to…</div>
+            <div class="cacts"><button class="v v-ok">Accept</button><button class="v v-no">Reject</button><button class="v v-mut">Edit</button></div></div>
+          <div class="card dim"><div class="card-top"><span class="cid">CHG-005</span><span class="pill p-us">Your ask</span><span class="pill p-wait">With them</span></div>
+            <div class="cmeta">Clause 2 · Confidential Information</div>
+            <div class="cdiff">…including recipes, specifications, commercial terms, <ins>pricing</ins> and customer data.</div>
+            <div class="cacts"><button class="v v-mut">Withdraw</button></div></div>
+        </div>
+
+        <div class="scrim"></div>
+        <div class="sheet det">
+          <div class="det-head">
+            <div class="r1"><span class="cid">CHG-006</span><span class="pill p-them">Saw Sawa LLC's ask</span><span class="pill p-wait">Awaiting you</span><button class="det-x">✕</button></div>
+            <h6>Clause 4 · Governing Law</h6>
+            <div class="sub">Filed by Erik Lindqvist · Round 1 · 12 Aug 2026</div>
+          </div>
+          <div class="det-body">
+            <div class="blk"><div class="blk-k">The wording</div>
+              <div class="word">This Agreement is governed by the laws of <del>Kenya</del><ins>Sweden</ins>, and the Parties submit to the <ins>exclusive</ins> jurisdiction of the courts of <del>Nairobi</del><ins>Stockholm</ins>.</div></div>
+            <div class="blk"><div class="blk-k">Why they asked</div>
+              <div class="why">Our group counsel sits in Stockholm and every other agreement in this family is under Swedish law. Splitting the family across two jurisdictions means instructing a local firm on every dispute.</div></div>
+            <div class="blk"><div class="blk-k">Your reviewer</div>
+              <div class="rev"><b>Amina Otieno</b> — Fine on governing law. Push back on <em>exclusive</em> jurisdiction: we want it non-exclusive so we can still enforce in Kenya.</div></div>
+            <div class="blk"><div class="blk-k">Notes · 2</div>
+              <div class="note"><span class="who">Young Mbagaya · internal</span>Agreed on Sweden. I'll counter the exclusivity.</div>
+              <div class="note"><span class="who">Erik Lindqvist · from them</span>Happy to discuss the forum separately.</div>
+              <div class="seg"><i class="on">Internal</i><i>Send to them</i></div>
+              <div class="composer">Write a note…</div></div>
+          </div>
+          <div class="det-foot"><span class="grow">Awaiting your decision</span>
+            <button class="v v-ok">Accept</button><button class="v v-no">Reject</button><button class="v v-mut">Edit wording</button></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="cols">
+      <div class="c-keeps"><h4>What it gets right</h4><p>The most room by a wide margin, and it reuses furniture the product already has — the review dialog's head, body and foot. Nothing new to learn, and nothing new to style.</p></div>
+      <div class="c-costs"><h4>What it costs</h4><p>The document goes behind a scrim. You cannot read the clause in its place while you read the argument about it — and that comparison is most of the job.</p></div>
+      <div class="c-watch"><h4>Watch for</h4><p>One change at a time. Working a queue of eight means open, decide, close, open — eight times.</p></div>
+    </div>
+  </div>
+
+  <!-- ============================== OPTION B ============================== -->
+  <div class="opt">
+    <div class="opt-head"><span class="opt-tag">Option B</span><h2>The docked reading panel</h2></div>
+    <p class="opt-sub">A tall panel that opens beside the column rather than over everything. The card stays visible and selected, the document stays partly readable, and you can step to the next change without closing anything.</p>
+
+    <div class="shot">
+      <p class="shot-cap"><b>Option B — docked panel</b><span>Workbench, 1440px</span></p>
+      <div class="scroller"><div class="ui">
+        <div class="ui-doc">
+          <p class="ttl">MUTUAL NDA</p>
+          <h5>3. Term</h5>
+          <p>Commences on the Effective Date and continues for three (3) years.</p>
+          <h5>4. Governing Law</h5>
+          <p>Governed by the laws of <mark>Sweden</mark>…</p>
+        </div>
+        <div class="ui-col">
+          <div class="ui-colhead"><span>Tracked changes</span><b>3 on the table</b></div>
+          <div class="card sel"><div class="card-top"><span class="cid">CHG-006</span><span class="pill p-them">Their ask</span><span class="pill p-wait">Awaiting you</span></div>
+            <div class="cmeta">Clause 4 · Governing Law</div>
+            <div class="cdiff">…governed by the laws of <ins>Sweden</ins><del>Kenya</del>, and the Parties submit…</div>
+            <div class="cacts"><button class="v v-ok">Accept</button><button class="v v-no">Reject</button><button class="v v-mut">Edit</button></div></div>
+          <div class="card"><div class="card-top"><span class="cid">CHG-005</span><span class="pill p-us">Your ask</span><span class="pill p-wait">With them</span></div>
+            <div class="cmeta">Clause 2 · Confidential Information</div>
+            <div class="cdiff">…including recipes, <ins>pricing</ins> and customer data.</div>
+            <div class="cacts"><button class="v v-mut">Withdraw</button></div></div>
+          <div class="card"><div class="card-top"><span class="cid">CHG-003</span><span class="pill p-us">Your ask</span><span class="pill p-held">Held</span></div>
+            <div class="cmeta">Clause 6 · Liability</div>
+            <div class="cdiff">…an aggregate cap of <ins>KES 40,000,000</ins>.</div>
+            <div class="cacts"><button class="v v-mut">Withdraw</button></div></div>
+        </div>
+
+        <div class="drawer det">
+          <div class="det-head">
+            <div class="r1"><span class="cid">CHG-006</span><span class="pill p-them">Their ask</span>
+              <span class="stepper"><i>‹</i><i>›</i></span><button class="det-x">✕</button></div>
+            <h6>Clause 4 · Governing Law</h6>
+            <div class="sub">Filed by Erik Lindqvist · Round 1 · change 1 of 3</div>
+          </div>
+          <div class="det-body">
+            <div class="blk"><div class="blk-k">The wording</div>
+              <div class="word">This Agreement is governed by the laws of <del>Kenya</del><ins>Sweden</ins>, and the Parties submit to the <ins>exclusive</ins> jurisdiction of the courts of <del>Nairobi</del><ins>Stockholm</ins>.</div></div>
+            <div class="blk"><div class="blk-k">Why they asked</div>
+              <div class="why">Our group counsel sits in Stockholm and every other agreement in this family is under Swedish law. Splitting the family across two jurisdictions means instructing a local firm on every dispute.</div></div>
+            <div class="blk"><div class="blk-k">Your reviewer</div>
+              <div class="rev"><b>Amina Otieno</b> — Fine on governing law. Push back on <em>exclusive</em> jurisdiction.</div></div>
+            <div class="blk"><div class="blk-k">Notes · 2</div>
+              <div class="note"><span class="who">Young Mbagaya · internal</span>Agreed on Sweden. I'll counter the exclusivity.</div>
+              <div class="seg"><i class="on">Internal</i><i>Send to them</i></div>
+              <div class="composer">Write a note…</div></div>
+          </div>
+          <div class="det-foot"><span class="grow">1 of 3 waiting</span>
+            <button class="v v-ok">Accept</button><button class="v v-no">Reject</button><button class="v v-mut">Edit</button></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="cols">
+      <div class="c-keeps"><h4>What it gets right</h4><p>You can see the change, the card it came from and part of the clause at once — and the <span style="white-space:nowrap">‹ ›</span> arrows walk the queue without a single close. Best fit for a working session over eight changes.</p></div>
+      <div class="c-costs"><h4>What it costs</h4><p>It eats the document. On a 1440px laptop the paper drops to roughly a third of its width; on a 1280px one, less. It needs its own rule for narrow windows.</p></div>
+      <div class="c-watch"><h4>Watch for</h4><p>A new surface with its own behaviour — where it closes, what Escape does, what happens when the change it is showing gets decided.</p></div>
+    </div>
+  </div>
+
+  <!-- ============================== OPTION C ============================== -->
+  <div class="opt">
+    <div class="opt-head"><span class="opt-tag">Option C</span><h2>The pop-out, anchored to its card</h2></div>
+    <p class="opt-sub">The card grows sideways out of the column into a floating layer, still pointing at the row it came from. Closest to what pressing a card feels like today — minus the reflow and minus the squeeze.</p>
+
+    <div class="shot">
+      <p class="shot-cap"><b>Option C — anchored pop-out</b><span>Workbench, 1440px</span></p>
+      <div class="scroller"><div class="ui">
+        <div class="ui-doc">
+          <p class="ttl">MUTUAL NON-DISCLOSURE AGREEMENT — SAW SAWA LLC</p>
+          <h5>1. Purpose</h5>
+          <p>The Parties wish to explore a potential commercial relationship and will disclose confidential information to one another for that purpose.</p>
+          <h5>3. Term</h5>
+          <p>This Agreement commences on the Effective Date and continues for three (3) years, unless terminated earlier.</p>
+          <h5>4. Governing Law</h5>
+          <p>This Agreement is governed by the laws of <mark>Sweden</mark>, and the Parties submit to the exclusive jurisdiction of the courts of Stockholm.</p>
+        </div>
+        <div class="ui-col">
+          <div class="ui-colhead"><span>Tracked changes</span><b>3 on the table</b></div>
+          <div class="card sel"><div class="card-top"><span class="cid">CHG-006</span><span class="pill p-them">Their ask</span><span class="pill p-wait">Awaiting you</span></div>
+            <div class="cmeta">Clause 4 · Governing Law</div>
+            <div class="cdiff">…governed by the laws of <ins>Sweden</ins><del>Kenya</del>, and the Parties submit…</div>
+            <div class="cacts"><button class="v v-ok">Accept</button><button class="v v-no">Reject</button><button class="v v-mut">Edit</button></div></div>
+          <div class="card"><div class="card-top"><span class="cid">CHG-005</span><span class="pill p-us">Your ask</span><span class="pill p-wait">With them</span></div>
+            <div class="cmeta">Clause 2 · Confidential Information</div>
+            <div class="cdiff">…including recipes, <ins>pricing</ins> and customer data.</div>
+            <div class="cacts"><button class="v v-mut">Withdraw</button></div></div>
+          <div class="card"><div class="card-top"><span class="cid">CHG-003</span><span class="pill p-us">Your ask</span><span class="pill p-held">Held</span></div>
+            <div class="cmeta">Clause 6 · Liability</div>
+            <div class="cdiff">…an aggregate cap of <ins>KES 40,000,000</ins>.</div>
+            <div class="cacts"><button class="v v-mut">Withdraw</button></div></div>
+        </div>
+
+        <div class="pop det">
+          <div class="det-head">
+            <div class="r1"><span class="cid">CHG-006</span><span class="pill p-them">Their ask</span><button class="det-x">✕</button></div>
+            <h6>Clause 4 · Governing Law</h6>
+            <div class="sub">Filed by Erik Lindqvist · Round 1</div>
+          </div>
+          <div class="det-body">
+            <div class="blk"><div class="blk-k">The wording</div>
+              <div class="word">…governed by the laws of <del>Kenya</del><ins>Sweden</ins>, and the Parties submit to the <ins>exclusive</ins> jurisdiction of the courts of <del>Nairobi</del><ins>Stockholm</ins>.</div></div>
+            <div class="blk"><div class="blk-k">Why they asked</div>
+              <div class="why">Our group counsel sits in Stockholm and every other agreement in this family is under Swedish law. Splitting the family across two jurisdictions means instructing a local firm on every dispute.</div></div>
+            <div class="blk"><div class="blk-k">Notes · 2</div>
+              <div class="note"><span class="who">Young Mbagaya · internal</span>Agreed on Sweden. I'll counter the exclusivity.</div>
+              <div class="composer">Write a note…</div></div>
+          </div>
+          <div class="det-foot"><span class="grow">Awaiting you</span>
+            <button class="v v-ok">Accept</button><button class="v v-no">Reject</button></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="cols">
+      <div class="c-keeps"><h4>What it gets right</h4><p>Nothing else on the page moves — the column holds still, the document stays fully readable, and the layer plainly belongs to the card it points at. The smallest change to how the page already feels.</p></div>
+      <div class="c-costs"><h4>What it costs</h4><p>The least room of the three, and it has to flip or slide when the card sits near the top or bottom of the window — the fiddliest of the three to get right at every height.</p></div>
+      <div class="c-watch"><h4>Watch for</h4><p>Cards low in a long column. The layer must never open half off-screen, and it must move with the column if the reader scrolls.</p></div>
+    </div>
+  </div>
+
+  <!-- ============================== PHONE ============================== -->
+  <section>
+    <h2>All three become the same thing on a phone</h2>
+    <p>There is no room for a centred sheet, a docked panel or a floating layer on a 390-pixel screen — and there is no need to choose, because the phone already has the right shape for this: a sheet that rises from the bottom and scrolls inside itself. Whichever option wins on the desktop, the phone gets this.</p>
+    <div class="pair">
+      <div class="phone">
+        <div class="ph-top"></div>
+        <div class="ph-sheet">
+          <div class="ph-grab"></div>
+          <div class="det" style="height:330px">
+            <div class="det-head" style="padding:10px 14px">
+              <div class="r1"><span class="cid">CHG-006</span><span class="pill p-them">Their ask</span></div>
+              <h6 style="font-size:13px">Clause 4 · Governing Law</h6>
+              <div class="sub">Erik Lindqvist · Round 1</div>
+            </div>
+            <div class="det-body" style="padding:12px 14px">
+              <div class="blk"><div class="blk-k">The wording</div>
+                <div class="word" style="font-size:11px">…the laws of <del>Kenya</del><ins>Sweden</ins>, and the Parties submit to the <ins>exclusive</ins> jurisdiction…</div></div>
+              <div class="blk"><div class="blk-k">Why they asked</div>
+                <div class="why" style="font-size:11px">Our group counsel sits in Stockholm and every other agreement in this family is under Swedish law.</div></div>
+              <div class="blk"><div class="blk-k">Notes · 2</div>
+                <div class="note" style="font-size:11px"><span class="who">Young · internal</span>Agreed on Sweden.</div></div>
+            </div>
+            <div class="det-foot" style="padding:9px 14px">
+              <button class="v v-ok" style="flex:1">Accept</button>
+              <button class="v v-no" style="flex:1">Reject</button>
+              <button class="v v-mut">Edit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:260px">
+        <h3>Why this is the same decision, not a fourth option</h3>
+        <p>The phone renders the <em>same card</em> the desktop does — it is not a separate build. So whatever the card's press does, it does on the phone too. The sheet is simply what that press looks like when the screen is one column wide.</p>
+        <p>It also matters that the counterparty's page uses the same card. Whichever option is chosen, the other side gets it, and their page has no sidebar to dock a panel to — which is a point in favour of A and C, and something B has to answer for.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== COMPARISON ============================== -->
+  <section>
+    <h2>Side by side</h2>
+    <div class="scroll-t">
+      <table>
+        <thead><tr><th>&nbsp;</th><th>A · Sheet</th><th>B · Docked panel</th><th>C · Pop-out</th></tr></thead>
+        <tbody>
+          <tr><td>Reading room</td><td class="yes">Most</td><td class="yes">Lots</td><td class="mid">Enough</td></tr>
+          <tr><td>Clause still readable</td><td class="no">No — behind a scrim</td><td class="mid">Partly</td><td class="yes">Yes, fully</td></tr>
+          <tr><td>Column holds still</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+          <tr><td>Walk a queue of eight</td><td class="no">Open and close each time</td><td class="yes">Arrows, no closing</td><td class="mid">Press the next card</td></tr>
+          <tr><td>Works on the counterparty's page</td><td class="yes">Yes</td><td class="mid">Needs its own answer</td><td class="yes">Yes</td></tr>
+          <tr><td>Narrow laptop (1280px)</td><td class="yes">Fine</td><td class="no">Squeezes the paper</td><td class="mid">Tight but fine</td></tr>
+          <tr><td>New behaviour to invent</td><td class="yes">Almost none</td><td class="no">A whole surface</td><td class="mid">Placement rules</td></tr>
+          <tr><td>Feels like today, only bigger</td><td class="mid">Somewhat</td><td class="no">No — new place</td><td class="yes">Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What I would build, and why</h2>
+    <p><strong>Option C, the anchored pop-out — with one borrowing from B.</strong></p>
+    <p>You asked for the card to pop out rather than expand down, and C is literally that: the same press, the same card, the same mental model, but the panel floats out over the document instead of shoving the column around. Crucially it is the only one that leaves <em>the clause itself readable while you read the argument about it</em>, and on a negotiation screen that comparison is the work. A scrim over the contract (Option A) makes the biggest window and takes away the thing the window is about.</p>
+    <p>The borrowing from B is the <span style="white-space:nowrap">‹ ›</span> stepper in the header — <em>change 1 of 3</em> — so a queue of eight can be walked without eight closes. That is B's real advantage and it costs almost nothing to carry across.</p>
+    <p>If it turns out people want more room than C gives — long reasons, long threads — the honest upgrade is B, not A, and C's panel is the same content in a different frame, so moving is cheap.</p>
+    <div class="note-box">
+      <p class="h">The one thing I would not do</p>
+      <p>Keep both the old downward expansion and a new pop-out. Two ways to open one card is two behaviours to keep in step across four screens — the workbench, the contract tab, the phone and the counterparty's page — and the fold is the thing being replaced, not supplemented.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What I need decided before building</h2>
+    <ol class="qs">
+      <li><b>Which option?</b><span>My recommendation is C with B's stepper. A is the safest to build and the worst to use; B is the best for a long session and the most work.</span></li>
+      <li><b>Does the pop-out open on the whole card, or on a "Details" press?</b><span>Today the card head opens it. Keeping that means one press does more than it used to — which is good, unless people press cards while scanning. The alternative is a small chevron that opens the window and leaves the head inert.</span></li>
+      <li><b>Should the verbs sit in the window as well as on the card?</b><span>I have drawn both. Duplicating them means the reader can decide without leaving; not duplicating them means one place to press and no risk of the two disagreeing.</span></li>
+      <li><b>Does this reach the counterparty's page in the same change?</b><span>They render the same card, so it will unless deliberately held back. I would let it — their page is the one with the least room and the most need to read a reason properly.</span></li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>Design only — no code has been written or changed. All three mockups show the same change, at the same scale, in a 1440-pixel window; the phone drawing is 390 pixels wide. Colours, type and card styling are the product's own.</p>
+  </footer>
+
+</div>
