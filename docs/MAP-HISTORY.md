@@ -739,6 +739,69 @@ AND A CASCADE FIGHT SETTLED FOR THE WHOLE PRODUCT. The deleted mirror carried a 
 
 Tests: f181 rewritten from "the header button is a mirror" to "there is one real Ready to sign, in the header, and no mirror", keeping the one-act-one-route claims; f180 grew a NAMED roll call of every deal verb (and a count of one each, so a mirror cannot come back) and its two sentence assertions moved to the wall line, which is where the sentences moved; f51's name step became "the box is gone and the fact is not", including that a link addressed to somebody sends without asking anybody; f113 and f25 followed the box. ready-proxy-verify became portal-header-verbs-verify — same browser argument, new arrangement: every verb's real box, the walk to the root through the real cascade, the strip's width against the header's, the gap between the header and the first word of the agreement (the space the request was actually about), the stepper untouched, the wall line still above the document, and the Send appearing in the header the moment something is held.
 
+A SIGNING LINK LOOKS BACK AT THE RECORD, NOT AT A SECOND WORKBENCH (added 2026-08-12)
+
+Owner-asked, off the counterparty's SIGNING screen — the one with the green banner and
+the "Respond to <sender>" panel: "Review what changed" should open the Negotiation
+history dialog, and the read-only panel it currently reveals should go.
+
+WHAT THAT BUTTON ACTUALLY DID. portalAgreedHtml drew two hidden hosts under the banner,
+and the press unhid them: the whole negotiation workbench, mounted read-only in the page
+— the round queue, the document with every mark on it, the Tracked Changes column, each
+change's note composer with its Internal / Send-to-them switch — plus #pt-nego-foot, which
+on that screen rendered a second "Ready to sign" and a second "Decline" (both already on
+the respond panel three inches to the right) and the sentence "Your decisions are held here
+until you send them", which is untrue on a link that can hold nothing. A working surface,
+under the wording somebody was about to sign, answering a question they had not asked. The
+question they HAD asked is "what changed", and the answer to that is the record.
+
+SO IT CALLS openPortalHistory — the same one function "Negotiation history" calls a few
+pixels above it in the reading bar. BOTH DOORS ARE KEPT, deliberately: one stands in the
+reading bar where a reader looks for the record whatever state the deal is in, the other
+inside the green banner that has just told them how many changes were settled and how, and
+each is worded from where it stands. What they must never be is two PATHS — the strip's own
+lesson, from the day a mirror nearly became the only button on the page.
+
+THE TRAP THAT WOULD HAVE SHIPPED SILENTLY. The listener was the LAST line of
+wirePortalNego, and that function returns at its fourth line when #pt-nego is not on the
+page. Deleting the hidden host — the whole point of the request — would have left the
+button drawn, tinted, pressable and inert, with nothing anywhere reporting a fault. It is
+wired in renderSharePortal now, beside #pt-hist, which is the screen that draws it.
+
+AND THREE BUILDERS MAKE THOSE TWO IDS. portalAgreedHtml (this one), portalNegoHtml's own
+visible card for a live negotiation on a signing-purpose link, and renderShareWorkbench —
+where #pt-nego-foot is the counterparty's ONLY postbox, which is the exact element f180
+exists because a week of green tests once lost. Only the agreed branch was touched.
+
+EVERY SENTENCE THAT PANEL CARRIED WAS FOUND A HOME BEFORE THE PANEL WENT, which is this
+file's own standing rule: executed and superseded are said by portalClosedBanner at the top
+of the same page; "this link has already been answered" is the respond panel's own notice;
+and the one the panel alone used to say — that a signing link cannot be redlined and the
+sender will issue a link that can — is already in the "Not ready to sign?" list, in more
+useful words, because it names what happens next.
+
+WHAT LEFT WITH IT, said out loud rather than discovered. Two deal verbs: the panel's
+Ready to sign and Decline, both of which the respond panel already offers on that screen
+(Sign, and "Decline the contract" under "Not ready to sign?"), so nothing is lost and one
+duplicate pair is. And the per-change reply composer, which was the only per-clause comment
+box on a signing link — the history is a record and has no reply box. Kept deliberately
+simple: the respond panel's general Comment field is the channel on this screen, and one
+channel that can say "about clause 5" in words beats two that can drift, which is the
+argument that removed the "talk it through" panel from both sides in the first place.
+
+THE DOOR CANNOT OPEN ONTO NOTHING. It is drawn only where the contract carries changes,
+which is the same question portalHasHistory asks of the same records — so the "no changes
+were proposed" link still shows no button at all, and openPortalHistory's own refusal (a
+toast, where the timeline module is absent) is inherited rather than reinvented.
+
+Tests: f113's two panel claims rewritten to the dialog and to the sentence's new home,
+f49's "reveals in place" rewritten to "opens the history" plus a new check that both doors
+reach one screen, f51's superseded case reading the page's own banner, f37 unchanged (it
+asserts the workbench page has no door, which is still true). In the browser: live-verify
+presses the real button on a real signing link served by the real server and measures the
+dialog as pixels — a box, painted over the page — and that no workbench is mounted before
+or after. Nothing here is "deleted" by display:none: the check reads for absent elements.
+
 Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.

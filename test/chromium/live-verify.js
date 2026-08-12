@@ -108,6 +108,52 @@ const READ = () => {
         check(`${purpose}: #${id} has a shape to aim at`, v.icon, v.icon ? 'svg' : 'no icon');
       }
     }
+
+    /* ---------- "REVIEW WHAT CHANGED" OPENS THE RECORD ----------
+       (owner-asked, 12 Aug 2026.) It used to unhide a read-only mount of the
+       negotiation workbench inside the signing page — the round queue, the
+       marked document and the Tracked Changes column, under the wording the
+       reader was about to sign, with a strip of dead deal verbs at the foot of
+       it. It opens the Negotiation history now.
+
+       ASSERTED IN A BROWSER because both halves are claims about pixels, and
+       jsdom can make neither. A dialog that renders behind the page, or at zero
+       height, passes every node assertion ever written about it — which is the
+       lesson f180 and derive-dialog-verify were both written for. And the
+       absence of the workbench is measured on the real page rather than on a
+       hidden node with a class on it: nothing is deleted by display:none. */
+    if (purpose === 'sign'){
+      const before = await page.evaluate(() => ({
+        door: !!document.getElementById('pt-nego-open'),
+        mount: !!document.getElementById('pt-nego'),
+        foot: !!document.getElementById('pt-nego-foot'),
+        dialog: !!document.getElementById('history-timeline'),
+      }));
+      check('sign: the door is drawn, and no workbench under it',
+        before.door && !before.mount && !before.foot && !before.dialog,
+        `door=${before.door} mount=${before.mount} foot=${before.foot}`);
+
+      await page.evaluate(() => document.getElementById('pt-nego-open').click());
+      await page.waitForTimeout(500);
+      const after = await page.evaluate(() => {
+        const el = document.getElementById('history-timeline');
+        if (!el) return { there: false };
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          Math.min(window.innerWidth - 2, Math.max(2, r.left + r.width / 2)),
+          Math.min(window.innerHeight - 2, Math.max(2, r.top + 12)));
+        return { there: true, w: Math.round(r.width), h: Math.round(r.height),
+          onTop: !!(hit && (el === hit || el.contains(hit))),
+          mount: !!document.getElementById('pt-nego'),
+          text: (el.textContent || '').replace(/\s+/g, ' ').slice(0, 120) };
+      });
+      check('sign: pressing it puts the Negotiation history on screen',
+        after.there && after.w > 300 && after.h > 100, `${after.w}x${after.h}`);
+      check('sign: and it paints OVER the page, not behind it', after.onTop);
+      check('sign: and still no read-only workbench is mounted', !after.mount);
+      await page.screenshot({ path: path.join(__dirname, 'shots', 'sign-history.png') })
+        .catch(() => {});
+    }
     await ctx.close();
   }
 
