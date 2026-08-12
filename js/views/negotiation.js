@@ -2166,6 +2166,13 @@ function negoLiveCardsHtml(c, opts){
                twice would be the "one tag per card" fault the review feature
                was reported for. */}
         ${window.deskCardInsteadHtml ? deskCardInsteadHtml(c, ch, opts) : ''}
+        ${''/* The requester's way out of their own escalation — see
+               reviewCardCancelHtml. Both card renderers carry it, which is the
+               project's own duplication rule and exactly the kind of thing this
+               feature has been fixed in one renderer and forgotten in the other
+               before. */}
+        ${(() => { const x = window.reviewCardCancelHtml ? reviewCardCancelHtml(c, ch, opts) : '';
+          return x ? `<div class="nego-acts" style="margin-top:7px">${x}</div>` : ''; })()}
         ${window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : ''}
         ${held ? `<div class="nego-hold" data-hold="${_ne(ch.id)}">
           <span aria-hidden="true">▲</span>
@@ -6669,23 +6676,78 @@ function redlineLayoutCss(){
      the sidebar gets pushed off the row instead of the text wrapping. */
   .redline-page .rl-grid{flex:1;min-height:0;position:relative;display:grid;gap:14px;
     grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:stretch}
-  /* ---- THREE COLUMNS WHEN THE QUEUE IS THERE ----
-     The starting widths only. rlLayoutResizer writes the real ones inline the
-     moment the page has a layout, and it reads the queue's width back off this
-     rule — so the breakpoint below is the single copy of the number. */
-  .redline-page .rl-grid.has-queue{--rl-queue-w:300px;
-    grid-template-columns:var(--rl-queue-w) minmax(0,2fr) minmax(0,1fr)}
-  /* A laptop cannot afford 300px of queue AND a readable contract, and the
-     contract is what is being judged. The queue gives up the width first. */
-  @media (max-width:1439px){
-    .redline-page .rl-grid.has-queue{--rl-queue-w:248px}
-  }
 
-  /* ---- THE QUEUE ----
-     A reading order, so it is set quiet: no card chrome inside the card, no
-     verbs, no counts competing with the change stack's own. The only loud
-     thing on it is the row you are meant to answer next. */
-  .redline-page .rl-queue{min-width:0}
+  /* ---- THE QUEUE IS AN OVERLAY, NOT A COLUMN (owner-asked, 12 Aug 2026) ----
+     It used to be a third grid track — about 300px of it — and the comment that
+     stood here argued for that: "a grid column rather than an overlay so it
+     scrolls and stacks with the panes instead of floating over the contract".
+     That has been overruled. The complaint was the one the argument could not
+     answer: the queue was taking its width off the CONTRACT, which is the thing
+     being judged, and its chevron only narrowed it to a rail that still held a
+     track. Nothing but closing it gave the width back.
+
+     SO IT USES THE ACTIVITY PANEL'S MECHANISM, not a second one invented here:
+     fixed to a window edge, off-screen by a transform, over a dimmed scrim,
+     dismissed by the scrim, by Escape or by the control that opened it. Nothing
+     behind it moves — the grid is two tracks again and never changes.
+
+     IT SLIDES FROM THE LEFT, for two reasons. The queue has always been the
+     left-hand column and is read first, so bringing it in from the right would
+     move a thing the reader knows to the opposite side of the page. And the
+     right-hand edge is already spoken for: the floating notices stack sits at
+     bottom-right and the Copilot launcher beside it, and a panel arriving over
+     both is a panel that covers the two controls a reader reaches for while
+     they work. */
+  .redline-page .rl-queue{
+    position:fixed;left:0;top:0;bottom:0;z-index:56;
+    width:min(320px,88vw);min-width:0;border-radius:0;
+    border:0;border-right:1px solid var(--color-divider);
+    box-shadow:var(--shadow-lg);
+    transform:translateX(-105%);
+    transition:transform .3s cubic-bezier(.22,.61,.36,1);
+  }
+  .redline-page .rl-queue.is-open{transform:none}
+  .redline-page .rl-q-scrim{
+    position:fixed;inset:0;z-index:55;
+    background:color-mix(in srgb,#020617 45%,transparent);
+    opacity:0;pointer-events:none;transition:opacity .25s;
+  }
+  .redline-page .rl-q-scrim.is-open{opacity:1;pointer-events:auto}
+  /* Motion is a preference. With it reduced the panel still arrives; it stops
+     sliding. Same rule the Activity panel carries. */
+  @media (prefers-reduced-motion:reduce){
+    .redline-page .rl-queue{transition:none}
+    .redline-page .rl-q-scrim{transition:none}
+  }
+  /* ---- AND THE SCORE SURVIVES THE CLOSE ----
+     The folded rail's whole justification was that "2 of 7 decided" stayed
+     legible at 34px, so reopening was never a guess. An overlay that simply
+     shut would have taken that away — so the score moves onto the door. A pill
+     pinned to the left edge, vertically centred, carrying the caption and the
+     two numbers: the way back in, and the reading, in one control.
+
+     It is built inside redlinePanesHtml rather than on the workbench toolbar,
+     which is what makes it reach every mount — the owner's bench, the contract
+     tab's embed and the COUNTERPARTY's page, which renders these panes and has
+     no toolbar of its own. */
+  .redline-page .rl-q-tab{
+    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:54;
+    display:flex;align-items:center;gap:8px;
+    font:inherit;font-size:11px;font-weight:700;cursor:pointer;
+    padding:9px 12px 9px 9px;border:1px solid var(--color-divider);border-left:0;
+    border-radius:0 12px 12px 0;background:var(--color-surface);color:var(--color-text);
+    box-shadow:var(--shadow-md);transition:background .12s,padding .12s;
+  }
+  .redline-page .rl-q-tab:hover{background:var(--color-neutral-100);padding-left:13px}
+  .redline-page .rl-q-tab .rl-q-tab-k{letter-spacing:.06em;text-transform:uppercase;
+    font-size:9.5px;color:var(--color-neutral-600)}
+  .redline-page .rl-q-tab .rl-q-tab-n{font-family:var(--font-mono);font-size:11px;
+    font-weight:700;color:var(--color-text)}
+  /* The door is a door only while it is shut — with the panel open the panel's
+     own close button and the scrim are the way out. */
+  .redline-page .rl-queue.is-open ~ .rl-q-tab,
+  .redline-page .rl-q-tab.is-open{display:none}
+  .redline-page.rl-focus .rl-q-tab{display:none}
   /* ---- THE SIDE MARGINS ARE HALVED, AND THE LABEL IS THE STATUS WORD'S SIZE
      The clause name is what this column is for and it was the only thing on a
      row being squeezed: 12px of card padding plus 10px of row padding put 22px
@@ -6703,32 +6765,17 @@ function redlineLayoutCss(){
     border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-q-label{margin:0 26px 8px 0;font-size:9.5px;font-weight:800;
     letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500)}
-  /* ---- THE FOLD ----
-     The chevron sits in the head's own corner rather than on a toolbar of its
-     own: one control, and it is where the thing it folds begins. It stays put
-     when the column folds — at 34px the head IS the rail, so the button has to
-     be reachable from both states without moving. */
+  /* ---- THE CLOSE ----
+     Same corner the fold chevron used, same id, and it is now what it always
+     looked like: the way out of the panel. */
   .redline-page .rl-q-min{position:absolute;top:9px;right:6px;width:22px;height:22px;
     display:grid;place-items:center;padding:0;border:0;border-radius:5px;background:none;
     color:var(--color-neutral-500);cursor:pointer;transition:background .12s,color .12s}
   .redline-page .rl-q-min:hover{background:var(--color-neutral-100);color:var(--color-text)}
-  /* The rail's read-out: the same two numbers, stacked, because 34px has no
-     room for a line of text. Hidden while the column is open — the open column
-     already says it in words. */
+  /* The stacked read-out belonged to the 34px rail, which no longer exists —
+     the score reads on the door now (.rl-q-tab). Kept in the markup and unseen
+     so the two numbers have exactly one source. */
   .redline-page .rl-q-mini{display:none}
-  .redline-page .rl-queue.is-min .rl-q-scroll,
-  .redline-page .rl-queue.is-min .rl-q-label,
-  .redline-page .rl-queue.is-min .rl-q-foot,
-  .redline-page .rl-queue.is-min .rl-q-bar{display:none}
-  .redline-page .rl-queue.is-min .rl-q-head{padding:8px 4px 10px;border-bottom:0}
-  .redline-page .rl-queue.is-min .rl-q-min{position:static;margin:0 auto 8px}
-  .redline-page .rl-queue.is-min .rl-q-mini{display:flex;flex-direction:column;align-items:center;
-    gap:1px;font-family:var(--font-mono);font-size:10px;line-height:1.15;color:var(--color-neutral-600)}
-  .redline-page .rl-queue.is-min .rl-q-mini b{font-size:12px;color:var(--color-text)}
-  .redline-page .rl-queue.is-min .rl-q-mini i{font-style:normal;opacity:.5}
-  /* The column itself. 34px is the chevron plus its breathing room — anything
-     narrower and the control it has to keep is bigger than the rail. */
-  .redline-page .rl-grid.has-queue.q-min{--rl-queue-w:34px}
   .redline-page .rl-q-bar{height:5px;border-radius:999px;background:var(--color-neutral-200);overflow:hidden}
   .redline-page .rl-q-bar span{display:block;height:100%;border-radius:999px;
     background:var(--accent-solid,var(--color-accent));transition:width .3s ease}
@@ -6918,11 +6965,19 @@ function redlineLayoutCss(){
   @media (max-width:1023px){
     .redline-page .rl-grid{grid-template-columns:minmax(0,1fr)!important;height:auto}
     .redline-page .rl-doc,.redline-page .rl-side{grid-column:auto;min-height:280px}
-    /* The queue stacks with the panes rather than being dropped: it is the
-       reading order, and it is the pane that matters MOST on a small screen,
-       so it keeps its place at the top of the stack. It does not need 280px of
-       it — a queue is as tall as its rows. */
-    .redline-page .rl-queue{grid-column:auto;min-height:0;max-height:46vh}
+    /* THE PHONE GETS NO DESKTOP OVERLAY. The queue stacks with the panes rather
+       than being dropped: it is the reading order, and it is the pane that
+       matters MOST on a small screen, so it keeps its place at the top of the
+       stack. It does not need 280px of it — a queue is as tall as its rows.
+       Every rule the overlay adds is unwound here, including the scrim and the
+       edge door, which have nothing to open on a page where the queue is
+       already in flow and always visible. */
+    .redline-page .rl-queue{position:static!important;transform:none!important;
+      width:auto!important;grid-column:auto;min-height:0;max-height:46vh;
+      border:1px solid var(--color-divider)!important;border-radius:14px!important;
+      box-shadow:0 1px 2px rgba(15,23,42,.05)!important;z-index:auto!important}
+    .redline-page .rl-q-scrim,.redline-page .rl-q-tab,
+    .redline-page .rl-q-min{display:none!important}
     .redline-page .rl-resizer{display:none}
   }
   /* ---- THIS PAGE HAS NO DRAWER BUTTON, SO IT MUST NOT HAVE A DRAWER ----
@@ -7291,69 +7346,105 @@ function openNegotiations(){
    anywhere in the app. */
 let _rlDoorAsked = false;
 
-/* ---- THE LIST BEHIND THE DOOR ----
-   What the door shows when there is no last negotiation to reopen: the ones
-   actually being argued over, one line each, newest movement first.
-
-   IT IS A SIGNPOST, NOT A SECOND REGISTER, and three rules keep it one — they
-   are the whole reason this is twenty lines rather than a page. LIVE
-   NEGOTIATIONS ONLY (the register is where you go for all 145, and two lists of
-   every contract eventually disagree); NO FILTER, NO SEARCH, NO SORTABLE
-   COLUMNS (the moment it needs those it HAS become the register); and it counts
-   with negoNeedsYouIds like every other surface, so a door reading 3 cannot sit
-   over a list reading 2.
-
-   The one question a row answers is the one worth asking from outside the
-   agreement: is this one waiting on me? */
-function negoListRowHtml(c){
+/* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----
+   Three readings, one function, asked by every surface that draws the state:
+   the desktop table's last column, the phone's card, and the band a row is
+   filed under. Counted with negoNeedsYouIds like everything else, so a door
+   reading 3 cannot sit over a list reading 2 — and, like it, it READS `c.changes`
+   RAW rather than through negoChanges(), which would start a negotiation on
+   every contract it was asked about. */
+function negWhoseMove(c){
   const needs = negoNeedsYouIds(c).length;
-  const open = (Array.isArray(c.changes) ? c.changes : [])
+  if (needs) return { k: 'you', n: needs };
+  const open = (Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.status === 'pending' && !x.withdrawn).length;
-  const lead = (typeof window.deskLead === 'function') ? deskLead(c) : null;
-  const round = (c.negotiation && typeof c.negotiation.round === 'number') ? c.negotiation.round : 1;
-  /* Three states, and the middle one names THEM rather than saying "waiting":
-     a reader scanning this list is deciding what to pick up, and "with Saw Sawa
-     LLC" answers that where "waiting" only repeats the column heading. */
-  const state_ = needs
-    ? `<span class="ngl-w ngl-w-you">${i18tn('ng_needs_you', needs, { n: needs })}</span>`
-    : open
-      ? `<span class="ngl-w ngl-w-them">${_ne(i18t('ng_door_with', { who: c.counterparty || i18t('ng_door_them') }))}</span>`
-      : `<span class="ngl-w ngl-w-clear">${i18t('ng_door_clear')}</span>`;
-  return `<button type="button" class="ngl-row" data-ngl-open="${_nea(c.id)}">
-    <span class="ngl-main">
-      <span class="ngl-name">${esc(c.name || c.id)}</span>
-      <span class="ngl-sub">${esc(c.id)} &middot; ${_ne(i18t('ct_round_n', { n: round }))}${
-        lead && lead.name ? ' &middot; ' + esc(lead.name) : ''}</span>
-    </span>
-    ${state_}
-  </button>`;
+  return open ? { k: 'them', n: open } : { k: 'clear', n: 0 };
+}
+/* ---- THE LIST BEHIND THE DOOR — IT IS THE CONTRACTS TABLE NOW ----
+   Owner's decision, 12 Aug 2026, and it REVERSES the position that stood here
+   for two days. This page used to be a signpost of twenty lines, and the
+   argument written above it was that a filterable, sortable, searchable table
+   of contracts on a second page would eventually disagree with the register
+   about what a row says. That argument was not wrong; it was overruled, and the
+   fear it names is answered a different way — BY REUSE. There is still exactly
+   one table of contracts in this product. renderRegister builds this page:
+   its filter bar, its columns, its row builder, its footer, its wiring. Nothing
+   about a row is written twice, so nothing about a row can drift.
+
+   FOUR THINGS ARE DIFFERENT, and they are the whole design:
+
+     1  the last column is WHOSE MOVE it is — a state, not an action;
+     2  the rows sit under three banded headers in a fixed order (waiting on
+        you, with the other side, nothing outstanding), each carrying its own
+        count. A band is the thing a flat register cannot produce and it is what
+        stops this page being mistaken for Contracts;
+     3  the heading carries the live count, so the number above the table is
+        this page's own and never 145;
+     4  the filter bar opens with a LOCKED chip reading "Live negotiations" —
+        not a filter the reader chose and not one they can clear.
+
+   AND THE ONE THING THAT DID NOT CHANGE: live negotiations only. That narrowing
+   is a property of the page, applied above every filter and untouched by Clear
+   — see regSetScope in js/views/register.js, which is where the reuse and the
+   lock both live. */
+function negoListHeadHtml(shown){
+  const live = negoLiveList().length;
+  const R = (window.regState ? window.regState() : null);
+  /* Is anything the READER chose narrowing this? Not the live-negotiations
+     scope, which is the page itself. */
+  const filtered = !!(R && (String(R.query || '').trim() || R.stage !== 'all' || R.type !== 'all'
+    || R.view || (R.renewal && R.renewal !== 'all') || (R.category && R.category !== 'all') || R.only));
+  const n = Array.isArray(shown) ? shown.length : live;
+  /* TWO COUNTS ABOUT THE SAME THING ARE ON SCREEN AT ONCE and they measure
+     different units, so the page says which is which rather than letting a
+     reader discover it. The sidebar door counts CHANGES waiting on this person
+     across every negotiation; the bands count AGREEMENTS in the view they can
+     see. And when a filter is on, the bands are counting the filtered view —
+     said out loud, because a band reading 1 under a door reading 3 with no
+     explanation is the contradiction this page was written to avoid. */
+  return `<header class="ngl-head ngl-head-table">
+    <h2>${i18t('ng_door_title')} <span class="ngl-live">${_ne(i18tn('ngl_n_live', live, { n: live }))}</span></h2>
+    <p>${_ne(filtered ? i18t('ngl_sub_filtered', { n, live }) : i18t('ngl_sub'))}</p>
+  </header>`;
 }
 function renderNegotiationsList(host){
   const el = host || document.getElementById('content');
   if (!el) return;
-  const rows = negoLiveList();
-  el.innerHTML = `<div class="view-enter ngl-wrap">
-    <header class="ngl-head">
-      <h2>${i18t('ng_door_title')}</h2>
-      ${''/* The sub-line speaks only when there is a list to introduce. With
-             nothing running, the empty card below says the whole thing — and
-             "every agreement being argued over right now" printed above
-             "Nothing is being negotiated" is the page contradicting itself. */}
-      ${rows.length ? `<p>${i18t('ng_door_pick')}</p>` : ''}
-    </header>
-    ${rows.length ? `<div class="ngl-list">${rows.map(negoListRowHtml).join('')}</div>`
-      : `<section class="ngl-empty">
-          <h3>${i18t('ng_door_none')}</h3>
-          <p>${i18t('ng_door_none_how')}</p>
-          <button type="button" data-ngl-register class="ui-btn ui-btn-primary" style="padding:8px 16px">${i18t('ng_open_register')}</button>
-        </section>`}
-  </div>`;
-  el.querySelectorAll('[data-ngl-open]').forEach(b => b.addEventListener('click', () =>
-    openRedlineWorkbench(b.getAttribute('data-ngl-open'))));
-  el.querySelectorAll('[data-ngl-register]').forEach(b => b.addEventListener('click', () => {
-    if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
-    setView('register');
-  }));
+  const live = negoLiveList();
+  /* ---- AN EMPTY GROUP IS INFORMATION; THREE OVER NOTHING IS NOT ----
+     With no live negotiation anywhere, this is not a table that filtered to
+     zero — it is a page with no subject, and the empty state that explains how
+     one starts is the whole content. The table (with its filter bar, its bands
+     and its "nothing matches · clear the filters" state) is drawn only once
+     there is something for a filter to narrow. */
+  if (!live.length){
+    if (window.regSetScope) regSetScope(null);
+    el.innerHTML = `<div class="view-enter ngl-wrap">
+      <header class="ngl-head">
+        <h2>${i18t('ng_door_title')}</h2>
+      </header>
+      <section class="ngl-empty">
+        <h3>${i18t('ng_door_none')}</h3>
+        <p>${i18t('ng_door_none_how')}</p>
+        <button type="button" data-ngl-register class="ui-btn ui-btn-primary" style="padding:8px 16px">${i18t('ng_open_register')}</button>
+      </section>
+    </div>`;
+    el.querySelectorAll('[data-ngl-register]').forEach(b => b.addEventListener('click', () => {
+      if (window.regSetScope) regSetScope(null);
+      if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
+      setView('register');
+    }));
+    if (typeof setActiveNav === 'function') setActiveNav('redline');
+    return;
+  }
+  /* Through `window`, like every other cross-module call in this app: these are
+     two files, and a bare name resolves only because the browser puts every
+     top-level declaration in one scope. A stage without the register has no
+     Negotiations page to draw — this page IS that table — so it draws nothing
+     rather than a second, quietly different one. */
+  if (typeof window.renderRegister !== 'function') return;
+  window.renderRegister({ scope: 'negotiations', nav: 'redline',
+    hostId: (el.id || 'content'), head: cs => negoListHeadHtml(cs) });
 }
 
 function renderRedline(){
@@ -8964,6 +9055,15 @@ function rlWireClauseTools(c, host, opts){
     ev.preventDefault();
     const id = row.getAttribute('data-rl-queue');
     const clauseId = row.getAttribute('data-rl-queue-clause');
+    /* ---- THE PRESS CLOSES THE PANEL (12 Aug 2026) ----
+       A queue row is a door: it scrolls the contract to that clause and opens
+       the change's card beside it. With the queue floating OVER the contract,
+       a jump that left the panel standing would land the reader on a passage
+       behind it — a door that opens onto a wall. So the overlay stands down on
+       the press, and the reading it sent you to is the thing on screen. The
+       door at the edge is one press away, still carrying the score. */
+    if (typeof rlSetQueueShown === 'function' && rlQueueOpen())
+      rlSetQueueShown(row.closest('.redline-page') || host, false);
     /* THE RING MOVES ON THE PRESS, BEFORE ANYTHING ELSE HAPPENS. Recorded in
        module state so a repaint keeps it, and moved in the DOM immediately so
        the answer does not wait on one — a highlight that arrives after a
@@ -9199,72 +9299,37 @@ function _rlLeftFrac(){
    rather than derived, because the padding is set in the sheet below and the
    scrollbar width is the platform's. */
 const RL_SHEET_COL_MIN = 772;
-/* And the narrowest the queue can be and still read: "#12 · Payment Terms"
-   with a status beside it. Below this it is not a narrower queue, it is an
-   unreadable one, so the sheet gives way instead. */
-const RL_QUEUE_MIN = 210;
+/* ---- TWO TRACKS AGAIN, AND THE MATHS IS RE-DERIVED RATHER THAN PATCHED ----
+   This function used to solve a THREE-track layout: it read the queue's
+   declared width off --rl-queue-w, subtracted it and a second gap, and gave the
+   queue back width whenever the contract lost its measure. All of that is gone
+   with the queue (owner-asked, 12 Aug 2026) — it is an overlay now and occupies
+   no track at all.
 
-/* HOW WIDE THE QUEUE WANTS TO BE. Read off the CSS custom property rather than
-   off the rendered box, deliberately: this function WRITES the rendered width
-   a few lines below, so measuring the box would feed last paint's answer back
-   in and the column would ratchet down a little on every resize and never grow
-   back. The property is the declared intent, and the sheet keeps the only copy
-   of the number — the laptop breakpoint lives there. Returns 0 when the queue
-   is absent or the narrow-width fallback has stacked it, which is also the
-   signal that the original two-column maths applies unchanged. */
-function _rlQueueW(grid){
-  const q = grid && grid.querySelector('#rl-queue');
-  if (!q || q.offsetParent === null) return 0;
-  const want = parseFloat(getComputedStyle(grid).getPropertyValue('--rl-queue-w'));
-  if (!(want > 0)) return 0;
-  /* Stacked: the fallback drops the grid to one column, so the queue is as
-     wide as the grid and there is no split left to place. */
-  return (q.getBoundingClientRect().width < grid.clientWidth - 80) ? want : 0;
-}
+   IT MATTERS THAT THIS WAS RE-DERIVED. The three-track version produced a real,
+   reported bug: the drag measured a distance travelled and divided it by the
+   TWO-column available width while the layout divided by the three-column one,
+   so one pixel of pointer bought less than one pixel of column and the handle
+   fell hundreds of pixels behind the cursor. Leaving a stale queue term in
+   either half of that arithmetic is how the same fault comes back. There is one
+   geometry now — grid width, one gap, two columns — and both halves ask for it
+   the same way (see _rlAvail, which rlWireResizer's pointerFrac also calls). */
+const _rlAvail = grid => grid.clientWidth - RL_GAP;
 function rlLayoutResizer(host){
   const scope = (host && host.querySelector) ? host : document;
   const grid = scope.querySelector('.redline-page .rl-grid');
   const rez = grid && grid.querySelector('#rl-resizer');
   if (!grid || !rez) return;
-  /* THE HANDLE SITS ON A BOUNDARY, and the queue moved it. This function
-     writes the grid's columns inline, so a third column has to be accounted
-     for here as well as in the sheet — a CSS-only change would be overwritten
-     the moment anything called this, and the handle would keep its old
-     position, drawn straight down the middle of the contract. */
-  let qw = _rlQueueW(grid);
-  const solve = q => {
-    const avail = grid.clientWidth - (q ? RL_GAP * 2 : RL_GAP) - q;
-    let left = Math.round(_rlLeftFrac() * avail);
-    if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
-      left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN);
-    return { avail, left };
-  };
-  let s = solve(qw);
-  /* ---- THE CONTRACT KEEPS ITS MEASURE; THE QUEUE GIVES UP THE WIDTH ----
-     Three columns, a 720px sheet and a readable change stack do not all fit on
-     a 1440px laptop, and something has to yield. It is the queue: it is a list
-     of short labels and loses almost nothing by narrowing, while the contract
-     column is where the wording is actually judged and a sheet that cannot
-     hold its measure makes the Doc and Negotiate tabs typeset differently.
-     Only down to RL_QUEUE_MIN — past that the queue would stop being readable
-     to save a measure, which is trading one broken thing for another. */
-  if (qw && s.left < RL_SHEET_COL_MIN){
-    /* Solved, not stepped. Giving the queue's width back to the document one
-       pixel for one pixel undershoots every time — the document only takes its
-       own share of what is freed, so a naive subtraction lands short and the
-       measure stays broken. Ask instead how much room the split needs to put
-       RL_SHEET_COL_MIN on the left, and hand the queue whatever is over. */
-    const need = RL_SHEET_COL_MIN / Math.max(0.01, _rlLeftFrac());
-    const room = grid.clientWidth - RL_GAP * 2 - need;
-    const want = Math.max(RL_QUEUE_MIN, Math.min(qw, Math.floor(room)));
-    if (want < qw){ qw = want; s = solve(qw); }
-  }
+  const avail = _rlAvail(grid);
+  let left = Math.round(_rlLeftFrac() * avail);
+  if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
+    left = Math.min(Math.max(left, RL_LEFT_MIN), avail - RL_RIGHT_MIN);
+  const s = { avail, left };
   /* Unmeasured (a stage with no layout) or stacked to one column: the CSS
      fallback columns hold, and writing 0px here would break them. */
   if (s.avail < 160) return;
-  grid.style.gridTemplateColumns =
-    (qw ? qw + 'px ' : '') + s.left + 'px minmax(0,1fr)';
-  rez.style.left = (qw ? qw + RL_GAP : 0) + s.left + 'px';
+  grid.style.gridTemplateColumns = s.left + 'px minmax(0,1fr)';
+  rez.style.left = s.left + 'px';
   /* ---- AND IT SAYS WHEN IT WILL NOT GO FURTHER ----
      The split has real limits — the contract keeps a readable measure, the
      cards keep a readable width — and reaching one is legitimate. Reaching it
@@ -9359,9 +9424,11 @@ function rlWireResizer(host){
   let grabDx = 0;
   const pointerFrac = x => {
     const r = grid.getBoundingClientRect();
-    const qw = _rlQueueW(grid);
-    const avail = Math.max(1, grid.clientWidth - (qw ? RL_GAP * 2 : RL_GAP) - qw);
-    const left = (x + grabDx) - r.left - (qw ? qw + RL_GAP : 0);
+    /* THE SAME GEOMETRY THE LAYOUT USES, asked for through the same function.
+       That is the whole fix for the handle that fell behind the cursor: the two
+       halves cannot describe different layouts if there is one description. */
+    const avail = Math.max(1, _rlAvail(grid));
+    const left = (x + grabDx) - r.left;
     return clamp(left / avail);
   };
   const onMove = e => {
@@ -10258,7 +10325,22 @@ function rlOneNoticeHtml(c, opts = {}){
 const _rlNoticeFold = new Map();
 function rlNoticesFolded(c){
   const k = String((c && c.id) || '');
-  return _rlNoticeFold.has(k) ? !!_rlNoticeFold.get(k) : true;   // folded until summoned
+  if (_rlNoticeFold.has(k)) return !!_rlNoticeFold.get(k);       // the reader has decided
+  /* ---- ONE EXCEPTION TO "FOLDED UNTIL SUMMONED" (12 Aug 2026) ----
+     A review that is still IN PLAY is not news; it is a job with a name on it,
+     and it is the one notice carrying a control — Cancel — that its own reader
+     has to be able to find. Folded behind the bell, that button existed and
+     effectively nobody could reach it, and the review read as one that could
+     not be called off. So while a review is open with this reader (theirs to
+     rule on, or theirs to call off) the stack arrives OPEN, and the moment they
+     fold it the decision above wins for the rest of the sitting.
+
+     Everything else still arrives folded: a review that came back days ago, a
+     desk notice, a readiness signal. reviewWantsAttention answers only for
+     reviews still in play — see reviewInPlay, which is what "spent" is measured
+     against. */
+  try{ if (window.reviewWantsAttention && reviewWantsAttention(c)) return false; }catch(_){}
+  return true;                                                    // folded until summoned
 }
 function rlSetNoticesFolded(cOrId, v){
   const k = (cOrId && typeof cOrId === 'object') ? String(cOrId.id || '') : String(cOrId || '');
@@ -10919,9 +11001,19 @@ function redlineChangeCardsHtml(c, opts = {}){
        desk's "instead" line and the review hold's "what now" — come with them.
        An action bar with a hole in it and the explanation folded away is
        worse than either. */
+    /* ---- AND THE REQUESTER'S WAY OUT OF THEIR OWN ESCALATION ----
+       Cancel used to live only in the review notice, which since 10 Aug 2026
+       arrives folded behind a bell — a verb that existed and could not be
+       found. It rides in the action bar now, beside the status that explains
+       why this change cannot be sent, which is where somebody is standing when
+       they decide the ask was a mistake. Built in js/review.js so this card and
+       the contract tab's card cannot disagree about who may see it, and the
+       predicates go with it: requester or admin only, never the reviewer, never
+       the counterparty. */
+    const rvCancel = window.reviewCardCancelHtml ? reviewCardCancelHtml(c, ch, opts) : '';
     const actions = [
       rvStuckBlock,
-      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : '',
+      (verbs.length || rvCancel) ? `<div class="rl-card-verbs">${verbs.join('')}${rvCancel}</div>` : '',
       dkInstead,
       window.reviewVerbsHtml ? reviewVerbsHtml(c, ch, opts) : '',
     ].filter(Boolean).join('');
@@ -11271,20 +11363,33 @@ function rlQueueHtml(c, opts = {}){
 
      Remembered per person, not per contract: this is how somebody works, not a
      fact about an agreement. */
-  const min = rlQueueMin();
-  return `<aside class="rl-col rl-queue${min ? ' is-min' : ''}" id="rl-queue" aria-label="${i18t('ng_this_rounds_queue')}">
+  const open = rlQueueOpen();
+  /* THE DOOR CARRIES THE SCORE. Everything the folded rail used to say at 34px
+     is on it — the caption and "2 / 7" — so closing the panel never costs the
+     one number the column exists to give, and reopening is never a guess. */
+  return `<div class="rl-q-scrim${open ? ' is-open' : ''}" id="rl-q-scrim" data-rl-q-close="1" aria-hidden="true"></div>
+  <button type="button" class="rl-q-tab" id="rl-q-tab" data-rl-q-open="1"
+    aria-controls="rl-queue" aria-expanded="${open ? 'true' : 'false'}"
+    title="${_nea(i18t('ng_queue_open_title', { done: p.done, total: p.total }))}">
+    ${_rlChev(true)}<span class="rl-q-tab-k">${i18t('ng_this_rounds_queue')}</span>
+    <span class="rl-q-tab-n">${p.done}/${p.total}</span>
+  </button>
+  ${''/* An <aside> with a label and nothing else, exactly as the Activity panel
+         is built. NOT role="dialog": it is a complementary panel a reader can
+         work beside, not a modal over the wording being judged — and the page
+         already refuses to put a dialog over that (f89). */}
+  <aside class="rl-col rl-queue${open ? ' is-open' : ''}" id="rl-queue"
+    aria-hidden="${open ? 'false' : 'true'}" aria-label="${i18t('ng_this_rounds_queue')}">
     <div class="rl-q-head">
-      <button type="button" id="rl-q-min" class="rl-q-min" aria-expanded="${min ? 'false' : 'true'}"
-        title="${min ? "Show this round's queue" : "Minimise this round's queue"}">${
-        _rlChev(min)}</button>
+      <button type="button" id="rl-q-min" class="rl-q-min" data-rl-q-close="1" aria-expanded="${open ? 'true' : 'false'}"
+        title="${_nea(i18t('ng_queue_close_title'))}" aria-label="${_nea(i18t('ng_queue_close_title'))}">&times;</button>
       <p class="rl-q-label">${i18t('ng_this_rounds_queue')}</p>
       <div class="rl-q-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"
         aria-label="${_nea(i18t('ng_decided_round_aria',{done:p.done,total:p.total}))}"><span style="width:${pct}%"></span></div>
       <div class="rl-q-foot"><b>${p.done} of ${p.total}</b> ${i18t('ng_decided_this_round')}</div>
-      ${''/* The folded rail's own read-out. Same two numbers, off the same
-             progress object, so the rail and the open column can never
-             disagree about how far through the round you are. */}
-      <div class="rl-q-mini" aria-hidden="${min ? 'false' : 'true'}"><b>${p.done}</b><i>/</i><span>${p.total}</span></div>
+      ${''/* Unseen, and kept: the door reads off the same progress object, so
+             the two places the score appears cannot disagree. */}
+      <div class="rl-q-mini" aria-hidden="true"><b>${p.done}</b><i>/</i><span>${p.total}</span></div>
     </div>
     <div class="rl-q-scroll">
       ${body}
@@ -11293,39 +11398,66 @@ function rlQueueHtml(c, opts = {}){
     </div>
   </aside>`;
 }
-/* Folded or not. localStorage, per signed-in person, defaulting to open — a
-   first-time reader must see the queue before they can decide they would
-   rather not. */
-const RL_QMIN_KEY = () => { const u = (typeof currentUser === 'function') ? currentUser() : null;
-  return 'hati.v1.rlQueueMin.' + ((u && u.id) || 'anon'); };
-function rlQueueMin(){ try{ return !!lsGet(RL_QMIN_KEY()); }catch(_){ return false; } }
-function rlSetQueueMin(on){ try{ lsSet(RL_QMIN_KEY(), !!on); }catch(_){} }
+/* ---- OPEN OR SHUT, PER SITTING, SHUT BY DEFAULT ----
+   The old fold was remembered per person in localStorage and defaulted to OPEN,
+   which was right for a column: a first-time reader had to see it before they
+   could decide they would rather not, and an open column cost the contract some
+   width and nothing else. An OVERLAY that remembered "open" would slide itself
+   over the contract on every arrival — the exact complaint this change answers.
+   So it is in memory, per sitting, shut until asked for, and the door beside
+   the page says what is behind it. */
+let _rlQueueOpen = false;
+function rlQueueOpen(){ return !!_rlQueueOpen; }
+function rlSetQueueOpen(on){ _rlQueueOpen = !!on; }
 const _rlChev = min => `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${
   min ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'}"/></svg>`;
-/* The fold, applied without a repaint. Rebuilding the workbench to hide one
-   column would throw away the reader's scroll position in the contract, which
-   is the one thing they were holding on to. Class on the aside, class on the
-   grid, and the resizer re-run because the split it placed was measured
-   against a column that just changed width. */
+/* Opening and closing, applied WITHOUT A REPAINT — the property the fold
+   already had and the one worth keeping: rebuilding the workbench to show one
+   panel would throw away the reader's place in the contract, which is the one
+   thing they were holding on to. Two class flips and nothing else. The resizer
+   is NOT re-run: the queue no longer occupies a track, so the split behind it
+   has not moved. */
+function rlSetQueueShown(scope, on){
+  const root = (scope && scope.querySelector) ? scope : document;
+  rlSetQueueOpen(on);
+  root.querySelectorAll('#rl-queue').forEach(q => {
+    q.classList.toggle('is-open', on); q.setAttribute('aria-hidden', on ? 'false' : 'true');
+  });
+  root.querySelectorAll('#rl-q-scrim').forEach(sc => sc.classList.toggle('is-open', on));
+  root.querySelectorAll('#rl-q-tab').forEach(t => {
+    t.classList.toggle('is-open', on); t.setAttribute('aria-expanded', on ? 'true' : 'false');
+  });
+  root.querySelectorAll('#rl-q-min').forEach(b => b.setAttribute('aria-expanded', on ? 'true' : 'false'));
+  if (on){
+    const first = root.querySelector('#rl-queue .rl-q-row.is-sel, #rl-queue .rl-q-row');
+    if (first && first.focus) { try{ first.focus(); }catch(_){} }
+  }
+}
+/* The door, the close, the scrim and Escape — the Activity panel's four ways in
+   and out, on this panel. Bound once per mount, on the host rather than on each
+   button, because every repaint of the page rebuilds them. */
 function rlWireQueueMin(host){
   const scope = (host && host.querySelector) ? host : document;
-  const btn = scope.querySelector('#rl-q-min');
-  if (!btn || btn._wired) return;
-  btn._wired = true;
-  btn.addEventListener('click', () => {
-    const on = !rlQueueMin();
-    rlSetQueueMin(on);
-    const q = scope.querySelector('#rl-queue'), grid = scope.querySelector('#rl-grid');
-    if (q) q.classList.toggle('is-min', on);
-    if (grid) grid.classList.toggle('q-min', on);
-    btn.setAttribute('aria-expanded', on ? 'false' : 'true');
-    btn.title = on ? "Show this round's queue" : "Minimise this round's queue";
-    btn.innerHTML = _rlChev(on);
-    const mini = scope.querySelector('.rl-q-mini');
-    if (mini) mini.setAttribute('aria-hidden', on ? 'false' : 'true');
-    if (window.rlLayoutResizer) rlLayoutResizer(host);
+  const root = (host && host.addEventListener) ? host : document;
+  if (root._rlQWired) return;
+  root._rlQWired = true;
+  root.addEventListener('click', ev => {
+    const t = ev.target;
+    if (!t || !t.closest) return;
+    if (t.closest('[data-rl-q-open]')){ rlSetQueueShown(scope, true); return; }
+    if (t.closest('[data-rl-q-close]')) rlSetQueueShown(scope, false);
   });
+  if (typeof window !== 'undefined' && !window._rlQEsc){
+    window._rlQEsc = true;
+    document.addEventListener('keydown', ev => {
+      if (ev.key !== 'Escape' || !rlQueueOpen()) return;
+      /* Only when this panel is the thing on top: a dialog over it owns Escape
+         first, exactly as the Activity panel's own handler defers. */
+      if (document.getElementById('modal-root') && document.getElementById('modal-root').innerHTML.trim()) return;
+      rlSetQueueShown(document, false);
+    });
+  }
 }
 
 /* The design's grid. Everything inside it is the engine's, arranged the way the
@@ -11405,11 +11537,15 @@ function redlinePanesHtml(c, opts = {}){
          divider, same defaults: two thirds to the contract). nego-work is kept
          on the grid because the engine scopes its clause tooling under it
          (.nego-work .nego-pane …). -->
-    <div class="rl-grid nego-work has-queue${rlQueueMin() ? ' q-min' : ''}" id="rl-grid" style="--nego-f:1;--nego-c:320px">
-      <!-- THE QUEUE COMES FIRST because it is read first: what to answer next,
-           then the wording, then the change record. It is a grid column rather
-           than an overlay so it scrolls and stacks with the panes instead of
-           floating over the contract. -->
+    <div class="rl-grid nego-work" id="rl-grid" style="--nego-f:1;--nego-c:320px">
+      <!-- THE QUEUE IS AN OVERLAY, NOT A TRACK (owner-asked, 12 Aug 2026). It
+           was the first of three grid columns, and it took about 300px off the
+           contract to say what to answer next. It slides over the page from the
+           left now, on the Activity panel's own mechanism, and the grid is two
+           tracks again — so opening it changes nothing behind it. It is still
+           written FIRST because it is read first, and because the edge door
+           that opens it has to exist before the reader looks for it. See
+           rlQueueHtml, which builds the scrim, the door and the panel. -->
       ${rlQueueHtml(c, opts)}
       <!-- keeps the nego-pane working classes: the engine's clause tools
            (Change, Delete, the fingerprint margin) are styled through them, and
@@ -11667,6 +11803,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlCardNeedsYou, rlCardForgetPins,
   rlPopId, rlPopIsOpen, rlPopSet, rlPopClose, rlPopPaint, rlPopPlace,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
+  rlQueueOpen, rlSetQueueOpen, rlSetQueueShown, rlWireQueueMin,
   rlRestoreScroll,
   /* ---- THE NEGOTIATIONS DOOR ----
      Every one of these is called from ANOTHER module — the sidebar count and the
@@ -11677,7 +11814,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
      year because nobody put it here. */
   negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
   negoLastOpened, negoRememberOpened, openNegotiations,
-  renderNegotiationsList, negoListRowHtml,
+  renderNegotiationsList, negoListHeadHtml, negWhoseMove,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
      in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls

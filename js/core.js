@@ -1326,6 +1326,51 @@ function startApp(){
     }catch(_){}
   }
   repairMigratedSignatories();
+  openFromHash();
+}
+
+/* ---- A LINK IN AN EMAIL LANDS ON THE CONTRACT, NOT ON THE FRONT DOOR ----
+   #contract=<id>[&tab=sign]. Written by the server's internal turn email (see
+   contractSignUrl in server/server.js), which used to point at the site root —
+   telling somebody a specific agreement is waiting on them and then asking them
+   to go and find it.
+
+   CONSUMED HERE RATHER THAN IN boot(), and that is the whole reason it works:
+   boot runs before anybody is signed in, and an internal signer following their
+   turn email arrives at the sign-in wall. renderAuth does not touch the hash, so
+   it survives the wall — and startApp is what runs on the far side of a
+   successful sign-in AND on a resumed session, which makes it one place for both
+   journeys rather than two that can drift.
+
+   The hash is cleared once honoured: a refresh an hour later should reopen the
+   contract wherever the reader left it, not jump them back to the signing step. */
+function openFromHash(){
+  const m=String(location.hash||'').match(/^#contract=([^&]+)(?:&tab=([a-z]+))?$/i);
+  if(!m) return false;
+  const id=decodeURIComponent(m[1]), tab=String(m[2]||'').toLowerCase();
+  try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){ location.hash=''; }
+  const c=(state.contracts||[]).find(x=>x&&x.id===id);
+  /* A contract this person cannot see is not an error to explain away: the
+     server filters their bootstrap (folderScopeFor), so "not here" and "not
+     yours" look the same from the browser and must read the same. */
+  if(!c){ if(window.toast) toast(i18t('co_open_link_gone',{id}),'err'); return false; }
+  state.activeId=id; state.selId=id;
+  setView('workspace');
+  /* The tab is asked for AFTER the room exists, through the room's own router —
+     never by writing its private state from out here. An unknown tab name is
+     simply not asked for, and the room opens where it always would.
+
+     'redline' IS ON THE LIST AND IS NOT A TAB. Negotiate left the room's tab row
+     on 12 Aug 2026 and became a place; the KEY still routes through roomGoTab,
+     which opens the negotiation workbench for that agreement. It is here because
+     the internal review's email asks a colleague to rule on named changes, and
+     the one place they can do that is the negotiation — the same reason the
+     signer's mail asks for 'sign'. Both links are built by one function on the
+     server (contractUrl), and this is the one place either is honoured. */
+  if(tab && window.roomGoTab && ['terms','docs','sign','history','redline'].includes(tab)){
+    try{ roomGoTab(c, tab); }catch(_){}
+  }
+  return true;
 }
 
 /* One-time repair. Migration used to stamp the name of whoever ran the import
@@ -2040,7 +2085,6 @@ function contractReadiness(c){
   return p;
 }
 const readinessBlocks = c => contractReadiness(c).filter(x=>x.severity==='block');
-
 /* ---------- counterparty share links ---------- */
 const b64e = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(String(str).trim().replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } };
@@ -4190,12 +4234,23 @@ function shareJourneyHtml(c, shares){
    one fact — and two chances for the two strips to disagree. */
 const _shareCache=new Map();
 const cachedShares = c => _shareCache.get(c&&c.id)||[];
+/* ---- AND THE INTERNAL HALF OF THE SAME ANSWER ----
+   A counterparty signer's progress is a fact about their SHARE; an internal
+   signer has none, so "have they been told it is their turn" is recorded
+   separately by the server and rides back on this same fetch. One cache, one
+   round trip, and no way for the two halves of the signing card to disagree
+   because they asked at different moments — the reason _shareCache exists at
+   all. Read by signerNoticeState in js/approvals.js. */
+const _noticeCache=new Map();
+const cachedSignerNotices = c => _noticeCache.get(c&&c.id)||[];
 async function renderSharesSection(c){
   const host=document.getElementById('shares-section'); if(!host) return;
   if(!API_MODE()){ host.innerHTML=''; return; }
-  let shares=[];
-  try{ const r=await api('contracts/'+c.id+'/shares'); shares=r.shares||[]; }catch(e){ host.innerHTML=''; return; }
+  let shares=[], notices=[];
+  try{ const r=await api('contracts/'+c.id+'/shares'); shares=r.shares||[]; notices=r.signerNotices||[]; }
+  catch(e){ host.innerHTML=''; return; }
   _shareCache.set(c.id, shares);
+  _noticeCache.set(c.id, notices);
   /* The Signature-progress rows read this cache (signerLinkState) to say
      whether each signer's link is unsent / sent / opened. The sign area
      painted BEFORE this fetch answered, so repaint it now the truth is in —
@@ -5019,4 +5074,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,cachedSignerNotices,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,userById,verifySeal,waShareLink});

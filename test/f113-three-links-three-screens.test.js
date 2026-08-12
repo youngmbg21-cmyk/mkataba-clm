@@ -19,11 +19,20 @@
    supersedes it. Rendering a sign panel on it invited a signature on wording
    that was still being argued over.
 
-   WHAT THE SIGNING SCREEN KEEPS, deliberately (D4): a READ-ONLY view of what
+   WHAT THE SIGNING SCREEN KEEPS, deliberately (D4): a way to look back at what
    was settled, reachable from "Review what changed". Signing on trust, with no
    account of what was agreed, is the thing this product exists to remove — so
-   the history is not removed with the verbs. It is shown without them, and the
-   panel says why it has none rather than looking broken. */
+   the history is not removed with the verbs.
+
+   WHAT THAT DOOR OPENS CHANGED ON 12 AUG 2026 (owner-asked). It used to unhide
+   a read-only mount of the negotiation workbench in the page — the round queue,
+   the marked document and the whole Tracked Changes column, under the wording
+   being signed, with a strip of dead deal verbs at the foot of it. It now opens
+   the Negotiation history dialog: the RECORD of what happened, which is what a
+   reader wants at that moment, through the same one function the "Negotiation
+   history" button beside it calls. The claim is unchanged and stronger — a
+   signing link is never a corridor with no way to look back — and it is now
+   made against the dialog rather than against a second working surface. */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { buildPortal } = require('./portalworld');
@@ -102,20 +111,35 @@ describe('f113 — a signing link cannot redline', () => {
       'a signing link must not offer a way back into the negotiation it closed');
   });
 
-  test('but it DOES show what was settled — read-only (D4)', () => {
+  test('but it DOES show what was settled — as the record (D4)', () => {
     const v = open_('sign');
-    assert.ok(v.has('pt-nego'),
+    assert.ok(v.has('pt-nego-open'),
       'signing on trust with no account of what was agreed is what this product removes');
-    assert.ok(v.has('pt-nego-open'), 'reachable from Review what changed');
     assert.ok(v.has('pt-doc'), 'and the wording being signed is on the page');
+    assert.ok(!v.has('pt-nego'),
+      'and no read-only workbench mounts under it — the space is the wording’s');
+    assert.ok(!v.has('pt-nego-foot'),
+      'nor the deal verbs that rode with it');
   });
 
-  test('the read-only panel says why it has no verbs', () => {
+  test('and the door opens the history, not a second workbench', () => {
     const v = open_('sign');
-    v.d.getElementById('pt-nego-open')?.click();
-    const html = v.d.body.innerHTML;
-    assert.ok(/negotiation is closed on this link|agreed wording/i.test(html),
-      'a panel a reader opened expecting to answer must explain itself, not look broken');
+    v.d.getElementById('pt-nego-open').click();
+    assert.ok(v.d.getElementById('history-timeline'),
+      '"Review what changed" opens the Negotiation history — the same screen #pt-hist opens');
+    assert.equal(v.d.getElementById('pt-nego'), null,
+      'and mounts no workbench on the way');
+  });
+
+  test('the signing screen still says why the wording cannot be changed here', () => {
+    const v = open_('sign');
+    /* The read-only panel used to carry this sentence at #nego-readonly-why,
+       and the panel is gone — so the fact has to be findable somewhere else
+       before the slot is deleted. It is: the "Not ready to sign?" list says a
+       signing link cannot be redlined and what the sender will do instead. */
+    assert.match(v.html.replace(/\s+/g, ' '),
+      /sent to you for signature, so the wording cannot be edited on it/i,
+      'a reader who wants a change must be told what to do, not left guessing');
   });
 
   test('and it keeps the controls signing actually needs', () => {

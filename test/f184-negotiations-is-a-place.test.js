@@ -52,10 +52,11 @@ function fixture(id, over = {}){
     redlineText: BASE, format: 'text', lastAction: '01 Jul 2026', ...over };
 }
 
-/* A world with both room shells, because half these rules are about the seam
-   between them. */
+/* A world with both room shells AND the register, because half these rules are
+   about the seam between them — and since 12 Aug 2026 the Negotiations page IS
+   the register's own table, drawn with a scope (see renderNegotiationsList). */
 function world(contracts, opts = {}){
-  const w = buildWorld({ negotiationView: true, contractView: true });
+  const w = buildWorld({ negotiationView: true, contractView: true, registerView: true });
   const { win } = w;
   win.promptDialog = async () => '';
   const list = contracts.map(x => (typeof x === 'string' ? fixture(x) : x));
@@ -162,12 +163,12 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     const b = world(['MK-1']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     b.win.openNegotiations();
-    assert.ok(b.$('.ngl-wrap'), 'first press of the door lands on the list');
-    assert.equal(b.$$('.ngl-row').length, 1);
-    assert.match(b.$('.ngl-row').textContent, /Agreement MK-1/);
+    assert.ok(b.$('#reg-tbody'), 'first press of the door lands on the table');
+    assert.equal(b.$$('#reg-tbody [data-row]').length, 1);
+    assert.match(b.$('#reg-tbody [data-row]').textContent, /Agreement MK-1/);
   });
 
-  test('a row says whether it is waiting on you, and pressing it goes in', () => {
+  test('a row says whose move it is, and pressing it goes in', () => {
     const b = world(['MK-1', 'MK-2', 'MK-3']);
     theirAsk(b.byId('MK-1'), 'CHG-1');                       // waiting on us
     b.byId('MK-2').changes.push({ id: 'CHG-2', status: 'pending', authorSide: 'owner',
@@ -175,18 +176,122 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     b.byId('MK-3').changes.push({ id: 'CHG-3', status: 'accepted', authorSide: 'owner',
       clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 }); // settled
     b.win.openNegotiations();
-    const cls = id => b.$(`[data-ngl-open="${id}"]`).querySelector('.ngl-w').className;
+    const cls = id => b.$(`#reg-tbody [data-row="${id}"] .ngl-w`).className;
     assert.match(cls('MK-1'), /ngl-w-you/);
     assert.match(cls('MK-2'), /ngl-w-them/);
     assert.match(cls('MK-3'), /ngl-w-clear/);
-    b.$('[data-ngl-open="MK-1"]').dispatchEvent(new b.win.Event('click'));
-    assert.equal(b.win.redlineHeldId(), 'MK-1', 'a row is a door in');
+    /* And the same three readings come from ONE function, which is what the
+       phone's cards and the bands read too. */
+    assert.equal(b.win.negWhoseMove(b.byId('MK-1')).k, 'you');
+    assert.equal(b.win.negWhoseMove(b.byId('MK-2')).k, 'them');
+    assert.equal(b.win.negWhoseMove(b.byId('MK-3')).k, 'clear');
+    b.$('#reg-tbody [data-row="MK-1"]').dispatchEvent(new b.win.Event('click'));
+    assert.equal(b.win.redlineHeldId(), 'MK-1', 'a row is a door in — to the negotiation');
   });
 
-  test('the empty list says what to do rather than sitting blank', () => {
+  test('the columns are the register\'s own, in the register\'s own order', () => {
+    const b = world(['MK-1']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    b.win.openNegotiations();
+    const heads = b.$$('.reg-table thead th').map(t => t.textContent.replace(/[▲▼↕]/g, '').trim());
+    assert.equal(heads.length, 8);
+    assert.equal(heads[0], 'MK');
+    /* Seven of the eight are Contracts' own; only the last one differs, and it
+       is a STATE rather than an action. */
+    assert.match(heads[7], /Whose move/i);
+    assert.ok(!/Actions/i.test(heads[7]));
+    /* The row's ⋯ menu and its action link went with the column. */
+    assert.equal(b.$$('#reg-tbody [data-menu]').length, 0, 'no row menu on this page');
+    assert.equal(b.$$('#reg-tbody .reg-actlink').length, 0);
+  });
+
+  test('three bands, in fixed order, counting the rows beneath them', () => {
+    const b = world(['MK-1', 'MK-2', 'MK-3', 'MK-4']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');
+    b.byId('MK-3').changes.push({ id: 'CHG-3', status: 'pending', authorSide: 'owner',
+      clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 });
+    b.byId('MK-4').changes.push({ id: 'CHG-4', status: 'accepted', authorSide: 'owner',
+      clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 });
+    b.win.openNegotiations();
+    const bands = b.$$('#reg-tbody tr.ngl-band');
+    assert.equal(bands.length, 3, 'one per group, always — an empty group is information');
+    const k = bands.map(r => r.querySelector('.ngl-band-k').textContent.trim());
+    assert.deepEqual(k.join('|'), 'Waiting on you|With the other side|Nothing outstanding');
+    const n = bands.map(r => Number(r.querySelector('.ngl-band-n').textContent.trim()));
+    assert.deepEqual(n.join(','), '2,1,1');
+    /* And each count matches what is actually underneath it. */
+    const rows = b.$$('#reg-tbody tr');
+    let seen = [], at = -1;
+    rows.forEach(r => { if (r.classList.contains('ngl-band')) { at++; seen[at] = 0; }
+      else if (r.getAttribute('data-row')) seen[at]++; });
+    assert.deepEqual(seen.join(','), '2,1,1');
+  });
+
+  test('A BAND IS NOT A ROW', () => {
+    /* Not clickable, not selectable, not a tab stop, and not announced as a
+       table row either — the markup says presentation and carries a heading. */
+    const b = world(['MK-1']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    b.win.openNegotiations();
+    const band = b.$('#reg-tbody tr.ngl-band');
+    assert.equal(band.getAttribute('role'), 'presentation');
+    assert.equal(band.querySelector('td').getAttribute('role'), 'presentation');
+    assert.equal(band.getAttribute('data-row'), null, 'the row click binds to [data-row]');
+    assert.equal(band.getAttribute('tabindex'), null);
+    assert.equal(band.querySelectorAll('button, a, input').length, 0);
+    assert.ok(band.querySelector('[role="heading"]'), 'it announces as a heading instead');
+    /* And the footer counts CONTRACT rows: a band must never be one of them. */
+    assert.match(b.$('#reg-showing').textContent, /1/);
+    assert.ok(!/of 4/.test(b.$('#reg-showing').textContent));
+  });
+
+  test('CLEAR CANNOT WIDEN THIS PAGE', () => {
+    /* The register's own narrowing (regShowOnly's `only`) is deliberately
+       clearable — by its ✕, by both Clear-all handlers and by the phone's. If
+       "live negotiations" were reused as that, pressing Clear here would leave
+       the reader looking at every contract in the workspace under a heading
+       that says Negotiations. */
+    const b = world(['MK-1', 'MK-2', 'MK-3']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    b.win.openNegotiations();
+    assert.equal(b.win.regScope(), 'negotiations');
+    assert.equal(b.win.regFiltered().length, 1);
+    const R = b.win.regState();
+    R.stage = 'all'; R.type = 'all'; R.view = null; R.renewal = 'all'; R.category = 'all';
+    R.only = null; R.query = '';
+    assert.equal(b.win.regFiltered().length, 1, 'still one — the scope is the page, not a filter');
+    /* And the chip that says so is not removable: no ✕ on it. */
+    assert.ok(b.$('#reg-lock-chip'), 'the locked chip is drawn');
+    assert.equal(b.$('#reg-lock-chip').querySelector('button'), null, 'and it carries no way out');
+  });
+
+  test('the two filter states do not leak into each other', () => {
+    const b = world(['MK-1', 'MK-2']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    b.win.openNegotiations();
+    b.win.regState().stage = 'Draft';
+    b.win.regSetScope(null);
+    assert.equal(b.win.regState().stage, 'all',
+      'a stage chosen on Negotiations is not an opinion about Contracts');
+  });
+
+  test('the heading carries the page\'s own live count, never 145', () => {
+    const b = world(['MK-1', 'MK-2', 'MK-3']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');
+    b.win.openNegotiations();
+    assert.match(b.$('.ngl-live').textContent, /^2 live$/);
+  });
+
+  test('the empty page says what to do rather than being an empty table', () => {
+    /* With nothing live at all this is not a table filtered to zero — it is a
+       page with no subject, and three bands over nothing is not information. */
     const b = world(['MK-1']);
     b.win.openNegotiations();
     assert.ok(b.$('.ngl-empty'), 'an empty state, not an empty page');
+    assert.ok(!b.$('#reg-tbody'), 'and no table under a filter bar');
+    assert.ok(!b.$('#reg-lock-chip'));
     assert.match(b.$('.ngl-empty').textContent, /Start negotiating/,
       'and it names the door it wants pressed');
   });
@@ -356,10 +461,26 @@ describe('F184 (5) — the phone changes the same way', () => {
     assert.match(go, /openRedlineWorkbench\(last\.id\)/);
   });
 
-  test('and the list is the desktop builder, not a second one', () => {
+  test('the phone gets a PHONE-SHAPED screen over the same data', () => {
+    /* It used to draw the desktop builder into its own screen host, which was
+       right while that builder was a column of rows. That builder is an
+       eight-column table now, and a table on a 390px handset is a horizontal
+       scroll rather than a list — so the phone draws its own row shape and
+       nothing else of its own. */
     const s = read('js/mobile.js');
-    assert.match(s, /renderNegotiationsList\(root\.querySelector\('\.m-screen'\)\)/,
-      'the phone draws no negotiations list of its own');
+    assert.match(s, /mNegotiationsHtml\(\)/, 'the phone has its own screen builder');
+    assert.ok(!/renderNegotiationsList\(root\.querySelector/.test(s),
+      'and no longer drops a desktop table onto a phone');
+    const scr = read('js/mobile-screens.js');
+    /* But it decides NOTHING for itself: the set, the groups and the pill are
+       all the desktop's own functions. */
+    assert.match(scr, /function mNegotiationsHtml/);
+    assert.match(scr, /regFiltered\(\)/);
+    assert.match(scr, /NEGO_BANDS/);
+    assert.match(scr, /negoMovePillHtml\(c\)/);
+    assert.ok(!/negoIsLive\(/.test(scr), 'the phone runs no second definition of "live"');
+    /* And the scope is set in the one paint, not per screen builder. */
+    assert.match(s, /regSetScope\(s\.screen==='negotiations'/);
     /* The phone still files no changes of its own — the standing rule. */
     assert.ok(!/negoFileChange\(/.test(s));
   });

@@ -276,6 +276,11 @@ function updateSidebarCounts(){
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
+  /* The bell's badge is refreshed on the same beat as the sidebar counts, and
+     for the same reason: this runs on every view change and every save, which
+     is exactly when the number can have moved. Nothing marks an alert as seen,
+     so it goes down when the work does and never because somebody looked. */
+  try{ updateAlertBadge(); }catch(e){}
   /* The "AI Active" and "N Open" nav tags left with the sidebar doors they
      sat on (WO N1): a negotiation waiting on the reader is announced
      on the contract itself — the Negotiate tab's count — and on Home's
@@ -682,8 +687,160 @@ function refreshActivityFeed(force){
     .finally(()=>{ _activityAt=Date.now(); _activityBusy=false; if(state.panelOpen&&state.view!=='intel') renderContextPanel(); });
 }
 // Selecting a contract (register row, home list, or an activity entry) now opens
-// its workspace — the right-hand panel is the live Activity feed only.
+// its workspace.
 function selectContract(id){ openWorkspace(id); }
+
+/* ============================================================
+   ALERTS — WHAT NEEDS THIS PERSON
+   ============================================================
+   THE BELL AND THE PANEL ICON USED TO DO THE SAME THING. The bell's own click
+   handler pressed the panel button, and its tooltip admitted as much
+   ("Notifications — the Activity panel carries the live feed"). Beside it sat a
+   blue dot written straight into index.html: always on, counting nothing, and
+   therefore trained out of every reader who has used this product for a week.
+   An always-on badge is worse than no badge.
+
+   So the two icons keep ONE panel and answer two different questions:
+     · the panel icon → ACTIVITY: everything happening across the whole
+       workspace, newest first. The scope is the company.
+     · the bell → ALERTS: what is waiting on THIS person. The scope is you.
+
+   ONE PANEL, TWO CONTENTS, NOT TWO PANELS. Same shell, same width, same
+   slide-in, same scrim, same close — pressing one while the other is showing
+   swaps the content, and the panel's own heading says which it is showing.
+
+   AND EVERY NUMBER IS BORROWED, NEVER RE-DERIVED. This is the standing rule
+   that "a door reading 3 cannot sit over a column showing 2" — a bell saying 4
+   over a dashboard saying 3 is the same fault wearing a different hat. So each
+   kind below calls the function that already answers it:
+     negotiations   negoNeedsYouIds       (the Negotiations door's own count)
+     reviews        reviewState           (mine to rule on / mine to wait for)
+     approvals      hmDashSlices().myApprovals — the dashboard's own queue
+     signature      nextSigner            (whose turn the route says it is)
+     renewals       hmDashSlices().decisions / .expiring
+   Nothing here invents a population.
+
+   SCOPE. state.contracts is the caller's already-scoped bootstrap — the server
+   filtered it on the way out (folderScopeFor) — so an alert can never name a
+   contract this reader is not allowed to open. That is by construction, and it
+   is why this reads state.contracts rather than assembling its own list. */
+const ALERT_KINDS = [
+  { k:'negotiation', tone:'amber', ic:'&#9998;' },
+  { k:'review-mine', tone:'amber', ic:'&#128100;' },
+  { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
+  { k:'approval',    tone:'amber', ic:'&#9989;'  },
+  { k:'signature',   tone:'green', ic:'&#9997;'  },
+  { k:'renewal',     tone:'gray',  ic:'&#128197;'},
+];
+const ALERT_TONE = { amber:'var(--st-amber-dot)', green:'var(--st-green-dot)',
+  ruby:'var(--st-ruby-dot)', gray:'var(--st-gray-dot)' };
+/* Every alert is a DOOR — it goes to the thing that needs doing, not to a list.
+   `go` is what the row's press runs. */
+function buildAlerts(){
+  const out=[];
+  const cs=(state.contracts||[]);
+  const me=(typeof currentUser==='function')?currentUser():null;
+  const push=(kind,c,text,go)=>{ const d=ALERT_KINDS.find(x=>x.k===kind)||ALERT_KINDS[0];
+    out.push({ kind, id:c?c.id:'', name:c?(c.name||c.id):'', text, tone:d.tone, ic:d.ic, go }); };
+
+  /* 1. Changes waiting on this reader in a negotiation. THE SAME number the
+        Negotiations door and the round line print — negoNeedsYouIds — read off
+        c.changes raw, because negoChanges() would START a negotiation on every
+        contract it was asked about. */
+  if(window.negoNeedsYouIds && window.negoIsLive){
+    cs.filter(c=>{ try{ return negoIsLive(c); }catch(_){ return false; } }).forEach(c=>{
+      let n=0; try{ n=negoNeedsYouIds(c).length; }catch(_){ n=0; }
+      if(n) push('negotiation',c,i18tn('al_nego',n,{n}),()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
+    });
+  }
+  /* 2. Reviews: what I owe a verdict on, and what I am waiting on. Both from
+        reviewState, which answers from the READER's chair. */
+  if(window.reviewState && window.reviewSeatShowsReview){
+    cs.forEach(c=>{
+      /* ---- ASKED ONLY OF A CONTRACT THAT HAS A REVIEW ON IT ----
+         reviewState reaches reviewScope, which asks negoUnsentAsks/negoPending
+         — and those go through negoChanges(), which runs negoInit() and CREATES
+         a negotiation on any contract that has none. This loop runs over the
+         whole workspace on every view change, so asking it blind started a
+         negotiation on every agreement in the book. Caught in the browser, by
+         the door test's own "counting must not start a negotiation" check.
+
+         c.review.requests is read RAW, the way negoNeedsYouIds reads c.changes:
+         a contract nobody has ever asked a review on can have no review row, so
+         there is nothing to learn by asking. */
+      const reqs = (c && c.review && Array.isArray(c.review.requests)) ? c.review.requests : [];
+      if(!reqs.length) return;
+      let st=null; try{ st=reviewState(c); }catch(_){ return; }
+      if(!st) return;
+      (st.mine||[]).forEach(rv=>push('review-mine',c,
+        i18t('al_review_mine',{who:rv.by}),
+        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+      (st.waiting||[]).filter(rv=>!window.reviewMaySee||reviewMaySee(rv)).forEach(rv=>push('review-out',c,
+        i18t('al_review_out',{who:rv.reviewer&&rv.reviewer.name}),
+        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+    });
+  }
+  /* 3. Approvals sitting with this person — the dashboard's own queue, so the
+        bell and the Home card cannot disagree. And 4/5 ride on the same read. */
+  let D=null; try{ D=(window.hmDashSlices?hmDashSlices():null); }catch(_){ D=null; }
+  if(D){
+    (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
+      i18t('al_approval'),()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} }));
+    /* 5. A renewal decision coming due. */
+    (D.decisions||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
+      x.d===0?i18t('al_renewal_today'):i18tn('al_renewal_in',x.d,{n:x.d}),
+      ()=>openWorkspace(x.c.id)));
+    (D.expiring||[]).filter(x=>x.d<=30).forEach(x=>push('renewal',x.c,
+      i18tn('al_expiring_in',x.d,{n:x.d}),()=>openWorkspace(x.c.id)));
+  }
+  /* 4. A signature where it is actually THEIR turn. nextSigner is the route's
+        own answer about whose turn it is; matching by member record first and
+        address second is the same order internalSignerRecipient uses. */
+  if(me && window.nextSigner){
+    cs.filter(c=>c.status!=='Declined').forEach(c=>{
+      let ns=null; try{ ns=nextSigner(c); }catch(_){ ns=null; }
+      if(!ns||ns.party==='counterparty'||ns.signed) return;
+      const mine=(ns.memberId&&String(ns.memberId)===String(me.id))
+        || (!!ns.email&&!!me.email&&String(ns.email).toLowerCase()===String(me.email).toLowerCase());
+      if(!mine) return;
+      push('signature',c,i18t('al_signature'),
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
+    });
+  }
+  return out;
+}
+/* THE DOT COUNTS WHAT THE PANEL WOULD SHOW, and it is not cleared by looking.
+   Clearing on "you opened the panel" trains people to glance and dismiss, which
+   is exactly how the hard-coded dot below it became invisible. It clears when
+   the underlying thing is actually dealt with — an answer given, an approval
+   made, a signature taken — because that is what keeps the number worth
+   reading. Nothing anywhere marks an alert as seen. */
+function alertCount(){ try{ return buildAlerts().length; }catch(e){ return 0; } }
+/* Insights draws its own dock down the right-hand side, so this panel has been
+   suppressed there since it became a slide-over. One predicate, asked by the
+   layout and by both buttons, so a page cannot suppress the panel and still
+   offer a live control that opens it. */
+function panelSuppressed(){ return state.view==='intel'; }
+function updateAlertBadge(){
+  const dot=document.getElementById('hdr-notify-dot');
+  const btn=document.getElementById('hdr-notify');
+  const pan=document.getElementById('cmd-panel');
+  const off=panelSuppressed();
+  if(dot){
+    const n=alertCount();
+    dot.textContent=n>9?'9+':String(n);
+    /* NOTHING WAITING, NOTHING DRAWN. The dot it replaces was hard-coded markup
+       — always on, counting nothing — and an always-on badge is one people
+       learn to ignore, which is exactly what had happened to it. */
+    dot.hidden=!n||off;
+    if(btn) btn.title=off?i18t('ap_alerts_not_here')
+      :(n?i18tn('sh_alerts_n',n,{n}):i18t('sh_alerts_none'));
+  }
+  /* A DISABLED CONTROL WITH A REASON, not a live one that does nothing. */
+  if(btn){ btn.disabled=off; btn.style.opacity=off?'.45':''; }
+  if(pan){ pan.disabled=off; pan.style.opacity=off?'.45':'';
+    pan.title=off?i18t('ap_activity_not_here'):i18t('sh_toggle_panel'); }
+}
 /* ---------- THE SIDEBAR, COLLAPSED TO ITS ICONS ----------
    256px of doors down to a 64px rail, giving 192px back to whatever is on the
    page. The words move to each button's `title`; nothing is dropped and
@@ -825,14 +982,41 @@ function placeLanguageSwitch(){
   if(wantDrawer&&!inDrawer) drawerHome.parentElement.insertBefore(sw,drawerHome);
   else if(!wantDrawer&&inDrawer) headerHome.parentElement.insertBefore(sw,headerHome.nextSibling);
 }
+/* WHICH OF THE TWO THE PANEL IS SHOWING — 'activity' or 'alerts'. One panel,
+   two contents; the heading says which, and pressing the other icon swaps it
+   rather than opening a second layer. */
+function panelFace(){ return state.panelFace==='alerts'?'alerts':'activity'; }
+function setPanelFace(k){ state.panelFace=(k==='alerts')?'alerts':'activity'; }
 function renderContextPanel(){
   const body=document.getElementById('panel-body'); if(!body) return;
+  const title=document.getElementById('panel-title');
+  const alerts=panelFace()==='alerts';
+  /* THE PANEL SAYS WHICH IT IS SHOWING, in the heading and in the scope line
+     under it. Activity is the WORKSPACE; alerts are the PERSON, and a reader
+     who cannot tell them apart is a reader who will believe the wrong one. */
+  if(title) title.textContent=alerts?i18t('sh_alerts'):i18t('sh_activity');
+  const close=document.getElementById('panel-close');
+  if(close){ const t=alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
+    close.title=t; close.setAttribute('aria-label',t); }
+  body.innerHTML=alerts?alertsPanelHtml():activityPanelHtml();
+  if(alerts){
+    const rows=buildAlerts();
+    body.querySelectorAll('[data-alert-i]').forEach(el=>el.addEventListener('click',()=>{
+      const a=rows[Number(el.getAttribute('data-alert-i'))];
+      closeContextPanel();
+      if(a&&typeof a.go==='function') a.go();
+    }));
+  } else {
+    body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
+  }
+}
+function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
   const feed=buildActivityFeed();
-  body.innerHTML=`
+  return `
       <div style="padding:10px 12px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
-          <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>Live · whole workspace
+          <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
           <button data-sel-act="${a.id}" style="display:flex;gap:9px;width:100%;padding:7px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
@@ -843,7 +1027,31 @@ function renderContextPanel(){
             </span>
           </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
-  body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
+}
+/* "NOTHING NEEDS YOU RIGHT NOW" IS A REAL MESSAGE and a good one — an empty
+   panel reads as a panel that failed to load. */
+function alertsPanelHtml(){
+  const rows=buildAlerts();
+  return `
+      <div style="padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
+        </div>
+        ${rows.length?rows.map((a,i)=>`
+          <button data-alert-i="${i}" data-alert-kind="${a.kind}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+            <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
+            <span style="flex:1;min-width:0;">
+              <span style="display:block;font-size:11.5px;line-height:1.4;font-weight:600;">${esc(a.text)}</span>
+              <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>
+              <span style="display:block;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)}</span>
+            </span>
+          </button>`).join(''):`
+          <div style="padding:26px 6px;text-align:center;">
+            <div style="width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);">&#10003;</div>
+            <div style="font-size:13px;font-weight:600;color:var(--color-text);">${i18t('ap_nothing_needs_you')}</div>
+            <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px;line-height:1.5;">${i18t('ap_nothing_needs_you_sub')}</div>
+          </div>`}
+      </div>`;
 }
 
 /* ============================================================ THEME + JURISDICTION (shell header) */
@@ -1074,8 +1282,33 @@ function wireShell(){
   document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
   document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
 
-  // panel toggle (Activity feed only)
-  document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); if(state.panelOpen){ refreshActivityFeed(true); renderContextPanel(); } });
+  /* ---- TWO ICONS, TWO QUESTIONS, ONE PANEL ----
+     The bell used to literally press this button (`document.getElementById
+     ('cmd-panel')?.click()`), so the two header icons did the same thing and
+     the product had no way at all to say "these four things are waiting on
+     you". They share the shell and differ only in content — and pressing one
+     while the OTHER is showing swaps the content rather than closing the
+     panel, which is what makes them read as two views of one thing. */
+  const openPanel=face=>{
+    /* INSIGHTS OWNS ITS RIGHT-HAND SIDE — it has its own portfolio dock there,
+       and applyPanelLayout has always suppressed this panel on that view to
+       avoid two right panels. The bell inherits that rather than opening a
+       third. What it must NOT do is inherit it silently: pressing the panel
+       icon on Insights already did nothing at all, with nothing on screen to
+       say why, which is a control that reads as broken. Both buttons are
+       DISABLED there and their tooltip says which page has taken the space —
+       see panelSuppressed / updateAlertBadge. A toast is not the channel: this
+       product deliberately draws only error toasts (see toast in js/core.js),
+       so an informational one would be a message nobody ever sees. */
+    if(panelSuppressed()) return;
+    const same=state.panelOpen&&panelFace()===face;
+    setPanelFace(face);
+    state.panelOpen=!same;
+    applyPanelLayout();
+    if(state.panelOpen){ if(face==='activity') refreshActivityFeed(true); renderContextPanel(); }
+  };
+  document.getElementById('cmd-panel')?.addEventListener('click',()=>openPanel('activity'));
+  document.getElementById('hdr-notify')?.addEventListener('click',()=>openPanel('alerts'));
   /* A layer needs a way out that is not the button that opened it — the reader
      who pressed a header icon should not have to find that icon again. Scrim,
      its own close button, and Escape, which is what every other layer in this
@@ -1097,8 +1330,8 @@ function wireShell(){
      the first paint and a reader who collapsed it last week must not watch it
      stand at 256px and then jump. */
   applyRail();
-  // header bell = the same live Activity feed (no second notification system)
-  document.getElementById('hdr-notify')?.addEventListener('click',()=>document.getElementById('cmd-panel')?.click());
+  /* The bell is wired with the panel toggle above — see openPanel. It used to
+     be wired HERE, to a handler that clicked the other button. */
 
   // theme toggle + jurisdiction switcher (top header)
   wireThemeMenu();
@@ -1210,4 +1443,5 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
+  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

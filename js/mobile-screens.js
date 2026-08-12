@@ -308,6 +308,74 @@ function mContractsHtml(){
     <div class="m-scroll">${list}</div>`;
 }
 
+/* ---------------------------------------------------------- NEGOTIATIONS ---
+   The same page as the desktop's, in the phone's own row shape. Everything that
+   DECIDES anything is the desktop's: regFiltered() (already scoped to live
+   negotiations by mRender before this runs), NEGO_BANDS for the three groups
+   and their order, negWhoseMove / negoMovePillHtml for the pill. This file
+   contributes markup and nothing else — the same division of labour the
+   Contracts screen above already keeps.
+
+   NO FILTER BAR HERE, and that is not the desktop's rule being dropped: the
+   phone's Contracts screen carries its chips because a register of 145 needs
+   them, and the handful being argued over right now does not. The search box
+   goes with them. What the phone must keep is the GROUPING and the PILL, which
+   are what make this page a negotiations page rather than a short register. */
+function mNegotiationsHtml(){
+  let rows = [];
+  try{ rows = (typeof regFiltered==='function') ? regFiltered() : []; }
+  catch(e){ rows = []; }
+  const live = (typeof negoLiveList==='function') ? negoLiveList().length : rows.length;
+
+  if(!rows.length) return `
+    <div class="m-pagehead">
+      <div class="m-title">${i18t('ng_door_title')}</div>
+    </div>
+    <div class="m-scroll">
+      <div class="m-card" style="margin:16px;padding:30px 20px;text-align:center">
+        <div style="font-size:16px;font-weight:600">${mEsc(i18t('ng_door_none'))}</div>
+        <div class="m-note" style="margin-top:5px;line-height:1.5">${mEsc(i18t('ng_door_none_how'))}</div>
+        <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-tab="contracts">${mEsc(i18t('ng_open_register'))}</button>
+      </div>
+    </div>`;
+
+  const bands = (typeof NEGO_BANDS!=='undefined') ? NEGO_BANDS : [];
+  const dot = (typeof NEGO_BAND_DOT!=='undefined') ? NEGO_BAND_DOT : {};
+  const counts = (typeof negoBandCounts==='function') ? negoBandCounts(rows) : {};
+  const card = c => `
+    <button class="m-reg-row" data-m-nego="${mEsc(c.id)}">
+      <span class="m-stripe" style="background:${(typeof folderColor==='function')?folderColor(c):'var(--color-neutral-300)'}"></span>
+      <span style="display:flex;align-items:flex-start;gap:8px">
+        <span style="flex:1;min-width:0;font-size:16px;font-weight:600;line-height:1.3">${mEsc(c.name||c.id)}</span>
+      </span>
+      <span class="m-row-sub">${mEsc(c.counterparty||i18t('ng_door_them'))}</span>
+      <span style="display:flex;gap:8px;margin-top:7px;align-items:center">
+        ${(typeof negoMovePillHtml==='function')?negoMovePillHtml(c):''}
+      </span>
+    </button>`;
+  /* One section per band, in the fixed order, each with its NAME and its COUNT
+     beside its colour — so this reads in grey-scale exactly as the desktop's
+     does. An empty group still prints, for the same reason: "Waiting on you ·
+     0" is worth reading. */
+  const groups = bands.map(b => {
+    const mine = rows.filter(c => c._ngBand === b.k);
+    return `
+      <div class="m-ngband">
+        <span class="m-ngband-dot" style="background:${dot[b.tone]||'var(--color-neutral-400)'}"></span>
+        <span class="m-ngband-k">${mEsc(b.label)}</span>
+        <span class="m-ngband-n">${counts[b.k]||0}</span>
+      </div>
+      ${mine.length ? `<div class="m-card m-list" style="margin:0 16px 14px">${mine.map(card).join('')}</div>` : ''}`;
+  }).join('');
+
+  return `
+    <div class="m-pagehead">
+      <div class="m-title">${i18t('ng_door_title')}</div>
+      <div class="m-sub">${mEsc(i18tn('ngl_n_live', live, { n: live }))}</div>
+    </div>
+    <div class="m-scroll"><div style="padding-top:14px">${groups}</div></div>`;
+}
+
 /* The New-contract sheet: the three ways paper gets in, and nothing else.
    Every route calls the same function the desktop's + menu calls.
 
@@ -491,6 +559,14 @@ function mWireScreen(root){
     mGo('contract',{ tab:'doc' });
   }));
 
+  /* A row on the Negotiations screen opens the NEGOTIATION, not the contract
+     page — the same destination the desktop table's row press has. */
+  root.querySelectorAll('[data-m-nego]').forEach(b=>b.addEventListener('click',()=>{
+    const id = b.getAttribute('data-m-nego');
+    if(window.openRedlineWorkbench) openRedlineWorkbench(id);
+    else { state.activeId = id; state.selId = id; mGo('contract',{ tab:'doc' }); }
+  }));
+
   /* The register's chip groups write straight into regState(). */
   root.querySelectorAll('[data-m-stage]').forEach(b=>b.addEventListener('click',()=>{
     const R = regState(); R.stage = b.getAttribute('data-m-stage'); R.page = 1; mRender();
@@ -577,5 +653,5 @@ function mWireScreen(root){
   if(typeof mWireContract==='function') mWireContract(root);
 }
 
-Object.assign(window,{ mHomeHtml, mContractsHtml, mApprovalsHtml, mPortfolioHtml,
+Object.assign(window,{ mHomeHtml, mContractsHtml, mNegotiationsHtml, mApprovalsHtml, mPortfolioHtml,
   mKpiSheetHtml, mNewSheetHtml, mNeedsYou, mApprovalItems, mSlices, mScreenAct, mWireScreen });

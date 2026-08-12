@@ -357,18 +357,40 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     assert.match(v.$('#pt-nego-open').textContent, /Review what changed/);
   });
 
-  /* And the room they reach that way DOES have a way out, unlike the one a
-     negotiation link lands them in. It is a mode they entered from a page that
-     still exists — the difference the whole exit rule turns on. */
-  test('the review reached from a signing link reveals in place', async () => {
+  /* WHAT THAT DOOR OPENS (owner-asked, 12 Aug 2026). It used to reveal a
+     read-only mount of the negotiation workbench, hidden in the page under the
+     wording being signed. It opens the Negotiation history instead — the record
+     of what happened, which is what "review what changed" actually means on a
+     screen whose job is to be read and signed. The claim that this page is
+     never a corridor with no way to look back is unchanged; what it opens onto
+     is a dialog over the page rather than a second working surface in it. */
+  test('the review reached from a signing link opens the history', async () => {
     const { win, c, filed } = await negotiated();
     for (const ch of filed)
       win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const v = theirPage(c, { purpose: 'sign' });
     v.$('#pt-nego-open').dispatchEvent(new v.win.Event('click', { bubbles: true }));
-    assert.ok(!v.$('#pt-nego').classList.contains('hidden'),
-      '"Review what changed" reveals the workbench, in the page');
+    assert.ok(v.$('#history-timeline'),
+      '"Review what changed" opens the Negotiation history dialog');
     assert.equal(v.$('#nego-room'), null, 'no room opens — the surface is one and the same');
+    assert.equal(v.$('#pt-nego'), null,
+      'and no read-only workbench is mounted on the signing screen at all');
+  });
+
+  /* Both doors, one function. "Negotiation history" in the reading bar and
+     "Review what changed" in the green banner are worded from where they stand
+     and go to the same screen — never two paths onto one act. */
+  test('both reading doors open the same one screen', async () => {
+    const { win, c, filed } = await negotiated();
+    for (const ch of filed)
+      win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
+    const v = theirPage(c, { purpose: 'sign' });
+    v.$('#pt-hist').dispatchEvent(new v.win.Event('click', { bubbles: true }));
+    const viaBar = !!v.$('#history-timeline');
+    v.win.document.querySelectorAll('#modal-root').forEach(m => { m.innerHTML = ''; });
+    v.$('#pt-nego-open').dispatchEvent(new v.win.Event('click', { bubbles: true }));
+    assert.ok(viaBar && v.$('#history-timeline'),
+      'one screen, reached from either door');
   });
 
 

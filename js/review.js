@@ -622,6 +622,60 @@ function reviewAsk(c, o = {}){
     + `${rv.note ? `; “${rv.note}”` : ''}`);
   return rv;
 }
+/* ============================================================
+   DID THE COLLEAGUE ACTUALLY GET TOLD
+   ============================================================
+   THE OUTCOME USED TO BE A TOAST, and a toast is gone in seconds. The requester
+   was left with no durable answer to the one question that decides whether they
+   need to walk over and say something: is it in their inbox or not? Worse, the
+   three ways it can fail to arrive look identical from that chair — email is not
+   configured on this server at all (there is an internal outbox for exactly that
+   case), the tick-box was cleared, or the provider refused the message. The two
+   REFUSALS the server makes before it ever sends — not a member of this
+   workspace, and no access to this contract's value stream — are their own
+   errors and already say so in words; they come through here as a named failure
+   rather than as silence.
+
+   So the answer is recorded twice, in the two places that outlive a toast: on
+   the review itself (rv.notice, which the banner and the card read) and in the
+   audit trail. THE RECORD MUST SURVIVE A DEAD MAIL PROVIDER — the request is
+   filed whatever the provider does, deliberately, and that rule is untouched:
+   this runs after reviewAsk has already returned a review. */
+const RV_DELIVERY = {
+  sent:      { tone: 'green', k: 'rv_deliv_sent' },
+  outbox:    { tone: 'amber', k: 'rv_deliv_outbox' },
+  refused:   { tone: 'ruby',  k: 'rv_deliv_refused' },
+  'not-asked': { tone: 'gray', k: 'rv_deliv_not_asked' },
+};
+function reviewNoteDelivery(c, rv, n){
+  if (!c || !rv) return null;
+  const o = n || {};
+  const kind = o.sent ? 'sent'
+    : !o.wanted ? 'not-asked'
+    : o.outbox ? 'outbox'
+    : 'refused';
+  rv.notice = { kind, at: _rvNow(), to: o.to || rv.reviewer.email || null,
+    why: _rvClamp(o.why, 300) || null };
+  _rvAudit(c, 'Internal review', kind === 'sent'
+    ? `Email sent to ${rv.reviewer.name}${rv.notice.to ? ` at ${rv.notice.to}` : ''} about ${rv.id}`
+    : kind === 'not-asked'
+      ? `No email was sent to ${rv.reviewer.name} about ${rv.id} — the requester chose to tell them themselves`
+      : kind === 'outbox'
+        ? `No email left this server for ${rv.reviewer.name} about ${rv.id} — email is not configured here, so the message is in the internal outbox`
+        : `The email to ${rv.reviewer.name} about ${rv.id} was not delivered${rv.notice.why ? ` — ${rv.notice.why}` : ''}`);
+  return rv.notice;
+}
+/* What the screens print. Returns null on an older review that was filed before
+   any of this existed — an absent record is "we do not know", which is a
+   different thing from "it failed", and printing the second would be inventing
+   a fact. */
+function reviewDeliveryState(rv){
+  const n = rv && rv.notice;
+  if (!n || !RV_DELIVERY[n.kind]) return null;
+  const d = RV_DELIVERY[n.kind];
+  return { kind: n.kind, tone: d.tone, at: n.at, to: n.to, why: n.why,
+    text: i18t(d.k, { who: (rv.reviewer && rv.reviewer.name) || '', to: n.to || '' }) };
+}
 /* Cancel a NAMED review. With several open, "cancel the review" is ambiguous
    and picking the latest would quietly kill the wrong person's. */
 function reviewCancel(c, o = {}){
@@ -1078,6 +1132,60 @@ function reviewVerbsHtml(c, ch, opts = {}){
   </div>`;
 }
 
+/* ---- CANCEL, WHERE THE CHANGE IS (12 Aug 2026) ----
+   THE VERB WAS NEVER MISSING; IT WAS UNFINDABLE. Cancel has always lived in the
+   review notice, and since 10 August every notice on that page arrives FOLDED
+   behind a bell in the bottom-right corner. So a requester looking at a change
+   their colleague is sitting on had a button that existed and effectively could
+   not be found, and the review read as one that could not be called off.
+
+   Two answers, both taken, because they cover different moments. The stack now
+   arrives UNFOLDED while a review is actually in play (see reviewWantsAttention
+   and rlNoticesFolded), so the banner's own Cancel is on screen without a
+   press; and the change card carries its own, beside the status that says why
+   it cannot be sent — which is where somebody is standing when they decide the
+   escalation was a mistake.
+
+   FOUR RULES CARRIED OVER WHOLE, and each is load-bearing:
+     · REQUESTER OR ADMIN ONLY. reviewMayCancel is the one predicate, and a
+       reviewer must never be offered a Cancel for a review they were asked to
+       carry out.
+     · IT NAMES WHICH REVIEW, by the CHANGE ids it covers — reviewTagsFor, which
+       says "CHG-017" rather than "REV-2", because REV-2 is an internal handle
+       nobody outside this file has ever seen.
+     · IT SAYS WHAT CANCELLING COSTS before the press, not after: the reviewer
+       may already have cleared or held clauses, and those verdicts go with the
+       review.
+     · THE COUNTERPARTY MUST NEVER LEARN A REVIEW HAPPENED. reviewSeatShowsReview
+       is the one predicate for that question and this asks it first, like every
+       other surface in this file. */
+function reviewCardCancelHtml(c, ch, opts = {}){
+  if (!reviewSeatShowsReview(opts)) return '';
+  const rv = reviewOpenFor(c, ch);
+  if (!rv || !reviewMayCancel(rv)) return '';
+  return `<button type="button" class="rl-rej rv-cancel-card" data-rv-cancel="${_rvE(rv.id)}"
+    title="${_rvE(i18t('rv_cancel_card_title', { who: rv.reviewer.name, ids: reviewTagsFor(rv) }))}"
+    >${_rvE(i18t('rv_cancel_btn'))}</button>`;
+}
+/* What cancelling costs, in the reviewer's own numbers, asked before the press.
+   Returns the sentence; the caller puts it in a confirm. */
+function reviewCancelCost(c, rv){
+  const p = reviewProgress(c, rv);
+  const done = Math.max(0, (p.total || 0) - (p.left || 0));
+  return i18t('rv_cancel_cost', { who: rv.reviewer.name,
+    ids: reviewTagsFor(rv), done, total: p.total || 0 });
+}
+/* IS A REVIEW ASKING FOR THIS READER'S ATTENTION RIGHT NOW — the predicate the
+   notice stack asks to decide whether to arrive open. Only reviews still IN
+   PLAY: a review that came back days ago is news, and news folds. */
+function reviewWantsAttention(c){
+  if (!c || !reviewSeatShowsReview({})) return false;
+  try{
+    const st = reviewState(c);
+    if (st.mine && st.mine.length) return true;
+    return !!(st.waiting || []).filter(rv => reviewMaySee(rv)).length;
+  }catch(_){ return false; }
+}
 /* The banner. Four states, and each one names the person it is waiting on —
    "in review" with no name is the status flip this feature exists to replace. */
 /* ---- CLEARED FOR THIS SITTING, NOT FOR GOOD ----
@@ -1136,10 +1244,19 @@ function reviewBannerHtml(c, opts = {}){
   for (const rv of st.waiting){
     if (!reviewMaySee(rv)) continue;
     const p = st.progress(rv);
+    /* ---- AND WHETHER THEY WERE ACTUALLY TOLD ----
+       Recorded on the review when it was raised (reviewNoteDelivery) rather
+       than shouted once in a toast and lost. Silent on an older review that
+       carries no record: "we do not know" is a different fact from "it failed",
+       and printing the second would be inventing one. */
+    const d = reviewDeliveryState(rv);
+    const dline = d ? `<span style="display:block;margin-top:2px;opacity:.9">${
+      d.kind === 'sent' ? '&#9993;' : '&#9888;'} ${_rvE(d.text)}${
+      d.why ? ` <span style="opacity:.8">&mdash; ${_rvE(d.why)}</span>` : ''}</span>` : '';
     rows.push(line(`<b>${_rvE(i18t('rv_banner_waiting', { who: rv.reviewer.name }))}</b>
       <span style="font-family:var(--font-mono);font-size:10.5px;opacity:.85">${_rvE(reviewTagsFor(rv))}</span>
       ${_rvE(i18tn('rv_banner_waiting_sub', p.total, { n: p.total, when: reviewWhen(rv.at) }))}
-      ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}`,
+      ${rv.due ? `<b>${_rvE(i18t('rv_due', { when: rv.due }))}</b>` : ''}${dline}`,
       reviewMayCancel(rv) ? act('rv-cancel:' + rv.id, i18t('rv_cancel_btn')) : ''));
   }
   /* 3. WHAT CAME BACK, or was taken off me. The most recent closed review this
@@ -1530,19 +1647,41 @@ function openReviewAskModal(c, opts = {}){
     /* THE EMAIL IS A COURTESY AND THE RECORD IS NOT. The request is filed
        whatever the mail provider does — a failed send must never lose the
        review — so this runs after the record exists and its failure is reported
-       rather than thrown. */
+       rather than thrown.
+
+       WHAT IT REPORTS IS NOW A REASON, not a shrug. The three ways nothing
+       arrives are told apart and written down: the tick-box was cleared, the
+       server has no mail provider configured (the message is in its own
+       outbox), or a provider refused it and said why. A refusal the SERVER made
+       before sending — not a member, no access to this value stream — arrives
+       as a thrown error carrying its own sentence, and that sentence is what
+       gets filed. See reviewNoteDelivery. */
     const wantMail = !!(document.getElementById('rv-email') || {}).checked;
-    let mailed = false;
+    let out = { wanted: wantMail, sent: false, outbox: false, to: (u && u.email) || null, why: null };
     if (wantMail && window.API_MODE && window.API_MODE() && window.api){
       try{
         const r = await window.api('contracts/' + c.id + '/review-request', 'POST', {
           reviewerId: (u && u.id) || null, reviewerEmail: (u && u.email) || null,
           note, due: dueV, reviewId: rv.id });
-        mailed = !!(r && r.emailSent);
-      }catch(_){ mailed = false; }
+        out = { wanted: true, sent: !!(r && r.emailSent),
+          outbox: !!(r && r.outbox), to: (r && r.to) || out.to,
+          why: (r && r.emailError) || null };
+      }catch(e){
+        out.why = String((e && (e.message || e.error)) || e || '').slice(0, 300) || null;
+      }
+    } else if (wantMail){
+      /* Local (single-device) mode: there is no server to send from, and saying
+         "it is in their inbox" there would be the cheerful lie this whole
+         change exists to remove. */
+      out.outbox = true;
     }
-    _rvSay(mailed ? i18t('rv_sent_mailed', { who: rv.reviewer.name })
-      : i18t('rv_sent_quiet', { who: rv.reviewer.name }));
+    const notice = reviewNoteDelivery(c, rv, out);
+    _rvSave(c);
+    const st = reviewDeliveryState(rv);
+    _rvSay(notice && notice.kind === 'sent'
+      ? i18t('rv_sent_mailed', { who: rv.reviewer.name })
+      : `${i18t('rv_sent_quiet', { who: rv.reviewer.name })} ${(st && st.text) || ''}`.trim(),
+      notice && notice.kind === 'refused' ? 'err' : undefined);
     done();
   });
 }
@@ -1744,6 +1883,28 @@ function reviewWireCards(c, host, opts = {}){
       openReviewNoteModal(c, note.getAttribute('data-rv-note'), { after: again });
       return;
     }
+    /* ---- THE CARD'S OWN CANCEL ----
+       Same act as the banner's, one confirm in front of it: a reviewer may
+       already have cleared or held clauses, and a press that silently threw
+       that away would be the second time this feature lost somebody's work.
+       The model refuses again underneath (reviewCancel checks reviewMayCancel),
+       so a button drawn where it should not be still cannot act. */
+    const cxl = ev.target.closest && ev.target.closest('[data-rv-cancel]');
+    if (cxl){
+      ev.preventDefault(); ev.stopPropagation();
+      const reviewId = cxl.getAttribute('data-rv-cancel');
+      const rv = reviewOpenList(c).find(r => r.id === reviewId);
+      if (!rv) return;
+      const go = ok => { if (!ok) return;
+        if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); } };
+      if (window.confirmDialog){
+        window.confirmDialog({ title: i18t('rv_cancel_confirm_title'),
+          message: reviewCancelCost(c, rv),
+          confirmLabel: i18t('rv_cancel_btn'), cancelLabel: i18t('rv_cancel_keep'),
+          danger: true }).then(go);
+      } else go(true);
+      return;
+    }
     const act = ev.target.closest && ev.target.closest('[data-rv-act]');
     if (act){
       ev.preventDefault(); ev.stopPropagation();
@@ -1776,6 +1937,8 @@ Object.assign(window, {
   reviewInPlay, reviewSpent,
   reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
+  reviewNoteDelivery, reviewDeliveryState,
+  reviewCardCancelHtml, reviewCancelCost, reviewWantsAttention,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
   reviewState, reviewProgress, reviewInboxFor, reviewWhen,
   reviewSeatShowsReview, reviewChipHtml, reviewVerbsHtml, reviewBannerHtml,

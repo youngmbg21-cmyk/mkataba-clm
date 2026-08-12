@@ -1476,13 +1476,26 @@ function portalAgreedHtml(p){
         <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} ${
           (p&&p.signingOpen===false)?i18t('po_read_then_respond'):i18t('po_read_then_act')}</span>
       </span>
-      ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">${i18t('po_review_what_changed')}</button>`:''}
-    </div>
-    ${''/* The hosts exist only so the room has somewhere to render when they
-           press "Review what changed". A contract nobody proposed anything on
-           has nothing to review, so it gets neither — an empty negotiation is
-           not a panel worth showing, hidden or otherwise. */}
-    ${changes.length?`<div id="pt-nego" class="hidden"></div><div id="pt-nego-foot" class="hidden"></div>`:''}`;
+      ${''/* ---- IT OPENS THE RECORD, NOT A SECOND WORKBENCH ----
+             (owner-asked, 12 Aug 2026.) This used to unhide a read-only copy of
+             the negotiation workbench in the page: the round queue, the document
+             with its marks and the whole Tracked Changes column, mounted under
+             the wording somebody was about to sign. What a reader wants at that
+             moment is the ACCOUNT of what happened, which is the history the
+             owner reads and which this page has always been able to open — so
+             the door leads there instead, through openPortalHistory, the same
+             one function "Negotiation history" above it calls. The space goes
+             back to the wording.
+
+             THE BUTTON IS DRAWN ONLY WHERE THERE IS SOMETHING TO SHOW, which is
+             the same question portalHasHistory asks of the same records, so the
+             door can never open onto an empty dialog. Wired in the signing
+             screen's own wiring rather than in wirePortalNego — that function
+             returns early when #pt-nego is absent, and #pt-nego is exactly what
+             this branch no longer draws. */}
+      ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px"
+        title="${i18t('po_every_change_oldest')}">${i18t('po_review_what_changed')}</button>`:''}
+    </div>`;
 }
 
 /* ---- WHERE THE DEAL VERBS ARE STANDING ----
@@ -1669,16 +1682,22 @@ function wirePortalNego(c, p){
   if(!host) return;
   const who=portalResponderLabel(c);
   /* ---- A SIGNING LINK SHOWS WHAT WAS SETTLED; IT DOES NOT REOPEN IT ----
-     W6/D4. The signing screen keeps a read-only view of the tracked changes,
-     reachable from "Review what changed", because signing on trust with no
-     account of what was agreed is the thing this product exists to remove.
-     What it must not carry is a way to start negotiating again: the workbench
-     was being mounted live there, so a signing link rendered Direct Edit and
-     the send-decisions postbox — a second, quieter route back into a
-     negotiation the sender had already declared finished by issuing this link.
+     W6/D4. Signing on trust with no account of what was agreed is the thing
+     this product exists to remove, so a signing link has always been able to
+     look back. WHAT IT LOOKS BACK AT CHANGED ON 12 AUG 2026: it was a read-only
+     mount of this component in the page — the round queue, the marked document
+     and the Tracked Changes column, under the wording being signed — and it is
+     now the Negotiation history dialog, which is the record rather than a
+     second working surface. See portalAgreedHtml. This function therefore no
+     longer runs on the signing screen at all: the branch draws no #pt-nego, so
+     the early return above takes it.
 
-     The link states what it is (portalNegoPhase reads the stored purpose), and
-     the seat is derived from that rather than from what is left pending. */
+     The guard below stays regardless, because it is the one that stops a
+     signing link ever rendering Direct Edit and the send-decisions postbox — a
+     quieter route back into a negotiation the sender declared finished by
+     issuing this link. The link states what it is (portalIssuedForSigning reads
+     the stored purpose), and the seat is derived from that rather than from
+     what is left pending. */
   /* THE LINK MUST SAY SO. Not portalNegoPhase, which also INFERS a signing
      phase for a link that stated no purpose at all — every link created before
      purposes existed, and every one with nothing proposed on it yet. Those keep
@@ -1777,12 +1796,13 @@ function wirePortalNego(c, p){
   });
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
-  /* "Review what changed" on a signing link unhides this same mount, readonly
-     — the one workbench again, never a second surface. */
-  document.getElementById('pt-nego-open')?.addEventListener('click',()=>{
-    document.getElementById('pt-nego')?.classList.remove('hidden');
-    document.getElementById('pt-nego-foot')?.classList.remove('hidden');
-  },{ once:true });
+  /* ---- "REVIEW WHAT CHANGED" IS NOT WIRED HERE ANY MORE ----
+     It used to unhide a read-only mount of this same workbench on the signing
+     screen, so its listener lived at the bottom of this function — below the
+     `if(!host) return` at the top. The mount is gone (see portalAgreedHtml) and
+     with it that host, so a handler left here would never be attached and the
+     button would be drawn, pressable and dead. It is wired where the signing
+     screen wires its other reading verb, beside #pt-hist. */
 }
 /* ---- HANDING THE DEAL TO SOMEBODY WHO ONLY NEEDS TO READ IT ----
    The route (`shares/:token/derive-view`) does all the deciding: a view ticket
@@ -2827,6 +2847,15 @@ function renderSharePortal(p, opts={}){
   portalWireRevisedBanner(p);
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
+  /* ---- TWO DOORS, DIFFERENT WORDS, ONE FUNCTION ----
+     "Negotiation history" sits in the reading bar, where a reader looks for the
+     record whatever state the deal is in. "Review what changed" sits inside the
+     green banner that has just told them how many changes were settled and how,
+     and it answers the question that sentence raises. Both are kept — each is
+     worded from where it stands — and both call openPortalHistory, so there is
+     one screen and one refusal (a missing timeline module says so in a toast,
+     rather than doing nothing). */
+  document.getElementById('pt-nego-open')?.addEventListener('click',()=>openPortalHistory(p));
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
   wirePortalTemplateForm(p);

@@ -114,6 +114,56 @@ describe('f168 — a caller who is not on the desk cannot write our redlines', (
     assert.equal(r.status, 200, 'reading is not working, but neither is filing an expiry date');
   });
 
+  /* ---- A SIGNATURE IS NOT A REDLINE, AND THE SERVER ALREADY AGREED ----
+     (owner-reported, 12 Aug 2026.) The browser refused a named internal signer
+     their own signature because contractReadiness folded the desk's SEND
+     refusal into the list the Sign handler read. The fix is in the browser, and
+     the reason it can BE in the browser is checked here rather than assumed:
+     this guard asks ourChangesTouched, and a signature moves c.signatures and
+     stamps a plan row without touching a single change. So a save carrying a
+     signature from somebody who is only a READER at the desk has always passed,
+     and must go on passing — if it did not, the browser fix would be half a fix
+     and the server would be the half that mattered. */
+  test('a reader at the desk may still record their own SIGNATURE', async () => {
+    await setRule(true);
+    const c = withDesk('MK-SA', W.users.unrestricted, {
+      changes: [aChange('CHG-001', 'aaa')],
+      signerPlan: [
+        { id: 'S1', order: 1, party: 'internal', name: 'Restricted Legal',
+          memberId: W.users.restricted.id, email: 'restricted@example.co.ke', signed: false },
+        { id: 'S2', order: 2, party: 'counterparty', name: 'Their MD', email: 'md@nordfrakt.se', signed: false },
+      ] });
+    assert.equal((await put(W.admin, c, 0)).status, 200);
+
+    const signed = { ...c,
+      signerPlan: [{ ...c.signerPlan[0], signed: true, at: '2026-08-12T09:00:00.000Z' }, c.signerPlan[1]],
+      signatures: [{ party: 'internal-planned', name: 'Restricted Legal',
+        email: 'restricted@example.co.ke', at: '2026-08-12T09:00:00.000Z', method: 'session-authenticated' }] };
+    const r = await put(W.restricted, signed, 1);
+    assert.equal(r.status, 200, 'the desk gates redlining and sending, never signing');
+
+    const after = await W.admin.json('/api/contracts/MK-SA');
+    assert.equal((after.signatures || []).length, 1, 'and the mark is on the record');
+    assert.equal(after.signerPlan[0].signed, true);
+  });
+
+  test('but the same reader still cannot slip a redline in beside the signature', async () => {
+    await setRule(true);
+    const c = withDesk('MK-SB', W.users.unrestricted, {
+      changes: [aChange('CHG-001', 'aaa')],
+      signerPlan: [{ id: 'S1', order: 1, party: 'internal', name: 'Restricted Legal',
+        memberId: W.users.restricted.id, email: 'restricted@example.co.ke', signed: false }] });
+    assert.equal((await put(W.admin, c, 0)).status, 200);
+
+    const both = { ...c,
+      signerPlan: [{ ...c.signerPlan[0], signed: true, at: '2026-08-12T09:00:00.000Z' }],
+      signatures: [{ party: 'internal-planned', name: 'Restricted Legal', at: '2026-08-12T09:00:00.000Z' }],
+      changes: [aChange('CHG-001', 'aaa'), aChange('CHG-002', 'bbb')] };
+    const r = await put(W.restricted, both, 1);
+    assert.equal(r.status, 403, 'the wording rule is untouched by the signing one');
+    assert.match(r.text, /not on this negotiation/);
+  });
+
   test('the lead and the contributors are let through', async () => {
     await setRule(true);
     const c = withDesk('MK-S6', W.users.unrestricted, {

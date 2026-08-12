@@ -352,3 +352,207 @@ describe('f167 · a reviewer is not a stranger at the desk', () => {
     assert.match(asGrace.win.deskNoticeHtml(c, {}), /Ask to join/);
   });
 });
+
+/* ============================================================
+   6 — THE DESK GATES REDLINING AND SENDING. NEVER SIGNING.
+   ============================================================
+   Reported off the screen (Young, 12 Aug 2026). Young Ochoka, signer 3 of 3,
+   internal, marked SIGNING NOW under a banner reading "Approved and ready —
+   apply the sealed signature", pressed a live full-width primary "Sign as Young
+   Ochoka" and was told:
+
+     "Not signed — You are not on this negotiation. Young Mbagaya leads it —
+      ask them to add you. Fill these in on Key terms, or in the document,
+      before signing."
+
+   THE FAULT WAS NOT THE MESSAGE. contractReadiness folds deskSendBlock in as a
+   'block'; readinessBlocks returns every 'block'; the Sign handler refused on
+   readinessBlocks. deskSendBlock is deskMaySend, which is TRUE FOR THE LEAD
+   ALONE — so with the rule on and a desk claimed, ONLY THE NEGOTIATION LEAD
+   COULD EVER SIGN. Not only this person and not only non-members: a roster
+   CONTRIBUTOR was refused too, in different words. Every multi-signer internal
+   route in a workspace with the setting on was broken past the first signer.
+
+   THE RULE, IN ONE SENTENCE, and this suite is where it lives: THE DESK GATES
+   REDLINING AND SENDING, NEVER SIGNING. The review gate gates sending; the
+   approval chain gates signing; the desk exists so two colleagues do not both
+   push wording at the counterparty, and it has no opinion about who executes.
+
+   AND IT IS PROVEN FROM THE SIGN PATH, not only from the predicate. A predicate
+   nobody consults proves nothing about a button, which is exactly how this
+   shipped: deskMaySend was correct throughout, and the fault was one caller
+   folding it into a list a different act happened to read.
+
+   NOT FIXED BY GIVING SIGNERS A SEAT, deliberately: deskMaySend answers true
+   for the lead alone, so a correctly-seated contributor would still have been
+   refused. The sign path stops asking the question instead. */
+describe('f167 · the desk gates redlining and sending, never signing', () => {
+
+  function signWorld(user, on = true){
+    const w = buildWorld({ user, negotiationView: true, contractView: true });
+    w.win.state = { settings: { deskRule: { on } }, contracts: [], activeId: 'MK-D3' };
+    w.win.getUsers = () => EVERYONE;
+    w.win.userById = id => EVERYONE.find(u => u.id === id) || null;
+    w.win.saveSettings = () => {};
+    w.win.canAccessFolder = () => true;
+    /* Everything BESIDE the desk answered yes, so the only thing that can stop
+       a signature here is the desk — F71's own scaffolding, for the same reason.
+       The seal itself is stood in for; f5, f8 and f28 cover the real one. */
+    w.win.approvalState = () => ({ required: false, ok: true, chain: [], next: null });
+    w.win.openFindings = () => [];
+    /* js/approvals.js is not on this stage (see MODULES), so the route reader
+       the sign path uses is stood in for with its own arithmetic. */
+    w.win.signerPlan = c => (c.signerPlan || []);
+    w.win.nextSigner = c => (c.signerPlan || []).slice()
+      .sort((a, b) => (a.order || 0) - (b.order || 0)).find(s => !s.signed) || null;
+    w.win.allSigned = c => { const p = c.signerPlan || []; return p.length > 0 && p.every(s => s.signed); };
+    w.win.internalAllSigned = c => (c.signerPlan || []).filter(s => s.party === 'internal').every(s => s.signed);
+    w.win.signersRemaining = c => (c.signerPlan || []).filter(s => !s.signed).length;
+    w.win.signerTitle = () => '';
+    w.win.signerProvenance = () => '';
+    /* The route path records its OWN signature before this runs, so the stub
+       only seals — pushing a second one here would count the same mark twice. */
+    w.win.finalizeExecution = async c => { c.status = 'Signed'; };
+    return w;
+  }
+
+  /* The reported arrangement: ME leads the desk (claimed by filing the first
+     change), GRACE is a contributor, DAN is on no roster at all — and DAN is
+     the third internal signer, whose turn it is. */
+  async function reported(){
+    const lead = signWorld(ME);
+    const c = contract({ compliance: { consent: true } });
+    await editIn(lead.win, c, 4, NEW_TERMS);
+    lead.win.deskAddContributor(c, GRACE);
+    /* The change is settled, so the negotiation gate has nothing to say —
+       otherwise this file would be re-proving F71 rather than its own rule. */
+    const ch = (c.changes || [])[0];
+    lead.win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' });
+    c.signerPlan = [
+      { id: 'S1', order: 1, party: 'internal', name: ME.name, memberId: ME.id, email: ME.email, signed: true, at: lead.win.nowISO() },
+      { id: 'S2', order: 2, party: 'internal', name: GRACE.name, memberId: GRACE.id, email: GRACE.email, signed: true, at: lead.win.nowISO() },
+      { id: 'S3', order: 3, party: 'internal', name: DAN.name, memberId: DAN.id, email: DAN.email, signed: false },
+    ];
+    return c;
+  }
+
+  test('the reported case: a named signer on no roster signs', async () => {
+    const c = await reported();
+    const asDan = signWorld(DAN);
+    assert.equal(asDan.win.deskRole(c, DAN), 'reader', 'he really is outside the roster');
+    await asDan.win.signDocument(c);
+    assert.equal((c.signatures || []).length, 1, 'the signature went on');
+    assert.equal(c.signerPlan[2].signed, true, 'and the record moved with it');
+    assert.equal(c.status, 'Signed', 'the seal behaves as it always did — last signer, last step');
+  });
+
+  test('and a roster CONTRIBUTOR signs too — the other half of the same fault', async () => {
+    const c = await reported();
+    c.signerPlan[1].signed = false;                  // GRACE's turn instead
+    c.signerPlan[2].signed = false;
+    const asGrace = signWorld(GRACE);
+    assert.equal(asGrace.win.deskRole(c, GRACE), 'contributor');
+    assert.equal(asGrace.win.deskMaySend(c, GRACE), false, 'she still cannot reach the counterparty');
+    await asGrace.win.signDocument(c);
+    assert.equal((c.signatures || []).length, 1, 'a seat that cannot send can still execute');
+  });
+
+  test('the lead signs, exactly as before', async () => {
+    const c = await reported();
+    c.signerPlan = [{ id: 'S1', order: 1, party: 'internal', name: ME.name,
+      memberId: ME.id, email: ME.email, signed: false }];
+    const lead = signWorld(ME);
+    await lead.win.signDocument(c);
+    assert.equal((c.signatures || []).length, 1);
+  });
+
+  test('an admin who is not on the desk signs when it is their turn', async () => {
+    const c = await reported();
+    c.signerPlan[2] = { id: 'S3', order: 3, party: 'internal', name: BOSS.name,
+      memberId: BOSS.id, email: BOSS.email, signed: false };
+    const asBoss = signWorld(BOSS);
+    assert.equal(asBoss.win.deskRole(c, BOSS), 'reader', 'an admin is not exempt from the desk');
+    await asBoss.win.signDocument(c);
+    assert.equal((c.signatures || []).length, 1);
+  });
+
+  test('somebody who is neither a signer nor on the desk is STILL refused', async () => {
+    const c = await reported();
+    const stranger = { id: 'u_zoe', name: 'Zoe Adhiambo', role: 'legal', email: 'zoe@wanjiru.co.ke' };
+    const asZoe = signWorld(stranger);
+    asZoe.win.getUsers = () => EVERYONE.concat([stranger]);
+    await asZoe.win.signDocument(c);
+    assert.equal((c.signatures || []).length, 0,
+      'the reserved-step rule is the one that refuses here, and it is untouched');
+  });
+
+  /* THE PREDICATE ITSELF DID NOT MOVE. Everything the desk was written to stop
+     is still stopped — which is the half of this fix that is easy to lose. */
+  test('the desk still refuses that same person a REDLINE', async () => {
+    const c = await reported();
+    const asDan = signWorld(DAN);
+    assert.equal(asDan.win.deskMayRedline(c, DAN), false);
+    /* The funnel refuses by returning null and saying so, exactly as it does
+       for a reader above — see "a reader is refused by the FUNNEL". */
+    const filed = await editIn(asDan.win, c, 6, NEW_CAP, { author: DAN.name });
+    assert.equal(filed, null, 'signing is not redlining, and the funnel still says so');
+    const err = asDan.log.toasts.filter(t => t.kind === 'err').pop();
+    assert.match(err.msg, /not on this negotiation/);
+  });
+
+  test('and still refuses a contributor the SEND', async () => {
+    const c = await reported();
+    const asGrace = signWorld(GRACE);
+    assert.equal(asGrace.win.deskMaySend(c, GRACE), false);
+    assert.ok(asGrace.win.deskSendBlock(c, GRACE), 'the sentence is unchanged');
+  });
+
+  /* ---- WHAT THE SIGN PATH ASKS, AND WHAT IT DOES NOT ---- */
+  test('signBlockers never carries a desk or a review item', async () => {
+    const c = await reported();
+    const asDan = signWorld(DAN);
+    const keys = asDan.win.signBlockers(c).map(x => x.key);
+    assert.ok(!keys.includes('desk'), 'the desk gates redlining, not signing');
+    assert.ok(!keys.includes('review'),
+      'and the review gate gates SENDING — an open review always has a pending change in it, '
+      + 'which the negotiation gate already refuses in words that name the clauses');
+    /* js/core.js is not on this stage, so the readiness list itself is checked
+       where it lives (the test above this describe block, on the same guard). */
+    if (typeof asDan.win.contractReadiness === 'function')
+      assert.ok(asDan.win.contractReadiness(c).some(x => x.key === 'desk' && x.severity === 'block'),
+        'while the readiness panel, which is about SENDING, still says it');
+    assert.ok(asDan.win.deskSendBlock(c, DAN), 'and the desk itself still refuses the send');
+  });
+
+  test('each blocker prints its own sentence — the field tail wraps fields only', async () => {
+    const lead = signWorld(ME);
+    const c = contract({ compliance: {} });          // no intent-to-sign ticked
+    const msg = lead.win.signBlockMessage(c);
+    assert.match(msg, /Intent to sign has not been confirmed/);
+    assert.ok(!/Fill these in on Key terms/.test(msg),
+      'an unticked box is not a blank in the wording, and must not be told to be one');
+
+    /* The other half — that a blank DOES wear that tail — needs the readiness
+       list, which is built in js/core.js and is not on this stage. */
+    if (typeof lead.win.contractReadiness === 'function'){
+      const blanks = contract({ compliance: { consent: true }, counterparty: '' });
+      const msg2 = lead.win.signBlockMessage(blanks);
+      assert.match(msg2, /No counterparty is set/);
+      assert.match(msg2, /Fill these in on Key terms/, 'and a blank IS one');
+    }
+  });
+
+  test('the button refuses to promise what the press will refuse', async () => {
+    const lead = signWorld(ME);
+    const c = contract({ compliance: {} });
+    c.signerPlan = [{ id: 'S1', order: 1, party: 'internal', name: ME.name,
+      memberId: ME.id, email: ME.email, signed: false }];
+    const bl = lead.win.signBlockers(c);
+    assert.ok(bl.length, 'something blocks');
+    assert.ok(bl[0].short, 'and it has a form the button can wear');
+
+    const ok = await reported();
+    assert.equal(signWorld(DAN).win.signBlockers(ok).length, 0,
+      'and on the reported screen the button is telling the truth — nothing blocks');
+  });
+});

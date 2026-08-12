@@ -120,10 +120,41 @@ function renderCalendar(){
        set bold at every state — not only on today and on days that carry an
        event. A plain day used to be 10px at weight 400 and read as a whisper. */
     const numStyle=`font-family:var(--font-mono);font-size:12px;line-height:1.15;color:${today?'var(--st-steel-fg)':(ev?ev.fg:'var(--color-neutral-600)')};font-weight:700`;
+    /* ---- THE CHIPS ARE NOT THEIR OWN DOORS (owner-asked, 12 Aug 2026) ----
+       The rule, stated flat: pressing ANYTHING inside a day box goes to the
+       register narrowed to that day's contracts, and the document opens only
+       when the day carries exactly one.
+
+       The cell has answered that since 11 Aug. The chips were the exception:
+       their own <button>s, stopPropagation'd, opening their own contract
+       however many the day held. WHY THAT WENT: on the reported screen 30
+       August carries nine contracts and its three visible chips all read
+       "Mutual Non-Discl…", truncated to the point of being identical. Pressing
+       one is a guess between nine similarly-named agreements; the register
+       shows them with counterparty, status, value and expiry, which is what
+       makes them tellable apart.
+
+       IT IS A DELETION, NOT AN ADDITION. The count question is asked in one
+       place — openDay — and the chips now fall through to it instead of
+       answering separately, so there is no second copy of the test to keep in
+       step. On a one-contract day the cell opens that contract, so a chip press
+       lands exactly where it always did.
+
+       AND IT STOPS BEING A BUTTON. A nested button that does precisely what its
+       container does is a keyboard stop leading nowhere new, announced to a
+       screen reader as a control of its own. It is a span; the cell keeps
+       role="button", its tab stop and its Enter/Space handling, and is the only
+       thing in the box a keyboard can reach.
+
+       THE TOOLTIP FOLLOWS THE PRESS. "Expiry: …" named one event on one
+       contract, which is still true of where the press GOES only on a
+       one-contract day. On any other day the chip carries no title at all, so
+       the browser walks up and shows the cell's own — "choose from N on 30
+       August" — which is where the press actually leads. */
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
-      return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
-        _dot(ev.dot,6)+`<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></button>`;
+      return `<span class="cal-chip"${cids.length===1?` title="${ev.label}: ${_esc(e.note)}"`:''} style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
+        _dot(ev.dot,6)+`<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></span>`;
     }).join('');
     /* It is not its own button — the cell it sits in already is one, and the
        thing it promises ("show me the rest") is exactly what the cell does. */
@@ -262,12 +293,21 @@ function renderCalendar(){
   document.getElementById('cal-prev').addEventListener('click',()=>{ let {y,m}=calMonth(); m--; if(m<0){m=11;y--;} calState.ym={y,m}; renderCalendar(); });
   document.getElementById('cal-next').addEventListener('click',()=>{ let {y,m}=calMonth(); m++; if(m>11){m=0;y++;} calState.ym={y,m}; renderCalendar(); });
   document.getElementById('cal-today').addEventListener('click',()=>{ calState.ym=null; renderCalendar(); });
-  /* stopPropagation, because a chip sits INSIDE a day cell that is now a door
-     of its own: without it, pressing a named contract would open that contract
-     and then be overtaken by the cell sending the reader to the register. */
-  document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',e=>{
-    e.stopPropagation(); selectContract(b.getAttribute('data-sel'));
-  }));
+  /* ---- ONE SELECTOR, ONE SURFACE, AND IT USED TO BE TWO ----
+     [data-sel] is the AGENDA's row now and nothing else. It was shared with the
+     day-cell chips, which is why the handler carried a stopPropagation: a chip
+     sits inside a cell that is itself a door, and without it the chip's own
+     contract opened and was then overtaken by the cell.
+
+     The chips are spans with no data-sel since 12 Aug 2026 (see the note where
+     they are built) and fall through to the cell, so the stopPropagation went
+     with them. The agenda is untouched, and must be: it is a list of individual
+     EVENTS beside the calendar, not a day box, and a named row there is the one
+     place on this screen where "open that contract" is the whole answer. A
+     change scoped to [data-sel] rather than to the chips would have taken it
+     out with them. */
+  document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',()=>
+    selectContract(b.getAttribute('data-sel'))));
   /* THE DAY CELL. One contract opens; several go to the register narrowed to
      exactly those — see the note at cellAttrs. Keyboard too: the cell carries
      role="button" and a tab stop, so it has to answer Enter and Space like one. */

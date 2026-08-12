@@ -271,7 +271,65 @@ const REG_VIEWS=[
   {k:'autosoon',   get label(){ return i18t('reg_auto_renew'); }},
   {k:'overdueob',  get label(){ return i18t('reg_overdue_obligations'); }},
 ];
-function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null}; return state.reg; }
+/* ---- WHICH PAGE THIS TABLE IS ON (added 2026-08-12) ----
+   The register's machinery — its filters, its row builder, its body renderer,
+   its wiring — now draws TWO pages: Contracts, and Negotiations. The owner
+   asked for the second one to BE the first one, grouped by whose move it is
+   (see renderNegotiationsList in js/views/negotiation.js, which is the door).
+
+   IT IS A PROPERTY OF THE PAGE, ABOVE THE FILTERS, and that is the whole
+   reason it is not regShowOnly. `only` is a set somebody handed the register
+   and it is deliberately CLEARABLE — by its own ✕, by both Clear-all handlers
+   and by the phone's. Reused as-is here, the reader would press Clear on the
+   Negotiations page and be looking at all 145 contracts under a heading that
+   says Negotiations. The scope is asked FIRST in regFiltered, no control
+   offers to remove it, and Clear still clears everything the reader chose.
+
+   TWO FILTER STATES, NOT ONE. state.reg is Contracts'; state.regNego is this
+   page's. A stage filter set while looking at negotiations is not an opinion
+   about the register, and carrying it across would be one page silently
+   answering for the other. */
+let REG_SCOPE = null;
+function regScope(){ return REG_SCOPE; }
+function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
+const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null});
+function regState(){
+  if(regScope()==='negotiations'){ if(!state.regNego) state.regNego=REG_STATE_DEF(); return state.regNego; }
+  if(!state.reg) state.reg=REG_STATE_DEF(); return state.reg;
+}
+/* ---- THE THREE GROUPS, IN THIS ORDER, ON EVERY SHELL ----
+   Waiting on you first: it is the reason to open the page at all. The keys are
+   what negWhoseMove answers with (js/views/negotiation.js), the tone is the
+   app's existing amber / neutral / green state colour and nothing new, and the
+   NAME and the COUNT ride beside the colour so the page reads in grey-scale.
+   The phone renders its own row shape from this same list — one order, two
+   shells, the way Contracts already works. */
+const NEGO_BANDS=[
+  {k:'you',  tone:'amber',  get label(){ return i18t('ngl_band_you'); }},
+  {k:'them', tone:'gray',   get label(){ return i18t('ngl_band_them'); }},
+  {k:'clear',tone:'green',  get label(){ return i18t('ngl_band_clear'); }},
+];
+const NEGO_BAND_DOT={amber:'var(--st-amber-dot)',gray:'var(--color-neutral-400)',green:'var(--st-green-dot)'};
+/* Partition, never re-sort inside a group: whatever order the register's own
+   sort produced is preserved within each band, which is what makes "Sort" mean
+   something on this page. Stamped on the record the way regGroupFamilies
+   stamps _famKids, so the renderer does not have to ask twice. */
+function negoGroupByMove(cs){
+  const buckets={you:[],them:[],clear:[]};
+  for(const c of cs){
+    const m=(typeof window.negWhoseMove==='function')?window.negWhoseMove(c):{k:'clear',n:0};
+    c._ngBand=m.k; c._ngN=m.n;
+    (buckets[m.k]||buckets.clear).push(c);
+  }
+  return NEGO_BANDS.reduce((out,b)=>out.concat(buckets[b.k]||[]),[]);
+}
+/* How many rows each band holds IN THE SET ON SCREEN. The bands count the
+   filtered view — see the note the page prints when a filter is on. */
+function negoBandCounts(cs){
+  const n={you:0,them:0,clear:0};
+  cs.forEach(c=>{ n[c._ngBand===undefined?'clear':c._ngBand]=(n[c._ngBand]||0)+1; });
+  return n;
+}
 /* ---- A NAMED SET, SENT HERE FROM SOMEWHERE ELSE (added 2026-08-11) ----
    Asked for against the calendar: a day carrying more than one contract should
    open the register on those contracts, so the reader can see them side by side
@@ -290,6 +348,11 @@ function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',c
    rest, and it survives navigation exactly as they do. */
 function regShowOnly(ids, label){
   const list=Array.from(new Set((ids||[]).filter(Boolean)));
+  /* A named set is always sent to CONTRACTS. The scope is cleared before the
+     state is read, or a calendar day pressed while the reader happened to be on
+     the Negotiations page would write its answer into that page's filters and
+     then open a register that had never heard of it. */
+  regSetScope(null);
   const R=regState();
   R.only=list.length?{ ids:list, label:String(label||'') }:null;
   R.page=1;
@@ -320,8 +383,18 @@ const REG_CMP={
 };
 // direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
 const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1 };
+/* ---- THIS LIST DOES NOT PAGE, AND THAT IS THE ANSWER TO THE BAND BREAK ----
+   Contracts pages at 40 because a register holds every agreement a company has
+   ever had. Live negotiations are the handful being argued over right now — a
+   workspace with 145 contracts had one — so paging them buys nothing and costs
+   the one thing the grouping exists for: a band header stranded at the foot of
+   a page, or repeated at the top of the next one with a count that is either
+   the group's or the page's and misleading whichever it is. One page, every
+   group whole. The footer still counts CONTRACT ROWS (a band is not a row), so
+   "showing 1–8 of 8" is the truth and the pager draws nothing. */
+function regPageSize(){ return regScope()==='negotiations' ? 1e6 : REG_PAGE; }
 // total pages for the current filtered set (min 1)
-function regPageCount(cs){ return Math.max(1, Math.ceil(cs.length/REG_PAGE)); }
+function regPageCount(cs){ return Math.max(1, Math.ceil(cs.length/regPageSize())); }
 // clamp + return the current 1-based page
 function regCurPage(cs){ const R=regState(); const n=regPageCount(cs); R.page=Math.min(Math.max(1, R.page||1), n); return R.page; }
 // numbered pager (‹ Prev · 1 … windowed … N · Next ›), shown only when >1 page
@@ -338,16 +411,27 @@ function regPager(cs){
 // footer text: "Showing 1–40 of 55 · page 1 of 2 · aggregate KES …"
 function regFooterText(cs){
   const n=regPageCount(cs), p=regCurPage(cs);
-  const start=cs.length?(p-1)*REG_PAGE+1:0, end=Math.min(cs.length,p*REG_PAGE);
-  const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
+  const size=regPageSize();
+  const start=cs.length?(p-1)*size+1:0, end=Math.min(cs.length,p*size);
+  /* WHAT THE FOOTER IS COUNTING AGAINST. On Contracts it is the whole book —
+     "of 145". On Negotiations that number would be a lie about a page that
+     never shows anything but live negotiations, so the total is the live book:
+     the same list the heading counts. */
+  const countAll=regScope()==='negotiations'
+    ? ((typeof window.negoLiveList==='function')?negoLiveList().length:cs.length)
+    : ((state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length);
   const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">${i18t('reg_of_total',{n:Number(countAll).toLocaleString(jxLocale())})}</span>`:'';
   // agreements vs documents — a master plus its amendments is ONE agreement
   const fam=familyCounts(cs);
   const B=x=>`<b style="color:var(--color-text)">${x}</b>`;
   const famNote=fam.amendments?` · ${i18tn('reg_agreements',fam.agreements,{n:B(fam.agreements.toLocaleString(jxLocale()))})} · ${i18t('reg_documents',{n:B(fam.documents.toLocaleString(jxLocale()))})}`:'';
   const R=regState();
-  const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
-  return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${famNote} · ${i18t('reg_page_of',{p,n})}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
+  /* Neither the amendment fold nor the page counter belongs on a list that
+     never pages and groups by something else entirely. */
+  const neg=regScope()==='negotiations';
+  const flatBtn=neg?'':` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?i18t('reg_group_amendments'):i18t('reg_show_flat')}</button>`;
+  const pageNote=neg?'':` · ${i18t('reg_page_of',{p,n})}`;
+  return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -359,7 +443,14 @@ function wireRegPager(){
 }
 function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
-  /* First, because it is not a question about a contract but a set somebody
+  /* ---- THE PAGE'S OWN NARROWING, ABOVE EVERY QUESTION AND ABOVE `only` ----
+     See regSetScope. Nothing below can widen this and no control offers to.
+     A stage without the negotiation module answers with NOTHING rather than
+     with everything: a page that says "Live negotiations" and lists all 145
+     contracts is worse than a page that lists none. */
+  if(regScope()==='negotiations')
+    cs=(typeof window.negoIsLive==='function') ? cs.filter(c=>negoIsLive(c)) : [];
+  /* Then, because it is not a question about a contract but a set somebody
      else chose — everything below narrows WITHIN it. */
   if(R.only&&Array.isArray(R.only.ids)){ const keep=new Set(R.only.ids); cs=cs.filter(c=>keep.has(c.id)); }
   // 'awaiting' is a virtual stage = contracts out with a counterparty and not yet
@@ -394,6 +485,11 @@ function regFiltered(){
   const cmp=REG_CMP[sortKey]||REG_CMP.updated;
   const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[sortKey]||-1);
   cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
+  /* GROUPED BY WHOSE MOVE IT IS, not by family. An amendment carries its own
+     negotiation, so nesting one under its parent here would put two separate
+     arguments on one row; and the group order is the whole design of this page.
+     The register's sort survives — it decides the order INSIDE each band. */
+  if(regScope()==='negotiations') return negoGroupByMove(cs);
   // FAMILY GROUPING (default). Amendments sit under their parent instead of
   // floating as separate rows — a master agreement plus six addenda reads as
   // one agreement with six documents, which is what it is. `flat` shows every
@@ -463,8 +559,38 @@ function regPrimaryAction(c){
   if (s === 'Declined')     return i18t('reg_act_record');
   return i18t('reg_act_draft');
 }
+/* ---- WHOSE MOVE, AS A PILL ----
+   The same three readings the list has always drawn, in the same three classes,
+   so the colours and the grey-scale fallback are one definition. Built here
+   because BOTH shells want it: the desktop's last column and the phone's card.
+   The counterparty is NAMED where we know it — a reader scanning this page is
+   deciding what to pick up, and "With Saw Sawa Ltd" answers that where
+   "waiting" only repeats the column heading. */
+function negoMovePillHtml(c){
+  const m=(typeof window.negWhoseMove==='function')?window.negWhoseMove(c):{k:'clear',n:0};
+  if(m.k==='you') return `<span class="ngl-w ngl-w-you">${i18tn('ng_needs_you',m.n,{n:m.n})}</span>`;
+  if(m.k==='them') return `<span class="ngl-w ngl-w-them">${esc(i18t('ng_door_with',{who:c.counterparty||i18t('ng_door_them')}))}</span>`;
+  return `<span class="ngl-w ngl-w-clear">${i18t('ng_door_clear')}</span>`;
+}
+/* ---- A BAND IS NOT A ROW ----
+   It is a full-width heading that happens to live between rows: a coloured dot,
+   the name in small caps, the count. Everything about the markup says so —
+   role="presentation" on the <tr> and the <td> so no screen reader announces a
+   table row, a real heading inside for the ones that do announce, no data-row
+   (which is what wireRegRows binds the whole-row click to), no tab stop, and it
+   is generated during render rather than being a member of the filtered set, so
+   the footer's "showing 1–8 of 8" can never count one. */
+function negoBandRowHtml(band, n){
+  return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="8">
+    <div class="ngl-band-in" role="heading" aria-level="3">
+      <span class="ngl-band-dot" style="background:${NEGO_BAND_DOT[band.tone]}" aria-hidden="true"></span>
+      <span class="ngl-band-k">${esc(band.label)}</span>
+      <span class="ngl-band-n">${n}</span>
+    </div></td></tr>`;
+}
 function regRowsHtml(cs){
   const R=regState();
+  const neg=regScope()==='negotiations';
   if(!cs.length){
     const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all')||(R.category&&R.category!=='all')||!!R.only;
     const line = filtered ? i18t('reg_none_match') : i18t('reg_none_yet');
@@ -480,8 +606,33 @@ function regRowsHtml(cs){
         ${btn}
       </div></td></tr>`;
   }
-  const p=regCurPage(cs); const start=(p-1)*REG_PAGE;
-  const pageRows=cs.slice(start, start+REG_PAGE);
+  const p=regCurPage(cs); const size=regPageSize(); const start=(p-1)*size;
+  const pageRows=cs.slice(start, start+size);
+  /* THREE BANDS, IN FIXED ORDER, EACH WITH ITS OWN COUNT — and an empty one is
+     information ("Waiting on you · 0" is worth reading), which is why they are
+     drawn off the fixed list rather than off the rows that happen to exist.
+     Three bands over NOTHING is not information, and that case never reaches
+     here: with no live negotiation at all the page draws its empty state
+     instead of a table (see renderNegotiationsList). */
+  const bandN=neg?negoBandCounts(pageRows):null;
+  let bandAt=neg?0:-1;
+  const bandsBefore=k=>{
+    if(!neg) return '';
+    let out='';
+    while(bandAt<NEGO_BANDS.length && NEGO_BANDS[bandAt].k!==k){
+      out+=negoBandRowHtml(NEGO_BANDS[bandAt],bandN[NEGO_BANDS[bandAt].k]||0); bandAt++;
+    }
+    if(bandAt<NEGO_BANDS.length){ out+=negoBandRowHtml(NEGO_BANDS[bandAt],bandN[k]||0); bandAt++; }
+    return out;
+  };
+  const bandsAfter=()=>{
+    let out='';
+    while(neg && bandAt<NEGO_BANDS.length){
+      out+=negoBandRowHtml(NEGO_BANDS[bandAt],bandN[NEGO_BANDS[bandAt].k]||0); bandAt++;
+    }
+    return out;
+  };
+  let lastBand=null;
   const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" class="reg-act${a.ruby?' danger':''}" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;border-radius:5px;cursor:pointer;color:${a.ruby?'var(--st-ruby-fg)':'inherit'}">${window.icon?icon(a.ic,'w-3.5 h-3.5'):''}${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
@@ -493,8 +644,11 @@ function regRowsHtml(cs){
     const renColor=din==null?'transparent':(renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-500)');
     const renDateColor=renUrgent?'var(--st-ruby-fg)':renSoon?'var(--st-amber-fg)':'var(--color-neutral-700)';
     const val=!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—');
-    return `
-    <tr data-row="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
+    /* The band header for the group this row opens, drawn once, ahead of it. */
+    let band='';
+    if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
+    return band + `
+    <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td class="reg-mk" style="border-left:4px solid ${folderColor(c)}">${c.id}</td>
       <td style="max-width:280px${c._famChild?';padding-left:30px':''}">
         <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:10.5px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:999px;font:inherit;font-weight:400;font-size:9.5px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
@@ -509,12 +663,25 @@ function regRowsHtml(cs){
       <td style="text-align:center;white-space:nowrap">${window.shareLinkCell?shareLinkCell(c.id):''}</td>
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
+      ${''/* ---- THE LAST COLUMN IS A STATE, NOT AN ACTION ----
+             On Contracts it is the row's own verb plus the ⋯ menu. On
+             Negotiations it is whose move it is, and the ⋯ IS GONE with the
+             verb: every row on this page does exactly one thing — it opens the
+             negotiation — and a menu whose first line reads "Open workspace"
+             and lands somewhere else is a trap laid on the one page where the
+             destination is not in doubt. Every one of those verbs is a press
+             away on Contracts, where the row press already means "open the
+             contract". */}
+      ${neg ? `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>` : `
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
         <button class="reg-actlink" data-act="open" data-id="${c.id}">${regPrimaryAction(c)}</button>
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="${i18t('reg_more_actions')}">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:6px;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
-      </td>
-    </tr>`;}).join('');
+      </td>`}
+    </tr>`;}).join('')
+    /* Any band with no rows under it still gets its header and its zero — and
+       the trailing ones are only reachable here, after the last row. */
+    + bandsAfter();
 }
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary(c)).reduce((s,c)=>s+Number(c.value||0),0); }
 function renderRegisterBody(){
@@ -529,8 +696,15 @@ function renderRegisterBody(){
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
-  // whole-row click opens the contract's workspace
-  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-row'))));
+  /* Whole-row click opens the contract's workspace — EXCEPT on the Negotiations
+     page, where a row opens the NEGOTIATION. Same table, same builder, one
+     different destination, decided off the row's own attribute rather than off
+     the scope flag so a row can never disagree with the page that drew it. */
+  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>{
+    const id=el.getAttribute('data-row');
+    if(el.getAttribute('data-nego-row')&&window.openRedlineWorkbench) openRedlineWorkbench(id);
+    else selectContract(id);
+  }));
   // expand / collapse an agreement's linked documents
   document.querySelectorAll('#reg-tbody [data-fam-toggle]').forEach(b=>b.addEventListener('click',e=>{
     e.stopPropagation(); const R=regState(); const id=b.getAttribute('data-fam-toggle');
@@ -559,7 +733,7 @@ function wireRegRows(){
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; regRepaint(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',e=>{ e.stopPropagation(); const nb=document.getElementById('cmd-new'); if(window.openNewMenu){ openNewMenu(e.currentTarget); } else if(nb){ nb.click(); } });
 }
 /* Exports what the register is showing — every row the current filters, search
@@ -577,9 +751,29 @@ function regExportCsv(){
   const a=document.createElement('a'); a.href=url; a.download='hati-register.csv'; a.click(); URL.revokeObjectURL(url);
   toast(`Exported ${rows.length} contract${rows.length===1?'':'s'} to CSV`);
 }
-function renderRegister(){
+/* ---- ONE TABLE, TWO PAGES ----
+   opts.scope switches this between Contracts (nothing passed) and Negotiations
+   ('negotiations'); opts.head is the page's own heading block above the filter
+   bar; opts.nav is which sidebar door lights. Everything else — the filters,
+   the row builder, the body renderer, the wiring, the footer — is shared, on
+   purpose and as the whole point: two tables of contracts built by two
+   functions eventually disagree about what a row says, and disagreeing is
+   exactly what the Negotiations page was written as a twenty-line signpost to
+   avoid. Reuse is now what keeps that promise. */
+let _regOpts={};
+/* Repaint the page that is actually on screen. Every filter control inside this
+   file used to call renderRegister() bare, which with two pages sharing the
+   renderer would have turned Negotiations into Contracts on the first press of
+   a dropdown — the scope reset to null by the argument nobody passed. */
+function regRepaint(){ renderRegister(_regOpts); }
+function renderRegister(opts){
+  const o=opts||{};
+  _regOpts={ scope:o.scope||null, head:o.head||null, nav:o.nav||'register', hostId:o.hostId||'content' };
+  regSetScope(o.scope);
+  const neg=regScope()==='negotiations';
   const R=regState(); R.page=1;
   const cs=regFiltered();
+  const headHtml=typeof o.head==='function' ? o.head(cs) : (o.head||'');
   /* A select left on `appearance:auto` is drawn by the platform, and the
      platform draws it with a hard dark edge and a square corner whatever the
      border says. Turning the appearance off hands the closed control back to
@@ -617,6 +811,16 @@ function renderRegister(){
       <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
         style="border:0;background:none;font:inherit;font-size:13px;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7">&times;</button>
     </span>`:'';
+  /* ---- AND THE LOCKED ONE, WHICH SAYS WHAT THE PAGE IS ----
+     It wears the accent like the chip above it and carries a padlock, and it
+     has no ✕ because there is nothing to remove: it is not a filter the reader
+     chose. It leads the bar so everything to its right is plainly a narrowing
+     WITHIN live negotiations. */
+  const lockChip=neg?`<span id="reg-lock-chip" title="${esc(i18t('ngl_locked_title'))}"
+      style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:8px;padding:5px 10px;
+        background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)">
+      <span aria-hidden="true">&#128274;</span><span>${esc(i18t('ngl_locked_chip'))}</span>
+    </span>`:'';
   const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
@@ -641,8 +845,10 @@ function renderRegister(){
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;max-height:320px;overflow-y:auto"></div>
     </div>`:'';
 
-  document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
+  const hostEl=document.getElementById(_regOpts.hostId)||document.getElementById('content');
+  if(!hostEl) return;
+  hostEl.innerHTML=`
+  <div class="view-enter${neg?' ngl-page':''}" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
     <style>
       /* ---- THE PROTOTYPE'S TABLE ----
          The reference is a rounded card with an uppercase 10px header band, p-4
@@ -675,12 +881,14 @@ function renderRegister(){
       .reg-th-sort.active{color:var(--color-accent-800)!important}
     </style>
     <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
+      ${headHtml}
       <!-- THE ONE FILTER BAR: stage · stream · saved view · category · renewal ·
            clear,
            then sort, full-text search (server mode) and the export — a single
            compact strip where three tiers of pills used to stack, so the table
            itself starts above the fold. -->
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        ${lockChip}
         ${onlyChip}
         ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
         ${selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'))}
@@ -692,6 +900,10 @@ function renderRegister(){
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">${i18t('reg_sort')}
           <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
         </label>
+        ${''/* SORTING RUNS INSIDE A GROUP HERE, and the same control on Contracts
+               sorts the whole page. A control that quietly means something else
+               is a lie by omission, so the page says it beside the control. */}
+        ${neg?`<span id="reg-sort-note" style="flex:none;font-size:10.5px;color:var(--color-neutral-500)">${esc(i18t('ngl_sort_note'))}</span>`:''}
         ${ftsBlock}
       </div>
 
@@ -713,7 +925,7 @@ function renderRegister(){
                 <th style="width:58px;text-align:center" title="${i18t('reg_link_title')}">${i18t('reg_col_link')}</th>
                 ${sortableTh('value',i18t('reg_col_value'),'text-align:right')}
                 ${sortableTh('expiry',i18t('reg_col_expiry'))}
-                <th style="text-align:right">${i18t('reg_col_actions')}</th>
+                <th style="text-align:right">${neg?i18t('ngl_col_move'):i18t('reg_col_actions')}</th>
               </tr>
             </thead>
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
@@ -733,7 +945,7 @@ function renderRegister(){
                  looking. The folder page keeps its link key — there the strip
                  holds nothing else, and the marks are why it exists. */}
           ${folderLegendHtml({style:'font-size:10.5px'})}
-          <span>${i18t('reg_per_page',{n:REG_PAGE})}</span>
+          <span>${neg?esc(i18t('ngl_no_paging')):i18t('reg_per_page',{n:REG_PAGE})}</span>
         </div>
       </section>
     </div>
@@ -747,23 +959,24 @@ function renderRegister(){
   }
   // outside click closes the FTS dropdown and any open row ⋯ menu
   document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); });
-  document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; renderRegister(); });
+  document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; regRepaint(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural
   // direction (e.g. renewal nearest-first, value high-first).
   document.querySelectorAll('[data-reg-sort]').forEach(el=>el.addEventListener('click',()=>{
     const key=el.getAttribute('data-reg-sort');
     if(R.sort===key) R.dir=-R.dir; else { R.sort=key; R.dir=REG_SORT_DEFDIR[key]||-1; }
-    R.page=1; renderRegister();
+    R.page=1; regRepaint();
   }));
-  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegister(); });
-  document.getElementById('reg-category')?.addEventListener('change',e=>{ R.category=e.target.value; R.page=1; renderRegister(); });
-  document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; renderRegister(); });
-  document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; renderRegister(); });
-  document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; renderRegister(); });
-  document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; renderRegister(); });
-  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; renderRegister(); });
-  setActiveNav('register');
+  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-category')?.addEventListener('change',e=>{ R.category=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
+  document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; regRepaint(); });
+  document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.category='all'; R.only=null; R.page=1; regRepaint(); });
+
+  setActiveNav(_regOpts.nav);
 }
 
 /* ---- E6-T1 full-text search dropdown (server mode) ---- */
@@ -786,4 +999,5 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,regShowOnly,renderRegister,renderRegisterBody,wireRegRows,
+  regScope,regSetScope,regRepaint,regPageSize,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

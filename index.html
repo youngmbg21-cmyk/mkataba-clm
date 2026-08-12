@@ -778,12 +778,13 @@
   /* ============ THE NEGOTIATIONS LIST ============
      What the sidebar door shows when there is no last negotiation to reopen.
 
-     IT IS A SIGNPOST, NOT A SECOND REGISTER, and the styling says so as much as
-     the code does: rows, not a table with sortable heads; no filter bar, no
-     search box, nowhere for either to be added without it plainly becoming a
-     different kind of page. The one thing a row states loudly is whether it is
-     waiting on the reader, because that is the only question worth asking about
-     a negotiation you are standing outside of. */
+     IT IS THE CONTRACTS TABLE NOW (owner's call, 12 Aug 2026), built by
+     renderRegister with a scope — so the rules below dress two things and no
+     more: the page's own heading, and the band that heads each group. The .ngl-w
+     pill survives unchanged because it is the one thing both shells draw, and
+     the .ngl-row / .ngl-list rules survive because the EMPTY state (no live
+     negotiation anywhere) is still a page of its own rather than an empty table
+     under a filter bar. */
   .ngl-wrap{ padding:18px 20px 32px; max-width:900px; }
   .ngl-head h2{ font-family:var(--font-heading); font-weight:600; font-size:20px;
     margin:0 0 4px; line-height:1.2; }
@@ -810,6 +811,28 @@
   .ngl-w-clear{ background:var(--st-green-bg); color:var(--st-green-fg); border-color:var(--st-green-line); }
   .ngl-empty{ background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:16px; padding:34px; text-align:center; box-shadow:var(--shadow-sm); }
+  /* ---- THE BAND ----
+     A full-width heading between rows: a coloured dot, the name in small caps,
+     the count. It is the thing a flat register cannot produce, and it is what
+     stops this page being mistaken for Contracts. NOT A ROW — no hover tint, no
+     pointer, no cell padding, and the markup carries role="presentation" so it
+     is never announced as one either. */
+  .ngl-band > td{ padding:0!important; border-bottom:0!important;
+    background:var(--color-bg); position:sticky; top:38px; z-index:2; }
+  .reg-table tbody tr.ngl-band:hover{ background:none; }
+  .ngl-band-in{ display:flex; align-items:center; gap:9px; padding:7px 16px;
+    border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider); }
+  .ngl-band-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .ngl-band-k{ font-size:10px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--color-neutral-600); }
+  .ngl-band-n{ font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+    color:var(--color-neutral-600); background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:99px; padding:0 7px; }
+  .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
+  .ngl-head-table p{ margin:2px 0 0; }
+  .ngl-live{ font-family:var(--font-mono); font-size:12px; font-weight:700;
+    color:var(--color-accent-800); background:var(--color-accent-100);
+    border:1px solid var(--color-accent-300); border-radius:99px; padding:1px 9px; }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:700; }
   .ngl-empty p{ margin:0 0 16px; font-size:12.5px; color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
@@ -1860,8 +1883,25 @@
     transition:transform .3s cubic-bezier(.22,.61,.36,1);
   }
   #context-panel.open{transform:none;}
+  /* ---- THE SCRIM STARTS BELOW THE HEADER, AND THAT IS THE WHOLE POINT ----
+     It was inset:0, so with the panel open it lay across the top bar and
+     swallowed clicks on the two icons that control the panel — measured in the
+     browser, which named the scrim as the interceptor. Pressing the bell while
+     Activity was showing therefore did nothing at all, which is not a swap
+     between two contents, it is a dead control.
+
+     Raising the buttons instead does not work and it is worth writing down why:
+     #app-shell is position:fixed, which makes it a stacking context, so nothing
+     inside it can be lifted above a sibling of the shell however high its
+     z-index goes. The scrim gives way instead.
+
+     --shell-head-h is the shell's own header row (grid-template-rows begins
+     with it), declared once so the two cannot drift. The header stays lit while
+     the page dims, which reads correctly: the control that owns this panel is
+     the one thing still live. Everything else still dismisses on a click. */
+  :root{ --shell-head-h:64px; }
   #panel-scrim{
-    position:fixed;inset:0;z-index:45;
+    position:fixed;left:0;right:0;bottom:0;top:var(--shell-head-h,64px);z-index:45;
     background:color-mix(in srgb,#020617 45%,transparent);
     opacity:0;pointer-events:none;transition:opacity .25s;
   }
@@ -2249,7 +2289,7 @@
 
 <!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
      stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:256px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:256px minmax(0,1fr);grid-template-rows:var(--shell-head-h,64px) minmax(0,1fr);background:var(--color-bg);">
 
   <!-- ================= TOP HEADER (64px, spans both columns) ================= -->
   <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
@@ -2334,12 +2374,23 @@
         <div id="theme-menu" class="room-menu hidden" style="min-width:212px"></div>
       </div>
 
-      <button id="hdr-notify" class="hdr-icon-btn" title="Notifications — the Activity panel carries the live feed" data-i18n-title="sh_notifications">
+      <!-- THE BELL OPENS ALERTS: the things actually waiting on this person.
+           It used to press the button below it — same panel, same content, two
+           icons for one job — and its own tooltip said so. Both still share ONE
+           panel; only the contents differ (see openPanel in js/app.js).
+
+           AND THE DOT COUNTS SOMETHING NOW. It was a hard-coded <span> here:
+           always on, counting nothing, and long since trained out of everybody
+           who uses this. An always-on badge is worse than no badge. It carries
+           a real number, it is `hidden` at zero, and updateAlertBadge is what
+           fills it — nothing marks an alert as merely seen, so the number goes
+           down when the work does. -->
+      <button id="hdr-notify" class="hdr-icon-btn" title="Alerts — what is waiting on you" data-i18n-title="sh_alerts_title">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-        <span style="position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--accent-solid);border:2px solid var(--color-surface);"></span>
+        <span id="hdr-notify-dot" hidden style="position:absolute;top:4px;right:3px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:99px;background:var(--st-amber-dot);color:#1c1206;border:2px solid var(--color-surface);font:inherit;font-size:9px;font-weight:800;line-height:11px;text-align:center;font-family:var(--font-mono);"></span>
       </button>
 
-      <button id="cmd-panel" class="hdr-icon-btn" title="Toggle the Activity panel" data-i18n-title="sh_toggle_panel">
+      <button id="cmd-panel" class="hdr-icon-btn" title="Activity — everything happening across the workspace" data-i18n-title="sh_toggle_panel">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
       </button>
 
@@ -2615,14 +2666,18 @@
      window: it took a column it could not afford there, and now it takes
      none. -->
 <div id="panel-scrim"></div>
-<aside id="context-panel" aria-label="Activity" style="background:var(--color-surface);border-left:1px solid var(--color-divider);">
+<aside id="context-panel" aria-labelledby="panel-title" style="background:var(--color-surface);border-left:1px solid var(--color-divider);">
   <!-- A HEADER, NOT A TAB STRIP. The old one was a single full-width .panel-tab
        — an underlined tab, alone, with nothing to switch to — which read as a
        column heading only because a column is what it sat on. Full height and
        over the page it needs a title and a way out, in that order. -->
   <header style="flex:none;display:flex;align-items:center;gap:10px;padding:13px 10px 13px 16px;border-bottom:1px solid var(--color-divider);">
-    <h2 style="flex:1;margin:0;font-family:var(--font-heading);font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text);">Activity</h2>
-    <button id="panel-close" class="hdr-icon-btn" title="Close the Activity panel" aria-label="Close the Activity panel">
+    <!-- THE HEADING IS FILLED BY renderContextPanel, because this one shell now
+         carries two contents — Activity (the whole workspace) and Alerts (this
+         person). A panel that does not say which it is showing is a panel a
+         reader will believe the wrong half of. -->
+    <h2 id="panel-title" style="flex:1;margin:0;font-family:var(--font-heading);font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text);">Activity</h2>
+    <button id="panel-close" class="hdr-icon-btn" title="Close the panel" aria-label="Close the panel">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
   </header>

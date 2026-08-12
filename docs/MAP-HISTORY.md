@@ -739,6 +739,499 @@ AND A CASCADE FIGHT SETTLED FOR THE WHOLE PRODUCT. The deleted mirror carried a 
 
 Tests: f181 rewritten from "the header button is a mirror" to "there is one real Ready to sign, in the header, and no mirror", keeping the one-act-one-route claims; f180 grew a NAMED roll call of every deal verb (and a count of one each, so a mirror cannot come back) and its two sentence assertions moved to the wall line, which is where the sentences moved; f51's name step became "the box is gone and the fact is not", including that a link addressed to somebody sends without asking anybody; f113 and f25 followed the box. ready-proxy-verify became portal-header-verbs-verify — same browser argument, new arrangement: every verb's real box, the walk to the root through the real cascade, the strip's width against the header's, the gap between the header and the first word of the agreement (the space the request was actually about), the stepper untouched, the wall line still above the document, and the Send appearing in the header the moment something is held.
 
+A SIGNING LINK LOOKS BACK AT THE RECORD, NOT AT A SECOND WORKBENCH (added 2026-08-12)
+
+Owner-asked, off the counterparty's SIGNING screen — the one with the green banner and
+the "Respond to <sender>" panel: "Review what changed" should open the Negotiation
+history dialog, and the read-only panel it currently reveals should go.
+
+WHAT THAT BUTTON ACTUALLY DID. portalAgreedHtml drew two hidden hosts under the banner,
+and the press unhid them: the whole negotiation workbench, mounted read-only in the page
+— the round queue, the document with every mark on it, the Tracked Changes column, each
+change's note composer with its Internal / Send-to-them switch — plus #pt-nego-foot, which
+on that screen rendered a second "Ready to sign" and a second "Decline" (both already on
+the respond panel three inches to the right) and the sentence "Your decisions are held here
+until you send them", which is untrue on a link that can hold nothing. A working surface,
+under the wording somebody was about to sign, answering a question they had not asked. The
+question they HAD asked is "what changed", and the answer to that is the record.
+
+SO IT CALLS openPortalHistory — the same one function "Negotiation history" calls a few
+pixels above it in the reading bar. BOTH DOORS ARE KEPT, deliberately: one stands in the
+reading bar where a reader looks for the record whatever state the deal is in, the other
+inside the green banner that has just told them how many changes were settled and how, and
+each is worded from where it stands. What they must never be is two PATHS — the strip's own
+lesson, from the day a mirror nearly became the only button on the page.
+
+THE TRAP THAT WOULD HAVE SHIPPED SILENTLY. The listener was the LAST line of
+wirePortalNego, and that function returns at its fourth line when #pt-nego is not on the
+page. Deleting the hidden host — the whole point of the request — would have left the
+button drawn, tinted, pressable and inert, with nothing anywhere reporting a fault. It is
+wired in renderSharePortal now, beside #pt-hist, which is the screen that draws it.
+
+AND THREE BUILDERS MAKE THOSE TWO IDS. portalAgreedHtml (this one), portalNegoHtml's own
+visible card for a live negotiation on a signing-purpose link, and renderShareWorkbench —
+where #pt-nego-foot is the counterparty's ONLY postbox, which is the exact element f180
+exists because a week of green tests once lost. Only the agreed branch was touched.
+
+EVERY SENTENCE THAT PANEL CARRIED WAS FOUND A HOME BEFORE THE PANEL WENT, which is this
+file's own standing rule: executed and superseded are said by portalClosedBanner at the top
+of the same page; "this link has already been answered" is the respond panel's own notice;
+and the one the panel alone used to say — that a signing link cannot be redlined and the
+sender will issue a link that can — is already in the "Not ready to sign?" list, in more
+useful words, because it names what happens next.
+
+WHAT LEFT WITH IT, said out loud rather than discovered. Two deal verbs: the panel's
+Ready to sign and Decline, both of which the respond panel already offers on that screen
+(Sign, and "Decline the contract" under "Not ready to sign?"), so nothing is lost and one
+duplicate pair is. And the per-change reply composer, which was the only per-clause comment
+box on a signing link — the history is a record and has no reply box. Kept deliberately
+simple: the respond panel's general Comment field is the channel on this screen, and one
+channel that can say "about clause 5" in words beats two that can drift, which is the
+argument that removed the "talk it through" panel from both sides in the first place.
+
+THE DOOR CANNOT OPEN ONTO NOTHING. It is drawn only where the contract carries changes,
+which is the same question portalHasHistory asks of the same records — so the "no changes
+were proposed" link still shows no button at all, and openPortalHistory's own refusal (a
+toast, where the timeline module is absent) is inherited rather than reinvented.
+
+Tests: f113's two panel claims rewritten to the dialog and to the sentence's new home,
+f49's "reveals in place" rewritten to "opens the history" plus a new check that both doors
+reach one screen, f51's superseded case reading the page's own banner, f37 unchanged (it
+asserts the workbench page has no door, which is still true). In the browser: live-verify
+presses the real button on a real signing link served by the real server and measures the
+dialog as pixels — a box, painted over the page — and that no workbench is mounted before
+or after. Nothing here is "deleted" by display:none: the check reads for absent elements.
+
+AN INTERNAL SIGNER IS TOLD WHEN IT IS THEIR TURN (added 2026-08-12)
+
+Owner-asked: "internal signers should get an email like the counterparty does, saying a
+contract is ready for their signature, with a link that takes them to it inside HaTi."
+
+WHAT WAS ACTUALLY TRUE, walked rung by rung before a line was written, because the ask
+reads like one missing feature and was three different things:
+
+  · Route issued and the FIRST signer is internal — NOTHING was sent, ever.
+    issueSigningRouteLinks filters the plan to counterparty rows and nothing else fired,
+    so the commonest arrangement in the product (we sign, then they do) began with the
+    first signer never being told. This is the gap the request was really about.
+  · Internal signs, next is internal — a mail went, from the OWNER'S BROWSER, through
+    /api/contracts/:id/notify-signer, in the recipient's own language.
+  · Counterparty signs, next is internal — a DIFFERENT mail went, from
+    releaseNextSignerLink on the server, hard-coded English, addressed straight off the
+    route row.
+  · Internal signing completes — the counterparty links are issued and emailed. That
+    already worked, and is untouched.
+
+So two "it's your turn" emails already existed, written in two places, saying different
+things, one of them untranslated, neither recorded anywhere — plus a hole where the
+commonest case was. The duplication warning in its usual shape.
+
+ONE DOOR: notifyInternalSignerTurn. Every trigger calls it and it composes, sends and
+records in one place. The triggers are the PUT that saves the contract (when the turn
+MOVED — asked as a difference exactly like every other guard on that route, which is what
+stops it firing on every repaint, autosave and poll), releaseNextSignerLink, and the
+resend button. The browser's old call survives as a belt: it flushes its save first and
+gets 'already-sent' for its trouble, which is the correct answer.
+
+FIRED FROM THE SERVER, and that is the point rather than a preference. Firing from a
+browser means firing from whoever happens to have one open: a route issued on a Friday
+afternoon would wait for somebody to load a page. The same argument releaseNextSignerLink
+was written with, applied to the other three rungs.
+
+"LIKE THE COUNTERPARTY" MUST NOT MEAN "A LINK LIKE THE COUNTERPARTY'S". Theirs is a
+tokenised, no-login share bound to a plan row. An internal signer signs INSIDE the app, as
+themselves, on a session — that is what makes the signature attributable, and the signing
+card says so on screen. Minting share tokens for internal signers would have created a way
+to sign without signing in, which is a worse product than the one with the missing email.
+The internal mail carries an ordinary app URL and says out loud that they will be asked to
+sign in.
+
+AND THAT URL NAMES THE CONTRACT. Both older mails pointed at the site root, which is
+telling somebody a specific agreement is waiting on them and then asking them to go and
+find it. `#contract=<id>&tab=sign` now, honoured by openFromHash — called from startApp
+and NOT from boot(), which is the whole trick: boot runs before anybody is signed in, so
+an internal signer following their link hits the sign-in wall, and startApp is what runs on
+the far side of it as well as on a resumed session. One place, both journeys. The hash is
+spent once honoured, so a refresh an hour later reopens the contract where the reader left
+it rather than jumping them back to the signing step.
+
+THE ROUTE THAT SENDS IT WAS AN OPEN RELAY, and the rule it was breaking is stated in a
+comment on the very next route in the file: "THE RECIPIENT IS RESOLVED FROM THE USERS
+TABLE, never taken from the body." /notify-signer read `email` off the request and mailed
+it. It takes a signerId now, REFUSES a body carrying an address rather than ignoring it
+(so nothing goes on believing it works), and resolves through internalSignerRecipient —
+the member record first, the address typed on the stored route second. The member record
+outranks the route on purpose: a route saved months ago is not where a colleague lives.
+
+AN INTERNAL ROW MAY HAVE NO ADDRESS AT ALL, and both send paths used to do nothing when
+that was true — the owner was told nothing and the signer was told nothing. Decided: the
+editor is NOT made to refuse (an internal signer bound to a member is reachable through
+their team record whether or not anybody typed an address on the route, so refusing would
+be a wall in front of the common case). Instead the owner is told plainly, on the row:
+"their turn now — no email address on file, so they cannot be told", with NO resend beside
+it, because the fix is the route or the team record rather than another press.
+
+THE OWNER CAN SEE IT WENT, which is the half of the request that is not about email at
+all. A counterparty signer's progress is a fact about their SHARE — created, sent, opened,
+responded — and the card has read it for a long time. An internal signer has no share, so
+signer_notices is the internal half of shares.sent_at: one row per notice, carrying whether
+the provider took it and why not. It rides back with the shares the card already fetches
+(one round trip, one cache — the reason _shareCache exists), and signerNoticeState answers
+the internal version of signerLinkState's question. The badge and sentence say told /
+email failed / no address / not told yet, and a resend sits beside the three where pressing
+it does something.
+
+ONE EMAIL PER TURN, and a resend is a deliberate act with a visible result rather than a
+silent retry. A notice row for (contract, signer) means the turn has been announced and
+the automatic paths stand down; `force` is what the button sends. This is also what makes
+the double-trigger safe: a counterparty signature fires releaseNextSignerLink immediately
+and then the owner's browser applies it and saves, which moves the turn a second time.
+
+NEVER on an executed contract, a completed route, a counterparty row, a signer who has
+already signed, or one whose turn has not arrived — five refusals, each with its own
+sentence, each asked of the STORED record. And it can never fail the thing that triggered
+it: the signature is saved before any of this runs, and every path swallows its own errors.
+
+THE PHONE draws no signing-order card and did not before; the mail and the deep link work
+from a phone browser like any other, and the phone's shell picks the contract up through
+its own setView wrapper.
+
+Tests: f185 (19, against a real server — the gap, both existing rungs, the six-rung walk,
+the refused body address, the member record outranking a stale route address, one-per-turn
+across repeated saves, the five refusals, and a counterparty signature surviving a nudge
+that could not go), f136 (the internal row's two new states and the missing button on the
+one where pressing it would always fail), and sign-links-verify's fourth section in the
+browser — the card the owner actually looks at, the resend reporting honestly rather than
+flashing a green light, and the emailed link landing on the contract's Signing tab.
+
+A NAMED SIGNER WAS REFUSED THEIR OWN SIGNATURE (added 2026-08-12)
+
+Reported off the screen. Young Ochoka, signer 3 of 3 on the signing route, internal,
+marked SIGNING NOW / "their turn now", under a banner reading "Approved and ready — apply
+the sealed signature". He pressed a live, full-width, primary "Sign as Young Ochoka" and
+got a red refusal:
+
+  "Not signed — You are not on this negotiation. Young Mbagaya leads it — ask them to add
+   you. Fill these in on Key terms, or in the document, before signing."
+
+FOUR FAULTS IN ONE PRESS, and fixing the message would have fixed none of them.
+
+THE DESK WAS GATING SIGNING. contractReadiness folds deskSendBlock in as a 'block';
+readinessBlocks returns every 'block'; signDocument refused on readinessBlocks. And
+deskSendBlock is deskMaySend, which is TRUE FOR THE LEAD ALONE — so with the setting on
+and a desk claimed, ONLY THE NEGOTIATION LEAD COULD EVER SIGN. Not only this person and
+not only non-members: a roster CONTRIBUTOR was refused too, in different words. Every
+multi-signer internal route in a workspace with that setting on was broken past the first
+signature. It shipped because the rule is OFF by default and has four escapes, so the
+state has to be built deliberately — which is how it was reproduced before anything was
+touched.
+
+THE RULEBOOK ALREADY SAID SO, in its own words, in three places: the review gate gates
+SENDING, the approval chain gates SIGNING, the desk gates REDLINING. A signature is not a
+redline. The desk exists so two colleagues do not both push wording at the counterparty;
+it has no opinion at all about who may execute. The fault was never in deskMaySend, which
+was right throughout — it was one caller folding a SEND predicate into a list a different
+act happened to read.
+
+NOT FIXED BY GIVING SIGNERS A SEAT, and that matters because it is the obvious fix: a
+named signer could have been made a desk member, and it would not have worked. deskMaySend
+answers true for the lead alone, so a correctly-seated contributor would still have been
+refused. The sign path stops asking the question instead.
+
+AND THE REVIEW GATE, WHICH RIDES IN THE SAME LIST, WAS DECIDED RATHER THAN SWEPT ALONG.
+By the same mapping it gates SENDING, so by the rule it goes. But there is a second,
+stronger reason and it is worth recording: on this path it cannot change an outcome. An
+open review is one with PENDING changes in it — reviewInPlay is the population, and a
+review with nothing in play is spent and holds nobody — and a pending change is already
+refused by negoSigningBlockers, in words that name the clauses. Two refusals for one state,
+one of them about a colleague's inbox, is strictly worse than one.
+
+THE SERVER ALREADY AGREED, and that was checked before the browser was touched rather than
+assumed. Its desk guard on PUT /api/contracts/:id refuses a reader seat only when
+ourChangesTouched, and a signature moves c.signatures and stamps a plan row without
+touching a single change — so a signature save from a non-roster signer has always passed.
+That is what makes this a browser-only fix, and f168 now pins BOTH halves: the signature
+passes, and the same reader still cannot slip a redline in beside it.
+
+ONE LIST, TWO READERS. signBlockers(c) is what stops a signature, and it lives in
+js/views/contract.js BESIDE its two readers rather than in js/core.js where the readiness
+list is built. That is not filing preference: the negotiation gate is the most serious rule
+in that file (F71 — nothing is sealed while a change is still on the table), and a gate
+that lives in another module and is reached through `window` is a gate a stage without that
+module simply does not have. Moving it there was the second attempt; the first put it in
+core.js and F71 went green over a contract with an unanswered change on it, which is
+exactly the fault F71 exists to catch, caught by F71.
+
+It asks, in the order a reader should act on them: intent to sign, the approval chain,
+whose turn it is, the negotiation, the readiness BLANKS, and the template form's own
+fields. It asks the desk and the review gate about nothing.
+
+EACH BLOCKER PRINTS ITS OWN SENTENCE. The old refusal wrapped whatever readinessBlocks
+returned in "Fill these in on Key terms, or in the document, before signing" — so somebody
+refused by a rule about PEOPLE was told to go and fill in a blank that does not exist.
+Every entry carries its own `label` now, and that tail belongs to the three blockers it is
+true of (counterparty, value, placeholders — READINESS_FIELD_KEYS). deskBlockMessage's own
+comment has said "every door that refuses prints exactly what these return" since the desk
+shipped; the Sign handler was the door that broke it.
+
+AND THE BUTTON STOPPED PROMISING. renderSignButton's `ready` was a SHORTER list than the
+handler's — counterparty, value, consent, approvals, whose turn — while signDocument
+refused on three more: an unsettled negotiation, unfilled placeholders, a template form
+with problems. So a live, full-width, primary "Sign as X" stood on screens where the press
+could not work, and the reader found out by pressing it. That is the same untruth as a
+green "Ready to sign" over a contract nobody was named to sign, and it gets the same
+answer: one list, read on both sides. The label wears the first blocker; the full list
+prints under the disabled button in each blocker's own words, which is what
+readinessPanelHtml has done on Key terms all along and the Signing tab was simply not
+asking.
+
+EVERY SEAT AGAINST EVERY STATE, walked rather than reported: the lead signs (unchanged), a
+roster contributor signs (and still cannot send), a named signer on no roster signs (the
+reported case), an admin who is not on the desk signs when it is their turn (an admin is
+not exempt from the desk and never was — they are exempt from nothing here, because the
+desk is not in the question), and somebody who is neither a signer nor on the desk is STILL
+refused — by the reserved-step rule, which is untouched. The phone renders no signing card
+of its own and reaches signDocument directly, so it inherits all of it.
+
+Tests: f167 gained a sixth section stating the rule in one sentence and proving it FROM THE
+SIGN PATH — a predicate nobody consults proves nothing about a button, which is precisely
+how this shipped — plus that the desk still refuses that same person a redline and a
+contributor the send; f168 gained the server's two halves; sign-links-verify's fifth
+section measures the control in a browser, because "the button was live" is a claim about
+pixels and jsdom has none.
+
+A DAY WITH SEVERAL CONTRACTS ALWAYS LANDS ON THE LIST (added 2026-08-12)
+
+Owner-asked, stated flat: pressing ANYTHING inside a calendar day box goes to the register
+narrowed to that day's contracts. The document opens only when the day carries exactly one.
+
+THE CELL ALREADY DID THIS, since 11 Aug — one contract opens it, several go to the register
+narrowed to exactly those, and it counts CONTRACTS rather than events, because one agreement
+marks a day twice whenever the renewal decision falls back to the expiry. "+N more" was
+deliberately not its own button and fell through to the cell. None of that changed.
+
+THE EXCEPTION WAS THE NAME CHIPS. They were their own <button>s, they stopPropagation'd, and
+they opened their own contract however many the day held.
+
+WHY THE EXCEPTION WENT, and the reasoning is worth keeping because the argument FOR it was
+perfectly good: a named thing should open the thing it names. What kills it is what those
+names look like at 9.5px in a 90px column. On the reported screen 30 August carried nine
+contracts and its three visible chips all read "Mutual Non-Discl…" — truncated to the point
+of being identical. Pressing one is a guess between nine similarly named agreements, and the
+register is the surface that shows them with counterparty, status, value and expiry, which
+is what makes them tellable apart in the first place.
+
+IT IS A DELETION RATHER THAN AN ADDITION. The day box already asks the count question in one
+place (openDay); the chips now fall through to it instead of answering separately, so there
+is no second copy of the test to keep in step. On a one-contract day the cell opens that
+contract, so a chip press lands exactly where it always did — the behaviour is unchanged on
+every day where the old behaviour was unambiguous.
+
+FOUR THINGS THAT WOULD HAVE BROKEN QUIETLY:
+
+  · ONE SELECTOR, TWO SURFACES. [data-sel] was shared with the "Next 60 days" agenda beside
+    the calendar. That agenda is a list of individual EVENTS, not a day box, and a named row
+    there is the one place on this screen where "open that contract" is the whole answer. A
+    change scoped to [data-sel] would have taken it out. The change is scoped to the CHIPS:
+    they carry no data-sel at all now, the agenda's handler is untouched, and it lost only
+    the stopPropagation that existed solely for the chips.
+  · IT STOPS BEING A BUTTON. A nested button that does precisely what its container does is
+    a keyboard stop leading nowhere new, announced to a screen reader as a control of its
+    own. The chips are spans; the cell keeps role="button", its tab stop and its Enter/Space
+    handling, and is the only thing in the box a keyboard can reach.
+  · A CHIP THAT NO LONGER GOES WHERE ITS LABEL POINTS MUST STOP PROMISING IT. Its tooltip
+    named one event on one contract ("Expiry: …"). That is still true of where the press
+    goes on a ONE-contract day, so it is kept there and dropped everywhere else — with no
+    title of its own the browser walks up and shows the cell's, "choose from N on 30
+    August", which is where the press actually leads.
+  · THE COUNT IS STILL OF CONTRACTS. A two-mark, one-contract day must not become a list of
+    one row, and the chip inherits that for free by falling through to the same function.
+
+The phone draws no calendar (it is listed under More as desk work), so there is nothing to
+fix there.
+
+Tests: calendar-day-verify, rewritten to the new rule rather than having the old claim
+deleted. It keeps every property the exception was protecting — a press inside a day box
+always lands somewhere, the landing says what it is narrowed to with the way back on the
+same chip — and adds the chips-are-spans shape, the absence of any focusable stop inside the
+box, the tooltip following the press, the one-contract and twice-marked days from the chip,
+and the agenda row still opening its own named contract.
+
+FOUR CHANGES ASKED FOR TOGETHER (added 2026-08-12)
+
+1 THE NEGOTIATIONS LIST BECOMES THE CONTRACTS TABLE
+
+Two days earlier this page was written as a twenty-line signpost, and the
+comment above it argued the case: "IT IS A SIGNPOST, NOT A SECOND REGISTER ...
+LIVE NEGOTIATIONS ONLY ... NO FILTER, NO SEARCH, NO SORTABLE COLUMNS (the
+moment it needs those it HAS become the register)". The fear behind it was
+specific and correct — two tables of contracts, built by two functions, will
+eventually disagree about what a row says.
+
+The owner read that position and overruled it: the page should be the Contracts
+table, grouped by whose move it is. The fear is answered a different way, by
+REUSE rather than by refusal. renderRegister now draws both pages; the
+Negotiations page passes a scope, a heading and a nav key and gets the
+register's filters, columns, row builder, footer and wiring unchanged. Nothing
+about a row is written twice, so nothing about a row can drift.
+
+THE SEVEN TRAPS THE WORK ORDER NAMED, and what each cost:
+
+· THE NARROWING MUST NOT BE THE CLEARABLE ONE. regShowOnly's `only` exists for
+  exactly this shape — a set somebody else chose, applied first — and it is
+  deliberately clearable by its own ✕, by both Clear-all handlers and by the
+  phone's. Reused as-is, the reader presses Clear and is looking at all 145
+  contracts under a heading that says Negotiations. So the scope is a property
+  of the PAGE (regSetScope), asked above `only`, offered by no control. Clear
+  still clears everything the reader chose. And the two pages got two filter
+  states: a stage chosen while looking at negotiations is not an opinion about
+  the register.
+
+· THE TRAP THAT NEARLY SHIPPED. Every filter control inside register.js called
+  renderRegister() bare. With two pages sharing the renderer that resets the
+  scope to null through the argument nobody passed — so the first press of any
+  dropdown on Negotiations would have turned it into Contracts. regRepaint()
+  re-renders the page that is actually on screen.
+
+· TWO COUNTS ABOUT THE SAME THING. The sidebar door counts CHANGES waiting on
+  this reader; the bands count AGREEMENTS in the view. Different units, on
+  screen at once, and the code already carries a rule about a door reading 3
+  over a column reading 2. The page says which is which, and says so again when
+  a filter is on.
+
+· PAGING ACROSS A BAND. Decided by not paging: live negotiations are the handful
+  being argued over, and a band header stranded at the foot of a page (or
+  repeated with a count that is either the group's or the page's) is worse than
+  a long list. The footer still counts contract rows — a band is generated at
+  render, never a member of the filtered set.
+
+· AN EMPTY GROUP IS INFORMATION until the page is. "Waiting on you · 0" is worth
+  reading; three bands over nothing is not, so with no live negotiation anywhere
+  the page draws its old empty card rather than a table under a filter bar.
+
+· A BAND IS NOT A ROW. role="presentation" on the tr and the td, a heading
+  inside for anything that announces headings, no data-row (which is what the
+  row click binds to), no tab stop, nothing pressable.
+
+· THE PHONE RENDERS THE SAME FUNCTION — and that stopped being safe the moment
+  the function became an eight-column table. It gets phone-shaped cards under
+  the same three headings, from the same filtered set and the same pill; only
+  the row shape differs, which is exactly how Contracts already works on that
+  shell. The scope is set in mRender, once per paint, because a screen builder
+  that forgot would draw the wrong book.
+
+The ⋯ menu went with the action column, said out loud: every row on this page
+does one thing, and a menu whose first line reads "Open workspace" and lands
+somewhere else is a trap on the one page where the destination is not in doubt.
+
+2 THE ROUND'S QUEUE STOPS TAKING WIDTH FROM THE CONTRACT
+
+The comment where the queue was placed argued the opposite too: "It is a grid
+column rather than an overlay so it scrolls and stacks with the panes instead
+of floating over the contract." What that argument could not answer is that the
+300px came off the CONTRACT — the thing being judged — and that the chevron
+folded it to a rail which still held a track. Nothing but closing it gave the
+width back, and it could not be closed.
+
+It moved onto the ACTIVITY PANEL'S mechanism rather than a second one: fixed to
+a window edge, off-screen by a transform, over a dimmed scrim, dismissed by the
+scrim, Escape or its own close. From the LEFT, because the queue has always been
+the left-hand column and is read first, and because the right edge is already
+the floating notices stack's and the Copilot launcher's.
+
+WHAT THE FOLD USED TO BUY, AND WHERE IT WENT. The rail's justification was that
+"2 of 7 decided" stayed legible at 34px, so reopening was never a guess. An
+overlay that simply shuts takes that away — so the score moved onto the door: an
+edge pill carrying the caption and the two numbers, built inside the panes
+builder rather than on the workbench toolbar, which is what makes it reach the
+counterparty's page (they have no toolbar and the same complaint). The fold's
+other property was kept whole: opening and closing is two class flips and never
+a repaint, because a repaint throws away the reader's place in the contract.
+
+DEFAULT SHUT, AND NOT REMEMBERED. The old fold defaulted to open and was stored
+per person, which is right for a column and wrong for a layer: an overlay that
+remembers "open" slides itself over the contract on every arrival, which is the
+complaint this change answers.
+
+A ROW CLOSES IT. A queue row jumps the contract to that clause; with the panel
+standing over the contract that is a door onto a wall.
+
+AND THE RESIZER WAS RE-DERIVED, NOT PATCHED. Its three-track version produced a
+real reported bug once: the drag measured a distance travelled and divided by
+the TWO-column available width while the layout divided by the three-column one,
+so the handle fell hundreds of pixels behind the cursor. Leaving a stale queue
+term in either half is how that comes back. There is one description of the
+geometry now and both halves ask for it.
+
+3 THE INTERNAL REVIEW REACHES THE REVIEWER, AND CAN BE CALLED OFF
+
+Neither half was a missing feature. Both were built, both were correct, and both
+failed the same way — by being invisible.
+
+THE EMAIL. The tick-box arrives ticked, the recipient is resolved from the users
+table and never from the body, a colleague outside the contract's value stream
+is refused by name, and the route already reported honestly whether a message
+left. What it did not do was let the requester tell the three "nothing arrived"
+cases apart — no mail provider configured on this server (there is an internal
+outbox for exactly that), the tick-box cleared, or a provider refusal — and it
+said whatever it said in a TOAST, which is gone in seconds. The outcome is now
+named and written twice: on the review (rv.notice) and in the audit trail. The
+provider's own sentence travels with it.
+
+The link went to the front door. Somebody told that a NAMED set of changes on a
+NAMED agreement needs them, and then asked to go and find it. It deep-links to
+the contract on its negotiation, through the SAME server function that builds
+the internal signer's link — that mail had the identical fault, and two builders
+for one idea is two that drift.
+
+CANCEL. Everything about it was right except where it lives. It is in the review
+notice, and since 10 August every notice on that page arrives folded behind a
+bell in the bottom-right corner — so the button existed and effectively nobody
+could find it, and the review read as one that could not be called off. Two
+answers, both taken because they cover different moments: the notice stack now
+arrives UNFOLDED while a review is still in play (news still folds; the reader's
+own fold still wins once they make it), and the change card carries its own
+Cancel beside the status that says why the change cannot be sent. Requester or
+admin only, named by the CHANGE ids it covers, never drawn on the counterparty's
+seat, and a confirm in front of it saying what the reviewer has already ruled on
+and that those verdicts go with the review.
+
+4 THE BELL AND THE PANEL STOP BEING THE SAME BUTTON
+
+The bell's click handler was one line: press the other button. Its own tooltip
+admitted it. And the blue dot beside it was a hard-coded <span> in index.html —
+always on, counting nothing, and long since trained out of everybody who uses
+the product. An always-on badge is worse than no badge.
+
+One panel, two contents: the panel icon is the workspace's activity, the bell is
+what is waiting on this person. Pressing one while the other shows swaps the
+content, and the panel says which it is showing.
+
+EVERY COUNT IS BORROWED. The rule the Negotiations door already carries — one
+count, many surfaces — applies here or a bell saying 4 sits over a dashboard
+saying 3. Each kind of alert calls the function that already answers it, and the
+same read-without-writing trap applies: this runs over every contract on every
+view change, and negoChanges() would have started a negotiation on all of them.
+
+THE DOT CLEARS WHEN THE WORK IS DONE, not when the panel is opened. There is no
+seen-state anywhere, deliberately: clearing on a glance is precisely how the dot
+it replaces became invisible.
+
+TWO THINGS THE BROWSER FOUND THAT NO NODE TEST COULD. First, the scrim was
+inset:0, so with the panel open it lay across the header and swallowed clicks on
+the two icons that control it — the swap was unreachable by a real press.
+Raising the buttons does not work and it is worth knowing why: #app-shell is
+position:fixed, which makes it a stacking context, so nothing inside it can be
+lifted above a sibling of the shell however high its z-index goes. The scrim
+gives way instead, starting below the header. Second, a panel translated
+off-screen still reports a box, so an "is it visible" check that does not ask
+whether it is inside the viewport reads a closed panel as open.
+
+INSIGHTS keeps its own right-hand dock, and both buttons are DISABLED there with
+a tooltip naming the page that took the space. A toast was the obvious channel
+and is the wrong one: this product draws only error toasts, so an informational
+one is a message nobody ever sees.
+
 Line numbers drift
 
 The line numbers above were re-verified on 2026-08-03 after the responsive-layout run. Code moves. Treat them as starting points â€” re-verify with grep before relying on them, and UPDATE THIS MAP when the layout changes.
