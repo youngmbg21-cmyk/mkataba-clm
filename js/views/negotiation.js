@@ -2109,7 +2109,16 @@ function negoLiveCardsHtml(c, opts){
            role="button" tabindex="0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
           <span class="nego-id">#${_ne(ch.id)}</span>
-          ${negoWhoseHtml(c, ch, opts, mine)}
+          ${''/* THE ORIGIN PILL IS GONE FROM HERE TOO (owner-asked, 12 Aug 2026).
+                 It came off the workbench's card because it was a third tag in
+                 a corner that already had two, and the same is true on this
+                 one. It is removed from BOTH renderers on the same day and for
+                 the same reason — a fact drawn in two places and deleted from
+                 one is a fact the two screens now disagree about. What answers
+                 the question here is .is-mine on the card (the coloured edge)
+                 and the author line below. negoWhoseHtml survives for the
+                 PAST-ROUND cards in the history panel, which have no filter
+                 above them and no edge worth reading. */}
           ${negoVerifyPill(c, ch)}
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
           ${sent ? `<span class="nego-st sent" data-sent="${_ne(ch.id)}"
@@ -2203,7 +2212,23 @@ function negoLiveCardsHtml(c, opts){
 
    NAMED, NOT SIDED. "Nordfrakt Logistik AB asked" beats "counterparty asked" —
    the reader knows who they are talking to, and one component serves both
-   screens, so the card you see as yours is the card they see as ours. */
+   screens, so the card you see as yours is the card they see as ours.
+
+   ---- AND IT IS OFF THE LIVE CARDS (owner-asked, 12 Aug 2026) ----
+   The argument above is still the right argument; it just stopped being worth
+   a third tag in a corner that already had two. On a LIVE card the same
+   question is answered by the Mine / Theirs / All filter standing over the
+   column and by the author line under the head, so the pill was the third
+   answer and the one nobody needed. Removed from both live renderers on the
+   same day — this one and redlineChangeCardsHtml — because a fact deleted from
+   one of two screens is a fact those screens now disagree about.
+
+   THIS FUNCTION STAYS, and it has exactly one caller left:
+   negoHistoryCardHtml, the settled cards in the closed-round panel. Those have
+   no filter above them, no verbs to make the question urgent and no live
+   column to read them against — they are a record, and a record says who
+   asked. Deleting it there would have been tidiness applied where the reason
+   does not reach. */
 function negoWhoseHtml(c, ch, opts, mine){
   const side = opts.side || 'owner';
   const them = (side === 'owner'
@@ -6306,35 +6331,20 @@ function redlineLayoutCss(){
   .redline-page .rl-badge-draft{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:var(--st-amber-line)}
   .redline-page .rl-badge-ok{background:var(--st-green-bg);color:var(--st-green-fg);border-color:var(--st-green-line)}
   .redline-page .rl-badge-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);border-color:var(--st-ruby-line)}
-  /* ---- WHOSE ASK: THE ORIGIN PAIR ----
-     Emerald for your side, indigo for theirs — the same families as the verbs
-     each side's cards carry (your asks travel on green Sends; theirs arrive
-     for a decision), and fixed hex for the same dark-mode reason the verbs
-     are. The dark overrides keep the hue and drop the fill to a tint so the
-     badge reads as a label, not a button. .rl-origin carries the .rl-badge
-     metrics itself rather than the class — see the card markup for why. */
-  /* ---- IT CARRIES A COMPANY NAME NOW, SO IT HAS TO BE ABLE TO RUN OUT ----
-     The badge names the organisation that asked (see the note at the origin
-     badge), and organisations are called things like "APEX LOGISTICS &
-     WAREHOUSING KENYA LTD". Left at nowrap with no bound, one of those would
-     push the status badge off the end of a 285px card. Bounded and elided
-     instead: the first words identify the party, and the full name is in the
-     title the badge already carried.
+  /* ---- THE ORIGIN PILL'S RULES WENT WITH THE PILL (12 Aug 2026) ----
+     .rl-origin / .rl-origin-us / .rl-origin-them and their two dark overrides
+     are DELETED, not left behind: an emerald-and-indigo pair, elided by
+     flex:0 1 auto so a long company name could give width back to the status
+     badge. All of it described an element no renderer draws any more, and a
+     stylesheet full of rules matching nothing is a stylesheet nobody can read.
+     Flag any mention of those five class names as stale.
 
-     BOUNDED BY THE ROW, not by a number. A fixed max-width was tried first and
-     is worse than it looks: it elides a name that would have fitted, and it
-     still cannot save a long one. flex:0 1 auto with min-width:0 lets the badge
-     take its natural width whenever the head has room and give width back only
-     when the id, the caret and the status badge need it — so the common name
-     reads in full and only a genuinely long one is cut. min-width:0 is what
-     makes that possible at all: a flex item will not shrink below its content
-     without it, and the ellipsis would never appear. */
-  .redline-page .rl-origin{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;
-    white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
-  .redline-page .rl-origin-us{background:#d1fae5;color:#065f46;border:1px solid rgba(5,150,105,.35)}
-  .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
-  html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
-  html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
+     WHAT IS NOT DELETED is the ORIGIN ITSELF: data-rl-origin on the card is
+     still stamped, and the rule a few lines above — .rl-card[data-rl-origin]
+     painting the left spine amber for theirs — is the channel that survives.
+     The pill said whose ask it was in words; the edge says it in colour, and
+     the column's own Mine / Theirs filter and the card's meta line say it in
+     words twice over. */
   /* The on-behalf stamp reads as a CAUTION, not as decoration: it is the line
      that stops a card being taken as something the other side sent. */
   .redline-page .rl-card-behalf{margin-top:6px;border-left:2px solid var(--st-amber-dot);
@@ -10979,51 +10989,36 @@ function redlineChangeCardsHtml(c, opts = {}){
        anybody sets; both follow from the turn having actually moved. */
     if (editable && mineSent) verbs.push(`<button type="button" class="rl-sent" data-rl-sent="${_nea(ch.id)}" disabled
         title="${_nea(i18t('ng_sent_waiting_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_sent')}</button>`);
-    /* ---- WHOSE ASK THIS IS, SAID ON THE CARD ----
-       The status badge answers "where does this stand"; this one answers
-       "who put it on the table", which the meta line said only in small
-       print. Seat-relative like the verbs below it — "Your Ask" from the
-       counterparty's chair means theirs — and the colours are fixed hex for
-       the same reason the verbs' are: an origin that changes colour with the
-       theme is an origin somebody misreads. */
-    /* NOT a .rl-badge: that class is the card's one STATUS badge, and half
-       the product (and its tests) reads the status by querying it — a second
-       element wearing it would answer "Counterparty" to "where does this
-       stand". Same clothes, its own name.
+    /* ---- THE ORIGIN PILL IS GONE FROM THIS CARD (owner-asked, 12 Aug 2026) ----
+       It was a green "Your ask" — or, on their asks, the counterparty's own
+       name — in the card's lead group, and it had a long and careful history:
+       it started as "Counterparty", which is what BOTH parties call the party
+       opposite them, so on the counterparty's own page it labelled the SENDER's
+       ask with the word that reader uses for themselves ("why can I change a
+       decision on my own ask?"). Naming the organisation fixed that, and the
+       fix was right.
 
-       The tooltip names the AUTHOR's organisation, not the record's
-       counterparty field: on the portal the viewer IS c.counterparty, and
-       "the other side" there is the sender — opts.org, which is what the
-       portal passes. The badge label stays seat-relative ("Counterparty" =
-       the other side of your table), like the verbs beneath it. */
-    /* ---- NAMED, NOT SIDED ----
-       This badge used to read "Counterparty" for the other side of the
-       reader's table, which is correct from one chair and misleading from the
-       other: "counterparty" is what BOTH parties call the party opposite them.
-       On the counterparty's own page it therefore labelled the SENDER's ask
-       with the word that reader uses for themselves — reported from the field
-       as "why can I change a decision on my own ask?", when the card was in
-       fact the owner's ask and the decision was theirs to change.
+       WHAT WAS WRONG WAS THE PILL, NOT THE WORDING. The head of a 285px card
+       carries an id, a status badge and a round tag; the origin was a THIRD tag
+       in a corner that already had two, and the question it answered is answered
+       twice more within an inch of it — by the Mine / Theirs / All filter
+       standing over the whole column, and by the line directly under the head,
+       which names the author AND their organisation (see `who` above, which is
+       read from the AUTHOR's side on either seat and so says the same thing on
+       both pages). Three answers to one question is what the reader called
+       tags piling up.
 
-       So the badge names the organisation that actually wrote it. "Your ask"
-       stays as it is, because the one party a reader can never mistake is
-       themselves, and it is the same phrasing negoWhoseHtml settled on for the
-       room's cards — one wording for one idea, across the product.
-
-       originName is the AUTHOR's organisation on either seat and is read for
-       the label as well as the tooltip, so the two can never disagree. Empty
-       falls through to "Their ask" rather than to an apostrophe with nothing
-       in front of it: a contract with no counterparty filled in is a real
-       state, not a bug to render badly. */
-    const originName = String(ch.authorSide === 'counterparty'
-      ? (c.counterparty || '')
-      : (opts.org || window.FIRST_PARTY || '')).trim();
-    const originOrg = originName
-      || (ch.authorSide === 'counterparty' ? 'the counterparty' : 'the other side');
-    const theirLabel = originName ? `${originName}’s ask` : 'Their ask';
-    const origin = theirs
-      ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${_ne(theirLabel)}</span>`
-      : `<span class="rl-origin rl-origin-us" title="${_nea(i18t('ng_proposed_by_your_side'))}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">${i18t('ng_your_ask')}</span>`;
+       WHAT DELIBERATELY STAYS, and none of it is the pill:
+         · data-rl-origin on the <article>, which is what paints the COLOURED
+           LEFT EDGE — the fastest fact on the card, and the one channel that
+           splits eight cards into two groups without being read;
+         · the ask TAGS inside the document, which mark which ask sits on which
+           clause and are the only thing doing that where it actually sits;
+         · the meta line naming the author and their organisation, which is
+           where the counterparty's name lives now.
+       Removed from BOTH card renderers on the same day, so the two cannot
+       drift; the styling went with it. The PAST-ROUND card in the history
+       panel keeps its own — see negoHistoryCardHtml. */
     /* Is this the change whose panel is open? The card never changes height
        either way — the only difference is that the popped one is marked, so a
        reader can see which card the floating panel belongs to. */
@@ -11169,7 +11164,12 @@ function redlineChangeCardsHtml(c, opts = {}){
              is a LABEL — the id, whose ask it is, where it stands, what is
              being asked for — and everything below is a control. */}
       <div class="rl-card-head">
-        <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}</span>
+        ${''/* The lead group is the id alone now that the origin pill has
+                gone (see above). It is KEPT as a group rather than collapsed to
+                the id: it is the flex item that gives width back to the status
+                badge when a card is narrow, and min-width:0 on it is what lets
+                anything in the head elide at all. */}
+        <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span></span>
           ${rvChip}<span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span>${
           ch.round ? `<span class="rl-card-round" title="${_nea(i18t('ng_proposed_in_round',{n:ch.round}))}">R${_ne(ch.round)}</span>` : ''}${popBtn}</div>
         <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>

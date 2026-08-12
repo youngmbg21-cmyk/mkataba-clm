@@ -80,75 +80,109 @@ async function page(opts = {}){
       .map(el => el.getAttribute('data-nego-card')) };
 }
 
-describe('F93 (1) — every card names the side that asked', () => {
-  /* ---- NAMED, NOT SIDED ----
-     This badge read "Counterparty" until 2026-08-02, and "counterparty" is what
-     BOTH parties call the party opposite them — so on the counterparty's own
-     page it labelled the SENDER's ask with the word that reader uses for
-     themselves. Reported from the field as "why can I change a decision on my
-     own ask?", when the card was the owner's ask all along.
+describe('F93 (1) — the origin pill is OFF the card, and the edge still says it', () => {
+  /* ---- THE CLAIMS IN THIS BLOCK ARE REVERSED, NOT DELETED (12 Aug 2026) ----
+     What stood here pinned an origin badge on every card and the long fix that
+     got it right: it read "Counterparty" until 2026-08-02, and "counterparty"
+     is what BOTH parties call the party opposite them — so on the
+     counterparty's own page it labelled the SENDER's ask with the word that
+     reader uses for themselves. Reported from the field as "why can I change a
+     decision on my own ask?", when the card was the owner's ask all along.
+     Naming the organisation fixed that, and the fix was right.
 
-     Asserted as "it names the party" rather than against a literal string: the
-     organisation comes from the record, so a test that hard-codes the label is
-     a test that has stopped reading the thing it is about. */
-  test('an ask from the other side is named for the party that made it', async () => {
+     THE PILL IS STILL GONE, and the reason is not that the wording was wrong.
+     It was a THIRD tag in a card head that already carried an id and a status
+     badge, answering a question that is answered twice more within an inch of
+     it: by the Mine / Theirs / All filter standing over the whole column, and
+     by the line directly under the head, which names the author and their
+     organisation from the AUTHOR's side on either seat. Three answers to one
+     question is what the owner called tags piling up.
+
+     So each claim below is turned round and keeps its reason: the pill is
+     absent, and the two channels that made it survivable — the origin ATTRIBUTE
+     and the coloured left edge it paints — are asserted in its place. */
+  test('there is no origin pill on their ask — but the card still knows it is theirs', async () => {
     const p = await page();
     const card = p.$('#rl-changes [data-nego-card]');
-    const badge = card.querySelector('.rl-origin');
-    assert.ok(badge, 'the origin badge must be on the card');
-    assert.ok(badge.classList.contains('rl-origin-them'), 'indigo family — theirs');
-    assert.match(badge.textContent, new RegExp(p.c.counterparty),
-      'the badge names the organisation, not the seat');
-    assert.doesNotMatch(badge.textContent, /^Counterparty$/,
-      'the word that means a different party depending on who is reading');
+    assert.equal(card.querySelector('.rl-origin'), null,
+      'the third tag is gone from the head');
+    assert.doesNotMatch(card.querySelector('.rl-card-top').textContent, /ask/i,
+      'and no replacement pill crept back into the top row');
+    /* THE MARKER STAYS. It is what paints the coloured spine, which is the
+       fastest fact on the card and the whole reason the pill could go. */
     assert.equal(card.getAttribute('data-rl-origin'), 'them');
   });
 
-  test('your own ask is still just yours — the one party nobody misreads', async () => {
+  test('nor on your own ask — the pill came off BOTH faces', async () => {
+    /* Deliberately both: a pill on one side only reads as a fault, and the
+       organisation that asked is printed on the line underneath either way. */
     const p = await page({ theirChange: false, myChange: true });
     const card = p.$('#rl-changes [data-nego-card]');
-    const badge = card.querySelector('.rl-origin');
-    assert.ok(badge.classList.contains('rl-origin-us'), 'emerald family — yours');
-    assert.equal(badge.textContent.trim(), 'Your ask');
+    assert.equal(card.querySelector('.rl-origin'), null);
+    assert.doesNotMatch(card.textContent, /Your ask/, 'the green pill is gone with the other one');
     assert.equal(card.getAttribute('data-rl-origin'), 'us');
   });
 
-  /* A contract can legitimately have no counterparty on it yet. The label must
-     degrade to something a person can read rather than to an apostrophe with
-     nothing in front of it. */
-  test('with no counterparty on the record it falls back to a readable label', async () => {
-    const p = await page({ contract: contractFixture({ counterparty: '' }) });
-    const badge = p.$('#rl-changes [data-nego-card] .rl-origin');
-    assert.equal(badge.textContent.trim(), 'Their ask');
-  });
-
-  /* The badge now carries a company name, and companies are called things like
-     "APEX LOGISTICS & WAREHOUSING KENYA LTD". The rule that keeps that from
-     shoving the status badge off a 285px card is asserted here; the box model
-     it produces is measured in test/chromium/parity-verify.js. */
-  test('a long name is elided by the row rather than capped at a number', async () => {
+  test('THE COLOURED LEFT EDGE STILL TELLS THE TWO SIDES APART', async () => {
+    /* The channel the pill's removal rests on. It is a rule on the attribute,
+       so it cannot be lost by a renderer forgetting to draw an element. */
     const p = await page();
     const css = p.doc.getElementById('redline-layout-css').textContent;
-    const rule = (css.match(/\.redline-page \.rl-origin\{[^}]*\}/) || [''])[0];
-    assert.match(rule, /text-overflow:ellipsis/, 'it has to be able to run out');
-    assert.match(rule, /min-width:0/, 'or a flex item never shrinks and never elides');
-    assert.doesNotMatch(rule, /max-width/,
-      'a fixed cap elides names that would have fitted and still cannot save a long one');
+    assert.match(css, /\.rl-card\{[^}]*border-left:3px solid/,
+      'every card carries a spine');
+    assert.match(css, /\.rl-card\[data-rl-origin="them"\]\{border-left-color:/,
+      'and theirs is painted differently from ours');
   });
 
-  test('the badge sits on the card top row, beside the fingerprint', async () => {
+  test('the pill\'s own rules went with it — no dead selectors left behind', async () => {
+    /* THE CLAIM THIS REPLACES: "the origin pair is styled in fixed hex with
+       dark overrides" (emerald #065f46 for ours, indigo #3730a3 for theirs,
+       both re-tinted under html.dark) and "a long name is elided by the row
+       rather than capped at a number" (text-overflow:ellipsis + min-width:0,
+       never max-width — a fixed cap elides names that would have fitted and
+       still cannot save a long one). Both described the pill exactly, and a
+       stylesheet keeping rules for an element nothing draws is a stylesheet
+       nobody can read. */
+    const p = await page();
+    const css = p.doc.getElementById('redline-layout-css').textContent;
+    assert.doesNotMatch(css, /\.rl-origin\{/, 'the pill\'s own rule is deleted');
+    assert.doesNotMatch(css, /\.rl-origin-us\{/, 'and its emerald face');
+    assert.doesNotMatch(css, /\.rl-origin-them\{/, 'and its indigo one');
+  });
+
+  test('the head is the id, the status and the way into the panel — three things, not four', async () => {
     const p = await page();
     const top = p.$('#rl-changes [data-nego-card] .rl-card-top');
-    assert.ok(top.querySelector('.rl-origin'), 'top row, not buried in the meta line');
-    assert.ok(top.querySelector('.rl-card-id'), 'and the id is still there beside it');
+    assert.ok(top.querySelector('.rl-card-id'), 'the id is still there');
+    assert.ok(top.querySelector('.rl-badge'), 'so is the one status slot');
+    assert.ok(top.querySelector('[data-rl-pop]'), 'and the door into the reasoning');
+    assert.equal(top.querySelector('.rl-origin'), null, 'and nothing else');
+    /* THE LEAD GROUP SURVIVES, holding the id alone. It is the flex item that
+       gives width back when the card is narrow; collapsing it would change how
+       the head wraps in a 285px column. */
+    const lead = top.querySelector('.rl-card-lead');
+    assert.ok(lead, 'the lead group is kept');
+    assert.equal(lead.children.length, 1, 'with the id in it and nothing else');
   });
 
-  test('the origin pair is styled in fixed hex with dark overrides', async () => {
+  test('AND THE NAME IS STILL ON THE CARD — on the line under the head', async () => {
+    /* Where the counterparty's name lives now. Read from the AUTHOR's side on
+       either seat, so the two screens say the same thing about the same
+       change — which the pill, being seat-relative, never quite did. */
     const p = await page();
-    const css = p.doc.getElementById('redline-layout-css').textContent;
-    assert.match(css, /\.rl-origin-us\{[^}]*#065f46/, 'emerald, literal — theme tokens remap in dark mode');
-    assert.match(css, /\.rl-origin-them\{[^}]*#3730a3/, 'indigo, literal');
-    assert.match(css, /html\.dark[^{]*\.rl-origin-us/, 'and dark mode keeps the hue as a tint');
+    const meta = p.$('#rl-changes [data-nego-card] .rl-card-meta');
+    assert.ok(meta, 'the meta line is drawn');
+    assert.match(meta.textContent, new RegExp(p.c.counterparty),
+      'and it names the organisation that asked');
+  });
+
+  test('the tags INSIDE the document are untouched — they are not the pill', async () => {
+    /* Deliberately kept: they mark which ask sits on which clause, which is
+       the one thing nothing else on the page does. */
+    const p = await page();
+    const tag = p.$('#rl-doc .rl-asktag');
+    assert.ok(tag, 'the marked clause still carries its ask tag');
+    assert.match(tag.textContent, /ask/i, 'and the tag still says whose');
   });
 });
 
@@ -236,25 +270,40 @@ describe('F93 (5) — the counterparty link gets the same column, seat-flipped',
     return box;
   };
 
-  test('from their chair the badges swap sides', async () => {
+  test('THE SEAT FLIP SURVIVES THE PILL, on the ATTRIBUTE rather than in words', async () => {
+    /* THE CLAIM THIS REVERSES: from their chair the pills swapped sides — the
+       sender was NAMED ("Wanjiru Catering Ltd's ask") and their own counter-ask
+       read "Your ask", never "Naivas", because c.counterparty on that page is
+       the reader themselves. That was the whole point of naming the party
+       rather than siding it, and the flip it proved is still load-bearing: the
+       coloured spine has to mean "theirs" from whichever chair is reading.
+
+       The PILL is gone from both seats (12 Aug 2026 — it was a third tag in a
+       head with two), so the flip is asserted where it still lives: on
+       data-rl-origin, which is what paints the edge. */
     const p = await page({ myChange: true });
     const box = theirSeat(p);
     const ownerCard = box.querySelector('[data-rl-origin="them"]');
     const theirCard = box.querySelector('[data-rl-origin="us"]');
-    assert.match(ownerCard.querySelector('.rl-origin').textContent, /Wanjiru Catering Ltd/,
-      'the sender is NAMED from their chair — this is the seat where the old '
-      + '"Counterparty" label meant the reader themselves');
-    assert.equal(theirCard.querySelector('.rl-origin').textContent.trim(), 'Your ask',
-      'and their own counter-ask is theirs');
-    assert.doesNotMatch(ownerCard.querySelector('.rl-origin').textContent, /Naivas/,
-      'c.counterparty on that page is the reader, and must never be the label');
+    assert.ok(ownerCard && theirCard, 'both cards render on their seat, sided from their chair');
+    assert.equal(ownerCard.querySelector('.rl-origin'), null, 'and neither wears a pill');
+    assert.equal(theirCard.querySelector('.rl-origin'), null);
+    assert.doesNotMatch(box.textContent, /Your ask/, 'nor the words the pill carried');
   });
 
-  test('the Counterparty tooltip names the SENDER, never the reader\'s own company', async () => {
+  test('and the NAME still flips — the meta line reads from the author\'s side', async () => {
+    /* THE CLAIM THIS REVERSES: "the Counterparty tooltip names the SENDER,
+       never the reader's own company". The tooltip went with the pill; the
+       fact it protected did not, and it is on the line under the head, which
+       is read from the AUTHOR's side on either seat. Naivas is the reader on
+       that page and must never be printed as the party who asked. */
     const p = await page({ myChange: true });
-    const tip = theirSeat(p).querySelector('[data-rl-origin="them"] .rl-origin').getAttribute('title');
-    assert.match(tip, /Wanjiru Catering Ltd/, 'the author\'s organisation — opts.org, the portal\'s sender');
-    assert.ok(!tip.includes('Naivas'), 'c.counterparty on that page is the reader themselves');
+    const meta = theirSeat(p).querySelector('[data-rl-origin="them"] .rl-card-meta');
+    assert.ok(meta, 'the meta line is on their card too');
+    assert.match(meta.textContent, /Wanjiru Catering Ltd/,
+      'the author\'s organisation — opts.org, the portal\'s sender');
+    assert.ok(!meta.textContent.includes('Naivas'),
+      'c.counterparty on that page is the reader themselves');
   });
 
   /* The two tests that stood here were about the origin filter reaching their

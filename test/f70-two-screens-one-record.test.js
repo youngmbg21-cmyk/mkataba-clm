@@ -203,16 +203,32 @@ describe('F70 — the counterparty sees the negotiation we see', () => {
 /* ---- 2. whose ask is this ----------------------------------------------- */
 
 describe('F70 — every card says whose ask it is', () => {
-  test('in words, in the top row, where the reader is already looking', async () => {
+  test('THE PILL IS OFF THE LIVE CARD — the edge and the filter answer it now', async () => {
+    /* THE CLAIM THIS REVERSES (12 Aug 2026). It read: "in words, in the top
+       row, where the reader is already looking" — a "Your ask" pill on the
+       live card, in preference to the grey italic "(your side)" that used to
+       sit beside the author name at the bottom.
+
+       The pill went, and the reason is not that the argument was wrong: it was
+       a THIRD tag in a card head that already carried an id and a status, and
+       on the workbench the Mine / Theirs / All filter now stands over the whole
+       column asking exactly this question. What is asserted instead is the
+       channel the removal rests on and the test below already names — the
+       coloured edge, which splits eight cards into two groups unread. */
     const { win, c, live } = await played();
     const r = ownerRoom(win, c);
-    const pill = r.$(`[data-nego-card="${live.id}"] .nego-whose`);
-    assert.ok(pill, 'not a footnote beside the author name');
-    assert.equal(pill.textContent.trim(), 'Your ask');
-    assert.equal(pill.getAttribute('data-whose'), 'mine');
+    const card = r.$(`[data-nego-card="${live.id}"]`);
+    assert.ok(card, 'the card is drawn');
+    assert.equal(card.querySelector('.nego-whose'), null, 'and carries no origin pill');
+    assert.doesNotMatch(card.textContent, /Your ask/, 'nor the words it carried');
+    assert.match(card.className, /is-mine/, 'the edge still says whose it is');
   });
 
-  test('and it names them, rather than calling them "the counterparty"', async () => {
+  test('and the PAST-ROUND card keeps it, named rather than sided', async () => {
+    /* Deliberately not removed. A settled card in the closed-round panel has
+       no filter above it, no verbs, and no live column to read it against —
+       it is a RECORD, and a record says who asked. The reason the pill came
+       off the live cards does not reach this one. */
     const { win, c, past } = await played();
     const r = ownerRoom(win, c);
     r.press('[data-nego-round="1"]');

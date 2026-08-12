@@ -1212,6 +1212,74 @@ reports every box at zero), that the panel arrives from that same edge rather
 than from the window's, that the rail is under 60px thick, and that it is still
 there and still opens the panel with focus mode on.
 
+1c THE "YOUR ASK" PILL COMES OFF THE CHANGE CARD (owner-asked, 12 Aug 2026)
+
+This pill has a long and careful history and none of it was wasted; what
+changed is that the head of a 285px card ran out of room for the answer.
+
+WHERE IT CAME FROM. Every card looked alike, and the only thing separating an
+ask you had made from one you were being asked to answer was "(your side)" in
+grey italic at the bottom beside an author name — which on a deal where the
+same person is testing both sides says nothing at all. The pill replaced that.
+It then read "Counterparty" for the other side of the reader's table, which is
+correct from one chair and misleading from the other: "counterparty" is what
+BOTH parties call the party opposite them, so on the counterparty's own page it
+labelled the SENDER's ask with the word that reader uses for themselves.
+Reported from the field as "why can I change a decision on my own ask?", when
+the card was the owner's ask all along. Naming the organisation fixed that, and
+the fix was right.
+
+WHY IT STILL WENT. The card's head carries a change id, one status badge, a
+round tag and the door into the reasoning panel. The pill was a THIRD tag in a
+corner with two, and the question it answered is answered twice more within an
+inch of it: by the Mine / Theirs / All filter standing over the whole column
+(which did not exist when the pill was written), and by the line directly under
+the head, which names the author AND their organisation. Three answers to one
+question is what the owner had already called tags piling up.
+
+BOTH FACES, TOGETHER. "Your ask" and the counterparty's name came off in one
+change. A pill on one side only reads as a fault rather than as a decision —
+the reader sees a card missing its label, not a card that never had one.
+
+BOTH RENDERERS, TOGETHER, for the standing reason: this product draws a change
+card in two places, and a fact deleted from one of them is a fact the two
+screens now disagree about. The counterparty's page and the phone both mount
+the workbench's renderer, so they came with it.
+
+WHAT WAS KEPT, AND WHY EACH ONE:
+· data-rl-origin on the <article>. It is not decoration — it is what paints the
+  COLOURED LEFT EDGE, and the edge is the whole reason the pill could go. Colour
+  is what splits eight cards into two groups without being read, and unlike an
+  element inside the head it cannot be lost by a renderer forgetting to draw it.
+· the .rl-card-lead group, now holding the id alone. Collapsing it would have
+  been the tidy move and the wrong one: it is the flex item with min-width:0
+  that gives width back to the status badge when the column is narrow, which is
+  how anything in that head elides at all.
+· the ask TAGS inside the document. They are not the pill. They mark which ask
+  sits on which clause, which is the one thing nothing else on the page does.
+· the meta line. It reads from the AUTHOR's side on either seat, so the two
+  screens say the same thing about the same change — which the pill, being
+  seat-relative, never quite did.
+
+AND THE RULES WENT WITH IT. .rl-origin, .rl-origin-us, .rl-origin-them and the
+two html.dark overrides are deleted rather than left behind. They described an
+emerald-and-indigo pair elided by flex:0 1 auto so a long company name could
+give width back — an exact, careful description of an element nothing draws.
+
+THE ONE PLACE IT SURVIVES is negoHistoryCardHtml, the settled cards in the
+closed-round panel, and that is a decision rather than an oversight. Those have
+no filter above them, no verbs to make the question urgent, and no live column
+to read them against. They are a RECORD, and a record says who asked. Applying
+the removal there would have been tidiness reaching past its own reason.
+
+THE TESTS WERE REVERSED, NOT DELETED, in every file that pinned the pill: f93
+(1) now asserts its absence and the two channels that replaced it, f93 (5)
+asserts the seat flip on the attribute instead of in words, f70's live-card
+claim is turned round while its past-round claim is kept as it was, and
+parity-verify's measurement — a monstrous company name must not shove the
+status badge off the row — is re-asked as "there is no pill AND the badge is
+still on the row", which is the half that can be broken by accident.
+
 1b A NEGOTIATION HAS NO DOOR TO THE OTHER NEGOTIATIONS (owner-asked, later on 12 Aug 2026)
 
 The sidebar's Negotiations reopens the negotiation you were last in. That is
