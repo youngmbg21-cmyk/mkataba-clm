@@ -1372,12 +1372,25 @@ function docPaperHeadHtml(c, opts={}){
   </header>`;
 }
 
+/* ---- AND THE "EDITED WORKING TEXT" BAND HAS COME OFF THE PAPER ----
+   It was a full-width tinted band between the front matter and the first
+   clause, and it broke the standing rule twice over (Young, 12 Aug 2026):
+   nothing draws as a band across the top of the contract, and nothing that is
+   not the agreement belongs ON the sheet. It also travelled everywhere docBody
+   goes — the counterparty's read-only copy and the exports included — telling
+   a reader with no Edit and no Compare to use Edit and Compare.
+
+   The sentence is not lost: it is a card in the room's bottom-right stack, on
+   the screen that actually has those two buttons. See wsNoticesHtml. */
+function docWorkingTextNoteHtml(){
+  return `<div class="rl-note-card" id="ws-working-note">
+    <div class="rl-note-k"><span class="rl-note-dot"></span>${i18t('ct_working_text_short')}</div>
+    <p class="rl-note-t">${i18t('ct_doc_carries')} <strong>${i18t('ct_edited_working')}</strong>. Use <strong>${i18t('act_edit')}</strong> ${i18t('ct_to_change_wording')} <strong>${i18t('ct_compare')}</strong> ${i18t('ct_review_between')}</p>
+  </div>`;
+}
 function redlineDocBody(c){
   return `
     ${docPaperHeadHtml(c,{note:i18t('ct_working_text_short')})}
-    <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
-      ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${i18t('ct_doc_carries')} <strong>${i18t('ct_edited_working')}</strong>. Use <strong>${i18t('act_edit')}</strong> ${i18t('ct_to_change_wording')} <strong>${i18t('ct_compare')}</strong> ${i18t('ct_review_between')}</span>
-    </div>
     <div style="color:var(--color-doc-text)" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
     ${signatureBlock(c)}`;
 }
@@ -2582,6 +2595,73 @@ function negoTabCountHtml(c){
   const due=p.pending||0;
   return `<span id="nego-tab-count" class="rt-n${due?' due':''}" title="${due?due+' change'+(due===1?'':'s')+' waiting on a decision':total+' change'+(total===1?'':'s')+' on the table'}">${due||total}</span>`;
 }
+/* ---- WHAT RIDES AT THE RIGHT-HAND END OF THE TAB ROW ----
+   The text-size stepper, and — at the far right — the one door off the Document
+   tab. The band that used to carry that door is gone (see actionBarHtml), so it
+   rides here, where a reader looking for somewhere to go already looks.
+
+   FILLED, LIKE DRAFT NEW AGREEMENT, on the owner's call (Young, 10 Aug 2026).
+   It is a real act rather than a way of looking, and on this head an act is
+   drawn solid.
+
+   Only where a negotiation is actually running: on a fresh draft the head's own
+   primary is the next thing to do, and a second answer to that question beside
+   it is noise.
+
+   A FUNCTION, because it describes the tab you are ON and therefore has to be
+   rebuilt when the tab changes. See the note at its slot in renderWorkspace. */
+function wsTabRowEndHtml(c){
+  if(!c || _wsTab!=='docs') return '';
+  const step=window.rlTypeStepHtml?rlTypeStepHtml():'';
+  const door=(c.negotiation&&window.negoChanges&&negoChanges(c).length)
+    ? `<button type="button" id="ws-to-nego" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:7px 14px">${i18t('ct_open_negotiate')}</button>`
+    : '';
+  return step+door;
+}
+/* ---- THE ROOM'S OWN FLOATING NOTICES ----
+   The two strips that used to band the top of the contract, in the SAME stack
+   the workbench uses — same shell, same fold, same bell (rlNoticeStackHtml).
+   Deliberately not rlFloatingNoticesHtml: that one also pulls in the review
+   banner, the desk band and the reading notice, none of which this room draws
+   today, and quietly adding three notices to a screen would be a change of
+   behaviour wearing a refactor's clothes.
+
+   Painted rather than built inline for the same reason the tab row's end is:
+   the strips are wired by id, and a repaint that did not re-arm them would
+   leave "Issue a signing link" looking pressable and doing nothing. */
+function wsNoticesHtml(c){
+  if(!c || !window.rlNoticeStackHtml) return '';
+  /* The working-text note only where its two verbs exist — this room, on the
+     reader's own side. It came off the paper (see redlineDocBody) and it must
+     not follow the document onto a page that has neither Edit nor Compare. */
+  const working=(c.redlineText && !PORTAL_MODE) ? docWorkingTextNoteHtml() : '';
+  const cards=`${readyToSignStrip(c)}${returnedChangesStrip(c)}${working}`;
+  return rlNoticeStackHtml(c, cards, '', 'ws-notices');
+}
+function wsPaintNotices(c){
+  const host=document.getElementById('ws-notices-host');
+  if(!host) return;
+  host.innerHTML=wsNoticesHtml(c);
+  /* The buttons inside are fresh nodes, so their listeners went with the old
+     ones — wireChangesStrip is idempotent by construction (it attaches to
+     whatever is on the page right now) and re-arming here is what keeps them
+     alive across the fold and across every tab press. */
+  if(c) wireChangesStrip(c);
+}
+/* Repaint that slot and re-arm what is in it. The innerHTML replacement takes
+   the old nodes — and their listeners — with it, so nothing stacks however many
+   times a reader changes tab; rlWireTypeStep marks what it has wired, so it
+   never doubles either. */
+function wsPaintTabRowEnd(c){
+  const end=document.getElementById('ws-tabrow-end');
+  if(!end) return;
+  end.innerHTML=wsTabRowEndHtml(c);
+  if(window.rlWireTypeStep) rlWireTypeStep(end);
+  end.querySelector('#ws-to-nego')?.addEventListener('click',()=>{
+    if(window.roomGoTab) roomGoTab(c,'redline');
+    else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+  });
+}
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
   if(!keys.includes(_wsTab)) _wsTab='docs';
@@ -2599,6 +2679,15 @@ function applyWsTabs(c){
      happened to be current at render time kept describing the room for as long
      as you stayed on the page. */
   if(typeof renderActionBar==='function') renderActionBar(c);
+  /* AND SO DOES THE TAB ROW'S RIGHT-HAND END — the text-size stepper and the
+     door off the Document tab — for exactly the same reason. It was the one
+     slot the lesson above had not been applied to, and it is why that corner
+     came up empty on a Document tab a reader had switched to. */
+  wsPaintTabRowEnd(c);
+  /* The floating notices survive the tab change too. They describe the
+     CONTRACT rather than the tab, so what this call is really for is re-arming
+     their buttons after any repaint — see wsPaintNotices. */
+  wsPaintNotices(c);
   /* AN EMPTY STRIP TAKES NO ROOM. The Document tab draws nothing here now, and
      an empty flex box still costs the column its own height and the 12px gap
      above it — which is the very space this was asked to give back to the
@@ -2664,16 +2753,13 @@ function roomGoTab(c,k){
 function wireWsTabs(c){
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>
     roomGoTab(c,b.getAttribute('data-ws-tab'))));
-  /* The one door off the Document tab rides on this row now, so it is wired
-     with the row. It went through the ACTION BAR's wiring while it lived on
-     that band — and that wiring runs again on every tab change, which would
-     have stacked a second handler onto a button the tab change does not
-     redraw. Through the room's own router, like every other tab press, so the
-     landing rules (wsTabDefaults) apply however you arrived. */
-  document.getElementById('ws-to-nego')?.addEventListener('click',()=>{
-    if(window.roomGoTab) roomGoTab(c,'redline');
-    else if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
-  });
+  /* The one door off the Document tab rides on this row now, and it is wired
+     where it is DRAWN — in wsPaintTabRowEnd, which applyWsTabs calls below and
+     on every tab change after it. It went through the ACTION BAR's wiring while
+     it lived on that band, and that wiring runs again on every tab change,
+     which would have stacked a second handler onto a button the tab change did
+     not redraw. Wiring it here as well would put the same second handler on the
+     button applyWsTabs has just painted. One draw, one wiring, one place. */
   applyWsTabs(c);
 }
 /* ============ KEY TERMS ============
@@ -4260,7 +4346,16 @@ function renderWorkspace(){
          nine-button toolbar that used to live here is inside its "⋯". -->
     ${roomHeadHtml(c)}
 
-    <div id="ws-strips" style="display:contents">${readyToSignStrip(c)}${returnedChangesStrip(c)}</div>
+    ${''/* THE TWO STRIPS HAVE LEFT THE TOP OF THE CONTRACT (Young, 12 Aug 2026:
+           "nothing draws as a full-width band across the top of the contract").
+           "Changes returned" and "ready to sign" were rows in this column, above
+           the tabs and above the paper, for the whole sitting. Both are news —
+           true and worth reading once, then a thing in the way — which is the
+           case this room already accepted for the review banner and the desk
+           band. They are cards in the bottom-right stack now; the slot below is
+           where that stack is painted, and #ws-strips survives as its anchor so
+           nothing that looks for the strips has to look somewhere new. */}
+    <div id="ws-strips" style="display:contents"></div>
 
     <!-- ============ THE ROOM'S TABS ============
          Five faces of one contract: read it, negotiate it, check its terms,
@@ -4280,22 +4375,18 @@ function renderWorkspace(){
     <div class="room-tabrow" style="display:flex;align-items:center;gap:14px;flex:none;border-bottom:1px solid var(--color-divider)">
       ${roomTabsHtml(c,_wsTab)}
       <span style="flex:1"></span>
-      ${''/* The text-size stepper, and — at the far right — the one door off
-             this tab. The band that used to carry that door is gone (see
-             actionBarHtml), so it rides here, where a reader looking for
-             somewhere to go already looks.
-
-             FILLED, LIKE DRAFT NEW AGREEMENT, on the owner's call (Young,
-             10 Aug 2026). It is a real act rather than a way of looking, and
-             on this head an act is drawn solid.
-
-             Only where a negotiation is actually running: on a fresh draft the
-             head's own primary is the next thing to do, and a second answer to
-             that question beside it is noise. */}
-      ${(_wsTab==='docs'&&window.rlTypeStepHtml)?rlTypeStepHtml():''}
-      ${(_wsTab==='docs'&&c.negotiation&&window.negoChanges&&negoChanges(c).length)
-        ? `<button type="button" id="ws-to-nego" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:7px 14px">${i18t('ct_open_negotiate')}</button>`
-        : ''}
+      ${''/* THE ROW'S RIGHT-HAND END IS ITS OWN SLOT, and it is repainted every
+             time the tab changes — see applyWsTabs. Built inline here, it was
+             drawn once per workspace render from whatever _wsTab happened to be
+             current at that moment, and a tab press runs applyWsTabs, which
+             repaints the panes and the strip and never touched this corner. So
+             a reader sitting on Key terms when the room last rendered, who then
+             pressed Document, arrived on a Document tab with an empty corner —
+             no text-size stepper and no way off the tab — while the same
+             contract had shown both a minute earlier. That is the exact fault
+             this file already records for the action bar one function above;
+             the lesson was applied there and not here. */}
+      <div id="ws-tabrow-end" style="display:flex;align-items:center;gap:14px;flex:none">${wsTabRowEndHtml(c)}</div>
     </div>
 
     <!-- The quiet line under the tabs: where this contract stands, what it
@@ -4558,6 +4649,14 @@ function renderWorkspace(){
          counterparty's link renders, so neither side is looking at a lesser
          screen than the other. -->
     <div id="nego-tab" data-ws-pane="negotiation" style="display:none;flex:1;min-height:0"></div>
+
+    ${''/* ---- THE ROOM'S NOTICES, OVER THE PAGE AND NEVER ABOVE IT ----
+           Last in the markup and position:fixed, so it floats clear of this
+           column rather than taking a row from it. Filled by wsPaintNotices,
+           which applyWsTabs runs on every tab change — the notices describe the
+           contract rather than the tab, but the stack has to survive a repaint
+           that happens on every press. */}
+    <div id="ws-notices-host"></div>
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
@@ -4570,7 +4669,11 @@ function renderWorkspace(){
   wireWsTabs(c);       // the room's five tabs
   document.getElementById('doc-to-nego')?.addEventListener('click',()=>roomGoTab(c,'redline'));
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
-  wireChangesStrip(c);   // the returned-changes strip above the document
+  /* wireChangesStrip is NOT called here any more. The two strips it wires are
+     painted by wsPaintNotices — which wireWsTabs above has already run through
+     applyWsTabs — so a call here would put a SECOND listener on buttons that
+     already had one, and "Issue a signing link" would issue two. Wired where it
+     is drawn, once. */
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
@@ -5526,5 +5629,5 @@ Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
+  wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});

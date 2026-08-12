@@ -967,6 +967,13 @@ describe('the awkward cases', () => {
     win.negoSignalReady(c, { side: 'counterparty', by: 'Erik Lindqvist' });
     const v = theirLink(c);
     assert.ok(v.$('#pt-nego .rl-embed'), 'until a signing link exists, this link is what they have');
+    /* The readiness signal stopped being a band across the top of the contract
+       on 12 Aug 2026 and became a card in the bottom-right stack, folded behind
+       the bell like every other notice. Same sentences, one press away — which
+       is what this presses for. */
+    const bell = v.$('[data-rl-notices-open]');
+    assert.ok(bell, 'the bell says there is something to read');
+    bell.click();
     assert.ok(v.$('#nego-ready-signal'), 'and it tells them where the deal stands');
     const banner = v.$('#nego-ready-signal').textContent.replace(/\s+/g, ' ');
     assert.match(banner, /You signalled ready to sign/);

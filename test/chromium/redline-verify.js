@@ -521,7 +521,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        travelled 8px of 781 while the card column beside it, which carries no
        scroll-behavior, had gone the whole way. */
     const top = el => el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
-    top(docScroll()); top(colScroll());
+    /* PUSH IT OUT OF SIGHT, WHICHEVER END THAT MEANS. This scrolled to the
+       bottom and assumed the clause was above the fold, which held only while
+       the column's first card was the OLDEST change. The column now leads with
+       what is still being argued about (rlCardSort), so the first card's clause
+       can be near the foot of the document and scrolling down leaves it in
+       view — the precondition silently failed and the check reported a working
+       jump as broken. It tries the bottom, then the top. */
+    const hideClause = async () => {
+      top(docScroll());
+      await new Promise(r => setTimeout(r, 120));
+      if (!seen(clauseEl(), docScroll())) return;
+      docScroll().scrollTo({ top: 0, behavior: 'instant' });
+      await new Promise(r => setTimeout(r, 120));
+    };
+    await hideClause(); top(colScroll());
     await new Promise(r => setTimeout(r, 120));
     const hidBefore = { clause: !seen(clauseEl(), docScroll()), card: !seen(cardEl(), colScroll()) };
 
@@ -535,7 +549,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       cardLit: cardEl().classList.contains('is-linked'),
       clauseSeen: seen(clauseEl(), docScroll()) };
 
-    top(docScroll()); top(colScroll());
+    await hideClause(); top(colScroll());
     await new Promise(r => setTimeout(r, 120));
     clauseEl().click();
     await new Promise(r => setTimeout(r, 700));

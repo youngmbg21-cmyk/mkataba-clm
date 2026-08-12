@@ -344,6 +344,37 @@ const M_CSS = `
     display:flex; align-items:center; gap:9px; margin-bottom:12px;
     border:1px solid var(--color-divider); border-radius:12px; padding:11px 13px;
   }
+  /* ---- THE NOTICES, FLOATING RATHER THAN BANDING THE CONTRACT ----
+     Bottom-right and clear of the Copilot launcher, which sits 96px up: this
+     starts above it so a thumb reaching for one never catches the other. The
+     column itself takes no pointer events, so the empty space under the last
+     card does not swallow taps meant for the document. */
+  .m-notices{
+    position:fixed; right:16px; z-index:31; pointer-events:none;
+    bottom:calc(env(safe-area-inset-bottom,0px) + 160px);
+    left:16px; display:flex; flex-direction:column; align-items:flex-end; gap:10px;
+  }
+  .m-notices .m-notice{ pointer-events:auto; margin:0; width:100%;
+    background:var(--color-surface); box-shadow:0 16px 36px -14px rgba(15,23,42,.34); }
+  .m-notices-fab{
+    pointer-events:auto; position:relative; width:52px; height:52px; border-radius:999px;
+    border:1px solid var(--st-amber-line); background:var(--st-amber-bg); color:var(--st-amber-fg);
+    font-size:21px; line-height:1; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 22px -8px rgba(15,23,42,.4); cursor:pointer;
+  }
+  .m-notices-dot{
+    position:absolute; top:-2px; right:-2px; width:13px; height:13px; border-radius:50%;
+    background:var(--st-amber-dot); border:2.5px solid var(--color-bg);
+  }
+  .m-notices-min{
+    pointer-events:auto; min-height:44px; border:1px solid var(--color-divider); border-radius:999px;
+    background:var(--color-surface); color:var(--color-neutral-700); padding:0 16px;
+    font:inherit; font-size:15px; font-weight:600; cursor:pointer;
+    box-shadow:0 8px 22px -8px rgba(15,23,42,.28);
+  }
+  /* The stack scrolls on its own where a contract has more to say than the
+     screen has room for — it must never grow past the launcher above it. */
+  .m-notices-open{ max-height:60vh; overflow-y:auto; }
   /* The paper. The document keeps a reading measure and its own surface even on
      a phone — it is the thing the reader came for, and the app's chrome should
      not be mistaken for part of it. Type comes down one step from the desktop's

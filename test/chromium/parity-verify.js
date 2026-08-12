@@ -127,7 +127,15 @@ const MEASURE = () => {
    a seat that has no card Edit at all fails as a readable check instead of as a
    stack trace. */
 const CARD_EDIT = async () => {
-  const btn = document.querySelector('#rl-changes [data-rl-edit]');
+  /* NAMED, NOT POSITIONAL. The column's order is a product decision — work
+     still being argued about comes first and settled work sinks (rlCardSort) —
+     so "the first card" is not a stable way to reach a particular redline. The
+     assertions below are about the Net-45 ask specifically, so this finds the
+     card carrying it and falls back to the first only if it is not there. */
+  const cards = [...document.querySelectorAll('#rl-changes [data-nego-card]')];
+  const want = cards.find(el => /forty-five|Net-45|45\)/.test(el.textContent || ''));
+  const btn = (want && want.querySelector('[data-rl-edit]'))
+    || document.querySelector('#rl-changes [data-rl-edit]');
   if (!btn) return { error: 'no card Edit button on this seat' };
   const id = btn.getAttribute('data-rl-edit');
   const clause = document.querySelector(`#rl-doc [data-clause="${CSS.escape(id)}"]`);
