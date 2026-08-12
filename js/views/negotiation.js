@@ -7165,6 +7165,181 @@ function rlRestoreScroll(el, top){
    stated is still on screen (the round chip on the tab row, the two counts on
    the sidebar pills), and a builder nothing calls is how a removed feature
    comes back the next time somebody needs a sentence. */
+
+/* ============================================================
+   NEGOTIATIONS AS A PLACE — the door, the memory, the list
+   ============================================================
+   Negotiate came off the room's tab row (Young, 12 Aug 2026) and became a door
+   in the sidebar. Everything that decision needs is here, because all of it is
+   one question asked from different chairs: WHICH NEGOTIATIONS ARE THERE, and
+   WHAT IS WAITING ON ME IN THEM.
+
+   ---- ONE COUNT, FOUR SURFACES ----
+   The amber number used to live on the Negotiate tab and count that contract's
+   changes. It now has to answer in four places at once — the sidebar door
+   (across every agreement), the round line under a contract's title, the
+   Document tab's button, and the workbench's own toolbar. Four readings of one
+   number is how a door saying 3 ends up over a column showing 2, so there is
+   one function and they all call it.
+
+   IT READS AND DOES NOT WRITE, which here is load-bearing rather than tidy.
+   negoChanges() runs negoInit(), and negoInit() CREATES a negotiation on any
+   contract that has none — so a sidebar count that asked negoChanges about all
+   145 contracts would silently start a negotiation on all 145 of them. The
+   changes are read off the record raw. A contract with nothing on the table
+   answers zero either way, so the workbench's own toolbar loses nothing by
+   asking the safe question. */
+function negoNeedsYouIds(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  /* Not in Counterparty View. That is a window onto their page, read-only by
+     decision, and "2 need you" there would be counting somebody else's work
+     and offering a jump to a card with no verbs on it. */
+  if (side === 'counterparty') return [];
+  const all = Array.isArray(c && c.changes) ? c.changes : [];
+  if (!all.length) return [];
+  const wall = (typeof rlHiddenFrom === 'function') ? rlHiddenFrom(c, side) : new Set();
+  const mine = (typeof rlMyCardIds === 'function') ? rlMyCardIds(c, { side, readonly: false }) : null;
+  return all.filter(x => x && x.status === 'pending' && !x.withdrawn
+    && x.authorSide !== side && !wall.has(x.id)
+    && (!mine || mine.has(String(x.id)))).map(x => x.id);
+}
+/* IS THERE A NEGOTIATION ON THIS AGREEMENT AT ALL — the predicate the door, the
+   list and the Document tab's button all ask, so "live" means one thing.
+
+   A signed or declined agreement is not being argued over any more, whatever is
+   still recorded against it. Reading `c.negotiation` alone was not enough: the
+   record survives the deal it belonged to, and a door that reopened a finished
+   argument is exactly what the design refused. */
+const NEGO_DEAD_STATUS = new Set(['Signed', 'Declined']);
+function negoIsLive(c){
+  if (!c || !c.negotiation) return false;
+  if (NEGO_DEAD_STATUS.has(c.status)) return false;
+  return Array.isArray(c.changes) && c.changes.length > 0;
+}
+/* Every live negotiation this reader may see, most recently moved first.
+
+   SCOPE IS NOT CHECKED HERE and that is deliberate: state.contracts IS the
+   caller's already-scoped bootstrap — the server filtered it on the way out
+   (folderScopeFor), the way every other count in this app is built. A second
+   filter here would be a browser-side copy of a server rule, free to disagree
+   with it. */
+function negoLiveList(){
+  const cs = (window.state && Array.isArray(state.contracts)) ? state.contracts : [];
+  return cs.filter(negoIsLive).sort((a, b) =>
+    String(b.lastAction || '').localeCompare(String(a.lastAction || '')));
+}
+/* How many changes are waiting on this reader across every live negotiation.
+   The sidebar door's number. */
+function negoNeedsYouTotal(){
+  return negoLiveList().reduce((n, c) => n + negoNeedsYouIds(c).length, 0);
+}
+/* ---- WHICH ONE THE DOOR REOPENS ----
+   Per person, per browser, and it survives closing the window — the same shape
+   as every other "where was I" in this app. It never travels: which agreement
+   somebody was last arguing over is nobody else's business, and a shared value
+   would put two people in each other's chairs. */
+const NEGO_LAST_LS = 'hati.v1.lastNegotiation';
+function negoLastKey(){
+  const u = (typeof window.currentUser === 'function') ? window.currentUser() : null;
+  return NEGO_LAST_LS + '.' + ((u && (u.id || u.email)) || 'anon');
+}
+function negoRememberOpened(id){
+  if (!id) return;
+  try{ localStorage.setItem(negoLastKey(), String(id)); }catch(_){}
+}
+/* The remembered contract, ONLY if reopening it still makes sense. Signed,
+   declined, deleted, or on a stream this person can no longer reach — every one
+   of those falls through to the list rather than to a dead page. */
+function negoLastOpened(){
+  let id = '';
+  try{ id = localStorage.getItem(negoLastKey()) || ''; }catch(_){ return null; }
+  if (!id) return null;
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  return negoIsLive(c) ? c : null;
+}
+/* THE DOOR. Pressing Negotiations in the sidebar (or its twin in the phone's
+   bar) reopens the last negotiation; with nothing to reopen it lands on the
+   list, which says so at the top. Both outcomes are the same view — renderRedline
+   decides between them — so there is one route in and no way for the two to
+   drift. */
+function openNegotiations(){
+  _rlDoorAsked = true;
+  if (typeof setView === 'function') setView('redline');
+  else renderRedline();
+  return true;
+}
+/* Set by the door and consumed by the very next paint. It is the difference
+   between "take me to my negotiations" (reopen the last one) and "take me to
+   THIS negotiation" (openRedlineWorkbench named it), which state.activeId alone
+   cannot tell apart — it still holds whatever contract the reader last opened
+   anywhere in the app. */
+let _rlDoorAsked = false;
+
+/* ---- THE LIST BEHIND THE DOOR ----
+   What the door shows when there is no last negotiation to reopen: the ones
+   actually being argued over, one line each, newest movement first.
+
+   IT IS A SIGNPOST, NOT A SECOND REGISTER, and three rules keep it one — they
+   are the whole reason this is twenty lines rather than a page. LIVE
+   NEGOTIATIONS ONLY (the register is where you go for all 145, and two lists of
+   every contract eventually disagree); NO FILTER, NO SEARCH, NO SORTABLE
+   COLUMNS (the moment it needs those it HAS become the register); and it counts
+   with negoNeedsYouIds like every other surface, so a door reading 3 cannot sit
+   over a list reading 2.
+
+   The one question a row answers is the one worth asking from outside the
+   agreement: is this one waiting on me? */
+function negoListRowHtml(c){
+  const needs = negoNeedsYouIds(c).length;
+  const open = (Array.isArray(c.changes) ? c.changes : [])
+    .filter(x => x && x.status === 'pending' && !x.withdrawn).length;
+  const lead = (typeof window.deskLead === 'function') ? deskLead(c) : null;
+  const round = (c.negotiation && typeof c.negotiation.round === 'number') ? c.negotiation.round : 1;
+  /* Three states, and the middle one names THEM rather than saying "waiting":
+     a reader scanning this list is deciding what to pick up, and "with Saw Sawa
+     LLC" answers that where "waiting" only repeats the column heading. */
+  const state_ = needs
+    ? `<span class="ngl-w ngl-w-you">${i18tn('ng_needs_you', needs, { n: needs })}</span>`
+    : open
+      ? `<span class="ngl-w ngl-w-them">${_ne(i18t('ng_door_with', { who: c.counterparty || i18t('ng_door_them') }))}</span>`
+      : `<span class="ngl-w ngl-w-clear">${i18t('ng_door_clear')}</span>`;
+  return `<button type="button" class="ngl-row" data-ngl-open="${_nea(c.id)}">
+    <span class="ngl-main">
+      <span class="ngl-name">${esc(c.name || c.id)}</span>
+      <span class="ngl-sub">${esc(c.id)} &middot; ${_ne(i18t('ct_round_n', { n: round }))}${
+        lead && lead.name ? ' &middot; ' + esc(lead.name) : ''}</span>
+    </span>
+    ${state_}
+  </button>`;
+}
+function renderNegotiationsList(host){
+  const el = host || document.getElementById('content');
+  if (!el) return;
+  const rows = negoLiveList();
+  el.innerHTML = `<div class="view-enter ngl-wrap">
+    <header class="ngl-head">
+      <h2>${i18t('ng_door_title')}</h2>
+      ${''/* The sub-line speaks only when there is a list to introduce. With
+             nothing running, the empty card below says the whole thing — and
+             "every agreement being argued over right now" printed above
+             "Nothing is being negotiated" is the page contradicting itself. */}
+      ${rows.length ? `<p>${i18t('ng_door_pick')}</p>` : ''}
+    </header>
+    ${rows.length ? `<div class="ngl-list">${rows.map(negoListRowHtml).join('')}</div>`
+      : `<section class="ngl-empty">
+          <h3>${i18t('ng_door_none')}</h3>
+          <p>${i18t('ng_door_none_how')}</p>
+          <button type="button" data-ngl-register class="ui-btn ui-btn-primary" style="padding:8px 16px">${i18t('ng_open_register')}</button>
+        </section>`}
+  </div>`;
+  el.querySelectorAll('[data-ngl-open]').forEach(b => b.addEventListener('click', () =>
+    openRedlineWorkbench(b.getAttribute('data-ngl-open'))));
+  el.querySelectorAll('[data-ngl-register]').forEach(b => b.addEventListener('click', () => {
+    if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
+    setView('register');
+  }));
+}
+
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
@@ -7180,33 +7355,41 @@ function renderRedline(){
     if (el && el.scrollTop) _keepScroll[id] = el.scrollTop;
   });
   redlineLayoutCss();
-  const c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
+  /* ---- WHICH NEGOTIATION IS THIS ----
+     Two ways in, and they resolve differently on purpose. openRedlineWorkbench
+     NAMED a contract and put it on state.activeId, so that one wins. The
+     sidebar door named nothing — it asked for "my negotiations" — and
+     state.activeId there is stale: it still holds whichever contract the reader
+     last opened anywhere in the app, which is how a door labelled Negotiations
+     would have opened a draft nobody has ever redlined. */
+  const doorAsked = _rlDoorAsked; _rlDoorAsked = false;
+  let c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
+  if (doorAsked) c = negoLastOpened();
+  /* A named contract that turns out to have nothing on the table is still that
+     contract's page — the workbench is where a negotiation STARTS. Only the
+     door falls through to the list. */
+  if (doorAsked && !c){
+    _redlineHeldId = null;
+    renderNegotiationsList(host);
+    return;
+  }
+  if (c && window.state) state.activeId = c.id;
   /* A pin is a working preference on THIS contract's column. Carrying it to the
      next contract would open a card the reader has never seen. */
   rlCardForgetPins(c && c.id);
   /* Recorded on the paint, not on the navigation: however the reader arrived —
      the tab, the register, a link — the bench now knows what is on it. */
   _redlineHeldId = c ? c.id : null;
-  if (!c){
-    host.innerHTML = `
-      <div class="view-enter" style="padding:16px 18px 28px;">
-        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:34px;text-align:center;">
-          <div style="width:44px;height:44px;margin:0 auto 12px;border-radius:12px;background:var(--tile-amber-bg);color:var(--tile-amber-fg);display:grid;place-items:center;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-          </div>
-          <h3 style="margin:0 0 6px;font-size:16px;font-weight:700;">${i18t('ng_no_contract_open')}</h3>
-          <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:46ch;margin-inline:auto;line-height:1.6;">
-            The redline workbench negotiates a specific agreement — open one from the register and its changes, rounds and discussion land here.
-          </p>
-          <button data-open-register class="ui-btn ui-btn-primary" style="padding:8px 16px;">${i18t('ng_open_register')}</button>
-        </section>
-      </div>`;
-    host.querySelectorAll('[data-open-register]').forEach(el => el.addEventListener('click', () => {
-      if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
-      setView('register');
-    }));
-    return;
-  }
+  /* Arriving on a real negotiation is what the door remembers — recorded on the
+     PAINT, not on the navigation, so however the reader got here (the Document
+     tab, Home's decisions card, a playbook finding, the phone) the door knows
+     where to put them back. */
+  if (c) negoRememberOpened(c.id);
+  /* A workbench with no agreement on it is not an error page any more: it is
+     the list. Reached when a link, a stale session or an evicted bench leaves
+     nothing named — the same place the door lands, so there is one answer to
+     "nothing open" wherever it is asked. */
+  if (!c){ renderNegotiationsList(host); return; }
   /* ---- THE OTHER SIDE OF EVERY THREAD, FETCHED BEFORE THE CARDS SAY "NO
      NOTES" (Young, 10 Aug 2026: "the notes from the counterparty are not
      being received"). A counterparty's reply is filed in the discussion
@@ -7238,18 +7421,9 @@ function renderRedline(){
      handed. Exactly the set the queue marks "now" and the cards badge "awaiting
      you", read from the same predicates, so a toolbar saying two and a column
      showing three cannot happen. */
-  const needsYou = (() => {
-    /* Not in Counterparty View. That is a window onto their page, read-only by
-       decision, and "2 need you" there would be counting somebody else's work
-       and offering a jump to a card with no verbs on it. */
-    if (side === 'counterparty') return [];
-    const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
-    const wall = rlHiddenFrom(c, side);
-    const mine = rlMyCardIds(c, { side, readonly: false });
-    return all.filter(x => x && x.status === 'pending' && !x.withdrawn
-      && x.authorSide !== side && !wall.has(x.id)
-      && (!mine || mine.has(String(x.id)))).map(x => x.id);
-  })();
+  /* The same arithmetic the sidebar door, the round line and the Document tab's
+     button run — negoNeedsYouIds, one function, so the four cannot disagree. */
+  const needsYou = negoNeedsYouIds(c, { side });
   /* ---- THE BATCH SEND ----
      Drawn only when there is something behind the wall, and labelled with how
      much. It is a proxy onto #nego-send like Publish Round is — the same one
@@ -7352,7 +7526,9 @@ function renderRedline(){
              string and a `const` read before its declaration is a
              ReferenceError that takes the whole page down — which is exactly
              what it did. */}
-      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false,previewing:side==='counterparty'}) : '')}
+      ${''/* backToContract: this page has no tab row any more, so the head's
+             arrow — and its title — are the only way off it. See roomHeadHtml. */}
+      ${(window.roomHeadHtml ? roomHeadHtml(c,{primary:false,previewing:side==='counterparty',backToContract:true}) : '')}
       ${''/* THE ROOM'S OWN TAB ROW, NOT A SECOND ONE. This page carried a
              hand-written [Docs][Negotiate] pair while the contract page
              carried its own — two switchers for one room, in two files, free
@@ -7391,8 +7567,18 @@ function renderRedline(){
              .rl-head keeps its name: it is still the head's controls, and half
              the test suite reaches for them through it. What it does not keep
              is room-quiet — that is a BAND's clothes, and this is not a band. */}
+      ${''/* ---- AND THE ROW NO LONGER CARRIES TABS ----
+             Negotiate left the room's tab row and became a door in the sidebar
+             (owner's call, 12 Aug 2026), and this page is where that decision is
+             felt: it is its own screen now, not a tab of the contract, so it
+             draws no room tabs at all. Key terms, Signing and History are one
+             press away through the head's back arrow, not zero — the price of
+             the focused screen, and the reason that arrow is not optional.
+
+             The row itself stays, spacer and all: it is what carries this page's
+             own controls and its bottom rule, and the fit ladder (rlFitTabRow)
+             measures it. Only roomTabsHtml's call is gone. */}
       <div class="room-tabrow rl-tabrow">
-        ${(window.roomTabsHtml?roomTabsHtml(c,'redline'):'')}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -7488,14 +7674,11 @@ function renderRedline(){
      and the Docs tab are the same door: the workspace, on this contract. */
   host.querySelectorAll('[data-rl-back]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
-  /* The tab row routes through the room's own router. Every tab but Negotiate
-     is a journey back to the contract page, which roomGoTab handles by parking
-     the wanted tab so the arrival lands on it. */
-  host.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(el =>
-    el.addEventListener('click', () => {
-      if (window.roomGoTab) roomGoTab(c, el.getAttribute('data-ws-tab'));
-      else if (window.openWorkspace) openWorkspace(c.id);
-    }));
+  /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws
+     no room tabs, so a querySelector for them would have matched nothing
+     forever — dead wiring that reads like a live route and outlives everyone
+     who knew it was dead. The way back is the head's arrow and its title, both
+     wired in wireRoomHead. */
   /* The head's own controls, wired to the SAME dialogs the contract page
      opens: one share modal, one import flow, one compare, however you arrived.
      The ids come from roomHeadHtml, so this list is the workbench saying which
@@ -11371,6 +11554,16 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlCardForgetPins, rlCardOpenState,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlRestoreScroll,
+  /* ---- THE NEGOTIATIONS DOOR ----
+     Every one of these is called from ANOTHER module — the sidebar count and the
+     nav router from js/app.js, the round line and the Document tab's button from
+     js/views/contract.js, the bar from js/mobile.js. These files are ES modules,
+     so a top-level function in one is invisible to the next; see the note below
+     about rlPaperFootHtml, which was declared, called, and silently absent for a
+     year because nobody put it here. */
+  negoNeedsYouIds, negoNeedsYouTotal, negoIsLive, negoLiveList,
+  negoLastOpened, negoRememberOpened, openNegotiations,
+  renderNegotiationsList, negoListRowHtml,
   /* ---- rlPaperFootHtml WAS NEVER ON WINDOW, SO IT NEVER DREW ----
      Found while fixing the blank read-only copy (11 Aug 2026). signatureBlock
      in js/views/contract.js reads `window.rlPaperFootHtml ? … : ''` and falls

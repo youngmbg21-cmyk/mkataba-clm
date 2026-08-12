@@ -286,12 +286,31 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
     /* Shaded like Draft new agreement — which is ui-btn-primary, the head's
        own solid fill. Read against that button rather than against a colour,
        so restyling the primary restyles both. */
-    assert.match(end, /id="ws-to-nego" class="ui-btn ui-btn-primary"/);
+    /* The amber dot after the fill is the "this press is owed" mark, not a
+       second style: the button is still the head's own primary underneath. */
+    assert.match(end, /id="ws-to-nego" class="ui-btn ui-btn-primary\$\{needs\?' ws-to-nego-due':''\}/);
     assert.match(s, /id="ws-new" data-page-new class="ui-btn ui-btn-primary/,
       'the button it is drawn to match');
-    /* Only on the Document tab, and only where there is a negotiation to open. */
+    /* Only on the Document tab — but ALWAYS on it. */
     assert.match(end, /_wsTab!=='docs'/);
-    assert.match(end, /c\.negotiation&&window\.negoChanges&&negoChanges\(c\)\.length/);
+    /* ---- IT MUST NOT HIDE ITSELF ANY MORE ----
+       This drew only once changes had been filed, which was right while
+       Negotiate was ALSO a tab on this very row: there was a second way in
+       whatever this button did. The tab is gone (12 Aug 2026), so a button that
+       hides on a fresh draft leaves that draft with no door into its own
+       negotiation at all — the one failure the redesign could actually produce.
+       Only the WORD follows the state. */
+    assert.ok(!/const door=\(c\.negotiation&&window\.negoChanges/.test(end),
+      'the door is no longer conditional on changes already existing');
+    assert.match(end, /ct_start_negotiating/, 'nothing filed yet: "Start negotiating"');
+    assert.match(end, /ct_open_negotiate_n/, 'answers waiting: the count rides on the label');
+    assert.match(end, /i18t\('ct_open_negotiate'\)/, 'running and quiet: "Open Negotiate"');
+    /* And it reads the changes RAW. negoChanges() runs negoInit(), which
+       CREATES a negotiation on a contract that has none — and this builder runs
+       on every paint of every Document tab. */
+    assert.ok(!/negoChanges\(c\)/.test(end),
+      'this builder must never call negoChanges: it would start a negotiation on every draft it drew');
+    assert.match(end, /Array\.isArray\(c\.changes\)/, 'it reads the record instead');
   });
 
   test('and the slot is repainted when the tab changes — the bug that emptied it', () => {
@@ -329,29 +348,38 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
       'one draw, one wiring — a second here is a handler that stacks');
   });
 
-  test('the room has five tabs, built once for both shells', () => {
+  test('the room has four tabs, built once for both shells', () => {
     /* WO N1 renamed the tab's LABEL from "Redline" to plain English; the
        internal key stays 'redline', so every route and stored state built on
        it keeps working.
 
-       THE PAIR BECAME FIVE. Key terms, Signing and History were already in
-       this room — behind a sub-tab pair on the right-hand panel and behind a
-       button that opened a modal — and they are tabs now. The row itself is
-       built by roomTabsHtml, which the negotiation workbench calls too: one
-       builder, so the two shells cannot draw different rows. */
+       THE PAIR BECAME FIVE, THEN FOUR. Key terms, Signing and History were
+       already in this room — behind a sub-tab pair on the right-hand panel and
+       behind a button that opened a modal — and they are tabs now. Negotiate
+       went the other way in Aug 2026: it is a place of its own with a door in
+       the sidebar, not a face of this contract. The row is still built by
+       roomTabsHtml; the workbench simply no longer asks it for one. */
     const s = code();
     assert.match(s, /const ROOM_TABS=\[/, 'the tabs are declared in one list');
     /* The second entry is a DICTIONARY KEY now, not a label — the row is drawn
        in the reader's language, and the label itself lives in js/i18n.js. The
        tab keys are what this test is really about and they have not moved. */
     const { STRINGS } = require('../js/i18n.js');
-    [['docs', 'tab_document', 'Document'], ['redline', 'tab_negotiate', 'Negotiate'],
+    [['docs', 'tab_document', 'Document'],
       ['terms', 'tab_key_terms', 'Key terms'], ['sign', 'tab_signing', 'Signing'],
       ['history', 'tab_history', 'History']].forEach(([k, key, english]) => {
       assert.ok(s.includes(`['${k}','${key}']`), `${english} is a tab, keyed '${k}'`);
       assert.equal(STRINGS.en[key], english, `and still reads "${english}" in English`);
       assert.ok(STRINGS.sv[key], `and has a Swedish label`);
     });
+    /* NEGOTIATE IS NOT ONE OF THEM, and the row must not grow it back. */
+    assert.ok(!s.includes(`['redline','tab_negotiate']`), 'Negotiate is not a tab any more');
+    const list = s.slice(s.indexOf('const ROOM_TABS=['), s.indexOf('function roomTabsHtml'));
+    assert.ok(!/'redline'/.test(list), 'and the key is nowhere in the tab list');
+    /* The KEY still routes, though — the Document tab's button and the
+       returned-changes notice both ask roomGoTab for it, and they must keep
+       landing on the full-window view. */
+    assert.match(s, /if\(k==='redline'\)\{/, "roomGoTab still answers to 'redline'");
     assert.ok(!/'negotiation','/.test(s), 'the old tab key must not linger');
     assert.match(s, /function roomTabsHtml\(c,active\)/, 'one builder for both shells');
   });

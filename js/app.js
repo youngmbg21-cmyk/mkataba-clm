@@ -80,7 +80,11 @@ import './mobile-portal.js';
    its own door again, so it is no longer in here — leaving it would light
    Contracts while you stood on the import page, which is how a sidebar comes
    to disagree with the screen it is next to. */
-const NAV_HOME_FOR={ folder:'register', workspace:'register', redline:'register' };
+/* `redline` is NOT in here any more. It borrowed the Contracts door for as long
+   as it had none of its own; it has one now (12 Aug 2026), so it lights itself
+   — and a view with its own nav item must never appear in this table, or the
+   sidebar points at a door the reader is not standing behind. */
+const NAV_HOME_FOR={ folder:'register', workspace:'register' };
 function setActiveNav(view){
   const navFor = NAV_HOME_FOR[view] || view;
   document.querySelectorAll('.nav-item').forEach(b=>{
@@ -252,13 +256,20 @@ function updateSidebarCounts(){
     calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
       const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
+    /* WHAT IS WAITING ON YOU, NOT HOW MANY NEGOTIATIONS THERE ARE. This door
+       sits above every agreement, so a per-contract number on it would be
+       counting the wrong book — and a count of running negotiations would say
+       "3" to somebody who owes nothing on any of them. Same arithmetic as the
+       round line, the Document tab's button and the workbench's own toolbar:
+       one function, four surfaces, no way for them to disagree. */
+    negotiations: (window.negoNeedsYouTotal?(()=>{ try{ return negoNeedsYouTotal(); }catch(_){ return 0; } })():0),
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
       + (window.tplLibCount?tplLibCount():0),
   };
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
@@ -294,7 +305,7 @@ const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insigh
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', workspace:'the contract workspace',
-  redline:'the negotiation workbench' };
+  redline:'Negotiations' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
 
@@ -987,7 +998,16 @@ function wireShell(){
     if(head){ const sec=head.closest('.nav-section'); openNavSection(sec,!sec.classList.contains('open')); return; }
     const btn=e.target.closest('[data-view]');
     if(btn){
-      setView(btn.getAttribute('data-view'));
+      const v=btn.getAttribute('data-view');
+      /* ---- THE NEGOTIATIONS DOOR ASKS A DIFFERENT QUESTION ----
+         Every other item in this list names a view and setView draws it. This
+         one names a PLACE with no agreement attached, and "which negotiation"
+         has an answer state.activeId cannot give: it still holds whatever
+         contract the reader last opened anywhere in the app, so a bare
+         setView('redline') would have opened a draft nobody has ever redlined.
+         openNegotiations reopens the last negotiation, or lands on the list. */
+      if(v==='redline'&&window.openNegotiations) openNegotiations();
+      else setView(v);
       // On a phone the nav is a drawer over the page: having chosen a
       // destination, get out of the way of it.
       closeNavDrawer();

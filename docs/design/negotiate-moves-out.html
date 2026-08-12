@@ -1,0 +1,529 @@
+<title>Negotiate Moves Out</title>
+<style>
+  :root{
+    --ground:#F5F7FA;
+    --surface:#FFFFFF;
+    --surface-2:#EEF1F6;
+    --ink:#111A2C;
+    --ink-2:#3C4763;
+    --muted:#69748C;
+    --line:#DCE2EC;
+    --line-soft:#E9EDF4;
+    --navy:#16233F;
+    --navy-ink:#C6D0E4;
+    --navy-ink-strong:#FFFFFF;
+    --amber:#B26B12;
+    --amber-soft:#FBEFDD;
+    --amber-line:#EBD3AE;
+    --ruby:#9B2C3C;
+    --ruby-soft:#FBE9EC;
+    --green:#1F6B4D;
+    --green-soft:#E4F1EA;
+    --shadow:0 1px 2px rgba(17,26,44,.05), 0 8px 24px -12px rgba(17,26,44,.18);
+    --display:ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0C1220;
+      --surface:#141D2E;
+      --surface-2:#1B2536;
+      --ink:#E8ECF5;
+      --ink-2:#BAC4D8;
+      --muted:#8C97AE;
+      --line:#26314A;
+      --line-soft:#1E2739;
+      --navy:#0F1829;
+      --navy-ink:#A8B5CE;
+      --navy-ink-strong:#FFFFFF;
+      --amber:#E0A75C;
+      --amber-soft:#2A2113;
+      --amber-line:#4A3A1E;
+      --ruby:#E08A97;
+      --ruby-soft:#2C161B;
+      --green:#7CC7A4;
+      --green-soft:#12261E;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0C1220;
+    --surface:#141D2E;
+    --surface-2:#1B2536;
+    --ink:#E8ECF5;
+    --ink-2:#BAC4D8;
+    --muted:#8C97AE;
+    --line:#26314A;
+    --line-soft:#1E2739;
+    --navy:#0F1829;
+    --navy-ink:#A8B5CE;
+    --navy-ink-strong:#FFFFFF;
+    --amber:#E0A75C;
+    --amber-soft:#2A2113;
+    --amber-line:#4A3A1E;
+    --ruby:#E08A97;
+    --ruby-soft:#2C161B;
+    --green:#7CC7A4;
+    --green-soft:#12261E;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:16.5px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:56px 28px 96px;
+    display:grid;
+    grid-template-columns:112px minmax(0,1fr);
+    column-gap:32px;
+  }
+  @media (max-width:860px){
+    .wrap{grid-template-columns:minmax(0,1fr);padding:36px 20px 72px;}
+    .rail{display:none;}
+  }
+
+  /* ---- masthead ---- */
+  .masthead{grid-column:1/-1;border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:44px;}
+  .kicker{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px;
+  }
+  h1{
+    font-family:var(--display);font-weight:600;font-size:clamp(34px,5.6vw,52px);
+    line-height:1.06;letter-spacing:-.015em;margin:0;text-wrap:balance;
+  }
+  .standfirst{
+    font-size:19px;line-height:1.55;color:var(--ink-2);max-width:62ch;margin:16px 0 0;
+  }
+  .meta{
+    display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:22px;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  }
+
+  /* ---- sections ---- */
+  section{grid-column:2;margin-bottom:52px;}
+  .rail{grid-column:1;}
+  .row{display:contents;}
+  .tag{
+    grid-column:1;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);padding-top:9px;text-align:right;
+    border-top:1px solid var(--line);
+  }
+  section.tagged{border-top:1px solid var(--line);padding-top:8px;}
+  h2{
+    font-family:var(--display);font-weight:600;font-size:27px;line-height:1.2;
+    letter-spacing:-.01em;margin:0 0 14px;text-wrap:balance;
+  }
+  h3{
+    font-family:var(--body);font-weight:650;font-size:15px;letter-spacing:.005em;
+    margin:30px 0 8px;color:var(--ink);
+  }
+  p{margin:0 0 14px;max-width:66ch;}
+  p.lead{font-size:17.5px;color:var(--ink-2);}
+  ul,ol{margin:0 0 14px;padding-left:22px;max-width:66ch;}
+  li{margin-bottom:7px;}
+  li::marker{color:var(--muted);}
+  strong{font-weight:650;}
+  em{font-style:italic;color:var(--ink-2);}
+
+  /* ---- mockups ---- */
+  .mocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin:22px 0 26px;}
+  .mock{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:16px;box-shadow:var(--shadow);
+  }
+  .mock-cap{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .mock-cap b{font-weight:600;color:var(--ink-2);letter-spacing:.14em;}
+
+  .nav{background:var(--navy);border-radius:11px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;}
+  .nav i{
+    display:flex;align-items:center;gap:10px;font-style:normal;font-size:12.5px;font-weight:600;
+    color:var(--navy-ink);padding:8px 11px;border-radius:9px;letter-spacing:.01em;
+  }
+  .nav i.on{background:rgba(255,255,255,.15);color:var(--navy-ink-strong);}
+  .nav i.new{background:rgba(224,167,92,.16);color:#F2D9AE;box-shadow:inset 0 0 0 1px rgba(224,167,92,.4);}
+  .nav i .n{
+    margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:700;
+    background:rgba(255,255,255,.18);color:#fff;border-radius:20px;padding:1px 7px;
+  }
+  .nav i.new .n{background:#D98324;color:#1B1204;}
+  .nav .dot{width:14px;height:14px;border-radius:4px;background:currentColor;opacity:.55;flex:none;}
+  .nav .sec{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:rgba(255,255,255,.38);padding:12px 11px 5px;
+  }
+
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:2px solid var(--line);padding-bottom:0;}
+  .tabs b{
+    font-weight:600;font-size:13.5px;padding:9px 12px;color:var(--muted);
+    border-bottom:2px solid transparent;margin-bottom:-2px;display:flex;align-items:center;gap:6px;
+  }
+  .tabs b.on{color:var(--ink);border-bottom-color:var(--ink);}
+  .tabs b.gone{
+    color:var(--ruby);text-decoration:line-through;text-decoration-thickness:1.5px;
+    background:var(--ruby-soft);border-radius:8px 8px 0 0;
+  }
+  .tabs b .n{
+    font-family:var(--mono);font-size:10px;font-weight:700;background:#D98324;color:#1B1204;
+    border-radius:20px;padding:0 6px;
+  }
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;
+    background:var(--navy);color:#fff;border-radius:9px;padding:7px 13px;
+  }
+  .btn.ghost{background:transparent;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line);}
+
+  .screenhead{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:14px;
+  }
+  .back{
+    display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:none;
+    border-radius:50%;border:1px solid var(--line);color:var(--ink-2);font-size:15px;background:var(--surface-2);
+  }
+  .screenhead .ttl{font-family:var(--display);font-size:19px;font-weight:600;line-height:1.2;}
+  .screenhead .sub{font-size:11.5px;color:var(--muted);font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;}
+  .pill{
+    font-size:11px;font-weight:700;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;
+    background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line);
+    border-radius:20px;padding:3px 9px;
+  }
+
+  .phone{
+    max-width:200px;margin:0 auto;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    background:var(--surface-2);
+  }
+  .phone .body{height:96px;background:var(--surface);}
+  .phonebar{display:flex;background:var(--surface);border-top:1px solid var(--line);}
+  .phonebar span{
+    flex:1;text-align:center;font-size:9.5px;font-weight:600;color:var(--muted);padding:9px 2px 10px;position:relative;
+  }
+  .phonebar span.on{color:var(--ink);}
+  .phonebar span.new{color:var(--amber);}
+  .phonebar span::before{
+    content:"";display:block;width:15px;height:15px;margin:0 auto 4px;border-radius:5px;
+    background:currentColor;opacity:.5;
+  }
+
+  /* ---- callouts & flow ---- */
+  .note{
+    border-left:3px solid var(--amber);background:var(--amber-soft);
+    padding:14px 18px;border-radius:0 10px 10px 0;margin:20px 0;
+  }
+  .note p{margin:0;max-width:64ch;color:var(--ink);}
+  .note .h{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--amber);margin:0 0 6px;font-weight:700;
+  }
+  .flow{
+    display:flex;flex-wrap:wrap;align-items:stretch;gap:10px;margin:22px 0 26px;
+  }
+  .step{
+    flex:1 1 150px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:13px 14px;box-shadow:var(--shadow);position:relative;
+  }
+  .step .s{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);display:block;margin-bottom:5px;
+  }
+  .step .t{font-weight:650;font-size:14px;line-height:1.35;display:block;}
+  .step .d{font-size:13px;color:var(--muted);line-height:1.45;display:block;margin-top:4px;}
+  .arrow{align-self:center;color:var(--muted);font-size:18px;flex:none;}
+  @media (max-width:700px){.arrow{transform:rotate(90deg);align-self:center;margin:0 auto;}}
+
+  table{
+    width:100%;border-collapse:collapse;margin:18px 0 24px;font-size:14.5px;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  }
+  .scroller{overflow-x:auto;}
+  th{
+    text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;padding:11px 14px;background:var(--surface-2);
+    border-bottom:1px solid var(--line);
+  }
+  td{padding:12px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-2);}
+  tr:last-child td{border-bottom:none;}
+  td:first-child{color:var(--ink);font-weight:600;white-space:nowrap;}
+  .yes{color:var(--green);font-weight:650;}
+  .no{color:var(--ruby);font-weight:650;}
+
+  .qs{counter-reset:q;list-style:none;padding:0;}
+  .qs li{
+    counter-increment:q;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px 14px 52px;position:relative;margin-bottom:10px;box-shadow:var(--shadow);
+  }
+  .qs li::before{
+    content:counter(q);position:absolute;left:16px;top:14px;
+    font-family:var(--mono);font-size:12px;font-weight:700;color:var(--amber);
+    background:var(--amber-soft);border:1px solid var(--amber-line);
+    width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .qs li b{display:block;margin-bottom:3px;}
+  .qs li span{color:var(--muted);font-size:14.5px;}
+
+  footer{
+    grid-column:2;border-top:1px solid var(--line);padding-top:18px;
+    font-size:13.5px;color:var(--muted);max-width:66ch;
+  }
+  @media (max-width:860px){section,footer{grid-column:1;}}
+  a{color:var(--amber);}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px;}
+  @media (prefers-reduced-motion:no-preference){
+    .mock,.step{transition:transform .15s ease;}
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">HaTi · Design decision</p>
+    <h1>Negotiate Moves Out</h1>
+    <p class="standfirst">Negotiation stops being a tab inside one agreement and becomes a place of its own in the main menu — with a door in from the Document tab and a way back out.</p>
+    <div class="meta">
+      <span>Agreed 12 Aug 2026</span>
+      <span>Settled · nothing built yet</span>
+      <span>Desktop and phone</span>
+    </div>
+  </header>
+
+  <div class="tag">Decision</div>
+  <section class="tagged">
+    <h2>What was decided</h2>
+    <p class="lead">Everything below follows from these. Nothing here is still open.</p>
+    <ul>
+      <li>The contract room keeps its tab row, minus one: <strong>Key terms · Document · Signing · History</strong>.</li>
+      <li><strong>Negotiations becomes its own door in the left menu</strong>, directly under Contracts.</li>
+      <li>You get into one by pressing <strong>Open Negotiate on the Document tab</strong>.</li>
+      <li>The negotiation screen carries <strong>no room tabs</strong> — it is its own screen, not a tab of the contract.</li>
+      <li>The menu door <strong>reopens the last negotiation you were in</strong>; when there isn't one, it <strong>lists the live ones</strong>.</li>
+      <li>The negotiation screen carries a <strong>back arrow to that agreement's Document tab</strong>.</li>
+      <li>The <strong>phone changes the same way</strong>.</li>
+    </ul>
+    <p><strong>A place is a noun, an act is a verb.</strong> The menu door reads <em>Negotiations</em> — it sits among Contracts, Calendar, Insights, Templates, and it is a place you go. The button on the Document tab stays <em>Open Negotiate</em> — it is a thing you do, to this one agreement. The two words are different on purpose.</p>
+    <div class="note">
+      <p class="h">Worth knowing</p>
+      <p>Negotiate is already a full screen behind the scenes — it only <em>dressed up</em> as a tab by drawing the same tab row at the top. So this is a change of doors and signposts, not a rebuild of the negotiation desk itself.</p>
+    </div>
+  </section>
+
+  <div class="tag">The menu</div>
+  <section class="tagged">
+    <h2>A new door, second in the list</h2>
+    <p><strong>Negotiations</strong> sits directly under Contracts, above Calendar. It carries its own count — and that count means something new (see <em>The number</em> below).</p>
+    <div class="mocks">
+      <div class="mock">
+        <p class="mock-cap"><b>Today</b></p>
+        <div class="nav">
+          <i><span class="dot"></span>Home</i>
+          <i class="on"><span class="dot"></span>Contracts<span class="n">145</span></i>
+          <i><span class="dot"></span>Calendar<span class="n">0</span></i>
+          <i><span class="dot"></span>Insights</i>
+          <i><span class="dot"></span>Templates<span class="n">29</span></i>
+          <div class="sec">Administration</div>
+        </div>
+      </div>
+      <div class="mock">
+        <p class="mock-cap"><b>Proposed</b></p>
+        <div class="nav">
+          <i><span class="dot"></span>Home</i>
+          <i><span class="dot"></span>Contracts<span class="n">145</span></i>
+          <i class="new"><span class="dot"></span>Negotiations<span class="n">3</span></i>
+          <i><span class="dot"></span>Calendar<span class="n">0</span></i>
+          <i><span class="dot"></span>Insights</i>
+          <i><span class="dot"></span>Templates<span class="n">29</span></i>
+          <div class="sec">Administration</div>
+        </div>
+      </div>
+    </div>
+    <h3>When you are standing in a negotiation, Negotiations is the lit door</h3>
+    <p>Today the negotiation screen lights up <em>Contracts</em>, because it had no door of its own. It now lights <strong>Negotiations</strong> — and only that one. One screen, one lit door, or the menu starts disagreeing with the page beside it.</p>
+    <h3>The tooltip should name what it will open</h3>
+    <p>Because the door reopens the last negotiation, hovering it should say which one: <em>“Reopen: Mutual NDA — Saw Sawa LLC.”</em> Cheap to do, and it removes the only real surprise in the design.</p>
+  </section>
+
+  <div class="tag">The room</div>
+  <section class="tagged">
+    <h2>Four tabs, and one solid button</h2>
+    <p>Negotiate comes off the tab row. Its amber count goes with it. In its place, on the Document tab, the <strong>Open Negotiate</strong> button — which already lives at the right-hand end of that row — becomes the single way in.</p>
+    <div class="mocks">
+      <div class="mock">
+        <p class="mock-cap"><b>Today</b></p>
+        <div class="tabs">
+          <b>Key terms</b><b>Document</b><b class="on">Negotiate <span class="n">1</span></b><b>Signing</b><b>History</b>
+        </div>
+      </div>
+      <div class="mock">
+        <p class="mock-cap"><b>Proposed</b><span class="btn">Open Negotiate</span></p>
+        <div class="tabs">
+          <b>Key terms</b><b class="on">Document</b><b class="gone">Negotiate</b><b>Signing</b><b>History</b>
+        </div>
+      </div>
+    </div>
+    <h3>The button must stop hiding itself</h3>
+    <p>Right now that button only appears once changes have actually been filed — because until then, the tab was there anyway. With the tab gone, hiding it leaves a fresh draft with <em>no door at all</em>. It should always be on the Document tab, changing only its words:</p>
+    <ul>
+      <li><strong>“Start negotiating”</strong> — nothing filed yet.</li>
+      <li><strong>“Open Negotiate · 3 waiting”</strong> — a negotiation is running, and this is what it owes you.</li>
+    </ul>
+    <h3>The other three tabs still have to admit a negotiation is running</h3>
+    <p>The amber tab count was how someone on Key terms knew changes were waiting. That signal must not vanish with it. The round line already under the contract title on every tab (<em>“Round 1 · updated 12 aug 2026”</em>) is the right place to carry it — <em>“Round 1 · 3 changes waiting on you”</em>, in amber, pressable, going straight to the negotiation.</p>
+  </section>
+
+  <div class="tag">The screen</div>
+  <section class="tagged">
+    <h2>The negotiation screen, and the way back</h2>
+    <p>No tab row. Instead, a header that answers three questions a negotiator asks constantly: <em>which agreement is this, where am I in it, and how do I get out?</em></p>
+    <div class="mock" style="margin:22px 0 24px">
+      <p class="mock-cap"><b>Negotiation screen · header</b></p>
+      <div class="screenhead">
+        <span class="back">←</span>
+        <span>
+          <span class="ttl">Mutual Non-Disclosure Agreement — Saw Sawa LLC</span><br>
+          <span class="sub">MK-348 · Round 1 · You lead</span>
+        </span>
+        <span class="pill">1 needs you</span>
+      </div>
+    </div>
+    <ul>
+      <li><strong>The back arrow returns to that contract's Document tab</strong> — the tab you came from, so the journey is a loop and not a maze.</li>
+      <li><strong>The contract name is part of the back door</strong>, not just a label: pressing the title does the same thing as the arrow. It is the biggest target on the screen and people will aim at it.</li>
+      <li><strong>The per-contract count lives here now</strong>, in the amber pill, since it no longer has a tab to sit on.</li>
+    </ul>
+    <div class="note">
+      <p class="h">The one thing that gets worse</p>
+      <p>Checking the value or the signing route mid-negotiation used to be one click on a tab. It is now two: back, then the tab. That is the price of the focused screen you asked for, and it is a fair one — but if it starts to bite, the fix is a small “Go to…” menu beside the back arrow offering Key terms and Signing. I have <strong>not</strong> put that in the design; it is the first thing to add if the complaint appears.</p>
+    </div>
+  </section>
+
+  <div class="tag">The journey</div>
+  <section class="tagged">
+    <h2>The loop, end to end</h2>
+    <div class="flow">
+      <div class="step"><span class="s">Start</span><span class="t">Contracts</span><span class="d">Open the agreement.</span></div>
+      <span class="arrow">→</span>
+      <div class="step"><span class="s">Read</span><span class="t">Document tab</span><span class="d">The paper, clean. “Open Negotiate” at the right of the tabs.</span></div>
+      <span class="arrow">→</span>
+      <div class="step"><span class="s">Work</span><span class="t">Negotiate screen</span><span class="d">Its own screen. No room tabs. Back arrow in the header.</span></div>
+      <span class="arrow">→</span>
+      <div class="step"><span class="s">Return</span><span class="t">Menu · Negotiations</span><span class="d">Reopens exactly where you left off, from anywhere in the app.</span></div>
+    </div>
+  </section>
+
+  <div class="tag">Reopening</div>
+  <section class="tagged">
+    <h2>What “reopen the last one” actually has to handle</h2>
+    <p>The rule is simple; three situations sit underneath it and each needs an answer, or the door breaks the first week.</p>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>When you press Negotiations</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td>You were in one, and it is still live</td><td>It opens, on the same reading and the same filter you left it on. This is the normal case.</td></tr>
+          <tr><td>You have never opened one</td><td>The list (below). It says so plainly at the top: <em>“Nothing open. Pick a negotiation to go into.”</em></td></tr>
+          <tr><td>The last one is signed, closed, or no longer yours to see</td><td>The same list. Reopening a finished argument would be worse than showing nothing.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The memory is <strong>per person, per computer</strong>, and survives closing the browser. It never travels to anyone else.</p>
+
+    <h3>The list</h3>
+    <p>Every agreement with a negotiation running that you are allowed to see — newest movement at the top. One line each, and the line answers the only question worth asking from outside: <em>is this one waiting on me?</em></p>
+    <div class="mock" style="margin:18px 0 22px">
+      <p class="mock-cap"><b>Negotiations · the list</b><span style="text-transform:none;letter-spacing:0">Nothing open. Pick a negotiation to go into.</span></p>
+      <div class="scroller">
+        <table style="margin:0;border:none;box-shadow:none">
+          <thead><tr><th>Agreement</th><th>Where it is</th><th>Waiting</th></tr></thead>
+          <tbody>
+            <tr><td>Mutual NDA — Saw Sawa LLC</td><td>MK-348 · Round 1 · You lead</td><td><span class="pill">1 needs you</span></td></tr>
+            <tr><td>Supply Agreement — Bahari Foods</td><td>MK-311 · Round 3 · Amina leads</td><td><span class="no">With them</span></td></tr>
+            <tr><td>Lease — Westlands Unit 4</td><td>MK-296 · Round 2 · You lead</td><td><span class="yes">Nothing outstanding</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p>Pressing a line goes into that negotiation, exactly as the Document tab's button would. Three rules keep this a signpost rather than a second Contracts register:</p>
+    <ul>
+      <li><strong>Live negotiations only.</strong> Not every agreement — the register is where you go for those, and two lists of all 145 contracts would eventually disagree.</li>
+      <li><strong>No filters, no search, no columns to sort.</strong> The moment it needs those, it has become the register.</li>
+      <li><strong>It obeys who may see what.</strong> A negotiation on a stream you cannot reach does not appear here, exactly as it does not appear in Contracts.</li>
+    </ul>
+  </section>
+
+  <div class="tag">The number</div>
+  <section class="tagged">
+    <h2>The amber count changes meaning</h2>
+    <p>On a tab it counted <em>this agreement's</em> changes. On a menu door it cannot — a door that shows one agreement's number while sitting above every agreement is simply wrong.</p>
+    <ul>
+      <li><strong>On the menu:</strong> how many changes are waiting on <em>you</em>, across every live negotiation you can see. Amber when there are any, gone when there are none.</li>
+      <li><strong>On the negotiation screen:</strong> this agreement's own count, in the header pill.</li>
+      <li><strong>On the contract room:</strong> in the round line under the title, on all four tabs.</li>
+    </ul>
+    <p>One number in each place, each counting the thing it sits next to.</p>
+  </section>
+
+  <div class="tag">Phone</div>
+  <section class="tagged">
+    <h2>The phone changes the same way</h2>
+    <p>Half of this is already true on the phone. The contract screen there has only Document, Key terms and History — <strong>Negotiate was never a tab</strong> — and the negotiation opens as its own full screen under a back bar. That back bar is exactly the back door this design asks for.</p>
+    <p>So the phone needs one thing: <strong>Negotiations joins the bottom bar</strong>, with the same count, the same reopen-the-last-one behaviour and the same list behind it.</p>
+    <div class="mocks">
+      <div class="mock">
+        <p class="mock-cap"><b>Today</b></p>
+        <div class="phone"><div class="body"></div><div class="phonebar"><span class="on">Home</span><span>Contracts</span><span>Approvals</span></div></div>
+      </div>
+      <div class="mock">
+        <p class="mock-cap"><b>Proposed</b></p>
+        <div class="phone"><div class="body"></div><div class="phonebar"><span class="on">Home</span><span>Contracts</span><span class="new">Negotiations</span><span>Approvals</span></div></div>
+      </div>
+    </div>
+    <p>Four is the most that bar will hold comfortably. If a fifth is ever wanted, something has to move to More first.</p>
+    <p><strong>One thing to measure rather than decide here:</strong> “Negotiations” is a long word for a bar that has to hold four labels on a small phone. It gets measured on the narrowest phone we support, and if it crowds its neighbours the phone label shortens — the <em>place</em> is still Negotiations everywhere it has room to say so. Shrinking a word to fit a bar is not renaming the door.</p>
+  </section>
+
+  <div class="tag">Elsewhere</div>
+  <section class="tagged">
+    <h2>Everything that already jumps into a negotiation</h2>
+    <p>A good number of buttons around the app already open the negotiation directly. All of them keep working — they will simply land on the new standalone screen instead of a tab. Which is why the back arrow is not a nicety: <em>it is the only way out for every one of them.</em></p>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Door</th><th>After the change</th></tr></thead>
+        <tbody>
+          <tr><td>Home · “Decisions due”</td><td>Opens the negotiation screen. Back arrow returns to that contract, not to Home — the arrow always means “the agreement this is about”.</td></tr>
+          <tr><td>“Changes have come back” notice</td><td>Unchanged behaviour, new screen.</td></tr>
+          <tr><td>Playbook findings</td><td>Unchanged behaviour, new screen.</td></tr>
+          <tr><td>Review requests and reminders</td><td>Unchanged behaviour, new screen.</td></tr>
+          <tr><td>Phone · next-action button</td><td>Already opens the full screen. Nothing to change.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>What does not change at all</h3>
+    <p>The counterparty's page never had these tabs and is untouched. Sharing, signing links, the approval chain, internal review, the negotiation desk and every rule about who may do what all sit underneath this and are unaffected. Nothing about how a change is filed, held or sent moves.</p>
+  </section>
+
+  <div class="tag">Settled</div>
+  <section class="tagged">
+    <h2>The last three answers, and why they went that way</h2>
+    <ol class="qs">
+      <li><b>The back arrow always lands on Document.</b><span>Not “wherever you came from” — that makes one button do five different things, and a way out you cannot predict is not really a way out. Document is also where the door in lives, so the journey closes on itself.</span></li>
+      <li><b>The list of live negotiations is in.</b><span>It shows only what is actually being argued over, and it stays deliberately plain — no filters, no search, no sorting. Those are the things that would turn a signpost into a second Contracts register, and two registers eventually disagree.</span></li>
+      <li><b>The door is called Negotiations.</b><span>A noun among nouns. The button on the Document tab keeps its verb — <em>Open Negotiate</em> — because a place and an act should not share a word.</span></li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>Design only. No code has been written or changed. Every question this design raised is now answered, so the build is a navigation change — a door added, a tab removed, a header rewritten, a plain list built and a phone bar widened — plus the tests that keep each of them honest.</p>
+  </footer>
+
+</div>

@@ -722,8 +722,9 @@
      switcher in its own markup — which is precisely how two tab rows for one
      room drift apart. Both now call roomTabsHtml() and land here.
 
-     Underline tabs, not pills: the room has five tabs, and five pills read as
-     a toolbar of buttons rather than as one place with five faces. */
+     Underline tabs, not pills: the room is one place with several faces, and
+     pills would read as a toolbar of buttons instead. (Four faces since Aug
+     2026 — Negotiate left the row for a door of its own in the sidebar.) */
   /* ---- THE ROOM'S HEAD: A NAME AND THREE ACTS ----
      This was a bordered card carrying eight controls in a row — Share, Import,
      Save-as-template, Compare, History, Export, Delete, Draft new agreement,
@@ -745,6 +746,73 @@
     overflow-wrap:anywhere; }
   .room-head .room-acts{ display:flex; align-items:center; gap:8px; flex:none; }
   .room-back{ width:34px; height:34px; padding:0; flex:none; margin-top:2px; }
+  /* ---- THE TITLE AS A DOOR, ON THE NEGOTIATION SCREEN ONLY ----
+     That page has no tab row, so the head's arrow is the only way off it — and
+     the name beside the arrow is the biggest target on the screen, which is
+     where readers aim. It is a real <button> for the keyboard and the screen
+     reader, and it inherits the h1's type completely: nothing about the title
+     should LOOK different, only the cursor and the hover say it can be pressed.
+     `font:inherit` alone is not enough — a button brings its own colour,
+     background, border and text-align with it. */
+  .room-title-back{ font:inherit; color:inherit; background:none; border:0; padding:0;
+    margin:0; text-align:left; cursor:pointer; max-width:100%; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:block; }
+  .room-title-back:hover{ color:var(--accent-ink); }
+  .room-title-back:focus-visible{ outline:2px solid var(--color-accent); outline-offset:3px; border-radius:4px; }
+  /* ---- WHAT THE NEGOTIATE TAB'S COUNT BECAME ----
+     The amber pill on that tab was how a reader on Key terms knew answers were
+     owed. The tab is gone, so the signal reads on the round line instead — same
+     number, same arithmetic (negoNeedsYouIds), and pressable, because a line
+     that reports work owed and cannot be pressed sends the reader hunting.
+     Inline, in the flow of the sub-line, so it reads as one sentence. */
+  .room-sub-needs{ font:inherit; font-weight:600; color:var(--st-amber-fg);
+    background:none; border:0; padding:0; margin:0; cursor:pointer; }
+  .room-sub-needs:hover{ text-decoration:underline; }
+  .room-sub-needs:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; border-radius:3px; }
+  /* The Document tab's one door, when it has answers waiting behind it. The
+     button is already the head's filled primary; this is the amber dot that
+     says the press is owed rather than merely available. */
+  .ws-to-nego-due::before{ content:""; display:inline-block; width:7px; height:7px;
+    border-radius:50%; background:var(--st-amber-dot); margin-right:7px; vertical-align:1px; }
+
+  /* ============ THE NEGOTIATIONS LIST ============
+     What the sidebar door shows when there is no last negotiation to reopen.
+
+     IT IS A SIGNPOST, NOT A SECOND REGISTER, and the styling says so as much as
+     the code does: rows, not a table with sortable heads; no filter bar, no
+     search box, nowhere for either to be added without it plainly becoming a
+     different kind of page. The one thing a row states loudly is whether it is
+     waiting on the reader, because that is the only question worth asking about
+     a negotiation you are standing outside of. */
+  .ngl-wrap{ padding:18px 20px 32px; max-width:900px; }
+  .ngl-head h2{ font-family:var(--font-heading); font-weight:600; font-size:20px;
+    margin:0 0 4px; line-height:1.2; }
+  .ngl-head p{ margin:0 0 18px; font-size:12.5px; color:var(--color-neutral-600); }
+  .ngl-list{ display:flex; flex-direction:column; gap:8px; }
+  .ngl-row{ display:flex; align-items:center; gap:14px; width:100%; text-align:left;
+    font:inherit; cursor:pointer; padding:13px 15px; border-radius:12px;
+    border:1px solid var(--color-divider); background:var(--color-surface);
+    color:var(--color-text); transition:border-color .12s, background .12s; }
+  .ngl-row:hover{ border-color:var(--color-accent); background:var(--color-accent-100); }
+  .ngl-row:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
+  .ngl-main{ flex:1; min-width:0; display:block; }
+  .ngl-name{ display:block; font-weight:600; font-size:13.5px; line-height:1.35;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ngl-sub{ display:block; font-size:11.5px; color:var(--color-neutral-600); margin-top:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* Three states, three readings. Amber is the only one that asks for anything;
+     the other two are told quietly on purpose — a list where every row shouts
+     is a list where the one that matters is invisible. */
+  .ngl-w{ flex:none; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px;
+    border:1px solid transparent; white-space:nowrap; }
+  .ngl-w-you{ background:var(--st-amber-bg); color:var(--st-amber-fg); border-color:var(--st-amber-line); }
+  .ngl-w-them{ background:var(--st-gray-bg); color:var(--st-gray-fg); border-color:var(--st-gray-line); }
+  .ngl-w-clear{ background:var(--st-green-bg); color:var(--st-green-fg); border-color:var(--st-green-line); }
+  .ngl-empty{ background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:16px; padding:34px; text-align:center; box-shadow:var(--shadow-sm); }
+  .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:700; }
+  .ngl-empty p{ margin:0 0 16px; font-size:12.5px; color:var(--color-neutral-600);
+    max-width:46ch; margin-inline:auto; line-height:1.6; }
   /* ---- THE NEGOTIATION DESK, IN THE HEADER AND NOWHERE ELSE ----
      Who leads a negotiation is a fact about the contract, so it rides with the
      contract's other facts. This is the whole visual cost of the feature: one
@@ -982,13 +1050,12 @@
     transition:color .13s, border-color .13s; }
   .room-tab:hover{ color:var(--color-text); }
   .room-tab.on{ color:var(--accent-ink); border-bottom-color:var(--accent-solid,var(--color-accent)); }
-  /* The count beside Negotiate. Plain when it is only a total; amber and
-     filled when some of it is waiting on THIS reader — a negotiation that
-     needs an answer must never be discoverable only by clicking. */
-  .room-tab .rt-n{ font-family:var(--font-mono); font-size:10.5px; font-weight:700;
-    color:var(--color-neutral-500); }
-  .room-tab.on .rt-n{ color:var(--accent-ink); }
-  .room-tab .rt-n.due{ background:var(--st-amber-dot); color:#fff; border-radius:999px; padding:1px 6px; }
+  /* .rt-n WAS THE COUNT BESIDE NEGOTIATE and went with that tab (12 Aug 2026).
+     No tab carries a count any more, so the rules are deleted rather than left
+     to be found and reused by somebody who assumes a tab may still have one.
+     The signal itself did not disappear: it reads on the round line under the
+     contract's name (.room-sub-needs) and on the sidebar door — a negotiation
+     that needs an answer must never be discoverable only by clicking. */
 
   /* The quiet line under the tabs: one sentence saying what this tab is for,
      and at most one button. Not a card — it explains the page, it is not part
@@ -2345,6 +2412,20 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
             <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><span class="nav-count" data-count="register"></span>
+          </button>
+          <!-- Negotiations — a PLACE, second in the list, on the owner's call
+               (12 Aug 2026). It used to be a tab inside one agreement, which
+               made the work discoverable only by opening the contract it
+               belonged to. The count is what is waiting on THIS reader across
+               every live negotiation — see negoNeedsYouTotal; a per-contract
+               number over a door that sits above every contract would be
+               counting the wrong book. The word is a noun because everything
+               else in this list is (the button on the Document tab keeps the
+               verb: a place and an act must not share a word). -->
+          <button data-view="redline" class="nav-item" title="Negotiations — every agreement being argued over right now" data-i18n-title="nav_negotiations_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+            <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
           </button>
           <button data-view="calendar" class="nav-item" title="Calendar" data-i18n-title="nav_calendar_title">
             <span class="nav-rail"></span>
