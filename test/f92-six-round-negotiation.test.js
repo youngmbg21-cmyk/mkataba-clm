@@ -164,8 +164,12 @@ describe('F92 — the six-round negotiation, end to end', () => {
     const [ask1, ask2] = win.negoChanges(c).map(x => x.id);
     assert.ok(!t.card(ask1).querySelector('.rl-acc') && !t.card(ask1).querySelector('.rl-rej'),
       'the preview offers no Accept/Reject — deciding their asks is theirs to do');
+    /* The spent Send marker came off every card on 13 Aug 2026 (the status
+       corner says it), so this now passes on both counts. Kept rather than
+       deleted: it is the preview seat's own guard, and a marker returning to
+       this card would be a real regression whoever it belonged to. */
     assert.ok(!t.card(ask1).querySelector('.rl-sent'),
-      'the amber Sent state is the AUTHOR\'s, not the decider\'s');
+      'no spent-Send marker on any card, and least of all on the decider\'s');
     assert.ok(!t.$('[data-nego-edit]'), 'no Direct Edit from the preview');
     assert.equal(t.$('#nego-readonly-why'), null,
       'and the column does not explain the absence in a paragraph (removed 10 Aug 2026)');

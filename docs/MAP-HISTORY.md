@@ -1592,3 +1592,46 @@ THE REVIEW MARK KEEPS ITS BOX. That is deliberate and it is easy to get wrong
 in a tidy-up: after this change the review mark is the only enclosed shape
 left in that row, and being the only one is exactly what makes it read as a
 MARK rather than as a second status. A tidier row would say less.
+
+THE SPENT SEND MARKER COMES OFF THE CARD — AND THIS REVERSES YESTERDAY
+
+Three versions of one slot in three days, and the third is the owner's.
+
+It began as an amber button reading "Sent", sitting about a centimetre below a
+status corner that read "Sent". On 12 August the word came off it and it became
+a quiet neutral marker — a tick and "With them", the negotiations list's own
+vocabulary — on the argument that a verb which vanishes on success leaves the
+reader wondering whether they pressed it, and that on a column of six cards
+there is nothing left to compare against.
+
+On 13 August the owner asked for the marker to go. That argument was read, not
+overlooked. The answer is that the status corner already carries the fact, in
+colour, one line up, from the SAME reading: neither the corner nor the marker
+was ever a flag anybody set — both follow from negoUnsentAsks noticing that the
+turn actually moved. A second confirmation, on the one card in the column that
+needs nothing from anybody, was buying very little for a whole button's width
+of a 285px card. The loss is real and it is accepted. This is not a mistake to
+argue with, and the next person to read the 12 August reasoning should know
+that it lost on its merits rather than by being forgotten.
+
+WHAT WENT WITH IT, because a deletion that leaves scaffolding behind is worse
+than no deletion: the .rl-sent, .rl-sent-tick and .rl-sent-cap rules; the two
+rules that existed only to keep the marker readable (full opacity despite
+disabled, and no hover filter); the dictionary entries ng_sent_marker and
+ng_sent_waiting_title in BOTH languages; and data-rl-sent inside RL_CARD_INERT.
+
+THAT LAST ONE IS THE LOAD-BEARING PART AND IT IS WHY THIS NEEDED PROVING. The
+attribute was what told the card "nothing on me is waiting on the reader",
+which is how a settled card stays quiet. Removing the button removes the
+attribute, so the obvious worry is that every sent card starts claiming it
+needs attention. It does not — the only verb left on such a card is Edit, and
+Edit is inert for its own reason, because it navigates. But "should be fine"
+is not evidence: the claim is now asserted from the RENDERED card, on the
+narrowest seat in the product (the counterparty's), and again in the browser by
+handing the real verbs to the real rule.
+
+Every test that asserted the marker EXISTS was turned round in place, with the
+reason and the asker written beside it — never deleted. Five of them: two in
+the workbench suite (the button, and its styling), one in the six-round
+scenario, one in the party-badges suite, one fixture and one card assertion in
+the cards suite, and five checks in the browser pop-out file.

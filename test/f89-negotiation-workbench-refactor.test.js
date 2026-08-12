@@ -1009,56 +1009,54 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 
-  test('and opening it again puts the spent Send back where the Send was', async () => {
-    /* THE CLAIM AS IT STOOD said the button read "Sent". It does not any more
-       (12 Aug 2026): the status pill a centimetre above it says that word, and
-       saying it twice on the one card that needs nothing from the reader is
-       what the owner reported. The BUTTON's job — staying exactly where the
-       Send was, so a reader can see they pressed it — is unchanged, and that
-       is what this test is for. */
+  test('and where the Send was there is now NOTHING at all', async () => {
+    /* ---- CLAIM REVERSED TWICE, AND THE SECOND REVERSAL IS THE OWNER'S ----
+       As first written this said the button read "Sent". On 12 Aug 2026 that
+       became a tick and "With them", because the status corner a centimetre
+       above already said the word. On 13 Aug 2026 the owner asked for the
+       marker to come off the card altogether, having weighed exactly the
+       argument it was built on — that a verb vanishing on success leaves the
+       reader unsure whether they pressed it — against the fact that the status
+       corner says Sent in plain sight, in colour, from the same reading.
+
+       So this test keeps its subject (what the card shows once an ask has
+       gone) and turns its claim round: the slot is empty, and the fact lives
+       in the one status slot where every other card's state lives. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
     p.$('#rl-changes .rl-card .rl-card-head').click();
     p.win.renderRedline();
-    const sent = p.$('#rl-changes button.rl-sent');
-    assert.ok(sent, 'the verb is where it was rather than gone');
-    assert.equal(sent.textContent.replace(/\s+/g, ' ').trim(), '\u2713 With them',
-      'a tick and a caption saying where it now is');
-    assert.doesNotMatch(sent.textContent, /Sent/, 'and NOT the status pill\'s word');
+    assert.equal(p.$('#rl-changes button.rl-sent'), null, 'no marker where the Send was');
+    assert.equal(p.$('#rl-changes [data-rl-sent]'), null, 'and no marker attribute either');
     assert.equal(p.$('#rl-changes .rl-badge').textContent.trim(), 'Sent',
-      'which the pill still carries, exactly once on the card');
-    assert.ok(sent.disabled, 'there is nothing further to do to it');
-    assert.equal(sent.getAttribute('data-rl-sent'), p.c.changes[0].id,
-      'and it keeps the marker attribute that says this is not a move waiting on anyone');
+      'the status corner carries the fact');
+    assert.equal((p.$('#rl-changes .rl-card').textContent.match(/Sent/g) || []).length, 1,
+      'said once, on the whole card');
+    assert.equal(p.$('#rl-changes [data-rl-send]'), null, 'and it cannot be sent twice');
   });
 
-  test('the marker is quiet and neutral, and it is NOT greyed out', async () => {
-    /* THE CLAIM THIS REWRITES: "the amber is the specified one" —
-       background:#fef3c7, literal hex with an html.dark twin, matching the
-       other verbs' tint-and-tone clothing. The amber went with the word: it
-       was the loudest thing on a settled card, and a card that needs nothing
-       should not shout. Neutral TOKENS rather than literal hex, deliberately —
-       the reason the verbs are hex is that a destructive verb changing colour
-       with the theme is a verb pressed by mistake, and this is not a verb.
+  test('and the marker\'s styling went with it, leaving no dead rules', async () => {
+    /* ---- CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
+       This used to assert the marker's clothes: a neutral fill, neutral ink,
+       and — the half that could be broken by accident — full opacity despite
+       being disabled, because a state the reader is meant to READ must not be
+       dimmed like a withheld control. There is no marker to dress any more, so
+       the claim becomes the other side of the same coin: the rules are gone
+       too. A stylesheet full of rules matching nothing is a stylesheet nobody
+       can read, and this project has been bitten by exactly that before.
 
-       THE SECOND HALF OF THE OLD CLAIM SURVIVES WORD FOR WORD, because it is
-       the one that can be broken by accident: full opacity despite disabled.
-       A marker faded by the browser's default disabled styling is unreadable,
-       and this is a state the reader is meant to read. */
+       The older claim this replaced — background:#fef3c7, the amber that was
+       the loudest thing on a settled card — stays disproved as well. */
     const p = await page();
-    const rule = p.rule('.redline-page .rl-sent') || '';
-    assert.match(rule, /background:var\(--color-neutral-100\)/, 'the app\'s own neutral fill');
-    assert.match(rule, /color:var\(--color-neutral-600\)/, 'and its own neutral ink');
-    /* Read off the DECLARATIONS, not off a selector shape: the note above the
-       rule names the deleted class and the deleted colour in prose, and a
-       loose selector regex matches the prose. */
-    assert.doesNotMatch(p.css(), /\.rl-sent\{[^}]*#fef3c7/, 'the amber is gone');
+    assert.equal(p.rule('.redline-page .rl-sent'), null, 'no marker rule');
+    assert.doesNotMatch(p.css(), /\.rl-sent-tick\{/, 'nor the tick inside it');
+    assert.doesNotMatch(p.css(), /button\.rl-sent:disabled\{opacity:1\}/,
+      'nor the full-strength rule that only existed to keep it readable');
+    assert.doesNotMatch(p.css(), /\.rl-sent\{[^}]*#fef3c7/, 'the amber is still gone');
     assert.doesNotMatch(p.css(), /rgba\(245,158,11,\.16\)/,
       'and so is the dark-mode override that existed only to answer it');
-    assert.match(p.css(), /button\.rl-sent:disabled\{opacity:1\}/,
-      'a state the reader is meant to read must not be dimmed like a withheld control');
   });
 
   test('the badge follows the record, not a flag anybody set', async () => {

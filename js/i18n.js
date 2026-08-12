@@ -1113,10 +1113,12 @@ const STRINGS = {
     ng_withdraw: 'Withdraw',
     ng_retract: 'Retract',
     ng_sent: 'Sent',
-    // The spent Send button's caption. NOT the status pill's word — the pill
-    // says where the change stands, this says where it now IS. Same vocabulary
-    // as the negotiations list's "With the other side" band.
-    ng_sent_marker: 'With them',
+    // ng_sent_marker ("With them" / "Hos dem") is GONE — flag any mention as
+    // stale. It was the spent Send button's caption, and the button itself was
+    // removed from the change card on 13 Aug 2026: the status corner says Sent
+    // one line above it, and a second confirmation on the one card that needs
+    // nothing was not worth a button's width. ng_sent_waiting_title, its
+    // tooltip, went with it.
     ng_your_ask: 'Your ask',
     ng_you_are_viewing: 'You are viewing',
     ng_internal_threads_hidden: '. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.',
@@ -2711,7 +2713,6 @@ const STRINGS = {
     ng_entered_by_on_behalf: 'Entered by {who} on behalf of {author}',
     ng_retract_title: 'Retract this draft — it hasn\'t been sent, so nothing is taken back from {who}',
     ng_send_unsent_title: 'Send this and every other unsent draft to {who}',
-    ng_sent_waiting_title: 'Sent to {who} — waiting on their answer',
     ng_proposed_by_your_side: 'Proposed by your side',
     ng_proposed_in_round: 'Proposed in round {n}',
     ng_unsent_drafts_one: '{n} unsent draft',
@@ -4556,7 +4557,6 @@ const STRINGS = {
     ng_withdraw: 'Dra tillbaka',
     ng_retract: 'Återkalla',
     ng_sent: 'Skickat',
-    ng_sent_marker: 'Hos dem',
     ng_your_ask: 'Din begäran',
     ng_you_are_viewing: 'Du tittar på',
     ng_internal_threads_hidden: '. Interna trådar, anteckningar och osända utkast finns inte här &mdash; och inget på den här sidan avslöjar att de finns.',
@@ -6134,7 +6134,6 @@ const STRINGS = {
     ng_entered_by_on_behalf: 'Inlagd av {who} för {author}s räkning',
     ng_retract_title: 'Dra tillbaka utkastet — det har inte skickats, så inget tas tillbaka från {who}',
     ng_send_unsent_title: 'Skicka det här och alla andra oskickade utkast till {who}',
-    ng_sent_waiting_title: 'Skickat till {who} — väntar på deras svar',
     ng_proposed_by_your_side: 'Föreslaget av er sida',
     ng_proposed_in_round: 'Föreslaget i runda {n}',
     ng_unsent_drafts_one: '{n} oskickat utkast',

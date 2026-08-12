@@ -6500,30 +6500,19 @@ function redlineLayoutCss(){
   .redline-page .rl-edit:hover{border-color:var(--color-neutral-400);color:var(--color-text)}
   html.dark .redline-page .rl-rej{color:#fda4af}
   html.dark .redline-page .rl-edit{color:var(--color-neutral-700)}
-  /* ---- THE SPENT SEND IS A QUIET MARKER, NOT A SECOND ANNOUNCEMENT ----
-     It was AMBER and it said "Sent" — a centimetre under a status pill saying
-     the same word, and the loudest thing on the one card in the column that
-     needs nothing from the reader (owner-asked, 12 Aug 2026). The word went to
-     the pill, which is the card's one status slot; the button keeps its slot,
-     its position and its dead state and wears the app's own neutral tokens.
-     The fixed-hex amber and its html.dark twin are DELETED — flag any mention
-     of #fef3c7 on this class as stale. Neutral tokens are the one family that
-     SHOULD remap with the theme: the reason the verbs are literal hex is that
-     a destructive verb changing colour is a verb pressed by mistake, and this
-     is not a verb.
+  /* ---- THE SPENT SEND MARKER IS GONE FROM THE CARD (owner-asked, 13 Aug) ----
+     .rl-sent, .rl-sent-tick, .rl-sent-cap and the two rules that kept the
+     marker at full strength and unhovered are all DELETED — flag any mention
+     of them as stale, along with the #fef3c7 amber they replaced a day
+     earlier.
 
-     FULL OPACITY DESPITE BEING DISABLED, and this rule survives untouched from
-     the amber: it is a STATE the reader is meant to read, not a control being
-     withheld, and the browser's default greying-out would make the one card
-     that has moved the hardest one to see. Quiet is not the same as faint.
-
-     FLAT, NOT OUTLINED. Edit and Reject are outlines and they are pressable;
-     a fill with no border is what says this one is not. */
-  .redline-page .rl-sent{background:var(--color-neutral-100);color:var(--color-neutral-600);
-    cursor:default;display:inline-flex;align-items:center;gap:5px}
-  .redline-page .rl-sent .rl-sent-tick{font-size:11px;line-height:1}
-  .redline-page .rl-card-verbs button.rl-sent:disabled{opacity:1}
-  .redline-page .rl-card-verbs button.rl-sent:hover{filter:none}
+     THIS REVERSES A DECISION FROM A FEW COMMITS AGO. On 12 Aug the marker was
+     kept, in the app's neutral tokens, on the argument that a verb vanishing
+     on success leaves the reader unsure whether they pressed it. The owner has
+     read that argument and decided against it: the status corner now says Sent
+     in plain sight, one line above, and the loss of the second confirmation is
+     weighed and accepted. So the action bar draws nothing at all where the
+     Send used to be. It is not a mistake to argue with. */
 
   /* ---- THE LINK BETWEEN A CLAUSE AND ITS CARD ----
      Both ends light at once, whichever end was clicked, because the point of
@@ -8938,11 +8927,20 @@ function rlCardForgetPins(contractId){
    second copy of the rule that builds the verbs a hundred lines below, and the
    two would disagree the first time either moved.
 
-   Edit and Sent do not count: Edit navigates and Sent is a disabled label.
-   Everything else — Accept, Reject, Withdraw, Undo, Retract, Send — is a move
-   waiting on this reader, and a move you cannot see is a move you do not
-   make. */
-const RL_CARD_INERT = /data-rl-edit|data-rl-sent|data-nego-redecide/;
+   Edit does not count: it navigates. Nor does Change decision: it has gone,
+   the other side is holding it, and an escape hatch is not a move waiting on
+   anybody. Everything else — Accept, Reject, Withdraw, Undo, Retract, Send —
+   is a move waiting on this reader, and a move you cannot see is a move you
+   do not make.
+
+   data-rl-sent LEFT THIS PATTERN WITH THE BUTTON (13 Aug 2026). The spent Send
+   marker is no longer drawn at all, so nothing emits that attribute and a
+   pattern matching nothing is a pattern nobody can read. THE OUTCOME IS
+   UNCHANGED, and that is the thing to check rather than assume: a sent ask of
+   ours now leaves exactly one verb on the card — Edit — which is inert for its
+   own reason, so the card still reads as needing nothing. f100 proves that off
+   the rendered card rather than off this rule. */
+const RL_CARD_INERT = /data-rl-edit|data-nego-redecide/;
 function rlCardNeedsYou(verbs){
   return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
 }
@@ -11031,44 +11029,33 @@ function redlineChangeCardsHtml(c, opts = {}){
        back is not a send. */
     if (editable && mineUnsent && !held) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
         title="${_nea(i18t('ng_send_unsent_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_send')}</button>`);
-    /* ---- AND WHAT THE SEND BECOMES ----
-       Not the button disappearing. A verb that vanishes on success leaves the
-       reader wondering whether they pressed it, and on a column of six cards
-       there is nothing left to compare against. It stays where it was, in its
-       own slot, and goes inert. Disabled because there is nothing further to
-       do to it: the next move is theirs.
+    /* ---- AND WHAT THE SEND BECOMES: NOTHING AT ALL ----
+       (owner-asked, 13 Aug 2026 — and this REVERSES a decision taken a day
+       earlier, deliberately and with the loss weighed.)
 
-       Drawn from the same reading as the badge above it. Neither is a flag
-       anybody sets; both follow from the turn having actually moved.
+       There were three versions of this slot in three days. It was an amber
+       button saying "Sent", a centimetre under a status corner saying the same
+       word. Then, on 12 Aug, it was a quiet neutral marker — a tick and "With
+       them" — on the argument that a verb which vanishes on success leaves the
+       reader unsure whether they pressed it, and that on a column of six cards
+       there is nothing left to compare against.
 
-       ---- BUT IT NO LONGER SAYS "SENT" (owner-asked, 12 Aug 2026) ----
-       It used to, in amber, about a centimetre below a status badge that says
-       exactly the same word. Both come from the same reading, so they could
-       never disagree — they just repeated, on the one card in the column that
-       needs no attention at all.
+       That argument is real and the owner has read it. The decision is that
+       the STATUS CORNER answers it: it says Sent, in colour, one line above,
+       on the same reading — neither is a flag anybody sets, both follow from
+       the turn having actually moved. A second confirmation on the one card in
+       the column that needs nothing from the reader was buying very little
+       with a whole button's worth of the card's width.
 
-       THE STATUS PILL KEEPS THE WORD. It is the card's ONE status slot, it
-       reads Draft / Held / Waiting on you / Accepted / Refused on every other
-       card, and half the product (and its tests) asks that slot where a change
-       stands. The word belongs there and nowhere else on the card.
+       So the action bar draws nothing here. `mineSent` is still computed —
+       the badge above is built from it — and the bar keeps whatever else
+       belongs on the card, which for a sent ask of ours is Edit.
 
-       SO THIS BECOMES A MARKER, not a second announcement: a tick and a small
-       caption saying where the change now IS ("With them" — the negotiations
-       list's own vocabulary for the same state), in the app's neutral tokens
-       rather than the amber, which was the loudest thing on a settled card.
-
-       THREE THINGS IT MUST KEEP, and each of them breaks something real:
-         · data-rl-sent, which is what RL_CARD_INERT reads to know this is not a
-           move waiting on anybody. Drop it and every sent card starts claiming
-           it needs the reader;
-         · disabled, for the same reason and because it is not pressable;
-         · FULL STRENGTH. .rl-card-verbs button.rl-sent:disabled{opacity:1} is
-           still there below: this is a state the reader is meant to READ, and
-           the browser's default greying-out of a disabled control would make
-           the marker illegible. */
-    if (editable && mineSent) verbs.push(`<button type="button" class="rl-sent" data-rl-sent="${_nea(ch.id)}" disabled
-        title="${_nea(i18t('ng_sent_waiting_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}"
-        ><span class="rl-sent-tick" aria-hidden="true">&#10003;</span> <span class="rl-sent-cap">${i18t('ng_sent_marker')}</span></button>`);
+       AND A SENT CARD STILL READS AS NEEDING NOTHING. That used to be true
+       because data-rl-sent was in RL_CARD_INERT; it is true now because the
+       only verb left, Edit, is inert for its own reason (it navigates). The
+       attribute has left the pattern with the button — see RL_CARD_INERT — and
+       f100 proves the outcome from the card rather than from the rule. */
     /* ---- THE ORIGIN PILL IS GONE FROM THIS CARD (owner-asked, 12 Aug 2026) ----
        It was a green "Your ask" — or, on their asks, the counterparty's own
        name — in the card's lead group, and it had a long and careful history:

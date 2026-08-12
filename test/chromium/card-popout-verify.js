@@ -301,22 +301,22 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     await phone.screenshot({ path: path.join(OUT, '04-phone-sheet.png') });
     await phone.close();
 
-    /* ---- 9. THE CARD'S HEAD AND ITS SPENT SEND (owner-asked, 12 Aug 2026) ----
-       Two changes to the same card, and both are about saying a thing ONCE.
+    /* ---- 9. THE CARD'S HEAD, AND THE EMPTY SLOT WHERE ITS SEND WAS ----
+       (owner-asked, 12 and 13 Aug 2026.) Two changes to the same card, and
+       both are about saying a thing ONCE.
 
          · the origin pill ("Your ask" / "<their company>'s ask") came out of
            the head: a third tag in a corner with two, answering what the
            column's Mine / Theirs filter and the meta line already answer;
-         · the spent Send stopped saying "Sent", because the status pill a
-           centimetre above it says exactly that word. It keeps its slot, its
-           position and its dead state and becomes a quiet marker.
+         · the spent Send first stopped saying "Sent" (12 Aug) and then came
+           off the card entirely (13 Aug). The status corner a centimetre above
+           says the word, in colour, from the same reading, and the owner has
+           weighed the loss of the second confirmation and accepted it.
 
-       BROWSER, because both are claims about what a reader SEES: that the word
-       appears once on the whole card, that the coloured spine still tells the
-       two sides apart (a computed border colour), and that the marker is at
-       FULL strength rather than faded by the browser's own disabled styling —
-       which is the fault that would make it unreadable, and which jsdom
-       resolves not at all. */
+       BROWSER, because these are claims about what a reader SEES: that the
+       word appears once on the whole card, that the coloured spine still tells
+       the two sides apart (a computed border colour), and that a card with
+       nothing left to press still reads as needing nothing. */
     const heads = await page.evaluate(([seen]) => {
       const s = eval(seen);
       const cards = [...document.querySelectorAll('#rl-changes .rl-card')];
@@ -372,6 +372,10 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
         opacity: cs ? Number(cs.opacity) : null,
         fill: cs ? cs.backgroundColor : null,
         slot: bar.map(b => b.textContent.replace(/\s+/g, ' ').trim()),
+        /* The whole safety argument for removing the marker: the attribute it
+           carried was what told the card "nothing here is waiting on you".
+           Asked of the real rule, off the real rendered verbs. */
+        needsYou: window.rlCardNeedsYou(bar.map(b => b.outerHTML)),
         liveSend: !!el.querySelector('[data-rl-send]'),
         bodyShown: s(el.querySelector('.rl-card-body')),
       };
@@ -379,20 +383,28 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     check('after the send there is a card of ours to read', gone.there);
     check('THE WORD "SENT" APPEARS EXACTLY ONCE ON THE CARD',
       gone.saysSent === 1 && gone.badge === 'Sent', `${gone.saysSent} time(s), pill says "${gone.badge}"`);
-    check('the spent Send is still in its place, last in the action bar',
-      !!gone.mark && gone.mark.on && gone.slot[gone.slot.length - 1] === gone.markText,
-      gone.slot.join(' · '));
-    check('and it is a tick and a caption, not the pill’s word',
-      /✓/.test(gone.markText || '') && !/Sent/.test(gone.markText || ''), gone.markText);
-    check('still dead — nothing further to do to it', gone.disabled === true);
-    check('AND STILL LEGIBLE: full strength, not the browser’s greyed-out disabled',
-      gone.opacity === 1, 'opacity ' + gone.opacity);
-    check('quiet, not amber — the app’s own neutral fill',
-      !!gone.fill && gone.fill !== 'rgb(254, 243, 199)', gone.fill);
+    /* ---- CLAIMS REVERSED, 13 Aug 2026, OWNER-ASKED ----
+       Five checks used to describe the spent Send marker: that it kept its
+       slot last in the action bar, that it was a tick and a caption rather
+       than the corner's word, that it was dead, that it stayed at full
+       strength (a state the reader must READ, not a withheld control) and
+       that it was neutral rather than the amber it replaced.
+
+       The owner has asked for the marker to come off the card. The status
+       corner says Sent, in colour, one line up, from the same reading — and
+       the loss of the second confirmation is weighed and accepted. So the
+       checks are turned round in place rather than deleted: the slot is
+       EMPTY, and what remains in the bar is Edit alone. */
+    check('NOTHING WHERE THE SEND WAS — no marker at all',
+      !gone.mark, gone.markText || 'absent');
+    check('and the action bar keeps only what still belongs there',
+      gone.slot.length === 1 && /Edit/i.test(gone.slot[0] || ''), gone.slot.join(' · '));
+    check('the card still reads as needing nothing from you',
+      gone.needsYou === false, String(gone.needsYou));
     check('the live Send is gone — it cannot be sent twice', !gone.liveSend);
     check('and the card still collapses to a line — the reading matter is not shown',
       !(gone.bodyShown && gone.bodyShown.on));
-    await page.screenshot({ path: path.join(OUT, '06-sent-marker.png') });
+    await page.screenshot({ path: path.join(OUT, '06-sent-slot-empty.png') });
 
     /* ---- 10. THE PHONE DRAWS THE SAME BUILDER, SO CHECK IT THERE TOO ---- */
     const ph2 = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
@@ -415,7 +427,9 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     });
     check('on a phone: no origin pill either', onPhone.there && onPhone.pills === 0, onPhone.pills);
     check('on a phone: "Sent" still said exactly once', onPhone.saysSent === 1, onPhone.saysSent);
-    check('on a phone: the marker is on screen', onPhone.markOn, onPhone.markText);
+    /* REVERSED with its desktop twin: the marker is not drawn anywhere, and
+       the phone renders the same builder, so it must be absent here too. */
+    check('on a phone: no spent-Send marker either', !onPhone.markOn, onPhone.markText);
     await ph2.screenshot({ path: path.join(OUT, '07-phone-card.png') });
     await ph2.close();
 

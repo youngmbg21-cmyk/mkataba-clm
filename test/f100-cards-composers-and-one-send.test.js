@@ -268,16 +268,19 @@ describe('F100b — the card is a handle, not a copy', () => {
     const w = buildWorld({ negotiationView: true });
     assert.equal(w.win.rlCardNeedsYou(['<button data-rl-send="X">Send</button>']), true);
     assert.equal(w.win.rlCardNeedsYou(['<button data-nego-undo="X">Undo</button>']), true);
-    /* THE FIXTURE FOLLOWS THE MARKUP. The spent Send lost the word "Sent" on
-       12 Aug 2026 (the status pill above it already says it) and became a tick
-       and a caption — so the fixture says what the renderer says. The
-       classification is read off the ATTRIBUTE, which is exactly why it did
-       not have to change with the label; a fixture quoting a button nothing
-       draws any more is a fixture that stops being evidence. */
+    /* THE FIXTURE FOLLOWS THE MARKUP, and it has followed it twice. The spent
+       Send lost the word "Sent" on 12 Aug 2026 and became a tick and a
+       caption; on 13 Aug 2026 the owner asked for the marker to come off the
+       card altogether, so nothing emits data-rl-sent and the attribute has
+       left RL_CARD_INERT with it. A fixture quoting a button nothing draws any
+       more is a fixture that has stopped being evidence.
+
+       THE OUTCOME IS THE SAME AND THAT IS THE POINT: a sent ask of ours now
+       leaves exactly one verb on the card, Edit, which is inert for its own
+       reason. Proved from the rendered card in F100f rather than assumed. */
     assert.equal(w.win.rlCardNeedsYou([
-      '<button data-rl-edit="X">Edit</button>',
-      '<button data-rl-sent="X" disabled><span>\u2713</span> <span>With them</span></button>']), false,
-      'Edit navigates and the spent Send is a marker — neither is a move waiting on you');
+      '<button data-rl-edit="X">Edit</button>']), false,
+      'Edit navigates — it is not a move waiting on you');
     assert.equal(w.win.rlCardNeedsYou([]), false);
   });
 });
@@ -668,7 +671,7 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     assert.deepEqual(verbsOf(card), ['Edit', 'Retract', 'Send']);
   });
 
-  test('WO-1 · once it has gone it reads Sent, and carries EXACTLY Edit and Sent', async () => {
+  test('WO-1 · once it has gone it reads Sent, and carries EXACTLY Edit', async () => {
     /* The item the work order left open. It is the same reading as the owner's
        badge — one set, one answer — but it had not been read back from this
        chair since the send-vs-turn fix, and this seat is where the fault was
@@ -676,15 +679,27 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     const p = await page();
     const card = seat(p).querySelector('[data-rl-origin="us"]');
     assert.equal(card.querySelector('.rl-badge').textContent.trim(), 'Sent');
-    /* THE WORD IS SAID ONCE (12 Aug 2026). The pill above keeps it — it is the
-       card's one status slot — and the spent Send keeps its SLOT and loses the
-       word, so the card no longer prints "Sent" twice a centimetre apart. */
-    assert.deepEqual(verbsOf(card), ['Edit', '\u2713 With them'],
-      'two buttons, and no third: Retract is not honest once it has gone');
+    /* ---- CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
+       On 12 Aug the spent Send kept its SLOT and lost the word, so the card
+       stopped printing "Sent" twice a centimetre apart. The owner has now
+       asked for the marker to come off the card entirely — the status corner
+       above says Sent, in colour, from the same reading. So the list is one
+       verb, not two.
+
+       AND THIS IS WHERE THE "STILL INERT" CLAIM IS PROVED. It used to hold
+       because data-rl-sent was in RL_CARD_INERT; it holds now because Edit is
+       the only verb left and Edit navigates. Asserted from the rendered card
+       — this seat is the narrowest in the product and the one the fault was
+       reported from. */
+    assert.deepEqual(verbsOf(card), ['Edit'],
+      'one verb, and no marker: Retract is not honest once it has gone');
+    assert.equal(card.querySelector('[data-rl-sent]'), null,
+      'nothing at all where the Send was');
+    assert.equal(p.win.rlCardNeedsYou([...card.querySelectorAll('.rl-card-verbs button')]
+      .map(b => b.outerHTML)), false,
+      'and with the marker gone the card STILL reads as needing nothing');
     assert.equal((card.textContent.match(/Sent/g) || []).length, 1,
       'and the word appears exactly once on the whole card');
-    assert.equal(card.querySelector('[data-rl-sent]').disabled, true,
-      'a state, not a control — the next move is theirs');
     assert.equal(card.querySelector('[data-rl-send]'), null,
       'the fault as reported: a Sent badge beside a live Send');
     assert.equal(card.querySelector('[data-rl-retract]'), null);
