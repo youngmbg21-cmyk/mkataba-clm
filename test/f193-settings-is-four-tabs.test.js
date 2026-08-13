@@ -497,3 +497,67 @@ describe('f193 — the words', () => {
     assert.ok($('st-copilot-engine'), 'it points at the one control that does change this');
   });
 });
+
+/* ============================================================
+   AND THE ONE DESTRUCTIVE THING ON THIS PAGE, ATTACKED DIRECTLY
+   ============================================================
+   Clearing the demo samples is the only button here that removes anything, and
+   it cannot go through the per-contract delete: that one refuses anything past
+   Draft or Under Review, and half the samples are seeded as Signed. So there is
+   a route, and a route that deletes needs the two questions asked of it in a
+   real server rather than in a stub — does it refuse everybody but an admin,
+   and does it decide by ORIGIN rather than by anything a name could fake. */
+const { before: _before, after: _after } = require('node:test');
+const { startHati: _startHati, seedWorkspace: _seedWorkspace } = require('./helpers');
+
+let _h, _W;
+_before(async () => { _h = await _startHati(); _W = await _seedWorkspace(_h); });
+_after(async () => { await _h.stop(); });
+
+describe('f193 — clearing the samples goes by origin, and only an admin may', () => {
+  const put = async (client, c) => {
+    const r = await client.raw('/api/contracts/' + c.id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+    assert.ok(r.status < 400, `seeding ${c.id}: ${r.text}`);
+  };
+
+  test('a member cannot clear anything', async () => {
+    const r = await _W.unrestricted.raw('/api/demo/clear', { method: 'POST', body: {} });
+    assert.equal(r.status, 403);
+  });
+
+  test('it removes what was SEEDED and leaves everything else, whatever it is called', async () => {
+    /* Three contracts that a name-matching implementation would get wrong: a
+       seeded one, a REAL one with the identical name, and a real one actually
+       called "Sample agreement". */
+    await put(_W.admin, { id: 'MK-S1', name: 'Refined Sugar Supply', counterparty: 'Kabras',
+      folder: 'proc', status: 'Signed', value: 1, seeded: true, audit: [], signatures: [] });
+    await put(_W.admin, { id: 'MK-S2', name: 'Refined Sugar Supply', counterparty: 'Kabras',
+      folder: 'proc', status: 'Signed', value: 1, audit: [], signatures: [] });
+    await put(_W.admin, { id: 'MK-S3', name: 'Sample agreement', counterparty: 'Anyone',
+      folder: 'proc', status: 'Draft', value: 1, audit: [], signatures: [] });
+
+    const r = await _W.admin.json('/api/demo/clear', { method: 'POST', body: {} });
+    assert.deepEqual(Array.from(r.removed), ['MK-S1'],
+      'the flag stamped when the sample was created is the only thing that counts');
+
+    const gone = await _W.admin.raw('/api/contracts/MK-S1');
+    assert.equal(gone.status, 404, 'the seeded one is gone');
+    const kept = await _W.admin.json('/api/contracts/MK-S2');
+    assert.equal(kept.name, 'Refined Sugar Supply', 'the real one with the same name is untouched');
+    const kept2 = await _W.admin.json('/api/contracts/MK-S3');
+    assert.equal(kept2.name, 'Sample agreement', 'and so is the one that merely says "sample"');
+  });
+
+  test('a signed sample goes, which is the whole reason this route exists', async () => {
+    /* The per-contract delete refuses an executed contract — correctly, because
+       an executed agreement is a record. A seeded example is not a record of
+       anything, and it is seeded as Signed. */
+    const r = await _W.admin.raw('/api/contracts/MK-S2', { method: 'DELETE' });
+    assert.equal(r.status, 409, 'the ordinary delete still refuses a signed contract');
+  });
+
+  test('running it again removes nothing and says so', async () => {
+    const r = await _W.admin.json('/api/demo/clear', { method: 'POST', body: {} });
+    assert.deepEqual(Array.from(r.removed), []);
+  });
+});

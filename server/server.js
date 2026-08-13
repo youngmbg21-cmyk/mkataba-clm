@@ -2575,6 +2575,40 @@ const templateManager = (req, res, next) => {
    one map carrying two meanings is how a reader who was only ever meant to look
    ends up able to execute. Atomic like its neighbour above, for the same
    reason — a concurrent unrelated settings save must not revert a restriction. */
+/* ---- CLEARING THE DEMO SAMPLES ----
+   A new workspace is seeded with example contracts so the screens have
+   something on them on day one, and there was no way to take them out again:
+   the per-contract delete refuses anything past Draft or Under Review, and half
+   the samples are seeded as Signed.
+
+   ORIGIN, NEVER NAME. `seeded: true` is stamped on a sample at the moment the
+   portfolio is created and survives the light-list projection, so "is this a
+   sample?" is a fact on the record rather than a guess about its title. A real
+   contract called "Sample agreement", or one that happens to share a name with
+   a seeded row, is untouched — which is exactly what the test puts in front of
+   it. Nothing else can be reached from here: the query names the flag, and the
+   response says what went and what stayed so a wrong answer is visible rather
+   than silent. */
+app.post('/api/demo/clear', auth, admin, (req, res) => {
+  const rows = db.prepare('SELECT id, json FROM contracts').all();
+  const doomed = [];
+  for (const r of rows) {
+    let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (c && c.seeded === true) doomed.push({ id: r.id, fileIds: [
+      ...(c.upload && c.upload.fileId ? [c.upload.fileId] : []),
+      ...((Array.isArray(c.documents) ? c.documents : []).filter(d => d && d.fileId).map(d => d.fileId)),
+    ] });
+  }
+  txn(() => {
+    for (const d of doomed) {
+      db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), d.id);
+      for (const fid of d.fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
+      db.prepare('DELETE FROM contracts WHERE id=?').run(d.id);
+    }
+  });
+  res.json({ ok: true, removed: doomed.map(d => d.id), kept: rows.length - doomed.length });
+});
+
 app.put('/api/settings/sign-folders', auth, admin, (req, res) => {
   const { userId, folders } = req.body || {};
   if (!userId) return res.status(400).json({ error: 'userId is required' });

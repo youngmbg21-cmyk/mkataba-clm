@@ -317,6 +317,47 @@ const signIn = async (page, base, email, pass) => {
       /not enforced/i.test(sw.note), sw.note.replace(/\s+/g, ' ').trim().slice(-70));
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
+    /* ---- CLEARING THE SAMPLES, end to end ----
+       The one destructive control on this page, and the one that could not go
+       through the per-contract delete (which refuses anything past Draft, and
+       half the samples are seeded as Signed). Pressed for real, with the
+       confirm answered yes, and then checked against the register. */
+    await page.evaluate(async () => {
+      /* Two contracts a name-matching implementation would get wrong. */
+      const mk = (id, name, seeded) => ({ id, name, counterparty: 'Kabras', folder: 'proc',
+        status: 'Signed', value: 1, seeded: seeded || undefined, audit: [], signatures: [] });
+      for (const c of [mk('MK-D1', 'Seeded Sugar', true), mk('MK-D2', 'Seeded Sugar', false)]) {
+        await api('contracts/' + c.id, 'PUT', { contract: c, baseVersion: 0 });
+        state.contracts.push(c);
+      }
+      window.__confirmWas = window.confirmDialog;
+      window.confirmDialog = async () => true;
+      settingsGoTab('build'); stDrawerOpen('samples');
+    });
+    await page.waitForTimeout(600);
+    const samplesBefore = await page.evaluate(() => ({
+      chip: (document.querySelector('[data-st-panel="samples"] .st-row-chip') || {}).textContent || '',
+      btn: !!document.getElementById('st-samples-clear'),
+    }));
+    check('the samples panel counts what is seeded and offers to clear it',
+      samplesBefore.btn, `chip "${samplesBefore.chip}"`);
+    await page.click('#st-samples-clear');
+    await page.waitForTimeout(1800);
+    const samplesAfter = await page.evaluate(async () => {
+      const list = await api('contracts?limit=200');
+      const ids = (list.rows || []).map(c => c.id);
+      return { seededGone: !ids.includes('MK-D1'), realKept: ids.includes('MK-D2'),
+        onScreen: document.getElementById('st-dbody').textContent };
+    });
+    check('pressing it removes the seeded example and keeps the real one with the same name',
+      samplesAfter.seededGone && samplesAfter.realKept,
+      `seeded gone ${samplesAfter.seededGone} · real kept ${samplesAfter.realKept}`);
+    check('and the panel says so afterwards rather than still offering the press',
+      /No sample contracts are left|sample contracts are still here/i.test(samplesAfter.onScreen),
+      samplesAfter.onScreen.replace(/\s+/g, ' ').trim().slice(0, 70));
+    await page.evaluate(() => { window.confirmDialog = window.__confirmWas; });
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+
     /* ---- the avatar is the account menu ---- */
     await page.click('#rail-avatar'); await page.waitForTimeout(600);
     const acct = await page.evaluate(() => ({

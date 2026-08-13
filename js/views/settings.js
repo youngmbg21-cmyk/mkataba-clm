@@ -1727,11 +1727,24 @@ async function stClearSamples(){
     message:i18t('set_demo_clear_msg',{n:s.length})+'\n\n'+s.map(c=>c.name).join('\n'),
     confirmLabel:i18t('set_demo_clear'), danger:true });
   if(!ok) return;
+  /* NOT the per-contract delete: that one refuses anything past Draft or Under
+     Review, and half the samples are seeded as Signed — so driving this through
+     it would have left the signed examples behind and reported success. The
+     server decides by ORIGIN and answers with what actually went. */
   let gone=0;
-  for(const c of s.slice()){
-    try{ await deleteContract(c.id,{silent:true}); gone++; }
-    catch(e){ /* one refusal does not stop the rest; the count says what went */ }
+  if(API_MODE()){
+    try{ const r=await api('demo/clear','POST',{});
+      const ids=new Set((r&&r.removed)||[]);
+      state.contracts=(state.contracts||[]).filter(c=>!ids.has(c.id));
+      gone=ids.size;
+    }catch(e){ stDrawerRefuse(e.message); return; }
+  } else {
+    const ids=new Set(s.map(c=>c.id));
+    state.contracts=(state.contracts||[]).filter(c=>!ids.has(c.id));
+    gone=ids.size; persist();
   }
+  if(state.activeId && !getContract(state.activeId)) state.activeId=null;
+  if(window.updateSidebarCounts) updateSidebarCounts();
   toast(i18t('set_demo_cleared_n',{n:gone}));
   renderTeam(); stDrawerOpen('samples');
 }
