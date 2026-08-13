@@ -366,6 +366,81 @@ const SHEET = () => {
       `${floored.sheet} of ${floored.col}, zoom ${floored.zoom}`);
     await page.screenshot({ path: path.join(OUT, '04-owner-floor-8.png') });
 
+    /* ---- 5c. AND THE FURNITURE ON THE SHEET FOLLOWS THE WORDS ----
+       Owner-reported, 13 Aug 2026, on both seats: "the clause number pill, the
+       copilot and edit direct pills do not proportionally shrink and expand
+       with the page."
+
+       This is the second half of 5's own lesson and it was missed for the same
+       reason it was needed: the FIT still carried these (drag the divider and
+       they grow), so nothing looked wrong until the stepper moved. Measured
+       before the fix: the tag rendered at an identical 178.6 x 35.6 at 8px,
+       15px AND 20px while the contract's own words went from 38.6px tall to
+       241.3px — at the floor of 8 the label on a clause was bigger than the
+       clause.
+
+       RENDERED size, not the CSS number: the zoom and the type land in the same
+       space and only the rendered box says what the reader actually sees.
+       Driven through rlSetDocType because that is the stepper's own funnel,
+       already proved in 5 to be what the buttons press. */
+    const FURNITURE = `(() => {
+      const box = sel => { const el = document.querySelector(sel); if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { w: +r.width.toFixed(1), h: +r.height.toFixed(1) }; };
+      const words = document.querySelector('.redline-page .rl-paper .rl-clause p')
+        || document.querySelector('.redline-page .rl-paper p');
+      return { words: words ? +parseFloat(getComputedStyle(words).fontSize).toFixed(2) : 0,
+        tag: box('.redline-page .rl-asktag'), tool: box('.redline-page .rl-tool') };
+    })()`;
+    const furnitureAt = async v => {
+      await page.evaluate(t => window.rlSetDocType(t), v);
+      await pause(350);
+      return page.evaluate(FURNITURE);
+    };
+    const f8 = await furnitureAt(8), f15 = await furnitureAt(15), f20 = await furnitureAt(20);
+    check('5c the sheet carries a clause tag and a clause tool to measure',
+      !!(f15.tag && f15.tool), f15.tag ? `tag ${f15.tag.w}x${f15.tag.h}, tool ${f15.tool ? f15.tool.w : '—'}` : 'no tag on the sheet');
+    if (f15.tag && f15.tool){
+      /* The reported symptom, stated as the thing that must no longer be true:
+         three different settings, three identical boxes. */
+      check('5c THE CLAUSE TAG IS NO LONGER THE SAME SIZE AT EVERY SETTING',
+        !(f8.tag.w === f15.tag.w && f15.tag.w === f20.tag.w),
+        `8: ${f8.tag.w}x${f8.tag.h} · 15: ${f15.tag.w}x${f15.tag.h} · 20: ${f20.tag.w}x${f20.tag.h}`);
+      check('5c AND IT MOVES THE WAY THE WORDS MOVE — smaller at 8, bigger at 20',
+        f8.tag.w < f15.tag.w && f20.tag.w > f15.tag.w,
+        `${f8.tag.w} < ${f15.tag.w} < ${f20.tag.w}`);
+      /* PROPORTIONALLY is the word the report used, so it is the word measured:
+         the tag against the body text it sits beside, at both ends of the
+         range, within a small tolerance for borders and rounding. */
+      const ratio = f => f.tag.h / f.words;
+      check('5c and it stays in PROPORTION to the wording, which is what was asked',
+        Math.abs(ratio(f8) - ratio(f15)) < 0.25 && Math.abs(ratio(f20) - ratio(f15)) < 0.25,
+        `tag height ÷ body size — 8: ${ratio(f8).toFixed(2)} · 15: ${ratio(f15).toFixed(2)} · 20: ${ratio(f20).toFixed(2)}`);
+      check('5c THE COPILOT / DIRECT EDIT PILLS FOLLOW TOO — reported in the same breath',
+        f8.tool.w < f15.tool.w && f20.tool.w > f15.tool.w,
+        `8: ${f8.tool.w} · 15: ${f15.tool.w} · 20: ${f20.tool.w}`);
+    }
+    await page.evaluate(() => window.rlSetDocType(20));
+    await pause(300);
+    await page.screenshot({ path: path.join(OUT, '04b-owner-furniture-20.png') });
+
+    /* AND ON THEIR SIDE OF THE GLASS. The report named both seats, and the
+       counterparty's page is a different MOUNT (redlineEmbed) with its own
+       root — a root that has to be carrying --doc-scale for any of this to
+       reach it. One rule, two mounts, exactly as section 1 proves for the fit. */
+    await page.evaluate(() => window.SHOW_COUNTERPARTY());
+    await pause(600);
+    const cp15 = await furnitureAt(15), cp20 = await furnitureAt(20);
+    await page.screenshot({ path: path.join(OUT, '04c-counterparty-furniture-20.png') });
+    check('5c · counterparty: their sheet carries the same tag',
+      !!(cp15.tag && cp20.tag), cp15.tag ? `${cp15.tag.w}x${cp15.tag.h}` : 'no tag');
+    if (cp15.tag && cp20.tag)
+      check('5c · counterparty: AND IT SCALES THERE TOO — one rule, both seats',
+        cp20.tag.w > cp15.tag.w,
+        `15: ${cp15.tag.w}x${cp15.tag.h} → 20: ${cp20.tag.w}x${cp20.tag.h}`);
+    await page.evaluate(() => { window.rlSetDocType(15); window.SHOW_OWNER(); });
+    await pause(600);
+
     await page.screenshot({ path: path.join(OUT, '03-owner-stepped.png') });
 
     /* Put the preference back before the geometry checks, so they measure the

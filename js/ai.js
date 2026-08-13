@@ -1007,6 +1007,22 @@ const _aiEsc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':
    The blocks are stashed for aiPush to hang on the message, because the chart
    cannot be drawn until the feed has painted and the canvas exists. */
 let _aiPendingBlocks = null;
+/* The most recent thing the reader actually typed. Read off the live history
+   rather than threaded through every caller, because every path into aiFmt —
+   the server answer, the browser-direct answer, the built-in engine, the
+   Intelligence dock — pushes the answer to the question sitting at the top of
+   that history. Empty on a volunteered message, which is the honest answer:
+   nobody asked for anything, so nothing is honoured.
+
+   READ BARE. `ai` is this module's own const — it is also copied onto window,
+   but guarding on `window.ai` is the shape that once silently disabled the
+   review gate (see THE MAP's two traps), and a feature that quietly does
+   nothing is worse than one that throws. */
+function aiLastAsk(){
+  const h = (typeof ai === 'object' && ai && Array.isArray(ai.history)) ? ai.history : [];
+  for (let i = h.length - 1; i >= 0; i--) if (h[i] && h[i].role === 'user') return String(h[i].text || '');
+  return '';
+}
 function aiFmt(raw){
   const src = String(raw == null ? '' : raw);
   if (typeof aiExtractCharts !== 'function' || typeof aiRichText !== 'function'){
@@ -1015,7 +1031,11 @@ function aiFmt(raw){
     return `<div>${_aiEsc(src)}</div>`;
   }
   const idx = ai.history.length;
-  const { text, blocks } = aiExtractCharts(src, idx);
+  /* THE QUESTION TRAVELS WITH THE ANSWER, for one job only: if the reader named
+     a chart shape, they get that shape, and it is not left to the model to
+     remember (see aiHonourShape). The last question on the record is the one
+     being answered — this runs at push time, before the next turn exists. */
+  const { text, blocks } = aiExtractCharts(src, idx, aiLastAsk());
   let html = aiRichText(text);
   for (const b of blocks) b.html = aiChartHtml(b);
   html = aiPlaceCharts(html, blocks);

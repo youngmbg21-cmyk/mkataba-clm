@@ -395,16 +395,110 @@ function aiSeriesCatalogText(){
    Pass three rescues a bare, unfenced spec object. Both rescues fire ONLY on
    a body naming a kind this file actually knows — an ordinary JSON example in
    an answer stays exactly what it is. */
+/* ---- A NAMED SHAPE IS HONOURED IN CODE, NOT ONLY IN THE PROMPT ----
+   Owner-reported, 13 Aug 2026: "I asked for a bar graph and it gave me a pie
+   chart." The exact words were "give the status in bar graph format", and the
+   answer came back as the doughnut titled "Portfolio by lifecycle status" —
+   which is `statusBreakdown`, a kind whose shape is baked in and cannot be
+   anything else.
+
+   AI_CHART_RULES has carried a HARD rule about this since the day `breakdown`
+   was built, and the rule is right. What it cannot do is BIND. The trap here is
+   not the model ignoring an instruction in general: it is that the reader named
+   a slice ("the status") which is also the name of a fixed kind, and the kind
+   won. A rule that only lives in a prompt loses that argument some fraction of
+   the time, and the reader has no way to tell it lost.
+
+   So the shape is now read from the reader's own words and applied to the spec
+   before anything is drawn. The model still chooses WHAT to draw; this only
+   decides HOW, which is the one thing the reader stated outright.
+
+   THE ONE RULE THAT BOUNDS IT: a shape request may change the SHAPE and must
+   never move a NUMBER. A fixed kind is rewritten only where the breakdown
+   recipe is proven to compute the identical rows — see AC_SHAPE_SWAP, and see
+   what is deliberately not in it. */
+const AC_ASK_SHAPES = [
+  /* Order matters: "horizontal bar" must be read before "bar". */
+  { shape: 'hbar', re: /\bhorizontal\s+(?:bar|column)s?\b/i },
+  { shape: 'pie', re: /\bpie\b/i },
+  { shape: 'doughnut', re: /\b(?:doughnut|donut)\b/i },
+  /* "bar" and "line" are ordinary English — a contract can be about a bar, and
+     a clause has lines. Each pattern carries its own chart context so a shape
+     is only ever read out of a sentence that is asking for one. */
+  { shape: 'bar', re: /\b(?:bar|column)s?[\s-]*(?:chart|graph|plot|format|form|style|view)\b/i },
+  { shape: 'bar', re: /\b(?:as|in|into|using)\s+(?:a\s+|the\s+)?(?:bar|column)s?\b/i },
+  { shape: 'line', re: /\bline[\s-]*(?:chart|graph|plot|format)\b/i },
+  { shape: 'line', re: /\b(?:as|in|into|using)\s+(?:a\s+|the\s+)?line\b/i },
+];
+function aiAskedShape(ask){
+  const s = String(ask == null ? '' : ask);
+  if (!s) return null;
+  for (const cand of AC_ASK_SHAPES) if (cand.re.test(s)) return cand.shape;
+  return null;
+}
+/* The fixed kinds whose figures a `breakdown` reproduces EXACTLY, with the
+   shape each one is drawn in. `drawn` is what stops a needless rewrite: a
+   reader asking for bars over expiryTimeline already has bars.
+
+   NOT HERE, and each for its own reason — this list is short on purpose:
+     valueByCounterparty — keeps a top ten and DROPS the tail; the breakdown
+       folds the rest into "Other". Better arithmetic, and not the arithmetic
+       the reader was shown. A request about drawing must not quietly restate
+       the figures.
+     valueStreamSplit — two datasets (contracts AND value) against two axes;
+       a breakdown carries one measure, so a rewrite would silently answer
+       half the question.
+     renewalPipeline — decisions per month WITH value, which is its own
+       arithmetic and not a slice of the book.
+     cycleTime, obligationsDue — not a breakdown of the portfolio at all.
+   Where a kind is not here the model's chart stands, and the prompt rule is
+   what asks for `breakdown` next time. */
+const AC_SHAPE_SWAP = {
+  statusBreakdown: { group: 'status', measure: 'count', drawn: 'doughnut' },
+  riskBands: { group: 'risk', measure: 'count', drawn: 'doughnut' },
+  expiryTimeline: { group: 'month', measure: 'count', drawn: 'bar' },
+};
+/* Names are WORDS on these two groups, and vertical bars turn words into
+   rotated stubs — the same reading AI_CHART_RULES states and valueByCounterparty
+   was built on. "hbar" IS a bar chart, so answering "bar" with it honours the
+   ask rather than overriding it. */
+const AC_HBAR_GROUPS = ['counterparty', 'stream'];
+function aiHonourShape(spec, ask){
+  if (!spec || typeof spec !== 'object') return spec;
+  const want = aiAskedShape(ask);
+  if (!want || !AC_BD_SHAPES.includes(want)) return spec;
+  const kind = String(spec.kind || '');
+  const fit = (shape, group) =>
+    (shape === 'bar' && AC_HBAR_GROUPS.includes(String(group || ''))) ? 'hbar' : shape;
+  /* The model chose the right kind and the wrong shape — the cheap case. */
+  if (kind === 'breakdown' || kind === 'quoted'){
+    const shape = fit(want, spec.group);
+    return String(spec.shape || '') === shape ? spec : { ...spec, shape };
+  }
+  const swap = AC_SHAPE_SWAP[kind];
+  if (!swap) return spec;
+  const shape = fit(want, swap.group);
+  if (shape === swap.drawn) return spec;              // already the shape asked for
+  return { ...spec, kind: 'breakdown', group: swap.group, measure: swap.measure, shape,
+    /* The card keeps the title the model wrote — it describes the same figures,
+       and the reader asked for a different drawing of them, not a new answer. */
+    title: spec.title };
+}
+
 const AI_CHART_FENCE = /```+\s*hati-chart\s*\n([\s\S]*?)```+/gi;
 const _acKindRe = () => new RegExp('"kind"\\s*:\\s*"(' +
   Object.keys(AI_CHART_RECIPES).concat(['quoted', 'custom', 'breakdown']).join('|') + ')"');
-function aiExtractCharts(src, msgIdx){
+function aiExtractCharts(src, msgIdx, ask){
   const blocks = [];
   const take = body => {
     const key = `aichart-${msgIdx}-${blocks.length}`;
     let spec = null, error = null;
     try{ spec = JSON.parse(String(body).trim()); }
     catch(e){ error = 'That chart block was not readable.'; }
+    /* THE SHAPE THE READER NAMED IS APPLIED HERE, at the one place a spec is
+       born, so block.spec is the honoured spec and everything downstream — the
+       card, the canvas, the CSV behind it — reads one truth. */
+    if (spec) spec = aiHonourShape(spec, ask);
     blocks.push({ key, spec, error });
     return `\n\n<!--${key}-->\n\n`;
   };
@@ -922,6 +1016,17 @@ Rules:
       "plot expiries over the next year as a line"
         → { "kind":"breakdown", "group":"month", "measure":"count",
             "shape":"line" }
+  · THE TRAP, and it is the one that has actually been reported: naming a slice
+    that MATCHES a fixed kind does not cancel the shape. "give the status in bar
+    graph format" names a slice (status) AND a shape (bar), and the shape
+    decides the kind every time — statusBreakdown can only ever be a doughnut,
+    so answering with it ignores the only thing the reader asked for outright.
+      "give the status in bar graph format"
+        → { "kind":"breakdown", "group":"status", "measure":"count",
+            "shape":"bar" }          NOT statusBreakdown
+      "risk bands as a pie"
+        → { "kind":"breakdown", "group":"risk", "measure":"count",
+            "shape":"pie" }          NOT riskBands
   · If the reader names a shape but not what to slice by, choose the group that
     best fits their words — money under management, exposure or "who we do
     business with" is "counterparty"; "by department/team/area" is "stream".
@@ -1011,5 +1116,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   aiChartActionsHtml, aiChartExportCanvas, aiChartCsv, aiChartWireActions, aiSimpleChart, _acRefreshPalette,
   aiQuotedConfig, aiCustomConfig, aiBreakdownConfig, _acBreakdownRows, _acSliceColors,
   AC_BD_GROUPS, AC_BD_SHAPES, AC_BD_MEASURES,
+  aiAskedShape, aiHonourShape, AC_SHAPE_SWAP,
   aiAllSeries, aiDynamicSeries, aiSeriesCatalogText, aiSeriesSlug,
   AI_CHART_RULES, AI_TONE_RULES });

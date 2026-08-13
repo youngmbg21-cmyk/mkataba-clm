@@ -309,3 +309,161 @@ describe('f177 — the model is told all of this', () => {
       'and the failure it is there to stop, named');
   });
 });
+
+/* ============================================================================
+   AND THE RULE IS NOW BINDING, NOT ADVISORY (owner-reported, 13 Aug 2026)
+   ============================================================================
+   "I asked for a bar graph and it gave me a pie chart." The words were "give
+   the status in bar graph format" and the answer was the doughnut titled
+   "Portfolio by lifecycle status" — statusBreakdown, whose shape is baked in.
+
+   The hard rule above had been in the prompt since this file was written and it
+   is correctly worded. What it cannot do is BIND. The specific trap: the reader
+   named a slice ("the status") that is also the name of a fixed kind, and the
+   kind won the argument.
+
+   So the shape is now read from the reader's own sentence and applied to the
+   spec before anything is drawn. The bound on it is the point of these tests as
+   much as the shape is: A SHAPE REQUEST MAY CHANGE THE SHAPE AND MUST NEVER
+   MOVE A NUMBER. */
+describe('f177 — a named shape is honoured in code, not only in the prompt', () => {
+  test('the reported sentence is read as a request for bars', () => {
+    const w = seeded();
+    assert.equal(w.aiAskedShape('give the status in bar graph format'), 'bar');
+    assert.equal(w.aiAskedShape('show me that as a pie chart'), 'pie');
+    assert.equal(w.aiAskedShape('as a donut please'), 'doughnut');
+    assert.equal(w.aiAskedShape('plot it as a line chart'), 'line');
+    assert.equal(w.aiAskedShape('in horizontal bars'), 'hbar');
+    assert.equal(w.aiAskedShape('put the expiries in bars'), 'bar');
+  });
+
+  /* THE OTHER HALF, and the one that would turn this fix into a new bug: "bar"
+     and "line" are ordinary English. A sentence that is not asking for a chart
+     must not have a shape read out of it. */
+  test('ordinary English is not mistaken for a shape', () => {
+    const w = seeded();
+    for (const said of [
+      'is this contract barred by the limitation period?',
+      'which counterparties are members of the bar association?',
+      'sign on the dotted line',
+      'what is the bottom line on this deal?',
+      'summarise the lease',
+      '',
+    ]) assert.equal(w.aiAskedShape(said), null, `read a shape out of: "${said}"`);
+  });
+
+  test('the reported round trip: the doughnut becomes the bar that was asked for', () => {
+    const w = seeded();
+    const said = 'give the status in bar graph format';
+    const { blocks } = w.aiExtractCharts(
+      'Your portfolio by lifecycle status:\n\n```hati-chart\n'
+      + '{ "kind": "statusBreakdown", "title": "Portfolio by lifecycle status" }\n```\n', 0, said);
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0].spec.kind, 'breakdown', 'a fixed kind cannot carry a shape');
+    assert.equal(blocks[0].spec.shape, 'bar');
+    assert.equal(blocks[0].spec.group, 'status');
+    assert.equal(blocks[0].spec.measure, 'count');
+    assert.equal(blocks[0].spec.title, 'Portfolio by lifecycle status',
+      'the model described the same figures — only the drawing was wrong');
+    const r = cfgOf(w, blocks[0].spec);
+    assert.equal(r.config.type, 'bar', 'and it really draws as bars');
+  });
+
+  /* THE BOUND. The rewrite is only ever allowed where the two recipes are the
+     same arithmetic — so the reader who asked about drawing gets a differently
+     drawn picture of the SAME numbers, never a different answer. */
+  test('and not one figure moves', () => {
+    const w = seeded();
+    const was = w.AI_CHART_RECIPES.statusBreakdown();
+    const now = cfgOf(w, w.aiHonourShape(
+      { kind:'statusBreakdown' }, 'give the status in bar graph format')).config;
+    assert.deepEqual(Array.from(now.data.labels), Array.from(was.data.labels));
+    assert.deepEqual(Array.from(now.data.datasets[0].data), Array.from(was.data.datasets[0].data));
+    assert.notEqual(now.type, was.type, 'the shape, and only the shape, changed');
+  });
+
+  test('every kind offered for rewriting really is the same arithmetic', () => {
+    const w = seeded();
+    /* riskBands has no chart at all without the app's own risk reading — see
+       the risk test above. Both sides of this comparison need it. */
+    w.contractRisk = c => (c.id === 'MK-1' ? 80 : c.id === 'MK-2' ? 50 : 10);
+    for (const [kind, swap] of Object.entries(w.AC_SHAPE_SWAP)){
+      const fixed = w.AI_CHART_RECIPES[kind]();
+      assert.ok(fixed, kind + ' drew nothing on this fixture');
+      const bd = cfgOf(w, { kind:'breakdown', group:swap.group, measure:swap.measure,
+        shape:swap.drawn });
+      assert.ok(bd.config, kind + ': ' + (bd.error || 'no config'));
+      assert.deepEqual(Array.from(bd.config.data.labels), Array.from(fixed.data.labels),
+        kind + ' and its breakdown disagree about the labels');
+      assert.deepEqual(Array.from(bd.config.data.datasets[0].data),
+        Array.from(fixed.data.datasets[0].data),
+        kind + ' and its breakdown disagree about the figures — it must not be swapped');
+      assert.equal(bd.config.type === 'doughnut' ? 'doughnut' : bd.config.type, swap.drawn === 'doughnut' ? 'doughnut' : swap.drawn,
+        kind + ': the recorded shape is not the shape it draws');
+    }
+  });
+
+  /* Named one at a time, because the reason differs for each and a future
+     reader adding one back needs to meet the reason, not a list. */
+  test('a kind whose breakdown would restate the numbers is left alone', () => {
+    const w = seeded();
+    /* valueByCounterparty keeps a top ten and DROPS the tail; the breakdown
+       folds it into "Other". Better arithmetic — and not what the reader was
+       shown when they asked to see it differently. */
+    for (const kind of ['valueByCounterparty', 'valueStreamSplit', 'renewalPipeline',
+      'cycleTime', 'obligationsDue']){
+      assert.equal(w.AC_SHAPE_SWAP[kind], undefined, kind + ' must not be swappable');
+      const out = w.aiHonourShape({ kind }, 'show me that as a pie chart');
+      assert.equal(out.kind, kind, kind + ' was rewritten anyway');
+    }
+  });
+
+  test('a kind already drawn in the shape asked for is not rewritten at all', () => {
+    const w = seeded();
+    /* expiryTimeline is already a bar. Rewriting it would be churn, and churn
+       is how a chart quietly stops being the one the rest of the app draws. */
+    const same = w.aiHonourShape({ kind:'expiryTimeline' }, 'put the expiries in bars');
+    assert.equal(same.kind, 'expiryTimeline');
+    const round = w.aiHonourShape({ kind:'expiryTimeline' }, 'show me that as a pie chart');
+    assert.equal(round.kind, 'breakdown', 'but a genuinely different shape still swaps');
+    assert.equal(round.shape, 'pie');
+  });
+
+  test('the right kind with the wrong shape is simply corrected', () => {
+    const w = seeded();
+    const out = w.aiHonourShape(
+      { kind:'breakdown', group:'status', measure:'count', shape:'doughnut' },
+      'no, in bar graph format');
+    assert.equal(out.kind, 'breakdown');
+    assert.equal(out.shape, 'bar');
+    assert.equal(out.group, 'status', 'what to slice by is still the model\'s call');
+  });
+
+  test('bars over words are turned on their side, because that is what bars of words are', () => {
+    const w = seeded();
+    const out = w.aiHonourShape(
+      { kind:'breakdown', group:'counterparty', measure:'value', shape:'pie' },
+      'as a bar chart');
+    assert.equal(out.shape, 'hbar', 'a vertical bar chart of names is rotated stubs');
+    const months = w.aiHonourShape(
+      { kind:'breakdown', group:'month', measure:'count', shape:'pie' }, 'as a bar chart');
+    assert.equal(months.shape, 'bar', 'months are short — they stay upright');
+  });
+
+  test('no shape asked for, nothing touched', () => {
+    const w = seeded();
+    const spec = { kind:'statusBreakdown', title:'Where the portfolio stands' };
+    assert.equal(w.aiHonourShape(spec, 'how is my portfolio doing?'), spec, 'the same object');
+    assert.equal(w.aiHonourShape(spec, ''), spec);
+    assert.equal(w.aiHonourShape(spec, undefined), spec);
+  });
+
+  test('the model is still told, with the reported sentence as the example', () => {
+    const w = seeded();
+    const rules = w.AI_CHART_RULES();
+    assert.match(rules, /give the status in bar graph format/,
+      'the reported question, verbatim, so the model meets the trap by name');
+    assert.match(rules, /NOT statusBreakdown/,
+      'and the wrong answer named beside it');
+  });
+});

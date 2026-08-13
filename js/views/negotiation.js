@@ -624,18 +624,32 @@ function negoStyleHtml(){
      somewhere to be. Without it the badge lands outside the pane's content box
      and the pane's overflow clips it — "#CHG-012" arrives as "G-012". */
   .nego-pane.working .nego-doc{padding-left:100px}
+  /* The clause's own number, in the margin of the other document renderer —
+     sheet furniture, so it follows the sheet's type like the tag and the chip.
+     Only the TYPE scales: the badge hangs off the clause's left edge and its
+     position is the margin's, not the words'. */
   .nego-badge{position:absolute;right:calc(100% + 6px);top:10px;
-    font-family:var(--n-font-mono);font-size:10px;font-weight:700;letter-spacing:.2px;
+    font-family:var(--n-font-mono);font-size:calc(10px * var(--doc-scale,1));font-weight:700;letter-spacing:.2px;
     background:var(--n-badge-bg);color:var(--n-slate-soft);
-    border:1.5px solid var(--n-slate-soft);border-radius:99px;padding:2px 8px;
+    border:1.5px solid var(--n-slate-soft);border-radius:99px;
+    padding:calc(2px * var(--doc-scale,1)) calc(8px * var(--doc-scale,1));
     white-space:nowrap;user-select:none;cursor:pointer;
     transition:transform .15s ease,box-shadow .15s ease,background .2s ease,color .2s ease,border-color .2s ease}
   .nego-badge:hover{transform:scale(1.06);box-shadow:var(--n-shadow-card)}
   .nego-badge.is-active{background:var(--n-slate);border-color:var(--n-slate);color:#fff}
   .nego-badge.is-accepted{background:var(--n-ins-bg);border-color:var(--n-ins-fg);color:var(--n-ins-fg)}
   .nego-badge.is-rejected{background:var(--n-del-bg);border-color:var(--n-del-fg);color:var(--n-del-fg)}
-  .nego-note{display:inline-block;font-family:var(--n-font-ui);font-size:10.5px;font-weight:700;
-    border-radius:5px;padding:1px 7px;margin-left:8px;vertical-align:1px;letter-spacing:.3px}
+  /* THE SAME TREATMENT AS .rl-asktag, AND FOR THE SAME REPORT. This chip is the
+     OTHER document renderer's version of the marker on a clause (negoDocHtml —
+     the duplication this rulebook opens by warning about), plus the
+     formatting-only chip on the redline sheet itself. It is drawn inside the
+     document on every screen that draws one, so it follows the document's type.
+     --doc-scale is 1 wherever nothing sets it, which is every surface without a
+     stepper — a print, an export, a card. */
+  .nego-note{display:inline-block;font-family:var(--n-font-ui);font-size:calc(10.5px * var(--doc-scale,1));
+    font-weight:700;border-radius:5px;
+    padding:calc(1px * var(--doc-scale,1)) calc(7px * var(--doc-scale,1));
+    margin-left:8px;vertical-align:1px;letter-spacing:.3px}
   .nego-note.ok{background:var(--n-ins-bg);color:var(--n-ins-fg)}
   .nego-note.no{background:var(--n-del-bg);color:var(--n-del-fg)}
   /* A formatting-only ask has no strike/insert marks to wear, so the chip is
@@ -6476,8 +6490,28 @@ function redlineLayoutCss(){
   .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,#10b981 7%,transparent);
     border-color:color-mix(in srgb,#10b981 34%,transparent)}
   .redline-page .rl-clause-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  .redline-page .rl-asktag{flex:none;font-size:10.5px;font-weight:600;letter-spacing:.04em;
-    padding:3px 9px;border-radius:999px;white-space:nowrap;
+  /* ---- AND THE TAG FOLLOWS THE READER'S TEXT SIZE TOO ----
+     (Owner-reported, 13 Aug 2026: "the clause number pill ... do not
+     proportionally shrink and expand with the page, both in owner and
+     counterparty side.")
+
+     This is the SECOND HALF of the 13 Aug front-matter fix, and it was missed
+     for exactly the reason that fix records: until the reader's choice moved
+     out of the zoom, everything on the sheet scaled together and a bare 10.5px
+     tag was fine. Afterwards the fit still carried the tag (drag the divider
+     and it grows), so it LOOKED handled — the fault only shows on the type
+     stepper, where measurement said the pill rendered at an identical
+     178.6 x 35.6 at 8px, 15px and 20px while the contract's own words went from
+     38.6px tall to 241.3px. At the new floor of 8 the label on a clause was
+     bigger than the clause.
+
+     --doc-scale is the same ratio the title, the kicker and the parties at the
+     foot already read, 1 wherever nothing sets it — so the print, the export
+     and any screen that draws this tag without a stepper are all unchanged. */
+  .redline-page .rl-asktag{flex:none;font-size:calc(10.5px * var(--doc-scale,1));
+    font-weight:600;letter-spacing:.04em;
+    padding:calc(3px * var(--doc-scale,1)) calc(9px * var(--doc-scale,1));
+    border-radius:999px;white-space:nowrap;
     background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid var(--st-amber-line)}
 
   /* the design's change cards */
@@ -7233,8 +7267,15 @@ function redlineLayoutCss(){
        second Direct Edit under them. */
     .redline-page .rl-clause.is-editing .rl-tools{display:none}
   }
+  /* Copilot and Direct Edit ride ON the clause, so they are the sheet's
+     furniture and follow the sheet's type — the same reading as .rl-asktag
+     above, reported in the same breath. The POSITIONING is deliberately left
+     in bare pixels: .rl-tools sits at bottom:-9px because that is exactly
+     where the editor's own Save change / Cancel bar sits, and scaling the
+     offset would walk the two apart at every setting but the default. */
   .redline-page .rl-tool{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:999px;padding:3px 10px;font:inherit;font-size:10.5px;font-weight:600;line-height:1.6;
+    border-radius:999px;padding:calc(3px * var(--doc-scale,1)) calc(10px * var(--doc-scale,1));
+    font:inherit;font-size:calc(10.5px * var(--doc-scale,1));font-weight:600;line-height:1.6;
     color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
     box-shadow:0 1px 2px rgba(15,23,42,.08);
     transition:border-color .15s,color .15s,background .15s}
