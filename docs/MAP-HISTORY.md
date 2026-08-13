@@ -2325,3 +2325,161 @@ and the sheet's type not moving at all — which is now the same pair the other
 way round, plus a new check that the page fills its column at every setting and
 a new section driving A⁻ all the way down to 8 through the button rather than
 the store.
+
+----- 13 Aug 2026: Settings & Rules becomes four tabs and one drawer -----
+
+THE PAGE BEFORE. One `<div id="set-page">` with sixteen `<section>` cards in a
+two-column grid, and you found a setting by scrolling until you saw it. The
+members table sat in the left column and everything else — approval rules, the
+review gate, the desk rule, renewal reminders, the monthly report, the whole
+Copilot engine panel with its key, its two model tiers, its nine spend
+ceilings, its onboarding allowance and its editable rate table, the market, the
+work shape, the company design, data & backup, active sessions, the
+notifications statement, the sidebar preference, pilot activation and the
+outbox — ran down the right one in whatever order it had been added in. It was
+not badly built; it had simply never been given a shape, and it had reached the
+size where the absence of one was the whole problem.
+
+FOUR TABS, AND WHY THOSE FOUR. People (who is here and what each of them may
+do), Platform settings (how the workspace behaves for everybody in it), Build &
+launch (setting it up and keeping it running), You (your own). The line between
+the second and the third is the one that actually earns its keep: an admin
+tuning a Copilot spend ceiling and an admin turning on the review gate are
+doing different jobs on different days, and the old page put them nine inches
+apart in the same column.
+
+EVERY ROW OPENS THE SAME DRAWER, and the drawer hangs off `<body>` rather than
+off `#content`. Two reasons, which are the same reason: the page underneath it
+genuinely rebuilds — the market's language-follow redraw calls renderTeam() —
+and "Your account" opens the same drawer from views that are not this page at
+all. It is the Activity panel's own mechanism: transform, a dimmed scrim,
+dismissed by the scrim, by Escape or by its own ✕.
+
+THE ACCESS RULE WAS THE HARD HALF, AND IT WAS NOT THE NAV ITEM. Making a page
+admin-only sounds like one line. There were FIVE doors into this one and only
+the first is the one anybody thinks of:
+
+  1. the sidebar nav item, drawn for every role;
+  2. the avatar in the top bar, a one-click `setView('team')`;
+  3. the Copilot-usage box in the sidebar foot, also `setView('team')`;
+  4. the session-restore whitelist, which lists 'team' among the views a
+     reload may land on;
+  5. `setView('settings')` on the email-setup banner — a key that does not
+     exist in the switch, so it fell through every branch and drew the
+     workspace. The one button on the one banner that says email is broken
+     opened a contract, and had done for as long as the banner had existed.
+
+So the gate is renderTeam()'s own. Whatever calls it arrives at the same
+question, and the answer for a non-admin is renderMyAccountPage() — a real
+page with their own settings on it — rather than a blank, a refusal or a
+bounce to the dashboard. The nav item is hidden as well, because a control
+that exists and refuses teaches nothing, but the hidden item was never going
+to be the wall and is not being asked to be. THE WALL IS THE SERVER, and f194
+signs in as an Editor and attacks fifteen routes to say so.
+
+RE-HOMING, NOT CLOSING, WHEREVER THERE WAS SOMETHING TO RE-HOME. The inventory
+of what a non-admin could actually DO on the old page came to six things and
+every one of them is now on "Your account": their own job title (the server has
+always permitted self + title-only on PATCH /api/users/:id), the sidebar
+preference, the backup export (which is built from their own already-scoped
+bootstrap and therefore theirs to take), their own sessions with revoke (that
+route is scoped to the caller and there is no all-users session view, not even
+for an admin), the honest read-only statement of what HaTi emails them, and —
+easy to miss — an EDITOR'S COMPANY-DESIGN DOOR, which was gated admin-OR-legal
+rather than admin-only. That last one is a workspace setting sitting on a
+personal surface, which is unusual, so the row says so rather than pretending
+to be one of theirs. The alternative was closing it, and closing a capability
+because it did not fit the new shape is how a redesign quietly costs somebody
+their job.
+
+WHAT DID CLOSE IS A LIST. SET_CLOSURES names the two: a non-admin can no longer
+READ the roster, and can no longer READ the workspace rules. Both are read
+access to who-may-do-what, which is exactly what an admin-only page is for, and
+both are deliberate. The list exists because a capability that disappears with
+nobody writing it down is a capability somebody rediscovers as a bug six months
+later — and f193 fails if it is empty, because a redesign that claims it took
+nothing from anybody has not looked.
+
+THE OLD PAGE'S OWN RULES ALL SURVIVED THE MOVE, and the drawer made two of them
+harder rather than easier:
+
+  · THE COMPANY CARDS STILL PATCH IN PLACE. A drawer is a shorter column than
+    the page was, so a rebuild there throws the reader further, not less far.
+  · THE MARKET'S LANGUAGE-FOLLOW REDRAW still holds panel heights, and now
+    re-opens the drawer in the new language on top of the redrawn page.
+  · THE GATES STILL WRITE ON CHANGE and have no Save button. That is why the
+    drawer has TWO feet: 'save' for a real form and 'done' for a panel that
+    has already written what you changed. One foot for both would have meant
+    either a Save button that does nothing on the review gate, or a gate that
+    is armed only if you remember to press it.
+
+AND THE REFUSAL MOVED INTO THE FOOT, WHICH WAS MEASURED RATHER THAN CHOSEN. It
+went above the fields first, which is where a form error usually goes. The
+browser check that exists precisely to catch this reported 46px: the moment a
+refusal appeared it pushed every field under it down, and the moment it cleared
+it pulled them back up — the reader's hand still on the control. In the foot it
+is pinned, it cannot be scrolled away from, and it sits beside the button that
+refused. The same run also caught the measurement itself being wrong: the
+drawer's `scrollHeight` answers the BOX wherever the content is shorter than
+it, so a refusal appearing in a pinned foot (which shrinks the body's box and
+moves nothing inside it) read as 47px of "the page changed height". What the
+check wants is the content's own extent, and that is what it measures now.
+
+THE PEOPLE TAB IS ONE DRAWER FOR ADDING AND EDITING. The creation flow was
+re-housed exactly: the temporary password, mustChangePassword on the server, an
+explicit folder answer whose first option carries no value, Viewer by default,
+POST /api/users. No invite-token flow was invented, because there is not one —
+"+ Invite member" on the old page was a scroll-to-form affordance and the
+"Invited" status was dead markup nothing ever set.
+
+TWO THINGS ON THAT DRAWER ARE WORTH NAMING. The ROLE is one stored value with
+two faces: three radios with a line each saying what the key costs, and a
+hidden select that the save reads. That is not decoration — the role a form
+opens on is a safety property this product has already been bitten by, and the
+list therefore reads safest first so that the value the control carries when
+nobody has answered is Viewer. And a RENAME CAN ORPHAN AN APPROVAL RULE,
+because a named approver is bound by NAME and not by id: renaming a member
+would leave the rule pointing at nobody, silently. It is said out loud before
+it happens and the rules are repointed.
+
+BUILD & LAUNCH IS READ OFF THE WORKSPACE. Nothing on the go-live checklist is
+typed: the legal name comes off the org branding record, mail from whether the
+server says email is configured, the Copilot key and its ceiling from the live
+config, the approval rule from the rules themselves, the samples from the
+contracts, the integrity row from the check having been run, the backup from
+when one was last taken, and the first-send row from the activation funnel.
+Every row is a door that names a tab and a panel.
+
+SAMPLES ARE TOLD APART BY ORIGIN. `seeded: true` is stamped on a demo contract
+at the moment the sample portfolio is created and survives the server's
+light-list projection, so "is this a sample?" is a fact on the record rather
+than a guess about its title — and the test proves it by putting a REAL
+contract with the same name beside a seeded one, and a real contract actually
+called "Sample agreement" beside both. Nothing new and destructive was built on
+the server: each removal goes through the per-contract delete the product
+already has and already guards.
+
+THE INTEGRITY CHECK IS GENUINELY NEW MACHINERY, and it is deliberately the
+smallest new machinery that could be honest. There is no workspace-wide check
+in this product and the server verifies no hashes at all; every verification is
+per contract and in the browser. This is that same verifier — negoIntegrityReport
+— run over every contract in a read-only loop that says so, repairs nothing,
+and prints the weak-digest sentence FIRST where the page has no crypto.subtle,
+because a "verified" taken over a fallback digest is worth less than the
+sentence explaining why.
+
+FOLDERS: BUILT-INS ARE STATED, NOT RENAMEABLE. They are literals every screen
+reads and there is no store to rename them into, so a rename box on them would
+be a control that looked like it worked until the next reload. Custom folders
+have a store and do rename and remove, and a removal is refused while the
+folder still holds contracts — those contracts would otherwise be filed under
+an id no picker offers.
+
+WHAT WAS REVERSED IN PLACE, each because the design genuinely changed it rather
+than because it was wrong: f149's "the admin was told why" now reads the
+drawer's refusal as well as a toast, and its "the roles are explained where
+they are chosen" is now one line per role beside each choice rather than one
+paragraph under the picker (set_role_help is retired from this screen and left
+inert in the dictionary). settings-holds-still-verify is staged through the
+drawer with its claims untouched. swedish-verify closes a phone sheet by its
+scrim rather than by a button that can now sit below the fold.

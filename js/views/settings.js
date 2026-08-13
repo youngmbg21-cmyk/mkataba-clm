@@ -273,6 +273,19 @@ const stLimitField=(id,label,sub,min)=>`<label style="display:block">
     <span style="display:block;font-size:10px;color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
     <input id="${id}" type="number" min="${min}" style="margin-top:3px;${ST_MONO}"/></label>`;
 
+/* ---- WHAT A NON-ADMIN LOST, SAID OUT LOUD ----
+   Closing this page to non-admins took two things away that had no new home
+   and were not going to get one: it is a list rather than a silence, because a
+   capability that disappears with nobody writing it down is a capability
+   somebody rediscovers as a bug six months later. Everything else a non-admin
+   could DO here moved to "Your account" (openMyAccount) and is proved to have
+   arrived there by the parity test; these two are READ access, and read access
+   to who-may-do-what is exactly what an admin-only page is for. */
+const SET_CLOSURES=[
+  { key:'roster', what:'A non-admin can no longer read the member list — who is in the workspace, what role each of them holds, which folders they may see, and whether contract values are hidden from them.' },
+  { key:'rules',  what:'A non-admin can no longer read the workspace rules — the approval rules, whether internal review is on and on what condition, and whether the redlining desk is enforced. They still meet all three where they apply, in words, on the contract itself.' },
+];
+
 /* WHICH TAB IS UP is a working posture, not a setting: per sitting, in memory,
    and it starts on People. A stored tab would mean an admin who came here to
    change one thing last week lands somewhere unrelated today. */
@@ -2252,7 +2265,7 @@ async function loadSessions(){
    the shell calls; SET_PANELS and the readers beside it are what the tests read. */
 Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
-  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,
+  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,SET_PANELS,ST_TABS,SET_CLOSURES,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
