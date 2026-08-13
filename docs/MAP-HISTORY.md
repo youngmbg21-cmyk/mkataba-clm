@@ -2202,3 +2202,63 @@ WHERE IT IS NOT DRAWN, each for its own reason: our own refused ask (Withdraw is
 the verb, and reopening their refusal is not ours to do), the counterparty's
 page (their seat holds its answers, so it has its own two ways back with their
 own rules about what has left their page), and any read-only copy.
+
+
+----- 13 Aug 2026: the control row folds one rung at a time -----
+
+A CLIFF WHERE THERE SHOULD HAVE BEEN A LADDER
+
+Reported with two photographs of the negotiation page — the nav rail open in
+one, collapsed in the other, and in both a wide stretch of the control row
+circled in red with the purple buttons beside it showing as bare glyphs:
+"even though I have significant space where I have highlighted when the nav
+panel is open or minimized, the buttons should not be minimized."
+
+MEASURED FIRST, BEFORE ANYTHING WAS CHANGED, because the obvious reading —
+"the fit measurement is wrong" — was not the one that turned out to be true.
+At a 1280px window (a 1920x1080 ThinkPad at the Windows-recommended 150%
+scaling, which is the machine the report came from) the row is 1166px wide and
+its contents want 1167. One pixel. The measurement was correct. What was wrong
+was what it did about it: .rl-tabrow-tight took the words off both purple
+buttons, the way-out button, Publish Round's counts and the type readout in one
+go, freeing 402px — and 402px of freed space with nothing to fill it is exactly
+the gap in the photograph.
+
+So the ladder was right and its bottom rung was a cliff. It is graded now, and
+each rung gives up exactly ONE named thing, cheapest first, measured after each:
+
+  trim   whitespace — the gaps and paddings on the row. NOTHING disappears.
+         This is the rung the report lands on, and at 1280 it leaves 39px of
+         gap instead of 402 with every word still on screen.
+  lite   the commentary — Publish Round's counts and the type readout. Both
+         are a hover away in a tooltip, and the button keeps its verb.
+  half   the way-out button's WORD. Its count stays: a door reading "3" still
+         says what is behind it, which is why it can afford to fold before a
+         verb can.
+  tight  the two purple buttons to their glyphs. LAST, deliberately — these
+         are the words the report was about.
+
+Only then the wrap, with the full words back, because a line of its own has
+room for them.
+
+THE CLASSES ARE CUMULATIVE, so each rule is written once, on the rung where
+that loss happens, and there is no selector listing four class names. The
+function adds them in order and measures between each; it still takes all of
+them OFF before the first measurement, which is the rule that has always kept
+this observer from reading its own effect and never recovering.
+
+WHAT THIS COST IN TESTS, and both were reversed in place rather than deleted:
+f89 said Publish Round's counts fold on the tight step (they fold on lite now,
+two rungs earlier) and f184 said the way-out word folds on tight (it folds on
+half). Neither claim was wrong when it was written — there was only one middle
+step to name. The claims now say which rung, and f89 gained the ordering rule
+itself: every rung tried, in order of what it costs, each removed before
+anything is measured, and the first rung proved to hide nothing at all.
+
+AND THE PROOF THAT MATTERS IS IN A BROWSER. rlFitTabRow asks for rectangles and
+the rungs are class rules; jsdom has neither a layout engine nor a cascade, so
+a node test can pin the ORDER and nothing else. control-row-folds-verify
+measures where the fold actually lands at the widths customers have — every
+word on screen from 1280 to 1920, one line at every one of them, the rungs
+never taken out of order as the window narrows, the door keeping its count at
+every rung, and the words coming back when the width comes back.

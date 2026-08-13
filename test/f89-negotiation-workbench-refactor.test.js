@@ -240,8 +240,51 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     assert.match(send.textContent, /unsent/, 'and the counts are still in the text');
     assert.ok(/rl-tabrow-tight .rl-pb-btn .rl-word\{display:none/.test(p.css()),
       'tight folds the purple buttons to their glyphs');
-    assert.ok(/rl-tabrow-tight .rl-send-detail\{display:none/.test(p.css()),
-      'and Publish Round to its verb');
+    /* ---- CLAIM MOVED A RUNG, 13 Aug 2026 (owner-reported) ----
+       Publish Round's counts used to fold on the SAME step as the purple
+       buttons' words, because there was only one step. There are four now, and
+       the counts go on LITE — two rungs earlier — because the button keeps its
+       verb and the title keeps the sentence, while a verb folded to a glyph
+       keeps neither. The purple buttons stay last on purpose: their words are
+       what the report was about. */
+    assert.ok(/rl-tabrow-lite .rl-send-detail\{display:none/.test(p.css()),
+      'and Publish Round loses its counts a rung earlier, keeping its verb');
+    assert.ok(p.css().indexOf('.rl-tabrow-lite .rl-send-detail')
+      < p.css().indexOf('.rl-tabrow-tight .rl-pb-btn .rl-word'),
+      'the cheaper loss is taken first');
+  });
+
+  test('and the ladder gives up one named thing per rung, not all of them at once', async () => {
+    /* THE FAULT THIS ANSWERS (Young, 13 Aug 2026, two photographs — nav rail
+       open and collapsed): "even though I have significant space where I have
+       highlighted, the buttons should not be minimized."
+
+       MEASURED at a 1280px window: the row is 1166px wide and wants 1167. One
+       pixel of overflow took the words off both purple buttons, the way-out
+       button, Publish Round's counts and the type readout in one go — freeing
+       402px, which became an empty gap in the middle of the row. The ladder
+       was right; its bottom rung was a cliff. Now each rung costs exactly one
+       named thing, cheapest first, and the row keeps everything it can still
+       afford. Where the fold lands on a real screen is measured in the
+       browser — see control-row-folds-verify. */
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const fn = /function rlFitTabRow\(\)\{[\s\S]*?\n\}/.exec(src)?.[0] || '';
+    const RUNGS = ['rl-tabrow-trim', 'rl-tabrow-lite', 'rl-tabrow-half', 'rl-tabrow-tight'];
+    const at = RUNGS.map(k => fn.indexOf(`classList.add('${k}')`));
+    assert.ok(at.every(i => i > -1), 'every rung is tried');
+    assert.deepEqual(at.slice().sort((a, b) => a - b), at,
+      'in order of what each one costs — whitespace, commentary, a word, the verbs');
+    for (const k of RUNGS)
+      assert.ok(fn.indexOf(`classList.remove('${k}')`) < at[RUNGS.indexOf(k)],
+        `${k} is taken off before anything is measured, like the wrap`);
+    /* The trim rung is the one that answers the report, and its whole point is
+       that nothing disappears on it: it is padding and gap, no display:none. */
+    const p = await page({ myChange: true });
+    const trim = p.css().split('\n').filter(l => /\.rl-tabrow-trim /.test(l));
+    assert.ok(trim.length >= 3, 'the first rung has rules of its own');
+    assert.ok(!trim.some(l => /display:none/.test(l)),
+      'and it hides nothing at all — it only gives back whitespace');
   });
 
   test('and the header is still the header', async () => {

@@ -5635,6 +5635,9 @@ function rlFitTabRow(){
   if (!head || !tabs || tabs === head) return;
   row.classList.remove('rl-tabrow-wrap');
   row.classList.remove('rl-tabrow-tight');
+  row.classList.remove('rl-tabrow-half');
+  row.classList.remove('rl-tabrow-lite');
+  row.classList.remove('rl-tabrow-trim');
   /* jsdom has no layout: every rect is zero, so every row would read as
      unwrapped. That is the right answer there — the class is a painting
      detail — but say so rather than letting a zero fall through by luck. */
@@ -5646,14 +5649,30 @@ function rlFitTabRow(){
   if (!dropped()) return;
   /* It does not fit with the full words. TIGHTEN BEFORE WRAPPING — a ThinkPad
      window is the ordinary corporate laptop, and a second line there is a band
-     taken straight out of the contract (Young, 10 Aug 2026). The tight class
-     folds the repeated words down to glyphs and counts; measure again with it
-     ON, because whether IT fits is the question being asked. */
-  row.classList.add('rl-tabrow-tight');
+     taken straight out of the contract (Young, 10 Aug 2026).
+
+     ONE RUNG AT A TIME, and measure after each: the row keeps everything it
+     can still afford. Reported (Young, 13 Aug 2026) because the single step
+     was a cliff — one pixel of overflow at 1280px took every word off the row
+     and left 402px of empty gap where they had been. The classes are
+     cumulative and the order is the order of what each costs; see the
+     stylesheet, where each rung's own loss is written on it.
+
+     Measure with the rung ON, because whether IT fits is the question. */
+  row.classList.add('rl-tabrow-trim');    // whitespace — nothing disappears
+  if (!dropped()) return;
+  row.classList.add('rl-tabrow-lite');    // the counts and the readout
+  if (!dropped()) return;
+  row.classList.add('rl-tabrow-half');    // the way back keeps its count
+  if (!dropped()) return;
+  row.classList.add('rl-tabrow-tight');   // the purple buttons, last of all
   if (!dropped()) return;
   /* Genuinely too narrow even compressed — the honest second line, with the
      full words back on: a row of its own has room for them. */
   row.classList.remove('rl-tabrow-tight');
+  row.classList.remove('rl-tabrow-half');
+  row.classList.remove('rl-tabrow-lite');
+  row.classList.remove('rl-tabrow-trim');
   row.classList.add('rl-tabrow-wrap');
 }
 /* ---- THE ROW'S WIDTH CHANGES FOR REASONS THE WINDOW NEVER HEARS ABOUT ----
@@ -5802,35 +5821,58 @@ function redlineLayoutCss(){
      are the ordinary corporate laptop, not an edge case, so the second line
      cannot be the ordinary answer there.
 
-     So rlFitTabRow tries a middle step first: .rl-tabrow-tight, where every
-     control keeps its box and its press but the words that repeat what a
-     tooltip already says stand down — the two purple buttons fold to their
-     glyphs, Publish Round keeps the verb and drops the counts (the title
-     carries the full sentence either way), and the pills give back a little
-     padding. Only if the row STILL does not fit does the wrap happen, with the
-     full words back — a row of its own has room for them. The words are spans
-     precisely so this is a paint decision: textContent never changes, which is
+     So rlFitTabRow tries middle steps first, where every control keeps its box
+     and its press but the things that repeat what a tooltip already says stand
+     down. That was ONE step and is now four — see the next comment, which is
+     where the rungs and the reason for them are written out. */
+  /* ---- AND IT FOLDS ONE RUNG AT A TIME (owner-reported, 13 Aug 2026) ----
+     The tighten step was ALL OR NOTHING, and that is the fault as photographed
+     twice, with the nav rail open and collapsed: "even though I have
+     significant space where I have highlighted, the buttons should not be
+     minimized."
+
+     MEASURED, at a 1280px window: the row is 1166px wide and its contents want
+     1167. One pixel. The fold then took the words off both purple buttons, the
+     way-out button, Publish Round's counts and the type readout at once —
+     freeing 402px, which became an empty gap in the middle of the row with
+     glyphs at either end. The ladder was right and its bottom rung was a cliff.
+
+     So the middle step is now FOUR rungs, and each one gives up exactly one
+     named thing. Cumulative — trim stays on under lite, lite under half and so
+     on — so each rule below is written once, on the rung where that loss
+     happens:
+
+       trim   whitespace. Nothing disappears at all.
+       lite   the commentary: Publish Round's counts, the type readout. Both
+              are restated in a tooltip a hover away.
+       half   the way-out button's WORD. Its count stays — a door reading "3"
+              still says what is behind it; a bare arrow does not.
+       tight  the two purple buttons fold to their glyphs. LAST, because these
+              are the words the report was about.
+
+     Only if even tight does not fit does the row wrap, with the full words
+     back — a line of its own has room for them. The words are spans precisely
+     so all of this is a paint decision: textContent never changes, which is
      also why every test that reads the labels still can. */
   .redline-page .rl-glyph{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-trim .rl-head{gap:5px}
+  .redline-page .rl-tabrow.rl-tabrow-trim .rl-seg{padding:0 7px}
+  .redline-page .rl-tabrow.rl-tabrow-trim .rl-needs{padding:0 9px;gap:6px}
+  /* The stepper joined this row on 13 Aug 2026 and folds like everything else
+     on it: the readout stands down and the two buttons stay, because A⁻ and A⁺
+     are the control and "15px" is the commentary. display:none rather than a
+     rewrite — textContent never changes, which is what the suite reads. */
+  .redline-page .rl-tabrow.rl-tabrow-lite .rl-send-detail{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-lite .rl-type-out{display:none}
+  /* The way back keeps its own rules rather than sharing a selector with the
+     purple buttons: it folds for the same reason and is not the same control,
+     and it folds one rung EARLIER now — a door with a count on it survives
+     losing its word better than a verb survives losing its. */
+  .redline-page .rl-tabrow.rl-tabrow-half .rl-livelist .rl-word{display:none}
+  .redline-page .rl-tabrow.rl-tabrow-half .rl-livelist{padding:6px 8px;gap:5px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-word{display:none}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-glyph{display:inline}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn{padding:6px 9px}
-  /* The way back folds on the same step. Its own rules rather than a shared
-     selector: the two are folded for the same reason and are not the same
-     control, and the tests read each rule by name. The COUNT never folds — a
-     door reading "3" still says what is behind it; a bare arrow does not. */
-  .redline-page .rl-tabrow.rl-tabrow-tight .rl-livelist .rl-word{display:none}
-  .redline-page .rl-tabrow.rl-tabrow-tight .rl-livelist{padding:6px 8px;gap:5px}
-  .redline-page .rl-tabrow.rl-tabrow-tight .rl-send-detail{display:none}
-  .redline-page .rl-tabrow.rl-tabrow-tight .rl-head{gap:5px}
-  .redline-page .rl-tabrow.rl-tabrow-tight .rl-seg{padding:0 7px}
-  .redline-page .rl-tabrow.rl-tabrow-tight .rl-needs{padding:0 9px;gap:6px}
-  /* The text stepper joined this row on 13 Aug 2026 and folds like everything
-     else on it: the readout stands down and the two buttons stay, because A⁻
-     and A⁺ are the control and "15px" is the commentary. display:none rather
-     than a rewrite — textContent never changes, which is what the suite
-     reads. */
-  .redline-page .rl-tabrow.rl-tabrow-tight .rl-type-out{display:none}
   .redline-page .rl-tabrow.rl-tabrow-wrap{border-bottom:0}
   .redline-page .rl-tabrow.rl-tabrow-wrap .rl-tabrow-gap{flex-basis:100%;min-width:0;height:0;
     border-bottom:1px solid var(--color-divider)}
@@ -7981,10 +8023,13 @@ function renderRedline(){
                and start a negotiation on every contract in the workspace —
                the trap the sidebar count is already written around.
 
-               ITS WORD FOLDS with the purple buttons on the tight step of the
-               fit ladder (see .rl-tabrow-tight): the icon and the count stay,
-               the word stands down, the title carries the sentence. textContent
-               never changes, which is what the suite reads. */
+               ITS WORD FOLDS one rung BEFORE the purple buttons' — on the half
+               step of the fit ladder (see .rl-tabrow-half; it used to fold with
+               them, until the ladder was graded on 13 Aug 2026). The icon and
+               the COUNT stay, the word stands down, the title carries the
+               sentence: a door reading "3" still says what is behind it, which
+               is why it can afford to lose its word before a verb can.
+               textContent never changes, which is what the suite reads. */
         }${(() => {
           const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
           const tip = i18tn('ng_live_list_title', liveN, { n: liveN });

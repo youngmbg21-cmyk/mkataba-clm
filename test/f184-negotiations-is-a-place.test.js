@@ -251,10 +251,20 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
        fold would push the row to a second line on a ThinkPad, which comes
        straight out of the contract's height. */
     const s = read('js/views/negotiation.js');
-    assert.match(s, /rl-tabrow-tight \.rl-livelist \.rl-word\{display:none\}/,
-      'the word stands down on the tight step');
-    assert.ok(!/rl-tabrow-tight \.rl-livelist \.rl-livelist-n\{display:none\}/.test(s),
+    /* ---- CLAIM MOVED A RUNG, 13 Aug 2026 (owner-reported) ----
+       This used to read "on the tight step", when tight was the only middle
+       step there was. The ladder is graded now — trim, lite, half, tight — and
+       this word folds on HALF, one rung before the purple buttons'. The reason
+       is the claim below it: the count stays, so a door that has lost its word
+       still says what is behind it, and a control that keeps meaning something
+       can afford to fold before a verb that would not. */
+    assert.match(s, /rl-tabrow-half \.rl-livelist \.rl-word\{display:none\}/,
+      'the word stands down on the half step');
+    assert.ok(!/rl-tabrow-(half|tight) \.rl-livelist \.rl-livelist-n\{display:none\}/.test(s),
       'the count does not — a bare arrow says nothing about what is behind it');
+    assert.ok(s.indexOf('.rl-tabrow-half .rl-livelist .rl-word')
+      < s.indexOf('.rl-tabrow-tight .rl-pb-btn .rl-word'),
+      'and it folds before them, not with them');
     const b = world(['MK-1']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     b.win.openRedlineWorkbench('MK-1');
