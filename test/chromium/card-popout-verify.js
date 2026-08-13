@@ -433,6 +433,282 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     await ph2.screenshot({ path: path.join(OUT, '07-phone-card.png') });
     await ph2.close();
 
+    /* ---- 11. THE TOP BAR IS A HANDLE (owner-asked, 13 Aug 2026) ----
+       The panel can be dragged around the screen by its top bar, on both
+       seats. THREE decisions were taken with it and each one is a claim a
+       screenshot cannot make on its own:
+
+         · once moved, the reader's position WINS. The default panel follows
+           its card, re-placed on every scroll, resize and repaint — so the
+           thing to prove is not that a drag moves it but that a scroll and a
+           repaint afterwards leave it exactly where it was put.
+         · it stops FADING when its card scrolls out of the column. That rule
+           belongs to a panel pinned to a card.
+         · the position is remembered ACROSS CARDS for the sitting, so a reader
+           working down the column drags once, not once per clause.
+
+       AND A BROWSER IS THE ONLY PLACE ANY OF IT CAN BE ASKED: jsdom has no
+       pointer events, no pointer capture, no layout to clamp against and no
+       cascade to resolve a cursor from. Every check below is a real mouse
+       press, a real move and a real release. */
+    const bar = pg => pg.evaluate(([seen]) => {
+      const s = eval(seen);
+      const pop = document.getElementById('rl-pop');
+      const head = pop && pop.querySelector('.rl-pop-head');
+      if (!head) return { there: false };
+      const cs = getComputedStyle(head);
+      return { there: true, box: s(pop), head: s(head),
+        cursor: cs.cursor, select: cs.userSelect || cs.webkitUserSelect,
+        touch: cs.touchAction, title: head.getAttribute('title') || '',
+        away: pop.classList.contains('rl-pop-away'),
+        at: window.rlPopAt ? window.rlPopAt() : 'no rlPopAt' };
+    }, [SEEN]);
+    /* A real drag: press the LEFT of the bar (the ✕ lives at its right), move
+       in steps so pointermove actually fires, release. */
+    const dragBar = async (pg, dx, dy) => {
+      const h = await pg.evaluate(() => {
+        const el = document.querySelector('#rl-pop .rl-pop-head');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { x: r.left + 40, y: r.top + r.height / 2 };
+      });
+      if (!h) return false;
+      await pg.mouse.move(h.x, h.y);
+      await pg.mouse.down();
+      for (let i = 1; i <= 6; i++) await pg.mouse.move(h.x + dx * i / 6, h.y + dy * i / 6);
+      await pg.mouse.up();
+      await pause(220);
+      return true;
+    };
+
+    /* Back to a clean owner's page: section 9 handed the round over, and a
+       drag reads better against a column that still has both sides on it. */
+    const drag = await browser.newPage({ viewport: { width: 1440, height: 980 }, deviceScaleFactor: 2 });
+    drag.on('pageerror', e => errors.push('drag: ' + e.message));
+    await drag.goto(PAGE, { waitUntil: 'load' });
+    await drag.evaluate(() => window.READY);
+    await pause(400);
+    await drag.evaluate(() => document.querySelector('#rl-changes .rl-card [data-rl-pop]').click());
+    await pause(400);
+
+    const before = await bar(drag);
+    check('11 · the panel opens beside its card, unmoved',
+      before.there && before.at === null, before.there ? String(before.at) : 'no panel');
+    check('11 · THE BAR SAYS IT IS A HANDLE — grab cursor, and a word for it',
+      before.cursor === 'grab' && /drag/i.test(before.title),
+      `cursor:${before.cursor} · "${before.title}"`);
+    check('11 · and a drag over it will not select the text it passes',
+      before.select === 'none' && before.touch === 'none',
+      `user-select:${before.select} touch-action:${before.touch}`);
+
+    await dragBar(drag, -260, 150);
+    await drag.screenshot({ path: path.join(OUT, '08-dragged.png') });
+    const moved = await bar(drag);
+    check('11 · A REAL DRAG MOVES IT — by the distance the mouse travelled',
+      moved.there && Math.abs((moved.box.x - before.box.x) + 260) <= 6
+        && Math.abs((moved.box.y - before.box.y) - 150) <= 6,
+      `${before.box.x},${before.box.y} → ${moved.box.x},${moved.box.y}`);
+    check('11 · and the position is recorded, not merely painted',
+      !!moved.at && Math.abs(moved.at.x - moved.box.x) <= 2,
+      JSON.stringify(moved.at));
+    /* The whole reason the panel borrows the card's body: a drag must not have
+       quietly rebuilt it into a copy with no handlers. */
+    const intact = await drag.evaluate(() => {
+      const pop = document.getElementById('rl-pop');
+      return { notes: !!pop.querySelector('.rl-cnotes'),
+        onCard: document.querySelectorAll('#rl-changes .rl-card .rl-cnotes').length,
+        boxes: document.querySelectorAll('#rl-pop textarea, #rl-pop .rl-cnote-add').length };
+    });
+    check('11 · THE BORROWED BODY CAME WITH IT — one node, still in the panel',
+      intact.notes && intact.boxes > 0,
+      `thread=${intact.notes} composer bits=${intact.boxes} still-on-cards=${intact.onCard}`);
+
+    /* ---- THE POSITION HOLDS. Three things that used to re-place it. ---- */
+    const afterScroll = await drag.evaluate(async () => {
+      const col = document.getElementById('rl-changes');
+      col.scrollTop = col.scrollTop + 320;
+      col.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 260));
+      const p = document.getElementById('rl-pop').getBoundingClientRect();
+      return { x: Math.round(p.left), y: Math.round(p.top) };
+    });
+    check('11 · SCROLLING THE COLUMN NO LONGER SNATCHES IT BACK',
+      Math.abs(afterScroll.x - moved.box.x) <= 1 && Math.abs(afterScroll.y - moved.box.y) <= 1,
+      `${afterScroll.x},${afterScroll.y}`);
+
+    const afterPaint = await drag.evaluate(async () => {
+      renderRedline();
+      await new Promise(r => setTimeout(r, 420));
+      const pop = document.getElementById('rl-pop');
+      if (!pop) return { gone: true };
+      const p = pop.getBoundingClientRect();
+      return { gone: false, x: Math.round(p.left), y: Math.round(p.top),
+        notes: !!pop.querySelector('.rl-cnotes') };
+    });
+    check('11 · AND A REPAINT LEAVES IT WHERE THE READER PUT IT',
+      !afterPaint.gone && Math.abs(afterPaint.x - moved.box.x) <= 1
+        && Math.abs(afterPaint.y - moved.box.y) <= 1 && afterPaint.notes,
+      afterPaint.gone ? 'the panel went' : `${afterPaint.x},${afterPaint.y} body=${afterPaint.notes}`);
+
+    /* Its card scrolled clean out of the column. A PINNED panel fades here, on
+       purpose; a panel somebody parked does not. */
+    const offCard = await drag.evaluate(async ([seen]) => {
+      const s = eval(seen);
+      const col = document.getElementById('rl-changes');
+      col.scrollTop = col.scrollHeight;
+      col.dispatchEvent(new Event('scroll', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 300));
+      const pop = document.getElementById('rl-pop');
+      const card = document.querySelector(`[data-nego-card="${rlPopId()}"]`);
+      const cr = card ? card.getBoundingClientRect() : null;
+      const colr = col.getBoundingClientRect();
+      return { away: pop.classList.contains('rl-pop-away'), box: s(pop),
+        cardOut: !!cr && (cr.bottom < colr.top + 4 || cr.top > colr.bottom - 4) };
+    }, [SEEN]);
+    check('11 · IT NO LONGER VANISHES WITH ITS CARD once it has been moved',
+      !offCard.away && offCard.box.on,
+      `card scrolled out=${offCard.cardOut} · away=${offCard.away} · ${offCard.box.w}x${offCard.box.h}`);
+
+    /* ---- CLAMPED. A panel dragged past the corner is a panel you lose. ---- */
+    await dragBar(drag, 4000, 4000);
+    const far = await bar(drag);
+    check('11 · IT CANNOT BE DRAGGED OFF THE SCREEN',
+      far.box.x >= 0 && far.box.y >= 0 && far.box.x + far.box.w <= 1440
+        && far.box.y + far.box.h <= 980,
+      `x${far.box.x} y${far.box.y} ${far.box.w}x${far.box.h} in 1440x980`);
+
+    /* ---- REMEMBERED ACROSS CARDS, for this sitting ---- */
+    await dragBar(drag, -700, -300);
+    const parked = await bar(drag);
+    const next = await drag.evaluate(async () => {
+      const btns = [...document.querySelectorAll('#rl-changes .rl-card [data-rl-pop]')];
+      const first = rlPopId();
+      const other = btns.find(b => b.getAttribute('data-rl-pop') !== first);
+      if (!other) return { enough: false };
+      other.click();
+      await new Promise(r => setTimeout(r, 350));
+      const pop = document.getElementById('rl-pop');
+      const p = pop.getBoundingClientRect();
+      return { enough: true, first, second: rlPopId(),
+        x: Math.round(p.left), y: Math.round(p.top) };
+    });
+    check('11 · THE NEXT CARD OPENS WHERE THE LAST ONE WAS LEFT',
+      !next.enough || (next.first !== next.second
+        && Math.abs(next.x - parked.box.x) <= 2 && Math.abs(next.y - parked.box.y) <= 2),
+      next.enough ? `${next.first} → ${next.second} at ${next.x},${next.y} (was ${parked.box.x},${parked.box.y})`
+        : 'only one card on the table');
+
+    /* ---- THE ✕ SHARES THE HANDLE AND MUST STILL BE A PRESS ---- */
+    const closedByX = await drag.evaluate(async () => {
+      const x = document.querySelector('#rl-pop [data-rl-pop-close]');
+      const r = x.getBoundingClientRect();
+      return { cursor: getComputedStyle(x).cursor, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    await drag.mouse.move(closedByX.x, closedByX.y);
+    await drag.mouse.down();
+    /* A press is never perfectly still. Two pixels must stay a press. */
+    await drag.mouse.move(closedByX.x + 2, closedByX.y + 1);
+    await drag.mouse.up();
+    await pause(350);
+    check('11 · THE ✕ ON THE HANDLE IS STILL A PRESS, not a two-pixel drag',
+      await drag.evaluate(() => !document.getElementById('rl-pop')),
+      `its cursor is ${closedByX.cursor}`);
+
+    /* ---- AND THE WAY BACK ---- */
+    const back = await drag.evaluate(async ([seen]) => {
+      const s = eval(seen);
+      document.querySelector('#rl-changes .rl-card [data-rl-pop]').click();
+      await new Promise(r => setTimeout(r, 300));
+      const kept = document.getElementById('rl-pop').getBoundingClientRect().left;
+      window.rlPopResetAt();
+      window.rlPopPlace();
+      await new Promise(r => setTimeout(r, 220));
+      const pop = document.getElementById('rl-pop');
+      const card = document.querySelector(`[data-nego-card="${rlPopId()}"]`);
+      return { kept: Math.round(kept), at: window.rlPopAt(), box: s(pop), card: s(card) };
+    }, [SEEN]);
+    check('11 · putting it back returns it beside its card',
+      back.at === null && back.box.x + back.box.w <= back.card.x + 2 && back.box.x !== back.kept,
+      `parked at ${back.kept} → back at ${back.box.x}, card starts ${back.card.x}`);
+    await drag.close();
+
+    /* ---- THE COUNTERPARTY'S SEAT, which is a different MOUNT ----
+       One builder draws both, so this is a check that nothing about their
+       page — a different root, a different host id, a page with no toolbar —
+       stops the handle working there. parity.html is the harness that mounts
+       the two seats off one record. */
+    const par = await browser.newPage({ viewport: { width: 1440, height: 980 }, deviceScaleFactor: 2 });
+    par.on('pageerror', e => errors.push('parity: ' + e.message));
+    await par.goto(PAGE.replace('redline.html', 'parity.html'), { waitUntil: 'load' });
+    await par.evaluate(() => window.READY);
+    await pause(500);
+    await par.evaluate(() => window.SHOW_COUNTERPARTY());
+    await pause(700);
+    const cpOpened = await par.evaluate(async () => {
+      const b = document.querySelector('#rl-changes .rl-card [data-rl-pop]');
+      if (!b) return false;
+      b.click();
+      await new Promise(r => setTimeout(r, 350));
+      return !!document.getElementById('rl-pop');
+    });
+    check('11 · counterparty: the panel opens on their page too', cpOpened);
+    if (cpOpened){
+      const cpBefore = await bar(par);
+      check('11 · counterparty: THE SAME HANDLE, on the same one builder',
+        cpBefore.cursor === 'grab' && /drag/i.test(cpBefore.title),
+        `cursor:${cpBefore.cursor} · "${cpBefore.title}"`);
+      await dragBar(par, -220, 120);
+      const cpMoved = await bar(par);
+      check('11 · counterparty: AND IT DRAGS THERE — one fix reaches both seats',
+        Math.abs((cpMoved.box.x - cpBefore.box.x) + 220) <= 6
+          && Math.abs((cpMoved.box.y - cpBefore.box.y) - 120) <= 6,
+        `${cpBefore.box.x},${cpBefore.box.y} → ${cpMoved.box.x},${cpMoved.box.y}`);
+      const cpHeld = await par.evaluate(async () => {
+        renderSharePortal(buildSharePayload(CONTRACT, { purpose: 'negotiate' }),
+          { token: 'harness-token', share: { recipientName: 'Amina Wanjiru' } });
+        await new Promise(r => setTimeout(r, 500));
+        const pop = document.getElementById('rl-pop');
+        if (!pop) return null;
+        const r = pop.getBoundingClientRect();
+        return { x: Math.round(r.left), y: Math.round(r.top) };
+      });
+      check('11 · counterparty: their repaint does not move it either',
+        !cpHeld || (Math.abs(cpHeld.x - cpMoved.box.x) <= 2 && Math.abs(cpHeld.y - cpMoved.box.y) <= 2),
+        cpHeld ? `${cpHeld.x},${cpHeld.y}` : 'the panel closed with the repaint');
+      await par.screenshot({ path: path.join(OUT, '09-counterparty-dragged.png') });
+    }
+    await par.close();
+
+    /* ---- AND NOT ON A PHONE ----
+       Down there the panel is a bottom sheet pinned where a thumb reaches.
+       Dragging it somewhere would be dragging it out of reach, so the handler
+       refuses AND the bar does not dress like a handle — a cursor promising a
+       drag the code will not do is a fault a reader blames themselves for. */
+    const ph3 = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
+    ph3.on('pageerror', e => errors.push('phone3: ' + e.message));
+    await ph3.goto(PAGE, { waitUntil: 'load' });
+    await ph3.evaluate(() => window.READY);
+    await pause(500);
+    await ph3.evaluate(() => document.querySelector('#rl-changes .rl-card [data-rl-pop]').click());
+    await pause(400);
+    const phBefore = await bar(ph3);
+    check('11 · phone: the sheet\'s bar is not dressed as a handle',
+      phBefore.there && phBefore.cursor !== 'grab', phBefore.cursor);
+    /* DOWN, into the sheet's own body, and that is not fussiness. Released
+       outside the panel the press is an ordinary click on the page, which
+       closes it by the rule in rlPopWireOnce — and a closed panel would pass
+       "it did not move" for the wrong reason. On the desktop the same gesture
+       stays open because pointer capture puts the release back on the bar,
+       which is the difference under test. */
+    await dragBar(ph3, 0, 200);
+    const phAfter = await bar(ph3);
+    check('11 · phone: AND A DRAG DOES NOT MOVE THE SHEET',
+      phAfter.there && Math.abs(phAfter.box.y - phBefore.box.y) <= 1 && phAfter.at === null,
+      phAfter.there ? `y${phBefore.box.y} → y${phAfter.box.y}, remembered=${JSON.stringify(phAfter.at)}`
+        : 'the sheet closed instead');
+    await ph3.screenshot({ path: path.join(OUT, '10-phone-sheet-unmoved.png') });
+    await ph3.close();
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

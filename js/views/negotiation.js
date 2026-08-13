@@ -6668,8 +6668,21 @@ function redlineLayoutCss(){
   html.dark .rl-pop{box-shadow:0 20px 54px -12px rgba(0,0,0,.8),0 2px 8px rgba(0,0,0,.5)}
   /* Its card scrolled out of the column: out of the way, still open. */
   .rl-pop.rl-pop-away{opacity:0;pointer-events:none}
+  /* ---- AND THE TOP BAR IS THE HANDLE ----
+     cursor:grab is the whole affordance: the bar looks like a bar until the
+     pointer is over it, and then it says what it is. touch-action:none keeps a
+     drag on a touchscreen from scrolling the page underneath instead — the
+     panel is a floating layer, and the finger on its bar is moving it.
+     user-select:none stops a drag highlighting the id and the clause name it
+     passes over. NONE of it reaches the phone: down there the panel is
+     .rl-pop-sheet and the handle stands down (see the sheet rules below). */
   .rl-pop-head{flex:none;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;
-    border-bottom:1px solid var(--color-divider);background:var(--color-bg)}
+    border-bottom:1px solid var(--color-divider);background:var(--color-bg);
+    cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+  .rl-pop-head.rl-pop-grabbing{cursor:grabbing}
+  /* The ✕ is a button on a handle: it keeps its own cursor, and rlPopWireDrag
+     refuses to start a drag on it. */
+  .rl-pop-head button{cursor:pointer}
   .rl-pop-id{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
   .rl-pop-sub{font-size:11px;color:var(--color-neutral-600);line-height:1.45}
   .rl-pop-x{flex:none;width:26px;height:26px;padding:0;display:grid;place-items:center;
@@ -6692,6 +6705,11 @@ function redlineLayoutCss(){
      pinned where a thumb reaches. */
   .rl-pop-sheet{left:0!important;right:0;top:auto!important;bottom:0;width:auto!important;
     max-height:78vh!important;border-radius:16px 16px 0 0}
+  /* A sheet is pinned where a thumb reaches, so its bar is not a handle and
+     must not dress like one. Said in the stylesheet as well as in the handler,
+     because a cursor that promises a drag the code refuses is a fault a reader
+     blames themselves for. */
+  .rl-pop-sheet .rl-pop-head{cursor:default;touch-action:auto;user-select:auto;-webkit-user-select:auto}
 
   /* Compact pills, right-aligned: each verb is only as wide as its word, so the
      card's information leads and the actions follow. flex:1 stretched them into
@@ -9240,6 +9258,28 @@ async function rlAiPropose(ctx){
    or a long thread gets the width of the document instead of the width of a
    card. One panel, so one value. */
 let _rlPopId = null;
+/* ---- AND WHERE THE READER PUT IT, IF THEY MOVED IT ----
+   Owner-asked, 13 Aug 2026: the panel can be dragged around the screen by its
+   top bar. Null until somebody drags it; a point in WINDOW coordinates after
+   that, because the panel is positioned `fixed` and the window is the frame it
+   is fixed to.
+
+   THREE DECISIONS, all taken deliberately and all visible in rlPopPlace:
+     · ONCE MOVED, IT STAYS. The default panel follows its card — re-placed on
+       every scroll of the column, every resize and every repaint. A dragged
+       panel that still followed would jump out from under the reader the
+       moment they scrolled, so the reader's position wins from then on.
+     · IT NO LONGER FADES when its card scrolls out of the column. That rule is
+       right for a panel PINNED to a card and wrong for one somebody parked
+       where they wanted it.
+     · IT IS REMEMBERED ACROSS CARDS, for this sitting only. Popping the next
+       change opens it where the reader left the last one, so a reader working
+       down a column drags once rather than once per clause. Not persisted (a
+       working position is not a setting) and dropped with _rlPopId when the
+       reader moves to another contract.
+   The phone is untouched: down there the panel is a bottom sheet with nothing
+   to float over, and rlPopPlace refuses it a position at all. */
+let _rlPopAt = null;
 /* An open card belongs to the contract it was opened on, and to this visit.
    Not persisted (a working preference is not a setting) and dropped when the
    reader moves to another contract, so a card cannot arrive open on a change
@@ -9257,6 +9297,9 @@ function rlCardForgetPins(contractId){
   _rlPinnedFor = id;
   /* A panel cannot arrive open on a change this reader has never seen. */
   _rlPopId = null;
+  /* And a position chosen while reading one contract is not a position chosen
+     for the next one. */
+  _rlPopAt = null;
 }
 /* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
    so that a clause being renamed underneath a card does not count as a state
@@ -9353,12 +9396,42 @@ function rlPopReturnBody(){
   if (acts) home.insertBefore(body, acts); else home.appendChild(body);
 }
 const RL_POP_W = 420, RL_POP_GAP = 12, RL_POP_EDGE = 12;
+/* THE ONE CLAMP, and it is asked on every read rather than written into the
+   remembered point. A panel dragged to the right-hand edge of a wide window
+   must come back inside a narrow one — and go back out again when the window
+   is widened, which storing the clamped value would lose. */
+function rlPopFit(v, size, limit){
+  const max = limit - size - RL_POP_EDGE;
+  return Math.round(Math.max(RL_POP_EDGE, Math.min(v, Math.max(RL_POP_EDGE, max))));
+}
+function rlPopAt(){ return _rlPopAt ? { x: _rlPopAt.x, y: _rlPopAt.y } : null; }
+/* Put it back beside its card — the state it opens in, and the way out of a
+   position the reader no longer wants. */
+function rlPopResetAt(){ _rlPopAt = null; }
 /* Positioned against its card and pulled back inside the window. A panel that
    opens half off-screen because its card sits low in a long column is the
    commonest way this kind of layer fails. */
 function rlPopPlace(){
   const el = rlPopEl();
   if (!el || _rlPopId == null || el.classList.contains('rl-pop-sheet')) return;
+  /* ---- MOVED BY HAND: THE READER'S POSITION WINS ----
+     Before the card is even asked about. This branch is what makes a dragged
+     panel hold still: the follow-the-card arithmetic below runs on every
+     scroll, resize and repaint, and any of them would otherwise snatch the
+     panel back to where the code thinks it belongs. It also never wears
+     rl-pop-away — a panel somebody parked deliberately does not vanish
+     because the card it came from scrolled past. */
+  if (_rlPopAt){
+    const vw0 = window.innerWidth || 1200, vh0 = window.innerHeight || 800;
+    const w0 = Math.min(RL_POP_W, Math.max(260, vw0 - RL_POP_EDGE * 2));
+    el.style.width = w0 + 'px';
+    el.style.maxHeight = (vh0 - RL_POP_EDGE * 2) + 'px';
+    const h0 = Math.min(el.offsetHeight || 360, vh0 - RL_POP_EDGE * 2);
+    el.style.left = rlPopFit(_rlPopAt.x, w0, vw0) + 'px';
+    el.style.top = rlPopFit(_rlPopAt.y, h0, vh0) + 'px';
+    el.classList.remove('rl-pop-away');
+    return;
+  }
   const card = rlPopCardEl(_rlPopId);
   if (!card){ el.classList.add('rl-pop-away'); return; }
   const r = card.getBoundingClientRect();
@@ -9379,6 +9452,62 @@ function rlPopPlace(){
   if (top + h > vh - RL_POP_EDGE) top = vh - RL_POP_EDGE - h;
   el.style.top = Math.max(RL_POP_EDGE, top) + 'px';
   el.classList.remove('rl-pop-away');
+}
+/* ---- THE TOP BAR IS A HANDLE (owner-asked, 13 Aug 2026) ----
+   Wired to the panel's OWN head, once per panel, and that is deliberate rather
+   than lazy: the panel is built and thrown away on every open, so an element
+   listener dies with the element it was put on and there is nothing to leak.
+   The delegated set in rlPopWireOnce exists for the opposite reason — those
+   listeners live on `document`, which outlives every panel.
+
+   POINTER CAPTURE, so the move and the release come back to the bar even when
+   the cursor outruns it. Without capture a fast drag over the document loses
+   the pointer and leaves the panel stuck mid-move under a button still held
+   down — the classic version of this bug.
+
+   THREE THINGS IT MUST NOT DO:
+     · not the ✕. It shares this bar, and a press that became a two-pixel drag
+       would swallow the only way to close the panel.
+     · not on a phone. There the panel is a bottom sheet pinned where a thumb
+       reaches, and dragging it somewhere would be dragging it out of reach.
+     · not close the panel. The press outside → shut rule in rlPopWireOnce
+       already exempts anything inside #rl-pop, and the release lands there. */
+function rlPopWireDrag(el){
+  const head = el && el.querySelector('.rl-pop-head');
+  if (!head || !head.addEventListener) return;
+  let from = null;
+  const vw = () => window.innerWidth || 1200;
+  const vh = () => window.innerHeight || 800;
+  head.addEventListener('pointerdown', ev => {
+    if (el.classList.contains('rl-pop-sheet')) return;
+    if (ev.button != null && ev.button !== 0) return;
+    /* The ✕ — and anything else that ever joins this bar. */
+    if (ev.target && ev.target.closest && ev.target.closest('button')) return;
+    const r = el.getBoundingClientRect();
+    from = { dx: ev.clientX - r.left, dy: ev.clientY - r.top, w: r.width, h: r.height };
+    head.classList.add('rl-pop-grabbing');
+    try { head.setPointerCapture(ev.pointerId); } catch (_e){}
+    /* Stops the drag selecting the id and the clause name it passes over. */
+    ev.preventDefault();
+  });
+  head.addEventListener('pointermove', ev => {
+    if (!from) return;
+    _rlPopAt = { x: rlPopFit(ev.clientX - from.dx, from.w, vw()),
+                 y: rlPopFit(ev.clientY - from.dy, from.h, vh()) };
+    /* Straight onto the element: the panel has to move WITH the cursor, not
+       one repaint behind it. */
+    el.style.left = _rlPopAt.x + 'px';
+    el.style.top = _rlPopAt.y + 'px';
+    el.classList.remove('rl-pop-away');
+  });
+  const drop = ev => {
+    if (!from) return;
+    from = null;
+    head.classList.remove('rl-pop-grabbing');
+    try { head.releasePointerCapture(ev.pointerId); } catch (_e){}
+  };
+  head.addEventListener('pointerup', drop);
+  head.addEventListener('pointercancel', drop);
 }
 /* Draw, move or remove the panel to match _rlPopId. Called by the button and
    again after every repaint of the column, so a panel left open survives a
@@ -9416,7 +9545,7 @@ function rlPopPaint(c){
       ? `<div class="rl-pop-word">${_ne(String(ch.proposedText || ch.newText).trim())}</div>` : '');
   mount.insertAdjacentHTML('beforeend', `<section id="rl-pop" class="rl-pop" role="dialog"
       aria-label="${_nea(i18t('ng_pop_aria', { id: String(_rlPopId) }))}">
-    <header class="rl-pop-head">
+    <header class="rl-pop-head" data-rl-pop-drag="1" title="${_nea(i18t('ng_pop_move'))}">
       <div class="rl-pop-id"><span class="rl-card-id">${_ne(String(_rlPopId))}</span>${
         meta ? `<span class="rl-pop-sub">${_ne((meta.textContent || '').trim())}</span>` : ''}</div>
       <button type="button" class="rl-pop-x" data-rl-pop-close="1"
@@ -9440,6 +9569,9 @@ function rlPopPaint(c){
     ev.preventDefault(); ev.stopPropagation();
     rlPopClose(); rlPopPaint(c);
   });
+  /* AFTER the sheet class is decided, so the handle knows on its very first
+     press whether it is a floating panel or a phone's bottom sheet. */
+  rlPopWireDrag(el);
   rlPopPlace();
 }
 /* Escape closes it, a press outside closes it, scrolling and resizing move it.
@@ -12619,6 +12751,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
      rlCardUnpinAll with it. One panel, one value — see rlPopId. */
   rlCardNeedsYou, rlCardForgetPins,
   rlPopId, rlPopIsOpen, rlPopSet, rlPopClose, rlPopPaint, rlPopPlace,
+  /* The dragged position: read it, and put the panel back beside its card. */
+  rlPopAt, rlPopResetAt, rlPopFit,
   rlQueueRows, rlQueueHtml, rlQueueWord, rlQueueSelect, rlQueueSelected, rlQueueMark,
   rlQueueOpen, rlSetQueueOpen, rlSetQueueShown, rlWireQueueMin,
   rlRestoreScroll,
