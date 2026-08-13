@@ -225,6 +225,77 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('and an answer lands in the panel', /workload runway/i.test(answered),
       answered.replace(/\s+/g, ' ').slice(-120));
 
+    /* ============ 5. THE HEAD IS ONE LINE, AND THE CHARTS GET THE REST ======
+       Owner-asked, 13 Aug 2026: "move the highlighted sentence to be next to
+       the word Insights, and move the page up so the dashboards across the tabs
+       have more screen space."
+
+       Both halves are one measurement, and it can only be taken here: the
+       header sits above #content-scroll as its own flex row, and the Insights
+       tabs size themselves against exactly that room (height:var(--view-h)).
+       Whether a sentence is "next to" a word is a question about two boxes on a
+       screen, and how much room the charts got is the difference between two
+       numbers — jsdom can answer neither. Baseline before the change, at this
+       viewport: 63px of header, subtitle 29px below the title, 824px of chart. */
+    const HEAD = `(() => {
+      const head = document.getElementById('page-head');
+      const h1 = head && head.querySelector('h1');
+      const sub = head && head.querySelector('p');
+      const sc = document.getElementById('content-scroll');
+      const r = el => el ? el.getBoundingClientRect() : null;
+      const a = r(h1), b = r(sub), s = r(sc);
+      return {
+        headH: head ? Math.round(r(head).height) : -1,
+        title: h1 ? h1.textContent.trim() : null,
+        sub: sub ? sub.textContent.trim() : null,
+        /* NEXT TO, not merely present: same line means the two boxes share a
+           vertical band, and the sentence starts to the RIGHT of the word. */
+        sameLine: (a && b) ? Math.abs(a.top - b.top) < 12 : null,
+        toTheRight: (a && b) ? b.left > a.right - 1 : null,
+        scrollH: s ? Math.round(s.height) : -1,
+        viewH: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--view-h'), 10) || 0,
+      };
+    })()`;
+    const heads = {};
+    for (const tab of ['frame', 'friction', 'map']){
+      await page.evaluate(t => { intel.tab = t; renderIntel(); }, tab);
+      await page.waitForTimeout(700);
+      heads[tab] = await page.evaluate(HEAD);
+    }
+    await page.evaluate(() => { intel.tab = 'frame'; renderIntel(); });
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: path.join(OUT, '05-one-line-head.png') });
+
+    const f = heads.frame;
+    check('5 the page still says its name and what is on it',
+      f.title === 'Insights' && /portfolio frame/.test(f.sub || ''), `${f.title} — ${f.sub}`);
+    check('5 THE SENTENCE IS NEXT TO THE WORD, not under it',
+      f.sameLine && f.toTheRight, `same line ${f.sameLine} · to the right ${f.toTheRight}`);
+    check('5 so the header is one line of chrome, not two',
+      f.headH > 0 && f.headH < 48, `${f.headH}px (was 63)`);
+    check('5 AND THE CHARTS GOT THE DIFFERENCE',
+      f.scrollH >= 845 && f.viewH === f.scrollH,
+      `${f.scrollH}px of chart (was 824) · --view-h ${f.viewH}px`);
+    /* ACROSS THE THREE TABS, which is what was asked. The header is the shell's
+       and the tabs are the page's, so this is really a check that switching
+       tabs does not quietly redraw the header a different way. */
+    check('5 and all three tabs read the same, because it is one header',
+      ['frame', 'friction', 'map'].every(t =>
+        heads[t].sameLine && heads[t].headH === f.headH && heads[t].scrollH === f.scrollH),
+      ['frame', 'friction', 'map'].map(t =>
+        `${t}: ${heads[t].headH}px/${heads[t].scrollH}px`).join(' · '));
+
+    /* IT STILL WRAPS RATHER THAN HIDING. Narrow the window until the two cannot
+       share a line: the sentence must come back on its own line, not vanish. */
+    await page.setViewportSize({ width: 720, height: 950 });
+    await page.waitForTimeout(800);
+    const narrow = await page.evaluate(HEAD);
+    check('5 on a narrow window the sentence drops to its own line and is still there',
+      /portfolio frame/.test(narrow.sub || ''),
+      narrow.sameLine ? 'still on one line at 720px' : 'wrapped, and still readable');
+    await page.setViewportSize({ width: 1500, height: 950 });
+    await page.waitForTimeout(600);
+
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {
     await browser.close();

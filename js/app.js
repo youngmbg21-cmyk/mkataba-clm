@@ -184,17 +184,42 @@ function pageActionHtml(kind){
    Everything else is a list or a tool with no name of its own, and says who it
    is here. */
 const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates'];
+/* ---- WHERE THE SUBTITLE SITS, AND WHAT THAT COSTS THE PAGE ----
+   Owner-asked, 13 Aug 2026, of Insights: "move the highlighted sentence to be
+   next to the word Insights, and move the page up so the dashboards have more
+   screen space."
+
+   The two halves are one change. A subtitle under the title is a second LINE,
+   and this header sits above #body-grid as its own flex row — every pixel it
+   takes is a pixel #content-scroll does not get, and the Insights tabs size
+   themselves against exactly that (height:var(--view-h)). Putting the sentence
+   on the title's own line, and trimming the lead above it, hands the whole
+   difference straight to the charts. Measured: 63px of header became 39px, and
+   the three tabs each gained those 24px of chart.
+
+   A LIST, NOT AN `if`. Insights is the page that asked and the only page in it
+   today; the next page that wants it joins the list rather than growing a
+   second branch in the markup. It is not made the default: most subtitles here
+   are sentences rather than three words, and on the title's line a long one
+   either wraps straight back to two lines or gets cut. Insights' reads as a
+   caption to its own name, which is why it works there.
+
+   IT STILL WRAPS. Below the width where both fit, the sentence drops to its own
+   line exactly as before — a header that hid the page's own description to save
+   a line would be trading the wrong thing. */
+const PAGE_HEAD_INLINE_SUB = ['intel'];
 function renderPageHeader(view){
   const host=document.getElementById('page-head'); if(!host) return;
   if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
   const [t,sub]=commandMeta(view);
   const acts=(PAGE_ACTIONS[view]||[]).map(pageActionHtml).join('');
-  host.style.padding='16px 20px 0';
+  const inlineSub=PAGE_HEAD_INLINE_SUB.includes(view);
+  host.style.padding=inlineSub?'10px 20px 0':'16px 20px 0';
   host.innerHTML=`
     <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
-      <div style="min-width:0">
+      <div style="min-width:0${inlineSub?';display:flex;align-items:baseline;gap:10px;flex-wrap:wrap':''}">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:clamp(18px,16px + 0.35vw,24px);font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
-        ${sub?`<p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500);line-height:1.5">${esc(sub)}</p>`:''}
+        ${sub?`<p style="margin:${inlineSub?'0':'3px 0 0'};font-size:12px;color:var(--color-neutral-500);line-height:1.5${inlineSub?';min-width:0':''}">${esc(sub)}</p>`:''}
       </div>
       ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}
     </div>`;
