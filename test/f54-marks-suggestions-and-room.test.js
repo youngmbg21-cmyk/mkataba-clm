@@ -173,59 +173,44 @@ describe('the clause tools are Edit and Delete', () => {
 /* ============================================================
    4 — the Doc page folds
    ============================================================ */
-describe('the contract header collapses', () => {
-  function page(){
+/* ---- CLAIMS REVERSED, 13 Aug 2026, OWNER-ASKED ----
+   Four tests stood here describing the header-fold toggle: that folding hid
+   every row carrying data-ws-fold, that the control was not inside what it
+   folded, that unfolding put it all back with the button saying which way it
+   went, and that the choice was kept per user rather than per contract.
+
+   The toggle is DELETED, and the reasoning is in js/views/contract.js where it
+   used to live. The short of it: the only thing carrying data-ws-fold was the
+   action strip, that strip draws nothing on the Document tab, so the row the
+   owner photographed toggled an empty box; its label said "header" while its
+   tooltips said "bar" and "toolbar"; Focus mode one row above already hides
+   the header and says so; and the per-user memory meant a press with no
+   visible effect quietly stripped the action bar off three other tabs on every
+   contract.
+
+   So the claims are turned round rather than deleted: NONE of that machinery
+   exists, and the menu offers exactly one way to give the document the room. */
+describe('the header-fold toggle is gone', () => {
+  test('none of the collapse machinery is exported any more', () => {
     const { win } = buildWorld({ contractView: true });
-    /* core.js is not on this stage, and lsGet/lsSet live there. Stood in for,
-       exactly as world.js stands in for persist() — what is under test is what
-       applyWsCollapse DECIDES, not where the choice is kept. */
-    let store = {};
-    win.lsGet = k => store[k];
-    win.lsSet = (k, v) => { store[k] = v; };
-    const doc = win.document;
-    doc.body.innerHTML = `
-      <div data-ws-fold="actions"><button id="x">Share</button></div>
-      <div style="display:flex;gap:6px"><button id="ws-new">Draft new agreement</button>
-        <button id="ws-collapse" aria-expanded="true"></button></div>
-      <div id="ws-actionbar" data-ws-fold="strip">Drafting</div>`;
-    return { win, doc };
-  }
-  test('folding hides the action rows and leaves the rest', () => {
-    const { win, doc } = page();
-    win.lsSet(win.WS_FOLD_KEY(), true);
-    win.applyWsCollapse();
-    for (const el of doc.querySelectorAll('[data-ws-fold]'))
-      assert.equal(el.style.display, 'none');
-    /* Whatever sits in that slot stays. It was Ask Copilot; it is now Draft
-       new agreement (see f91). What is under test is that applyWsCollapse
-       folds only what carries data-ws-fold and leaves the row beside it
-       alone — the identity of the button in it is not this file's business. */
-    assert.notEqual(doc.getElementById('ws-new').style.display, 'none',
-      'the action outside the folding rows stays');
+    for (const name of ['applyWsCollapse', 'wireWsCollapse', 'wsChromeFolded', 'WS_FOLD_KEY'])
+      assert.equal(typeof win[name], 'undefined', name + ' survived the delete');
   });
 
-  test('the control that folds it is not inside what it folds', () => {
-    const { doc } = page();
-    const btn = doc.getElementById('ws-collapse');
-    assert.equal(btn.closest('[data-ws-fold]'), null,
-      'a control that hides itself cannot be pressed again');
-  });
-
-  test('unfolding puts everything back, and the button says which way it goes', () => {
-    const { win, doc } = page();
-    win.lsSet(win.WS_FOLD_KEY(), true); win.applyWsCollapse();
-    assert.equal(doc.getElementById('ws-collapse').getAttribute('aria-expanded'), 'false');
-    win.lsSet(win.WS_FOLD_KEY(), false); win.applyWsCollapse();
-    for (const el of doc.querySelectorAll('[data-ws-fold]'))
-      assert.notEqual(el.style.display, 'none');
-    assert.equal(doc.getElementById('ws-collapse').getAttribute('aria-expanded'), 'true');
-  });
-
-  test('the choice is remembered per user, not per contract', () => {
+  test('the room draws no ws-collapse row, and nothing folds by attribute', () => {
     const { win } = buildWorld({ contractView: true });
-    assert.match(win.WS_FOLD_KEY(), /^hati\.v1\.wsChrome\./);
-    assert.ok(!/MK-/.test(win.WS_FOLD_KEY()),
-      'someone who reads more than they act wants it folded on every contract');
+    const src = String(win.roomHeadHtml ? win.roomHeadHtml.toString() : '');
+    assert.ok(!/ws-collapse/.test(src), 'the menu still builds a collapse row');
+    assert.ok(!/data-ws-fold/.test(src), 'something is still marked as folding');
+  });
+
+  test('FOCUS MODE IS THE ONE WAY, and it says what it does', () => {
+    const { win } = buildWorld({ contractView: true });
+    const src = String(win.roomHeadHtml ? win.roomHeadHtml.toString() : '');
+    assert.match(src, /ws-focus/, 'the surviving control is still on the menu');
+    /* The duplicate that was deleted wore the word "header" while doing
+       something else; the survivor wears it and means it. */
+    assert.match(String(win.i18t('ct_hide_header')), /header/i);
   });
 });
 

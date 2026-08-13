@@ -4545,7 +4545,12 @@ function openImportModal(c){
         <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
       </div>
       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--color-divider);">
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> they sent back. Their tracked changes are filed as ordinary counterparty changes for you to decide, and their margin comments land in the discussion, pinned to the clause each one was written on.</p>
+        ${''/* HALF A SENTENCE IN EACH LANGUAGE, until 13 Aug 2026: the opening
+               was translated and everything after it was hardcoded English, so
+               a Swedish reader read "Eller ladda upp den markerade Word-filen
+               they sent back. Their tracked changes are…". The tail is
+               co_upload_word_tail now and reads on from the bold opening. */}
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> ${i18t('co_upload_word_tail')}</p>
         <input id="imp-docx" type="file" accept=".docx" style="width:100%;font-size:11.5px;color:var(--color-text);"/>
         <div id="imp-docx-note" style="margin-top:7px;font-size:11px;color:var(--color-neutral-600);"></div>
       </div>
@@ -4558,11 +4563,11 @@ function openImportModal(c){
   document.getElementById('imp-docx')?.addEventListener('change',async ev=>{
     const f=ev.target.files&&ev.target.files[0]; if(!f) return;
     const note=document.getElementById('imp-docx-note');
-    if(!/\.docx$/i.test(f.name||'')){ if(note) note.textContent='That is not a .docx file. A legacy .doc must be re-saved as .docx in Word first.'; ev.target.value=''; return; }
-    if(note) note.textContent='Reading '+f.name+'…';
+    if(!/\.docx$/i.test(f.name||'')){ if(note) note.textContent=i18t('co_import_not_docx'); ev.target.value=''; return; }
+    if(note) note.textContent=i18t('co_import_reading',{name:f.name});
     try{
       await ensureFull(c);
-      if((c.execution&&c.execution.at)||isExternallyExecuted(c)) throw new Error(c.id+' is already executed — record an amendment instead');
+      if((c.execution&&c.execution.at)||isExternallyExecuted(c)) throw new Error(i18t('co_import_executed',{id:c.id}));
       const bytes=new Uint8Array(await f.arrayBuffer());
       if(!window.negoImportReturnedDocx) throw new Error('The Word reader is not loaded on this page');
       const res=await negoImportReturnedDocx(c, bytes, {});
@@ -4590,12 +4595,13 @@ function openImportModal(c){
       persist(c);
       closeModal();
       toast(res.filed.length||attached
-        ? `${f.name} — ${res.filed.length} change${res.filed.length===1?'':'s'} filed as tracked changes`+(attached?` · ${attached} Word comment${attached===1?'':'s'} attached`:'')
-        : `${f.name} — the wording matches the current draft and there are no comments, so nothing was filed`);
+        ? i18tn('co_import_filed', res.filed.length, { name:f.name, n:res.filed.length })
+          + (attached ? i18tn('co_import_comments', attached, { n:attached }) : '')
+        : i18t('co_import_nothing',{name:f.name}));
       if(state.view==='workspace'&&window.renderWorkspace) renderWorkspace();
       else if(state.view==='redline'&&window.renderRedline) renderRedline();
     }catch(e){
-      if(note) note.textContent='Could not read that file — '+((e&&e.message)||e);
+      if(note) note.textContent=i18t('co_import_unreadable',{err:(e&&e.message)||e});
       ev.target.value='';
     }
   });

@@ -2751,18 +2751,15 @@ function applyWsTabs(c){
      above it — which is the very space this was asked to give back to the
      contract.
 
-     THE ATTRIBUTE MOVES WITH THE STYLE, or the hide does not survive. The
-     collapse toggle restores every folding row to `data-ws-display` (see
-     applyWsCollapse), which it reads as the row's OWN display — so leaving
-     that saying "flex" while the style said "none" put the empty strip back
-     the moment the header was unfolded, which is on the very next line of the
-     render. */
+     IT USED TO CARRY data-ws-display TOO, and that pairing was load-bearing:
+     the header-fold toggle restored every folding row from that attribute, so
+     a style saying "none" under an attribute saying "flex" came straight back
+     the moment the header was unfolded. THE TOGGLE IS GONE (owner-asked,
+     13 Aug 2026 — see the note where it used to live), and the attribute went
+     with it. The style is now the only thing hiding this strip, which is what
+     it always meant. */
   const _bar=document.getElementById('ws-actionbar');
-  if(_bar){
-    const _has=!!_bar.innerHTML.trim();
-    _bar.setAttribute('data-ws-display',_has?'flex':'none');
-    _bar.style.display=_has?'flex':'none';
-  }
+  if(_bar) _bar.style.display=_bar.innerHTML.trim()?'flex':'none';
   /* ---- REDLINE IS A DOOR, NOT A PANE ----
      The redline needs the whole window — the document entire, with the changes
      and the discussion beside it — and the right-hand panel here is a third of
@@ -4043,44 +4040,29 @@ function wireChangesStrip(c){
     issueSigningAct(c);
   });
 }
-/* ---- the header, folded away ----
-   Collapsing keeps what tells you WHERE YOU ARE — the contract's name, its
-   status, the way back — and folds what you use to ACT on it. The two are
-   different jobs, and only one of them is wanted while you are reading.
+/* ---- THE HEADER-FOLD TOGGLE IS GONE (owner-asked, 13 Aug 2026) ----
+   WS_FOLD_KEY / wsChromeFolded / applyWsCollapse / wireWsCollapse stood here,
+   behind a "Collapse the header" / "Show the header" row in the "⋯" menu.
+   Four faults, and they compounded:
 
-   The Copilot button stays out too: it is the one action you reach for while
-   reading rather than while deciding.
+     · IT DID NOTHING ON THE DOCUMENT TAB, which is where it was photographed.
+       The only thing carrying data-ws-fold was #ws-actionbar, and that strip
+       draws NOTHING on the Document tab (owner's call, 10 Aug 2026 — "open
+       this space up for the contract exclusively"). So the press toggled an
+       empty box.
+     · ITS WORD WAS WRONG. The label said "header"; its own tooltips said
+       "Collapse this bar" and "Show the toolbar again". Three words, one thing,
+       and none of them was the header.
+     · IT DUPLICATED FOCUS MODE, one row above it in the same group, whose
+       description is literally "Hide the header and give the room to the
+       document" — and which actually does it.
+     · IT LEFT A TRAP. The choice was per USER and applied to every contract, so
+       a press on the Document tab (no visible effect) silently stripped the
+       action bar off Key terms, Signing and History everywhere, until the
+       reader found this menu again.
 
-   Per user, not per contract: someone who reads more than they act wants it
-   folded on every contract they open, and being asked again on each one is the
-   friction this removes. */
-const WS_FOLD_KEY = () => { const u=(typeof currentUser==='function')&&currentUser();
-  return 'hati.v1.wsChrome.'+((u&&u.id)||'anon'); };
-const wsChromeFolded = () => { try{ return !!lsGet(WS_FOLD_KEY()); }catch(_){ return false; } };
-function applyWsCollapse(){
-  const on=wsChromeFolded();
-  /* Restore the element's OWN display, not a bare '' — setting display:'' on
-     unfold wipes the inline `display:flex` these rows are laid out with, which
-     turns the status strip into a block and its flex spacer to zero width. */
-  document.querySelectorAll('[data-ws-fold]').forEach(el=>{ el.style.display=on?'none':(el.getAttribute('data-ws-display')||''); });
-  const btn=document.getElementById('ws-collapse');
-  if(btn){
-    btn.setAttribute('aria-expanded', on?'false':'true');
-    btn.title=on?i18t('ct_show_toolbar'):i18t('ct_collapse_bar');
-    /* THE LABEL COMES BACK WITH THE ICON. This wrote the icon ALONE into the
-       row, so the menu carried a line holding nothing but a dash — no words at
-       all — which is what the owner photographed. Same fault as Focus mode
-       beside it: a row that relabels itself has to rewrite the whole row. */
-    btn.innerHTML=`${icon(on?'plus':'minus','w-3.5 h-3.5')}${on?'Show the header':'Collapse the header'}`;
-  }
-}
-function wireWsCollapse(c){
-  applyWsCollapse();
-  document.getElementById('ws-collapse')?.addEventListener('click',()=>{
-    try{ lsSet(WS_FOLD_KEY(), !wsChromeFolded()); }catch(_){}
-    applyWsCollapse();
-  });
-}
+   Focus mode covers the want. data-ws-fold went with it; #ws-actionbar keeps
+   its own empty-strip hide, which is its own rule and never was this one's. */
 
 /* THE EXPORT MENU IS THE "⋯" MENU NOW. PDF, Word and the sealed Record were
    a caret button of their own on a header that already had eight; they are
@@ -4362,7 +4344,24 @@ function roomHeadHtml(c,opts={}){
                had. */}
         <div id="ws-more-menu" class="room-menu hidden">
           <div class="mgroup">${i18t('ct_this_contract')}</div>
-          ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}Import their response</button>`:''}
+          ${''/* NAMED FOR THE THING THE READER IS HOLDING (owner-asked, 13 Aug
+                 2026). It read "Import their response", which says nothing
+                 about a Word document the other side marked up and emailed
+                 back — the commonest reason anybody opens it. The id is
+                 untouched, so every handler and every test presses exactly what
+                 it always pressed.
+
+                 IT CARRIES NO SECOND LINE, and that was measured rather than
+                 guessed. The box takes a pasted response code as well, so the
+                 first build put "or a response code" in an .mnote like PDF's
+                 "clean copy" — and at the menu's 252px the row wrapped to two
+                 lines in BOTH languages (54px against every other row's 35px),
+                 with the Swedish label wrapping even on a shortened note. A row
+                 that stands twice as tall as its neighbours to footnote the
+                 rarer of its two jobs is a poor trade: the code route is the
+                 FIRST thing inside the box, under its own instruction line, so
+                 nobody holding a code can miss it. */}
+          ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}${i18t('ct_import_word_file')}</button>`:''}
           <button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
           ${may?`<button type="button" id="ws-tpl" title="${i18t('ct_save_as_reusable')}">${icon('copy','w-3.5 h-3.5')}Save as template</button>`:''}
           <hr>
@@ -4373,7 +4372,6 @@ function roomHeadHtml(c,opts={}){
           <hr>
           <div class="mgroup">${i18t('ct_view')}</div>
           <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
-          <button type="button" id="ws-collapse" aria-expanded="true" title="${i18t('ct_collapse_bar')}">${icon('minus','w-3.5 h-3.5')}${i18t('ct_collapse_the_header')}</button>
           ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
@@ -4436,7 +4434,7 @@ function wireRoomHead(c){
      roomHeadHtml draws this menu for BOTH the Document tab and the Negotiate
      workbench, but each tab used to wire the menu's buttons for itself, and
      the workbench's list — ws-share, ws-import, ws-compare, ws-pdf, ws-word,
-     ws-tpl, ws-focus, ws-collapse — simply did not include ws-delete. So on
+     ws-tpl, ws-focus — simply did not include ws-delete. So on
      Negotiate the item rendered, opened nothing, said nothing and did nothing.
      A dead button is worse than a missing one: it reads as a refusal, and a
      refusal with no reason is something you try again.
@@ -4560,7 +4558,7 @@ function renderWorkspace(){
          needs next, and the one button that does it. Its own row, because five
          tabs and a sentence on one line is a line that wraps — and a wrapped
          tab row leaves its underline stranded in the middle of the strip. -->
-    <div id="ws-actionbar" class="room-quiet" data-ws-fold="strip" data-ws-display="flex" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
+    <div id="ws-actionbar" class="room-quiet" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
     <div id="doc-grid" data-ws-pane="docs" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
@@ -4851,7 +4849,6 @@ function renderWorkspace(){
   wireActionBar(c);
   wireDocCanvas(c);   // expand / re-read buttons (inside #doc-canvas)
   wireRoomHead(c);    // the "⋯" and the way back — shared with the workbench
-  wireWsCollapse(c);
   /* Draft new agreement carries data-page-new and is NOT wired here. The shell
      binds every [data-page-new] trigger once, by delegation (js/app.js), and
      that handler is the one that ANCHORS the menu — measured under the button
@@ -5906,7 +5903,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+Object.assign(window,{applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

@@ -8321,7 +8321,10 @@ function renderRedline(){
   headAct('ws-tpl', () => { if (window.API_MODE && API_MODE() && window.saveContractToLibrary) saveContractToLibrary(c);
     else if (window.saveContractAsTemplate) saveContractAsTemplate(c); });
   headAct('ws-focus', () => rlSetFocus(!rlFocusOn()));
-  headAct('ws-collapse', () => window.toast && toast(i18t('ng_header_shortest')));
+  /* ws-collapse is GONE from the room's menu (owner-asked, 13 Aug 2026), so
+     there is no longer a row for this page to answer. It never folded anything
+     here anyway — the reply was a toast saying the header was already at its
+     shortest, which is a control whose only outcome is an apology. */
   /* [data-rl-shell] went with the shell. Its three verbs are the head's own
      ids now — ws-share, ws-import, ws-compare — wired just above. */
   host.querySelectorAll('[data-redline-side]').forEach(el =>

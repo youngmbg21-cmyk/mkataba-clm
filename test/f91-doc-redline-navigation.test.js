@@ -253,11 +253,20 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
        rule the page demonstrates by having no marks on it. */
     assert.match(s, /if\(_wsTab==='docs'\) return '';/,
       'the strip says nothing on the tab whose space it was taking');
-    /* And the empty element must not keep the row's height. Both the style AND
-       the attribute the collapse toggle restores from, or unfolding the header
-       puts the empty strip straight back. */
-    assert.match(s, /setAttribute\('data-ws-display',_has\?'flex':'none'\)/,
-      'the hide has to survive applyWsCollapse, which restores from that attribute');
+    /* And the empty element must not keep the row's height.
+
+       CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED. This used to require BOTH the
+       style and a data-ws-display attribute, because the header-fold toggle
+       restored every folding row from that attribute and would otherwise put
+       the empty strip straight back. THE TOGGLE IS DELETED (see the note in
+       js/views/contract.js where it lived, and the reversed block in f54), so
+       the attribute has no reader and is gone with it. The style is now the
+       only thing hiding this strip, which is what it always meant — so that is
+       what is asserted, and the pairing must NOT come back. */
+    assert.match(s, /_bar\.style\.display=_bar\.innerHTML\.trim\(\)\?'flex':'none'/,
+      'the empty strip still has to be hidden outright');
+    assert.ok(!/data-ws-display|data-ws-fold/.test(s),
+      'the fold attributes went with the toggle that read them');
   });
 
   test('the provenance line reads in the column, not over the paper', () => {
