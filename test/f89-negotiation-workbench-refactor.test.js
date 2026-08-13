@@ -308,17 +308,28 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
     const p = await page();
     const r = p.rule('.redline-page .rl-paper');
     assert.ok(r, '.rl-paper must carry a rule');
-    /* ---- CLAIM UPDATED, 13 Aug 2026, OWNER-ASKED ----
-       It used to assert a flat max-width:720px, "the Doc page bounds the
-       contract's measure; so does this one". Reported: dragging the divider
-       wider on this page bought MARGIN, not words. The measure is bounded
-       still — an unbounded line on a 2560px monitor is unreadable for its own
-       reason — but the bound is in TYPE rather than in pixels, so the stepper
-       and the divider work together: step the type up and the ceiling rises
-       with it, keeping the characters per line where the reader put them. */
-    assert.match(r, /max-width:calc\(var\(--rl-doc-type,15px\) \* 62\)/,
-      'bounded, but in type — so a bigger contract may be a wider one');
-    assert.ok(!/max-width:720px/.test(r), 'and no longer pinned to a flat 720');
+    /* ---- CLAIM UPDATED TWICE, 13 Aug 2026, AND THE SECOND TIME IS THE ONE
+       THAT COUNTS ----
+       It first asserted a flat max-width:720px. That was replaced by a measure
+       tied to the type, so the sheet grew toward the column — more WORDS per
+       line, same size words. The owner read that on the real page and reported
+       the feature still missing, and they were right: on the Document tab the
+       contract visibly grows and shrinks as the divider moves, because that
+       tab SCALES THE WHOLE SHEET.
+
+       So the sheet is a fixed page again — the Document tab's own 660px — and
+       a zoom wrapper fits it to the column. Same page, same mechanism, same
+       stored preference on all three screens. */
+    assert.match(r, /max-width:660px/, 'the Document tab\'s own page width');
+    assert.ok(!/max-width:720px/.test(r), 'not the old flat 720');
+    const z = p.rule('.redline-page .rl-zoom') || '';
+    assert.match(z, /zoom:var\(--rl-zoom,1\)/, 'and a zoom layer fits it to the column');
+    assert.match(z, /max-width:660px/, 'wrapping a page of exactly that width');
+    /* THE PREFERENCE IS APPLIED ONCE. It rides in the zoom; the sheet's own
+       type is pinned to the base inside the wrapper, or one step of the
+       stepper would double the text. */
+    assert.match(z, /--rl-doc-type:15px/,
+      'the type is pinned inside the sheet so the preference cannot apply twice');
     assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly as the window widens');
     /* WARM PAPER, ON ITS OWN TOKENS. Not --color-surface any more: the sheet
        and the cards beside it were the same white, so the paper never read as

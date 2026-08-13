@@ -134,6 +134,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     while (el && el !== col.parentElement){ if (framed(el)) n++; el = el.parentElement; }
     const pr = paper.getBoundingClientRect(), cr = col.getBoundingClientRect();
     return { frames: n, paperBorder: getComputedStyle(paper).borderTopWidth,
+      /* THE SHEET IS SCALED NOW (13 Aug 2026 — it is a fixed page inside a
+         zoom wrapper, like the Document tab's), so any length read off it is
+         in a different space from the column's. Reported so the checks below
+         can normalise rather than quietly comparing two coordinate systems. */
+      zoom: (() => { const w = paper.closest('.rl-zoom');
+        return w ? (Number(getComputedStyle(w).zoom) || 1) : 1; })(),
       paperShadow: getComputedStyle(paper).boxShadow,
       paperBg: getComputedStyle(paper).backgroundColor,
       colBorder: getComputedStyle(col).borderTopWidth,
@@ -160,8 +166,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      sheet is warm paper with a warm hairline round it, not white paper edged
      by shadow alone. A cream sheet with no edge on a slate page reads as a
      stain rather than as a page. */
+  /* CLAIM LOOSENED, 13 Aug 2026, AND ONLY IN ITS UNITS. It asserted exactly
+     '1px'. The sheet now sits inside a zoom layer, and a hairline on a scaled
+     sheet no longer computes to a whole pixel — it is one CSS pixel of the
+     PAGE, which is what a printed hairline is. What the check is for — that
+     the sheet has an edge of its own rather than being defined by shadow
+     alone, which reads as a stain on a slate page — is unchanged. */
   check('2 the sheet is warm paper with its own hairline',
-    sheet.paperBorder === '1px', sheet.paperBorder);
+    parseFloat(sheet.paperBorder) > 0, `${sheet.paperBorder} at zoom ${sheet.zoom}`);
   check('2 and it does carry that shadow', sheet.paperShadow !== 'none' && !!sheet.paperShadow,
     sheet.paperShadow);
   check('2 the sheet reads as paper against the column behind it',
@@ -175,12 +187,17 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      62 × the contract's own type size, so it rises with the stepper. At the
      default 15px that is 930px.
 
-     STILL A REAL MEASUREMENT: the sheet must be wider than it was, must not
-     reach the ceiling's own value plus a pixel, and must still leave the
-     column's gutters — the check below reads those separately. */
-  check('2 the sheet is bounded, in type rather than in pixels',
-    sheet.paperWidth > 720 && sheet.paperWidth <= 931
-      && sheet.paperWidth <= sheet.colWidth,
+     AND THE SECOND REVISION, the same day, is the one that matters. Letting
+     the sheet grow gave more WORDS per line and not bigger words; the owner
+     reported the feature still absent. The sheet is a fixed 660px page again
+     and a zoom layer fits it to the column, exactly as the Document tab does —
+     so at any ordinary width it FILLS the column rather than sitting inside
+     it, and the wording grows and shrinks as the divider moves. The 2x
+     ceiling is the Document tab's own and only bites on a very wide column;
+     paper-grows-verify measures that separately. */
+  check('2 the sheet FILLS its column, the way the Document tab does',
+    sheet.paperWidth > 720 && sheet.paperWidth >= sheet.colWidth - 12
+      && sheet.paperWidth <= sheet.colWidth + 1,
     `${Math.round(sheet.paperWidth)} of ${Math.round(sheet.colWidth)}px`);
   /* THE REGRESSION THIS SECTION IS NOW FOR. 6662667: the type-scale rule
      out-specified the centring rule and pinned the sheet to the left of the
@@ -203,12 +220,21 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const tools = document.querySelector('#rl-doc .rl-tools');
     const cls = [...document.querySelectorAll('#rl-doc .rl-clause')];
     const gaps = cls.slice(1).map((c, i) =>
-      Math.round(c.getBoundingClientRect().top - cls[i].getBoundingClientRect().bottom));
-    const paper = document.querySelector('#rl-doc .rl-paper').getBoundingClientRect();
+      c.getBoundingClientRect().top - cls[i].getBoundingClientRect().bottom);
+    const sheetEl = document.querySelector('#rl-doc .rl-paper');
+    const paper = sheetEl.getBoundingClientRect();
+    /* ---- READ THE SHEET IN ITS OWN SPACE ----
+       The sheet is a fixed page inside a zoom wrapper now, so every length
+       inside it arrives on screen multiplied. These claims are about the
+       sheet's own proportions — its padding, the evenness of its clause gaps —
+       so they are divided back out. Comparing a scaled padding against an
+       unscaled threshold is comparing two coordinate systems. */
+    const wrap = sheetEl.closest('.rl-zoom');
+    const z = wrap ? (Number(getComputedStyle(wrap).zoom) || 1) : 1;
     return { left: Math.round(left - col.left), right: Math.round(col.right - right),
-      colWidth: Math.round(col.width), paperWidth: Math.round(paper.width),
-      padL: Math.round(left - paper.left), padR: Math.round(paper.right - right),
-      textWidth: Math.round(right - left), gaps,
+      colWidth: Math.round(col.width), paperWidth: Math.round(paper.width), zoom: z,
+      padL: Math.round((left - paper.left) / z), padR: Math.round((paper.right - right) / z),
+      textWidth: Math.round(right - left), gaps: gaps.map(g => Math.round(g / z)),
       toolsOpacity: tools ? getComputedStyle(tools).opacity : null,
       toolsPosition: tools ? getComputedStyle(tools).position : null,
       toolsPE: tools ? getComputedStyle(tools).pointerEvents : null };
@@ -225,12 +251,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('2b the text sits on the sheet\'s own padding, not a reserved gutter',
     inset.padL <= 40 && Math.abs(inset.padL - inset.padR) <= 2,
     `${inset.padL}px / ${inset.padR}px inside the sheet`);
-  /* A floor, not an equality: .rl-paper's 36px each side is exactly 90% of its
-     720px, so this passes today by design and fails the moment anything
-     reserves a further gutter INSIDE the sheet — which is how the 100px badge
-     column got in the first time. */
+  /* A floor, not an equality, and the arithmetic behind it moved on 13 Aug
+     2026: the page is the Document tab's 660px now rather than 720, so the
+     sheet's own 36px each side is 89.1% of it instead of 90%. The floor drops
+     to match. What the check is for is untouched — it fails the moment
+     anything reserves a FURTHER gutter inside the sheet, which is how the
+     100px badge column got in the first time. */
   check('2b nothing is reserved inside the sheet beyond its own padding',
-    inset.textWidth / inset.paperWidth >= 0.89,
+    inset.textWidth / inset.paperWidth >= 0.88,
     `${(inset.textWidth / inset.paperWidth * 100).toFixed(1)}% of the sheet`);
   /* The toolbar is an overlay: hidden at rest and OUT OF THE FLOW, so being
      hidden costs no height — the failure mode both of its predecessors had

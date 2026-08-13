@@ -160,8 +160,13 @@ const FREIGHT = [
     const m = document.querySelector('.nego-selmenu');
     if (!m) return { open: false };
     const r = m.getBoundingClientRect();
+    const btn = el.querySelector('[data-nego-ai-clause]').getBoundingClientRect();
     return { open: true, onScreen: r.top >= 0 && r.left >= 0
         && r.bottom <= window.innerHeight && r.right <= window.innerWidth,
+      box: { top: Math.round(r.top), left: Math.round(r.left),
+        bottom: Math.round(r.bottom), right: Math.round(r.right) },
+      btn: { top: Math.round(btn.top), left: Math.round(btn.left), bottom: Math.round(btn.bottom) },
+      win: { w: window.innerWidth, h: window.innerHeight },
       text: (m.textContent || '').replace(/\s+/g, ' ').trim(),
       items: m.querySelectorAll('[data-nego-ai]').length };
   });
@@ -169,7 +174,8 @@ const FREIGHT = [
   check('5 it is scoped to that clause', !!menu && /This clause/.test(menu.text)
     && /Confidentiality/.test(menu.text), menu ? menu.text.slice(0, 70) : '');
   check('5 it offers the Copilot actions', !!menu && menu.items >= 1, menu ? menu.items : 0);
-  check('5 and it is drawn on screen', !!menu && menu.onScreen);
+  check('5 and it is drawn on screen', !!menu && menu.onScreen,
+    menu && JSON.stringify({ menu: menu.box, btn: menu.btn, win: menu.win }));
   await page.screenshot({ path: path.join(OUT, '03-copilot-on-clause.png'), fullPage: false });
 
   await browser.close();

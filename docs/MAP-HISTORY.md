@@ -2081,3 +2081,64 @@ of this shape, and its respond panel is already a single visible column with
 everything on it. The bell is on the negotiation page, which is the page the
 work order named and the one where a reader has a column of cards to work
 through.
+
+AND THE CONTRACT SCALES AFTER ALL — REVERSING THE SAME DAY'S DECISION
+
+The work order for this weighed two options and said, in capitals, BUILD A. A
+was: let the redline sheet's measure grow toward the column, with a ceiling
+tied to the type. B was: move it to the Document tab's model — a fixed sheet
+scaled to fill the column. A was built, tested at four widths on both mounts,
+and shipped.
+
+The owner opened the real page and said the feature was still not there. They
+were right, and the reason is worth writing down because the mistake was one of
+reading rather than of code: on the Document tab the contract visibly GROWS AND
+SHRINKS as the divider slides back and forth. A gives more WORDS per line. More
+words per line is not bigger words. The measurements in the first attempt were
+all correct and all measuring the wrong thing — sheet width, gutter width — and
+none of them measured what a reader actually sees, which is the size of the
+type.
+
+So it is B: a fixed 660px page, the Document tab's own, inside a CSS-zoom
+wrapper fitted to the column and capped at 2x, multiplied by the stepper's
+stored preference. rlApplyDocZoom is applyDocZoom's twin on purpose. One model
+on all three screens instead of two.
+
+THE FEAR IN THE FIRST ATTEMPT WAS NOT WRONG, IT WAS MISPLACED, and this is the
+part to keep. It said a zoom layer "between fourteen rectangle readers and the
+viewport" is where this codebase has been burned — the resizer handle that fell
+hundreds of pixels behind the cursor. True of the GRID. But every one of those
+readers is outside the document pane: the resizer measures the grid's own
+width, the card pop-out is placed from its card in the other column, and the
+queue overlay and its vertical rail hang off the grid as absolute children. The
+wrapper goes INSIDE the pane. Not one of them is in the zoom, and the rule "do
+not zoom the grid" is kept literally rather than by avoidance.
+
+ONE READER IS INSIDE IT and it is the one that had to be measured rather than
+argued about: the selection menu, placed from a range rectangle in the paper.
+CSS zoom is standardised and getBoundingClientRect returns the scaled
+rectangle, so the menu lands where the words are. The browser checks drive a
+real selection and a real clause-toolbar press and confirm it.
+
+THE PREFERENCE HAD TO BE APPLIED ONCE. Two mechanisms could each carry the
+reader's text-size choice — the zoom, and --rl-doc-type inside the sheet — and
+the work order named this trap in advance: "the two cannot simply be added
+together or the preference applies twice". The variable is pinned to the base
+inside the wrapper, so the zoom alone carries it. Proved as two facts rather
+than one ratio, because a line's HEIGHT jumps when text rewraps and reads as a
+doubling that is not one: the zoom moves by exactly the step, and the sheet's
+own font-size does not move at all.
+
+IT HAS TO FOLLOW THE COLUMN WHATEVER MOVED IT, and there are at least five
+causes: the drag, the window, the sidebar rail, the 1023px stacking break, and
+a repaint. Hunting each one is how one gets missed, so the pane is OBSERVED.
+The drag additionally re-fits in the layout pass itself — that is what makes
+the wording move under the cursor rather than a frame behind it.
+
+AND ONE REAL BUG FELL OUT OF THE CHANGE. The selection menu flipped above its
+anchor when it would have hung off the bottom of the window, but never clamped
+INTO the window — so an anchor below the fold drew the menu below the fold too.
+A scaled document is taller, which made it likely enough for a browser check to
+catch. Both axes are clamped now; the horizontal one had always been there and
+this is its twin. Nobody asked for it and it is not a side quest: it is the
+change's own consequence, found by the file that exists to find it.

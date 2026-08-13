@@ -11,33 +11,42 @@
    of those were empty gutter. Dragging bought margin. The Document tab does
    not have this problem because it scales a fixed sheet to fill its column.
 
-   OPTION A WAS BUILT, NOT B. B — move this paper to the Document tab's model,
-   fixed sheet plus a fit-to-width zoom — is the tidier answer and the
-   dangerous one here: this page is a working surface full of interactive
-   geometry (the selection menu is placed from a range rectangle inside the
-   paper, the card pop-out is fixed and placed from its card's rectangle, the
-   resizer tracks the cursor against the grid's own width, and the queue
-   overlay and its vertical rail hang off the grid as absolute children).
-   Putting a zoom layer between fourteen rectangle readers and the viewport is
-   where this codebase has already been burned. So: the paper's measure grows
-   toward the column with a ceiling tied to the TYPE, and the negotiation page
-   gains the A⁻/A⁺ stepper it never had.
+   TWO ATTEMPTS, AND THE FIRST ONE IS RECORDED BECAUSE IT WAS WRONG IN AN
+   INSTRUCTIVE WAY. It let the SHEET grow toward the column with a ceiling tied
+   to the type — more words per line, same size words — on the argument that a
+   zoom layer is dangerous on a page full of interactive geometry. The owner
+   read it on the real page and reported the feature still missing, and they
+   were right: on the Document tab the contract visibly GROWS AND SHRINKS as
+   the divider moves. More words per line is a different thing from bigger
+   words.
+
+   SO THE DOCUMENT TAB'S OWN MECHANISM IS USED HERE — a fixed 660px page inside
+   a CSS-zoom wrapper fitted to the column, multiplied by the stepper's stored
+   preference. The fear in the first attempt was of zooming the GRID, and it
+   was a good fear: the resizer measures the grid's width, the card pop-out is
+   placed from its card in the other column, and the queue overlay and its rail
+   hang off the grid as absolute children. The wrapper goes INSIDE the document
+   pane, so not one of those is in the zoom. The one reader that IS inside it
+   — the selection menu, placed from a range rectangle in the paper — is
+   measured below rather than assumed.
 
    WHY THIS FILE EXISTS. Every claim here is a width, a gutter or a cursor
    position. jsdom resolves no cascade and has no layout engine, so none of it
    can be asserted anywhere else. The rule-level claims live in f89.
 
    WHAT IS MEASURED:
-     1  the sheet grows past the old 720 on both mounts, at four widths
-     2  it is still BOUNDED — 62 × the contract's own type — and centred
-     3  dragging the divider spends the width on WORDING, not on gutter
+     1  the sheet FILLS its column on both mounts, at four widths
+     2  the WORDING itself grows and shrinks as the divider moves — the thing
+        that was reported missing, measured on the rendered text
+     3  the 2x ceiling is the Document tab's own and still holds
      4  the stepper is in the negotiation control row and works
-     5  ONE preference: stepping there is the size the other screens open at,
-        and raising the type raises the ceiling with it
+     5  ONE preference, applied ONCE: the type is pinned inside the sheet so a
+        single step cannot double the text
      6  the geometry that could have been broken is not: the resizer tracks the
-        cursor one-to-one, the queue rail sits on the page's own border, and
-        the card pop-out lands beside its card
-     7  the phone still gets the paper at full width
+        cursor one-to-one, the queue rail sits on the page's own border, the
+        card pop-out lands beside its card, and a range rectangle inside the
+        zoomed paper still reports where the words actually are
+     7  the phone still gets the paper at full width, unzoomed
 
    TWO MOUNTS, NOT THREE. The work order named the owner's bench, "the contract
    tab's embed" and the counterparty's page. The contract tab's embed no longer
@@ -79,25 +88,28 @@ const check = (name, pass, detail) => {
 };
 const pause = ms => new Promise(r => setTimeout(r, ms));
 
-/* The sheet, its column, and the two gutters — read from real rectangles.
-   `type` is the contract's own computed font size, which is what the ceiling
-   is expressed in, so the check can compute the ceiling rather than hard-code
-   a number that would silently stop testing anything if the rule moved. */
+/* The sheet, its column, and — the measurement this file exists for — how big
+   the WORDING actually is on screen.
+
+   `lineH` is the rendered height of a real line of the contract, read from its
+   own rectangle. It is the honest measure of "the wording got bigger", and it
+   is deliberately NOT the computed font-size: inside a zoom layer the font-size
+   property still reads 15px while the text on screen is half as big again, so a
+   check reading the property would pass while the reader saw nothing change.
+   That is exactly the mistake the first attempt at this feature made. */
 const SHEET = () => {
   const paper = document.querySelector('.redline-page .rl-paper');
   const col = document.querySelector('.redline-page #rl-doc')
     || (paper && paper.closest('.nego-scroll,.nego-pane'));
   if (!paper || !col) return null;
   const p = paper.getBoundingClientRect(), c = col.getBoundingClientRect();
-  const body = paper.querySelector('.nego-body, p');
-  const root = paper.closest('.redline-page');
-  const type = parseFloat(getComputedStyle(root).getPropertyValue('--rl-doc-type')) || 15;
+  const line = paper.querySelector('.rl-clause-p, .rl-line, .nego-body, p');
+  const wrap = paper.closest('.rl-zoom');
   return { paper: Math.round(p.width), col: Math.round(c.width),
     gutterL: Math.round(p.left - c.left), gutterR: Math.round(c.right - p.right),
-    type, ceiling: Math.round(type * 62),
-    /* How much of the sheet the words actually occupy — the fault was that
-       widening bought air, so the words' own box is the honest measure. */
-    words: body ? Math.round(body.getBoundingClientRect().width) : null };
+    zoom: wrap ? Number(getComputedStyle(wrap).zoom) || 1 : null,
+    lineH: line ? Math.round(line.getBoundingClientRect().height) : null,
+    words: line ? Math.round(line.getBoundingClientRect().width) : null };
 };
 
 (async () => {
@@ -122,20 +134,24 @@ const SHEET = () => {
       const own = await page.evaluate(SHEET);
       check(`${w} · owner: the sheet is measured at all`, !!own, own && `${own.paper} of ${own.col}`);
       if (own){
-        check(`${w} · owner: the contract is WIDER than the old flat 720`,
-          own.paper > 720, `${own.paper}px`);
-        check(`${w} · owner: and still bounded by 62 × its own type`,
-          own.paper <= own.ceiling + 1, `${own.paper} vs ceiling ${own.ceiling}`);
-        check(`${w} · owner: still centred — the spare width splits evenly`,
+        /* FILLS IT, OR HAS REACHED THE CEILING. The 2x cap is the Document
+           tab's own and it bites on a very wide column — that is the ceiling
+           working, not the fault coming back, and section 3 measures it
+           separately. */
+        check(`${w} · owner: THE SHEET FILLS ITS COLUMN (or has hit the 2x cap)`,
+          own.paper >= own.col - 12 || own.zoom >= 1.999,
+          `${own.paper} of ${own.col}, zoom ${own.zoom}`);
+        check(`${w} · owner: it is scaled, not merely widened`,
+          own.zoom > 1, `zoom ${own.zoom}`);
+        check(`${w} · owner: still centred — any spare width splits evenly`,
           Math.abs(own.gutterL - own.gutterR) <= 2, `${own.gutterL} / ${own.gutterR}`);
       }
       await page.evaluate(() => window.SHOW_COUNTERPARTY());
       await pause(500);
       const cp = await page.evaluate(SHEET);
       check(`${w} · counterparty: ONE FIX REACHES BOTH MOUNTS`,
-        !!cp && cp.paper > 720, cp ? `${cp.paper} of ${cp.col}` : 'no sheet');
-      if (cp) check(`${w} · counterparty: bounded the same way`,
-        cp.paper <= cp.ceiling + 1, `${cp.paper} vs ${cp.ceiling}`);
+        !!cp && cp.zoom > 1 && (cp.paper >= cp.col - 12 || cp.zoom >= 1.999),
+        cp ? `${cp.paper} of ${cp.col}, zoom ${cp.zoom}` : 'no sheet');
     }
     await page.setViewportSize({ width: 1920, height: 940 });
     await pause(300);
@@ -177,11 +193,27 @@ const SHEET = () => {
     check('dragging the divider was possible at all', !!dragged && !!after);
     if (before && after){
       check('THE COLUMN GREW', after.col > before.col, `${before.col} → ${after.col}`);
-      check('AND THE WORDING GREW WITH IT, not the margin',
-        after.words > before.words
-          && (after.gutterL - before.gutterL) < (after.words - before.words),
-        `words ${before.words}→${after.words}, gutter ${before.gutterL}→${after.gutterL}`);
+      /* THE REPORTED FAULT, MEASURED ON THE RENDERED TEXT. The first attempt
+         at this passed a width check while the reader saw no change, because
+         widening a sheet is not the same as enlarging its wording. This reads
+         the height of a real line of the contract off its own rectangle. */
+      check('AND THE WORDING ITSELF GOT BIGGER — not just wider, bigger',
+        after.lineH > before.lineH && after.zoom > before.zoom,
+        `line ${before.lineH}px → ${after.lineH}px, zoom ${before.zoom} → ${after.zoom}`);
+      check('and the margin did not grow instead',
+        (after.gutterL - before.gutterL) < 6,
+        `gutter ${before.gutterL} → ${after.gutterL}`);
     }
+    /* AND IT SHRINKS AGAIN COMING BACK. "grows and shrinks as you slide the
+       divider back and forth" is the whole report; a one-way check would pass
+       on a layout that never recovered. */
+    await page.evaluate(() => { localStorage.setItem('hati.v1.rlLeftFrac', '0.45');
+      window.rlLayoutResizer(document); });
+    await pause(350);
+    const back = await page.evaluate(SHEET);
+    check('AND IT SHRINKS AGAIN WHEN THE DIVIDER COMES BACK',
+      back && after && back.lineH < after.lineH && back.zoom < after.zoom,
+      back && `line ${after.lineH}px → ${back.lineH}px, zoom ${after.zoom} → ${back.zoom}`);
     await page.screenshot({ path: path.join(OUT, '02-owner-dragged.png') });
 
     /* AND AT A WIDTH WHERE THE CEILING IS THE BINDING CONSTRAINT, the honest
@@ -195,9 +227,9 @@ const SHEET = () => {
       window.renderRedline(); });
     await pause(500);
     const wide = await page.evaluate(SHEET);
-    check('THE CEILING HOLDS on a large monitor — the line does not run the window',
-      wide && wide.paper <= wide.ceiling + 1 && wide.col > wide.paper + 100,
-      wide && `${wide.paper} of ${wide.col}, ceiling ${wide.ceiling}`);
+    check('THE CEILING HOLDS on a large monitor — the Document tab\'s own 2x',
+      wide && wide.zoom <= 2.001 && wide.paper < wide.col,
+      wide && `${wide.paper} of ${wide.col}, zoom ${wide.zoom}`);
     await page.setViewportSize({ width: 1920, height: 940 });
     await pause(300);
     await page.evaluate(() => { localStorage.setItem('hati.v1.rlLeftFrac', String(2 / 3));
@@ -224,24 +256,48 @@ const SHEET = () => {
       const up = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="1"]');
       const before = parseFloat(getComputedStyle(
         document.querySelector('.redline-page')).getPropertyValue('--rl-doc-type'));
+      const lineOf = () => { const l = document.querySelector(
+        '.redline-page .rl-paper .rl-clause-p, .redline-page .rl-paper .rl-line, .redline-page .rl-paper p');
+        return l ? l.getBoundingClientRect().height : 0; };
+      /* THE SHEET'S OWN TYPE, from inside the zoom wrapper. It must NOT move
+         with the stepper — the zoom carries the preference, and if the
+         variable followed it too one step would apply it twice. */
+      const typeIn = () => { const l = document.querySelector('.redline-page .rl-paper .rl-clause-p')
+        || document.querySelector('.redline-page .rl-paper p');
+        return l ? parseFloat(getComputedStyle(l).fontSize) : 0; };
+      const zoomOf = () => Number(getComputedStyle(
+        document.querySelector('.redline-page .rl-zoom')).zoom) || 1;
+      const lineBefore = lineOf(), typeBefore = typeIn(), zoomBefore = zoomOf();
       for (let i = 0; i < 5; i++){ if (!up.disabled) up.click(); }
       await new Promise(r => setTimeout(r, 250));
-      const paper = document.querySelector('.redline-page .rl-paper');
       return { before,
         after: parseFloat(getComputedStyle(
           document.querySelector('.redline-page')).getPropertyValue('--rl-doc-type')),
         stored: Number(localStorage.getItem('hati.v1.rlDocType')),
         readout: (document.querySelector('.redline-page .rl-type-out') || {}).textContent,
-        paperW: Math.round(paper.getBoundingClientRect().width) };
+        lineBefore: Math.round(lineBefore), lineAfter: Math.round(lineOf()),
+        typeBefore, typeAfter: typeIn(),
+        zoomRatio: Math.round((zoomOf() / (zoomBefore || 1)) * 100) / 100 };
     });
-    check('4 pressing A⁺ makes the contract text bigger',
-      stepped.after > stepped.before, `${stepped.before} → ${stepped.after}`);
+    check('4 pressing A⁺ makes the contract text bigger ON SCREEN',
+      stepped.after > stepped.before && stepped.lineAfter > stepped.lineBefore,
+      `${stepped.before} → ${stepped.after}, line ${stepped.lineBefore}px → ${stepped.lineAfter}px`);
     check('5 ONE PREFERENCE — it writes the key the other screens read',
       stepped.stored === stepped.after, `stored ${stepped.stored}`);
     check('5 and the readout says the same number, in its own words',
       String(stepped.readout).trim() === stepped.after + 'px', stepped.readout);
-    check('5 AND THE CEILING RISES WITH THE TYPE — bigger text, wider sheet',
-      after && stepped.paperW > after.paper, `${after && after.paper} → ${stepped.paperW}`);
+    /* ---- APPLIED ONCE, NOT TWICE ----
+       Two mechanisms could each carry the reader's preference and only one may.
+       Measured as two facts rather than one ratio, because a line's HEIGHT
+       jumps when the text rewraps and would read as a doubling that is not
+       one: the zoom moved by exactly the step (15→20 is a third bigger), and
+       the sheet's own font-size did not move at all. */
+    check('5 THE ZOOM CARRIES THE STEP, and by exactly the step',
+      stepped.zoomRatio > 1.28 && stepped.zoomRatio < 1.39,
+      `15→20 scaled the zoom by ${stepped.zoomRatio}x (expected ~1.33)`);
+    check('5 AND THE SHEET\'S OWN TYPE DID NOT MOVE — so it is applied ONCE',
+      stepped.typeBefore > 0 && stepped.typeAfter === stepped.typeBefore,
+      `${stepped.typeBefore}px → ${stepped.typeAfter}px inside the sheet`);
     await page.screenshot({ path: path.join(OUT, '03-owner-stepped.png') });
 
     /* Put the preference back before the geometry checks, so they measure the
@@ -332,9 +388,9 @@ const SHEET = () => {
     await ph.evaluate(() => window.READY);
     await pause(600);
     const phone = await ph.evaluate(SHEET);
-    check('7 on a phone the sheet still fills its column',
-      !!phone && phone.gutterL <= 8 && phone.gutterR <= 8,
-      phone ? `${phone.paper} of ${phone.col}, gutters ${phone.gutterL}/${phone.gutterR}` : 'no sheet');
+    check('7 on a phone the sheet still fills its column, UNZOOMED',
+      !!phone && phone.gutterL <= 8 && phone.gutterR <= 8 && phone.zoom <= 1.001,
+      phone ? `${phone.paper} of ${phone.col}, gutters ${phone.gutterL}/${phone.gutterR}, zoom ${phone.zoom}` : 'no sheet');
     await ph.screenshot({ path: path.join(OUT, '05-phone.png') });
     await ph.close();
 

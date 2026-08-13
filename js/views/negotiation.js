@@ -3827,7 +3827,20 @@ function _negoAnchor(rect, w, h){
   const pad = 10;
   let left = Math.min(Math.max(pad, rect.left), window.innerWidth - w - pad);
   let top = rect.bottom + 8;
-  if (top + h > window.innerHeight - pad) top = Math.max(pad, rect.top - h - 8);
+  if (top + h > window.innerHeight - pad) top = rect.top - h - 8;
+  /* ---- AND IT LANDS ON SCREEN EVEN WHEN ITS ANCHOR DOES NOT ----
+     The flip above answers "the menu would hang off the bottom" by putting it
+     ABOVE the wording. That is the right first move and it is not enough on
+     its own: if the anchor itself is off screen — a clause below the fold,
+     reached by keyboard or by a press that scrolled underneath — the flipped
+     position is off screen too, and the menu is drawn where nobody can see it.
+     Caught the day the contract started scaling to fill its column, which
+     makes the document taller and puts more of it past the fold.
+
+     Both axes are clamped the same way now: preferred position first, then
+     into the window. The horizontal clamp has always been here; this is its
+     twin. */
+  top = Math.min(Math.max(pad, top), Math.max(pad, window.innerHeight - h - pad));
   return { left, top };
 }
 /* An answer where the menu would have been. Used when a highlight is real and
@@ -6173,45 +6186,65 @@ function redlineLayoutCss(){
      values are tokens (index.html) because the Document tab, the counterparty's
      page and the phone paint the SAME sheet, and because the dark theme has to
      be able to answer differently — cream on a dark page is a stain. */
-  /* ---- AND IT GROWS WITH THE COLUMN, NOT WITH THE MARGIN ----
+  /* ---- AND IT SCALES TO FILL THE COLUMN, LIKE THE DOCUMENT TAB ----
      (owner-asked, 13 Aug 2026: "widening the negotiation and counterparty
-     pages must make the WORDING bigger, not the margin".) The measure was a
-     flat 720px, so dragging the divider on a 1920px screen bought about
-     450px of empty gutter and not one more word of contract.
+     pages must make the WORDING bigger, not the margin — the thing the
+     Document tab already does.")
 
-     TWO OPTIONS WERE WEIGHED AND A WAS BUILT. B was to move this paper to the
-     Document tab's model — a fixed sheet with a fit-to-width zoom over it,
-     identical on all three screens, one mechanism instead of two. It is the
-     tidier answer and it is the dangerous one HERE: the Document tab's paper
-     is a clean read and nothing inside it is measured, while this one is a
-     working surface full of interactive geometry — the selection menu is
-     positioned from a range rectangle inside the paper, the card pop-out is
-     fixed and placed from its card's rectangle, the resizer tracks the cursor
-     against the grid's own width, and the queue overlay and its vertical rail
-     hang off the grid as absolute children. Putting a zoom layer between
-     fourteen rectangle readers and the viewport is exactly where this codebase
-     has already been burned (the handle that fell hundreds of pixels behind
-     the cursor). A gives the reader the same two outcomes — the paper fills
-     the column, and the text can be made bigger — for a fraction of the risk.
-     If the sheet-facsimile look is ever wanted here, B is a deliberate
-     upgrade and must not arrive as a side effect of a sizing fix.
+     THIS IS THE SECOND ATTEMPT, AND THE FIRST ONE IS WORTH RECORDING because
+     the reasoning was careful and still wrong. The measure was a flat 720px,
+     so dragging the divider bought gutter. The first fix let the SHEET grow
+     toward the column with a ceiling tied to the type — more words per line,
+     same size words. The owner read it on the real page and reported the
+     feature still absent, and they were right: on the Document tab the
+     contract visibly GROWS AND SHRINKS as the divider moves, because that tab
+     scales the whole sheet. More words per line is a different thing from
+     bigger words, and it is not what was asked for.
 
-     THE CEILING, AND WHY THIS ONE. A line of contract text running the full
-     width of a 2560px monitor is unreadable for its own reason, so the measure
-     is capped — but capped in TYPE, not in pixels: 62 times --rl-doc-type,
-     which is 930px at the default 15px. Tying it to the type is what makes the
-     stepper and the divider work together instead of against each other: step
-     the type up and the ceiling rises with it, so the character count per line
-     stays where a reader put it and a bigger contract is allowed to be a wider
-     one. At the stepper's top (20px) the ceiling is 1240px, which fills the
-     contract column of a 1920px window outright.
+     SO THE SHEET IS FIXED AGAIN AND THE ZOOM DOES THE WORK — the Document
+     tab's own mechanism, the same 660px page, the same fit-to-width maths, the
+     same CSS zoom property rather than a transform. One model on all three screens
+     instead of two, which is what the earlier note called the tidier answer
+     while arguing against it.
 
-     Nothing else changes. There is no zoom, no transform and no second
-     geometry: the sheet is still a plain block that fills its column up to a
-     max-width, which is what every rectangle on this page is already measured
-     against. */
-  .redline-page .rl-paper{padding:34px 40px 44px;
-    max-width:calc(var(--rl-doc-type,15px) * 62);
+     WHAT THAT NOTE WAS AFRAID OF, and why it does not apply. It said a zoom
+     layer "between fourteen rectangle readers and the viewport" is where this
+     codebase has been burned. True — of the GRID. Every one of those readers
+     is outside the document pane: the resizer measures the grid's own width,
+     the card pop-out is placed from its card in the other column, and the
+     queue overlay and its rail hang off the grid as absolute children. The
+     wrapper goes INSIDE the pane, so none of them is inside the zoom at all
+     and the rule "do not zoom the grid" is kept literally.
+
+     ONE READER IS INSIDE IT: the selection menu, placed from a range rectangle
+     in the paper. CSS zoom is standardised and getBoundingClientRect returns
+     the scaled rectangle, so a menu placed from it lands where the words are —
+     asserted in the browser rather than assumed, because that is the single
+     thing this change could plausibly break.
+
+     THE CEILING IS THE DOCUMENT TAB'S: 2x. Past that a line of contract text
+     stops being a contract, and it is the number that screen has been living
+     with. Below a 660px column the zoom stays at 1 and the sheet simply fills
+     the width, which is what the phone and any stacked layout get. */
+  /* ---- THE ZOOM LAYER, AND WHY IT IS *HERE* AND NOWHERE ELSE ----
+     The wrapper is INSIDE the document pane. Everything the page measures with
+     a rectangle — the resizer against the grid's width, the card pop-out from
+     its card, the queue overlay and its vertical rail off the grid — lives
+     OUTSIDE it and is untouched by construction. The rule "do not zoom the
+     grid" is kept literally: the grid never sees this.
+
+     --rl-doc-type IS PINNED TO THE BASE IN HERE, and that is the whole reason
+     the two mechanisms can coexist. The stepper's preference rides in the ZOOM
+     (see rlApplyDocZoom, exactly as applyDocZoom does it on the Document tab);
+     if the type variable ALSO followed the stepper inside the sheet the
+     preference would apply twice and one step would double the text.
+
+     max-width:660 makes the wrapper min(column, 660) wide: below that the
+     sheet simply fills the column at zoom 1, which is what a phone and a
+     stacked layout get and what they had before. */
+  .redline-page .rl-zoom{zoom:var(--rl-zoom,1);max-width:660px;margin:0 auto;
+    --rl-doc-type:15px}
+  .redline-page .rl-paper{padding:34px 40px 44px;max-width:660px;
     background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);
     border-radius:14px;box-shadow:var(--shadow-paper);margin:0 auto}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
@@ -9415,6 +9448,13 @@ function rlWireClauseTools(c, host, opts){
   /* ---- THE SPLIT HANDLE ---- */
   rlWireResizer(host);
 
+  /* ---- AND THE SHEET FITS THE COLUMN IT LANDED IN ----
+     A first measurement for a pane that has just been built, and an observer
+     so it follows every later cause — the drag, the window, the rail, the
+     stacking break. See rlApplyDocZoom. */
+  rlApplyDocZoom(host);
+  rlObserveDocPane(host);
+
   /* ---- THE TEXT-SIZE STEPPER ---- */
   rlWireTypeStep(host);
 
@@ -9663,6 +9703,10 @@ function rlLayoutResizer(host){
   const atMin = s.left <= RL_LEFT_MIN, atMax = s.left >= s.avail - RL_RIGHT_MIN;
   if (atMin || atMax) rez.setAttribute('data-rl-at-limit', atMin ? 'min' : 'max');
   else rez.removeAttribute('data-rl-at-limit');
+  /* THE CONTRACT FOLLOWS THE DIVIDER IN THE SAME PASS. The observer below
+     would catch it a frame later; doing it here is what makes the wording
+     grow and shrink UNDER the cursor rather than after it. */
+  rlApplyDocZoom(scope);
 }
 /* ---------- THE CONTRACT TEXT SIZE, STEPPED ----------
    A⁻ / readout / A⁺ on the sub-header strip. It drives --rl-doc-type — the
@@ -9687,6 +9731,11 @@ function rlSetDocType(px){
      mode switch — and the readouts and bound-stops follow the same value. */
   document.querySelectorAll('.redline-page').forEach(root =>
     root.style.setProperty('--rl-doc-type', v + 'px'));
+  /* THE REDLINE SHEET TAKES ITS SIZE FROM THE ZOOM NOW, not from the variable
+     above — the variable is pinned to the base inside the wrapper so the
+     preference cannot apply twice. So the step has to re-fit, exactly as it
+     re-runs the Document tab's own zoom two lines below. */
+  rlApplyDocZoom(document);
   document.querySelectorAll('.rl-type-out').forEach(el => { el.textContent = v + 'px'; });
   document.querySelectorAll('[data-rl-type]').forEach(b => {
     const d = Number(b.getAttribute('data-rl-type'));
@@ -9698,6 +9747,58 @@ function rlSetDocType(px){
   if (window.applyDocZoom) applyDocZoom();
   if (window.dsApplyZoom) dsApplyZoom();
   return v;
+}
+/* ---- FIT THE SHEET TO THE COLUMN (owner-asked, 13 Aug 2026) ----
+   The Document tab's applyDocZoom, on this page: the same 660px page, the same
+   ceiling, the same "the stepper multiplies the fit" rule — so one stored
+   preference sizes the contract identically on all three screens and the two
+   screens cannot drift.
+
+   IT REFUSES TO MEASURE A HIDDEN PANE. A width of zero is not a width: a pane
+   that is not laid out yet (a tab behind another, a mount being built) would
+   otherwise compute a zoom of nothing and pin the contract at its smallest
+   until something else forced a repaint. */
+const RL_PAGE_W = 660;
+const RL_ZOOM_MAX = 2.0;   // the Document tab's own ceiling: past this it stops being a contract
+function rlApplyDocZoom(host){
+  const scope = (host && host.querySelectorAll) ? host : document;
+  const wraps = scope.querySelectorAll('.redline-page .rl-zoom');
+  wraps.forEach(wrap => {
+    const pane = wrap.parentElement;
+    if (!pane) return;
+    const cs = getComputedStyle(pane);
+    /* clientWidth already excludes the scrollbar; the 2px keeps a rounding
+       overshoot from tipping the pane into a horizontal scroll. */
+    const room = pane.clientWidth - (parseFloat(cs.paddingLeft) || 0)
+      - (parseFloat(cs.paddingRight) || 0) - 2;
+    if (!(room > 0)) return;
+    const fit = Math.min(RL_ZOOM_MAX, Math.max(1, room / RL_PAGE_W));
+    /* The reader's own text-size choice multiplies the width-fit, which is how
+       the Document tab does it and why one stored value can size both. The
+       sheet's own type is pinned to the base inside the wrapper (see the
+       .rl-zoom rule), so this is the only place the preference is applied. */
+    const pref = (window.rlDocType ? rlDocType() : 15) / 15;
+    wrap.style.setProperty('--rl-zoom', (fit * pref).toFixed(3));
+  });
+}
+/* ---- AND IT FOLLOWS THE COLUMN WHATEVER MOVED IT ----
+   The pane's width changes for at least five reasons: the divider is dragged,
+   the window is resized, the sidebar rail is collapsed, the layout stacks
+   below 1023px, and the page repaints. Hunting each cause is how one of them
+   gets missed, so the pane is OBSERVED instead. No feedback loop: the zoom
+   changes the wrapper's size, never the pane's.
+
+   Re-attached on every paint, because renderRedline rebuilds the pane — the
+   same rule rlObserveTabRow follows a few hundred lines down. */
+function rlObserveDocPane(host){
+  if (typeof ResizeObserver !== 'function') return;
+  const scope = (host && host.querySelectorAll) ? host : document;
+  scope.querySelectorAll('.redline-page .rl-zoom').forEach(wrap => {
+    const pane = wrap.parentElement;
+    if (!pane || pane._rlZoomObserved) return;
+    pane._rlZoomObserved = true;
+    try { new ResizeObserver(() => rlApplyDocZoom(document)).observe(pane); } catch (_) {}
+  });
 }
 /* The stepper's markup — one builder, so the Redline strip and the Doc tab's
    toolbar render the identical control. */
@@ -10109,14 +10210,20 @@ function redlineDocHtml(c, opts = {}){
      wording) only opens when the selection sits inside
      `.nego-pane.working .nego-doc`. Without this class the AI redlining is
      silently unreachable on this page. */
-  return `<article class="nego-doc rl-paper">
+  /* ---- THE SHEET RIDES IN A ZOOM WRAPPER (13 Aug 2026) ----
+     Same shape as the Document tab's #doc-zoom: a fixed 660px page inside a
+     block that is scaled to fill the column. rlApplyDocZoom writes --rl-zoom
+     on it. The wrapper is inside the document pane and nothing measured by the
+     page's own geometry is inside it — see the .rl-zoom rule for the whole
+     argument. */
+  return `<div class="rl-zoom" style="zoom:var(--rl-zoom,1)"><article class="nego-doc rl-paper">
     ${head}
     ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps',
       offer: side === 'owner' && (typeof window.canEdit !== 'function' || window.canEdit()) })}
     ${rlRvDocNoticeHtml(c, opts, _rvHidden)}
     ${body || `<p class="rl-clause-p">${i18t('ng_no_clause_structure')}</p>`}
     ${rlPaperFootHtml(c)}
-  </article>`;
+  </article></div>`;
 }
 
 /* ---------- WHERE THE NAMES GO ----------
@@ -12256,6 +12363,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
+  rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
