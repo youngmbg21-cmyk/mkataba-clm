@@ -168,22 +168,35 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
     check('every alert names a contract this reader can actually open',
       scoped.length === 0, scoped.join(', ') || 'all in scope');
 
-    /* ---- 7. INSIGHTS KEEPS ITS OWN RIGHT-HAND SIDE ---- */
+    /* ---- 7. INSIGHTS WORKS LIKE EVERY OTHER PAGE ----
+       REVERSED 13 Aug 2026, owner-reported: "the alerts and the activity
+       buttons stop working when I am in the insights tab." They did. The
+       suppression was written when this panel was a COLUMN and would have
+       fought the Intelligence dock for the width; it is a slide-over now and
+       takes no width at all — which the product had already accepted on this
+       very page, since the Copilot panel overlays the same space there and was
+       never suppressed. */
     await page.evaluate(() => setView('intel'));
     await page.waitForTimeout(1400);
-    const onIntel = await page.evaluate(box => {
+    const onIntel = await page.evaluate(async box => {
       const b = document.getElementById('hdr-notify');
+      const off = b.disabled, why = b.title;
       b.click();
+      await new Promise(r => setTimeout(r, 500));
       return { view: state.view, panel: eval(box)('#context-panel'),
-        off: b.disabled, why: b.title,
-        dot: eval(box)('#hdr-notify-dot'),
+        off, why, dot: eval(box)('#hdr-notify-dot'),
+        title: (document.getElementById('panel-title') || {}).textContent || '',
         panIcon: (document.getElementById('cmd-panel') || {}).disabled };
     }, BOX);
-    check('on Insights the bell does not open a second right-hand panel',
-      !onIntel.panel.on, `view=${onIntel.view} ` + (onIntel.panel.on ? 'it opened over the dock' : 'suppressed'));
-    check('and it explains itself rather than appearing broken — a disabled control with a reason',
-      onIntel.off && onIntel.panIcon && /Insights uses this side/i.test(onIntel.why || ''),
-      (onIntel.why || 'SILENT').slice(0, 70));
+    check('on Insights both header buttons are live',
+      !onIntel.off && !onIntel.panIcon,
+      `bell disabled=${onIntel.off} activity disabled=${onIntel.panIcon}`);
+    check('and the bell opens its panel over the page, like anywhere else',
+      onIntel.panel.on, `view=${onIntel.view} · ${onIntel.title.trim()}`);
+    /* THE COST WAS NOT ONLY A DEAD BUTTON — the badge was hidden too, so a
+       reader on Insights could not see that anything was waiting on them. */
+    check('and the alert badge is not hidden by the page you happen to be on',
+      onIntel.dot.on, onIntel.dot.on ? 'drawn' : 'MISSING');
 
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {

@@ -175,10 +175,28 @@ describe('f187 (2) — the alerts are borrowed counts, never new ones', () => {
   });
 });
 
-describe('f187 (3) — Insights keeps its own right-hand side', () => {
-  test('ONE PREDICATE, asked by the layout and by both buttons', () => {
+/* REVERSED 13 Aug 2026, owner-reported: "the alerts and the activity buttons
+   stop working when I am in the insights tab." They did, and it was this rule.
+   The reason was real when it was written — the panel was a COLUMN then, and
+   two right-hand columns, this one and the Intelligence dock, would have
+   fought for the same width. It is a slide-over now. It takes no width from
+   anything, and the product had already accepted that on this very page: the
+   Copilot panel slides over the same space on Insights and was never
+   suppressed. The machinery stays, because a disabled control with a reason is
+   still the right shape if a page ever genuinely cannot host a layer; what
+   changes is that nothing answers true. */
+describe('f187 (3) — the suppression is a shape, and nothing wears it', () => {
+  test('ONE PREDICATE, asked by the layout and by both buttons — and it says no', () => {
     const app = read('js/app.js');
-    assert.match(app, /function panelSuppressed\(\)\{ return state\.view==='intel'; \}/);
+    assert.match(app, /function panelSuppressed\(\)\{ return false; \}/,
+      'Insights no longer refuses the layer');
+    /* THE DUPLICATE IS GONE TOO. applyPanelLayout carried its own copy of the
+       same view test, so relaxing the predicate alone would have left the
+       buttons live and the panel still refusing to open. */
+    const lay = app.slice(app.indexOf('function applyPanelLayout'));
+    const show = lay.slice(lay.indexOf('const show'), lay.indexOf('\n', lay.indexOf('const show')));
+    assert.match(show, /!panelSuppressed\(\)/, 'it asks the one predicate');
+    assert.ok(!/view!==/.test(show), 'and carries no second copy of the rule');
     const open = app.slice(app.indexOf('const openPanel=face=>'));
     assert.match(open.slice(0, open.indexOf('\n  };')), /if\(panelSuppressed\(\)\) return;/);
     const badge = app.slice(app.indexOf('function updateAlertBadge'));
@@ -186,6 +204,20 @@ describe('f187 (3) — Insights keeps its own right-hand side', () => {
     assert.match(body, /btn\.disabled=off/, 'a disabled control, not a live one that does nothing');
     assert.match(body, /pan\.disabled=off/);
     assert.match(body, /ap_alerts_not_here/, 'and it says which page took the space');
+  });
+
+  test('so on Insights the badge is drawn and both buttons are live', () => {
+    const app = read('js/app.js');
+    /* The cost was never only a dead button: the badge is hidden while
+       suppressed, so a reader on Insights could not see that nine things were
+       waiting on them, with nothing on screen to say why the number had gone. */
+    const badge = app.slice(app.indexOf('function updateAlertBadge'));
+    assert.match(badge.slice(0, badge.indexOf('\n}')), /dot\.hidden=!n\|\|off/);
+    const { STRINGS } = require('../js/i18n.js');
+    /* The words stay in both languages — the shape is kept, not deleted. */
+    ['ap_alerts_not_here', 'ap_activity_not_here'].forEach(k => {
+      assert.ok(STRINGS.en[k] && STRINGS.sv[k], k);
+    });
   });
 
   test('a toast is deliberately NOT the channel', () => {

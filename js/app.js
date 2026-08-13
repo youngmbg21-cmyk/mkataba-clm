@@ -257,8 +257,8 @@ function onShellResize(){
   requestAnimationFrame(()=>{
     _shellResizeQueued=false;
     applyPanelLayout();
-    // applyRail owns the sidebar's inline column and reads the drawer
-    // breakpoint, so crossing 900 in either direction has to re-ask it.
+    // applyRail owns the sidebar's inline column and reads the floating
+    // breakpoint, so crossing 1500 in either direction has to re-ask it.
     applyRail();
     placeLanguageSwitch();
     // A window dragged back to full width must not leave the drawer stranded
@@ -841,11 +841,25 @@ function buildAlerts(){
    made, a signature taken — because that is what keeps the number worth
    reading. Nothing anywhere marks an alert as seen. */
 function alertCount(){ try{ return buildAlerts().length; }catch(e){ return 0; } }
-/* Insights draws its own dock down the right-hand side, so this panel has been
-   suppressed there since it became a slide-over. One predicate, asked by the
-   layout and by both buttons, so a page cannot suppress the panel and still
-   offer a live control that opens it. */
-function panelSuppressed(){ return state.view==='intel'; }
+/* ---- INSIGHTS NO LONGER SUPPRESSES THIS PANEL (owner-reported, 13 Aug 2026)
+   It used to answer true on 'intel', which DISABLED both header buttons there.
+   The reason was real when it was written and is not any more: the panel was a
+   COLUMN then, and two right-hand columns — this one and the Intelligence
+   dock — would have fought for the same width. It is a slide-over now. It
+   takes no width from anything; it lies over the page like every other layer.
+
+   THE PRODUCT ALREADY ACCEPTED THAT ON THIS VERY PAGE: the Copilot panel
+   slides over the same space on Insights and was never suppressed. One layer
+   allowed and its twin refused was the inconsistency.
+
+   AND THE COST WAS NOT ONLY A DEAD BUTTON. The alert badge is hidden while
+   suppressed, so a reader on Insights could not see that nine things were
+   waiting on them, with nothing on screen to say why the number had gone.
+
+   Kept as a predicate rather than deleted: it is asked in three places, and a
+   page that genuinely cannot host a layer may exist one day. Nothing answers
+   true today. */
+function panelSuppressed(){ return false; }
 function updateAlertBadge(){
   const dot=document.getElementById('hdr-notify-dot');
   const btn=document.getElementById('hdr-notify');
@@ -890,35 +904,30 @@ function railCollapsed(){
 }
 function applyRail(){
   const shell=document.getElementById('app-shell'); if(!shell) return;
-  const on=railCollapsed();
+  /* The rail's LOOK is on below the line whatever the reader chose, because
+     down there the sidebar is a 64px strip by construction. The stored choice
+     is read, not written — see railCollapsed — so it is waiting unchanged when
+     they are back on a wide screen. */
+  const on=railCollapsed()||navDrawerActive();
   shell.classList.toggle('rail',on);
   /* The columns are set inline in index.html, so they are answered inline
      here — a stylesheet rule would lose to the attribute it is arguing with.
-     BELOW 900 THE SIDEBAR IS NOT A COLUMN AT ALL: it becomes a drawer over the
-     page (index.html, the phone block), which takes it out of grid flow, so
-     its track collapses to nothing and the page gets the whole width. That is
-     not a second opinion about the rail — the rail is still the reader's own
-     remembered choice and comes straight back when the window does — it is
-     that at 390px an expanded sidebar leaves 134px for the page. */
+
+     BELOW THE LINE THE SIDEBAR IS NOT A COLUMN AT ALL — it is position:fixed
+     (index.html, the max-width:1499px block) — but THE TRACK STAYS AT 64px,
+     which is the whole design: the strip sits in that track at rest, and when
+     it opens it widens OVER the page, so the page's own width never changes.
+     The track used to collapse to 0px and the sidebar was reached from a menu
+     button in the header. That is right at 390px and wrong at 1280, where
+     there is ample room for the icons and hiding every door behind a press is
+     a worse trade than the 64px.
+
+     None of this is a second opinion about the rail — the rail is still the
+     reader's own remembered choice and comes straight back when the window
+     does. */
   if(shell.style) shell.style.gridTemplateColumns=
-    (navDrawerActive()?'0px':(on?'64px':'256px'))+' minmax(0,1fr)';
-  const btn=document.getElementById('cmd-rail');
-  if(btn){
-    btn.setAttribute('aria-pressed',on?'true':'false');
-    /* The KEY is written alongside the text, not just the text. This tooltip
-       flips with the rail's state, so a language switch that only rewrote
-       data-i18n-title would leave the wrong half showing; and one that only
-       set .title here would be reverted to English by the next repaint. Both
-       are set together so whichever fires second still agrees. */
-    const railKey=on?'sh_rail_show':'sh_rail_hide';
-    btn.setAttribute('data-i18n-title',railKey);
-    btn.title=i18t(railKey);
-    /* THE CHEVRON POINTS THE WAY THE PRESS GOES, not the way the sidebar
-       currently is. Pointing at the state rather than the act is how a toggle
-       comes to describe the wrong half of itself. */
-    const chev=btn.querySelector('.rail-chev');
-    if(chev) chev.setAttribute('d',on?'M9.5 6 15.5 12l-6 6':'M14.5 6 8.5 12l6 6');
-  }
+    (navDrawerActive()?'64px':(on?'64px':'256px'))+' minmax(0,1fr)';
+  paintRailToggle();
   /* THE PAGE HAS TO BE TOLD. The negotiation panel writes its own column
      widths from a measurement (rlLayoutResizer) — it solves how much the round's
      queue may take before the contract loses its measure — and 192px arriving
@@ -927,7 +936,45 @@ function applyRail(){
   if(typeof window!=='undefined' && window.rlLayoutResizer) window.rlLayoutResizer(document);
   syncViewHeight();
 }
+/* THE TOGGLE DESCRIBES THE WORDS, NOT THE TRACK. It used to be painted from
+   the rail's LOOK, which below the line is on whatever happens — so a reader
+   who had just floated the labels over the page was shown a chevron and a
+   tooltip both offering to show them again. The one question this control
+   answers is "are the labels up?": above the line that is the reader's stored
+   choice, below it, whether the layer is open. */
+function railLabelsShowing(){
+  const nav=document.getElementById('side-nav');
+  if(navDrawerActive()) return !!(nav&&nav.classList&&nav.classList.contains('open'));
+  return !railCollapsed();
+}
+function paintRailToggle(){
+  const btn=document.getElementById('cmd-rail'); if(!btn) return;
+  const up=railLabelsShowing();
+  btn.setAttribute('aria-pressed',up?'false':'true');
+  /* The KEY is written alongside the text, not just the text. This tooltip
+     flips with the rail's state, so a language switch that only rewrote
+     data-i18n-title would leave the wrong half showing; and one that only
+     set .title here would be reverted to English by the next repaint. Both
+     are set together so whichever fires second still agrees. */
+  const railKey=up?'sh_rail_hide':'sh_rail_show';
+  btn.setAttribute('data-i18n-title',railKey);
+  btn.title=i18t(railKey);
+  /* THE CHEVRON POINTS THE WAY THE PRESS GOES, not the way the sidebar
+     currently is. Pointing at the state rather than the act is how a toggle
+     comes to describe the wrong half of itself. */
+  const chev=btn.querySelector('.rail-chev');
+  if(chev) chev.setAttribute('d',up?'M14.5 6 8.5 12l6 6':'M9.5 6 15.5 12l-6 6');
+}
 function toggleRail(){
+  /* ONE BUTTON, TWO JOBS, AND THE PAGE DECIDES WHICH. Below the line the
+     sidebar is a floating layer, so this opens and closes it and the reader's
+     stored preference is left alone — flipping a preference that the width is
+     not honouring would silently change what they get back on a wide screen. */
+  if(navDrawerActive()){
+    const nav=document.getElementById('side-nav');
+    setNavDrawer(!(nav&&nav.classList&&nav.classList.contains('open')));
+    return;
+  }
   try { localStorage.setItem(RAIL_KEY, railCollapsed()?'0':'1'); } catch(e){}
   applyRail();
 }
@@ -939,11 +986,39 @@ function toggleRail(){
    is no width at which it has to be taken away, and a breakpoint that answers
    a question nobody asks any more is a breakpoint that will be believed by the
    next person to read it. */
-/* Below THIS the sidebar stops being a column and becomes a drawer over the
-   page. Matches the `phone` breakpoint in index.html. */
-const NAV_DRAWER_W = 900;
+/* ---- WHERE THE NAV STOPS TAKING WIDTH AND STARTS FLOATING ----
+   Owner-asked, 13 Aug 2026, from a ThinkPad: expanding the sidebar squeezed
+   every page. It cost the page 192px (256 expanded against the 64px rail), and
+   nothing adapted — every layout rule in this product measures the WINDOW,
+   while the page gets the window minus the sidebar. So opening the nav shrank
+   the page by a fifth and the layout carried on as though it had not.
+
+   THE NUMBER IS DERIVED, NOT PICKED. The dashboard's two cards need 1200px of
+   page width to stand side by side; 1200 + 256 = 1456, so a window narrower
+   than that cannot afford an expanded sidebar. Rounded up to 1500 so a 1440
+   laptop — one of the commonest there is — lands on the right side of it.
+
+   Below it the sidebar is the 64px rail, always, and opening it floats the
+   labels OVER the page: the page never moves, so it is safe to have it
+   collapsed by default. Above it, nothing changed — the rail is the reader's
+   own remembered choice and expanding still pushes, which is what somebody
+   with the room asked for. Their stored preference is never overwritten by
+   the width; it simply is not honoured below the line, and comes straight back
+   above it. */
+const NAV_DRAWER_W = 1500;
 function navDrawerActive(){
   return typeof innerWidth === 'number' ? innerWidth < NAV_DRAWER_W : false;
+}
+/* TWO QUESTIONS THAT USED TO SHARE ONE ANSWER. "Is the sidebar a floating
+   layer?" moved from 900 to 1500; "has the header run out of room for the
+   language words?" did not move at all — at 1280 that header is not crowded,
+   and the stylesheet's own rule for the toggle-in-the-sidebar is still written
+   at 899. Letting placeLanguageSwitch keep asking navDrawerActive would have
+   posted the toggle into the sidebar on every laptop, styled by a rule that
+   does not apply there. */
+const NAV_HEADER_TIGHT_W = 900;
+function navHeaderTight(){
+  return typeof innerWidth === 'number' ? innerWidth < NAV_HEADER_TIGHT_W : false;
 }
 /* THE PANEL IS A LAYER, NOT A COLUMN.
 
@@ -962,9 +1037,12 @@ function applyPanelLayout(){
   const panel=document.getElementById('context-panel');
   const scrim=document.getElementById('panel-scrim');
   if(!panel||!panel.classList) return;
-  // Intel owns its right side with its embedded portfolio chatbot dock, so the
-  // global Activity panel is suppressed there to avoid two right panels.
-  const show = !!(state.panelOpen && state.view!=='intel');
+  /* THE SUPPRESSION IS ASKED, NOT REPEATED. This line carried its own copy of
+     `state.view!=='intel'` — the same rule panelSuppressed answers — so the
+     two could disagree, and did: relaxing the predicate alone would have left
+     the buttons live and the panel still refusing to open. One question, one
+     place that answers it. */
+  const show = !!(state.panelOpen && !panelSuppressed());
   panel.classList.toggle('open',show);
   panel.setAttribute('aria-hidden',show?'false':'true');
   if(scrim&&scrim.classList) scrim.classList.toggle('open',show);
@@ -975,9 +1053,10 @@ function closeContextPanel(){
   if(!state.panelOpen) return;
   state.panelOpen=false; applyPanelLayout();
 }
-/* The nav drawer (phone only — above 900 the sidebar is a column and this is
-   never called). Restyling, not rebuilding: the same <aside> with the same
-   buttons simply slides over the page instead of taking a grid track. */
+/* The floating nav — everything below NAV_DRAWER_W, which since 13 Aug 2026 is
+   every laptop rather than only the phone. Restyling, not rebuilding: the same
+   <aside> with the same buttons simply widens over the page instead of taking
+   the width from it. Above the line this is never called. */
 function setNavDrawer(open){
   const nav=document.getElementById('side-nav');
   const scrim=document.getElementById('nav-scrim');
@@ -985,6 +1064,9 @@ function setNavDrawer(open){
   if(nav&&nav.classList) nav.classList.toggle('open', !!open);
   if(scrim) scrim.hidden = !open;
   if(btn) btn.setAttribute('aria-expanded', open?'true':'false');
+  /* The sidebar's own chevron is the door down here, so it has to answer for
+     the state it just put the layer in. */
+  paintRailToggle();
 }
 function closeNavDrawer(){ setNavDrawer(false); }
 /* ---- THE LANGUAGE TOGGLE HAS TO STAY REACHABLE ----
@@ -1002,7 +1084,7 @@ function placeLanguageSwitch(){
   const drawerHome=document.querySelector('#side-nav .copilot-wrap');
   const headerHome=document.getElementById('brand-block');
   if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
-  const wantDrawer=navDrawerActive();
+  const wantDrawer=navHeaderTight();
   const inDrawer=sw.parentElement===drawerHome.parentElement;
   if(wantDrawer&&!inDrawer) drawerHome.parentElement.insertBefore(sw,drawerHome);
   else if(!wantDrawer&&inDrawer) headerHome.parentElement.insertBefore(sw,headerHome.nextSibling);
@@ -1247,9 +1329,11 @@ function wireShell(){
     }
   });
 
-  /* The phone-only menu button, and the two ways out of the drawer it opens:
-     the scrim and Escape. Above 900 none of this is reachable — the button is
-     display:none and the sidebar is a column. */
+  /* The header's menu button, drawn at 899 and below, and the two ways out of
+     the layer it opens: the scrim and Escape. The button is a SECOND door to
+     the same drawer — the sidebar's own chevron is the one that reaches it at
+     every width below 1500 — and above that line none of this is reachable,
+     because the sidebar is a column again. */
   document.getElementById('nav-toggle')?.addEventListener('click',e=>{
     e.stopPropagation();
     const nav=document.getElementById('side-nav');
@@ -1315,16 +1399,11 @@ function wireShell(){
      while the OTHER is showing swaps the content rather than closing the
      panel, which is what makes them read as two views of one thing. */
   const openPanel=face=>{
-    /* INSIGHTS OWNS ITS RIGHT-HAND SIDE — it has its own portfolio dock there,
-       and applyPanelLayout has always suppressed this panel on that view to
-       avoid two right panels. The bell inherits that rather than opening a
-       third. What it must NOT do is inherit it silently: pressing the panel
-       icon on Insights already did nothing at all, with nothing on screen to
-       say why, which is a control that reads as broken. Both buttons are
-       DISABLED there and their tooltip says which page has taken the space —
-       see panelSuppressed / updateAlertBadge. A toast is not the channel: this
-       product deliberately draws only error toasts (see toast in js/core.js),
-       so an informational one would be a message nobody ever sees. */
+    /* A PAGE MAY REFUSE TO HOST THE LAYER, and if one ever does, this is where
+       the press stops — with both buttons disabled and a tooltip saying which
+       page took the space (see panelSuppressed / updateAlertBadge), never a
+       live control that does nothing. Nothing answers true today: Insights used
+       to, and no longer does, because the panel stopped being a column. */
     if(panelSuppressed()) return;
     const same=state.panelOpen&&panelFace()===face;
     setPanelFace(face);
@@ -1360,7 +1439,7 @@ function wireShell(){
 
   // theme toggle + jurisdiction switcher (top header)
   wireThemeMenu();
-  // closeNavDrawer because below 900 this control lives INSIDE the drawer
+  // closeNavDrawer because below 900 this control lives INSIDE the sidebar
   /* The stored JURISDICTION is the truth, not this control's own key: a
      workspace that set its market on another device (it rides on the org
      record) must not have it silently reverted by whatever this browser last
@@ -1396,7 +1475,7 @@ function wireLanguagePicker(){
     if(!b) return;
     if(b.getAttribute('data-lang')===langId()) return;   // already there; do not repaint for nothing
     langSet(b.getAttribute('data-lang'));
-    closeNavDrawer();   // below 900 this control lives inside the drawer
+    closeNavDrawer();   // below 900 this control lives inside the sidebar
   });
   /* Re-painted on every language change too, so the pressed state follows a
      switch made from anywhere else — the Settings screen, or a second tab. */
@@ -1469,4 +1548,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 wireShell();
 
 Object.assign(window,{createFromTemplate,keepScroll,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,
-  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,panelSuppressed,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});

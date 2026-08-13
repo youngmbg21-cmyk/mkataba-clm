@@ -660,8 +660,8 @@
      is obviously the work.
 
      ONLY COLOUR IS SET HERE. Every width, height, padding and breakpoint the
-     shell already had is untouched: the collapsed rail, the off-canvas drawer
-     below 900 and the short-laptop rules all still drive this sidebar, and
+     shell already had is untouched: the collapsed rail, the floating layer
+     below 1500 and the short-laptop rules all still drive this sidebar, and
      they are all layout rules, which is why none of them appear below. */
   /* ---- THE SIDEBAR'S OWN RAMP ----
      Deeper than the accent ramp reaches, and it always was: a navigation column
@@ -1508,22 +1508,34 @@
         leaves 134px for the page, which is not a choice between two layouts —
         it is the app not working. -- */
 
-  /* -- phone: the sidebar leaves the grid entirely and becomes a drawer over
-        the page, opened from the menu button in the header. applyRail writes
-        the 0px column (it owns that inline style); everything here is what the
-        drawer looks like once it is out of the grid. -- */
-  @media (max-width:899px){
-    #nav-toggle{ display:grid!important; }
+  /* -- BELOW 1500 THE SIDEBAR FLOATS INSTEAD OF PUSHING (13 Aug 2026) --
+        Owner-asked, from a ThinkPad: expanding the sidebar squeezed every
+        page. It took 192px off the page and no layout rule noticed, because
+        every rule in this file measures the WINDOW while the page gets the
+        window minus the sidebar.
+
+        So under 1500px the sidebar is a FIXED 64px strip of icons — applyRail
+        keeps a 64px track under it, and the strip simply widens to 256px over
+        the page when it is opened. The page's own width never changes, which
+        is what makes it safe to leave collapsed: opening and closing move
+        nothing. The number is derived — the dashboard needs 1200px of page,
+        plus 256px of sidebar, is 1456; rounded up so a 1440 laptop is inside.
+
+        IT USED TO BE 0px AND A MENU BUTTON, at 899 and below. That is right at
+        390px and wrong at 1280, where there is ample room for the icons and
+        hiding every door behind a press is the worse trade. One behaviour from
+        768 to 1499 now, rather than two systems doing the same job. -- */
+  @media (max-width:899px){ #nav-toggle{ display:grid!important; } }
+  @media (max-width:1499px){
     #side-nav{
-      position:fixed; top:64px; left:0; bottom:0; z-index:55; width:240px;
-      transform:translateX(-105%); transition:transform .25s var(--ease);
-      box-shadow:var(--shadow-lg);
+      position:fixed; top:var(--shell-head-h,64px); left:0; bottom:0; z-index:55;
+      width:64px; transition:width .22s var(--ease);
     }
-    /* Open, it is the FULL sidebar — labels, counts and all. There is room for
-       them in a 240px drawer, and the rail's compaction is for a column that
-       has to share the width, which this no longer does. So the rail rules
-       further up are unwound here for the duration. */
-    #side-nav.open{ transform:none; }
+    /* Open, it is the FULL sidebar — labels, counts and all: the rail's
+       compaction is for a column that has to share the width, and a floating
+       panel does not. So the rail rules further up are unwound for the
+       duration. */
+    #side-nav.open{ width:256px; box-shadow:var(--shadow-lg); }
     #app-shell.rail #side-nav.open .nav-item{ width:auto; justify-content:flex-start; padding:9px 12px; gap:11px; margin:0; }
     #app-shell.rail #side-nav.open .nav-item>span:not(.nav-rail){ display:inline!important; }
     #app-shell.rail #side-nav.open .nav-count:not(:empty){ display:inline-block!important; }
@@ -1550,8 +1562,28 @@
     #app-shell.rail #side-nav.open #side-ai-usage{ justify-content:flex-start;
       border-top:1px solid rgba(255,255,255,.10); padding:6px 0 0; margin-top:1px; }
     #app-shell.rail #side-nav.open #side-ai-usage .foot-ai-dot{ margin-top:4px; }
-    /* the rail's own header toggle has nothing to toggle inside a drawer */
-    #side-nav .rail-head{ display:none; }
+    /* THE DOOR IS THE ONE ON THE THING IT OPENS. The rail's own chevron stays
+       — it is the only control on screen down here, since the header's menu
+       button is drawn at 899 and below — and toggleRail reads the width and
+       slides the layer instead of writing the reader's stored preference.
+       Open, the head is the full bar again with its word back. */
+    #app-shell.rail #side-nav.open .rail-head{ justify-content:flex-start; padding:0 12px; }
+    #app-shell.rail #side-nav.open .rail-head-label{ display:block; }
+    #app-shell.rail #side-nav.open .rail-toggle{ margin-left:auto; }
+    /* THE LANGUAGE TOGGLE HAS TO FIT THE STRIP IT NOW SITS IN. Below 900 the
+       header is too crowded for it and placeLanguageSwitch posts it into the
+       sidebar (which is unchanged) — but the sidebar down here rests at 64px,
+       not the 240px drawer it used to be, and "English / Svenska" overflowed
+       it by 34px. MEASURED. So at rest it wears its two-letter form, exactly
+       as the crowded header does, and the words come back when the layer is
+       opened and there is room for them again. It also STACKS: side by side
+       even the two-letter pair measures 86px, so the pair runs down the strip
+       the way every other thing in a 64px rail does. */
+    #app-shell.rail #side-nav:not(.open) #lang-switch{ margin:0 auto 4px; align-self:center;
+      flex-direction:column; }
+    #app-shell.rail #side-nav:not(.open) #lang-switch .lang-btn{ padding:4px 8px; }
+    #app-shell.rail #side-nav:not(.open) #lang-switch .lang-long{ display:none!important; }
+    #app-shell.rail #side-nav:not(.open) #lang-switch .lang-code{ display:inline!important; }
     #nav-scrim:not([hidden]){
       display:block; position:fixed; inset:64px 0 0 0; z-index:54;
       background:color-mix(in srgb,#020617 45%,transparent);
@@ -2717,16 +2749,18 @@
     </div>
   </aside>
 
-  <!-- Drawer scrim — only ever visible below 900, where the sidebar floats over
-       the page rather than taking a column of its own. -->
+  <!-- Drawer scrim — only ever visible below 1500, where the sidebar floats
+       over the page rather than widening its column. -->
   <div id="nav-scrim" hidden></div>
 
   <!-- ================= MAIN COLUMN ================= -->
-  <!-- grid-column:2 is PINNED, not left to auto-placement. Below 900 the
-       sidebar becomes a fixed off-canvas drawer, which takes it out of grid
-       flow entirely — and an auto-placed main column then slides into the
-       sidebar's now-zero-width track and renders about 40px wide. Naming the
-       track means the content column is the content column at every size. -->
+  <!-- grid-column:2 is PINNED, not left to auto-placement. Below 1500 the
+       sidebar becomes position:fixed, which takes it out of grid flow entirely
+       — and an auto-placed main column would then slide into the sidebar's own
+       track. (The track is held at 64px there rather than collapsed, so the
+       strip has somewhere to sit; that is a reason to name the track, not to
+       stop naming it.) Naming it means the content column is the content
+       column at every size. -->
   <div style="grid-column:2;display:flex;flex-direction:column;min-width:0;min-height:0;">
 
     <!-- ---- THE PAGE'S OWN HEADER, not a bar over it ----
