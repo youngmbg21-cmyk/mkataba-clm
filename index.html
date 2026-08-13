@@ -1749,10 +1749,35 @@
   /* Home — pipeline beside decisions (was 2fr 1fr). The decisions card fills
      its column absolutely, so when the row stacks it needs a height to fill. */
   .hm-main-row{grid-template-columns:2fr 1fr;}
+  /* ---- ONCE THE TWO CARDS HAVE TO STACK, THE PAGE SCROLLS (13 Aug 2026) ----
+     THE DEFECT: below 1200px there is no room for the two cards side by side,
+     so the row stacks them — but .hm-page is exactly --view-h tall and refuses
+     to scroll, so the SAME leftover height that one card had to itself now has
+     to be split between two. Decisions due holds a minimum of its own, so the
+     pipeline card was the one that gave: MEASURED at 1024x768 it collapsed to
+     26px, a sliver with a slice of chart in it, and at 1024x600 to nothing.
+     The old three-column card did exactly the same thing — its headings were
+     cut in half — so this is not new, it is simply never fixed.
+
+     Forcing two stacked cards into one screenful is the thing that cannot
+     work. Below the breakpoint the page grows instead and the shell's own
+     scroller takes it: height:auto with min-height keeps a tall window looking
+     exactly as it does now, and a short one scrolls rather than crushing what
+     is on it. Each card then asks for the height it actually needs.
+
+     THE CARD'S INSIDE KEEPS ITS TWO COLUMNS DOWN TO 880px. Stacking the ring
+     above the list at 1199 was wasteful: with the row already stacked the card
+     is the full width of the page there — 728px at a 1024 window — which is
+     more room for the ring beside its list than it had at 1440. */
   @media (max-width:1199px){
-    .hm-pipe-cols{grid-template-columns:minmax(0,1fr);}
-    .hm-main-row{grid-template-columns:minmax(0,1fr);}
+    .hm-main-row{grid-template-columns:minmax(0,1fr);flex:0 0 auto;}
+    .hm-page{height:auto;min-height:var(--view-h);}
+    .hm-pipe-card{min-height:440px;}
     .hm-decisions{min-height:320px;}
+  }
+  @media (max-width:880px){
+    .hm-pipe-cols{grid-template-columns:minmax(0,1fr);}
+    .hm-pipe-card{min-height:560px;}
   }
 
   /* Reports — the four summary cards and the chart pairs */

@@ -219,6 +219,62 @@ const SNAP = `(() => {
       await p.close();
     }
 
+    /* ---- AND ONCE THE TWO CARDS STACK, THE PAGE SCROLLS ----
+       Below 1200px there is no room for the pipeline card beside Decisions
+       due, so the row stacks them — and the page used to refuse to scroll,
+       which meant the same leftover height had to be SPLIT between two cards
+       instead of shared by two. Decisions due holds a minimum of its own, so
+       the pipeline card was the one that gave: 26px at 1024x768, a sliver with
+       a slice of chart in it. The three-column card did the same thing before
+       this work, so it was never the ring's fault — it was just never fixed.
+
+       A BROWSER IS THE ONLY PLACE THIS CAN BE ASKED. "The page scrolls rather
+       than crushing the card" is two laid-out measurements: the card's real
+       height, and whether the scroller has more content than room. */
+    for (const vp of [{ width: 1024, height: 768 }, { width: 1024, height: 600 }, { width: 960, height: 700 }]) {
+      const p = await browser.newPage({ viewport: vp });
+      p.on('pageerror', e => errors.push(`${vp.width}x${vp.height}: ${e.message}`));
+      await p.goto(PAGE, { waitUntil: 'load' });
+      await p.evaluate(() => window.READY);
+      await p.waitForTimeout(400);
+      const r = await p.evaluate(`(() => {
+        const sc = document.getElementById('content-scroll');
+        const card = document.querySelector('.hm-pipe-card');
+        const dec = document.querySelector('.hm-decisions');
+        const cr = card.getBoundingClientRect(), dr = dec.getBoundingClientRect();
+        return { cardH: Math.round(cr.height), decH: Math.round(dr.height),
+          stacked: Math.round(dr.top) >= Math.round(cr.bottom) - 2,
+          scrolls: sc.scrollHeight - sc.clientHeight,
+          segs: document.querySelectorAll('.hm-seg').length,
+          rows: document.querySelectorAll('.hm-row').length,
+          spill: Math.max(card.scrollHeight - card.clientHeight, card.scrollWidth - card.clientWidth) };
+      })()`);
+      check(`${vp.width}x${vp.height}: the two cards stack`, r.stacked,
+        `card ends ${r.cardH}px tall, decisions below`);
+      check(`${vp.width}x${vp.height}: THE CARD IS USABLE, NOT A SLIVER`, r.cardH >= 400,
+        `${r.cardH}px tall (was 26px before the fix at 1024x768)`);
+      check(`${vp.width}x${vp.height}: the page scrolls instead of crushing it`, r.scrolls > 0,
+        `${r.scrolls}px of scroll`);
+      check(`${vp.width}x${vp.height}: the ring and the list are both drawn`,
+        r.segs === 3 && r.rows > 0 && r.spill <= 1, `${r.segs} segments, ${r.rows} rows, ${r.spill}px over`);
+      if (vp.width === 1024 && vp.height === 768) await p.screenshot({ path: path.join(OUT, '04-1024-stacked.png') });
+      await p.close();
+    }
+
+    /* ---- AND A WIDE WINDOW STILL DOES NOT SCROLL ----
+       The fix must buy the narrow case without costing the ordinary one: above
+       the breakpoint the dashboard still fits on one screen exactly as it did. */
+    for (const vp of [{ width: 1920, height: 1080 }, { width: 1440, height: 900 }, { width: 1280, height: 800 }]) {
+      const p = await browser.newPage({ viewport: vp });
+      await p.goto(PAGE, { waitUntil: 'load' });
+      await p.evaluate(() => window.READY);
+      await p.waitForTimeout(350);
+      const over = await p.evaluate(`(() => { const sc = document.getElementById('content-scroll');
+        return sc.scrollHeight - sc.clientHeight; })()`);
+      check(`${vp.width}x${vp.height}: a wide window still fits on one screen`, over <= 1, `${over}px of scroll`);
+      await p.close();
+    }
+
     /* ---- THE DARK THEME DRAWS IT TOO ---- */
     const dark = await browser.newPage({ viewport: { width: 1600, height: 900 }, colorScheme: 'dark' });
     dark.on('pageerror', e => errors.push('dark: ' + e.message));
