@@ -414,6 +414,99 @@ describe('f148 — language and market are separate settings', () => {
     win.jxSet('kenya');
     assert.equal(win.langId(), 'en', 'an explicit choice outranks the market default');
   });
+
+  /* ---- AND A MONTH IS A WORD, SO IT FOLLOWS THE LANGUAGE ----
+     Owner-reported, 13 Aug 2026: in English mode a Copilot chart came back
+     labelled "aug. 2026 · sep. 2026 · okt. 2026 · maj 2027". Every date on
+     every screen was formatted through jxLocale() — the MARKET's locale — so a
+     Swedish workspace printed Swedish months to a reader who had chosen
+     English. The split this whole block is about had simply never been applied
+     to dates.
+
+     langLocale() carries BOTH halves, because both are true at once: the
+     reader's language decides the words, the market's region decides the
+     conventions. */
+  test('a Swedish workspace read in English says August, not augusti', () => {
+    win.jxSet('sweden');
+    win.langSet('en', { repaint: false });
+    const d = new Date(2026, 7, 13);
+    assert.equal(d.toLocaleDateString(win.langLocale(), { month: 'short', year: 'numeric' }),
+      'Aug 2026', 'the reported label, in the language the reader chose');
+    assert.equal(d.toLocaleDateString(win.langLocale(), { month: 'long', year: 'numeric' }),
+      'August 2026');
+  });
+
+  test('and the same workspace read in Swedish still says augusti', () => {
+    win.jxSet('sweden');
+    win.langSet('sv', { repaint: false });
+    const d = new Date(2026, 7, 13);
+    assert.match(d.toLocaleDateString(win.langLocale(), { month: 'short', year: 'numeric' }),
+      /^aug/, 'a Swedish reader is not "fixed" into English');
+  });
+
+  /* THE MARKET STILL DECIDES HOW A DATE IS WRITTEN, which is why the tag keeps
+     the region instead of falling back to a bare language. Bare "en" is
+     American — "Aug 13, 2026" — and neither of this product's markets writes a
+     date that way. */
+  test('the market keeps the day-first order it writes dates in', () => {
+    win.langSet('en', { repaint: false });
+    const d = new Date(2026, 7, 13);
+    for (const market of ['sweden', 'kenya']){
+      win.jxSet(market);
+      assert.equal(d.toLocaleDateString(win.langLocale(), { day: '2-digit', month: 'short', year: 'numeric' }),
+        '13 Aug 2026', market + ' should write the day first, in English');
+    }
+  });
+
+  test('the tag really carries both halves, and re-reads when either moves', () => {
+    win.jxSet('sweden'); win.langSet('en', { repaint: false });
+    assert.equal(win.langLocale(), 'en-SE');
+    win.langSet('sv', { repaint: false });
+    assert.equal(win.langLocale(), 'sv-SE', 'the language moved under a memoised value');
+    win.jxSet('kenya');
+    assert.equal(win.langLocale(), 'sv-KE', 'and so did the market');
+  });
+
+  /* THE TWO THINGS IT MUST NOT TOUCH. Both are rules this rulebook already
+     states; a sweep across every date on every screen is exactly where they
+     would get broken by accident. */
+  test('MONEY still follows the market — the grouping of SEK is Sweden\'s', () => {
+    win.jxSet('sweden'); win.langSet('en', { repaint: false });
+    assert.notEqual(win.jxLocale(), win.langLocale(),
+      'the two readings are genuinely different here, so the next line means something');
+    assert.equal(win.jxCurrency(), 'SEK', 'the money did not follow the reader');
+  });
+
+  test('and the CONTRACT is never formatted through either — it has its own months', () => {
+    const core = fs.readFileSync(path.join(ROOT, 'js/core.js'), 'utf8');
+    const fn = core.slice(core.indexOf('function fmtDocDate'), core.indexOf('function fmtDocAmount'));
+    assert.match(fn, /DOC_MONTHS\[mo-1\]/, 'the paper writes its dates from a fixed list');
+    assert.ok(!/Locale/.test(fn),
+      'a document that changed language with the reader would be a different document');
+  });
+
+  test('every date drawn as WORDS asks the language, not the market', () => {
+    /* The sweep, asserted over the source rather than one screen at a time:
+       an option set naming a month, a weekday or a date style produces WORDS,
+       and words are the person's. A NEW screen that reaches for jxLocale() to
+       print a month lands here. */
+    const bad = [];
+    const walk = dir => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })){
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (e.name.endsWith('.js')) {
+          fs.readFileSync(p, 'utf8').split('\n').forEach((line, i) => {
+            if (/toLocale(Date|Time)?String\(jxLocale\(\)/.test(line)
+              && /month:|dateStyle|weekday|timeStyle/.test(line))
+              bad.push(`${path.relative(ROOT, p)}:${i + 1}`);
+          });
+        }
+      }
+    };
+    walk(path.join(ROOT, 'js'));
+    assert.deepEqual(bad, [], 'these print month or weekday WORDS through the market locale');
+  });
 });
 
 /* ---- THE SHARED RENDERERS ----

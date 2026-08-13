@@ -247,7 +247,7 @@ function mTermsHtml(c){
   const md = (c && c.metadata) || {};
   const dateOf = v => { if(!v) return null;
     const t = Date.parse(String(v)+'T00:00:00');
-    return isNaN(t) ? String(v) : new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
+    return isNaN(t) ? String(v) : new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
   const money = (typeof canViewValues!=='function' || canViewValues());
   const rows = [
     /* OUR SIDE, ABOVE THEIRS. The two together are the sentence the paper opens
@@ -321,7 +321,7 @@ function mHistHtml(c){
     `<button class="m-chip${s.hist===k?' on':''}" data-m-hist="${k}">${label}</button>`).join('');
 
   const when = at => { const t=Date.parse(at||''); return isNaN(t)?'' :
-    new Date(t).toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'}); };
+    new Date(t).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'}); };
 
   const list = shown.length ? shown.map(e=>{
     const g = M_HIST_GROUP[e.kind]||'other';

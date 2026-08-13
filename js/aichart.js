@@ -79,7 +79,7 @@ const _acMonthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
    screen that also prints real dates. */
 const _acMonthLabel = k => {
   const [y, m] = String(k).split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString(jxLocale(), { month: 'short', year: 'numeric' });
+  return new Date(y, m - 1, 1).toLocaleDateString(langLocale(), { month: 'short', year: 'numeric' });
 };
 /* The next N months as keys, so a month with nothing in it still appears —
    a gap in a timeline is information, and a chart that silently skips empty

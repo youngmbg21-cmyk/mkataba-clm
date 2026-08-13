@@ -480,7 +480,7 @@ function openMetaReview(meta, onConfirm, opts={}){
   const checkLine = k => { const ck=checks[k]; if(!ck) return '';
     const pretty = iso => { const t=Date.parse(String(iso)+'T00:00:00');
       if(isNaN(t)) return String(iso);
-      try{ return new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
+      try{ return new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
       catch(e){ return String(iso); } };
     return `<span style="display:block;margin-top:4px;padding:5px 7px;border-radius:5px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:10.5px;line-height:1.5">
       ${esc(i18t('me_term_mismatch',{n:ck.n, unit:i18t('me_unit_'+String(ck.unit).replace(/s$/,'')), from:pretty(meta.effectiveDate), to:pretty(ck.expected)}))}

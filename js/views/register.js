@@ -148,7 +148,7 @@ function folderExpiryCell(c){
   const eff=effectiveExpiry(c);
   if(!eff) return '<span style="color:var(--color-neutral-400)">—</span>';
   const from=window.expirySource?expirySource(c):null;
-  const dt=new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
+  const dt=new Date(eff+'T00:00:00').toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'});
   let col='var(--color-neutral-700)', hint='', weight=400;
   if(from) hint=i18t('reg_from_id',{id:from.id});
   if(c.status!=='Declined'){ const d=daysUntil(eff);
@@ -644,7 +644,7 @@ function regRowsHtml(cs){
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
-    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'2-digit'}):'—';
     const renIn=din==null?'':(din<0?i18t('reg_days_over',{n:Math.abs(din)}):i18t('reg_in_days',{n:din}));
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;

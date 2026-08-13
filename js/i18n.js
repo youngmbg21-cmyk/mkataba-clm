@@ -7087,6 +7087,50 @@ function langId() {
   } catch (e) {}
   return I18N_DEFAULT;
 }
+/* ============================================================
+   THE LOCALE FOR A DATE THAT WILL BE READ AS WORDS
+   ============================================================
+   Owner-reported, 13 Aug 2026: in English mode, a Copilot chart came back with
+   "aug. 2026 · sep. 2026 · okt. 2026 · maj 2027". Every date on every screen was
+   formatted through jxLocale() — the MARKET's locale — so a Swedish workspace
+   printed Swedish month names to a reader who had chosen English.
+
+   That is this file's own distinction, applied to dates for the first time.
+   LANGUAGE is the person's and decides the WORDS. MARKET is the company's and
+   decides the CONVENTIONS — which currency, and the order a date is written in.
+   Both are true at once, so the tag carries both: the reader's language with
+   the market's region. An English reader in a Swedish workspace gets
+   "13 Aug 2026" — English words, day first, which is what Sweden writes — and
+   never the American "Aug 13, 2026" that a bare "en" would give them.
+
+   WHAT THIS IS NOT FOR:
+     · NUMBERS. Money and counts stay on jxLocale(). The grouping of SEK belongs
+       to the market that spends it, not to the language it is described in.
+     · THE CONTRACT. Paper never passes through here — fmtDocDate writes its
+       dates from DOC_MONTHS, a fixed list, because the document's words are the
+       customer's and are never translated. That rule is unchanged and this
+       function must never be pointed at it.
+
+   Memoised on (language, region) rather than computed once: the object-literal
+   trap this file warns about is a value frozen at LOAD time, and either half of
+   this pair can move while the app is open. */
+let _langLocaleAt = null;
+function langLocale(){
+  const lang = langId() || I18N_DEFAULT;
+  let region = '';
+  try {
+    if (typeof jxLocale === 'function') region = String(jxLocale() || '').split('-')[1] || '';
+  } catch (e) {}
+  const key = lang + '|' + region;
+  if (_langLocaleAt && _langLocaleAt.key === key) return _langLocaleAt.tag;
+  let tag = region ? lang + '-' + region : lang;
+  /* A malformed tag THROWS inside toLocaleDateString rather than falling back,
+     which would take out whichever screen asked. The language alone always
+     resolves. */
+  try { new Intl.DateTimeFormat(tag); } catch (e) { tag = lang; }
+  _langLocaleAt = { key, tag };
+  return tag;
+}
 const langList = () => LANGUAGES.slice();
 const langIs = id => langId() === id;
 const langName = id => (LANGUAGES.find(l => l.id === id) || {}).name || id;
@@ -7225,7 +7269,7 @@ function langEditingNow() {
 const i18t = t, i18tn = tn;
 
 const I18N_API = { STRINGS, LANGUAGES, I18N_DEFAULT, I18N_LS,
-  t, tn, i18t, i18tn, langId, langSet, langList, langIs, langName, langPromptName,
+  t, tn, i18t, i18tn, langId, langSet, langList, langIs, langName, langPromptName, langLocale,
   langMissingKeys, applyLanguage, langEditingNow };
 /* Two hosts, one dictionary: the browser gets globals like every other module,
    and server/server.js requires this file so an email can be written in the

@@ -180,7 +180,7 @@ function buildWeeklyHtml(d){
   const money=d.money;
   const dateOf=iso=>{ const t=Date.parse(String(iso||'')+'T00:00:00');
     if(isNaN(t)) return String(iso||'');
-    try{ return new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short'}); }catch(e){ return String(iso); } };
+    try{ return new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short'}); }catch(e){ return String(iso); } };
 
   /* ---- 1 ---- */
   const s1=`<div class="slot"><h2>${T('wk_s1')}</h2><div class="lead">${
@@ -266,7 +266,7 @@ function buildWeeklyHtml(d){
       <div class="more">${i18t('wk_x_shape_note',{n:d.live.length})}</div></div>`;
   }
 
-  const when=(()=>{ try{ return new Date().toLocaleDateString(jxLocale(),{day:'2-digit',month:'long',year:'numeric'}); }catch(e){ return ''; } })();
+  const when=(()=>{ try{ return new Date().toLocaleDateString(langLocale(),{day:'2-digit',month:'long',year:'numeric'}); }catch(e){ return ''; } })();
   const org=(typeof getOrg==='function'&&getOrg()&&getOrg().name)||'';
   return `<!doctype html><html lang="${(typeof langId==='function')?langId():'en'}"><head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">

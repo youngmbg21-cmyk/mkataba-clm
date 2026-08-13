@@ -667,8 +667,8 @@ window.REMOTE=null; // {org, me, users} when a HaTi server is present
 Object.assign(window,{LS,REMOTE,lsGet,lsSet});
 
 const nowISO = () => new Date().toISOString();
-const fmtDT = iso => new Date(iso).toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'});
-const todayStr = () => new Date().toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'});
+const fmtDT = iso => new Date(iso).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'});
+const todayStr = () => new Date().toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'});
 const fval = id => (document.getElementById(id)?.value||'').trim();
 
 /* ---------- persistence (per-contract at scale) ----------

@@ -458,6 +458,32 @@ describe('f177 — a named shape is honoured in code, not only in the prompt', (
     assert.equal(w.aiHonourShape(spec, undefined), spec);
   });
 
+  /* ---- AND THE MONTHS ON IT ARE IN THE READER'S LANGUAGE ----
+     Reported the same day, off the same panel: an English reader in a Swedish
+     workspace got "aug. 2026 · sep. 2026 · okt. 2026 · maj 2027" along the
+     bottom of an expiry chart. Every date in the product was formatted through
+     the MARKET's locale. Checked here, on the chart itself, because that is
+     where it was seen — f148 owns the rule and the sweep. */
+  test('the months along a chart follow the reader, not the workspace', () => {
+    const w = seeded();
+    const dates = ['2026-08-30', '2026-09-27', '2026-10-15'];
+    w.state.contracts.forEach((c, i) => { c.expiry = dates[i] || c.expiry; });
+    w.jxSet('sweden');
+    w.langSet('en', { repaint: false });
+    const en = cfgOf(w, { kind: 'breakdown', group: 'month', measure: 'count', shape: 'bar' });
+    assert.ok(en.config, en.error || 'no config');
+    const labels = Array.from(en.config.data.labels).join(' ');
+    assert.ok(!/\b(okt|maj|juni|juli)\b/.test(labels),
+      'Swedish months reached an English reader: ' + labels);
+    assert.match(labels, /Aug|Sep|Oct|Nov|Dec|Jan|Feb|Mar|Apr|May|Jun|Jul/,
+      'the labels are English month names: ' + labels);
+
+    w.langSet('sv', { repaint: false });
+    const sv = cfgOf(w, { kind: 'breakdown', group: 'month', measure: 'count', shape: 'bar' });
+    assert.notDeepEqual(Array.from(sv.config.data.labels), Array.from(en.config.data.labels),
+      'and a Swedish reader in the same workspace still gets Swedish');
+  });
+
   test('the model is still told, with the reported sentence as the example', () => {
     const w = seeded();
     const rules = w.AI_CHART_RULES();

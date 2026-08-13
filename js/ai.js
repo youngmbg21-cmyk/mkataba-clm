@@ -243,7 +243,7 @@ function runScan(c){
      Swedish and the labels around it are English, which reads as a bug. A scan
      stored before this change has no stamp; treat those as English, which is
      what they are. */
-  c.scan = { at:new Date().toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'}),
+  c.scan = { at:new Date().toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'}),
     lang:(typeof langId==='function'?langId():'en'),
     findings:scanRules(c), dismissed:prev };
 }

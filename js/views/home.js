@@ -276,7 +276,7 @@ function hmDashSlices(){
   /* Paper that has sat in review, longest first — the other half of what a
      person has to decide about, alongside the renewals. */
   const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
-  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
+  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
   // yet signed — a live share in 'sent' or 'opened', so the ball is in their

@@ -86,7 +86,7 @@ window.intelUI = { scanning:false, scannedAt:null };
 
 function scanPortfolio(){
   state.contracts.forEach(c=>runScan(c));
-  intelUI.scannedAt = new Date().toLocaleString(jxLocale(),{dateStyle:'medium',timeStyle:'short'});
+  intelUI.scannedAt = new Date().toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'});
 }
 
 /* ============================================================

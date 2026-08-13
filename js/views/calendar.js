@@ -62,7 +62,7 @@ const _dot=(color,px)=>`<span style="width:${px}px;height:${px}px;border-radius:
 function renderCalendar(){
   const {y,m}=calMonth();
   const first=new Date(y,m,1), start=first.getDay(), days=new Date(y,m+1,0).getDate();
-  const monthName=first.toLocaleDateString(jxLocale(),{month:'long',year:'numeric'});
+  const monthName=first.toLocaleDateString(langLocale(),{month:'long',year:'numeric'});
   const evs=calendarEvents();
   const byDay={}; evs.forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
   const todayIso=new Date().toISOString().slice(0,10);
@@ -108,7 +108,7 @@ function renderCalendar(){
                  and one of them picked. */
     const cids=Array.from(new Set(list.map(e=>e.cid).filter(Boolean)));
     const openable=cids.length>0;
-    const dayName=new Date(y,m,dnum).toLocaleDateString(jxLocale(),{day:'numeric',month:'long',year:'numeric'});
+    const dayName=new Date(y,m,dnum).toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
     const cellStyle=`min-height:clamp(38px,7.1vh,62px);min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:${openable?'pointer':'default'};border-radius:7px;`+
       `background:${bg};border:1px solid ${bd}`;
     const cellAttrs=openable
@@ -316,7 +316,7 @@ function renderCalendar(){
     const cids=Array.from(new Set(here.map(e=>e.cid).filter(Boolean)));
     if(!cids.length) return;
     if(cids.length===1) return selectContract(cids[0]);
-    const dayName=new Date(iso+'T00:00:00').toLocaleDateString(jxLocale(),{day:'numeric',month:'long',year:'numeric'});
+    const dayName=new Date(iso+'T00:00:00').toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
     if(typeof regShowOnly==='function') regShowOnly(cids, i18t('cal_due_on',{day:dayName}));
     else selectContract(cids[0]);   // no register loaded (a test stage) — still go somewhere
   };

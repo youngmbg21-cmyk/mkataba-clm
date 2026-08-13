@@ -476,14 +476,14 @@ function pfMonthOf(iso){
    reader never having to work out which reading is meant. */
 function pfMonthLabel(off){
   const abs=pfMonth0()+off, d=new Date(Math.floor(abs/12), abs%12, 1);
-  try{ return d.toLocaleDateString(jxLocale(),{month:'short',year:'numeric'}); }
+  try{ return d.toLocaleDateString(langLocale(),{month:'short',year:'numeric'}); }
   catch(e){ return String(abs%12+1)+'/'+Math.floor(abs/12); }
 }
 /* A date the way this reader writes dates. A raw 2026-02-12 in the middle of a
    sentence is the machine's format leaking onto the screen. */
 function pfDate(iso){
   const t=Date.parse(String(iso||'')+'T00:00:00'); if(isNaN(t)) return String(iso||'');
-  try{ return new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
+  try{ return new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
   catch(e){ return String(iso); }
 }
 const pfAddDays = (iso,n) => { const t=Date.parse(String(iso||'')+'T00:00:00');

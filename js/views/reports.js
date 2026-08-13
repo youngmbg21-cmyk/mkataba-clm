@@ -89,7 +89,7 @@ const REPORT_METRICS=[
    fallback strip below and the Chart.js version share this one function so the
    two renderings of the same bar can never label it differently. */
 const repMonthLabel = m => { try{
-    return new Date(m+'-01').toLocaleDateString(jxLocale(),{month:'short',year:'numeric'});
+    return new Date(m+'-01').toLocaleDateString(langLocale(),{month:'short',year:'numeric'});
   }catch(e){ return String(m); } };
 const DEFAULT_REPORT_METRICS=['avgCycle','ageReview','ageDraft','renewal'];
 function reportMetricSel(){

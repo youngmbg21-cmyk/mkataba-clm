@@ -170,7 +170,7 @@ async function _hrChartImages(){
 /* ---------- the document ---------- */
 const _hrEsc=s=>String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 function _hrMoney(n){ return (typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n); }
-function _hrDate(iso){ const t=Date.parse(String(iso||'')+'T00:00:00'); return isNaN(t)?_hrEsc(iso):new Date(t).toLocaleDateString(jxLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
+function _hrDate(iso){ const t=Date.parse(String(iso||'')+'T00:00:00'); return isNaN(t)?_hrEsc(iso):new Date(t).toLocaleDateString(langLocale(),{day:'2-digit',month:'short',year:'numeric'}); }
 function _hrSign(n){ return (n>0?'+':'')+n; }
 /* ---------- emphasis ----------
    Colour and symbols carry the reading: green is good news, amber needs an
@@ -263,7 +263,7 @@ function buildHealthReportHtml(d, imgs){
   if(d.decisions.length) actParts.push(`<h3>${_hrEsc(t('hr_act_renewals'))}</h3>${table([t('hr_col_contract'),t('hr_col_party'),t('hr_col_date'),t('hr_col_days')],d.decisions.slice(0,8).map(x=>[_hrEsc(x.c.name||x.c.id),_hrEsc(x.c.counterparty||'—'),_hrDate(x.dd),_hrDaysCell(x.d)]))}`);
   if(d.overdueOb.length) actParts.push(`<h3>${_hrEsc(t('hr_act_overdue'))}</h3><ul>${d.overdueOb.slice(0,8).map(o=>`<li>${_hrSpan('neg','⚠')} ${_hrEsc(o.desc||'—')}${o.cname?` — ${_hrEsc(o.cname)}`:''}</li>`).join('')}</ul>`);
 
-  const gen=d.generatedAt.toLocaleDateString(jxLocale(),{day:'2-digit',month:'long',year:'numeric'});
+  const gen=d.generatedAt.toLocaleDateString(langLocale(),{day:'2-digit',month:'long',year:'numeric'});
   const chartsMissing=!imgs||!Object.keys(imgs).length;
 
   return `<!doctype html>
