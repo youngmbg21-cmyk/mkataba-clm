@@ -1020,3 +1020,77 @@ function signCapUnanswered(){
 }
 Object.assign(window,{signCapCfg,saveSignCapCfg,signCapEnforced,signCapOf,signCapText,
   signCapSentence,signCapBlocker,signCapLadder,signCapUnanswered});
+
+/* ============================================================
+   WHICH FOLDERS MAY THIS PERSON SIGN IN
+   ============================================================
+   A SEPARATE list from folder ACCESS, deliberately and on the owner's
+   instruction: seeing a stream and being allowed to put your name at the
+   bottom of its paper are different rights, and overloading one map with two
+   meanings is how a reader who was only ever meant to look ends up able to
+   execute. Its own key, its own route, its own guard.
+
+   ABSENT MEANS EVERY FOLDER THEY CAN ALREADY SEE — this list only ever
+   NARROWS, never widens: somebody restricted to Procurement on folderAccess
+   cannot sign a Marketing contract by having Marketing on this list, because
+   the contract is not theirs to open in the first place. And like every
+   enforcement in this product it arrives behind a switch that is OFF by
+   default, so nothing locks on deploy. */
+function signFolderCfg(){
+  const s = (state.settings && state.settings.signFolders) || {};
+  return { on: !!s.on };
+}
+function saveSignFolderCfg(cfg){
+  state.settings = state.settings || {};
+  const cur = state.settings.signFolders || {};
+  state.settings.signFolders = { ...cur, on: !!(cfg && cfg.on) };
+  if (typeof saveSettings === 'function') saveSettings();
+  return signFolderCfg();
+}
+const signFolderEnforced = () => signFolderCfg().on;
+/* THE ONE READING. '*' means "not narrowed"; an array is the narrowing. An
+   empty array is never stored — the two stores read it differently, which is
+   the lesson folderAccess already taught this codebase. */
+function signFolderAccess(u){
+  const who = u || ((typeof currentUser === 'function') ? currentUser() : null);
+  if (!who) return '*';
+  if (who.role === 'admin') return '*';
+  const map = ((state.settings || {}).signFolders || {}).by || {};
+  const v = map[who.id];
+  if (v == null || v === '*' || (Array.isArray(v) && !v.length)) return '*';
+  return v;
+}
+const maySignFolder = (fid, u) => { const a = signFolderAccess(u); return a === '*' || a.indexOf(fid) >= 0; };
+/* THE WRITER, shaped exactly like settingsWriteFolderAccess and for the same
+   reason: one place decides the payload, and an empty pick is refused rather
+   than sent. */
+async function saveSignFolders(userId, folders){
+  if (Array.isArray(folders) && !folders.length) throw new Error(i18t('set_pick_one_stream'));
+  state.settings = state.settings || {};
+  const cfg = state.settings.signFolders || {};
+  cfg.by = cfg.by || {};
+  if (folders == null) delete cfg.by[userId]; else cfg.by[userId] = folders;
+  state.settings.signFolders = cfg;
+  if (window.API_MODE && window.API_MODE()) await api('settings/sign-folders', 'PUT', { userId, folders });
+  else await saveSettings();
+}
+/* The blocker, joining the ONE list of signing blockers beside the cap. */
+function signFolderBlocker(c, u){
+  if (!c || !signFolderEnforced()) return null;
+  const who = u || ((typeof currentUser === 'function') ? currentUser() : null);
+  if (!who || who.role === 'admin') return null;
+  if (maySignFolder(c.folder, who)) return null;
+  const name = (typeof FOLDERS === 'object' && FOLDERS[c.folder] && FOLDERS[c.folder].name) || c.folder || '';
+  return { key: 'signfolder',
+    label: i18t('sf_block', { folder: name }),
+    short: i18t('sf_block_short') };
+}
+/* What the drawer and the ladder print. */
+function signFolderText(u){
+  if (u && u.role === 'admin') return i18t('sf_every');
+  const a = signFolderAccess(u);
+  if (a === '*') return i18t('sf_every_they_see');
+  return i18t('sf_only_n', { n: a.length, total: Object.keys(typeof FOLDERS === 'object' ? FOLDERS : {}).length });
+}
+Object.assign(window,{signFolderCfg,saveSignFolderCfg,signFolderEnforced,signFolderAccess,
+  maySignFolder,saveSignFolders,signFolderBlocker,signFolderText});

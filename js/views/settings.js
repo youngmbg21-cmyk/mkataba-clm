@@ -566,6 +566,41 @@ function stSigningWire(u){
   paint();
 }
 
+/* ---- THE SECOND COLUMN: WHERE THEY MAY SIGN ----
+   A SEPARATE list from what they may SEE, and the panel says which way it
+   cuts: it only ever narrows. Somebody who cannot open a Marketing contract
+   can never sign one, whatever is ticked here — so this can take a right away
+   and never hand one out. Not drawn for an admin, who holds every folder. */
+function stSignFolderHtml(u, isNew, folders){
+  if(typeof signFolderAccess!=='function') return '';
+  if(u.role==='admin') return '';
+  const cur=isNew ? '*' : signFolderAccess(u);
+  const set=new Set(Array.isArray(cur)?cur:[]);
+  const all=cur==='*';
+  return `<div class="st-sec" style="margin-top:14px">
+    <h3 class="st-sec-h">${esc(i18t('sf_title'))}</h3>
+    <select id="tm-sign-mode" style="${window.RV_FLD||ST_INPUT}">
+      <option value="*"${all?' selected':''}>${esc(i18t('sf_every_they_see'))}</option>
+      <option value="pick"${all?'':' selected'}>${esc(i18t('st_folders_pick'))}</option>
+    </select>
+    <div id="tm-sign-list" style="display:${all?'none':'grid'};grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-top:8px">
+      ${folders.map(f=>`<label style="display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:11.5px">
+        <input type="checkbox" data-tm-signfolder="${PB_ATTR(f.id)}"${set.has(f.id)?' checked':''} style="width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+        <span style="width:8px;height:8px;border-radius:2px;background:${f.color};flex:none"></span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
+    </div>
+    <span class="st-note">${esc(i18t('sf_narrows'))}</span>
+  </div>`;
+}
+function stSignFolderRead(){
+  const sel=document.getElementById('tm-sign-mode');
+  if(!sel) return undefined;                      // not drawn — change nothing
+  if(sel.value==='*') return null;                // every folder they can see
+  const ids=[...document.querySelectorAll('[data-tm-signfolder]')].filter(cb=>cb.checked)
+    .map(cb=>cb.getAttribute('data-tm-signfolder'));
+  return ids.length?ids:false;                    // false = refuse, in words
+}
+
 /* ---- SECTION 5 — WHO CHECKS THEIR WORK ----
    The workspace gate is the master switch and it lives on Platform settings;
    this is the per-person half. Drawn whether or not the gate is on, because an
@@ -707,7 +742,8 @@ function settingsPersonDrawer(idOrNew){
             <span style="width:8px;height:8px;border-radius:2px;background:${f.color};flex:none"></span>
             <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span></label>`).join('')}
         </div>
-        <div id="tm-access-note" style="display:none" class="st-note">${esc(i18t('set_access_admin_note'))}</div>`)}
+        <div id="tm-access-note" style="display:none" class="st-note">${esc(i18t('set_access_admin_note'))}</div>
+        ${stSignFolderHtml(u, isNew, folders)}`)}
 
     ${stSigningSectionHtml(u, isNew)}
 
@@ -742,6 +778,11 @@ function settingsPersonDrawer(idOrNew){
       });
       document.getElementById('tm-access')?.addEventListener('change',syncAccess);
       syncAccess();
+      const signSel=document.getElementById('tm-sign-mode');
+      signSel?.addEventListener('change',()=>{
+        const list=document.getElementById('tm-sign-list');
+        if(list) list.style.display=signSel.value==='pick'?'grid':'none';
+      });
       stSigningWire(u);
       stReviewWire(u);
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
@@ -761,12 +802,14 @@ async function settingsSavePerson(existing){
   const pass=document.getElementById('tm-pass')?.value||'';
   const cap=(typeof stSigningRead==='function')?stSigningRead():undefined;
   const rv=(typeof stReviewRead==='function')?stReviewRead():undefined;
+  const signFolders=(typeof stSignFolderRead==='function')?stSignFolderRead():undefined;
   const missing=[];
   if(!name) missing.push(i18t('st_f_name'));
   if(!validEmail(email)) missing.push(i18t('st_f_email'));
   if(isNew && pass.length<8) missing.push(i18t('st_f_temp_pass'));
   if(missing.length){ stDrawerRefuse(i18tn('st_missing',missing.length,{what:missing.join(', ')})); return; }
   if(typeof cap==='number' && Number.isNaN(cap)){ stDrawerRefuse(i18t('sc_bad_number')); return; }
+  if(signFolders===false){ stDrawerRefuse(i18t('set_pick_one_stream')); return; }
   if(isNew && (getUsers()||[]).some(x=>(x.email||'').toLowerCase()===email)){ stDrawerRefuse(i18t('set_member_exists')); return; }
 
   /* Folder access is decided BEFORE the account exists. `null` means every
@@ -806,6 +849,9 @@ async function settingsSavePerson(existing){
     if(cap!==undefined && !(typeof cap==='number' && Number.isNaN(cap))) after.signCap=cap;
     if(rv&&rv.reviewChecked!==undefined) after.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined) after.reviewerId=rv.reviewerId;
+    if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
+      try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
+    }
     if(newId && Object.keys(after).length){
       const u2=(getUsers()||[]).find(x=>x.id===newId);
       if(API_MODE()){
@@ -891,6 +937,10 @@ async function settingsSavePerson(existing){
   if(target.role!=='admin'){
     try{ await settingsWriteFolderAccess(target.id, folderAnswered?folderIds:null); }
     catch(e){ stDrawerRefuse(i18t('set_could_not_save_access')+e.message); return; }
+  }
+  if(signFolders!==undefined && target.role!=='admin' && typeof saveSignFolders==='function'){
+    try{ await saveSignFolders(target.id, signFolders); }
+    catch(e){ stDrawerRefuse(e.message); return; }
   }
   settingsMirrorDirectory(target.name,email||target.email,title);
   toast(i18t('st_person_saved',{who:target.name}));
@@ -1180,6 +1230,10 @@ const SET_PANELS={
           <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
           <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span>
           <span class="st-note">${esc(i18t('sc_rule_sub'))}</span></span></label>
+        <label class="st-toggle" style="margin-bottom:8px">
+          <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
+          <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span>
+          <span class="st-note">${esc(i18t('sf_rule_sub'))}</span></span></label>
         <div style="font-size:11px;font-weight:600;color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
         <div id="sc-ladder"></div>
       </div>`; },
@@ -1194,6 +1248,12 @@ const SET_PANELS={
         /* The ladder's own sentences change with the switch (a limit that is
            recorded and a limit that refuses are different facts), so it
            repaints — the panel does not, and the page behind it does not. */
+        stPaintLadder();
+      });
+      document.getElementById('sf-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveSignFolderCfg!=='function') return;
+        saveSignFolderCfg({ on:e.target.checked });
+        toast(i18t('sf_rule_saved'));
         stPaintLadder();
       });
     },
@@ -1586,6 +1646,7 @@ function stPaintLadder(){
       <span class="st-fname" data-st-fixed="1">${esc(r.name)}</span>
       <span class="st-fmeta">${esc(roleName(r.role))}</span>
       <span class="st-fmeta" style="color:${(!r.answered&&r.mayEverSign&&r.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc(r.text)}</span>
+      <span class="st-fmeta" style="opacity:.8">${esc((typeof signFolderText==='function')?signFolderText((getUsers()||[]).find(u=>u.id===r.id)||{}):'')}</span>
     </div>`).join(''):`<p class="st-note">${esc(i18t('sc_ladder_none'))}</p>`)
     +(un.length?`<p class="st-note" style="color:var(--st-amber-fg)">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'')
     +(enforced?'':`<p class="st-note">${esc(i18t('sc_not_enforced'))}</p>`);
@@ -2511,5 +2572,5 @@ Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,render
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
-  stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,
+  stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
   settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights});

@@ -720,6 +720,17 @@ const deskRuleOn = () => !!((getSetting('appSettings') || {}).deskRule || {}).on
    signCapOf deliberately — the server is the authority and a guard that
    imported the browser's answer would be a guard the browser could move. */
 const signCapOn = () => !!((getSetting('appSettings') || {}).signCap || {}).on;
+const signFoldersOn = () => !!((getSetting('appSettings') || {}).signFolders || {}).on;
+/* '*' means not narrowed. Absent, '*' and an empty array all read as '*' — the
+   last of those only because a store that has one is a store somebody wrote by
+   hand; the route above refuses to create it. */
+function signFoldersOf(u) {
+  if (!u || u.role === 'admin') return '*';
+  const map = ((getSetting('appSettings') || {}).signFolders || {}).by || {};
+  const v = map[u.id];
+  if (v == null || v === '*' || (Array.isArray(v) && !v.length)) return '*';
+  return v.map(String);
+}
 function signCapOfRow(u) {
   const raw = u && u.sign_cap;
   if (raw == null || raw === '') return { answered: false, limit: null };
@@ -2215,6 +2226,25 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
   }
 
+  /* ---- AND WHICH FOLDERS THEY MAY SIGN IN ----
+     The same difference, asked the same way, behind its own default-OFF
+     switch. It only ever narrows: a folder the caller cannot SEE has already
+     been refused above by the scope check, so this can take rights away and
+     never hand them out. */
+  if (signFoldersOn() && req.user.role !== 'admin') {
+    const inApp = x => x && x.method === 'session-authenticated';
+    const key = x => `${x.name || ''}|${x.email || ''}|${x.at || ''}`;
+    const had = new Set((Array.isArray(prev && prev.signatures) ? prev.signatures : []).filter(inApp).map(key));
+    const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
+    if (fresh.length) {
+      const allowed = signFoldersOf(req.user);
+      if (allowed !== '*' && !allowed.includes(String(c.folder)))
+        return res.status(403).json({
+          error: `You may not sign contracts filed under ${c.folder}. Ask an admin, or ask somebody who may.`,
+          signFolder: c.folder });
+    }
+  }
+
   /* ---------- THE INTERNAL REVIEW, GUARDED ON THE WAY IN ----------
      Asked as a DIFFERENCE, exactly like the signing-step guard above it, and
      for the same reason: this route receives the whole contract on every save,
@@ -2501,6 +2531,13 @@ app.put('/api/settings', auth, admin, (req, res) => {
   // sends folderAccess explicitly (the dedicated endpoint, the setup seed, or a
   // direct API call) still writes it.
   if (!('folderAccess' in incoming) && 'folderAccess' in stored) incoming.folderAccess = stored.folderAccess;
+  /* signFolders.by is the same kind of map — who may sign in which folder — and
+     it keeps the same protection: the SWITCH rides this blob, the MAP does not,
+     and a save that does not carry the map keeps the stored one. */
+  const incSF = (incoming.signFolders && typeof incoming.signFolders === 'object') ? incoming.signFolders : null;
+  const stoSF = (stored.signFolders && typeof stored.signFolders === 'object') ? stored.signFolders : null;
+  if (stoSF && stoSF.by && !(incSF && 'by' in incSF))
+    incoming.signFolders = { ...(incSF || {}), by: stoSF.by };
   setSetting('appSettings', incoming);
   res.json({ ok: true });
 });
@@ -2532,6 +2569,31 @@ const templateManager = (req, res, next) => {
     return res.status(403).json({ error: 'Admin or Editor access required' });
   next();
 };
+/* ---- WHICH FOLDERS MAY THIS PERSON SIGN IN ----
+   Its OWN key and its own route, never folderAccess: seeing a stream and being
+   allowed to put your name at the bottom of its paper are different rights, and
+   one map carrying two meanings is how a reader who was only ever meant to look
+   ends up able to execute. Atomic like its neighbour above, for the same
+   reason — a concurrent unrelated settings save must not revert a restriction. */
+app.put('/api/settings/sign-folders', auth, admin, (req, res) => {
+  const { userId, folders } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  if (folders != null && !Array.isArray(folders))
+    return res.status(400).json({ error: 'folders must be an array of folder ids, or null for every folder' });
+  /* An empty array is never accepted: the browser reads it as "nothing said"
+     and this server would read it as "deny all", and two stores disagreeing
+     about one value is how a restriction becomes a grant. */
+  if (Array.isArray(folders) && !folders.length)
+    return res.status(400).json({ error: 'Pick at least one folder, or send null for every folder' });
+  const all = getSetting('appSettings') || {};
+  const cfg = (all.signFolders && typeof all.signFolders === 'object') ? { ...all.signFolders } : {};
+  cfg.by = { ...(cfg.by || {}) };
+  if (folders == null) delete cfg.by[userId];
+  else cfg.by[userId] = folders.map(String);
+  setSetting('appSettings', { ...all, signFolders: cfg });
+  res.json({ ok: true, signFolders: cfg });
+});
+
 app.put('/api/settings/templates', auth, templateManager, (req, res) => {
   const list = req.body && req.body.customTemplates;
   if (!Array.isArray(list)) return res.status(400).json({ error: 'customTemplates must be an array' });

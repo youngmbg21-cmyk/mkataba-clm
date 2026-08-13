@@ -235,6 +235,26 @@ const signIn = async (page, base, email, pass) => {
     check('and the roster row says how much that person may sign for',
       /4/.test(rowSays), rowSays.trim());
 
+    /* ---- WHERE THEY MAY SIGN (phase 4), as pixels ---- */
+    await page.evaluate(id => settingsPersonDrawer(id), target);
+    await page.waitForTimeout(500);
+    const sfV = await page.evaluate(VISIBLE, '#tm-sign-mode');
+    check('the Folders section carries a second list — where they may SIGN', sfV.ok, sfV.why);
+    const sfWords = await page.evaluate(() => document.getElementById('st-dbody').textContent);
+    check('and it says which way it cuts: it only ever narrows',
+      /only ever narrows/i.test(sfWords), 'stated on the panel');
+    const sfHidden = await page.evaluate(() =>
+      getComputedStyle(document.getElementById('tm-sign-list')).display);
+    await page.selectOption('#tm-sign-mode', 'pick'); await page.waitForTimeout(300);
+    const sfShown = await page.evaluate(() => ({
+      display: getComputedStyle(document.getElementById('tm-sign-list')).display,
+      boxes: document.querySelectorAll('[data-tm-signfolder]').length,
+    }));
+    check('picking "only these" opens its own tick list, separate from what they may SEE',
+      sfHidden === 'none' && sfShown.display === 'grid' && sfShown.boxes >= 6,
+      `${sfShown.boxes} folders offered`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+
     /* ---- WHO CHECKS THEIR WORK (phase 3), as pixels ---- */
     await page.evaluate(id => settingsPersonDrawer(id), target);
     await page.waitForTimeout(500);
@@ -287,6 +307,12 @@ const signIn = async (page, base, email, pass) => {
     }));
     check('the ladder is drawn beside the approval rules and the switch is OFF',
       ladder.ok && sw.on === false && sw.rows >= 3, `${sw.rows} rows · switch ${sw.on}`);
+    const sfSwitch = await page.evaluate(() => {
+      const b = document.getElementById('sf-rule-on');
+      return b ? { there: true, on: b.checked } : { there: false };
+    });
+    check('and the folder rule has its OWN switch, also off by default',
+      sfSwitch.there && sfSwitch.on === false, JSON.stringify(sfSwitch));
     check('and it says out loud that the limits are recorded, not enforced',
       /not enforced/i.test(sw.note), sw.note.replace(/\s+/g, ' ').trim().slice(-70));
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);

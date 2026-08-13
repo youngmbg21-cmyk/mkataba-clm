@@ -766,7 +766,13 @@ async function saveSettings(){
        own atomic endpoint. Never include it in a whole-blob save — that is what
        let a stale, unrelated settings save silently revert a folder restriction.
        Stripped here so the general PUT preserves the server's copy. */
-    const { folderAccess, ...rest } = (state.settings||{});
+    const { folderAccess, signFolders, ...rest } = (state.settings||{});
+    /* signFolders carries the SAME kind of map under .by — who may put their
+       name at the bottom of which folder's paper — and it learned the same
+       lesson: the map goes through its own atomic route and the switch beside
+       it rides the general save. Sending .by here would let a stale blob revert
+       a restriction, which is precisely what H-3 was. */
+    if(signFolders && typeof signFolders==='object') rest.signFolders={ on: !!signFolders.on };
     try{ await api('settings','PUT',rest); }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); }
   }
   else persist();

@@ -5470,6 +5470,15 @@ function signBlockers(c){
     const cap=(window.signCapBlocker)?signCapBlocker(c):null;
     if(cap) add(cap.key, cap.label, cap.short);
   }catch(_){}
+  /* ---- AND WHICH FOLDERS THEY MAY SIGN IN ----
+     The other half of the same question, on the same list. Seeing a stream and
+     being allowed to put your name at the bottom of its paper are different
+     rights; this is the second one, and it also answers null until an admin
+     turns its own default-OFF switch on. */
+  try{
+    const fb=(window.signFolderBlocker)?signFolderBlocker(c):null;
+    if(fb) add(fb.key, fb.label, fb.short);
+  }catch(_){}
   return out;
 }
 /* The refusal, in the words each blocker chose for itself. The field-shaped ones

@@ -2605,3 +2605,57 @@ per-folder rule; the flag is on the person and the master switch is on the
 workspace. And the counterparty half of the feature was not touched at all —
 reviewSeatShowsReview is the wall it has always been, and f196 asserts it here
 rather than assuming it, because the one thing a review must never do is leak.
+
+----- 13 Aug 2026: where they may sign, and the two things not built -----
+
+TWO RIGHTS, TWO LISTS. The product had one map saying which value streams a
+person may SEE, and nothing at all saying which they may SIGN in — so anybody
+who could open a contract could execute it. The instruction was explicit and it
+was the right one: a separate key, never an overload of folderAccess. One map
+carrying two meanings is how a reader who was only ever meant to look ends up
+putting their name at the bottom of a supply agreement.
+
+IT ONLY EVER NARROWS, and that is worth stating because it is what makes the
+feature safe to be wrong about. A folder the caller cannot see is already
+refused by the scope check — 404, because a contract outside your scope is
+invisible and therefore unwritable — so putting a folder on somebody's SIGNING
+list that is not on their reading list grants nothing at all. The test does
+exactly that and asserts the 404, so a future change that made this list
+additive would fail rather than quietly widen somebody.
+
+H-3 CAME BACK, AND WAS ANSWERED THE SAME WAY. The moment there is a second
+access-control map, it has the second map's problem: PUT /api/settings replaces
+the whole settings blob, so a second admin saving any unrelated setting from a
+slightly older copy silently reverts a restriction. folderAccess solved this by
+splitting the map out onto its own atomic route and having the general save
+preserve the stored copy. This does the same, with one wrinkle: the SWITCH
+belongs in the blob (it is an ordinary setting) and the MAP does not. So the
+browser's saveSettings trims signFolders down to `{on}` on its way out, and the
+server keeps the stored `.by` whenever a save does not carry one. There is a
+test that saves an unrelated key and then checks the restriction still bites.
+
+---- AND THE TWO THINGS THAT WERE NOT BUILT ----
+
+PER-PERSON APPROVER ("overseen by") was the next item on the list and it was
+skipped on purpose, because it has no honest anchor. Feeding the existing
+approval chain means adding a step that says "and X must approve this" — but
+approval steps are a property of the CONTRACT, and this product has no contract
+owner. `ownerInitials()` reads currentUser(); `deskLead(c)` exists only where a
+negotiation has been started. So the step would have to key off one of two
+things: the person READING the panel, which makes the approval panel say
+different things to different people (a panel that disagrees with itself is the
+fault this rulebook's first rule is about), or the desk lead, which is absent on
+most contracts. The honest third option is to give a contract an owner, and that
+is a bigger change than a phase-four item should smuggle in.
+
+PER-PERSON COPILOT MONEY CAP was skipped for a plainer reason: the ledger it
+would meter does not exist. ai_spend is keyed (day, feature) with no user
+column, so "smaller of the workspace cap and yours wins" needs a new per-user
+ledger threaded through every AI route's cost recorder, plus a guard and a
+second meter. It is ordinary work rather than hard work, and it is the wrong
+work to do quickly, because the failure mode of a money guard written in a hurry
+is either a bill nobody capped or a colleague who cannot use the product.
+
+Both are named here rather than left silent, which is the whole point of writing
+this file: a feature that was considered and refused reads very differently from
+a feature nobody thought of.
