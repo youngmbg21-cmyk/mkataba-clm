@@ -970,6 +970,149 @@
   .rvd-opt:hover b{ color:var(--color-accent-800); }
   .rvd-opt span{ font-size:11.5px; line-height:1.5; color:var(--color-neutral-600);
     white-space:normal; }
+  /* ============================================================
+     SETTINGS & RULES — four tabs and one drawer
+     ============================================================
+     The drawer hangs off <body>, not off #content, because the page underneath
+     it genuinely rebuilds (the market's language-follow redraw) and because
+     "Your account" opens the same drawer from views that are not this page.
+     It is the Activity panel's own mechanism: transform, a dimmed scrim, and
+     dismissed by scrim / Escape / its own ✕. */
+  .st-page{ padding:16px 18px 28px; }
+  .st-tabs{ display:flex; gap:2px; border-bottom:1px solid var(--color-divider); }
+  .st-tab{ appearance:none; border:0; background:none; cursor:pointer; font:inherit;
+    font-family:var(--font-heading); font-weight:600; font-size:13px; padding:8px 14px;
+    color:var(--color-neutral-600); border-bottom:2px solid transparent; margin-bottom:-1px;
+    white-space:nowrap; }
+  .st-tab:hover{ color:var(--color-accent-800); }
+  .st-tab.on{ color:var(--color-accent-800); border-bottom-color:var(--color-accent); }
+  .st-tabsub{ font-size:11.5px; line-height:1.55; color:var(--color-neutral-600);
+    margin:10px 0 14px; }
+  /* A ROW STATES WHAT THE SETTING IS RIGHT NOW — status dot, name, one line of
+     current state, whether it has to be answered. It is a button because it is
+     a door; nothing on it is a control of its own. */
+  .st-rows{ display:flex; flex-direction:column; border:1px solid var(--color-divider);
+    border-radius:10px; overflow:hidden; background:var(--color-surface);
+    box-shadow:var(--shadow-sm); }
+  .st-row{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+    padding:11px 14px; border:0; border-bottom:1px solid var(--color-divider);
+    background:var(--color-surface); cursor:pointer; font:inherit; color:inherit;
+    transition:background .12s; }
+  .st-row:last-child{ border-bottom:0; }
+  .st-row:hover{ background:var(--color-accent-100); }
+  .st-row[disabled]{ cursor:default; }
+  .st-row[disabled]:hover{ background:var(--color-surface); }
+  .st-dot{ flex:none; width:8px; height:8px; border-radius:50%; }
+  .st-row-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-row-name{ font-size:12.5px; font-weight:600; color:var(--color-text); }
+  .st-row-state{ font-size:10.5px; color:var(--color-neutral-600); line-height:1.45;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .st-row-tag{ flex:none; font-size:9.5px; font-family:var(--font-mono);
+    letter-spacing:.05em; text-transform:uppercase; color:var(--color-neutral-500); }
+  .st-row-tag[data-req]{ color:var(--st-amber-fg); font-weight:700; }
+  .st-row-chip{ flex:none; font-size:10px; font-weight:700; font-family:var(--font-mono);
+    border-radius:999px; padding:2px 9px; background:var(--color-accent-200);
+    color:var(--color-accent-800); }
+  .st-row-go{ flex:none; color:var(--color-neutral-400); font-size:15px; line-height:1; }
+  /* ---- people ---- */
+  .st-people-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .st-people-count{ font-family:var(--font-heading); font-weight:600; font-size:14px;
+    color:var(--color-text); flex:1; }
+  .st-people{ display:flex; flex-direction:column; border:1px solid var(--color-divider);
+    border-radius:10px; overflow:hidden; background:var(--color-surface);
+    box-shadow:var(--shadow-sm); }
+  .st-person{ display:flex; align-items:center; gap:11px; width:100%; text-align:left;
+    padding:10px 14px; border:0; border-bottom:1px solid var(--color-divider);
+    background:var(--color-surface); cursor:pointer; font:inherit; color:inherit;
+    transition:background .12s; }
+  .st-person:last-child{ border-bottom:0; }
+  .st-person:hover{ background:var(--color-accent-100); }
+  .st-person-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .st-person-name{ font-size:12.5px; font-weight:600; color:var(--color-text); }
+  .st-person-sub{ display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    font-size:10.5px; color:var(--color-neutral-600); }
+  .st-chip{ flex:none; font-size:10px; font-weight:700; border-radius:999px;
+    padding:3px 10px; background:var(--st-green-bg); color:var(--st-green-fg); }
+  .st-chip[data-tone="warn"]{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  /* AN AMBER COUNT WITH NOBODY'S NAME ON IT IS A NUMBER YOU CANNOT ACT ON. */
+  .st-banner{ display:flex; align-items:flex-start; gap:10px; border:1px solid var(--st-amber-line);
+    background:var(--st-amber-bg); border-left:4px solid var(--st-amber-dot); border-radius:8px;
+    padding:10px 13px; margin-bottom:12px; font-size:11.5px; line-height:1.5;
+    color:var(--st-amber-fg); }
+  .st-banner-ic{ flex:none; color:var(--st-amber-dot); display:inline-flex; margin-top:1px; }
+  /* ---- the drawer ---- */
+  .st-scrim{ position:fixed; inset:0; background:rgba(15,23,42,.34);
+    opacity:0; transition:opacity .18s; z-index:70; }
+  .st-scrim.open{ opacity:1; }
+  .st-drawer{ position:fixed; top:0; right:0; bottom:0; width:min(560px,100vw);
+    display:flex; flex-direction:column; background:var(--color-surface);
+    border-left:1px solid var(--color-divider); box-shadow:-18px 0 40px -22px rgba(15,23,42,.45);
+    transform:translateX(100%); transition:transform .2s ease; z-index:71; }
+  .st-drawer.open{ transform:translateX(0); }
+  .st-dhead{ position:relative; flex:none; }
+  .st-dhead .rvd-head{ padding-right:44px; }
+  .st-dx{ position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:7px;
+    border:1px solid var(--color-accent-300); background:var(--color-surface); cursor:pointer;
+    font-size:12px; line-height:1; color:var(--color-accent-800); }
+  .st-dbody{ flex:1; min-height:0; overflow-y:auto; padding:15px 20px; }
+  .st-dfoot{ flex:none; display:flex; flex-direction:column; gap:9px;
+    padding:12px 20px; border-top:1px solid var(--color-divider); background:var(--color-bg); }
+  .st-dfoot-acts{ display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+  /* A REFUSAL IS SHOWN IN THE DRAWER, in words, never as a toast over the page
+     behind it and never silently — and it sits in the FOOT beside the button it
+     refused, not above the fields. Above them it moved everything under it by
+     46px the moment it appeared, which is the fault this page was rebuilt to
+     stop; pinned in the foot it also cannot be scrolled out of view. */
+  .st-refusal{ border:1px solid var(--st-ruby-line); background:var(--st-ruby-bg);
+    color:var(--st-ruby-fg); border-radius:8px; padding:9px 12px;
+    font-size:11.5px; line-height:1.55; font-weight:600; }
+  .st-sec{ margin-bottom:18px; padding-bottom:2px; }
+  .st-sec + .st-sec{ border-top:1px solid var(--color-divider); padding-top:15px; }
+  .st-sec-h{ display:flex; align-items:center; gap:8px; font-family:var(--font-mono);
+    font-weight:600; font-size:12.5px; color:var(--color-text); margin:0 0 8px; }
+  .st-sec-n{ flex:none; width:19px; height:19px; border-radius:50%; display:inline-grid;
+    place-items:center; font-size:10px; font-weight:700; background:var(--color-accent-200);
+    color:var(--color-accent-800); }
+  .st-note{ display:block; font-size:10.5px; line-height:1.5; color:var(--color-neutral-600);
+    margin-top:4px; }
+  .st-quiet{ border:1px solid var(--color-divider); background:var(--color-bg);
+    border-radius:7px; padding:10px 12px; font-size:11.5px; line-height:1.55;
+    color:var(--color-neutral-700); }
+  .st-facts{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; }
+  .st-facts > div{ display:flex; align-items:baseline; gap:8px; }
+  .st-facts > div > span{ flex:none; min-width:118px; color:var(--color-neutral-600);
+    font-size:10.5px; }
+  .st-facts > div > b{ min-width:0; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; color:var(--color-text); }
+  .st-roles{ display:flex; flex-direction:column; gap:6px; }
+  .st-role, .st-toggle{ display:flex; align-items:flex-start; gap:9px; padding:9px 11px;
+    border:1px solid var(--color-divider); border-radius:8px; cursor:pointer;
+    font-size:12px; background:var(--color-surface); }
+  .st-role:hover, .st-toggle:hover{ border-color:var(--color-accent); }
+  .st-role[data-locked]{ cursor:default; opacity:.65; }
+  .st-role[data-locked]:hover{ border-color:var(--color-divider); }
+  .st-role input, .st-toggle input{ margin-top:2px; flex:none; accent-color:var(--color-accent); }
+  .st-role-name{ display:block; font-size:12.5px; font-weight:600; color:var(--color-text); }
+  .st-danger{ margin-top:16px; padding-top:13px; border-top:1px solid var(--color-divider); }
+  .st-frow{ display:flex; align-items:center; gap:9px; padding:7px 2px;
+    border-bottom:1px solid var(--color-divider); font-size:11.5px; }
+  .st-frow:last-child{ border-bottom:0; }
+  .st-fdot{ flex:none; width:9px; height:9px; border-radius:2px; }
+  .st-fname{ flex:1; min-width:0; font-size:12px; font-weight:600; color:var(--color-text);
+    border:1px solid transparent; background:none; border-radius:5px; padding:3px 5px;
+    font-family:inherit; outline:none; }
+  input.st-fname:hover, input.st-fname:focus{ border-color:var(--color-divider);
+    background:var(--color-surface); }
+  .st-fmeta{ flex:none; font-size:10px; color:var(--color-neutral-600); }
+  .st-fdel{ flex:none; border:0; background:none; cursor:pointer; color:var(--color-neutral-500);
+    font-size:14px; line-height:1; padding:0 3px; }
+  .st-fdel:hover{ color:var(--st-ruby-dot); }
+  .st-you{ max-width:620px; }
+  /* Below 768 the desktop shell is hidden outright and the phone draws instead
+     — its account sheet is where these live there. Said in the stylesheet
+     rather than left to a width check in script. */
+  @media (max-width:767px){ .st-drawer, .st-scrim{ display:none!important; } }
+
   /* ---- ON THE CARD ----
      Who wrote it, and the sentence where a verb would have been. Both are the
      smallest type on the card on purpose: the wording is the subject and these

@@ -328,6 +328,17 @@ function updateSidebarCounts(){
       nnew.hidden=!(Number(total||0)>=NAV_EARN_AT.intel && !navSeen('intel'));
     }
   }
+  /* ---- SETTINGS & RULES IS ADMIN-ONLY, AND THE DOOR SAYS SO ----
+     Hidden rather than greyed, for the reason the earned-nav rule above gives:
+     a control that exists but refuses teaches nothing. Everything a non-admin
+     used to reach through here now lives in "Your account" under the avatar.
+     The gate itself is renderTeam's — this is the door, not the wall, and a
+     hidden nav item was never going to be one. Same escape as above: the
+     CURRENT view keeps its door, so a restored session cannot leave somebody
+     standing on a page whose nav item has vanished. */
+  const teamNav=document.querySelector('.nav-item[data-view="team"]');
+  if(teamNav) teamNav.classList.toggle('hidden',
+    !((typeof isAdmin==='function' && isAdmin()) || state.view==='team'));
 }
 
 /* ============================================================ SHELL VIEW SWITCH */

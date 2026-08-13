@@ -734,7 +734,46 @@ function mAccountSheetHtml(){
     <div class="m-capline" style="margin:14px 0 6px">${i18t('m_jurisdiction')}</div>
     <div class="m-card m-list">${rows}</div>
     <div class="m-note" style="margin-top:8px">${maySetMarket?i18t('m_jx_sub'):i18t('set_market_admin_only')}</div>
-    <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="logout">${i18t('m_log_out')}</button>
+
+    ${''/* ---- THE REST OF "YOUR ACCOUNT", ON THE PHONE ----
+           Settings & Rules is admin-only from the Aug 2026 redesign, and this
+           sheet is the phone's only account surface — so everything a
+           non-admin used to be able to do on that page has to be reachable
+           from here or it is simply gone below 768px. The laptop's own
+           account drawer is the twin; the rows are the same rows and the
+           writers are the same writers. */}
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_job')}</div>
+    <div class="m-card" style="padding:12px">
+      <input id="m-acct-title" type="text" value="${mEsc((u&&u.title)||'')}"
+        placeholder="${mEsc(i18t('st_f_title'))}"
+        style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:10px 12px;font:inherit;font-size:15px;color:inherit;outline:none"/>
+      <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="acct-title">${i18t('act_save')}</button>
+      <div class="m-note" style="margin-top:6px">${i18t('st_acct_job_sub')}</div>
+    </div>
+
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_sidebar')}</div>
+    <div class="m-card m-list">
+      <button class="m-row" data-m-act="acct-nav-all">
+        <span style="flex:1;min-width:0"><span class="m-row-name">${i18t('set_show_everything')}</span>
+        <span class="m-row-sub">${i18t('set_full_cockpit')}</span></span>
+        ${(typeof navShowEverything==='function'&&navShowEverything())?tick:''}
+      </button>
+    </div>
+
+    ${(typeof API_MODE==='function'&&API_MODE())?`
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_sessions')}</div>
+    <div class="m-card" style="padding:12px"><div id="sessions-list" class="m-note">${i18t('set_loading')}</div></div>
+
+    ${''/* The honest read-only statement, kept exactly as it is on the laptop.
+           The checkboxes it replaced were wired to nothing. */}
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_email')}</div>
+    <div class="m-card" style="padding:12px">
+      <div style="font-size:13px;font-weight:600">${i18t('set_still_emailed')}</div>
+      <div class="m-note" style="margin-top:4px">${i18t('set_three_events')}</div>
+    </div>`:''}
+
+    <button class="m-btn m-btn-quiet" style="margin-top:14px" data-m-act="acct-backup">${i18t('set_export_backup')}</button>
+    <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="logout">${i18t('m_log_out')}</button>
     <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('act_close')}</button>`;
 }
 
@@ -1001,6 +1040,33 @@ function mWire(){
     if(k==='close-sheet'){ mCloseSheet(); return; }
     if(k==='back'){ mBack(); return; }
     if(k==='logout'){ mCloseSheet(); if(window.logout) logout(); return; }
+    /* ---- the account sheet's own rows ----
+       Each one calls the SAME writer the laptop calls. A second copy of "save
+       my job title" is a second place the people directory can fall out of
+       step with the roster. */
+    if(k==='acct-title'){
+      const u=(typeof currentUser==='function'&&currentUser())||null; if(!u) return;
+      const title=(document.getElementById('m-acct-title')||{}).value||'';
+      (async()=>{
+        try{
+          if(typeof API_MODE==='function'&&API_MODE()){
+            const r=await api('users/'+u.id,'PATCH',{ title:title.trim() });
+            if(r&&r.user) Object.assign(u,r.user); else u.title=title.trim();
+          } else { u.title=title.trim(); if(window.saveUsers) saveUsers(getUsers()); }
+          if(window.settingsMirrorDirectory) settingsMirrorDirectory(u.name,u.email,title.trim());
+          if(window.toast) toast(i18t('st_acct_saved'));
+        }catch(err){ if(window.toast) toast(err.message,'err'); }
+      })();
+      return;
+    }
+    if(k==='acct-nav-all'){
+      if(typeof navSetShowEverything==='function' && typeof navShowEverything==='function'){
+        const on=!navShowEverything(); navSetShowEverything(on);
+        if(window.toast) toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
+      }
+      mRender(); return;
+    }
+    if(k==='acct-backup'){ if(window.settingsExportBackup) settingsExportBackup(); return; }
     if(k==='leave-redline'){ if(window.setView) setView('workspace'); else mGo('contract'); return; }
     mScreenAct(k, b, e);
   }));
@@ -1012,6 +1078,11 @@ function mWire(){
      one door clear the indicator on all of them. */
   if(window.updateAIBadge) try{ updateAIBadge(); }catch(_){}
   if(window.mMarkTappable) try{ mMarkTappable(); }catch(_){}
+  /* The sessions list is filled from the server after the paint, exactly as it
+     is on a laptop — and by the same function, so the revoke button behaves the
+     same way in both places. Guarded on the host so this costs nothing on any
+     other sheet or screen. */
+  if(document.getElementById('sessions-list') && window.loadSessions) try{ loadSessions(); }catch(_){}
 }
 
 /* Where "back" goes from each screen. Deliberately explicit rather than a

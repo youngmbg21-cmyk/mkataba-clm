@@ -296,8 +296,11 @@ function emailSetupBannerHtml(){
 }
 function wireEmailSetupBanner(){
   document.getElementById('email-setup-go')?.addEventListener('click',()=>{
-    // the outbox panel in Team & Settings is where the instructions already live
-    try{ setView('settings'); }catch(_){}
+    /* IT USED TO ASK FOR A VIEW THAT DOES NOT EXIST. `setView('settings')` fell
+       through every branch of the switch and drew the workspace, so the one
+       button on the one banner that says email is broken opened a contract.
+       It lands on the outbox now, which is where the instructions already are. */
+    try{ if(window.openSettingsAt) openSettingsAt('build','mail'); else setView('team'); }catch(_){}
   });
 }
 
@@ -1401,7 +1404,15 @@ function renderSideUser(){
   const org=getOrg().name||'HaTi';
   const initials=(u.name||org).split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   const av=document.getElementById('rail-avatar');
-  if(av){ av.title=`${u.name} · ${org} · ${roleName(u.role)}`; av.onclick=()=>setView('team'); }
+  /* ---- THE AVATAR IS THE ACCOUNT MENU NOW, FOR EVERYBODY ----
+     It used to be a one-click door straight into Team & Settings, which is
+     admin-only from the Aug 2026 redesign — so for two of the three roles it
+     was a door onto a refusal. It opens "Your account" instead: their own job
+     title, their sidebar, their sessions, their backup and the honest statement
+     of what HaTi emails them. An admin finds Settings & Rules on that surface
+     and in the sidebar, so no door was lost; one was gained for everybody else. */
+  if(av){ av.title=`${u.name} · ${org} · ${roleName(u.role)}`;
+    av.onclick=()=>{ if(window.openMyAccount) openMyAccount(); else setView('team'); }; }
   const lo=document.getElementById('side-logout');
   if(lo) lo.onclick=async()=>{
     const ok=(typeof confirmDialog==='function')
@@ -1435,7 +1446,14 @@ async function refreshAiUsage(){
   const lab=document.getElementById('side-ai-usage-label'), sub=document.getElementById('side-ai-usage-sub');
   if(!box||!txt) return;
   if(!API_MODE()){ box.style.display='none'; return; }
-  box.onclick=()=>setView('team');
+  /* A DOOR ONLY WHERE PRESSING IT DOES SOMETHING. This box took everybody to
+     Team & Settings, and that page is admin-only now — so for a colleague it
+     was a control that looked live and led to their own account instead. It
+     still SHOWS the workspace's Copilot spend to everyone (that is worth
+     knowing), it simply stops promising a press. */
+  const mayTune=(typeof isAdmin==='function') && isAdmin();
+  box.onclick = mayTune ? (()=>{ if(window.openSettingsAt) openSettingsAt('build','engine'); else setView('team'); }) : null;
+  box.style.cursor = mayTune ? '' : 'default';
   try{
     const u=await api('ai/usage');
     state.aiUsage=u;
