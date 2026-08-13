@@ -186,14 +186,20 @@ function mHomeHtml(){
 }
 
 /* The metric catalogue as a sheet. Same eleven metrics, same one-must-stay
-   floor, same saved preference as the desktop popover — it is the same three
-   functions underneath, wearing a shape a thumb can hit. */
+   floor, SAME CEILING OF FOUR, same saved preference as the desktop popover —
+   it is the same functions underneath, wearing a shape a thumb can hit. The
+   ceiling is KPI_MAX and is read, never repeated: a second copy of the number
+   is a second thing to change. */
 function mKpiSheetHtml(){
   const sel = (typeof currentKpiSel==='function') ? currentKpiSel() : [];
   const all = (typeof kpiCatalogOrder==='function') ? kpiCatalogOrder() : [];
+  const max = (typeof KPI_MAX==='number') ? KPI_MAX : 4;
+  const full = sel.length >= max;
   const rows = all.map(id=>{
-    const on = sel.includes(id);
-    return `<button class="m-row" data-m-kpi-toggle="${id}">
+    const on = sel.includes(id), shut = full && !on;
+    /* A row that cannot be turned on goes quiet rather than staying bright and
+       refusing on the tap — the same statement the desktop rows make. */
+    return `<button class="m-row" data-m-kpi-toggle="${id}"${shut?' style="opacity:.45"':''}>
       <span style="flex:1;min-width:0"><span class="m-row-name" style="font-weight:500">${mEsc(KPI_META[id]||id)}</span></span>
       <span style="flex:none;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;border:1.5px solid ${on?'var(--accent-solid)':'var(--color-divider)'};background:${on?'var(--accent-solid)':'transparent'};color:#fff">
         ${on?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`:''}
@@ -203,7 +209,8 @@ function mKpiSheetHtml(){
   return `
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('m_show_metrics')}</div>
-    <div class="m-sheet-note">${i18t('m_same_choice')}</div>
+    <div class="m-sheet-note">${full?mEsc(i18t('m_max_metrics',{max})):i18t('m_same_choice')}</div>
+    <div class="m-sheet-note" style="font-weight:700">${i18t('home_metrics_count',{n:sel.length,max})}</div>
     <div class="m-card m-list">${rows}</div>
     <button class="m-btn m-btn-quiet" style="margin-top:12px" data-m-act="kpi-reset">${i18t('m_reset_four')}</button>
     <button class="m-btn m-btn-quiet" style="margin-top:8px" data-m-act="close-sheet">${i18t('m_done')}</button>`;
@@ -608,10 +615,16 @@ function mWireScreen(root){
   root.querySelectorAll('[data-m-kpi-toggle]').forEach(b=>b.addEventListener('click',()=>{
     const id = b.getAttribute('data-m-kpi-toggle');
     let cur = currentKpiSel().slice();
+    const max = (typeof KPI_MAX==='number') ? KPI_MAX : 4;
     if(cur.includes(id)){
       if(cur.length<=1){ if(window.toast) toast(i18t('m_keep_one_metric'),'err'); return; }
       cur = cur.filter(x=>x!==id);
-    } else cur.push(id);
+    } else {
+      /* The ceiling, refused in words on this shell too. The dimmed row says it
+         first; this is the rule behind the row. */
+      if(cur.length>=max){ if(window.toast) toast(i18t('m_max_metrics',{max}),'err'); return; }
+      cur.push(id);
+    }
     setKpiSel(cur);
     mRender();
   }));

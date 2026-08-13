@@ -29,6 +29,29 @@ const KPI_ALL_ORDER=['under_mgmt','active_value','avgcycle','approvals','complia
    what is stuck on a person, and how much of it is clean. Everything else in
    the catalog stays one click away under Customize. */
 const DEFAULT_KPI_SEL=['under_mgmt','avgcycle','approvals','compliance'];
+/* ---- FOUR, AND FOUR IS THE WHOLE RIBBON (owner-asked, 13 Aug 2026) ----
+   "For the 4 main KPI cards, make it so that you cannot have more than 4."
+
+   The ribbon was a catalogue with a FLOOR and no ceiling: eleven metrics, keep
+   at least one, and a reader could tick all eleven. The row is one line of
+   cards across the top of Home and it is the first thing on the page — at five
+   the cards start giving up their sentence, and past that the row is a list
+   wearing card clothes.
+
+   THE CEILING IS ONE NUMBER, read by BOTH pickers (this popover and the
+   phone's sheet — the duplication this rulebook opens by warning about) and by
+   the reading itself. currentKpiSel caps as it reads, so a preference saved
+   before this rule existed — or on another device, or by a future writer that
+   forgets — can never draw a fifth card. The stored list is not rewritten
+   behind the reader's back; it is simply not honoured past four, and the first
+   change they make saves the capped four.
+
+   A REFUSAL NEEDS ITS WAY FORWARD ON THE SAME SCREEN, which is why the pickers
+   do more than refuse: at four, the un-ticked rows go quiet and say what to do,
+   and the head counts. Nobody should have to press a control to learn it will
+   not work. */
+const KPI_MAX=4;
+const kpiAtMax=sel=>((sel||[]).length)>=KPI_MAX;
 /* Money-bearing metrics. A member without can_view_values receives no value
    from the server at all, so these cards would read "KES 0" — a wrong number,
    not a hidden one. They are removed from the catalog entirely rather than
@@ -45,39 +68,79 @@ function ddOpenKey(){ const u=(typeof currentUser==='function')&&currentUser(); 
 function ddStartsOpen(){ try{ const v=lsGet(ddOpenKey()); return v===null||v===undefined?true:!!v; }catch(_){ return true; } }
 function getKpiSel(){ try{ const v=JSON.parse(localStorage.getItem(kpiPrefsKey())); return Array.isArray(v)?v.filter(id=>KPI_META[id]&&kpiCatalogOrder().includes(id)):[]; }catch(e){ return []; } }
 function setKpiSel(arr){ try{ localStorage.setItem(kpiPrefsKey(), JSON.stringify(arr)); }catch(e){} }
-function currentKpiSel(){ const s=getKpiSel(); return s.length?s:DEFAULT_KPI_SEL.filter(id=>kpiCatalogOrder().includes(id)); }
+/* Capped HERE, at the one reading every surface asks — the desktop ribbon, the
+   phone's figures list, both pickers. A cap applied only where cards are drawn
+   would leave the pickers offering a fifth tick that draws nothing. */
+function currentKpiSel(){ const s=getKpiSel(); return (s.length?s:DEFAULT_KPI_SEL.filter(id=>kpiCatalogOrder().includes(id))).slice(0,KPI_MAX); }
 // Non-intrusive popover to toggle which KPI cards appear. Reorder is by dragging
 // the cards themselves; this panel handles show/hide + reset.
+/* THE PANEL STAYS OPEN WHILE YOU WORK IT. A toggle repaints the dashboard, and
+   the popover hangs inside #content — so every tick used to destroy it. That
+   was survivable while a reader could simply ADD a metric; with a ceiling of
+   four, every change is a SWAP, and a swap became untick → reopen → tick.
+   Re-opened against the freshly drawn button rather than kept alive across the
+   repaint, because the node it was anchored to no longer exists. */
+let _kpiPopOff=null;
+function kpiApply(cur){
+  setKpiSel(cur);
+  renderDashboard();
+  const btn=document.getElementById('kpi-customize');
+  if(btn) openKpiCustomizer(btn);
+}
 function openKpiCustomizer(anchor){
   const prev=document.getElementById('kpi-cust-pop');
   if(prev){ prev.remove(); return; }   // second click on the gear closes it
+  /* The outside-press listener from a popover this one replaces. It removes
+     itself on the next document click, but a run of ticks would stack one per
+     tick until then — armed once, dropped here. */
+  if(_kpiPopOff){ document.removeEventListener('click',_kpiPopOff,true); _kpiPopOff=null; }
   const sel=currentKpiSel();
+  const full=kpiAtMax(sel);
   const pop=document.createElement('div');
   pop.id='kpi-cust-pop';
   pop.style.cssText='position:absolute;z-index:60;top:calc(100% + 6px);right:0;width:252px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:8px;padding:8px;';
-  const row=id=>`
-    <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;" onmouseover="this.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'" onmouseout="this.style.background='none'">
-      <input type="checkbox" data-kpi-toggle="${id}" ${sel.includes(id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
+  /* At four, the rows that cannot be turned on SAY SO before they are pressed —
+     dimmed, not pointing, and carrying the sentence as a tooltip. The ticked
+     four stay live, because turning one off is the way forward. */
+  const row=id=>{
+    const on=sel.includes(id), shut=full&&!on;
+    return `
+    <label ${shut?`title="${esc(i18t('home_max_metrics',{max:KPI_MAX}))}"`:''}
+      style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;font-size:12.5px;${
+        shut?'cursor:default;opacity:.45;':'cursor:pointer;'}"${
+        shut?'':` onmouseover="this.style.background='color-mix(in srgb,var(--color-accent) 9%,transparent)'" onmouseout="this.style.background='none'"`}>
+      <input type="checkbox" data-kpi-toggle="${id}" ${on?'checked':''} ${shut?'disabled':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
       <span style="flex:1;">${KPI_META[id]}</span>
     </label>`;
+  };
   pop.innerHTML=`
-    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">${i18t('home_show_metrics')}</div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:4px 8px 6px;">
+      <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${i18t('home_show_metrics')}</span>
+      ${''/* The count is the rule, stated without being pressed: a reader who
+             sees "4 of 4" never has to discover the ceiling by hitting it. */}
+      <span id="kpi-cust-count" style="font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;color:${full?'var(--color-accent-700)':'var(--color-neutral-500)'};">${i18t('home_metrics_count',{n:sel.length,max:KPI_MAX})}</span>
+    </div>
     ${kpiCatalogOrder().map(row).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
-      <span style="font-size:10.5px;color:var(--color-neutral-500);">${i18t('home_drag_reorder')}</span>
-      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">${i18t('home_reset')}</button>
+      <span style="font-size:10.5px;color:var(--color-neutral-500);">${full?esc(i18t('home_max_metrics',{max:KPI_MAX})):i18t('home_drag_reorder')}</span>
+      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;flex:none;">${i18t('home_reset')}</button>
     </div>`;
   anchor.parentElement.style.position='relative';
   anchor.parentElement.appendChild(pop);
   pop.querySelectorAll('[data-kpi-toggle]').forEach(cb=>cb.addEventListener('change',()=>{
     const id=cb.getAttribute('data-kpi-toggle');
     let cur=currentKpiSel();
-    if(cb.checked){ if(!cur.includes(id)) cur.push(id); }
+    if(cb.checked){
+      /* The model refuses too, not only the drawing. A disabled box is a
+         statement about pixels; this is the rule. */
+      if(kpiAtMax(cur)&&!cur.includes(id)){ cb.checked=false; toast(i18t('home_max_metrics',{max:KPI_MAX}),'err'); return; }
+      if(!cur.includes(id)) cur.push(id);
+    }
     else { if(cur.length<=1){ cb.checked=true; toast(i18t('home_keep_one_metric'),'err'); return; } cur=cur.filter(x=>x!==id); }
-    setKpiSel(cur); renderDashboard();
+    kpiApply(cur);
   }));
-  pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ setKpiSel(DEFAULT_KPI_SEL.slice()); renderDashboard(); });
-  setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ pop.remove(); document.removeEventListener('click',onDoc,true); } }; document.addEventListener('click',onDoc,true); },0);
+  pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ kpiApply(DEFAULT_KPI_SEL.slice()); });
+  setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ pop.remove(); document.removeEventListener('click',onDoc,true); if(_kpiPopOff===onDoc) _kpiPopOff=null; } }; _kpiPopOff=onDoc; document.addEventListener('click',onDoc,true); },0);
 }
 /* ---- THE THIRD PLACE A READINESS SIGNAL REACHES THE OWNER ------------------
    The waiting-on-you card on the dashboard, which is the one surface they see
@@ -780,4 +843,4 @@ function renderDashboard(){
 }
 
 Object.assign(window,{renderDashboard,hmDashSlices,gsSteps,gettingStartedHtml,gsIsSeed,
-  KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,readyToSignItems});
+  KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

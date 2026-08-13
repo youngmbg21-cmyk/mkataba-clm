@@ -13,6 +13,8 @@ const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { startHati, seedWorkspace, mentionsFolderB } = require('./helpers');
 const { loadViews } = require('./dom');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const VIEWS = ['js/views/home.js'];
 
@@ -125,5 +127,95 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
     assert.match(without, /1 doc</, 'a pipeline column should count documents');
     assert.ok(!/KES/.test(without.slice(without.indexOf('lifecycle pipeline'))),
       'a pipeline column must not print a money figure');
+  });
+});
+
+/* ============================================================================
+   THE RIBBON HOLDS FOUR (owner-asked, 13 Aug 2026)
+   ============================================================================
+   "For the 4 main KPI cards, make it so that you cannot have more than 4 —
+   therefore you are limited to selecting only 4."
+
+   The catalogue had a FLOOR (keep at least one) and no ceiling, so eleven
+   metrics could be ticked and the ribbon became a list wearing card clothes.
+   The ceiling is one number, KPI_MAX, and it is enforced in three places that
+   must agree: the READING every surface asks, the desktop popover, and the
+   phone's sheet. The pixels — a dimmed row, a disabled box, a count that says
+   4 of 4 — are checked in the browser, where classes and boxes are real. */
+describe('F3 — the KPI ribbon holds four, and says so', () => {
+  const two = () => ([
+    { id: 'MK-A1', name: 'Sugar', counterparty: 'Kabras', folder: 'proc', status: 'Signed', value: 48000000, valueType: 'standard', expiry: '2027-06-30', lastAction: '10 Jul 2026', audit: [] },
+    { id: 'MK-A2', name: 'Milk', counterparty: 'Nandi', folder: 'proc', status: 'Under Review', value: 36000000, valueType: 'standard', expiry: '2026-09-30', lastAction: '10 Jul 2026', audit: [] },
+  ]);
+  const sb = () => loadViews(VIEWS, { canViewValues: () => true,
+    state: { contracts: two(), settings: {}, view: 'dashboard', serverStats: { total: 2 } } });
+
+  test('the ceiling is a named number, and the default already sits on it', () => {
+    const w = sb();
+    assert.equal(w.KPI_MAX, 4);
+    assert.equal(w.DEFAULT_KPI_SEL.length, 4, 'the four the design leads on');
+  });
+
+  test('a stored preference of six is only ever honoured as four', () => {
+    const w = sb();
+    /* The migration case, and the reason the cap lives in the READING: a
+       preference saved before this rule existed — or on another device — must
+       not draw a fifth card just because it is already on the record. */
+    w.setKpiSel(['under_mgmt', 'avgcycle', 'approvals', 'compliance', 'awaiting', 'highrisk']);
+    assert.equal(w.currentKpiSel().length, 4);
+    assert.deepEqual(w.currentKpiSel(), ['under_mgmt', 'avgcycle', 'approvals', 'compliance'],
+      'the first four in the order the reader chose, not a re-pick');
+  });
+
+  test('and the ribbon really draws four, not six', () => {
+    const html = renderWith(two(),
+      { kpis: ['under_mgmt', 'avgcycle', 'approvals', 'compliance', 'awaiting', 'highrisk'] });
+    const shown = ['Active contracts', 'Avg turnaround time', 'Pending approvals', 'Compliance rating']
+      .filter(w => html.includes(w));
+    assert.equal(shown.length, 4, 'the four that fit: ' + shown.join(', '));
+    assert.ok(!html.includes('High-risk findings'),
+      'the sixth choice reached the ribbon anyway');
+  });
+
+  test('kpiAtMax is the one predicate both pickers ask', () => {
+    const w = sb();
+    assert.equal(w.kpiAtMax(['a', 'b', 'c']), false);
+    assert.equal(w.kpiAtMax(['a', 'b', 'c', 'd']), true);
+    assert.equal(w.kpiAtMax(['a', 'b', 'c', 'd', 'e']), true, 'over the line is still over it');
+    assert.equal(w.kpiAtMax([]), false);
+    assert.equal(w.kpiAtMax(null), false, 'asked before anything is chosen');
+  });
+
+  test('the FLOOR is untouched — one metric is still the minimum', () => {
+    const w = sb();
+    /* The ceiling must not have quietly replaced the rule it sits above. */
+    const home = fs.readFileSync(path.join(__dirname, '..', 'js/views/home.js'), 'utf8');
+    assert.match(home, /home_keep_one_metric/, 'the floor still refuses in words');
+    assert.match(home, /home_max_metrics/, 'and so does the ceiling');
+    w.setKpiSel(['under_mgmt']);
+    assert.deepEqual(w.currentKpiSel(), ['under_mgmt'], 'one is still a legal ribbon');
+  });
+
+  test('both shells refuse, and neither keeps its own copy of the number', () => {
+    const home = fs.readFileSync(path.join(__dirname, '..', 'js/views/home.js'), 'utf8');
+    const phone = fs.readFileSync(path.join(__dirname, '..', 'js/mobile-screens.js'), 'utf8');
+    assert.match(home, /kpiAtMax\(cur\)&&!cur\.includes\(id\)/,
+      'the desktop popover asks the predicate before it accepts a tick');
+    assert.match(phone, /cur\.length>=max/, 'and the phone sheet refuses too');
+    assert.match(phone, /typeof KPI_MAX==='number'/,
+      'the phone READS the ceiling; a second copy of 4 is a second thing to change');
+    assert.ok(!/>=\s*4\b/.test(phone.slice(phone.indexOf('data-m-kpi-toggle'))),
+      'the phone must not hard-code the number beside the predicate');
+  });
+
+  test('the refusal is written in both languages, with the number interpolated', () => {
+    const i18n = require('../js/i18n.js');
+    for (const lang of ['en', 'sv']){
+      assert.ok(i18n.STRINGS[lang].home_max_metrics, lang + ' has no ceiling sentence');
+      assert.ok(i18n.STRINGS[lang].home_metrics_count, lang + ' cannot count the choice');
+      assert.ok(i18n.STRINGS[lang].m_max_metrics, lang + ' has no ceiling sentence on the phone');
+      assert.match(i18n.STRINGS[lang].home_metrics_count, /\{n\}[\s\S]*\{max\}/,
+        lang + ': the count must interpolate both halves');
+    }
   });
 });
