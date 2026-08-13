@@ -3242,28 +3242,46 @@ function roomHistoryHtml(c,f={}){
       <div class="hist-body"><div class="hist-text">${esc(e.text||'')}</div>
       <div class="hist-meta">${meta}${also?' · '+also:''}</div>${body}${why}${reply}</div></div>`;
   };
-  /* WHOSE ASKS AM I LOOKING AT — the one filter people actually reach for, so
-     it is three chips on the head rather than the fourth dropdown inside a
-     panel behind a button. It writes the SAME f.side the dropdown does, so the
-     two can never disagree and the panel shows the chip's choice selected. */
-  const side=String(f.side||'');
-  const chip=(v,label)=>`<button type="button" data-ht-side="${v}" class="hist-seg${side===v?' is-on':''}"
-    aria-pressed="${side===v?'true':'false'}">${label}</button>`;
+  /* ---- ONE SWITCH, ONE HANDLE, AND NO LID OVER IT ----
+     "Whose asks am I looking at" used to be answered TWICE on this head: a
+     joined Everyone / Ours / Theirs pill up here, and the Side dropdown in the
+     panel below. They never disagreed — the chips wrote the same f.side the
+     dropdown writes, deliberately — but two handles on one switch is one
+     handle too many, and the second one was worse than idle. Pressing a chip
+     counted as "a filter is on", which sprang the panel open, which showed the
+     reader their own choice repeated back at them in a different vocabulary.
+     That is what got reported.
+
+     So the chips are gone and the LID went with them: a Filter button hiding
+     five controls is what made a shortcut past it feel necessary in the first
+     place. The five sit in the open, side among them.
+
+     The cost is real and was weighed: the filter people reach for most is now
+     two presses instead of one. It buys three things — the duplicate cannot
+     come back, the other four filters stop being a secret behind a button most
+     readers never press, and the two OTHER history screens (the pop-out
+     record, and the counterparty's read-only copy) have always looked exactly
+     like this, so all three finally agree.
+
+     "⋯" became "⋯ More ⌄" for the same reason the room head's did: a glyph
+     with no word hides the most important button on this tab, which is Verify
+     integrity. It stays a MENU and must never become a <select> — Verify,
+     Export and Print are acts, and a select would sit there afterwards wearing
+     the last act as though it were a setting. */
   return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <h6 style="margin:0;font-size:13px;font-weight:700;font-family:var(--font-heading);flex:1">History</h6>
       <span class="pill-x" style="background:var(--color-neutral-100);color:var(--color-neutral-600)">${on?`${evs.length} of ${all}`:`${all} events`}</span>
-      <div class="hist-segs" role="group" aria-label="${i18t('ct_whose_changes')}">
-        ${chip('','Everyone')}${chip('owner','Ours')}${chip('counterparty','Theirs')}
-      </div>
       ${''/* The long reading. Named for what pressing it does, not for the mode
              it is in — "Detailed" tells you nothing about which way you are
              about to go. */}
       <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
         title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}"
         style="font-size:11px;padding:4px 10px">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
-      <button id="hist-filter" class="ui-btn" style="font-size:11px;padding:4px 10px">${i18t('ct_filter')}${on?` · ${on}`:''} &#9662;</button>
       <div style="position:relative">
-        <button id="hist-more" class="ui-btn" aria-haspopup="true" style="width:28px;height:28px;padding:0;font-size:14px;line-height:1">&#8943;</button>
+        <button id="hist-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
+          title="${esc(i18t('ct_hist_more_title'))}"
+          style="font-size:11px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px">
+          <span aria-hidden="true" style="font-size:13px;line-height:1">&#8943;</span>${i18t('ct_more')}<span aria-hidden="true">&#9662;</span></button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
           <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}Verify integrity<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
           <button type="button" id="ht-export">${icon('download','w-3.5 h-3.5')}${i18t('ct_export_history')}<span class="mnote">${i18t('ct_standalone_file')}</span></button>
@@ -3271,7 +3289,7 @@ function roomHistoryHtml(c,f={}){
         </div>
       </div>
     </div>
-    <div id="hist-filters" class="hidden" style="margin-bottom:10px">${roomHistoryFiltersHtml(c,f)}</div>
+    <div id="hist-filters" style="margin-bottom:10px">${roomHistoryFiltersHtml(c,f)}</div>
     <div id="ht-verify-result"></div>
     <div class="hist-rail">${evs.length?evs.map(row).join('')
       :`<p style="margin:6px 0;font-size:12px;color:var(--color-neutral-600)">${on?'Nothing matches these filters.':'Nothing has happened to this contract yet.'}</p>`}</div>`;
@@ -3285,7 +3303,11 @@ function roomHistoryFiltersHtml(c,f){
   return `<div class="hist-filters">
     ${sel('clauseId','Clause',uniq(all.map(e=>[e.clauseId||'',e.clauseLabel||''])))}
     ${sel('actor','Person',uniq(all.map(e=>[e.actor||'',e.actor||''])))}
-    ${sel('side','Side',[['owner','Owner side'],['counterparty','Counterparty']])}
+    ${''/* Plain words, and the words the chips above used to carry — "Owner
+           side" was stiffer than anything else on the tab, and it is our own
+           record we are reading. The counterparty's copy of this row says the
+           same fact from THEIR chair (negoTimelineScreenHtml, seat option). */}
+    ${sel('side','Side',[['owner','Ours'],['counterparty','Theirs']])}
     ${sel('round','Round',uniq(all.filter(e=>e.round!=null&&e.round!=='').map(e=>[e.round,'Round '+e.round])))}
     ${sel('outcome','Outcome',[['accepted','Accepted'],['rejected','Rejected'],['pending','Pending'],['withdrawn','Withdrawn']])}
     <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">${i18t('ct_clear2')}</button>
@@ -3315,25 +3337,37 @@ function roomPaintHistory(c,f={}){
   }
   const read=()=>{ const g=k=>{ const el=host.querySelector(`[data-ht-filter="${k}"]`); return el&&el.value?el.value:''; };
     return {clauseId:g('clauseId'),actor:g('actor'),side:g('side'),round:g('round'),outcome:g('outcome')}; };
-  const panel=host.querySelector('#hist-filters');
-  host.querySelector('#hist-filter')?.addEventListener('click',()=>panel?.classList.toggle('hidden'));
-  if(Object.values(f).some(Boolean)) panel?.classList.remove('hidden');
   host.querySelectorAll('[data-ht-filter]').forEach(s=>
     s.addEventListener('change',()=>roomPaintHistory(c,read())));
+  /* Clear puts every filter back, side among them — one way back rather than
+     two, now that side is one of the five rather than a control of its own. */
   host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{}));
-  /* The chips write f.side and repaint — the same field the Side dropdown
-     writes, so opening the panel afterwards shows the chip's choice already
-     selected rather than a second opinion. */
-  host.querySelectorAll('[data-ht-side]').forEach(b=>b.addEventListener('click',()=>
-    roomPaintHistory(c,{...read(),side:b.getAttribute('data-ht-side')||''})));
   host.querySelector('#hist-detail')?.addEventListener('click',()=>{
     _histDetail=!_histDetail; roomPaintHistory(c,read());
   });
+  /* THE MENU SAYS WHETHER IT IS OPEN. Now that the button carries a word and a
+     chevron, aria-expanded is what turns the chevron over and what a screen
+     reader reads — set on every path that closes it, not only on the press.
+     THE OUTSIDE-PRESS LISTENER IS ARMED ONCE, ON document. This function
+     repaints on every change of a filter, and the filters are in the open now,
+     so it repaints far more often than it used to: adding a document listener
+     per paint stacked one handler per press for the life of the sitting. The
+     armed-once listener finds the menu by id instead of closing over the node
+     a dead paint built. */
   const mb=host.querySelector('#hist-more'), mm=host.querySelector('#hist-more-menu');
   if(mb&&mm){
-    mb.addEventListener('click',e=>{ e.stopPropagation(); mm.classList.toggle('hidden'); });
-    mm.addEventListener('click',()=>setTimeout(()=>mm.classList.add('hidden'),0));
-    document.addEventListener('click',ev=>{ if(!mm.contains(ev.target)&&ev.target!==mb) mm.classList.add('hidden'); });
+    const say=()=>mb.setAttribute('aria-expanded',mm.classList.contains('hidden')?'false':'true');
+    mb.addEventListener('click',e=>{ e.stopPropagation(); mm.classList.toggle('hidden'); say(); });
+    mm.addEventListener('click',()=>setTimeout(()=>{ mm.classList.add('hidden'); say(); },0));
+    if(!roomPaintHistory._moreWired){
+      roomPaintHistory._moreWired=true;
+      document.addEventListener('click',ev=>{
+        const menu=document.getElementById('hist-more-menu'), btn=document.getElementById('hist-more');
+        if(!menu||!btn||menu.classList.contains('hidden')) return;
+        if(menu.contains(ev.target)||btn.contains(ev.target)) return;
+        menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false');
+      });
+    }
   }
   host.querySelector('#ht-verify')?.addEventListener('click',async()=>{
     const box=host.querySelector('#ht-verify-result');

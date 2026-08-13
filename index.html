@@ -1265,17 +1265,12 @@
   .hist-redline del{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
   .hist-note{ font-size:11px; color:var(--color-neutral-700); margin-top:5px;
     border-left:2px solid var(--color-divider); padding-left:9px; }
-  /* Everyone / Ours / Theirs. One control with three states rather than three
-     buttons that happen to be next to each other — the joined pill says only
-     one of them can be true, before anything is pressed. */
-  .hist-segs{ display:inline-flex; border:1px solid var(--color-divider); border-radius:7px;
-    overflow:hidden; background:var(--color-surface); flex:none; }
-  .hist-seg{ border:0; background:none; cursor:pointer; font:inherit; font-size:11px;
-    font-weight:600; color:var(--color-neutral-600); padding:4px 10px; white-space:nowrap; }
-  .hist-seg + .hist-seg{ border-left:1px solid var(--color-divider); }
-  .hist-seg:hover{ background:var(--color-neutral-100); color:var(--color-text); }
-  .hist-seg.is-on{ background:var(--color-accent); color:#fff; }
-  .hist-seg.is-on:hover{ background:var(--color-accent); color:#fff; }
+  /* The Everyone / Ours / Theirs pill that used to sit on this head is GONE —
+     it was a second handle on the Side dropdown below. .hist-segs and .hist-seg
+     went with it; flag any mention as stale. The filter row is no longer behind
+     a Filter button either, so this rule is what a reader meets on arrival: it
+     carries its own bottom rule, which is the line between the controls and the
+     record. */
   .hist-filters{ display:flex; gap:8px; flex-wrap:wrap; padding-bottom:11px;
     border-bottom:1px solid var(--color-divider); }
   .hist-f{ display:flex; flex-direction:column; gap:2px; font-size:9.5px; font-weight:700;

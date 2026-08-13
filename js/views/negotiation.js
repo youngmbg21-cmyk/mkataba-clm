@@ -1279,7 +1279,28 @@ function negoTimelineEventHtml(c, e){
     </div>
   </div>`;
 }
-function negoTimelineScreenHtml(c, f = {}){
+/* ONE COMPONENT, TWO CHAIRS. This screen is rendered for the owner (the pop-out
+   record, and the share dialog's preview) and for the COUNTERPARTY (their
+   read-only history link) — the same events, the same filters, deliberately the
+   same code. Only one line in it can be said from a chair: the Side filter.
+   "Ours" and "Theirs" are the plain words the room's History tab now uses, and
+   which one goes on which row depends on who is reading. It used to say "Owner
+   side" and "Counterparty" to everybody, which is written from OUR chair and
+   was being handed to theirs.
+   The VALUES never move — 'owner' and 'counterparty' are what the events carry
+   and what every filter reads. Only the label turns over.
+
+   ONE PREDICATE ANSWERS IT, and PORTAL_MODE is the net rather than the explicit
+   seat: this screen reaches the counterparty by TWO roads — their read-only
+   history page mounts it directly, and openPortalHistory opens it through
+   openHistoryTimeline — and a seat threaded by hand through two functions is a
+   seat that gets dropped down one of them. An explicit seat still wins, so the
+   owner's surfaces can never be caught out by a stale flag. */
+function negoTimelineSeatIsTheirs(opts){
+  return (opts && opts.seat) ? opts.seat === 'counterparty' : !!window.PORTAL_MODE;
+}
+function negoTimelineScreenHtml(c, f = {}, opts = {}){
+  const theirChair = negoTimelineSeatIsTheirs(opts);
   const all = negoTimeline(c);
   const list = negoTimeline(c, f);
   const uniq = pairs => Array.from(new Map(pairs.filter(x => x && String(x[0])).map(x => [String(x[0]), x])).values());
@@ -1312,7 +1333,8 @@ function negoTimelineScreenHtml(c, f = {}){
     <div class="ht-filters">
       ${sel('ht-f-clauseId', 'Clause', uniq(all.map(e => [e.clauseId || '', e.clauseLabel || ''])), f.clauseId)}
       ${sel('ht-f-actor', 'Person', uniq(all.map(e => [e.actor || '', e.actor || ''])), f.actor)}
-      ${sel('ht-f-side', 'Side', [['owner', 'Owner side'], ['counterparty', 'Counterparty']], f.side)}
+      ${sel('ht-f-side', 'Side', [['owner', theirChair ? 'Theirs' : 'Ours'],
+                                  ['counterparty', theirChair ? 'Ours' : 'Theirs']], f.side)}
       ${sel('ht-f-round', 'Round', uniq(all.filter(e => e.round != null && e.round !== '').map(e => [e.round, 'Round ' + e.round])), f.round)}
       ${sel('ht-f-outcome', 'Outcome', [['accepted', 'Accepted'], ['rejected', 'Rejected'], ['pending', 'Pending'], ['withdrawn', 'Withdrawn']], f.outcome)}
       <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">${i18t('ng_clear')}</button>
@@ -1326,7 +1348,7 @@ function negoTimelineScreenHtml(c, f = {}){
       : `<div style="font-size:12px;color:var(--color-neutral-600);padding:14px 0">${i18t('ng_nothing_matches')}</div>`}</div>
   </div>`;
 }
-function openHistoryTimeline(c, f = {}){
+function openHistoryTimeline(c, f = {}, opts = {}){
   if (!c || typeof window.openModal !== 'function') return;
   /* ---- THE PANEL HAS TO BE AS WIDE AS THE SCREEN INSIDE IT ----
      `.ht` asks for 820px and this call did not say so, so the modal applied
@@ -1342,16 +1364,18 @@ function openHistoryTimeline(c, f = {}){
      of this kind (see js/views/library.js), and the two numbers must stay in
      step: the browser check reads `.ht`'s own max-width and fails if the panel
      cannot deliver it. */
-  openModal(negoTimelineScreenHtml(c, f), { maxWidth: '820px' });
+  openModal(negoTimelineScreenHtml(c, f, opts), { maxWidth: '820px' });
   /* Filters combine: every change re-renders the same screen with the whole
-     filter state, so the two sources of truth cannot drift. */
+     filter state, so the two sources of truth cannot drift. The SEAT rides
+     along with them — a re-render that forgot it would relabel the Side filter
+     under the reader the moment they touched a different one. */
   const read = () => {
     const g = k => { const el = document.getElementById('ht-f-' + k); return el && el.value ? el.value : ''; };
     return { clauseId: g('clauseId'), actor: g('actor'), side: g('side'), round: g('round'), outcome: g('outcome') };
   };
   document.querySelectorAll('#history-timeline [data-ht-filter]').forEach(s =>
-    s.addEventListener('change', () => openHistoryTimeline(c, read())));
-  document.getElementById('ht-clear')?.addEventListener('click', () => openHistoryTimeline(c, {}));
+    s.addEventListener('change', () => openHistoryTimeline(c, read(), opts)));
+  document.getElementById('ht-clear')?.addEventListener('click', () => openHistoryTimeline(c, {}, opts));
   /* WP-2.5 — the one answer, with the first broken link named. The result
      panel is written, never toasted: a verdict about the integrity of a legal
      record does not scroll away. */
@@ -12553,7 +12577,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoIndexSendHtml, negoNameFieldHtml, negoRememberedName, negoRememberName, negoWireNameMemory, NEGO_NAME_KEY, negoReadySignalHtml, negoRoomHasExit, negoPick,
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   negoRenumberPreviewHtml, negoRenumberOpen,
-  negoTimelineScreenHtml, negoTimelineEventHtml, openHistoryTimeline,
+  negoTimelineScreenHtml, negoTimelineEventHtml, negoTimelineSeatIsTheirs, openHistoryTimeline,
   negoVerifyResultHtml, negoHistoryExportHtml, negoHistoryExportRun, negoHistoryPrintRun,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,

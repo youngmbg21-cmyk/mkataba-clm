@@ -409,7 +409,10 @@ function openPortalHistory(p){
   if(typeof window.openHistoryTimeline!=='function'){
     toast(i18t('po_history_unavailable2'),'err'); return;
   }
-  openHistoryTimeline(portalNegoContract(p));
+  /* Said out loud rather than left to PORTAL_MODE, which would also answer it:
+     this is the counterparty's chair, so the Side filter reads Ours/Theirs from
+     where THEY sit. */
+  openHistoryTimeline(portalNegoContract(p), {}, { seat:'counterparty' });
 }
 /* THE WORDING THIS NEGOTIATION STARTED FROM. Round 1's baseline travels in the
    payload (buildSharePayload sends negotiation.baselineText), so "what has been
@@ -2886,8 +2889,12 @@ function renderShareHistory(p, opts={}){
             here to answer or sign.</span></div>
           <div style="background:var(--color-surface);border:1px solid var(--color-divider);
             border-radius:8px;box-shadow:var(--shadow-sm);overflow:hidden;">
+            ${''/* The seat is the ONE thing this page says differently: the
+                   Side filter reads "Ours"/"Theirs" from THEIR chair, so
+                   'owner' is labelled Theirs here. Nothing else about the
+                   component changes, and no event's side value moves. */}
             <div id="pt-hist-mount">${window.negoTimelineScreenHtml
-              ? negoTimelineScreenHtml(c, f)
+              ? negoTimelineScreenHtml(c, f, { seat:'counterparty' })
               : `<div style="padding:20px;font-size:12.5px;color:var(--color-neutral-600)">${i18t('po_history_unavailable')}</div>`}</div>
           </div>
         </div>
