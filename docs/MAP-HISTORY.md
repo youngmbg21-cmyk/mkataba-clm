@@ -2142,3 +2142,63 @@ A scaled document is taller, which made it likely enough for a browser check to
 catch. Both axes are clamped now; the horizontal one had always been there and
 this is its twin. Nobody asked for it and it is not a side quest: it is the
 change's own consequence, found by the file that exists to find it.
+
+
+----- 13 Aug 2026: a refusal you gave has a way back -----
+
+A REFUSED CARD HAD ONE VERB, AND IT WAS THE WRONG ONE
+
+Reported off a photograph of the change column: CHG-002, an ask from the
+counterparty, refused by us, carrying exactly one button — Edit. The owner's
+question was the useful shape of question: "when a card has been refused, what
+needs to be the next step? Assume you can edit or retract. If that is the case,
+there is no choice for retracting."
+
+The answer, once the two seats are told apart, is that there were two different
+gaps and only one of them was on that card. An ask of OUR OWN that they refused
+already carries Withdraw — the acknowledgement that settles a refusal and stops
+one rejection deadlocking Ready-to-sign for ever. An ask of THEIRS that WE
+refused carried nothing at all. Retracting is not the verb there; it is not our
+ask to retract. The verb is REOPEN: take the answer back, and the ask goes to
+Accept or Reject again.
+
+IT WAS ALREADY POSSIBLE AND ALREADY DRAWN — ON THE OTHER CARD. The contract
+tab's renderer has always offered the press (negoLiveCardsHtml's `undoable`,
+which on a side that holds nothing is every decided change). The engine has
+always allowed it: decide(id,'pending') reopens the change, reverts the clause
+to the baseline and travels to their copy on the same onDecided the first
+answer used. So this is not new machinery. It is the same handler, put on the
+card the answer was actually given on — which is the card in the column people
+actually read.
+
+TWO WORDS FOR ONE PRESS WAS THE OTHER HALF OF IT. That contract-tab button said
+"Undo". The new one says "Reopen". One button, one act, a tab apart, and two
+words is how two screens come to disagree about what a press costs. The
+contract tab now says Reopen too — but ONLY on a side that does not hold its
+answers. Where the answer is still held on the reader's own page, Undo is the
+right word: nothing has been decided anywhere else yet, and there is nothing to
+reopen.
+
+THE OWNER ASKED TO SEE IT BEFORE IT WAS BUILT, TWICE, and both notes are in the
+result. The first render put Reopen in an accent pill with a line of prose under
+it explaining whose move it was. The answer came back: "Reopen can be added but
+do not add it as a pill but same as edit. Also do not add an explanation so keep
+the card as is but only add reopen." So it is rl-edit — Edit's own class, the
+card's quiet outlined verb — and the card gained one button and not one word of
+prose. Measured in the browser rather than asserted: same background, same
+border, same weight, same size, same height as the button beside it.
+
+AND IT DOES NOT MAKE THE CARD NEED YOU. RL_CARD_INERT reads the button's markup
+to decide whether a card has a move outstanding on it, and Undo in general
+belongs in the "yes" box: the counterparty's Undo sits on an answer that has NOT
+been sent, and the second after a mis-click is exactly when the way back must
+stay visible. This one is not that. You answered, the answer stands, and an
+escape hatch is not outstanding work — the same reasoning the pattern already
+applies to Change decision. So the button carries its own marker,
+data-rl-reopen, beside the engine's handler, and the pattern matches the marker
+rather than swallowing every Undo in the product.
+
+WHERE IT IS NOT DRAWN, each for its own reason: our own refused ask (Withdraw is
+the verb, and reopening their refusal is not ours to do), the counterparty's
+page (their seat holds its answers, so it has its own two ways back with their
+own rules about what has left their page), and any read-only copy.

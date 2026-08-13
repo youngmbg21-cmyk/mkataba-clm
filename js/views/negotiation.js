@@ -2104,7 +2104,14 @@ function negoLiveCardsHtml(c, opts){
       : `<div class="nego-acts">
         <button class="${disCls}"${disTitle} aria-expanded="${open ? 'true' : 'false'}"
           aria-controls="nego-thread-${_ne(ch.id)}" data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
-        ${undoable ? `<button class="b-undo" data-nego-undo="${_ne(ch.id)}">${i18t('ng_undo')}</button>` : ''}
+        ${''/* ONE ACT, ONE WORD, ON BOTH CARDS (13 Aug 2026). This button and
+               the workbench card's new Reopen are the same press on the same
+               handler — but only on a side that does NOT hold its answers,
+               where "undo" means reopening a decision already on the record.
+               Where the answer is still held on this page, Undo is the right
+               word: nothing has been decided anywhere else yet. */}
+        ${undoable ? `<button class="b-undo" data-nego-undo="${_ne(ch.id)}">${
+          holds ? i18t('ng_undo') : i18t('ng_change_decision')}</button>` : ''}
         ${redecidable ? `<button class="b-redecide" data-nego-redecide="${_ne(ch.id)}"
             title="${i18t('ng_answered_and_sent')}">${i18t('ng_change_decision')}</button>` : ''}
         ${withdrawable && !ch.withdrawn
@@ -9096,6 +9103,12 @@ function rlCardForgetPins(contractId){
    is a move waiting on this reader, and a move you cannot see is a move you
    do not make.
 
+   data-rl-reopen JOINED IT (13 Aug 2026), for the reason Change decision is
+   already in it: the owner's way back from a refusal they gave is an escape
+   hatch, not an outstanding move. It rides beside data-nego-undo — the engine's
+   handler, which this pattern must NOT swallow wholesale, because the
+   counterparty's Undo is a real move on an answer that has not been sent.
+
    data-rl-sent LEFT THIS PATTERN WITH THE BUTTON (13 Aug 2026). The spent Send
    marker is no longer drawn at all, so nothing emits that attribute and a
    pattern matching nothing is a pattern nobody can read. THE OUTCOME IS
@@ -9103,7 +9116,7 @@ function rlCardForgetPins(contractId){
    ours now leaves exactly one verb on the card — Edit — which is inert for its
    own reason, so the card still reads as needing nothing. f100 proves that off
    the rendered card rather than off this rule. */
-const RL_CARD_INERT = /data-rl-edit|data-nego-redecide/;
+const RL_CARD_INERT = /data-rl-edit|data-nego-redecide|data-rl-reopen/;
 function rlCardNeedsYou(verbs){
   return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
 }
@@ -11323,6 +11336,40 @@ function redlineChangeCardsHtml(c, opts = {}){
          both sides forever. data-nego-withdraw is the engine's own handler. */
       verbs.push(`<button class="rl-edit" data-nego-withdraw="${_ne(ch.id)}"
         title="${i18t('ng_let_ask_go')}">${i18t('ng_withdraw')}</button>`);
+    }
+    /* ---- AND THE WAY BACK FROM A REFUSAL YOU GAVE (owner-asked, 13 Aug 2026)
+       Reported from the column: a card of theirs that we had refused carried
+       ONE verb — Edit — so the only route back from "no" was to go and rewrite
+       their clause, which is a different act with a different author on it.
+       Changing your mind about your own answer had no button at all.
+
+       The engine has always allowed it and the contract tab's card has always
+       drawn it (negoLiveCardsHtml's `undoable`, which on a side that holds
+       nothing is every decided change): decide(id,'pending') puts the change
+       back on the table, reverts the clause and travels to their copy through
+       the same onDecided the first answer used. So this is the same handler —
+       data-nego-undo — on the card the answer was actually given on, not a
+       second path to one act.
+
+       OUR SEAT ONLY, and only where WE were the ones who answered: an ask of
+       our own that THEY refused is not ours to reopen, and it already carries
+       Withdraw one branch up. On the counterparty's page the same ground is
+       covered by Undo (a held answer) and Reopen (a sent one), each with its
+       own rule about what has left their page — those are untouched.
+
+       AND IT IS THE PLAIN OUTLINED VERB, not an accent pill (owner-asked, on
+       the render): rl-edit is Edit's own class. Reopening is an ordinary
+       correction, and nothing on this card should shout louder than Edit.
+
+       AND IT DOES NOT MAKE THE CARD NEED YOU. It carries data-rl-reopen beside
+       the engine's handler for exactly one reason: RL_CARD_INERT reads the
+       button's markup, and Undo in general IS a move waiting on somebody (the
+       counterparty's held answer has not been sent). This one is not — you have
+       answered, the answer stands, and an escape hatch is not an outstanding
+       move. The same reasoning the pattern already applies to Change decision. */
+    if (canAct && contested && theirs && side === 'owner'){
+      verbs.push(`<button class="rl-edit" data-nego-undo="${_ne(ch.id)}" data-rl-reopen="${_ne(ch.id)}"
+        title="${_nea(i18t('ng_reopen_refusal_title'))}">${i18t('ng_change_decision')}</button>`);
     }
     if (canAct && heldHere){
       /* ---- THE SEND IS ON THE CARD THE DECISION WAS MADE ON ----
