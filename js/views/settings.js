@@ -566,6 +566,66 @@ function stSigningWire(u){
   paint();
 }
 
+/* ---- SECTION 5 — WHO CHECKS THEIR WORK ----
+   The workspace gate is the master switch and it lives on Platform settings;
+   this is the per-person half. Drawn whether or not the gate is on, because an
+   admin setting a workspace up decides who is checked before they turn the rule
+   on — but it SAYS when nothing it holds is being held, so a tick here never
+   reads as a change that has taken effect. A Viewer never redlines, so there is
+   nothing of theirs to check. */
+function stReviewSectionHtml(u, isNew){
+  if(typeof reviewChecked!=='function') return '';
+  if(u.role==='viewer') return '';
+  const on=(typeof reviewGateCfg==='function')?reviewGateCfg().on:false;
+  const checked=isNew ? ((typeof reviewGateCfg==='function')?reviewGateCfg().newChecked:true) : reviewChecked(u);
+  const cand=((typeof getUsers==='function'?getUsers():[])||[])
+    .filter(x=>x&&x.id!==u.id&&x.role!=='viewer');
+  return `<section class="st-sec">
+    <h3 class="st-sec-h"><span class="st-sec-n">5</span>${esc(i18t('rv_who_checks'))}</h3>
+    ${on?'':`<p class="st-note" style="margin-bottom:8px">${esc(i18t('rv_person_gate_off'))}</p>`}
+    <label class="st-toggle" style="margin-bottom:8px">
+      <input id="tm-rv-checked" type="checkbox"${checked?' checked':''}/>
+      <span><span class="st-role-name">${esc(i18t('rv_person_checked'))}</span>
+      <span class="st-note">${esc(i18t('rv_person_checked_sub'))}</span></span></label>
+    <label style="display:block">
+      <span style="${window.RV_LBL||''}">${esc(i18t('rv_person_reviewer'))}</span>
+      <select id="tm-rv-reviewer" style="${window.RV_FLD||ST_INPUT}">
+        <option value="">${esc(i18t('rv_person_nobody'))}</option>
+        ${cand.map(x=>`<option value="${PB_ATTR(x.id)}"${String(u.reviewerId||'')===String(x.id)?' selected':''}>${esc(x.name||x.email)}</option>`).join('')}
+      </select>
+      <span class="st-note">${esc(i18t('rv_person_reviewer_sub'))}</span></label>
+    <p class="st-note" id="tm-rv-says" style="margin-top:8px"></p>
+  </section>`;
+}
+/* The live sentence, read off the two controls rather than off the record — it
+   has to describe what pressing Save would leave behind. */
+function stReviewWire(u){
+  const box=document.getElementById('tm-rv-checked');
+  const sel=document.getElementById('tm-rv-reviewer');
+  const says=document.getElementById('tm-rv-says');
+  if(!says) return;
+  const who=(u&&u.name)||i18t('sc_this_person');
+  const paint=()=>{
+    if(sel) sel.disabled=!(box&&box.checked);
+    if(!box||!box.checked){ says.textContent=i18t('rv_person_off',{who}); return; }
+    const pick=sel&&sel.value
+      ? ((typeof getUsers==='function'?getUsers():[])||[]).find(x=>String(x.id)===String(sel.value))
+      : null;
+    says.textContent=pick ? i18t('rv_person_on_named',{who,reviewer:pick.name||pick.email})
+                          : i18t('rv_person_on',{who});
+  };
+  box?.addEventListener('change',paint);
+  sel?.addEventListener('change',paint);
+  paint();
+}
+function stReviewRead(){
+  const box=document.getElementById('tm-rv-checked');
+  const sel=document.getElementById('tm-rv-reviewer');
+  if(!box&&!sel) return undefined;                       // section not drawn
+  return { reviewChecked: box?!!box.checked:undefined,
+           reviewerId: sel?(sel.value||null):undefined };
+}
+
 /* ---- ONE DRAWER, WHETHER YOU ARE ADDING OR EDITING ----
    Adding re-houses the EXISTING creation flow exactly — temp password,
    mustChangePassword on the server, an explicit folder answer whose first
@@ -651,6 +711,8 @@ function settingsPersonDrawer(idOrNew){
 
     ${stSigningSectionHtml(u, isNew)}
 
+    ${stReviewSectionHtml(u, isNew)}
+
     ${(!isNew && isAdmin() && !isMe)?`<div class="st-danger">
       <button id="tm-remove" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('act_remove')}</button>
     </div>`:''}`;
@@ -681,6 +743,7 @@ function settingsPersonDrawer(idOrNew){
       document.getElementById('tm-access')?.addEventListener('change',syncAccess);
       syncAccess();
       stSigningWire(u);
+      stReviewWire(u);
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
     },
     save(){ stDrawerClearRefusal(); settingsSavePerson(isNew?null:u); },
@@ -697,6 +760,7 @@ async function settingsSavePerson(existing){
   const role=document.getElementById('tm-role')?.value||'viewer';
   const pass=document.getElementById('tm-pass')?.value||'';
   const cap=(typeof stSigningRead==='function')?stSigningRead():undefined;
+  const rv=(typeof stReviewRead==='function')?stReviewRead():undefined;
   const missing=[];
   if(!name) missing.push(i18t('st_f_name'));
   if(!validEmail(email)) missing.push(i18t('st_f_email'));
@@ -738,12 +802,16 @@ async function settingsSavePerson(existing){
        property of a member and there is no member until POST /api/users has
        answered. Only when somebody actually decided — an untouched section
        sends nothing, so a new account starts uncapped and blocks nothing. */
-    if(newId && cap!==undefined && !(typeof cap==='number' && Number.isNaN(cap))){
+    const after={};
+    if(cap!==undefined && !(typeof cap==='number' && Number.isNaN(cap))) after.signCap=cap;
+    if(rv&&rv.reviewChecked!==undefined) after.reviewChecked=rv.reviewChecked;
+    if(rv&&rv.reviewerId!==undefined) after.reviewerId=rv.reviewerId;
+    if(newId && Object.keys(after).length){
       const u2=(getUsers()||[]).find(x=>x.id===newId);
       if(API_MODE()){
-        try{ const r=await api('users/'+newId,'PATCH',{ signCap:cap }); if(r&&r.user&&u2) Object.assign(u2,r.user); }
+        try{ const r=await api('users/'+newId,'PATCH',after); if(r&&r.user&&u2) Object.assign(u2,r.user); }
         catch(e){ toast(e.message,'err'); }
-      } else if(u2){ u2.signCap=cap; saveUsers(getUsers()); }
+      } else if(u2){ Object.assign(u2,after); saveUsers(getUsers()); }
     }
     settingsMirrorDirectory(name,email,title);
     toast(i18t('set_t_added_as',{name,role:roleName(role)})+(API_MODE()?i18t('set_t_invite_queued'):i18t('set_t_share_password')));
@@ -788,6 +856,8 @@ async function settingsSavePerson(existing){
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) patch.signCap=cap;
+    if(rv&&rv.reviewChecked!==undefined && rv.reviewChecked!==reviewChecked(target)) patch.reviewChecked=rv.reviewChecked;
+    if(rv&&rv.reviewerId!==undefined && String(rv.reviewerId||'')!==String(target.reviewerId||'')) patch.reviewerId=rv.reviewerId;
     /* The server takes title (self or admin), role and canViewValues. It does
        NOT take a name today, so a rename is applied to the record we hold and
        the directory that feeds signer fields — said here rather than pretended
@@ -797,6 +867,8 @@ async function settingsSavePerson(existing){
     if(patch.role!==undefined) body.role=patch.role;
     if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
     if(patch.signCap!==undefined) body.signCap=patch.signCap;
+    if(patch.reviewChecked!==undefined) body.reviewChecked=patch.reviewChecked;
+    if(patch.reviewerId!==undefined) body.reviewerId=patch.reviewerId;
     if(Object.keys(body).length){
       try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
       catch(e){ stDrawerRefuse(e.message); return; }
@@ -805,11 +877,15 @@ async function settingsSavePerson(existing){
     if(roleChanged) target.role=role;
     if(valuesChanged) target.canViewValues=valuesTo;
     if(patch.signCap!==undefined) target.signCap=patch.signCap;
+    if(patch.reviewChecked!==undefined) target.reviewChecked=patch.reviewChecked;
+    if(patch.reviewerId!==undefined) target.reviewerId=patch.reviewerId;
   } else {
     target.name=name||target.name; target.title=title; if(roleChanged) target.role=role;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
     if(cap!==undefined && cap!==capWas) target.signCap=cap;
+    if(rv&&rv.reviewChecked!==undefined) target.reviewChecked=rv.reviewChecked;
+    if(rv&&rv.reviewerId!==undefined) target.reviewerId=rv.reviewerId;
     saveUsers(us);
   }
   if(target.role!=='admin'){
@@ -2319,6 +2395,22 @@ function renderReviewGatePanel(){
       <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_on')}</span>
     </label>
     <div id="rv-gate-more"${cfg.on?'':' hidden'}>
+      ${''/* ---- WHO IS CHECKED IS PER PERSON ----
+             The switch above is the MASTER: it decides whether any of this
+             happens at all. Under it, each person carries their own flag, set
+             on their row under People, and the absence of one means checked —
+             which is what keeps a workspace that already had this on behaving
+             exactly as it did. The unchecked are NAMED here rather than
+             counted, because an admin acts on names. */}
+      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 9px;line-height:1.5">${i18t('rv_set_per_person')}
+        ${(()=>{ const off=(typeof reviewUncheckedPeople==='function')?reviewUncheckedPeople():[];
+          return off.length
+            ? `<span style="color:var(--st-amber-fg)">${esc(i18tn('rv_set_unchecked',off.length,{n:off.length,who:off.map(u=>u.name||u.email).join(', ')}))}</span>`
+            : esc(i18t('rv_set_all_checked')); })()}</p>
+      <label style="display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.5;cursor:${admin?'pointer':'not-allowed'};margin-bottom:10px">
+        <input id="rv-gate-newchecked" type="checkbox"${cfg.newChecked?' checked':''}${dis} style="margin-top:2px"/>
+        <span style="font-weight:600;color:var(--color-text)">${i18t('rv_set_new_checked')}</span>
+      </label>
       <label style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${i18t('rv_set_when')}</label>
       <select id="rv-gate-when"${dis} style="${window.RV_FLD||''}margin-bottom:9px">
         <option value="always"${cfg.when==='always'?' selected':''}>${i18t('rv_set_when_always')}</option>
@@ -2335,13 +2427,15 @@ function renderReviewGatePanel(){
     const on=!!document.getElementById('rv-gate-on').checked;
     const when=document.getElementById('rv-gate-when')?.value||'deviation';
     const value=Number(document.getElementById('rv-gate-value')?.value||0);
-    saveReviewGateCfg({on,when,value});
+    const nc=document.getElementById('rv-gate-newchecked');
+    saveReviewGateCfg({on,when,value,newChecked:nc?!!nc.checked:undefined});
     toast(i18t('rv_set_saved'));
     renderReviewGatePanel();
   };
   document.getElementById('rv-gate-on')?.addEventListener('change',write);
   document.getElementById('rv-gate-when')?.addEventListener('change',write);
   document.getElementById('rv-gate-value')?.addEventListener('change',write);
+  document.getElementById('rv-gate-newchecked')?.addEventListener('change',write);
 }
 
 /* ---- who may redline a negotiation (Admin) ----
@@ -2417,5 +2511,5 @@ Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,render
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
-  stSigningSectionHtml,stSigningRead,stPaintLadder,
+  stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,
   settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights});

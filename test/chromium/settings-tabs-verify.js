@@ -235,8 +235,49 @@ const signIn = async (page, base, email, pass) => {
     check('and the roster row says how much that person may sign for',
       /4/.test(rowSays), rowSays.trim());
 
+    /* ---- WHO CHECKS THEIR WORK (phase 3), as pixels ---- */
+    await page.evaluate(id => settingsPersonDrawer(id), target);
+    await page.waitForTimeout(500);
+    const rvV = await page.evaluate(VISIBLE, '#tm-rv-checked');
+    check('the person drawer carries a "who checks their work" section', rvV.ok, rvV.why);
+    const rvOn = await page.evaluate(() => ({
+      checked: document.getElementById('tm-rv-checked').checked,
+      says: document.getElementById('tm-rv-says').textContent,
+      selDisabled: document.getElementById('tm-rv-reviewer').disabled,
+    }));
+    check('an untouched member reads as CHECKED — the absence of the flag is the migration',
+      rvOn.checked === true, JSON.stringify(rvOn.checked));
+    await page.click('#tm-rv-checked'); await page.waitForTimeout(300);
+    const rvOff = await page.evaluate(() => ({
+      says: document.getElementById('tm-rv-says').textContent,
+      selDisabled: document.getElementById('tm-rv-reviewer').disabled,
+    }));
+    check('taking them off says what that means, and stands the reviewer picker down',
+      /without anybody looking/i.test(rvOff.says) && rvOff.selDisabled === true,
+      rvOff.says.trim().slice(0, 80));
+    await page.click('#tm-rv-checked'); await page.waitForTimeout(200);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+
     await page.evaluate(() => { settingsGoTab('platform'); });
     await page.waitForTimeout(300);
+    /* The master switch's panel says the rest is per person, and names anybody
+       who has been taken off rather than counting them. */
+    await page.click('[data-st-panel="review"]'); await page.waitForTimeout(600);
+    await page.evaluate(() => { document.getElementById('rv-gate-on').checked = true;
+      document.getElementById('rv-gate-on').dispatchEvent(new Event('change', { bubbles: true })); });
+    await page.waitForTimeout(600);
+    const gate = await page.evaluate(() => ({
+      newChecked: !!(document.getElementById('rv-gate-newchecked') || {}).checked,
+      words: document.getElementById('rv-gate-panel').textContent,
+    }));
+    check('the review panel is the MASTER switch and says the rest is per person',
+      gate.newChecked === true && /per person|each person/i.test(gate.words),
+      gate.words.replace(/\s+/g, ' ').trim().slice(0, 110));
+    await page.evaluate(() => { document.getElementById('rv-gate-on').checked = false;
+      document.getElementById('rv-gate-on').dispatchEvent(new Event('change', { bubbles: true })); });
+    await page.waitForTimeout(500);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+
     await page.click('[data-st-panel="approvals"]'); await page.waitForTimeout(600);
     const ladder = await page.evaluate(VISIBLE, '#sc-ladder');
     const sw = await page.evaluate(() => ({

@@ -2552,3 +2552,56 @@ because -90,000,000 sorts before 0. Authority is not a number here: it is four
 bands — an admin, then no limit, then a ceiling (largest first), then nobody
 decided, then a Viewer — with a sort inside one of them. The test caught it by
 asserting the first row is the admin.
+
+----- 13 Aug 2026: who is checked is per person -----
+
+WHY THE OLD SHAPE WAS WRONG. The internal-review gate asked one question of the
+whole workspace: is wording looked at before it travels, yes or no. That is not
+how anybody actually uses a review policy. A firm checks the person who joined
+last month and the contractor who is here for a quarter; it does not check the
+head of legal, and being asked to choose between checking everybody and
+checking nobody is why the switch was answered "off" and left there.
+
+THE MIGRATION IS THE DESIGN. Everything else here is a form field. The one
+decision that mattered is that the ABSENCE of the per-person flag means
+CHECKED — in the browser (`u.reviewChecked !== false`) and on the server
+(`!(u.review_checked === 0)`). Every existing member record is absent, so a
+workspace that already had the gate on keeps behaving exactly as it did the
+morning before the deploy, and a workspace that had it off is untouched either
+way. Turning somebody OFF is then a decision an admin makes on purpose, one
+person at a time, and it is the only thing that changes behaviour.
+
+The server travels `null` for absent rather than `true`. That looks like a
+nicety and is not: if the server helpfully filled in the default, there would be
+two places this rule is decided, and the day one of them changed the other would
+still be answering yesterday's question.
+
+ASKED ONCE, IN THE PREDICATE. The obvious build adds "and is this person
+checked?" to each enforcement point — the send block, the readiness list, the
+banner, the server's share route. That is four copies of one rule and this
+codebase has already paid for that mistake twice: the desk and the review gate
+both produced live primary buttons over presses that could not work, because a
+rule enforced in one place and not the other is a rule the screens disagree
+about. So the question goes inside reviewGateApplies and rvGateApplies, and
+everything that already asked those inherits it. The test greps for how many
+times reviewChecked is read, and fails if the answer grows.
+
+THE STANDING REVIEWER IS DELIBERATELY NOT A BINDING. It fills the ask dialog's
+combobox in and stops there. Binding it would make the common case faster and
+the uncommon one impossible: the person who should look at a payment clause is
+often not the person who should look at an indemnity, and a policy that forces
+one of them is a policy people route around. The box is ordinary text and
+resolves whatever is typed over it, exactly as it did.
+
+BOTH ARE ADMIN GRANTS, and the reason is one sentence: a person who could turn
+their own check off is not checked. The server refuses it from the person it
+applies to, refuses it smuggled in beside a job title, and refuses a named
+reviewer who is not a member, who is the person themselves, or who is a Viewer
+— a Viewer cannot rule on a change, so naming one would be a review nobody
+could ever hand back.
+
+WHAT WAS NOT BUILT, said out loud. There is no per-CONTRACT override and no
+per-folder rule; the flag is on the person and the master switch is on the
+workspace. And the counterparty half of the feature was not touched at all —
+reviewSeatShowsReview is the wall it has always been, and f196 asserts it here
+rather than assuming it, because the one thing a review must never do is leak.

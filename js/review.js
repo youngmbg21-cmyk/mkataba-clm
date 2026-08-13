@@ -828,7 +828,10 @@ function reviewGateCfg(){
   const s = (st && st.settings) || {};
   const g = (s.reviewGate && typeof s.reviewGate === 'object') ? s.reviewGate : {};
   const when = ['always', 'deviation', 'value'].includes(g.when) ? g.when : REVIEW_GATE_DEFAULT.when;
-  return { on: !!g.on, when, value: Number(g.value || 0) };
+  /* Whether somebody joining the workspace arrives CHECKED. Default true, and
+     the default is what makes the per-person flag safe to ship: see
+     reviewChecked below. */
+  return { on: !!g.on, when, value: Number(g.value || 0), newChecked: g.newChecked !== false };
 }
 function saveReviewGateCfg(g){
   const st = _rvState();
@@ -836,13 +839,55 @@ function saveReviewGateCfg(g){
   st.settings = st.settings || {};
   st.settings.reviewGate = { on: !!g.on,
     when: ['always', 'deviation', 'value'].includes(g.when) ? g.when : 'deviation',
-    value: Number(g.value || 0) };
+    value: Number(g.value || 0),
+    newChecked: g.newChecked === undefined ? reviewGateCfg().newChecked : !!g.newChecked };
   if (window.saveSettings) window.saveSettings();
   return st.settings.reviewGate;
 }
-function reviewGateApplies(c){
+/* ---- WHO IS CHECKED, AND BY WHOM ----
+   The gate used to be one workspace-wide answer: either everybody's wording was
+   looked at before it travelled or nobody's was. That is the wrong shape for
+   why anybody turns it on — a firm checks the new joiner and the contractor,
+   not the head of legal — and it made the switch an all-or-nothing decision
+   most workspaces answered "off".
+
+   THE MASTER SWITCH STILL DECIDES WHETHER ANY OF IT HAPPENS. Under it, each
+   person carries their own flag, and the ABSENCE of that flag means CHECKED.
+   That default is the whole migration: a workspace with the gate already on
+   keeps behaving exactly as it did this morning, because every existing record
+   is absent, and one that has it off is untouched either way. Turning somebody
+   OFF is a decision an admin makes on purpose, one person at a time.
+
+   A NAMED REVIEWER IS A CONVENIENCE, NOT A RULE. It fills the ask dialog's
+   picker in for you; it does not restrict who may be asked, because the person
+   who should look at a payment clause is not always the person who should look
+   at an indemnity, and a hard binding would make the common case slower rather
+   than the rare case safer. */
+function reviewChecked(u){
+  if (!u) return true;                     // nobody named = the old behaviour
+  return u.reviewChecked !== false;
+}
+function reviewStandingReviewerFor(u){
+  const id = u && u.reviewerId;
+  if (!id) return null;
+  const found = (window.getUsers ? window.getUsers() : []).find(x => x && String(x.id) === String(id));
+  return found || null;
+}
+/* Who the workspace has taken OFF the check, named rather than counted — the
+   settings panel prints this and an admin acts on names. */
+function reviewUncheckedPeople(){
+  return ((window.getUsers ? window.getUsers() : []) || []).filter(u => u && u.reviewChecked === false);
+}
+function reviewGateApplies(c, u){
   const cfg = reviewGateCfg();
   if (!cfg.on) return false;
+  /* ONE ADDITIONAL QUESTION, ASKED IN THE PREDICATE rather than forked into
+     every enforcement point. reviewGate, reviewSendBlock, contractReadiness,
+     the banners and the server's own rvGateApplies all inherit it by reading
+     this — a gate enforced in one place and not the other is how a live primary
+     button ends up over a press that cannot work. */
+  const who = (u === undefined) ? _rvMe() : u;
+  if (!reviewChecked(who)) return false;
   if (cfg.when === 'always') return true;
   if (cfg.when === 'value') return Number((c && c.value) || 0) >= Number(cfg.value || 0);
   /* The playbook's own reading, borrowed rather than re-derived: js/approvals.js
@@ -1445,8 +1490,15 @@ function reviewAskModalHtml(c, opts = {}){
     <div style="margin-bottom:12px">
       <label for="rv-who" style="${RV_LBL}">${_rvE(i18t('rv_who'))}</label>
       <div style="position:relative">
+        ${''/* PREFILLED FROM THE ASKER'S OWN STANDING REVIEWER, where an admin
+               has named one. It is a convenience and not a binding: the box is
+               ordinary text and resolves whatever is typed over it, so naming
+               a reviewer makes the common case one press shorter without ever
+               making the uncommon one impossible. */}
         <input id="rv-who" type="text" role="combobox" autocomplete="off" spellcheck="false"
           aria-expanded="false" aria-controls="rv-who-list" aria-autocomplete="list"
+          value="${_rvE((()=>{ const st=reviewStandingReviewerFor(_rvMe());
+            return st ? (st.email ? st.name + ' <' + st.email + '>' : st.name) : ''; })())}"
           placeholder="${_rvE(i18t('rv_who_ph'))}"
           style="${RV_FLD}padding-right:30px"/>
         <button type="button" id="rv-who-caret" tabindex="-1" aria-label="${_rvE(i18t('rv_who_show_all'))}"
@@ -1954,6 +2006,7 @@ Object.assign(window, {
   reviewNoteDelivery, reviewDeliveryState,
   reviewCardCancelHtml, reviewCancelCost, reviewWantsAttention,
   reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
+  reviewChecked, reviewStandingReviewerFor, reviewUncheckedPeople,
   reviewState, reviewProgress, reviewInboxFor, reviewWhen,
   reviewSeatShowsReview, reviewChipHtml, reviewVerbsHtml, reviewBannerHtml,
   reviewBannerCleared, reviewClearBanner, reviewUnclearBanner,

@@ -222,7 +222,12 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      collapsing "nobody decided" into "no limit" is what the completeness chip
      exists to tell apart. */
   signCap: u.sign_cap == null || u.sign_cap === '' ? null
-    : (u.sign_cap === 'none' ? 'none' : Number(u.sign_cap)) });
+    : (u.sign_cap === 'none' ? 'none' : Number(u.sign_cap)),
+  /* Absent travels as absent, never as `true`: the browser's reviewChecked
+     reads "not false" and a server that helpfully filled in a default would be
+     a second place this rule is decided. */
+  reviewChecked: u.review_checked == null ? null : !!u.review_checked,
+  reviewerId: u.reviewer_id || null });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -373,6 +378,13 @@ addColumnIfMissing('users', 'lang', 'TEXT');   // per-person UI + email language
    point: absent = nobody has decided, 'none' = decided, no limit, a number =
    the ceiling. See the note above signCapOf in js/approvals.js. */
 addColumnIfMissing('users', 'sign_cap', 'TEXT');
+/* Whether this member's wording is checked before it travels, and by whom.
+   NULL means CHECKED — that default is the whole migration for the per-person
+   review flag: a workspace with the gate already on keeps behaving exactly as
+   it did, because every existing record is null. See reviewChecked in
+   js/review.js. */
+addColumnIfMissing('users', 'review_checked', 'INTEGER');
+addColumnIfMissing('users', 'reviewer_id', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -876,9 +888,18 @@ function rvGateCfg(){
   return { on: !!g.on, when: ['always', 'deviation', 'value'].includes(g.when) ? g.when : 'deviation',
     value: Number(g.value || 0) };
 }
-function rvGateApplies(c){
+/* Is THIS person's wording checked before it travels. NULL is checked, which
+   is what keeps a workspace with the gate already on behaving exactly as it
+   did — see the column note above and reviewChecked in js/review.js. */
+const rvChecked = u => !(u && u.review_checked === 0);
+function rvGateApplies(c, u){
   const g = rvGateCfg();
   if (!g.on) return false;
+  /* ONE ADDITIONAL QUESTION, IN THE PREDICATE. Every caller inherits it rather
+     than each enforcement point growing its own copy. `undefined` means "no
+     particular person" and keeps the old workspace-wide reading, which is what
+     a caller with nobody to name should get. */
+  if (u !== undefined && !rvChecked(u)) return false;
   if (g.when === 'always') return true;
   if (g.when === 'value') return Number((c && c.value) || 0) >= g.value;
   /* 'deviation' — the playbook says this contract is off-piste. */
@@ -888,8 +909,8 @@ function rvGateApplies(c){
 /* Which of our unsent asks the gate has not been satisfied about. A cleared
    verdict that has gone stale counts as unreviewed, which is the whole point of
    the staleness rule. */
-function rvUnreviewedIds(c){
-  if (!rvGateApplies(c)) return new Set();
+function rvUnreviewedIds(c, u){
+  if (!rvGateApplies(c, u)) return new Set();
   const out = new Set();
   for (const ch of rvUnsentOurs(c)) if (!rvHeld(ch) && !rvCleared(ch)) out.add(String(ch.id));
   return out;
@@ -4963,10 +4984,15 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* HOW MUCH THEY MAY SIGN FOR is an admin's grant, never a self-service one —
      the same rule the role follows, and for the same reason. */
   const hasCap = b.signCap !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap) return res.status(400).json({ error: 'Nothing to change' });
+  /* WHO CHECKS THEIR WORK is an admin's grant too, and for the plainest reason
+     there is: a person who could turn their own check off is not checked. */
+  const hasChecked = b.reviewChecked !== undefined, hasReviewer = b.reviewerId !== undefined;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer)
+    return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
-  if (req.user.role !== 'admin' && !(self && hasTitle && !hasRole && !hasValues && !hasCap))
+  if (req.user.role !== 'admin'
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -4996,6 +5022,22 @@ app.patch('/api/users/:id', auth, (req, res) => {
       store = String(n);
     }
     db.prepare('UPDATE users SET sign_cap=? WHERE id=?').run(store, req.params.id);
+  }
+  if (hasChecked)
+    db.prepare('UPDATE users SET review_checked=? WHERE id=?')
+      .run(b.reviewChecked == null ? null : (b.reviewChecked ? 1 : 0), req.params.id);
+  if (hasReviewer) {
+    const rid = b.reviewerId == null || b.reviewerId === '' ? null : String(b.reviewerId);
+    /* A reviewer who is not a member of this workspace is not a reviewer, and
+       nobody reviews themselves — the browser's picker refuses both and the
+       server is where that is true. */
+    if (rid) {
+      if (rid === req.params.id) return res.status(400).json({ error: 'Nobody reviews their own work.' });
+      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(rid);
+      if (!who) return res.status(400).json({ error: 'That reviewer is not a member of this workspace.' });
+      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot rule on a change.' });
+    }
+    db.prepare('UPDATE users SET reviewer_id=? WHERE id=?').run(rid, req.params.id);
   }
   if (hasValues) {
     const role = hasRole ? b.role : target.role;
@@ -5488,7 +5530,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     }
     /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
        at does not travel, and this is the refusal the setting promises. */
-    const unreviewed = rvUnreviewedIds(rvStored);
+    /* The SENDER is who the gate is about — it is their wording going out. */
+    const unreviewed = rvUnreviewedIds(rvStored, req.user);
     if (unreviewed.size){
       const carried = (payload.contract && Array.isArray(payload.contract.changes) ? payload.contract.changes : [])
         .filter(x => x && unreviewed.has(String(x.id)));
