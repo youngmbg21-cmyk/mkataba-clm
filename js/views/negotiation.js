@@ -7444,6 +7444,11 @@ function openRedlineWorkbench(id, opts = {}){
   if (!target) return false;
   redlineEvict(target, opts);
   if (window.state) state.activeId = target;
+  /* IT SAYS THAT IT NAMED ONE, rather than leaving the next paint to infer it
+     from state.activeId — a global that outlives this page and is stale the
+     moment the reader is standing on the list. See _rlDoorAsked, and the theme
+     switch that reported the difference. */
+  _rlDoorAsked = 'named';
   if (typeof setView === 'function') setView('redline');
   else renderRedline();
   return true;
@@ -7701,6 +7706,11 @@ function openNegotiations(opts){
    anywhere in the app. 'list' is the third answer: take me to ALL of them,
    whatever is remembered. */
 let _rlDoorAsked = false;
+/* Whether the LIST is what this page is currently showing. Not derivable from
+   _redlineHeldId, where null means both "the list is up" and "nothing has been
+   painted yet" — and those want opposite answers on a bare repaint. Per sitting,
+   in memory: a reload is a first paint, which resolves through the door. */
+let _rlShowingList = false;
 
 /* ---- WHOSE MOVE IS IT ON THIS AGREEMENT ----
    Three readings, one function, asked by every surface that draws the state:
@@ -7839,23 +7849,49 @@ function renderRedline(){
   });
   redlineLayoutCss();
   /* ---- WHICH NEGOTIATION IS THIS ----
-     Two ways in, and they resolve differently on purpose. openRedlineWorkbench
-     NAMED a contract and put it on state.activeId, so that one wins. The
-     sidebar door named nothing — it asked for "my negotiations" — and
-     state.activeId there is stale: it still holds whichever contract the reader
-     last opened anywhere in the app, which is how a door labelled Negotiations
-     would have opened a draft nobody has ever redlined. */
+     FOUR ways in, and they resolve differently on purpose. Every one of them
+     SAYS which it is: state.activeId cannot tell them apart, because it outlives
+     this page and still holds whichever contract the reader last opened
+     ANYWHERE in the app.
+       'named'  — openRedlineWorkbench named a contract (a row, a notice, the
+                  Document tab's button, the phone). That one wins.
+       'reopen' — the sidebar door asked for "my negotiations": the one this
+                  reader was last ON, which is not the same question.
+       'list'   — the page's own "Live negotiations" door asked for ALL of them,
+                  so what is remembered is not consulted, or the button would
+                  re-open the negotiation the reader is pressing it FROM.
+       nothing  — A BARE REPAINT, which is not a navigation at all and must not
+                  behave like one: redraw whatever is already on the screen.
+
+     THE FOURTH ONE IS NEW (owner-reported, 13 Aug 2026) AND IT IS WHY THE OTHER
+     THREE NOW SAY THEIR NAME. A bare repaint used to fall through to
+     state.activeId, which is indistinguishable from the 'named' door — so a
+     reader standing on the LIST who changed the theme was thrown into some
+     contract's workbench. setTheme repaints the current view (inline-styled
+     chips and render-time SVG colours do not answer a class flip), the market
+     switch does the same, and every self-repaint on this page goes the same
+     way. None of them named anything; the page simply forgot it was showing a
+     list, because "showing the list" was not a fact anybody had written down.
+     _redlineHeldId is that fact, recorded on the PAINT — the contract on the
+     bench, or null for the list — so a repaint has something true to read. */
   const doorAsked = _rlDoorAsked; _rlDoorAsked = false;
-  let c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
-  /* 'list' is the page's own "Live negotiations" door: it asked for ALL of
-     them, so what is remembered is not consulted — otherwise the button would
-     re-open the negotiation the reader is pressing it FROM. */
-  if (doorAsked) c = (doorAsked === 'list') ? null : negoLastOpened();
+  const pick = id => (id && typeof getContract === 'function') ? getContract(id) : null;
+  let c = null;
+  if (doorAsked === 'list') c = null;
+  else if (doorAsked === 'reopen') c = negoLastOpened();
+  else if (doorAsked === 'named') c = pick(state.activeId);
+  /* A BARE REPAINT. "Showing the list" is a fact this page has to have written
+     down, and _redlineHeldId alone cannot carry it: null there means BOTH "the
+     list is on screen" and "nothing has been painted yet", and the two want
+     opposite answers. _rlShowingList separates them. Held first on the bench
+     path, so a repaint follows the sheet the reader is looking at rather than a
+     global something else may have moved under them. */
+  else c = _rlShowingList ? null : pick(_redlineHeldId || state.activeId);
   /* A named contract that turns out to have nothing on the table is still that
      contract's page — the workbench is where a negotiation STARTS. Only the
      door falls through to the list. */
   if (doorAsked && !c){
-    _redlineHeldId = null;
+    _redlineHeldId = null; _rlShowingList = true;
     renderNegotiationsList(host);
     return;
   }
@@ -7866,6 +7902,9 @@ function renderRedline(){
   /* Recorded on the paint, not on the navigation: however the reader arrived —
      the tab, the register, a link — the bench now knows what is on it. */
   _redlineHeldId = c ? c.id : null;
+  /* Recorded on the same paint and for the same reason as the line above: what
+     is ON THE SCREEN, so the next repaint has something true to read. */
+  _rlShowingList = !c;
   /* Arriving on a real negotiation is what the door remembers — recorded on the
      PAINT, not on the navigation, so however the reader got here (the Document
      tab, Home's decisions card, a playbook finding, the phone) the door knows

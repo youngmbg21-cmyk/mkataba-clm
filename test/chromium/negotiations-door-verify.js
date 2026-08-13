@@ -380,6 +380,77 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       startedNow.length ? 'STARTED ON: ' + startedNow.join(', ') : 'none — the count read without writing');
     await page.screenshot({ path: path.join(OUT, '08-two-live.png') });
 
+    /* ---- 9. CHANGING THE THEME IS NOT A NAVIGATION ----
+       Owner-reported, 13 Aug 2026: standing on the Negotiations list, pick a
+       different colour and the platform lands you inside some contract's
+       workbench instead. Driven through the REAL control — the theme button,
+       its menu, a row in it — because the whole fault lived in what setTheme
+       does after it flips the class: it repaints the current view, and this
+       page could not tell that repaint apart from "open this contract". */
+    await page.evaluate(() => openNegotiations({ list: true }));
+    await page.waitForTimeout(900);
+    const onList = await page.evaluate(() => ({
+      list: !!document.querySelector('#reg-tbody'),
+      held: window.redlineHeldId ? redlineHeldId() : 'n/a',
+      active: state.activeId }));
+    check('9 standing on the list, with a contract still named in state',
+      onList.list && !onList.held && !!onList.active,
+      `list ${onList.list} · held ${onList.held} · activeId ${onList.active}`);
+    await page.screenshot({ path: path.join(OUT, '09-list-before-theme.png') });
+
+    const themed = await page.evaluate(async () => {
+      const btn = document.getElementById('theme-btn');
+      if (!btn) return { pressed: false };
+      const was = document.documentElement.getAttribute('data-brand') || 'green';
+      btn.click();
+      await new Promise(r => setTimeout(r, 200));
+      const rows = [...document.querySelectorAll('#theme-menu [data-theme-pick]')];
+      const other = rows.find(r => r.getAttribute('data-theme-pick') !== was) || rows[1] || rows[0];
+      if (!other) return { pressed: false, rows: rows.length };
+      const picked = other.getAttribute('data-theme-pick');
+      other.click();
+      await new Promise(r => setTimeout(r, 700));
+      return { pressed: true, was, picked,
+        brand: document.documentElement.getAttribute('data-brand') || 'green',
+        dark: document.documentElement.classList.contains('dark') };
+    });
+    check('9 the theme control is real and a different colour was picked',
+      themed.pressed && themed.picked, themed.pressed ? `${themed.was} → ${themed.picked}` : 'no control');
+    await page.waitForTimeout(400);
+    const afterTheme = await page.evaluate(() => ({
+      list: !!document.querySelector('#reg-tbody'),
+      bench: !!document.querySelector('.redline-page .rl-paper'),
+      held: window.redlineHeldId ? redlineHeldId() : 'n/a',
+      rows: document.querySelectorAll('#reg-tbody tr[data-row]').length,
+      live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim() }));
+    await page.screenshot({ path: path.join(OUT, '10-list-after-theme.png') });
+    check('9 THE READER IS STILL ON THE LIST — the reported fault',
+      afterTheme.list && !afterTheme.bench,
+      `list ${afterTheme.list} · a contract's sheet drawn: ${afterTheme.bench} · held ${afterTheme.held}`);
+    check('9 and it is the whole list, repainted, not an empty one',
+      afterTheme.rows >= 2 && /\d/.test(afterTheme.live),
+      `${afterTheme.rows} rows · heading "${afterTheme.live}"`);
+    /* THE OTHER HALF: the fix must not cost the journey it protects. From the
+       repainted list, a row must still open its own negotiation. */
+    await page.click(`#reg-tbody tr[data-row="${cid2}"]`);
+    await page.waitForTimeout(1100);
+    const stillOpens = await page.evaluate(() => ({
+      held: window.redlineHeldId ? redlineHeldId() : null,
+      bench: !!document.querySelector('.redline-page .rl-paper') }));
+    check('9 and a row on the repainted list still opens its negotiation',
+      stillOpens.held === cid2 && stillOpens.bench,
+      `held ${stillOpens.held} (wanted ${cid2}) · sheet drawn ${stillOpens.bench}`);
+    /* And a repaint of a BENCH keeps that bench — the same rule from the other
+       side, which is the half a "always show the list" fix would have broken. */
+    await page.evaluate(() => setTheme(themeNow() === 'green' ? 'navy' : 'green'));
+    await page.waitForTimeout(900);
+    const benchHeld = await page.evaluate(() => ({
+      held: window.redlineHeldId ? redlineHeldId() : null,
+      bench: !!document.querySelector('.redline-page .rl-paper') }));
+    check('9 a theme change INSIDE a negotiation keeps that negotiation',
+      benchHeld.held === cid2 && benchHeld.bench,
+      `held ${benchHeld.held} · sheet drawn ${benchHeld.bench}`);
+
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e.message);

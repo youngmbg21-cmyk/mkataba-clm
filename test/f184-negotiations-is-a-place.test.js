@@ -220,6 +220,71 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
       'the sidebar door still reopens the negotiation you were last in');
   });
 
+  /* ---- A REPAINT IS NOT A NAVIGATION (owner-reported, 13 Aug 2026) ----
+     "When I am in the negotiation screen and I change the theme from one
+     colour to another, the platform kicks me out and takes me to [a
+     contract's workbench]."
+
+     setTheme repaints the current view — it has to, because inline-styled
+     chips and render-time SVG colours do not answer a class flip — and that
+     repaint reached this page carrying no door. The old code then fell through
+     to state.activeId, which is EXACTLY what the 'named' door does, so a bare
+     repaint was indistinguishable from "open this contract". state.activeId
+     outlives this page and still holds whichever agreement the reader last
+     opened anywhere, so a reader standing on the LIST was thrown into it.
+
+     The market switch repaints the same way, and so does every self-repaint on
+     this page — the theme is simply the one a reader notices. */
+  test('a bare repaint of the LIST redraws the list, whatever activeId holds', () => {
+    const b = world(['MK-1', 'MK-2']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');
+    b.win.openNegotiations({ list: true });
+    assert.ok(b.$('#reg-tbody'), 'the list is drawn');
+    /* The stale global, at its most misleading: a real contract, on a real
+       live negotiation, that the reader is NOT looking at. */
+    b.win.state.activeId = 'MK-2';
+    b.win.renderRedline();                       // what setTheme's setView does
+    assert.ok(b.$('#reg-tbody'), 'still the list after a repaint');
+    assert.equal(b.win.redlineHeldId(), null, 'and nothing was opened');
+  });
+
+  test('a bare repaint of a BENCH redraws that same bench', () => {
+    const b = world(['MK-1', 'MK-2']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');
+    b.win.openRedlineWorkbench('MK-1');
+    assert.equal(b.win.redlineHeldId(), 'MK-1');
+    /* Something else moved activeId — the register, a card, a stale link. The
+       repaint must not follow it: the reader is looking at MK-1. */
+    b.win.state.activeId = 'MK-2';
+    b.win.renderRedline();
+    assert.equal(b.win.redlineHeldId(), 'MK-1',
+      'a repaint redraws what is on the screen, not what a global remembers');
+  });
+
+  test('and the named door still wins — it says that it named one', () => {
+    const b = world(['MK-1', 'MK-2']);
+    theirAsk(b.byId('MK-1'), 'CHG-1');
+    theirAsk(b.byId('MK-2'), 'CHG-2');
+    b.win.openNegotiations({ list: true });
+    assert.equal(b.win.redlineHeldId(), null, 'standing on the list');
+    /* The journey the fix must not break: from the list, press a row. */
+    b.win.openRedlineWorkbench('MK-2');
+    assert.equal(b.win.redlineHeldId(), 'MK-2', 'the row opened its negotiation');
+    assert.ok(!b.$('#reg-tbody'), 'and the list is gone');
+  });
+
+  test('every door names itself — none is left to be inferred', () => {
+    const s = read('js/views/negotiation.js');
+    const at = s.indexOf('function openRedlineWorkbench');
+    const fn = s.slice(at, at + 900);
+    assert.match(fn, /_rlDoorAsked = 'named'/,
+      'openRedlineWorkbench must SAY it named one — inferring it from state.activeId '
+      + 'is what made a repaint look like a navigation');
+    assert.match(fn, /setView\('redline'\)/, 'and it still routes through the one view');
+  });
+
   test('and it is ONE route — the sidebar\'s own door with an argument', () => {
     const s = read('js/views/negotiation.js');
     assert.match(s, /data-rl-live-list\]'\)\.forEach\([\s\S]{0,120}openNegotiations\(\{ list: true \}\)/,
