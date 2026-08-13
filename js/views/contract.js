@@ -5459,6 +5459,17 @@ function signBlockers(c){
         'fill the remaining fields');
     }
   }catch(_){}
+  /* ---- HOW MUCH THIS PERSON MAY SIGN FOR ----
+     It joins THIS list rather than becoming a gate of its own, so the disabled
+     button and the refusal read the same sentence — a hidden verb is only a
+     decision about pixels. It answers null on every path until an admin turns
+     the workspace switch on, which is OFF by default: warn before enforce.
+     NEVER the desk and never the review gate — those two came OFF this list on
+     12 Aug 2026 for their own reasons and this is not them coming back. */
+  try{
+    const cap=(window.signCapBlocker)?signCapBlocker(c):null;
+    if(cap) add(cap.key, cap.label, cap.short);
+  }catch(_){}
   return out;
 }
 /* The refusal, in the words each blocker chose for itself. The field-shaped ones

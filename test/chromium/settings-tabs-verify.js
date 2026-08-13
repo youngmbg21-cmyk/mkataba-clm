@@ -205,6 +205,51 @@ const signIn = async (page, base, email, pass) => {
       goRows >= 6 && landed.title.length > 0, `${goRows} rows → ${landed.tab} · "${landed.title}"`);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
+    /* ---- SIGNING LIMITS (phase 2), as pixels ---- */
+    await page.evaluate(() => { settingsGoTab('people'); });
+    await page.waitForTimeout(400);
+    /* Give somebody a limit through the drawer, the way an admin would. */
+    const target = await page.evaluate(() => (getUsers().find(u => u.role === 'legal') || {}).id);
+    await page.evaluate(id => settingsPersonDrawer(id), target);
+    await page.waitForTimeout(500);
+    const capV = await page.evaluate(VISIBLE, '#tm-cap');
+    check('the person drawer carries a Signing section with a limit box', capV.ok, capV.why);
+    const saysBefore = await page.textContent('#tm-cap-says');
+    await page.fill('#tm-cap', '4000000');
+    await page.waitForTimeout(300);
+    const saysAfter = await page.textContent('#tm-cap-says');
+    check('and a live sentence that reads back what was just typed',
+      saysAfter !== saysBefore && /4/.test(saysAfter), saysAfter.trim().slice(0, 90));
+    await page.click('#tm-cap-none'); await page.waitForTimeout(300);
+    const noLimit = await page.evaluate(() => ({
+      disabled: document.getElementById('tm-cap').disabled,
+      says: document.getElementById('tm-cap-says').textContent,
+    }));
+    check('"No limit" disables the box rather than leaving two answers on screen',
+      noLimit.disabled && /any size/i.test(noLimit.says), noLimit.says.trim().slice(0, 80));
+    await page.click('#tm-cap-none'); await page.waitForTimeout(200);
+    await page.fill('#tm-cap', '4000000');
+    await page.click('#st-dsave'); await page.waitForTimeout(900);
+    const rowSays = await page.evaluate(id =>
+      (document.querySelector(`[data-st-cap="${id}"]`) || {}).textContent || '', target);
+    check('and the roster row says how much that person may sign for',
+      /4/.test(rowSays), rowSays.trim());
+
+    await page.evaluate(() => { settingsGoTab('platform'); });
+    await page.waitForTimeout(300);
+    await page.click('[data-st-panel="approvals"]'); await page.waitForTimeout(600);
+    const ladder = await page.evaluate(VISIBLE, '#sc-ladder');
+    const sw = await page.evaluate(() => ({
+      on: document.getElementById('sc-rule-on').checked,
+      rows: document.querySelectorAll('#sc-ladder .st-frow').length,
+      note: document.getElementById('sc-ladder').textContent,
+    }));
+    check('the ladder is drawn beside the approval rules and the switch is OFF',
+      ladder.ok && sw.on === false && sw.rows >= 3, `${sw.rows} rows · switch ${sw.on}`);
+    check('and it says out loud that the limits are recorded, not enforced',
+      /not enforced/i.test(sw.note), sw.note.replace(/\s+/g, ' ').trim().slice(-70));
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+
     /* ---- the avatar is the account menu ---- */
     await page.click('#rail-avatar'); await page.waitForTimeout(600);
     const acct = await page.evaluate(() => ({

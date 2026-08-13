@@ -2483,3 +2483,72 @@ paragraph under the picker (set_role_help is retired from this screen and left
 inert in the dictionary). settings-holds-still-verify is staged through the
 drawer with its claims untouched. swedish-verify closes a phone sheet by its
 scrim rather than by a button that can now sit below the fold.
+
+----- 13 Aug 2026: how much may this person sign for -----
+
+THE FEATURE IS SMALL AND THE ROLLOUT IS THE WHOLE DESIGN. A per-member signing
+limit is three fields and a comparison. What makes it safe to ship into a live
+workspace is that it refuses nothing on the day it arrives: the limits are
+recorded, printed on the roster, read back in a sentence in the drawer and
+laddered beside the approval rules, and a workspace switch that is OFF by
+default decides whether any of it ever stops a signature. That ordering — warn,
+then enforce, behind a switch somebody has to turn — is the rule this product
+already follows for the review gate and the redlining desk, and it is the only
+reason a rule about signatures can be deployed at all.
+
+THREE STATES, AND THE THIRD IS THE ONE THAT COSTS SOMETHING. It would have been
+easier to store a number and let its absence mean "no limit" — folderAccess
+does exactly that, and the map says so in as many words: "absence is what
+unrestricted MEANS here". It is right there and wrong here, and the difference
+is worth writing down. An absent folder entry is a GRANT: it reads the same to
+the admin who made it and the admin who inherits it, and there is nothing to
+discover. An absent signing limit is a person nobody has thought about, and the
+completeness chip and the go-live checklist both exist to say so. So the record
+carries `null` (nobody decided), the string `'none'` (decided, no limit) and a
+number — and 'none' is not an invention: TEMPLATES.ND has carried
+valueType:'none' since the beginning, for precisely the same reason.
+
+WHERE THE REFUSAL LIVES. signBlockers is the ONE list of reasons a signature
+cannot be given — the same list the Sign button reads to disable itself and the
+refusal reads to say why — and this joins it rather than becoming a gate
+somewhere else. That is not tidiness: the desk and the review gate were BOTH
+removed from this list on 12 Aug 2026 because a rule enforced in one place and
+not the other produced a live primary button over a press that could not work.
+f195 greps the other modules to prove nobody else refuses a signature over a
+limit.
+
+AN ADMIN IS NEVER CAPPED, and the test says why in the only way that is honest.
+Asserting "an admin with no limit signs" proves nothing. So the test gives an
+Editor a limit of a thousand against a thirty-six-million contract, watches the
+server refuse it, PROMOTES them to admin without touching the limit, checks the
+limit is still on the record, and watches the same signature land. It is the
+role that steps aside, not the record. The reason is practical rather than
+principled: the caps and the switch are both an admin's to set, so an admin who
+capped themselves below their own paper would have locked the front door with
+the key inside.
+
+THE SERVER'S GUARD IS ASKED AS A DIFFERENCE, like every other guard on that
+route. PUT /api/contracts/:id receives the WHOLE contract on every save, so the
+question can never be "may this person sign this contract" — a member editing
+key terms on a contract over their limit is not signing anything, and would
+have been refused. The question is "does this save ADD a session-authenticated
+entry to c.signatures", which is the in-app signature and nothing else: the
+counterparty's mark arrives down a share token on its own route, and a paper
+signature carries its own method. The test proves both halves — the refusal,
+and an ordinary save on the same contract going straight through.
+
+THE COMPLETENESS CHIP HAD TO BE HELD BACK. The obvious build has an unset limit
+count as "missing", which would have turned every row on the People tab amber
+the morning this deployed, over a decision nobody had been asked to make and a
+rule that was not in force. It counts only while the switch is on. The go-live
+row is drawn either way — an admin going live wants to have decided — and its
+detail says which of the two worlds they are in, so a green tick there never
+reads as "and it is being enforced".
+
+ONE THING THE LADDER TAUGHT. It was first written as a single sort key, with
+"no limit" as 0 and an unanswered person as a large sentinel. That puts the
+person with the largest ceiling ABOVE the person who has no ceiling at all,
+because -90,000,000 sorts before 0. Authority is not a number here: it is four
+bands — an admin, then no limit, then a ceiling (largest first), then nobody
+decided, then a Viewer — with a sort inside one of them. The test caught it by
+asserting the first row is the admin.

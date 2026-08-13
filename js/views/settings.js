@@ -460,6 +460,13 @@ function stPersonMissing(u){
   if(!String(u.name||'').trim()) out.push(i18t('st_f_name'));
   if(!String(u.email||'').trim()) out.push(i18t('st_f_email'));
   if(!String(u.title||'').trim()) out.push(i18t('st_f_title'));
+  /* THE SIGNING LIMIT COUNTS ONLY WHILE THE RULE IS IN FORCE. With the switch
+     off an unset limit stops nothing, so calling it "missing" would light the
+     whole roster amber on the morning of a deploy over a decision nobody has
+     been asked to make yet. Turn the rule on and it becomes a real gap. */
+  if(typeof signCapEnforced==='function' && signCapEnforced()
+     && u.role!=='viewer' && u.role!=='admin'
+     && typeof signCapOf==='function' && !signCapOf(u).answered) out.push(i18t('sc_section'));
   return out;
 }
 function stPeopleHtml(){
@@ -484,6 +491,10 @@ function stPeopleHtml(){
           <span style="${stRoleTag(u.role)}">${esc(roleName(u.role))}</span>
           <span>${u.title?esc(u.title):`<span style="color:var(--st-amber-fg)">${i18t('set_no_job_title')}</span>`}</span>
           <span style="color:${acc.all?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${esc(acc.text)}</span>
+          ${''/* HOW MUCH THEY MAY SIGN FOR, on the row, because it is the fact
+                 an admin comes to this list to check and it was invisible until
+                 you opened somebody. signCapText is the ONE reading. */}
+          <span data-st-cap="${PB_ATTR(u.id)}" style="color:${(typeof signCapOf==='function'&&!signCapOf(u).answered&&u.role!=='viewer'&&u.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc((typeof signCapText==='function')?signCapText(u):'')}</span>
         </span>
       </span>
       <span class="st-chip" data-tone="${miss.length?'warn':'ok'}">${miss.length?i18tn('st_n_missing',miss.length,{n:miss.length}):i18t('st_complete')}</span>
@@ -496,6 +507,63 @@ function stPeopleHtml(){
       <button id="st-add-person" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px" data-st-panel="person:new">${i18t('st_add_person')}</button>
     </div>
     <div class="st-people">${rows}</div>`;
+}
+
+/* ---- SECTION 4 — SIGNING ----
+   Collapsed to a single sentence for a Viewer, who never signs at all: a
+   control whose only outcome is "not applicable" is furniture. The live
+   sentence at the foot reads back what is configured, including whether the
+   rule is actually in force — a limit that is recorded and not enforced must
+   not read as a limit that stops anybody. */
+function stSigningSectionHtml(u, isNew){
+  if(typeof signCapOf!=='function') return '';
+  const cap=signCapOf(u);
+  const enforced=(typeof signCapEnforced==='function')&&signCapEnforced();
+  const cur=(typeof jxCurrency==='function')?jxCurrency():'';
+  const sentence=(typeof signCapSentence==='function')?signCapSentence(u,cap,enforced):'';
+  const body=(u.role==='viewer'||u.role==='admin')
+    ? `<p class="st-note" id="tm-cap-says">${esc(sentence)}</p>`
+    : `<label class="st-toggle" style="margin-bottom:8px">
+         <input id="tm-cap-none" type="checkbox"${(cap.answered&&cap.limit==null)?' checked':''}/>
+         <span><span class="st-role-name">${esc(i18t('sc_no_limit'))}</span></span></label>
+       <label style="display:block">
+         <span style="${window.RV_LBL||''}">${esc(i18t('sc_cap_label',{cur}))}</span>
+         <input id="tm-cap" type="number" min="0" step="1000" value="${cap.limit==null?'':String(cap.limit)}"
+           style="${window.RV_FLD||ST_INPUT}"${(cap.answered&&cap.limit==null)?' disabled':''}/>
+         <span class="st-note">${esc(i18t('sc_cap_hint'))}</span></label>
+       <p class="st-note" id="tm-cap-says" style="margin-top:8px">${esc(sentence)}</p>`;
+  return `<section class="st-sec">
+    <h3 class="st-sec-h"><span class="st-sec-n">4</span>${esc(i18t('sc_section'))}</h3>${body}</section>`;
+}
+/* Read the two controls back into the ONE three-state value the record holds.
+   A ticked "No limit" is an ANSWER ('none'); an empty box with the tick off is
+   nobody having decided (null). */
+function stSigningRead(){
+  const none=document.getElementById('tm-cap-none');
+  const box=document.getElementById('tm-cap');
+  if(!none&&!box) return undefined;              // section not drawn — change nothing
+  if(none&&none.checked) return 'none';
+  const v=(box&&box.value||'').trim();
+  if(v==='') return null;
+  const n=Number(v);
+  return (Number.isFinite(n)&&n>=0) ? n : NaN;   // NaN = refuse, in words
+}
+function stSigningWire(u){
+  const none=document.getElementById('tm-cap-none');
+  const box=document.getElementById('tm-cap');
+  const says=document.getElementById('tm-cap-says');
+  if(!says) return;
+  const paint=()=>{
+    if(box&&none) box.disabled=!!none.checked;
+    const raw=stSigningRead();
+    const shown={ ...u, signCap: raw===undefined||Number.isNaN(raw) ? u.signCap : raw };
+    if(typeof signCapSentence==='function')
+      says.textContent=signCapSentence(shown, signCapOf(shown),
+        (typeof signCapEnforced==='function')&&signCapEnforced());
+  };
+  none?.addEventListener('change',paint);
+  box?.addEventListener('input',paint);
+  paint();
 }
 
 /* ---- ONE DRAWER, WHETHER YOU ARE ADDING OR EDITING ----
@@ -581,6 +649,8 @@ function settingsPersonDrawer(idOrNew){
         </div>
         <div id="tm-access-note" style="display:none" class="st-note">${esc(i18t('set_access_admin_note'))}</div>`)}
 
+    ${stSigningSectionHtml(u, isNew)}
+
     ${(!isNew && isAdmin() && !isMe)?`<div class="st-danger">
       <button id="tm-remove" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('act_remove')}</button>
     </div>`:''}`;
@@ -610,6 +680,7 @@ function settingsPersonDrawer(idOrNew){
       });
       document.getElementById('tm-access')?.addEventListener('change',syncAccess);
       syncAccess();
+      stSigningWire(u);
       document.getElementById('tm-remove')?.addEventListener('click',()=>settingsRemoveMember(u));
     },
     save(){ stDrawerClearRefusal(); settingsSavePerson(isNew?null:u); },
@@ -625,11 +696,13 @@ async function settingsSavePerson(existing){
   const title=(document.getElementById('tm-title')?.value||'').trim();
   const role=document.getElementById('tm-role')?.value||'viewer';
   const pass=document.getElementById('tm-pass')?.value||'';
+  const cap=(typeof stSigningRead==='function')?stSigningRead():undefined;
   const missing=[];
   if(!name) missing.push(i18t('st_f_name'));
   if(!validEmail(email)) missing.push(i18t('st_f_email'));
   if(isNew && pass.length<8) missing.push(i18t('st_f_temp_pass'));
   if(missing.length){ stDrawerRefuse(i18tn('st_missing',missing.length,{what:missing.join(', ')})); return; }
+  if(typeof cap==='number' && Number.isNaN(cap)){ stDrawerRefuse(i18t('sc_bad_number')); return; }
   if(isNew && (getUsers()||[]).some(x=>(x.email||'').toLowerCase()===email)){ stDrawerRefuse(i18t('set_member_exists')); return; }
 
   /* Folder access is decided BEFORE the account exists. `null` means every
@@ -660,6 +733,17 @@ async function settingsSavePerson(existing){
     if(folderIds && newId){
       try{ await settingsWriteFolderAccess(newId, folderIds); }
       catch(e){ toast(i18t('set_could_not_save_access')+e.message,'err'); }
+    }
+    /* The signing limit is stamped after the account exists, because it is a
+       property of a member and there is no member until POST /api/users has
+       answered. Only when somebody actually decided — an untouched section
+       sends nothing, so a new account starts uncapped and blocks nothing. */
+    if(newId && cap!==undefined && !(typeof cap==='number' && Number.isNaN(cap))){
+      const u2=(getUsers()||[]).find(x=>x.id===newId);
+      if(API_MODE()){
+        try{ const r=await api('users/'+newId,'PATCH',{ signCap:cap }); if(r&&r.user&&u2) Object.assign(u2,r.user); }
+        catch(e){ toast(e.message,'err'); }
+      } else if(u2){ u2.signCap=cap; saveUsers(getUsers()); }
     }
     settingsMirrorDirectory(name,email,title);
     toast(i18t('set_t_added_as',{name,role:roleName(role)})+(API_MODE()?i18t('set_t_invite_queued'):i18t('set_t_share_password')));
@@ -701,6 +785,9 @@ async function settingsSavePerson(existing){
     if(name!==target.name || title!==(target.title||'')) { patch.name=name; patch.title=title; }
     if(roleChanged) patch.role=role;
     if(valuesChanged) patch.canViewValues=valuesTo;
+    const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
+    const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
+    if(cap!==undefined && cap!==capWas) patch.signCap=cap;
     /* The server takes title (self or admin), role and canViewValues. It does
        NOT take a name today, so a rename is applied to the record we hold and
        the directory that feeds signer fields — said here rather than pretended
@@ -709,6 +796,7 @@ async function settingsSavePerson(existing){
     if(patch.title!==undefined) body.title=patch.title;
     if(patch.role!==undefined) body.role=patch.role;
     if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
+    if(patch.signCap!==undefined) body.signCap=patch.signCap;
     if(Object.keys(body).length){
       try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
       catch(e){ stDrawerRefuse(e.message); return; }
@@ -716,8 +804,12 @@ async function settingsSavePerson(existing){
     if(name) target.name=name; target.title=title;
     if(roleChanged) target.role=role;
     if(valuesChanged) target.canViewValues=valuesTo;
+    if(patch.signCap!==undefined) target.signCap=patch.signCap;
   } else {
     target.name=name||target.name; target.title=title; if(roleChanged) target.role=role;
+    const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
+    const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
+    if(cap!==undefined && cap!==capWas) target.signCap=cap;
     saveUsers(us);
   }
   if(target.role!=='admin'){
@@ -999,8 +1091,36 @@ const SET_PANELS={
     chip(){ const n=(typeof approvalRules==='function'?approvalRules():[]).length; return n?String(n):''; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_rules_sub')}</p>
       <div id="approval-rules"></div>
-      <button id="ar-add" style="margin-top:8px;${ST_BTN2}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>`; },
-    wire(){ renderApprovalRules(); document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1)); },
+      <button id="ar-add" style="margin-top:8px;${ST_BTN2}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
+      ${''/* ---- THE OTHER HALF OF THE SAME QUESTION ----
+             The rules above decide who must say YES before a contract is
+             signed. This decides how much each person may sign FOR. They
+             belong on one panel because an admin reading either one without
+             the other has half the answer. WARN BEFORE ENFORCE: the switch is
+             off by default and the ladder is a record until it is on. */}
+      <div class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('sc_rule_title'))}</h3>
+        <label class="st-toggle" style="margin-bottom:8px">
+          <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
+          <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span>
+          <span class="st-note">${esc(i18t('sc_rule_sub'))}</span></span></label>
+        <div style="font-size:11px;font-weight:600;color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
+        <div id="sc-ladder"></div>
+      </div>`; },
+    wire(){
+      renderApprovalRules();
+      document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
+      stPaintLadder();
+      document.getElementById('sc-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveSignCapCfg!=='function') return;
+        saveSignCapCfg({ on:e.target.checked });
+        toast(i18t('sc_rule_saved'));
+        /* The ladder's own sentences change with the switch (a limit that is
+           recorded and a limit that refuses are different facts), so it
+           repaints — the panel does not, and the page behind it does not. */
+        stPaintLadder();
+      });
+    },
   },
 
   /* Availability only — a STATEMENT, not a switch, because there is no
@@ -1378,6 +1498,23 @@ function stPaintFolders(){
   document.getElementById('st-folder-add')?.addEventListener('click',add);
 }
 
+/* WHO CAN SIGN WHAT TODAY. Read-only, ordered by authority, and it says which
+   people nobody has decided about — which is the state every member is in the
+   day this ships. */
+function stPaintLadder(){
+  const host=document.getElementById('sc-ladder'); if(!host) return;
+  const rows=(typeof signCapLadder==='function')?signCapLadder():[];
+  const un=(typeof signCapUnanswered==='function')?signCapUnanswered():[];
+  const enforced=(typeof signCapEnforced==='function')&&signCapEnforced();
+  host.innerHTML=(rows.length?rows.map(r=>`<div class="st-frow">
+      <span class="st-fname" data-st-fixed="1">${esc(r.name)}</span>
+      <span class="st-fmeta">${esc(roleName(r.role))}</span>
+      <span class="st-fmeta" style="color:${(!r.answered&&r.mayEverSign&&r.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc(r.text)}</span>
+    </div>`).join(''):`<p class="st-note">${esc(i18t('sc_ladder_none'))}</p>`)
+    +(un.length?`<p class="st-note" style="color:var(--st-amber-fg)">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'')
+    +(enforced?'':`<p class="st-note">${esc(i18t('sc_not_enforced'))}</p>`);
+}
+
 /* The directory as a list, each row saying whether anything actually names it. */
 function stPaintDirectory(){
   const host=document.getElementById('st-dir-list'); if(!host) return;
@@ -1514,6 +1651,17 @@ function stGoLive(){
     ok: !!(_stIntegrity && _stIntegrity.faults===0),
     detail: _stIntegrity? i18t('set_integrity_result',{checked:_stIntegrity.checked,clean:_stIntegrity.clean,faults:_stIntegrity.faults}) : i18t('set_integrity_never'),
     go:'build:integrity' });
+  /* EVERYONE WHO MAY SIGN HAS BEEN THOUGHT ABOUT. The row is drawn whether or
+     not the rule is in force — an admin going live wants to have decided —
+     and its detail says which of those two worlds they are in, so a green tick
+     never reads as "and it is being enforced" when it is not. */
+  if(typeof signCapUnanswered==='function'){
+    const un=signCapUnanswered();
+    rows.push({ key:'caps', label:i18t('sc_go_capped'), ok:un.length===0,
+      detail:(un.length?i18tn('sc_unanswered',un.length,{n:un.length}):i18t('sc_ladder'))
+        +((typeof signCapEnforced==='function'&&signCapEnforced())?'':' · '+i18t('sc_not_enforced')),
+      go:'platform:approvals' });
+  }
   const bk=stLastBackup();
   rows.push({ key:'backup', label:i18t('st_b_go_backup'), ok:!!bk,
     detail:bk?fmtDT(bk):i18t('st_not_set'), go:'platform:backup' });
@@ -2269,4 +2417,5 @@ Object.assign(window,{renderTeam,renderMyAccountPage,renderAllowancePanel,render
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
+  stSigningSectionHtml,stSigningRead,stPaintLadder,
   settingsMarketFactsHtml,settingsPaintShapeBoxes,settingsHeightsBefore,settingsHoldHeights});

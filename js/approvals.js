@@ -894,3 +894,129 @@ function wireApprovalPanel(c){
    on the first real open and never re-counted. */
 
 Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+
+/* ============================================================
+   HOW MUCH MAY THIS PERSON SIGN FOR
+   ============================================================
+   A per-member signing limit, in the workspace's own currency. It is new
+   machinery and it arrives the way every enforcement in this product arrives:
+   WARN BEFORE ENFORCE. The cap is recorded, printed and read back in plain
+   English from the day it ships, and it stops nothing at all until an admin
+   turns on a workspace switch that is OFF by default. A rule that started
+   refusing signatures the morning after a deploy would be an outage, not a
+   control.
+
+   THREE STATES, ONE READING, and the third is what makes the other two mean
+   something. `signCap` on the member record is:
+     · null / absent  — NOT ANSWERED. Nobody has said anything about this
+       person. Blocks nothing, and is the state every existing member is in
+       the moment this ships.
+     · 'none'         — ANSWERED, and the answer is no limit. The string is
+       deliberate and it is this codebase's own idiom: TEMPLATES.ND carries
+       valueType:'none' for exactly the same reason — "the question was asked
+       and the answer is nothing" is a different fact from "nobody asked".
+     · a number       — the ceiling, in the workspace currency.
+   Collapsing the first two (the way folderAccess collapses "no entry" into
+   "every stream") was considered and refused: an absent folder entry is a
+   GRANT and reads the same to everybody, while an absent cap is somebody
+   nobody has thought about, and the completeness chip exists to say so.
+
+   AN ADMIN IS NEVER CAPPED. Not because an admin's signature is worth more,
+   but because the switch and the caps are both an admin's to set: a workspace
+   whose only admin had capped themselves below their own paper would have
+   locked its own front door, and the way back in would be the very screen the
+   cap is refusing them. Said out loud rather than left to be discovered. */
+function signCapCfg(){
+  const s=(state.settings&&state.settings.signCap)||{};
+  return { on: !!s.on };
+}
+function saveSignCapCfg(cfg){
+  state.settings=state.settings||{};
+  state.settings.signCap={ on: !!(cfg&&cfg.on) };
+  if(typeof saveSettings==='function') saveSettings();
+  return signCapCfg();
+}
+const signCapEnforced = () => signCapCfg().on;
+/* THE ONE READING. `answered` is whether anybody has decided; `limit` is null
+   when the decision was "no limit". Everything — the drawer, the roster row,
+   the ladder, the completeness chip, the blocker and the server's own copy —
+   asks this and never the raw field. */
+function signCapOf(u){
+  const raw=u&&u.signCap;
+  if(raw===undefined||raw===null||raw==='') return { answered:false, limit:null };
+  if(raw==='none') return { answered:true, limit:null };
+  const n=Number(raw);
+  if(!Number.isFinite(n)||n<0) return { answered:false, limit:null };
+  return { answered:true, limit:n };
+}
+/* What the roster row and the ladder print. One sentence, three shapes, and
+   the unanswered one says so rather than reading as "no limit". */
+function signCapText(u){
+  const cap=signCapOf(u);
+  if(u&&u.role==='viewer') return i18t('sc_viewer_never');
+  if(!cap.answered) return i18t('sc_not_set');
+  if(cap.limit==null) return i18t('sc_no_limit');
+  return i18t('sc_up_to',{amount:(typeof fmtMoneyShort==='function')?fmtMoneyShort(cap.limit):String(cap.limit)});
+}
+/* The live sentence at the foot of the drawer's Signing section: what was just
+   configured, read back in the words the rest of the product uses. */
+function signCapSentence(u, cap, enforced){
+  const who=(u&&u.name)||i18t('sc_this_person');
+  if(u&&u.role==='admin') return i18t('sc_says_admin',{who});
+  if(u&&u.role==='viewer') return i18t('sc_says_viewer',{who});
+  if(!cap.answered) return i18t('sc_says_unset',{who});
+  if(cap.limit==null) return i18t('sc_says_none',{who});
+  const amount=(typeof fmtMoneyShort==='function')?fmtMoneyShort(cap.limit):String(cap.limit);
+  return enforced ? i18t('sc_says_limit_on',{who,amount}) : i18t('sc_says_limit_off',{who,amount});
+}
+/* THE BLOCKER, and it joins the ONE list of signing blockers rather than
+   becoming a second gate somewhere else — the same list the button reads to
+   disable itself and the refusal reads to say why. Returns null wherever the
+   rule does not apply, which is every case until an admin turns it on. */
+function signCapBlocker(c, u){
+  if(!c) return null;
+  if(!signCapEnforced()) return null;
+  const me=u||((typeof currentUser==='function')?currentUser():null);
+  if(!me || me.role==='admin') return null;
+  const cap=signCapOf(me);
+  if(!cap.answered || cap.limit==null) return null;
+  /* Money only where money passes. An NDA carries none and isMonetary is the
+     one answer to that question in this product. */
+  if(typeof isMonetary==='function' && !isMonetary(c)) return null;
+  const v=Number(c.value||0);
+  if(!(v>cap.limit)) return null;
+  const money=n=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n);
+  return { key:'signcap',
+    label:i18t('sc_block',{amount:money(v),cap:money(cap.limit)}),
+    short:i18t('sc_block_short',{cap:money(cap.limit)}) };
+}
+/* WHO CAN SIGN WHAT TODAY — a read-only ladder, ordered by how much authority
+   each person holds, drawn beside the approval rules because it answers the
+   other half of the same question. */
+function signCapLadder(){
+  const users=(typeof getUsers==='function'?getUsers():[])||[];
+  /* FOUR BANDS AND A SORT INSIDE ONE OF THEM. A single number cannot express
+     this: "no limit" outranks any figure, and an admin outranks even that, so
+     comparing a ceiling against a sentinel is how the largest cap ends up above
+     the person who has none. */
+  const band=u=>{
+    if(u.role==='admin') return 0;                  // never capped
+    if(u.role==='viewer') return 4;                 // never signs
+    const cap=signCapOf(u);
+    if(!cap.answered) return 3;                     // nobody has said
+    return cap.limit==null ? 1 : 2;                 // no limit, then a ceiling
+  };
+  const within=u=>{ const cap=signCapOf(u); return cap.limit==null?0:-cap.limit; };
+  return users.slice().sort((a,b)=>band(a)-band(b)||within(a)-within(b)
+      ||String(a.name||'').localeCompare(String(b.name||'')))
+    .map(u=>({ id:u.id, name:u.name||u.email, role:u.role, text:signCapText(u),
+      answered:signCapOf(u).answered, mayEverSign:u.role!=='viewer' }));
+}
+/* Everyone who may ever sign has been thought about. Read by the go-live
+   checklist and by the People tab's completeness chip. */
+function signCapUnanswered(){
+  return ((typeof getUsers==='function'?getUsers():[])||[])
+    .filter(u=>u.role!=='viewer'&&u.role!=='admin'&&!signCapOf(u).answered);
+}
+Object.assign(window,{signCapCfg,saveSignCapCfg,signCapEnforced,signCapOf,signCapText,
+  signCapSentence,signCapBlocker,signCapLadder,signCapUnanswered});

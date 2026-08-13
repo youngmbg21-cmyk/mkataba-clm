@@ -217,7 +217,12 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      the default — see js/i18n.js for why this lives on the user and not the
      org. */
   lang: u.lang || null,
-  createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u) });
+  createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u),
+  /* Three states travel as three values — null, 'none' or a number — because
+     collapsing "nobody decided" into "no limit" is what the completeness chip
+     exists to tell apart. */
+  signCap: u.sign_cap == null || u.sign_cap === '' ? null
+    : (u.sign_cap === 'none' ? 'none' : Number(u.sign_cap)) });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -363,6 +368,11 @@ function addColumnIfMissing(table, col, decl) {
   if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
 }
 addColumnIfMissing('users', 'lang', 'TEXT');   // per-person UI + email language (js/i18n.js)
+/* How much this member may sign a contract for, in the workspace currency.
+   TEXT rather than REAL because it carries THREE states and the third is the
+   point: absent = nobody has decided, 'none' = decided, no limit, a number =
+   the ceiling. See the note above signCapOf in js/approvals.js. */
+addColumnIfMissing('users', 'sign_cap', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -692,6 +702,20 @@ const ADMIN_SCOPE = '*';
    Every one of these answers the SAFE way when it cannot tell: no desk, no
    rule, no claim means the behaviour this product had before the feature. */
 const deskRuleOn = () => !!((getSetting('appSettings') || {}).deskRule || {}).on;
+/* ---- SIGNING LIMITS, THE SERVER'S OWN READING ----
+   OFF by default and read from the stored settings, never from the request:
+   the browser's copy of this rule is cosmetics. It repeats js/approvals.js's
+   signCapOf deliberately — the server is the authority and a guard that
+   imported the browser's answer would be a guard the browser could move. */
+const signCapOn = () => !!((getSetting('appSettings') || {}).signCap || {}).on;
+function signCapOfRow(u) {
+  const raw = u && u.sign_cap;
+  if (raw == null || raw === '') return { answered: false, limit: null };
+  if (raw === 'none') return { answered: true, limit: null };
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return { answered: false, limit: null };
+  return { answered: true, limit: n };
+}
 const deskOfRow = c => (c && c.desk && typeof c.desk === 'object' && !Array.isArray(c.desk)) ? c.desk : null;
 const deskIsClaimed = c => { const d = deskOfRow(c); return !!(d && d.leadId && !d.closedAt); };
 const deskLeadName = c => (deskOfRow(c) || {}).leadName || 'the lead';
@@ -2130,6 +2154,43 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           + 'Only they can sign it.',
         reservedFor: stolen.name || null,
       });
+    }
+  }
+
+  /* ---- HOW MUCH THIS PERSON MAY SIGN FOR, GUARDED ON THE WAY IN ----
+     Warn before enforce: signCapOn() is a workspace setting that is OFF by
+     default, so until an admin turns it on this guard passes everything and the
+     limits are a record rather than a rule.
+
+     ASKED AS A DIFFERENCE, like every guard around it. This route receives the
+     whole contract on every save, so the question is never "may this person
+     sign this contract" — a viewer saving a note would fail that — but "does
+     this save ADD a signature taken in this app, by this session". A
+     session-authenticated entry in c.signatures that was not in the stored copy
+     is exactly that act and nothing else: the counterparty's mark arrives down
+     a share token on its own route, a paper signature carries its own method,
+     and a save that touches no signature is untouched here.
+
+     AN ADMIN IS NEVER CAPPED — see the note above signCapOf in
+     js/approvals.js: the caps and the switch are both an admin's to set, and a
+     workspace whose only admin had capped themselves below their own paper
+     would have locked its own front door.
+
+     MONEY ONLY WHERE MONEY PASSES. A contract carrying no value cannot be over
+     anybody's limit, so an unvalued or non-monetary agreement passes. */
+  if (signCapOn() && req.user.role !== 'admin') {
+    const inApp = x => x && x.method === 'session-authenticated';
+    const key = x => `${x.name || ''}|${x.email || ''}|${x.at || ''}`;
+    const had = new Set((Array.isArray(prev && prev.signatures) ? prev.signatures : []).filter(inApp).map(key));
+    const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
+    if (fresh.length) {
+      const cap = signCapOfRow(req.user);
+      const value = Number(c.value || 0);
+      if (cap.answered && cap.limit != null && value > cap.limit)
+        return res.status(403).json({
+          error: `This contract is ${value} and your signing limit is ${cap.limit}. `
+            + 'Ask somebody with a higher limit to sign it, or ask an admin to raise yours.',
+          signCap: cap.limit, contractValue: value });
     }
   }
 
@@ -4899,10 +4960,13 @@ app.post('/api/users', auth, admin, (req, res) => {
 app.patch('/api/users/:id', auth, (req, res) => {
   const b = req.body || {};
   const hasRole = b.role !== undefined, hasValues = b.canViewValues !== undefined, hasTitle = b.title !== undefined;
-  if (!hasRole && !hasValues && !hasTitle) return res.status(400).json({ error: 'Nothing to change' });
+  /* HOW MUCH THEY MAY SIGN FOR is an admin's grant, never a self-service one —
+     the same rule the role follows, and for the same reason. */
+  const hasCap = b.signCap !== undefined;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap) return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
-  if (req.user.role !== 'admin' && !(self && hasTitle && !hasRole && !hasValues))
+  if (req.user.role !== 'admin' && !(self && hasTitle && !hasRole && !hasValues && !hasCap))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -4918,6 +4982,21 @@ app.patch('/api/users/:id', auth, (req, res) => {
   if (!target) return res.status(404).json({ error: 'User not found' });
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
   if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
+  if (hasCap) {
+    /* null clears the decision, 'none' IS a decision, a number is the ceiling.
+       Anything else is refused rather than coerced — a signing limit read out
+       of a typo is worse than no signing limit. */
+    let store = null;
+    if (b.signCap === null || b.signCap === '') store = null;
+    else if (b.signCap === 'none') store = 'none';
+    else {
+      const n = Number(b.signCap);
+      if (!Number.isFinite(n) || n < 0)
+        return res.status(400).json({ error: 'A signing limit has to be a number that is not negative, or "none" for no limit.' });
+      store = String(n);
+    }
+    db.prepare('UPDATE users SET sign_cap=? WHERE id=?').run(store, req.params.id);
+  }
   if (hasValues) {
     const role = hasRole ? b.role : target.role;
     if (role === 'admin' && !b.canViewValues)
