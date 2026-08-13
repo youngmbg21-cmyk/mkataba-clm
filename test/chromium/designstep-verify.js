@@ -276,16 +276,28 @@ const READ = () => {
     `${back.stepLabel}, sheet still ${back.designAttr}`);
 
   /* ---- 9 · the resize and focus controls actually work ---- */
+  /* ---- CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
+     The preference used to MULTIPLY this page's zoom, so A⁺ was read off
+     --ds-zoom. It sizes the TYPE now and the zoom is the fit alone, on all
+     three screens that draw a document: with the preference in the zoom,
+     asking for the new floor of 8 shrank the page to half its pane and left it
+     floating. The claim is the same one — the press must make the contract
+     bigger and store the choice — read off the thing that now carries it. */
+  const type0 = await page.evaluate(() => parseFloat(getComputedStyle(
+    document.querySelector('#ds-zoom .hati-doc')).fontSize));
   const z0 = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ds-zoom')).getPropertyValue('--ds-zoom')));
   await page.evaluate(() => document.querySelector('[data-rl-type="1"]').click());
   await page.waitForTimeout(300);
   const z1 = await page.evaluate(() => ({
     zoom: parseFloat(getComputedStyle(document.getElementById('ds-zoom')).getPropertyValue('--ds-zoom')),
+    type: parseFloat(getComputedStyle(document.querySelector('#ds-zoom .hati-doc')).fontSize),
     readout: document.querySelector('.rl-type-out').textContent.trim(),
     stored: localStorage.getItem('hati.v1.rlDocType') }));
   check('9 · A+ makes the contract bigger, and stores the preference',
-    z1.zoom > z0 && z1.readout !== '15px' && z1.stored,
-    `zoom ${z0} → ${z1.zoom}, readout ${z1.readout}, stored ${z1.stored}`);
+    z1.type > type0 && z1.readout !== '15px' && z1.stored,
+    `type ${type0} → ${z1.type}, readout ${z1.readout}, stored ${z1.stored}`);
+  check('9 · and the page itself keeps fitting its pane, whatever the type',
+    Math.abs(z1.zoom - z0) < 0.001, `zoom ${z0} → ${z1.zoom}`);
   await page.evaluate(() => document.querySelector('[data-rl-type="-1"]').click());
   await page.waitForTimeout(250);
 

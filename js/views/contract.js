@@ -3864,13 +3864,24 @@ function applyDocZoom(){
   // overshoot from tipping the pane into a horizontal scroll.
   const room=pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
   const fit=Math.min(DOC_ZOOM_MAX, Math.max(1, room/DOC_PAGE_W));
-  /* The reader's text-size preference — the A⁻/A⁺ stepper both tabs carry,
-     persisted by the workbench (rlDocType, default 15) — multiplies the
-     width-fit zoom, so one stored choice sizes the contract on the Doc tab
-     and the Redline canvas alike. At the default it is exactly the old
-     behaviour. */
+  wrap.style.setProperty('--doc-zoom', fit.toFixed(3));
+  /* ---- AND THE READER'S TEXT SIZE, WHICH IS THE TYPE AND NOT THE PAGE ----
+     (13 Aug 2026, owner-asked: "lower it to 8 but keep the page filling the
+     column".) The A⁻/A⁺ stepper both tabs carry — persisted by the workbench,
+     rlDocType, default 15 — used to MULTIPLY the zoom above. Same on-screen
+     text size either way, but it sized the sheet too: at the new floor of 8
+     the page shrank to half its column and sat in white space. So the zoom is
+     the fit alone, and the preference is the type inside the sheet.
+
+     A RATIO, NOT THE NUMBER. This tab's document has its own base — 13.5px on
+     .doc-surface, against the workbench's 15 — and the stepper is one shared
+     reading, so what travels between them is the PROPORTION. --doc-scale is
+     read by .doc-surface and .hati-doc in index.html and by the sheet's own
+     front matter and foot (rlPaperFootHtml's rules, in redlineLayoutCss);
+     nothing else defines it, so a print, an export and a portal copy take the
+     1 and are untouched. */
   const pref=(window.rlDocType?rlDocType():15)/15;
-  wrap.style.setProperty('--doc-zoom', (fit*pref).toFixed(3));
+  wrap.style.setProperty('--doc-scale', pref.toFixed(3));
 }
 function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');

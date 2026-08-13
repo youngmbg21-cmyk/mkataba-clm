@@ -1999,7 +1999,13 @@
   .doc-surface{
     font-family:var(--font-doc);
     color:var(--color-doc-text);
-    font-size:13.5px;
+    /* --doc-scale is the reader's own text-size choice as a plain RATIO — the
+       A⁻/A⁺ stepper, one stored value for the whole product, 1 at the default.
+       A ratio rather than a size because the three screens that draw a
+       document have three different bases and one shared setting; what travels
+       between them is the proportion. Only the zoom wrappers define it (see
+       applyDocZoom), so a print, an export and a portal copy take the 1. */
+    font-size:calc(13.5px * var(--doc-scale,1));
     line-height:1.75;
     /* a contract is read, not skimmed: open the letterfit very slightly and
        stop the browser from tightening it on the larger sizes */
@@ -2042,7 +2048,10 @@
      them — so its whole appearance comes from here. That is deliberate: it is
      what makes a pasted contract look like HaTi paper rather than like the
      machine it was written on. */
-  .hati-doc{font-size:13.5px;line-height:1.85;font-family:var(--font-doc);color:var(--color-doc-text);
+  /* Same reading as .doc-surface above: --doc-scale is the reader's choice as a
+     ratio, 1 where nobody has expressed one. Everything else in this block is
+     in em, so that one number sizes the whole page. */
+  .hati-doc{font-size:calc(13.5px * var(--doc-scale,1));line-height:1.85;font-family:var(--font-doc);color:var(--color-doc-text);
     print-color-adjust:exact;-webkit-print-color-adjust:exact;}
   .hati-doc>*:first-child{margin-top:0;}
   .hati-doc>*:last-child{margin-bottom:0;}
@@ -2189,7 +2198,7 @@
 
   [data-doc-body="compact-executive"] .doc-surface,
   [data-doc-body="compact-executive"] .doc-surface *:not(.hati-field):not(input):not(textarea){font-family:'Trebuchet MS','Segoe UI',Arial,sans-serif!important;}
-  [data-doc-body="compact-executive"] .doc-surface{font-size:.94em;}
+  [data-doc-body="compact-executive"] .doc-surface{font-size:calc(13.5px * var(--doc-scale,1) * .94);}
   [data-doc-body="compact-executive"] .doc-surface p{line-height:1.55;}
   [data-doc-body="compact-executive"] .doc-surface h1{font-size:1.35em;}
 

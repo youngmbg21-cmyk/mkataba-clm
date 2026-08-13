@@ -368,11 +368,28 @@ describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
     const z = p.rule('.redline-page .rl-zoom') || '';
     assert.match(z, /zoom:var\(--rl-zoom,1\)/, 'and a zoom layer fits it to the column');
     assert.match(z, /max-width:660px/, 'wrapping a page of exactly that width');
-    /* THE PREFERENCE IS APPLIED ONCE. It rides in the zoom; the sheet's own
-       type is pinned to the base inside the wrapper, or one step of the
-       stepper would double the text. */
-    assert.match(z, /--rl-doc-type:15px/,
-      'the type is pinned inside the sheet so the preference cannot apply twice');
+    /* ---- CLAIM REVERSED, 13 Aug 2026, OWNER-ASKED ----
+       THE PREFERENCE IS STILL APPLIED ONCE — that rule has not moved — but it
+       is applied on the other side of the multiplication. It used to ride in
+       the ZOOM, with --rl-doc-type pinned to 15px inside this wrapper so it
+       could not apply twice. The two are interchangeable for the TEXT (on
+       screen it is fit × preference either way) and not for the PAGE: with the
+       preference in the zoom, choosing the new floor of 8 shrank the sheet to
+       half its column and left it floating in white space. Asked for directly:
+       "lower it to 8 but keep the page filling the column."
+
+       So the zoom carries the FIT alone, the pin is gone, and the sheet
+       inherits --rl-doc-type from the .redline-page root — which is the one
+       place rlSetDocType writes it. Pinning it here again would take the
+       stepper off this page altogether. */
+    assert.ok(!/--rl-doc-type/.test(z),
+      'the pin is gone — the sheet inherits the reader\'s choice from the page root');
+    const src89 = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    assert.match(src89, /setProperty\('--rl-zoom', fit\.toFixed/,
+      'and the zoom is the width-fit alone, so the page always fills its column');
+    assert.match(src89, /root\.style\.setProperty\('--rl-doc-type', v \+ 'px'\)/,
+      'one writer for the preference, still');
     assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly as the window widens');
     /* WARM PAPER, ON ITS OWN TOKENS. Not --color-surface any more: the sheet
        and the cards beside it were the same white, so the paper never read as

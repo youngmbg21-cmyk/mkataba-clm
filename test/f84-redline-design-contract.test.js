@@ -357,11 +357,23 @@ describe('F84 — the text size is a control on this page again', () => {
     p.win.rlSetDocType(99);
     assert.equal(p.win.rlDocType(), 20, 'clamped at the ceiling');
     p.win.rlSetDocType(2);
-    assert.equal(p.win.rlDocType(), 11, 'clamped at the floor');
+    /* ---- THE FLOOR MOVED, 13 Aug 2026 (owner-asked) ----
+       It was 11, set as "below this a contract stops being readable" — a
+       judgement about a reader, made for them. Skimming a long agreement at a
+       glance is a real way to work: "the fonts should be able to go low all
+       the way to 8. Currently the smallest font is 11." The ceiling of 20 is
+       untouched and is still there for the opposite need. */
+    assert.equal(p.win.rlDocType(), 8, 'clamped at the floor');
     p.win.rlSetDocType(18);
     p.win.renderRedline();
     assert.equal(p.$('#view-redline').style.getPropertyValue('--rl-doc-type'), '18px',
       'and the canvas still reads it, however it was set');
+    /* AND THE SAME CHOICE AS A RATIO, which is what the parts of the sheet
+       that are not body text follow — the title, the kicker, the parties at
+       the foot. They used to follow the zoom; the zoom carries the fit alone
+       now, so they follow this. */
+    assert.equal(p.$('#view-redline').style.getPropertyValue('--doc-scale'), '1.200',
+      '18 over the 15px base');
     p.win.rlSetDocType(15);
   });
 
@@ -373,7 +385,17 @@ describe('F84 — the text size is a control on this page again', () => {
       require('node:path').join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
     assert.ok(/rlTypeStepHtml\(\)/.test(src), 'the tab row renders the shared stepper');
     assert.ok(/rlWireTypeStep\(/.test(src), 'and wires it');
-    assert.ok(/rlDocType\(\)/.test(src), 'applyDocZoom multiplies by the stored preference');
+    assert.ok(/rlDocType\(\)/.test(src), 'applyDocZoom reads the stored preference');
+    /* ---- CLAIM REVERSED, 13 Aug 2026 (owner-asked) ----
+       It used to MULTIPLY the zoom by the preference, which sized the page as
+       well as the words — so choosing the new floor of 8 shrank the sheet to
+       half its column and left it floating in white space. "Lower it to 8 but
+       keep the page filling the column." The zoom is the fit alone now and the
+       preference is a ratio the type follows. */
+    assert.ok(/setProperty\('--doc-zoom', fit\.toFixed/.test(src),
+      'the zoom is the width-fit alone — the page always fills its column');
+    assert.ok(/setProperty\('--doc-scale', pref/.test(src),
+      'and the reader\'s choice sizes the type inside it');
   });
 });
 

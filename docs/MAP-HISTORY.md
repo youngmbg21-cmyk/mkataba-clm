@@ -2262,3 +2262,66 @@ measures where the fold actually lands at the widths customers have — every
 word on screen from 1280 to 1920, one line at every one of them, the rungs
 never taken out of order as the window narrows, the door keeping its count at
 every rung, and the words coming back when the width comes back.
+
+
+----- 13 Aug 2026: the smallest type is 8, and the page still fills the column -----
+
+TWO ASKS IN ONE SENTENCE, AND THE SECOND ONE IS THE INTERESTING ONE
+
+"In image 3, the fonts should be able to go low all the way to 8. Currently the
+smallest font is 11."
+
+The floor was a one-number change and it deserved to be made: 11 had been set
+as "below this a contract stops being readable", which is a judgement about a
+reader made on their behalf. Skimming a long agreement at a glance is a real
+way to work, and the ceiling of 20 has always been there for the opposite need.
+
+What made it more than a one-number change is what the preference had been
+wired to two days earlier. When the negotiation and counterparty pages were
+given a fitted sheet, the reader's text-size choice was made to MULTIPLY the
+fit zoom — deliberately, and with a rule written round it: the preference may
+be carried by one mechanism and never two, or a single press of A⁺ applies it
+twice and doubles the text. So --rl-doc-type was pinned to 15px inside the zoom
+wrapper and the zoom carried the choice alone.
+
+That is exactly right for the WORDS and wrong for the PAGE. On screen the text
+is fit × preference either way — the two mechanisms are interchangeable there,
+and the arithmetic is unchanged by this work at every setting. But the zoom
+scales the sheet as well, so choosing 8 would have rendered the page at 53% of
+its column: a small piece of paper floating in white space with wide margins
+either side. That was put to the owner before it was built, with both options
+named, and the answer was: "Lower it to 8 but keep the page filling the
+column."
+
+SO THE PREFERENCE MOVED TO THE OTHER SIDE OF THE MULTIPLICATION. The zoom is
+the width-fit alone on all three screens that draw a document — the negotiation
+canvas, the Document tab, the Design step — so the page always fills what it is
+given, at every setting. The choice is the type inside it. One mechanism still,
+just the other one.
+
+AND THE HALF THAT WOULD HAVE BEEN MISSED. Body text on the negotiation sheet
+already reads --rl-doc-type, so it followed at once. The sheet's FRONT MATTER
+did not: the title, the kicker above it, the subtitle and the parties at the
+foot were bare pixel sizes, and they had never needed to be anything else,
+because the zoom scaled everything under it without being asked. With the zoom
+holding still they would have stayed put while the contract under them shrank —
+a document whose title does not follow its body is not one document. Caught by
+the browser check that measures the sheet, which reported the text not moving
+at all: the element it happened to measure was the front matter.
+
+--doc-scale IS THE ONE NEW THING, and it is a RATIO rather than a size. Three
+screens draw a document, they have three different bases (15 on the workbench,
+13.5 on the Document tab and the Design step) and they share one setting, so
+what can honestly travel between them is the proportion and never the number.
+It is 1 at the default and 1 wherever nothing sets it, which is what keeps a
+print, an export and a portal copy exactly as they were: only the three zoom
+wrappers and the .redline-page root ever define it.
+
+WHAT WAS REVERSED IN PLACE, and each was a true claim about a design that has
+since changed rather than a mistake: f84's floor of 11 and its "applyDocZoom
+multiplies by the preference"; f89's "the type is pinned inside the sheet";
+paper-grows-verify's paired measurement — the zoom moving by exactly the step
+and the sheet's type not moving at all — which is now the same pair the other
+way round, plus a new check that the page fills its column at every setting and
+a new section driving A⁻ all the way down to 8 through the button rather than
+the store.

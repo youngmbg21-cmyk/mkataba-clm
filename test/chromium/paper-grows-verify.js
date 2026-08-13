@@ -259,14 +259,23 @@ const SHEET = () => {
       const lineOf = () => { const l = document.querySelector(
         '.redline-page .rl-paper .rl-clause-p, .redline-page .rl-paper .rl-line, .redline-page .rl-paper p');
         return l ? l.getBoundingClientRect().height : 0; };
-      /* THE SHEET'S OWN TYPE, from inside the zoom wrapper. It must NOT move
-         with the stepper — the zoom carries the preference, and if the
-         variable followed it too one step would apply it twice. */
+      /* THE SHEET'S OWN TYPE, from inside the zoom wrapper. It MUST move with
+         the stepper and the zoom must NOT — see the reversal below. Read from
+         a clause line, because that is what the reader is being offered a
+         choice about. */
       const typeIn = () => { const l = document.querySelector('.redline-page .rl-paper .rl-clause-p')
         || document.querySelector('.redline-page .rl-paper p');
         return l ? parseFloat(getComputedStyle(l).fontSize) : 0; };
       const zoomOf = () => Number(getComputedStyle(
         document.querySelector('.redline-page .rl-zoom')).zoom) || 1;
+      /* AND THE PAGE'S OWN WIDTH ON SCREEN, which is the half of this the
+         owner reported: whatever the type is set to, the sheet still fills its
+         column. */
+      const sheetW = () => { const el = document.querySelector('.redline-page .rl-paper');
+        const col = document.querySelector('.redline-page #rl-doc') || el.parentElement;
+        return [Math.round(el.getBoundingClientRect().width),
+          Math.round(col.getBoundingClientRect().width)]; };
+      const wBefore = sheetW();
       const lineBefore = lineOf(), typeBefore = typeIn(), zoomBefore = zoomOf();
       for (let i = 0; i < 5; i++){ if (!up.disabled) up.click(); }
       await new Promise(r => setTimeout(r, 250));
@@ -277,6 +286,11 @@ const SHEET = () => {
         readout: (document.querySelector('.redline-page .rl-type-out') || {}).textContent,
         lineBefore: Math.round(lineBefore), lineAfter: Math.round(lineOf()),
         typeBefore, typeAfter: typeIn(),
+        wBefore, wAfter: sheetW(),
+        /* The front matter has to follow the body, or the sheet is two
+           documents. It used to follow the zoom; it follows the ratio now. */
+        titleBefore: parseFloat(getComputedStyle(
+          document.querySelector('.redline-page .rl-paper-title') || document.body).fontSize),
         zoomRatio: Math.round((zoomOf() / (zoomBefore || 1)) * 100) / 100 };
     });
     check('4 pressing A⁺ makes the contract text bigger ON SCREEN',
@@ -286,18 +300,72 @@ const SHEET = () => {
       stepped.stored === stepped.after, `stored ${stepped.stored}`);
     check('5 and the readout says the same number, in its own words',
       String(stepped.readout).trim() === stepped.after + 'px', stepped.readout);
-    /* ---- APPLIED ONCE, NOT TWICE ----
-       Two mechanisms could each carry the reader's preference and only one may.
-       Measured as two facts rather than one ratio, because a line's HEIGHT
-       jumps when the text rewraps and would read as a doubling that is not
-       one: the zoom moved by exactly the step (15→20 is a third bigger), and
-       the sheet's own font-size did not move at all. */
-    check('5 THE ZOOM CARRIES THE STEP, and by exactly the step',
-      stepped.zoomRatio > 1.28 && stepped.zoomRatio < 1.39,
-      `15→20 scaled the zoom by ${stepped.zoomRatio}x (expected ~1.33)`);
-    check('5 AND THE SHEET\'S OWN TYPE DID NOT MOVE — so it is applied ONCE',
-      stepped.typeBefore > 0 && stepped.typeAfter === stepped.typeBefore,
+    /* ---- APPLIED ONCE, AND ON THE OTHER SIDE OF THE MULTIPLICATION ----
+       BOTH CLAIMS HERE ARE REVERSED, 13 Aug 2026, owner-asked, and the rule
+       they were protecting is unchanged: the reader's preference may be
+       carried by ONE mechanism, never two, or a single step doubles the text.
+
+       It used to be the zoom, with the sheet's own type pinned to the base
+       inside the wrapper. That is interchangeable with this for the TEXT — on
+       screen it is fit × preference either way — and not for the PAGE. With
+       the preference in the zoom, asking for the new floor of 8 shrank the
+       sheet to half its column and left it floating in white space. "Lower it
+       to 8 but keep the page filling the column."
+
+       So now: the zoom does NOT move with the stepper, the sheet's own type
+       DOES, and the page still fills its column at every setting — which is
+       the third check, and the one the owner would look at. */
+    check('5 THE ZOOM DOES NOT MOVE WITH THE STEPPER — it is the width-fit alone',
+      stepped.zoomRatio > 0.99 && stepped.zoomRatio < 1.01,
+      `15→20 scaled the zoom by ${stepped.zoomRatio}x (expected 1)`);
+    check('5 THE SHEET\'S OWN TYPE CARRIES THE STEP, and by exactly the step',
+      stepped.typeBefore > 0
+      && stepped.typeAfter / stepped.typeBefore > 1.28
+      && stepped.typeAfter / stepped.typeBefore < 1.39,
       `${stepped.typeBefore}px → ${stepped.typeAfter}px inside the sheet`);
+    check('5 AND THE PAGE STILL FILLS ITS COLUMN — the reported half',
+      stepped.wAfter[0] >= stepped.wAfter[1] - 12
+      && stepped.wAfter[0] === stepped.wBefore[0],
+      `${stepped.wBefore[0]} of ${stepped.wBefore[1]} → ${stepped.wAfter[0]} of ${stepped.wAfter[1]}`);
+    check('5 and the front matter followed the body, so the sheet is one document',
+      stepped.titleBefore > 20, `title ${stepped.titleBefore}px at 20`);
+    /* ---- 5b. AND THE FLOOR IS 8 (owner-asked, 13 Aug 2026) ----
+       "The fonts should be able to go low all the way to 8. Currently the
+       smallest font is 11." Driven through the CONTROL rather than the store,
+       because the thing being checked is that the reader can actually get
+       there: A⁻ must keep working past 11 and stop at 8. */
+    const floored = await page.evaluate(async () => {
+      const down = document.querySelector('.redline-page .rl-tabrow .rl-type-step [data-rl-type="-1"]');
+      const paper = () => document.querySelector('.redline-page .rl-paper');
+      const col = () => document.querySelector('.redline-page #rl-doc') || paper().parentElement;
+      const typeIn = () => { const l = document.querySelector('.redline-page .rl-paper .rl-clause-p')
+        || document.querySelector('.redline-page .rl-paper p');
+        return l ? parseFloat(getComputedStyle(l).fontSize) : 0; };
+      const at15 = typeIn();
+      /* Far more presses than the range needs — the bound is the button's job,
+         not the loop's. */
+      for (let i = 0; i < 30; i++){ if (!down.disabled) down.click(); }
+      await new Promise(r => setTimeout(r, 300));
+      return { stored: Number(localStorage.getItem('hati.v1.rlDocType')),
+        readout: (document.querySelector('.redline-page .rl-type-out') || {}).textContent,
+        disabled: !!down.disabled, at15, at8: typeIn(),
+        sheet: Math.round(paper().getBoundingClientRect().width),
+        col: Math.round(col().getBoundingClientRect().width),
+        zoom: Number(getComputedStyle(document.querySelector('.redline-page .rl-zoom')).zoom) || 1,
+        overflow: document.querySelector('.redline-page #rl-doc, .redline-page .nego-scroll')
+          ? false : false };
+    });
+    check('5b A⁻ goes all the way down to 8 and stops there',
+      floored.stored === 8 && String(floored.readout).trim() === '8px' && floored.disabled,
+      `stored ${floored.stored}, readout ${floored.readout}, button disabled ${floored.disabled}`);
+    check('5b the wording really is smaller at 8 than at 15',
+      floored.at8 > 0 && floored.at8 < floored.at15 * 0.62,
+      `${floored.at15}px → ${floored.at8}px`);
+    check('5b AND THE PAGE STILL FILLS THE COLUMN — the whole point of the ask',
+      floored.sheet >= floored.col - 12,
+      `${floored.sheet} of ${floored.col}, zoom ${floored.zoom}`);
+    await page.screenshot({ path: path.join(OUT, '04-owner-floor-8.png') });
+
     await page.screenshot({ path: path.join(OUT, '03-owner-stepped.png') });
 
     /* Put the preference back before the geometry checks, so they measure the

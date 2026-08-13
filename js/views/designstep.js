@@ -108,8 +108,14 @@ function dsApplyZoom() {
   const cs = getComputedStyle(pane);
   const room = pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
   const fit = Math.min(DS_ZOOM_MAX, Math.max(DS_ZOOM_MIN, room / DS_PAGE_W));
+  wrap.style.setProperty('--ds-zoom', fit.toFixed(3));
+  /* The preference sizes the TYPE, not the page — the same move the other two
+     screens made on 13 Aug 2026, kept identical here so one setting cannot
+     mean two things in one product. The page still scales to the pane, which
+     is what stops a title taking four lines; --doc-scale is the reader's
+     choice as a ratio, read by .hati-doc inside the sheet. */
   const pref = (window.rlDocType ? rlDocType() : 15) / 15;
-  wrap.style.setProperty('--ds-zoom', (fit * pref).toFixed(3));
+  wrap.style.setProperty('--doc-scale', pref.toFixed(3));
 }
 
 /* THE SCROLL SURVIVES THE REPAINT.

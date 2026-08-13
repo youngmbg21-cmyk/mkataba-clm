@@ -6282,17 +6282,23 @@ function redlineLayoutCss(){
      OUTSIDE it and is untouched by construction. The rule "do not zoom the
      grid" is kept literally: the grid never sees this.
 
-     --rl-doc-type IS PINNED TO THE BASE IN HERE, and that is the whole reason
-     the two mechanisms can coexist. The stepper's preference rides in the ZOOM
-     (see rlApplyDocZoom, exactly as applyDocZoom does it on the Document tab);
-     if the type variable ALSO followed the stepper inside the sheet the
-     preference would apply twice and one step would double the text.
+     THE PREFERENCE IS APPLIED EXACTLY ONCE, AND IT IS APPLIED HERE, NOT IN THE
+     ZOOM (changed 13 Aug 2026, owner-asked). --rl-doc-type used to be PINNED to
+     15px in this rule, with the stepper riding in the zoom instead. The two
+     mechanisms were interchangeable for the TEXT — on-screen size is fit ×
+     preference either way — but not for the PAGE: with the preference in the
+     zoom, choosing 8 shrank the sheet to half its column and left it floating
+     in white space. Asked for directly ("lower it to 8 but keep the page
+     filling the column"), so the zoom now carries the FIT alone, the sheet
+     always fills its column, and the reader's choice is the type inside it.
+     The variable is inherited from the .redline-page root, which is where
+     rlSetDocType writes it — so it is still set in one place, and pinning it
+     here again would take the stepper off this page altogether.
 
      max-width:660 makes the wrapper min(column, 660) wide: below that the
      sheet simply fills the column at zoom 1, which is what a phone and a
      stacked layout get and what they had before. */
-  .redline-page .rl-zoom{zoom:var(--rl-zoom,1);max-width:660px;margin:0 auto;
-    --rl-doc-type:15px}
+  .redline-page .rl-zoom{zoom:var(--rl-zoom,1);max-width:660px;margin:0 auto}
   .redline-page .rl-paper{padding:34px 40px 44px;max-width:660px;
     background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);
     border-radius:14px;box-shadow:var(--shadow-paper);margin:0 auto}
@@ -6324,12 +6330,25 @@ function redlineLayoutCss(){
   .rl-paper-head{text-align:center;padding-bottom:0;margin-bottom:22px}
   .rl-paper-head::after{content:"";display:block;width:46px;height:1px;
     background:var(--color-doc-rule);margin:22px auto 0}
+  /* ---- THE FRONT MATTER FOLLOWS THE READER'S TEXT SIZE ----
+     (13 Aug 2026.) These four sizes were absolute, and until the same day they
+     did not need to be anything else: the reader's choice rode in the zoom, so
+     the whole sheet scaled together and a fixed 20px title scaled with it. Now
+     the choice is the TYPE and the page holds its width, so anything written
+     in bare pixels would have stayed put while the contract under it shrank —
+     a document whose title does not follow its body is not one document.
+
+     --doc-scale is that choice as a plain ratio, 1 at the default and 1 where
+     nothing sets it, so every other surface these rules dress (a print, an
+     export, the Document tab before its zoom is applied) is unchanged. The
+     multipliers are each size over the workbench's own 15px base, so at the
+     default this rule set computes to exactly the numbers it replaced. */
   .rl-paper-title{margin:10px 0 0;font-family:var(--font-heading);
-    font-size:20px;font-weight:600;letter-spacing:-.01em;color:var(--color-doc-text)}
-  .rl-paper-sub{margin:8px 0 0;font-size:13px;color:var(--color-doc-muted)}
+    font-size:calc(20px * var(--doc-scale,1));font-weight:600;letter-spacing:-.01em;color:var(--color-doc-text)}
+  .rl-paper-sub{margin:8px 0 0;font-size:calc(13px * var(--doc-scale,1));color:var(--color-doc-muted)}
   /* The kicker above the title — the Doc page's own line, in its clothes:
      mono, uppercase, wide tracking. Rendered from the document, not invented. */
-  .rl-paper-kick,.rl-paper-kick p{margin:0 0 6px;font-size:10px;font-weight:600;
+  .rl-paper-kick,.rl-paper-kick p{margin:0 0 6px;font-size:calc(10px * var(--doc-scale,1));font-weight:600;
     text-transform:uppercase;letter-spacing:.18em;
     line-height:1.5;color:var(--color-doc-muted)}
   /* The recital — the party/key-terms paragraph between the title and clause 1.
@@ -6344,7 +6363,7 @@ function redlineLayoutCss(){
     border-top:1px solid var(--color-doc-rule)}
   .rl-sigline{flex:1;min-width:0}
   .rl-sigrule{display:block;height:36px;border-bottom:1px solid var(--color-doc-rule)}
-  .rl-sigfor{display:block;margin-top:8px;font-size:11.5px;color:var(--color-doc-muted);
+  .rl-sigfor{display:block;margin-top:8px;font-size:calc(11.5px * var(--doc-scale,1));color:var(--color-doc-muted);
     overflow-wrap:anywhere}
   @media (max-width:560px){ .rl-paper-foot{flex-direction:column;gap:22px} }
   .redline-page .rl-recital{margin:0 0 16px}
@@ -7428,7 +7447,7 @@ function redlineEmbed(host, c, opts = {}){
      an attribute here exactly as on #view-redline — rlSetSideMode paints
      every .redline-page root, so the tabs need no embed-specific wiring. */
   el.innerHTML = `<div class="redline-page rl-embed" data-rl-side-mode="${rlSideMode()}"
-    style="--rl-doc-type:${rlDocType()}px;display:flex;flex-direction:column;gap:12px;min-height:0;height:${_nea(o.height || 'min(880px, 84vh)')};">
+    style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};display:flex;flex-direction:column;gap:12px;min-height:0;height:${_nea(o.height || 'min(880px, 84vh)')};">
     ${redlinePanesHtml(c, o)}
   </div>`;
   if (!el.id) el.id = 'rl-embed-' + (++_rlEmbedSeq);
@@ -7928,7 +7947,7 @@ function renderRedline(){
          its three columns scrolls inside itself, rather than the page growing
          past the viewport and taking the whole thing with it. --view-h is the
          room the shell actually leaves, measured after the header renders. -->
-    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;--doc-scale:${rlDocScale()};height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
       <!-- ---- THE SAME SHELL AS THE DOC PAGE ----
            The back arrow, the contract's name and status, and the document
            verbs (Share / Import / Compare), exactly where the Doc page puts
@@ -9771,15 +9790,33 @@ function rlLayoutResizer(host){
    one token the whole canvas is set from (clause bodies, headings, recital) —
    so a step moves the entire document together, and it is remembered per
    browser so the choice survives a repaint, a reload and the trip through the
-   Docs tab (whose auto-zoom multiplies by the same preference, one reading on
-   both tabs). Bounded: below 11px a contract stops being readable, above
-   20px it stops being a contract. */
-const RL_TYPE_MIN = 11, RL_TYPE_MAX = 20, RL_TYPE_DEF = 15;
+   Docs tab (which sizes its own sheet from the same reading, one choice on
+   both tabs).
+
+   THE FLOOR IS 8, NOT 11 (owner-asked, 13 Aug 2026: "the fonts should be able
+   to go low all the way to 8. Currently the smallest font is 11"). 11 was set
+   as "below this a contract stops being readable" — a judgement about a
+   reader, made for them. Skimming a long agreement at a glance is a real way
+   to work, and the ceiling of 20 is still there for the opposite need.
+
+   WHAT 8 MEANS ON SCREEN, because the readout is not a promise about pixels
+   and never was: the sheet's type is multiplied by the width-fit zoom, so at a
+   column twice the page's width the reader sees 16. That was equally true of
+   11 and of 15; the arithmetic is unchanged and only the floor moved. */
+const RL_TYPE_MIN = 8, RL_TYPE_MAX = 20, RL_TYPE_DEF = 15;
 const RL_TYPE_KEY = 'hati.v1.rlDocType';
 function rlDocType(){
   try { const v = Number(localStorage.getItem(RL_TYPE_KEY));
     return (v >= RL_TYPE_MIN && v <= RL_TYPE_MAX) ? v : RL_TYPE_DEF; }
   catch (e) { return RL_TYPE_DEF; }
+}
+/* The same preference as a plain RATIO against the workbench's own 15px base.
+   One reading, because three screens with three different bases share one
+   setting and what travels between them is the proportion, never the number.
+   Returned as a string so it can be written straight into a style attribute. */
+function rlDocScale(px){
+  const v = Number(px) || rlDocType();
+  return (v / RL_TYPE_DEF).toFixed(3);
 }
 function rlSetDocType(px){
   const v = Math.max(RL_TYPE_MIN, Math.min(RL_TYPE_MAX, Math.round(Number(px) || RL_TYPE_DEF)));
@@ -9787,12 +9824,17 @@ function rlSetDocType(px){
   /* Applied live to every mounted workbench root — no repaint, so scroll
      positions and half-typed replies survive a resize like they survive a
      mode switch — and the readouts and bound-stops follow the same value. */
-  document.querySelectorAll('.redline-page').forEach(root =>
-    root.style.setProperty('--rl-doc-type', v + 'px'));
-  /* THE REDLINE SHEET TAKES ITS SIZE FROM THE ZOOM NOW, not from the variable
-     above — the variable is pinned to the base inside the wrapper so the
-     preference cannot apply twice. So the step has to re-fit, exactly as it
-     re-runs the Document tab's own zoom two lines below. */
+  document.querySelectorAll('.redline-page').forEach(root => {
+    root.style.setProperty('--rl-doc-type', v + 'px');
+    /* And the same choice as a RATIO, for the parts of the sheet that are not
+       body text — the title, the kicker, the subtitle, the parties at the
+       foot. They used to follow the zoom and now follow this. */
+    root.style.setProperty('--doc-scale', rlDocScale(v));
+  });
+  /* The line above is now the whole of it on this page — the sheet's type IS
+     the preference again (13 Aug 2026). The re-fit still runs, because a
+     smaller sheet is a shorter one and the pane's scrollbar can appear or go,
+     which changes the room the fit is measured against. */
   rlApplyDocZoom(document);
   document.querySelectorAll('.rl-type-out').forEach(el => { el.textContent = v + 'px'; });
   document.querySelectorAll('[data-rl-type]').forEach(b => {
@@ -9831,12 +9873,14 @@ function rlApplyDocZoom(host){
       - (parseFloat(cs.paddingRight) || 0) - 2;
     if (!(room > 0)) return;
     const fit = Math.min(RL_ZOOM_MAX, Math.max(1, room / RL_PAGE_W));
-    /* The reader's own text-size choice multiplies the width-fit, which is how
-       the Document tab does it and why one stored value can size both. The
-       sheet's own type is pinned to the base inside the wrapper (see the
-       .rl-zoom rule), so this is the only place the preference is applied. */
-    const pref = (window.rlDocType ? rlDocType() : 15) / 15;
-    wrap.style.setProperty('--rl-zoom', (fit * pref).toFixed(3));
+    /* THE FIT ALONE (13 Aug 2026, owner-asked). The reader's text-size choice
+       used to multiply this, which sized the PAGE as well as the words — so
+       asking for small type gave back a small sheet in a wide column. The page
+       now always fills the column and the choice is the type inside it, which
+       is --rl-doc-type on the .redline-page root. On-screen text size is
+       unchanged at every setting: it was fit × preference before and it is fit
+       × preference now, from the other side of the multiplication. */
+    wrap.style.setProperty('--rl-zoom', fit.toFixed(3));
   });
 }
 /* ---- AND IT FOLLOWS THE COLUMN WHATEVER MOVED IT ----
@@ -12454,7 +12498,7 @@ function redlineSyncProxies(host){
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
-  rlDocType, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
+  rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   rlApplyDocZoom, rlObserveDocPane, RL_PAGE_W, RL_ZOOM_MAX,
   rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey, rlPaintFocusBtn,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
