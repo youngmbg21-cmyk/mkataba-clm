@@ -474,6 +474,9 @@ function emailSetupLineHtml(){
     </div>`;
 }
 
+/* Which lifecycle stage the pipeline card is listing. Per sitting, in
+   memory: a working preference, not a setting. */
+let _hmStage=null;
 function renderDashboard(){
   const { cs, money, m, countAll, valOf, dU, idleOf, STAGE_DEF, stages, expiring, rdd,
     decisions, waitingLongest, fmtDDay, highRisk, awaiting, awaitingCount, me, raisedByMe,
@@ -557,49 +560,129 @@ function renderDashboard(){
     {k:'Under Review', n:2, get title(){ return i18t('home_stage_review'); },  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
     {k:'Signed',       n:3, get title(){ return i18t('home_stage_sign'); },   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
   ];
-  const pipeDocCard=(c,st)=>{
+  /* ---- ONE RING AND ONE LIST, NOT THREE COLUMNS (owner-asked, 13 Aug 2026) ----
+     The card drew three scrolling columns side by side. Each was a third of the
+     card wide, so a contract's name was cut off mid-word ("Mutual Non-Disclo…")
+     on every row, and the shape of the book — where the live agreements
+     actually sit — had to be read off three separate counts.
+
+     It is a ring on two thirds and ONE list on one third now: press a segment,
+     or its row in the key, and the list beside it swaps to that stage. NOTHING
+     ABOUT THE CARD CHANGED — same box, same padding, same heading, same "View
+     full register", and it is still exactly as tall as Decisions due beside it.
+     Only what is painted inside it.
+
+     IT IS ALL IN THE MARKUP, NOT PAINTED ON AFTER. The first build filled the
+     ring and the list from script once the card was in the DOM, which left the
+     rendered HTML holding empty placeholders — the dashboard's own tests read
+     that HTML, and a card that is blank until script runs is a card that is
+     blank if script never does. The builders below are used BY the template and
+     again by hmPaint when a stage is pressed.
+
+     THE COLOURS ARE THE CARD'S OWN. Draft has always been drawn in neutral here
+     (PIPE_DEF's fg is --color-neutral-700, its chip --color-neutral-100), and
+     that turns out to be the only workable choice: in a teal workspace the
+     "steel" tone is #14b8a6 and the executed tone is #10b981 — 5.4 apart on the
+     normal-vision scale, which is two slices of one colour once they touch in a
+     ring rather than sitting in separate columns. Neutral for work not started,
+     amber for work in flight, green for work done: measured apart in both
+     themes, and every slice is named in the key besides. */
+  const PIPE_DOT=['var(--color-neutral-500)','var(--st-amber-dot)','var(--st-green-dot)'];
+  const hmCounts=PIPE_DEF.map(st=>cs.filter(c=>c.status===st.k).length);
+  const hmTotal=hmCounts.reduce((a,b)=>a+b,0);
+  /* Whichever stage is listed. Per sitting, in memory — a working preference,
+     not a setting. Falls back to the first stage that has anything in it. */
+  if(_hmStage==null||!PIPE_DEF.some(st=>st.k===_hmStage))
+    _hmStage=(PIPE_DEF[Math.max(0,hmCounts.findIndex(n=>n>0))]||PIPE_DEF[0]).k;
+  const hmIdx=()=>Math.max(0,PIPE_DEF.findIndex(st=>st.k===_hmStage));
+  const hmPct=i=>hmTotal?Math.round((hmCounts[i]/hmTotal)*100):0;
+
+  const RING_R=70, RING_C=2*Math.PI*70, RING_SEG_GAP=5;
+  const hmArcsHtml=()=>{ let at=0;
+    return PIPE_DEF.map((st,i)=>{
+      const len=hmTotal?(hmCounts[i]/hmTotal)*RING_C:0;
+      const draw=Math.max(len-RING_SEG_GAP,0), on=i===hmIdx();
+      const arc=`<circle class="hm-seg" cx="100" cy="100" r="${RING_R}" fill="none"`
+        +` stroke="${PIPE_DOT[i]}" stroke-width="${on?34:26}"`
+        +` stroke-dasharray="${draw.toFixed(2)} ${(RING_C-draw).toFixed(2)}" stroke-dashoffset="${(-at).toFixed(2)}"`
+        +` tabindex="0" role="button" aria-pressed="${on}" data-hm-stage="${st.k}"`
+        +` aria-label="${esc(st.n+'. '+st.title)} — ${hmCounts[i]}"></circle>`;
+      at+=len; return arc;
+    }).join('');
+  };
+
+  const hmKeyHtml=()=>PIPE_DEF.map((st,i)=>
+    `<button class="hm-leg" type="button" data-hm-stage="${st.k}" aria-pressed="${i===hmIdx()}">
+      <span class="hm-leg-dot" style="background:${PIPE_DOT[i]}"></span>
+      <span class="hm-leg-name">${st.n}. ${esc(st.title)}</span>
+      <span class="hm-leg-n">${hmCounts[i]}</span>
+      <span class="hm-leg-pct">${hmPct(i)}%</span>
+      <span class="hm-leg-bar"><i style="width:${hmPct(i)}%;background:${PIPE_DOT[i]}"></i></span>
+    </button>`).join('');
+
+  /* A ROW IS TWO LINES, NOT THREE: the name, then the state and the
+     counterparty sharing one — the same facts the old card carried, in two
+     thirds of the height, which is what puts more of them on screen.
+
+     THE FLAG ONLY SAYS WHAT THE HEADING DOES NOT. The list is titled with the
+     stage, so repeating it on every row is the same word twice; what the
+     heading cannot say is which are executed and which need somebody. */
+  const pipeRow=(c,st)=>{
     const risky=st.k==='Under Review'&&contractRisk(c)>=60;
-    const sub=st.k==='Signed'
-      ? `<span style="color:var(--st-green-fg);font-weight:600;display:inline-flex;align-items:center;gap:4px;">${icon('check2','w-3 h-3',2)}${c.signedAt?i18t('home_stage_executed'):i18t('home_signed')}</span>`
-      : `<span style="color:var(--color-neutral-500);">${esc(c.counterparty||i18t('home_no_counterparty_yet'))}</span>`;
-    return `<button data-sel="${c.id}" style="display:block;width:100%;text-align:left;padding:9px 10px;border-radius:10px;background:var(--color-surface);border:1px solid ${st.bd};font:inherit;color:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='${st.bd}'">
-      <span style="display:flex;align-items:flex-start;justify-content:space-between;gap:7px;">
-        <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${esc(c.name)}</span>
-        ${risky?`<span style="flex:none;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${i18t('home_action')}</span>`:''}
-      </span>
-      <span style="display:block;margin-top:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</span>
+    const flag=st.k==='Signed'
+      ? `<span class="hm-row-flag" style="color:var(--st-green-fg);">${icon('check2','w-3 h-3',2)}${c.signedAt?i18t('home_stage_executed'):i18t('home_signed')}</span>`
+      : risky ? `<span class="hm-row-flag" style="color:var(--st-amber-fg);">${i18t('home_action')}</span>` : '';
+    return `<button data-sel="${c.id}" class="hm-row" type="button">
+      <span class="hm-row-name">${esc(c.name)}</span>
+      <span class="hm-row-meta">${flag}${flag?'<span class="hm-row-sep">&middot;</span>':''}<span class="hm-row-cp">${esc(c.counterparty||i18t('home_no_counterparty_yet'))}</span></span>
     </button>`;
   };
-  const pipeCols=PIPE_DEF.map(st=>{
+
+  /* EIGHT IN THE BOX, THE REST BEHIND THE LINK — and the box takes the height
+     that is left rather than asking for one, so the card cannot grow when the
+     stage changes. */
+  const hmSideHtml=()=>{
+    const i=hmIdx(), st=PIPE_DEF[i];
     const list=cs.filter(c=>c.status===st.k);
-    /* AS MANY AS THE WINDOW HAS ROOM FOR, not a fixed two.
-       Two was chosen when this row set its own height and the Decisions card
-       beside it filled into whatever that came to. The row now grows to fill
-       the page instead (see .hm-main-row), so a hard slice of two meant a
-       1920x950 screen showed six contracts and left 306px of the dashboard
-       blank — the dead band under the cards that was reported. The list below
-       scrolls inside its own column, so a short window still shows two and a
-       tall one shows what it has room for. "+N more" stays outside the scroll,
-       pinned at the foot of the column, and still carries the rest. */
-    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,6);
-    return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-surface);border:1px solid ${st.bd};min-width:0;min-height:0;">
-      <button data-stage="${st.k}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:inherit;">
-        <span style="font-size:11.5px;font-weight:700;color:${st.fg};">${st.n}. ${st.title}</span>
-        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${i18tn('home_docs',list.length,{n:list.length})}</span>
-      </button>
-      <div class="hm-pipe-list scroll-thin" style="display:flex;flex-direction:column;gap:7px;">
-        ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">${i18t('home_nothing_at_stage')}</div>`}
+    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,8);
+    return `<div class="hm-side-head">
+        <h5 class="hm-side-title" style="color:${st.fg};">${st.n}. ${esc(st.title)}</h5>
+        <button class="hm-side-count" type="button" data-stage="${st.k}" style="background:${st.chip};color:${st.fg};">${i18tn('home_docs',hmCounts[i],{n:hmCounts[i]})}</button>
       </div>
-      ${list.length>shown.length?`<button data-stage="${st.k}" style="flex:none;border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${i18t('home_more_arrow',{n:list.length-shown.length})}</button>`:''}
-    </div>`;
-  }).join('');
+      <div class="hm-pipe-list scroll-thin" id="hm-list">${
+        shown.map(c=>pipeRow(c,st)).join('')||`<div class="hm-row-none">${i18t('home_nothing_at_stage')}</div>`}</div>
+      <div class="hm-side-foot">${list.length>shown.length
+        ? `<button data-stage="${st.k}" class="hm-side-more" type="button">${i18t('home_more_arrow',{n:list.length-shown.length})}</button>` : ''}</div>`;
+  };
+
   const lifecycleSection=`
     <section class="hm-pipe-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
       <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
         <h4 style="font-size:15px;margin:0;font-weight:700;">${i18t('home_pipeline_aria')}</h4>
         <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">${i18t('home_view_register')}</button>
       </div>
-      <div class="hm-pipe-cols" style="display:grid;gap:11px;">${pipeCols}</div>
+      <div class="hm-pipe-cols" style="display:grid;gap:11px;">
+        <div class="hm-pipe-chart" id="hm-pipe-chart">
+          <div class="hm-ring-row" id="hm-ring-row">
+            <div class="hm-ring-block">
+              <div class="hm-ring-stage">
+                <svg viewBox="0 0 200 200" role="img" aria-label="${esc(i18t('home_pipeline_aria'))}">
+                  <circle cx="100" cy="100" r="${RING_R}" fill="none" stroke="var(--color-neutral-100)" stroke-width="26"></circle>
+                  <g id="hm-segs" transform="rotate(-90 100 100)">${hmArcsHtml()}</g>
+                </svg>
+                <div class="hm-ring-centre">
+                  <div class="hm-ring-fig" id="hm-fig">${hmCounts[hmIdx()]}</div>
+                  <div class="hm-ring-of" id="hm-of">${i18t('home_pipe_of_live',{n:hmTotal})}</div>
+                </div>
+              </div>
+              <div class="hm-ring-what" id="hm-what">${esc(PIPE_DEF[hmIdx()].title)}<small>${esc(i18t('home_pipe_share',{n:hmPct(hmIdx())}))}</small></div>
+            </div>
+            <div class="hm-key" id="hm-key">${hmKeyHtml()}</div>
+          </div>
+          <div class="hm-ring-hint" id="hm-hint">${i18t('home_pipe_pick')}</div>
+        </div>
+        <div class="hm-pipe-side" id="hm-side">${hmSideHtml()}</div>
+      </div>
     </section>`;
 
   /* ---- DECISIONS DUE (in the design's feed slot) ----
@@ -816,6 +899,81 @@ function renderDashboard(){
     e.preventDefault(); e.stopPropagation();
     if(typeof openAI==='function') openAI('What needs my attention in the next 90 days — renewals, expiries and anything overdue?');
   });
+  /* ---- PRESSING A STAGE SWAPS THE CARD'S CONTENTS AND NOTHING ELSE ----
+     Repainted in place rather than re-rendering the dashboard: the rest of the
+     page does not so much as reflow. The handlers sit on the three containers,
+     which survive a repaint, so they are attached once per render and never
+     stack. */
+  const hmPane=document.getElementById('hm-pipe-chart');
+  if(hmPane){
+    const hmSegs=document.getElementById('hm-segs');
+    const hmKey=document.getElementById('hm-key');
+    const hmSide=document.getElementById('hm-side');
+    const hmRow=document.getElementById('hm-ring-row');
+
+    const hmPaint=()=>{
+      const i=hmIdx();
+      hmSegs.innerHTML=hmArcsHtml();
+      hmKey.innerHTML=hmKeyHtml();
+      hmSide.innerHTML=hmSideHtml();
+      document.getElementById('hm-fig').textContent=hmCounts[i];
+      document.getElementById('hm-what').innerHTML=
+        esc(PIPE_DEF[i].title)+'<small>'+esc(i18t('home_pipe_share',{n:hmPct(i)}))+'</small>';
+    };
+
+    /* THE RING IS MEASURED FROM THE CARD, NEVER THE OTHER WAY ROUND. The card's
+       height belongs to .hm-main-row; the chart is sized to whatever it is
+       handed and can never push the card taller. */
+    const RING_FLOOR=84, RING_MIN=120, RING_MAX=236, KEY_MIN=250, PANE_PAD=20, PANE_GAP=18;
+    const hmFit=()=>{
+      if(!hmPane.getBoundingClientRect) return;      // not a measuring DOM
+      const r=hmPane.getBoundingClientRect();
+      if(!r.height||!r.width) return;                // a hidden pane has no width
+      /* Each step down drops the cheapest line left on the card — first the
+         hint, then the proportion bars — and only when the key genuinely does
+         not fit the height the card has. Measured, not a magic width. */
+      hmPane.classList.remove('hm-tight','hm-vtight');
+      const fits=()=>hmKey.scrollHeight<=r.height-PANE_PAD;
+      if(!fits()||r.height<300) hmPane.classList.add('hm-tight');
+      if(!fits()) hmPane.classList.add('hm-vtight');
+      const chrome=hmPane.classList.contains('hm-tight')?34:56;
+      const keyH=hmKey.scrollHeight;
+      const beside=Math.min(r.height-PANE_PAD-chrome, r.width-PANE_PAD-PANE_GAP-KEY_MIN);
+      const stacked=Math.min(r.height-PANE_PAD-chrome-keyH-10, r.width-PANE_PAD);
+      /* Stacking has to EARN its place: only when it leaves a bigger ring AND
+         still leaves a usable one. Taking it on a short card is what pushes the
+         key out through the bottom of the pane. */
+      const stack=stacked>beside&&stacked>=RING_MIN;
+      hmRow.classList.toggle('hm-stack',stack);
+      /* RING_MIN is a preference, not a floor to clamp UP to — clamping a
+         negative budget up to 120px is how a chart grows larger than the space
+         it is being fitted into. */
+      hmPane.style.setProperty('--hm-ring',
+        Math.max(RING_FLOOR,Math.min(RING_MAX,Math.floor(stack?stacked:beside)))+'px');
+    };
+
+    const hmPick=k=>{
+      if(!k||k===_hmStage) return;
+      _hmStage=k; hmPaint(); hmFit();
+      const hint=document.getElementById('hm-hint'); if(hint) hint.hidden=true;
+    };
+    hmSegs.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest('.hm-seg'); if(el) hmPick(el.getAttribute('data-hm-stage')); });
+    hmSegs.addEventListener('keydown',e=>{ const el=e.target.closest&&e.target.closest('.hm-seg'); if(!el) return;
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); hmPick(el.getAttribute('data-hm-stage')); } });
+    hmKey.addEventListener('click',e=>{ const el=e.target.closest&&e.target.closest('.hm-leg'); if(el) hmPick(el.getAttribute('data-hm-stage')); });
+    /* The list is rebuilt on every press, so its rows are reached by
+       delegation from the pane that survives — not bound per row. */
+    hmSide.addEventListener('click',e=>{
+      const t=e.target.closest&&e.target.closest('[data-sel],[data-stage]');
+      if(!t) return;
+      if(t.hasAttribute('data-sel')) selectContract(t.getAttribute('data-sel'));
+      else { const Rg=regState(); Rg.stage=t.getAttribute('data-stage'); Rg.type='all'; Rg.sel={}; setView('register'); }
+    });
+
+    hmFit();
+    if(typeof ResizeObserver==='function') new ResizeObserver(hmFit).observe(hmPane);
+  }
+
   document.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
   document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));

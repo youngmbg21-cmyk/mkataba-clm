@@ -1658,13 +1658,99 @@
   .hm-pipe-cols{flex:1;min-height:0;}
   .hm-pipe-list{flex:1;min-height:96px;overflow-y:auto;}
 
-  /* Home — lifecycle pipeline (was repeat(3,minmax(0,1fr))) */
-  .hm-pipe-cols{grid-template-columns:repeat(3,minmax(0,1fr));}
+  /* ---- THE PIPELINE CARD'S INSIDE: one ring, one list (13 Aug 2026) ----
+     THE CARD'S BOX IS NOT TOUCHED BY ANY OF THIS. Its height comes from
+     .hm-main-row above and it is exactly as tall as Decisions due beside it;
+     every rule here carries min-height:0 so nothing in the card can push it
+     taller. The list scrolls, the same as the three columns did.
+
+     Type comes from the app's own tokens — --font-heading for the figure and
+     the stage name, everything else inherits --font-body. */
+  .hm-pipe-chart{min-height:0;min-width:0;overflow:hidden;border:1px solid var(--color-divider);
+    border-radius:14px;background:var(--color-bg);padding:10px 12px;
+    display:flex;flex-direction:column;justify-content:center;gap:8px;}
+  /* A GRID, NOT A FLEX ROW: as flex items the key could be sized below its own
+     content, and on a short card its three rows were squeezed into 24px and
+     pushed out through the bottom of the pane. Grid items take their content
+     as a floor, so if the height runs short it is the RING that gives way —
+     which is the right thing to lose. */
+  .hm-ring-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:18px;min-height:0;}
+  .hm-ring-row.hm-stack{grid-template-columns:minmax(0,1fr);justify-items:center;gap:10px;}
+  .hm-ring-row.hm-stack .hm-key{width:100%;}
+  .hm-ring-block{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;}
+  .hm-ring-stage{position:relative;display:grid;place-items:center;}
+  /* --hm-ring is measured off the pane by hmFit and is the ONLY thing that
+     sizes the chart: the card's height decides the ring, never the reverse. */
+  .hm-ring-stage svg{width:var(--hm-ring,200px);height:var(--hm-ring,200px);display:block;}
+  .hm-seg{fill:none;stroke-linecap:butt;cursor:pointer;transition:stroke-width .18s ease;}
+  .hm-seg:focus{outline:none;}
+  .hm-seg:focus-visible{outline:2px solid var(--accent-solid);outline-offset:4px;}
+  .hm-ring-centre{position:absolute;inset:0;display:grid;place-content:center;text-align:center;pointer-events:none;}
+  .hm-ring-fig{font-family:var(--font-heading);font-weight:800;line-height:1;letter-spacing:-.03em;
+    color:var(--color-text);font-size:calc(var(--hm-ring,200px) * .2);font-variant-numeric:tabular-nums;}
+  .hm-ring-of{margin-top:4px;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);}
+  /* The stage name sits UNDER the ring, not in it — in the hole it ran wider
+     than the hole is, and the fix for that is a slot with room in it. */
+  .hm-ring-what{text-align:center;font-family:var(--font-heading);font-size:12.5px;font-weight:700;color:var(--color-text);}
+  .hm-ring-what small{display:block;margin-top:1px;font-family:var(--font-body);font-size:10.5px;font-weight:500;color:var(--color-neutral-600);}
+  .hm-ring-hint{flex:none;text-align:center;font-size:10.5px;color:var(--color-neutral-500);}
+  .hm-ring-hint[hidden],.hm-tight .hm-ring-hint{display:none;}
+
+  .hm-key{min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .hm-leg{flex:none;display:grid;grid-template-columns:11px 1fr auto auto;align-items:center;
+    gap:3px 10px;width:100%;background:none;border:1px solid transparent;border-radius:9px;
+    padding:8px 10px;cursor:pointer;text-align:left;font:inherit;color:var(--color-text);}
+  .hm-leg:hover{background:var(--color-surface);border-color:var(--color-divider);}
+  .hm-leg:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px;}
+  .hm-leg[aria-pressed="true"]{background:var(--color-surface);border-color:var(--color-divider);box-shadow:var(--shadow-sm);}
+  .hm-leg-dot{width:11px;height:11px;border-radius:3px;}
+  .hm-leg-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-leg-n{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .hm-leg-pct{font-size:10.5px;color:var(--color-neutral-500);width:30px;text-align:right;font-variant-numeric:tabular-nums;}
+  /* The ring says share by angle; the bar says it by length — the same fact in
+     the form that is easiest to compare. First thing to go when space is short. */
+  .hm-leg-bar{grid-column:2/-1;height:4px;border-radius:999px;background:var(--color-neutral-100);overflow:hidden;}
+  .hm-leg-bar i{display:block;height:100%;border-radius:999px;}
+  .hm-vtight .hm-leg-bar{display:none;}
+  .hm-vtight .hm-leg{padding:6px 10px;}
+
+  .hm-pipe-side{display:flex;flex-direction:column;min-width:0;min-height:0;
+    border:1px solid var(--color-divider);border-radius:14px;overflow:hidden;}
+  .hm-side-head{flex:none;display:flex;align-items:center;gap:8px;padding:9px 11px 7px;}
+  .hm-side-title{font-family:var(--font-heading);font-size:12.5px;font-weight:700;margin:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-side-count{margin-left:auto;flex:none;border:0;font:inherit;font-size:10px;font-weight:700;
+    padding:3px 9px;border-radius:999px;cursor:pointer;font-variant-numeric:tabular-nums;}
+  .hm-pipe-side .hm-pipe-list{padding:0 9px 5px;display:flex;flex-direction:column;gap:5px;}
+  .hm-side-foot{flex:none;padding:6px 11px 7px;}
+  .hm-side-foot:not(:empty){border-top:1px solid var(--color-divider);}
+  .hm-side-more{border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;
+    color:var(--color-accent-600);cursor:pointer;text-align:left;}
+
+  /* A ROW IS TWO LINES: the name, then the state and the counterparty sharing
+     one. Three separate lines cost 73px a row, which on a short card showed one
+     and a half of them. */
+  .hm-row{flex:none;display:block;width:100%;text-align:left;padding:7px 10px;border-radius:9px;
+    background:var(--color-surface);border:1px solid var(--color-divider);font:inherit;color:inherit;
+    cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s;}
+  .hm-row:hover{border-color:var(--accent-solid);}
+  .hm-row-name{display:block;font-size:12px;font-weight:600;color:var(--color-text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hm-row-meta{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:10.5px;
+    color:var(--color-neutral-500);min-width:0;}
+  .hm-row-flag{display:inline-flex;align-items:center;gap:4px;font-weight:600;white-space:nowrap;flex:none;}
+  .hm-row-sep{color:var(--color-neutral-400);}
+  .hm-row-cp{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hm-row-none{font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;}
+
+  /* Home — lifecycle pipeline: two thirds to the ring, one third to the list
+     (was repeat(3,minmax(0,1fr)) when it drew three columns). */
+  .hm-pipe-cols{grid-template-columns:2fr 1fr;}
   /* Home — pipeline beside decisions (was 2fr 1fr). The decisions card fills
      its column absolutely, so when the row stacks it needs a height to fill. */
   .hm-main-row{grid-template-columns:2fr 1fr;}
   @media (max-width:1199px){
-    .hm-pipe-cols{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+    .hm-pipe-cols{grid-template-columns:minmax(0,1fr);}
     .hm-main-row{grid-template-columns:minmax(0,1fr);}
     .hm-decisions{min-height:320px;}
   }
