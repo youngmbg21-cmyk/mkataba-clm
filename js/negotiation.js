@@ -90,6 +90,29 @@ const negoClauseById = (c, id) => negoClauseList(c).find(cl => cl.clauseId === i
 function negoExecuted(c){
   return !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
 }
+/* ---- AND THE WORDING FREEZES AT THE FIRST SIGNATURE (owner-ruled 14 Aug 2026) ----
+   negoExecuted is true when the LAST signer has signed and the seal is taken.
+   On a route with more than one signer there is a window between the first
+   mark and that moment, and in it the wording could still be changed — so the
+   first signer's name ended up on a document they had not seen. What they
+   signed is what they were shown; a contract that moves underneath a signature
+   is not the contract that was signed.
+
+   ONE PREDICATE, TWO SIGNALS, matching signingLocked in js/approvals.js — which
+   already reads both stores for the ROUTE, and for the same reason: a
+   counterparty's mark reaches c.signatures only when the owner's browser
+   applies it, while an internal signer's lands on the plan row. Reading one
+   alone leaves the other half of the window open.
+
+   This is the wording lock ONLY. Numbering, obligations, the audit trail and
+   the signature-taking itself are unaffected — the point is that the words
+   stop moving, not that the contract stops working. */
+function negoAnySignature(c){
+  if (!c) return false;
+  if (Array.isArray(c.signatures) && c.signatures.length) return true;
+  return (Array.isArray(c.signerPlan) ? c.signerPlan : []).some(s => s && s.signed);
+}
+const negoWordingFrozen = c => negoExecuted(c) || negoAnySignature(c);
 
 /* ---------- THE NUMBERING OF AN EXECUTED CONTRACT IS FINAL ----------
    The same predicate under the name that says WHY it is being asked, because
@@ -1024,8 +1047,8 @@ async function negoFileChange(c, draft, opts = {}){
      will too, and it inherits this without knowing it needs to. Before
      negoInit, because a refusal must not leave initialisation behind as its
      only trace. */
-  if (negoExecuted(c)){
-    if (window.toast) toast(i18t('ne_executed_amend'), 'err');
+  if (negoWordingFrozen(c)){
+    if (window.toast) toast(i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen'), 'err');
     return null;
   }
   negoInit(c);
@@ -1726,8 +1749,8 @@ function negoResolve(c, id, status, opts = {}){
      numbering lock reads the identical fact and had no business writing the
      expression out a second time — two copies is how one of them comes to be
      the narrowed version this comment exists to warn about. */
-  if (negoExecuted(c)){
-    if (window.toast) toast(i18t('ne_executed_amend'), 'err');
+  if (negoWordingFrozen(c)){
+    if (window.toast) toast(i18t(negoExecuted(c) ? 'ne_executed_amend' : 'ne_signed_frozen'), 'err');
     return null;
   }
   const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
@@ -3240,7 +3263,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
-  negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
+  negoAnySignature, negoWordingFrozen, negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,

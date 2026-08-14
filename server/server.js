@@ -7437,9 +7437,22 @@ function runReminders() {
       (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
   const kidsOf = new Map();
   for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
+  /* ---- ONLY A SIGNED AMENDMENT MOVES THE TERM (owner-ruled 14 Aug 2026) ----
+     The twin of effectiveExpiry in js/family.js, and it has to move with it or
+     the reminder this function sends disagrees with the date the screens show.
+     A DRAFT amendment used to move the term, so a renewal reminder could be
+     suppressed — or brought forward — by a document nobody had signed. That is
+     the sharpest form of the risk, because a reminder is acted on without
+     anybody re-checking why it says what it says.
+
+     Executed, not merely 'Signed': the same three signals isExecutedRow reads,
+     for the same reason. A Declined child was already excluded at the query. */
+  const executedKid = (k) => { const f = parsed.get(k.id) || {};
+    return !!(k.status === 'Signed' || f.hash || (f.execution && f.execution.at)); };
   const effExpiry = (r) => {
     if (r.parent_id) return ownExp(r);
-    const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation) && ownExp(k));
+    const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation)
+      && ownExp(k) && executedKid(k));
     if (!kids.length) return ownExp(r);
     kids.sort((a, b) => String(amendDate(a)).localeCompare(String(amendDate(b))) || String(ownExp(a)).localeCompare(String(ownExp(b))));
     return ownExp(kids[kids.length - 1]);

@@ -2047,7 +2047,24 @@ async function verifySeal(c){
   const div=(typeof executedDivergence==='function')?executedDivergence(c):null;
   if(div){ toast(i18t('co_seal_valid_but')
     +'the sealed copy is the evidence of record','err'); return; }
-  toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
+  /* ---- AND A WEAK SEAL IS NAMED (owner-ruled 14 Aug 2026) ----
+     sha256 falls back to a 32-bit rolling hash when crypto.subtle is missing —
+     which browsers withhold outside a secure context — and that fallback is
+     correct: refusing to let anybody sign because the connection is not https
+     would be worse. What was wrong is what this button said afterwards. It
+     reported "Seal valid" with exactly the same confidence over a fingerprint
+     with eight characters of real information in it, repeated to fill the shape
+     of a real one, so the two are indistinguishable on screen.
+
+     Two other surfaces in the product already say this — the settings
+     integrity check and negoIntegrityReport's 'weak-digest' — and this one
+     simply never asked. Asked BEFORE the comparison as well as reported after,
+     because sha256IsReal() answers for the fallback having been used at all,
+     not only for this call. */
+  const weak=(typeof sha256IsReal==='function')&&!sha256IsReal();
+  const ok=isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact';
+  if(weak){ toast(`${ok}. ${i18t('co_seal_weak')}`,'err'); return; }
+  toast(ok);
 }
 function downloadFile(name, content, type='application/json'){
   const a=document.createElement('a');
@@ -2933,9 +2950,27 @@ function buildSharePayload(c, docHash, who, opts){
          tell a signed-and-waiting contract from an unsigned draft (field
          report, 02 Aug 2026). Name, capacity, form, time and the adopted mark
          image: the same face the executed copy will carry. */
-      signatures:(c.signatures||[]).length?c.signatures.map(s=>({ party:s.party, name:s.name,
-        title:s.title||null, email:s.email||null, at:s.at||null,
-        form:s.form||s.method||null, image:s.image||null })):undefined,
+      /* ---- BUT THE ADDRESS AND THE MARK WAIT FOR EXECUTION (owner-ruled 14 Aug 2026) ----
+         The field report above is answered by the NAME, the capacity and the
+         DATE: those say "signed and waiting on you", which is the whole thing
+         the counterparty could not tell before. The email address and the
+         rendered signature image say nothing about that and were travelling
+         from the first internal signature — on a NEGOTIATION link, to a party
+         who has signed nothing. Ten lines above this, signingOpen is reduced to
+         a bare boolean with the reasoning that "the signing route names
+         colleagues and their addresses, and none of that is the counterparty's
+         to read"; this is the same fact arriving by another door.
+
+         AND A HELD SIGNATURE IMAGE IS THE RAW MATERIAL FOR FORGERY. Once the
+         contract is executed both sides hold the same executed copy and the
+         mark is on the face of it, which is what a signature is for. Before
+         that it is ours. */
+      signatures:(c.signatures||[]).length?c.signatures.map(s=>{
+        const done=!!(c.execution&&c.execution.at)||c.status==='Signed'||!!c.hash;
+        return { party:s.party, name:s.name, title:s.title||null, at:s.at||null,
+          form:s.form||s.method||null,
+          email:done?(s.email||null):null, image:done?(s.image||null):null };
+      }):undefined,
       /* The negotiation, as the other side must see it: the same fingerprints,
          the same statuses and the same baseline the owner's tab is reading. Two
          screens built from one payload cannot disagree about what was agreed. */

@@ -109,16 +109,57 @@ const ownExpiry = c => (window.dateOnly
    dates a migrated document actually tends to carry. */
 const amendmentDate = c => (c&&((c.metadata&&c.metadata.effectiveDate) || (c.fields&&c.fields.effDate) ||
   (c.signedAt&&String(c.signedAt).slice(0,10)) || (c.migration&&c.migration.importedAt&&String(c.migration.importedAt).slice(0,10)))) || '';
+/* ---- ONLY A SIGNED AMENDMENT MOVES THE LIVE DATE (owner-ruled 14 Aug 2026) ----
+   This counted any non-Declined child, so typing a new end date into a DRAFT
+   amendment moved the master agreement's live expiry — and its renewal
+   reminder — before anybody had signed anything. The behaviour was deliberate
+   and documented; the audit put it to the owner as legal risk and the owner
+   ruled against it.
+
+   THE REASON IS THAT AN UNSIGNED AMENDMENT HAS NO EFFECT. Somebody reading
+   that date and deciding not to serve a renewal notice has taken a costly
+   decision on a term that does not yet exist. A renewal reminder is exactly
+   the kind of thing acted on without re-checking why it says what it says.
+
+   AND THE OLD BEHAVIOUR IS NOT SIMPLY DELETED — the reason for it was real.
+   proposedExpiry below is the other half: the draft's proposal is still known,
+   still shown, and stated BESIDE the live date rather than replacing it, so
+   "ends 30 June 2027 · a draft amendment proposes 31 December 2029" is what a
+   reader sees while the term is being negotiated. Nothing acts on the
+   proposal; everything acts on the live date.
+
+   EXECUTED, NOT MERELY 'Signed'. A document carrying a seal or an execution
+   stamp is executed whatever its status field says — the same three signals
+   negoExecuted and the server's isExecutedRow read, and reducing this to the
+   status alone is the narrowing both of those exist to prevent. */
+const amendmentExecuted = k => !!(k && (k.status==='Signed' || k.hash || (k.execution && k.execution.at)));
+const _termKids = c => familyChildren(c.id)
+  .filter(k=>k.status!=='Declined' && TERM_CHANGING.has(k.relation) && ownExpiry(k));
+/* most recent amendment that actually states a term wins */
+const _latestTerm = kids => { if(!kids.length) return null;
+  const s=kids.slice().sort((a,b)=> String(amendmentDate(a)).localeCompare(String(amendmentDate(b))) ||
+                    String(ownExpiry(a)).localeCompare(String(ownExpiry(b))));
+  return s[s.length-1]; };
 function effectiveExpiry(c){
   if(!c) return null;
   if(c.parentId) return ownExpiry(c);          // a child speaks only for itself
-  const kids=familyChildren(c.id)
-    .filter(k=>k.status!=='Declined' && TERM_CHANGING.has(k.relation) && ownExpiry(k));
-  if(!kids.length) return ownExpiry(c);
-  // most recent amendment that actually states a term wins
-  kids.sort((a,b)=> String(amendmentDate(a)).localeCompare(String(amendmentDate(b))) ||
-                    String(ownExpiry(a)).localeCompare(String(ownExpiry(b))));
-  return ownExpiry(kids[kids.length-1]);
+  const signed=_termKids(c).filter(amendmentExecuted);
+  const win=_latestTerm(signed);
+  return win ? ownExpiry(win) : ownExpiry(c);
+}
+/* What a DRAFT amendment is asking the term to become, and which document is
+   asking. Null where nothing unsigned proposes a different date — so a screen
+   can draw the sentence only when there is one, and an always-on line never
+   becomes furniture. Never contradicts effectiveExpiry: it is the proposal,
+   said as a proposal. */
+function proposedExpiry(c){
+  if(!c || c.parentId) return null;
+  const unsigned=_termKids(c).filter(k=>!amendmentExecuted(k));
+  const win=_latestTerm(unsigned);
+  if(!win) return null;
+  const date=ownExpiry(win);
+  if(!date || date===effectiveExpiry(c)) return null;   // proposing what already stands is not a proposal
+  return { date, from:win, id:win.id };
 }
 /* Which contract supplied the effective expiry — so the UI can say "expiry from
    MK-123 (Amendment No. 2)" instead of quietly showing a different date. */
@@ -301,7 +342,7 @@ function renderFamilySection(c){
   if(!c){ host.innerHTML=''; return; }
   const kids=familyChildren(c.id), parent=familyParent(c);
   const suggested=(c.linkSuggestions||[]).filter(s=>getContract(s.id));
-  const eff=effectiveExpiry(c), from=expirySource(c);
+  const eff=effectiveExpiry(c), from=expirySource(c), prop=proposedExpiry(c);
   const btn='font:inherit;font-size:11.5px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 11px;cursor:pointer';
   const row=(x,note)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:8px;align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:12px;color:inherit">
       <b style="font-family:var(--font-mono);font-size:11px;color:var(--color-accent-700);flex:none">${_famEsc(x.id)}</b>
@@ -345,6 +386,7 @@ function renderFamilySection(c){
            <div class="fam-list">${row(parent,'parent agreement')}</div>`
         : kids.length
         ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_this_is_a')} ${i18tn('fa_master_with',kids.length,{n:kids.length})} The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
+           ${prop?`<p style="font-size:11.5px;color:var(--st-amber-fg);margin:0 0 8px;line-height:1.55">${i18t('fa_proposed_term',{date:_famEsc(prop.date),id:_famEsc(prop.id)})}</p>`:''}
            <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}</div>`
         : `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
@@ -679,5 +721,5 @@ Object.assign(window,{openLinkModal,unlinkContract,renderFamilySection,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,
   CONTRACT_RELATIONS,RELATION_LABEL,TERM_CHANGING,isRelation,
   isChild,isParent,familyChildren,familyParent,familyOf,linkError,applyParentLink,clearParentLink,
-  ownExpiry,amendmentDate,effectiveExpiry,expirySource,isAgreement,agreementsIn,familyCounts,familyCountLabel,
+  ownExpiry,amendmentDate,effectiveExpiry,proposedExpiry,amendmentExecuted,expirySource,isAgreement,agreementsIn,familyCounts,familyCountLabel,
   AMENDMENT_RE,looksLikeAmendment,guessRelation,suggestParents,logLinkSuggestion,logLinkDecision});
