@@ -1,10 +1,20 @@
-/* AUDIT REPRO: a share created from the phone leaves no line in the audit trail.
-   The phone's mShareCreate (js/mobile-contract.js) POSTs /api/shares and stops.
-   The desktop share dialog additionally calls logAudit('Shared', …) + persist.
-   The server does NOT append a 'Shared' line on POST /api/shares. So a
-   phone-originated send is invisible in c.audit AND in negoTimeline (whose
-   'link' beat is read from c.audit). This script proves the SERVER half:
-   POST /api/shares changes nothing in the contract's audit trail. */
+/* AUDIT REPRO — REVERSED IN PLACE 14 Aug 2026, when the finding was fixed.
+   ============================================================
+   THE FINDING IT WAS WRITTEN FOR: a share created from the phone left no line
+   in the audit trail. The phone's mShareCreate (js/mobile-contract.js) POSTs
+   /api/shares and stops; the desktop share dialog additionally called
+   logAudit('Shared', …) + persist; and the server appended nothing. So a
+   phone-originated send was invisible in c.audit AND in negoTimeline (whose
+   'link' beat is read from c.audit), while the link itself worked perfectly.
+
+   THE FIX put the line on the SERVER, at POST /api/shares — the one route every
+   send passes through — rather than copying the missing call into the phone, so
+   any future route in is recorded by construction.
+
+   So this script now asserts the OPPOSITE of what it first asserted, and it is
+   the same claim either way: a send is in the record. It reproduces the phone
+   exactly — build a payload, POST it, do nothing else — and requires the trail
+   to have grown. Fails against the old server. */
 const assert = require('node:assert');
 const { startHati, seedWorkspace } = require('../helpers.js');
 
@@ -35,11 +45,14 @@ const { startHati, seedWorkspace } = require('../helpers.js');
     console.log('audit entries before:', auditBefore.length, '| after:', auditAfter.length);
     console.log("'Shared' entries before:", sharedBefore, '| after:', sharedAfter);
 
-    // THE FINDING: the send happened, but the trail did not grow a 'Shared' line.
-    assert.strictEqual(sharedAfter, sharedBefore,
-      'server recorded a Shared line by itself (would mean the phone gap is covered)');
-    assert.strictEqual(auditAfter.length, auditBefore.length,
-      'server appended SOMETHING to the audit trail on POST /api/shares');
+    // THE CLAIM: a send made the way the PHONE makes it is in the record.
+    assert.strictEqual(sharedAfter, sharedBefore + 1,
+      'POST /api/shares must record exactly one Shared line — a phone send left no trace before this');
+    const line = auditAfter.find(a => a.action === 'Shared');
+    assert.ok(/link sent to/i.test(line.detail || ''),
+      'and the line says what was sent, to whom and by which channel: ' + JSON.stringify(line));
+    assert.ok(line.user, 'and who sent it');
+    console.log('the line reads:', line.detail, '—', line.user);
 
     // And prove the share really exists on the wire (so this is a recorded gap,
     // not a failed send): the shares overview lists it.
@@ -47,8 +60,8 @@ const { startHati, seedWorkspace } = require('../helpers.js');
     const listed = JSON.stringify(ov).includes(id);
     console.log('share visible in /api/shares/overview for', id, ':', listed);
 
-    console.log('\nCONFIRMED: POST /api/shares creates the link but writes NO audit line.');
-    console.log('A phone send (POST-only) is therefore absent from c.audit and from the History timeline.');
+    console.log('\nFIXED: POST /api/shares creates the link AND writes the audit line.');
+    console.log('A phone send is now in c.audit and therefore in the History timeline.');
   } finally {
     await h.stop();
   }

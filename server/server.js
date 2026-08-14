@@ -6120,6 +6120,44 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   /* WO N7: a share created by the owner IS the "sent" moment, whatever the
      channel — the derived view-links and payload refreshes are not. */
   logActivation('sent', shareId, (req.user && req.user.name) || null);
+  /* ---- AND THE CONTRACT'S OWN HISTORY SAYS SO (audit finding 7, 14 Aug 2026) ----
+     "When did we send this to them, and who sent it?" is one of the first
+     questions asked in a dispute, and the History tab is where somebody goes to
+     answer it. The line was written by the DESKTOP share dialog, so a link sent
+     from the phone left no trace at all: the link worked, appeared under
+     sharing, and the record showed nothing. Nothing looked wrong, which is what
+     made it dangerous.
+
+     WRITTEN HERE, at the one route every send passes through, rather than by
+     copying the missing call into the phone — the same reasoning the change
+     model is built on. Every route in, including any added later, is recorded
+     by construction.
+
+     AND IT DOES NOT DOUBLE UP. The desktop still writes its own richer line
+     (recipient, channel, purpose) before this route is reached, so this looks
+     for a Shared entry already describing this send and adds one only where
+     there is none. The append-only audit guard on the save route is what
+     protects both from being rewritten afterwards. */
+  if (shareId) {
+    try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId);
+      if (row) {
+        const cj = JSON.parse(row.json);
+        const trail = Array.isArray(cj.audit) ? cj.audit : [];
+        const recent = Date.now() - 120000;
+        const already = trail.some(a => a && /^Shared$/i.test(String(a.action || ''))
+          && Date.parse(a.at || '') >= recent);
+        if (!already) {
+          const who = String(rec.name || email || phone || 'a recipient');
+          cj.audit = trail.concat([{
+            at: now(), user: (req.user && req.user.name) || 'System', action: 'Shared',
+            detail: `${purp === 'sign' ? 'Signing' : purp === 'view' ? 'Read-only' : 'Negotiation'} link sent to ${who} by ${ch}`,
+          }]);
+          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), shareId);
+        }
+      }
+    } catch (_) { /* the share is made; a missing line must never fail the send */ }
+  }
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
   /* A bound link whose turn has not come yet is created but NOT delivered —

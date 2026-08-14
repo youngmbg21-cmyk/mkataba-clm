@@ -593,9 +593,21 @@ function mContractAct(k, btn){
     if(!c) return;
     try{
       const applied = (typeof negoRenumberApply==='function') ? negoRenumberApply(c) : null;
+      /* ---- AND IT IS SAVED (audit finding 11, 14 Aug 2026) ----
+         negoRenumberApply rewrites the wording, writes a history line and
+         captures a version — all in memory. Nothing here persisted, so the
+         toast below said "recorded in History" over a change that vanished on
+         the next reload, taking the repointed cross-references and the history
+         line with it. The desktop caller has always saved; this one never did.
+         Silent data loss with a confirmation on top of it. */
+      if(applied && window.persist) persist(c);
       mCloseSheet();
+      /* `applied.headings` is an ARRAY of headings, not a count — the desktop
+         reads .length and this printed "[object Object],[object Object]",
+         which is the clearest evidence this path had never been run. */
+      const n = applied ? (Array.isArray(applied.headings) ? applied.headings.length : Number(applied.headings)||0) : 0;
       if(window.toast) toast(applied
-        ? `${applied.headings||''} heading${applied.headings===1?'':'s'} renumbered — recorded in History`.replace(/^ /,'')
+        ? `${n} heading${n===1?'':'s'} renumbered — recorded in History`
         : 'Renumbering was refused — the record says why');
     }catch(e){ if(window.toast) toast(e.message||'Renumbering was refused','err'); }
     mRender();
