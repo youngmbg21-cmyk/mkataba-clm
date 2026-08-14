@@ -104,8 +104,23 @@ const clone = o => JSON.parse(JSON.stringify(o));
     const after = await get(admin, 'MK-A2');
     const took = after.contract.parentId === 'MK-A1';
     const audited = (after.contract.audit || []).some(a => /link|parent|re-fil/i.test(a.action + ' ' + a.detail));
-    verdict('B1', 'a plain Editor can re-parent a contract with no refusal',
-      took, `HTTP ${r.status} · parentId=${after.contract.parentId}`);
+    /* B1 IS A NEW CLAIM SINCE THE FIX, and it is narrower on purpose. Filing a
+       contract under another IS an Editor's act — the Agreement family card
+       offers it to anybody who can edit — so a valid re-parent SUCCEEDING is
+       correct, and the original claim ("with no refusal") stopped being the
+       right question once the shape was guarded. What was actually wrong was
+       that nothing was checked and nothing was written down; B2 and B3 carry
+       those halves. This one now asks the remaining half: is an ILLEGAL parent
+       refused? Families are one level deep, so filing under a document that is
+       itself filed under another must fail. */
+    const deep = await get(ed, 'MK-B2');
+    const dc = clone(deep.contract);
+    dc.parentId = 'MK-A2';                    // MK-A2 is now itself a child
+    const rDeep = await put(ed, 'MK-B2', dc, deep.version);
+    const afterDeep = await get(admin, 'MK-B2');
+    verdict('B1', 'a contract can be filed under one that is itself filed under another',
+      afterDeep.contract.parentId === 'MK-A2',
+      `HTTP ${rDeep.status} · parentId=${afterDeep.contract.parentId || 'none'} (families are one level deep)`);
     verdict('B2', 'and it happens with nothing written to the audit trail',
       took && !audited, audited ? 'an audit line was written' : 'no audit line');
 
@@ -156,7 +171,11 @@ const clone = o => JSON.parse(JSON.stringify(o));
   {
     await admin.json(`/api/users/${((await admin.json('/api/bootstrap')).users || []).find(u => u.email === 'attacker@example.co.ke').id}`,
       { method: 'PATCH', body: { signCap: '1000' } }).catch(() => {});
-    await admin.json('/api/settings', { method: 'PUT', body: { settings: { signCapOn: true } } }).catch(() => {});
+    /* The switch lives at appSettings.signCap.on — see signCapOn(). Sending
+       `signCapOn:true` set a key nothing reads, so this block was measuring a
+       rule that was never in force. That is why the cap looked as though it
+       held when the audit first ran. */
+    await admin.json('/api/settings', { method: 'PUT', body: { signCap: { on: true } } }).catch(() => {});
 
     const cur = await get(ed, 'MK-A2');
     const c = clone(cur.contract);

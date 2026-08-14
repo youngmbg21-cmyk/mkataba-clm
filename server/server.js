@@ -2142,6 +2142,27 @@ app.get('/api/contracts/:id/state', auth, (req, res) => {
 const EXECUTED_IMMUTABLE = [
   'body', 'redlineText', 'format', 'execution', 'signatures', 'hash', 'sealVersion',
   'value', 'valueType', 'counterparty', 'template', 'fields', 'upload', 'signedAt',
+  /* ---- AND THE REST OF WHAT WAS SIGNED (audit finding 1, 14 Aug 2026) ----
+     The wording, the money and the counterparty were frozen; the TITLE of the
+     agreement, WHICH OF OUR ENTITIES is named on it and WHEN IT ENDS were not.
+     All three are printed on the document's own face — docPaperHeadHtml's
+     "Between A and B", the title above it, the term — so a save could change
+     what an executed contract says about itself while the seal went on
+     verifying, because the seal binds the FROZEN party in c.execution rather
+     than the live c.party.
+
+     `status` is the load-bearing one and the reason the others were reachable
+     at all. It was absent, so a save could move a signed contract back to
+     Draft — and the NEXT save, finding a draft in the stored row, let the
+     sealed wording through. Two requests and execution came undone; the attack
+     is block A of test/audit/sim-d-server-attacks.audit.js. Freezing the status
+     closes that, and freezing it is safe for the same reason isExecutedRow can
+     read it: both signing paths write status and seal in one operation, so no
+     legitimate save moves the status of an already-executed record.
+
+     NOT `folder` and NOT `obligations`: both are deliberately mutable after
+     signature and this file says why at each of them. */
+  'status', 'name', 'party', 'expiry', 'metadata',
   /* THE NEGOTIATION RECORD IS EVIDENCE TOO, and was not on this list. The
      wording was protected and the account of how the parties reached it was
      not, so a request could leave the sealed text untouched and rewrite the
@@ -2267,6 +2288,72 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       folderMove: { from: prev.folder || null, to: c.folder || null } });
   }
 
+  /* ---------- FILING ONE CONTRACT UNDER ANOTHER IS AN ACT, AND IT IS RECORDED ----------
+     Audit finding 3. `parentId` and `relation` were guarded nowhere. A plain
+     Editor could file any contract they could see underneath any other simply
+     by saving it that way — no refusal, no audit line, nobody told. That is not
+     cosmetic: a child's renewal reminders stop firing (its expiry is nulled in
+     the reminder query on purpose, because the family's term is the parent's),
+     and it leaves the agreement count. A contract that quietly drops out of
+     your renewal warnings is the one you hear about after it has auto-renewed.
+
+     The browser has always refused the malformed shapes — linkError in
+     js/family.js — and the browser was the only thing refusing them. Two
+     contracts could be made each other's parent through the API, which drops
+     both out of the register's grouped view entirely.
+
+     ASKED AS A DIFFERENCE, exactly like the folder move below it: every
+     ordinary save carries the parent unchanged, so the question is never "may
+     this person touch parents" but "does this save MOVE the contract under a
+     different one, and is the move legal". Guarded on `existing`, so creating a
+     contract already filed against its parent — which is what "Create an
+     amendment" does, in one breath, deliberately — is not caught.
+
+     THE RULES ARE THE BROWSER'S OWN, restated where they can be enforced:
+     the parent must exist, nothing may be its own parent, a document already
+     filed under something cannot become a parent, and a document that has
+     children of its own cannot become a child. Families are one level deep. */
+  if (existing && stable(prev && prev.parentId) !== stable(c.parentId)) {
+    const from = (prev && prev.parentId) || null;
+    const to = c.parentId || null;
+    if (to) {
+      if (String(to) === String(c.id))
+        return res.status(400).json({ error: 'A contract cannot be filed under itself.' });
+      const p = db.prepare('SELECT id, json, folder FROM contracts WHERE id=?').get(String(to));
+      if (!p || !inScope(scope, p.folder))
+        return res.status(404).json({ error: `${to} does not exist, or is not one you can see.` });
+      let pj = null; try { pj = JSON.parse(p.json); } catch (_) { pj = null; }
+      if (pj && pj.parentId)
+        return res.status(400).json({
+          error: `${to} is itself filed under ${pj.parentId}. File this under the master agreement instead `
+            + '— HaTi keeps families one level deep on purpose.' });
+      const kids = db.prepare('SELECT COUNT(*) n FROM contracts WHERE parent_id=?').get(String(c.id));
+      if (kids && kids.n > 0)
+        return res.status(400).json({
+          error: `${c.id} already has ${kids.n} document(s) filed under it, so it is a master agreement. `
+            + 'Move those first if it should become an amendment.' });
+    }
+    /* AND IT IS WRITTEN DOWN, HERE, rather than trusted to whichever screen
+       made the call. The browser writes its own line through applyParentLink
+       and that line is kept (the append-only audit guard below merges rather
+       than replaces); this adds one only where the save arrived without it,
+       which is precisely the case that left no trace — a request made outside
+       the interface. Same reasoning as the share record: the fact belongs to
+       the route every path goes through, not to one of the paths. */
+    const said = (Array.isArray(c.audit) ? c.audit : []).some(a => a
+      && /^(Linked|Unlinked|Re-filed)$/i.test(String(a.action || ''))
+      && String(a.detail || '').includes(String(to || from || '')));
+    if (!said) {
+      c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{
+        at: now(), user: (req.user && req.user.name) || 'System',
+        action: to ? 'Linked' : 'Unlinked',
+        detail: to
+          ? `Filed under ${to}${from ? ` (was under ${from})` : ''}`
+          : `No longer filed under ${from} — recorded as a standalone agreement`,
+      }]);
+    }
+  }
+
   /* ---------- A SIGNING STEP RESERVED FOR SOMEONE IS RESERVED HERE TOO ----------
      The browser has always refused to let one member sign another member's
      step (js/views/contract.js, "This step is reserved for …"). That is a sign
@@ -2339,8 +2426,16 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (prev && Array.isArray(prev.signerPlan)) {
     const marks = s => (Array.isArray(s && s.signerPlan) ? s.signerPlan : []).filter(x => x && x.signed).length
       + (Array.isArray(s && s.signatures) ? s.signatures : []).length;
+    /* `memberId` is IN the identity string (audit finding 2, 14 Aug 2026). It
+       was not, and the reserved-step guard below keys entirely on it — so the
+       one field that decides whether a step belongs to a named colleague could
+       be deleted by the same request that claimed the step, and the guard that
+       would have noticed was not looking at it. Stripping it made the row
+       "not bound to a member and not this rule's business", which was true a
+       moment earlier and false now. With it here, removing it IS a route move
+       and the lock above refuses. */
     const idsOf = s => (Array.isArray(s && s.signerPlan) ? s.signerPlan : [])
-      .map(x => `${x && x.id}|${x && x.party}|${x && x.name}|${x && x.email}|${x && x.order}`).join('~');
+      .map(x => `${x && x.id}|${x && x.party}|${x && x.name}|${x && x.email}|${x && x.order}|${x && x.memberId}`).join('~');
     const routeMoved = idsOf(prev) !== idsOf(c);
     if (marks(prev) > 0 && routeMoved && marks(c) > 0)
       return res.status(409).json({
@@ -2363,6 +2458,49 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         error: `That signing step is reserved for ${stolen.name || 'another member'}. `
           + 'Only they can sign it.',
         reservedFor: stolen.name || null,
+      });
+    }
+  }
+
+  /* ---------- A SIGNATURE MADE IN THIS APP NAMES THE PERSON WHO MADE IT ----------
+     Audit finding 2, and the half that matters most: an ordinary Editor saved a
+     contract carrying a colleague's name, title and email as an in-app
+     signature, and this route took it. Nothing anywhere asked whether a
+     signature recorded as `session-authenticated` — which means "this person
+     was signed in and pressed Sign" — belonged to the session that sent it.
+     The guard above only defends steps that carry a memberId; a route row
+     naming somebody by hand, or no route at all, defended nothing.
+
+     ASKED AS A DIFFERENCE, like every guard on this route: not "may this person
+     sign" but "does this save ADD an in-app signature, and does it name
+     somebody other than the caller". A save that touches no signature passes;
+     the counterparty's mark arrives down its own route and carries its own
+     method; a paper signature carries its own too.
+
+     MATCHED ON EMAIL FIRST, name second. The address is the account's unique
+     handle and the name is what the document prints — a workspace can hold two
+     people with one name and never two with one address. Where the entry
+     carries no address at all the name has to answer, which is weaker and is
+     the reason the app writes the address. */
+  {
+    const inAppSig = x => x && x.method === 'session-authenticated';
+    const sigKey = x => `${(x && x.name) || ''}|${(x && x.email) || ''}|${(x && x.at) || ''}`;
+    const before = new Set((Array.isArray(prev && prev.signatures) ? prev.signatures : []).map(sigKey));
+    const added = (Array.isArray(c.signatures) ? c.signatures : [])
+      .filter(x => inAppSig(x) && !before.has(sigKey(x)));
+    const me = req.user || {};
+    const mine = x => {
+      const e = String((x && x.email) || '').trim().toLowerCase();
+      if (e) return e === String(me.email || '').trim().toLowerCase();
+      return String((x && x.name) || '').trim() === String(me.name || '').trim();
+    };
+    const forged = added.find(x => !mine(x));
+    if (forged) {
+      return res.status(403).json({
+        error: `A signature made in HaTi has to be made by the person signing. This save records `
+          + `${forged.name || 'somebody else'} as having signed, but you are signed in as `
+          + `${me.name || 'another account'}. Ask them to sign it themselves.`,
+        signatureNotYours: forged.name || null,
       });
     }
   }
@@ -2395,7 +2533,17 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
     if (fresh.length) {
       const cap = signCapOfRow(req.user);
-      const value = Number(c.value || 0);
+      /* MEASURED AGAINST THE LARGER OF STORED AND INCOMING (audit, 14 Aug 2026).
+         This read `c.value` — the value in the REQUEST — which is the one thing
+         the person being capped controls. A capped signer sent their signature
+         and `value: 0` in the same save and the guard waved it through, then the
+         stored record carried the falsified figure. Every other guard on this
+         route asks its question of the STORED contract for exactly this reason.
+
+         The larger of the two rather than the stored one alone, because a save
+         may legitimately RAISE the value in the same breath as signing, and a
+         cap that only ever looked backwards would miss it. */
+      const value = Math.max(Number((prev && prev.value) || 0), Number(c.value || 0));
       if (cap.answered && cap.limit != null && value > cap.limit)
         return res.status(403).json({
           error: `This contract is ${value} and your signing limit is ${cap.limit}. `
