@@ -1,0 +1,146 @@
+{
+  "payload": {
+    "v": 1,
+    "kind": "hati-share",
+    "org": "Highland Corporate Ltd",
+    "sharedBy": "Amina Otieno",
+    "at": "2026-08-14T14:57:08.810Z",
+    "docHash": {
+      "purpose": "negotiate"
+    },
+    "purpose": "negotiate",
+    "purposeChosen": null,
+    "signingOpen": false,
+    "contract": {
+      "id": "MK-201",
+      "name": "Cold Chain Logistics Agreement",
+      "template": null,
+      "source": null,
+      "changes": [
+        {
+          "id": "CHG-001",
+          "clauseId": "cl_ytt21p",
+          "clauseLabel": "Clause 2 · Payment",
+          "changeType": "modify",
+          "afterClauseId": null,
+          "headingText": null,
+          "bodyHtml": "<h2>2. Payment</h2><p>The Customer shall pay each invoice within thirty (30) days of receipt.</p>",
+          "ops": [
+            {
+              "op": "ins",
+              "text": "2. Payment\n"
+            },
+            {
+              "op": "keep",
+              "text": "The Customer shall pay each invoice within "
+            },
+            {
+              "op": "del",
+              "text": "sixty (60)"
+            },
+            {
+              "op": "ins",
+              "text": "thirty (30)"
+            },
+            {
+              "op": "keep",
+              "text": " days of receipt."
+            }
+          ],
+          "oldText": "The Customer shall pay each invoice within sixty (60) days of receipt.",
+          "newText": "2. Payment\nThe Customer shall pay each invoice within thirty (30) days of receipt.",
+          "hash": "0x8f8da46a64fdfb34168f10f404cbee8b8800a656620a7ff1462e94143f6da298",
+          "hashV": 3,
+          "prevChangeHash": null,
+          "seq": 1,
+          "status": "pending",
+          "needsReview": false,
+          "needsReviewWhy": null,
+          "author": "Amina Otieno",
+          "authorSide": "owner",
+          "createdAt": "2026-08-14T14:57:08.763Z",
+          "roundN": 1,
+          "summary": "added “2. Payment”; “sixty (60)” → “thirty (30)”",
+          "note": null,
+          "why": null,
+          "reply": null,
+          "resolvedAt": null,
+          "withdrawn": null,
+          "thread": []
+        },
+        {
+          "id": "CHG-002",
+          "clauseId": "cl_f05fib",
+          "clauseLabel": "New clause",
+          "changeType": "insertClause",
+          "afterClauseId": {
+            "title": "Insurance",
+            "text": "The Supplier shall maintain goods-in-transit insurance of not less than KES 20,000,000 and produce the certificate on request."
+          },
+          "headingText": null,
+          "bodyHtml": null,
+          "ops": [
+            {
+              "op": "ins",
+              "text": ""
+            }
+          ],
+          "oldText": "",
+          "newText": "",
+          "hash": "0x07464f8e0c640d4584a81a58278f1754e532206b6bfd7343b3f2c2c314dd7acf",
+          "hashV": 3,
+          "prevChangeHash": "0x8f8da46a64fdfb34168f10f404cbee8b8800a656620a7ff1462e94143f6da298",
+          "seq": 2,
+          "status": "pending",
+          "needsReview": false,
+          "needsReviewWhy": null,
+          "author": "Juno Limited",
+          "authorSide": "counterparty",
+          "createdAt": "2026-08-14T14:57:08.768Z",
+          "roundN": 1,
+          "summary": "New clause added — ",
+          "note": null,
+          "why": null,
+          "reply": null,
+          "resolvedAt": null,
+          "withdrawn": null,
+          "thread": []
+        }
+      ],
+      "negotiation": {
+        "round": 1,
+        "turn": "owner",
+        "turnAt": null,
+        "chainHead": "0x07464f8e0c640d4584a81a58278f1754e532206b6bfd7343b3f2c2c314dd7acf",
+        "chainSeq": 2,
+        "seq": 2,
+        "hashV": 2,
+        "baselineBody": "<h2 data-clause-id=\"cl_zd281e\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_ytt21p\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_cw40o8\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
+        "baselineText": "1. Scope\nThe Supplier shall provide refrigerated haulage between Nairobi and Mombasa.\n2. Payment\nThe Customer shall pay each invoice within sixty (60) days of receipt.\n3. Liability\nThe Supplier shall not be liable for any indirect or consequential loss."
+      },
+      "party": "Highland Corporate Ltd",
+      "counterparty": "Juno Limited",
+      "value": 24000000,
+      "valueType": "standard",
+      "fields": {},
+      "docText": "1. Scope\nThe Supplier shall provide refrigerated haulage between Nairobi and Mombasa.\n2. Payment\nThe Customer shall pay each invoice within sixty (60) days of receipt.\n3. Liability\nThe Supplier shall not be liable for any indirect or consequential loss.",
+      "redlineText": "<h2 data-clause-id=\"cl_zd281e\">1. Scope</h2><p>The Supplier shall provide refrigerated haulage between Nairobi and Mombasa.</p><h2 data-clause-id=\"cl_ytt21p\">2. Payment</h2><p>The Customer shall pay each invoice within sixty (60) days of receipt.</p><h2 data-clause-id=\"cl_cw40o8\">3. Liability</h2><p>The Supplier shall not be liable for any indirect or consequential loss.</p>",
+      "format": "rich"
+    }
+  },
+  "emailConfigured": false,
+  "responded": false,
+  "durable": false,
+  "lastResponse": null,
+  "messages": [],
+  "prior": null,
+  "superseded": null,
+  "executed": null,
+  "purpose": "negotiate",
+  "share": {
+    "recipientName": "Juno Limited",
+    "recipientEmail": "contracts@juno.co.ke",
+    "expiresAt": "2026-08-28T14:57:08.817Z",
+    "channel": "link"
+  }
+}
