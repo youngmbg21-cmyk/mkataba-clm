@@ -7760,6 +7760,27 @@ function negWhoseMove(c){
      'unknown' — nobody has asked the server for this contract's links — falls
      through to the old answer untouched. See negoTheirCopy: inventing a new
      untruth to replace the old one would be no better. */
+  /* ---- AND NEITHER HAS AN ASK WE HAVE NOT SENT YET ----
+     (audit finding 4, 14 Aug 2026 — the SECOND route into MK-255's class.)
+     The 13 Aug fix asked whether the counterparty holds a copy at all. It did
+     not ask whether the pending changes have actually LEFT: `open` counts every
+     pending change, ours included, and our own unpublished asks are held by
+     holdUnsent until Publish Round. So one clause written and not yet sent
+     banded the whole agreement under "With the other side" while nothing had
+     left the building — and negoTurnBanner, reading the same contract three
+     inches away, correctly said "1 change you have not sent yet".
+
+     negoUnsentAsks is that reading and it is the one already used to say this
+     elsewhere; asking it here is what makes the two agree. WHERE WE HOLD
+     UNSENT WORK THE MOVE IS OURS, for the same reason the no-copy branch
+     below gives: the thing that has to happen next is that we send it.
+
+     ORDERED BEFORE the reach question deliberately. Unsent work is a fact
+     about OUR side and is known for certain; whether they hold a copy is a
+     reading of the share cache that can answer 'unknown'. The certain question
+     goes first. */
+  const unsent = (window.negoUnsentAsks ? negoUnsentAsks(c).length : 0);
+  if (unsent) return { k: 'you', n: unsent, why: 'unsent' };
   const reach = (window.negoTheirCopy ? negoTheirCopy(c) : 'unknown');
   if (reach === 'none') return { k: 'you', n: open, why: 'nocopy', reach };
   return { k: 'them', n: open, reach };

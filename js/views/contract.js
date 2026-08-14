@@ -3854,8 +3854,23 @@ function checkVerdict(c,kind){
      was not 'playbook' or 'risk'. With the row back it is a real kind and the
      card asks for it by name. Null before the sweep has run — which is what
      draws "Run →", the same as the other two. */
-  const n=((c.obligations)||[]).length;
-  return n ? {tone:'ok',label:`${n} tracked`} : null;
+  /* ---- AND IT COLOURS LIKE THE OTHER TWO (audit finding 12, 14 Aug 2026) ----
+     This returned 'ok' whatever it found, so a contract with commitments weeks
+     overdue showed an all-green Checks card while the playbook and scan rows
+     beside it turned amber and red on far less. The row's job is to say at a
+     glance whether this contract needs attention, and it was the one row that
+     could not. Overdue is ruby, due-but-open is amber, all done is green —
+     the same three tones and the same order of alarm the other rows use.
+     obState is the one reading of an obligation's state; nothing here counts
+     for itself. */
+  const obs=(c.obligations)||[];
+  if(!obs.length) return null;
+  const st=obs.map(o=>(window.obState?obState(o):(o.status==='done'?'done':'open')));
+  const over=st.filter(x=>x==='overdue').length;
+  const open=st.filter(x=>x==='open').length;
+  if(over) return {tone:'bad',label:`${over} overdue · ${obs.length} tracked`};
+  if(open) return {tone:'warn',label:`${open} open · ${obs.length} tracked`};
+  return {tone:'ok',label:`${obs.length} tracked`};
 }
 /* How many required form fields are still empty — 0 when this contract has no
    form at all, which is the common case (a plain template or an uploaded

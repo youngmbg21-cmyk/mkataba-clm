@@ -1165,6 +1165,8 @@ const STRINGS = {
        contract at all. Where that is the case the product says what it knows
        and offers the act that makes the wait real. See negoTheirCopy. */
     ng_no_live_copy: 'No live copy — send one',
+    ng_not_sent_yet_one: '{n} change not sent yet',
+    ng_not_sent_yet_other: '{n} changes not sent yet',
     ng_nocopy_k: 'They cannot see this',
     ng_nocopy_say: '{who} holds no live copy of this contract, so they have not seen the refusal and cannot answer it. Send them a link.',
     ng_badge_refused_nocopy_title: 'Refused — but {who} holds no live copy, so they have not seen it',
@@ -5008,6 +5010,8 @@ const STRINGS = {
     ng_last_updated_by: 'Senast ändrad av {who}',
     ng_asked_by_full: 'Begärd av {who}',
     ng_no_live_copy: 'Ingen aktiv kopia — skicka en',
+    ng_not_sent_yet_one: '{n} ändring är inte skickad än',
+    ng_not_sent_yet_other: '{n} ändringar är inte skickade än',
     ng_nocopy_k: 'De kan inte se det här',
     ng_nocopy_say: '{who} har ingen aktiv kopia av avtalet, så de har inte sett avslaget och kan inte svara på det. Skicka dem en länk.',
     ng_badge_refused_nocopy_title: 'Avslagen — men {who} har ingen aktiv kopia och har därför inte sett det',

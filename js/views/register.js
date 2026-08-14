@@ -575,6 +575,12 @@ function negoMovePillHtml(c){
      the number would send the reader to a column with nothing in it. It says
      what the move IS instead. See negWhoseMove for the whole rule. */
   if(m.why==='nocopy') return `<span class="ngl-w ngl-w-you">${esc(i18t('ng_no_live_copy'))}</span>`;
+  /* ---- AND THE SAME FOR WORK WE HAVE NOT SENT (14 Aug 2026) ----
+     Same reasoning one step earlier: these are our own asks, still on our desk,
+     so there is nothing for this reader to DECIDE and "N needs you" would send
+     them to a column of their own drafting. It says what the move is —
+     publish the round. See negWhoseMove. */
+  if(m.why==='unsent') return `<span class="ngl-w ngl-w-you">${i18tn('ng_not_sent_yet',m.n,{n:m.n})}</span>`;
   if(m.k==='you') return `<span class="ngl-w ngl-w-you">${i18tn('ng_needs_you',m.n,{n:m.n})}</span>`;
   if(m.k==='them') return `<span class="ngl-w ngl-w-them">${esc(i18t('ng_door_with',{who:c.counterparty||i18t('ng_door_them')}))}</span>`;
   return `<span class="ngl-w ngl-w-clear">${i18t('ng_door_clear')}</span>`;

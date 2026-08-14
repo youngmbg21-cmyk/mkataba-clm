@@ -2199,6 +2199,28 @@ function negoSigningBlockers(c){
   if (a.contested.length) out.push(`${a.contested.length} refused ask${a.contested.length === 1 ? '' : 's'}`
     + ` ${a.contested.length === 1 ? 'is' : 'are'} still outstanding — the side that asked has not withdrawn`
     + ` ${a.contested.length === 1 ? 'it' : 'them'} (${a.contested.map(x => '#' + x.id).join(', ')})`);
+  /* ---- AND CLOSING THE ROUND DOES NOT SETTLE A REFUSAL (audit finding 6) ----
+     negoAlignment reads the LIVE c.changes, which negoAdvanceRound empties: it
+     refuses to close over anything still pending, but a refused counterparty
+     ask is not pending — it is decided — so it archived cleanly and took the
+     block with it. The contract then reported aligned and could be signed over
+     a disagreement the other side never withdrew, which is the exact state the
+     line above exists to prevent. The refuser settled it by closing the round;
+     only the asker's withdrawal is supposed to do that (see negoWithdraw).
+
+     negoOpenPoints is that question asked across ALL rounds — it reads
+     negoAllChanges, skips anything withdrawn, and skips anything whose wording
+     ended up in the document anyway, so a point that was really resolved does
+     not come back. It was computed and had no reader in the product; this is
+     the reader. Live ones are already named above, so only the archived
+     remainder is added and the two cannot double-count. */
+  const seen = new Set(a.contested.map(x => String(x.id)));
+  const buried = (window.negoOpenPoints ? negoOpenPoints(c) : [])
+    .filter(p => p && !seen.has(String(p.id)));
+  if (buried.length) out.push(`${buried.length} refused ask${buried.length === 1 ? '' : 's'}`
+    + ` from an earlier round ${buried.length === 1 ? 'is' : 'are'} still outstanding —`
+    + ` closing a round does not withdraw ${buried.length === 1 ? 'it' : 'them'}`
+    + ` (${buried.map(x => '#' + x.id).join(', ')})`);
   return out;
 }
 /* What is stopping this, in words, for the disabled button to say. Never
