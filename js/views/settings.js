@@ -284,6 +284,12 @@ const stLimitField=(id,label,sub,min)=>`<label style="display:block">
 const SET_CLOSURES=[
   { key:'roster', what:'A non-admin can no longer read the member list — who is in the workspace, what role each of them holds, which folders they may see, and whether contract values are hidden from them.' },
   { key:'rules',  what:'A non-admin can no longer read the workspace rules — the approval rules, whether internal review is on and on what condition, and whether the redlining desk is enforced. They still meet all three where they apply, in words, on the contract itself.' },
+  /* 14 Aug 2026, with the legal identity's move onto Company & market. An
+     Editor could change the registered name because it shared a route with the
+     document design; it does not share a screen with it any more, and this is
+     the name that appears on executed paper. The DESIGN is untouched — the
+     logo, the accent colour and the layout are what that permission was for. */
+  { key:'legal-identity', what:'An Editor can no longer change the company\'s registered name, registration number or address. Those moved to Settings → Platform settings → Company & market, which is admin-only, and the server refuses them for anybody else. The company design — logo, accent colour, layout — is unchanged and still theirs.' },
 ];
 
 /* WHICH TAB IS UP is a working posture, not a setting: per sitting, in memory,
@@ -432,6 +438,18 @@ function stRowHtml(key){
 function stRowsHtml(tab){
   const keys=Object.keys(SET_PANELS).filter(k=>SET_PANELS[k].tab===tab && (!SET_PANELS[k].show || SET_PANELS[k].show()));
   return `<div class="st-rows">${keys.map(stRowHtml).join('')}</div>`;
+}
+/* ONE ROW, REPAINTED WHERE IT STANDS. A row states what the setting IS right
+   now, so a panel that has just written something has to refresh the row behind
+   the drawer — and it must not do that with renderTeam(), which rebuilds the
+   whole screen and empties seven server-filled panels (THE SETTINGS PAGE HOLDS
+   STILL). Nothing else on the page moves: the replacement is the same markup
+   from the same builder, in the same box. */
+function stRepaintRow(key){
+  const el=document.querySelector(`.st-row[data-st-panel="${key}"]`);
+  if(!el || !SET_PANELS[key]) return;
+  const d=document.createElement('div'); d.innerHTML=stRowHtml(key);
+  const next=d.firstElementChild; if(next) el.replaceWith(next);
 }
 
 /* ============================================================
@@ -1208,26 +1226,59 @@ const SET_PANELS={
           <div id="set-market-facts" style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
         </div>
       </section>
-      ${''/* ---- THE DOOR HAS TO SAY WHAT IS BEHIND IT ----
-             The legal name, the registration number and the registered address
-             are edited in the COMPANY DESIGN step, in four unlabelled boxes
-             under the logo upload and the accent colour. That is a poor home
-             for them — a legal name is not a design decision — and moving them
-             is its own job (WORKORDER-company-details.md). What is wrong TODAY
-             is that this panel stated the facts over a button reading "Edit
-             design", so an admin looking for the registered name had no reason
-             to press it and would reasonably conclude there was nowhere to
-             enter one. The button now names what it opens, and the line under
-             it says where the fields live. */}
+      ${''/* ---- THE LEGAL IDENTITY LIVES HERE NOW (C, 14 Aug 2026) ----
+             It used to be four unlabelled boxes inside the COMPANY DESIGN step,
+             under the logo upload and the accent-colour picker, and this panel
+             merely STATED the facts over a button reading "Edit design" — so an
+             admin looking for the registered name had no reason to press it and
+             would reasonably conclude there was nowhere to enter one. (The
+             button was renamed and signposted first, on 14 Aug: that was worth
+             doing on its own and is what this replaces.)
+
+             A legal name is not a design decision. It is the same kind of fact
+             as the market and the currency — something true about the company
+             which happens to get printed on paper — so it sits beside them.
+
+             A MOVE, NOT A COPY: the boxes are GONE from the design step. Two
+             places to type one fact is the fault this codebase is built to
+             avoid. Same route, same stored record, same fields, no migration.
+
+             THE FOOTER TEXT DID NOT COME. Unlike these three it genuinely is a
+             design choice about what prints at the bottom of a page.
+
+             THE SECTION CARRIES ITS OWN SAVE and the panel stays a 'done'
+             panel. That is the established shape here — the Copilot engine
+             panel and the account page both hold per-section Saves — and it is
+             the honest one: the market writes the moment it is changed, these
+             three write when you press Save, and one foot cannot promise both.
+
+             NOTHING IS INVENTED FOR A WORKSPACE THAT NEVER FILLED THESE IN.
+             The boxes come up empty and the read-outs say "Not set"; the org
+             name typed at setup is a display fallback and is NOT promoted into
+             the legal name field. */}
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_p_company'))}</h3>
-        <div class="st-facts">
-          <div><span>${esc(i18t('st_company_name'))}</span><b>${esc((ob&&ob.companyName)||(getOrg()&&getOrg().name)||i18t('st_not_set'))}</b></div>
-          <div><span>${esc(i18t('st_reg_number'))}</span><b>${esc((ob&&ob.registrationNumber)||i18t('st_not_set'))}</b></div>
-          <div><span>${esc(i18t('st_company_address'))}</span><b>${esc((ob&&ob.address)||i18t('st_not_set'))}</b></div>
+        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_legal_sub'))}</p>
+        <div style="display:grid;gap:9px">
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_company_name'))}</span>
+            <input id="st-co-name" type="text" maxlength="200" style="${window.RV_FLD||ST_INPUT}"
+              placeholder="${esc((getOrg()&&getOrg().name)||'')}" value="${PB_ATTR((ob&&ob.companyName)||'')}"/></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_reg_number'))}</span>
+            <input id="st-co-reg" type="text" maxlength="100" style="${window.RV_FLD||ST_INPUT}"
+              value="${PB_ATTR((ob&&ob.registrationNumber)||'')}"/></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_company_address'))}</span>
+            <input id="st-co-addr" type="text" maxlength="500" style="${window.RV_FLD||ST_INPUT}"
+              value="${PB_ATTR((ob&&ob.address)||'')}"/></label>
         </div>
-        <button id="st-company-design" style="margin-top:9px;${ST_BTN2}">${i18t('st_company_details_btn')}</button>
-        <span class="st-note">${esc(i18t('st_company_details_note'))}</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
+          <button id="st-co-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
+          <span class="st-note" style="margin:0">${esc(i18t('st_company_legal_note'))}</span>
+        </div>
+      </section>
+      <section class="st-sec">
+        <h3 class="st-sec-h">${esc(i18t('st_p_design'))}</h3>
+        <p class="st-note" style="margin-bottom:8px">${esc(i18t('st_company_design_sub'))}</p>
+        <button id="st-company-design" style="${ST_BTN2}">${i18t('st_company_design_btn')}</button>
       </section>`;
     },
     wire(){
@@ -1253,6 +1304,34 @@ const SET_PANELS={
         if(typeof renderApprovalRules==='function') renderApprovalRules();
         if(typeof renderReviewGatePanel==='function') renderReviewGatePanel();
         toast(i18t('set_market_saved'));
+      });
+      /* ---- THE LEGAL IDENTITY, SAVED FROM ITS OWN SECTION ----
+         THREE KEYS AND NOTHING ELSE. saveOrgBranding carries whatever it is
+         given and the route leaves alone what it is not given, so a save from
+         here cannot touch the logo, the accent colour or the layout — which the
+         design step owns and which this panel has no business writing. A save
+         that sent the whole record back would revert whatever the design step
+         did last, and it would do it silently.
+
+         REFUSALS GO IN THE DRAWER, in words, in the foot — never a toast over
+         the page behind. The server refuses a non-admin here (an Editor keeps
+         the design and loses the identity, deliberately: this is the name that
+         appears on executed paper), and this panel is admin-only anyway, so
+         that refusal is the wall rather than the sign. */
+      document.getElementById('st-co-save')?.addEventListener('click',async()=>{
+        const g=id=>(document.getElementById(id)||{value:''}).value.trim();
+        const btn=document.getElementById('st-co-save');
+        stDrawerClearRefusal();
+        if(btn) btn.disabled=true;
+        try{
+          await saveOrgBranding({ companyName:g('st-co-name'), registrationNumber:g('st-co-reg'), address:g('st-co-addr') });
+          toast(i18t('st_company_legal_saved'));
+          /* The ROW behind the drawer states the legal name without being
+             opened, so it has to be repainted — but the page holds still (this
+             panel's own rule): repaint the ONE row, never the screen. */
+          stRepaintRow('company');
+        }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+        finally{ if(btn) btn.disabled=false; }
       });
       document.getElementById('st-company-design')?.addEventListener('click',()=>{
         stDrawerClose(); openDesignStep({ mode:'settings', onBack:()=>renderTeam() });

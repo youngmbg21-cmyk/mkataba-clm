@@ -8807,7 +8807,46 @@ app.get('/api/org/branding', auth, (req, res) => {
 });
 app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
   const b = req.body || {};
-  const logo = b.logoUrl == null ? null : String(b.logoUrl);
+  /* ---------- A KEY THIS SAVE DOES NOT CARRY IS A KEY IT DOES NOT TOUCH ----------
+     This route writes one row with ON CONFLICT DO UPDATE, so every field it did
+     not receive used to be written as null. That was harmless while ONE screen
+     owned the whole row — the design step always sent every key, filling the
+     ones it was not editing from the stored record. It stopped being harmless
+     the moment the company's legal identity moved onto its own panel: two
+     screens now write to this row, and a partial save from either would have
+     wiped what the other owns.
+
+     ABSENT IS NOT null. A save that sends `logoUrl: null` still clears the
+     logo — the key is there and the answer is "none". Only a key that never
+     arrived is left alone. Same shape, and the same reasoning, as PUT
+     /api/settings preserving a stored signFolders.by (H-3). */
+  const stored = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID) || {};
+  const sent = k => Object.prototype.hasOwnProperty.call(b, k);
+  const keep = (k, col) => sent(k) ? b[k] : (stored[col] == null ? null : stored[col]);
+
+  /* ---------- THE COMPANY'S LEGAL IDENTITY IS AN ADMIN'S TO CHANGE ----------
+     The route is `templateManager` — admin OR Editor — because it also carries
+     the DESIGN: the logo, the accent colour, the layout. That is what the
+     Editor permission was for and it is untouched.
+
+     The registered name, number and address are a different kind of fact. They
+     are what appears on executed paper, and they belong with the market and the
+     currency, which are admin-only. So they are refused for a non-admin —
+     ASKED AS A DIFFERENCE, like every other guard in this file: an Editor
+     saving the design step passes untouched, whether or not the payload happens
+     to carry the identity along, because nothing about it moved. */
+  const IDENTITY = [['companyName', 'company_name'], ['registrationNumber', 'registration_number'], ['address', 'address']];
+  if (req.user.role !== 'admin') {
+    const moved = IDENTITY.filter(([k, col]) => sent(k) && clean(b[k]) !== String(stored[col] == null ? '' : stored[col]));
+    if (moved.length)
+      return res.status(403).json({
+        error: 'The company\'s registered name, number and address are an admin\'s to change — '
+          + 'they are what appears on executed contracts. Ask an admin, on Settings → Platform settings → Company & market.',
+        adminOnly: moved.map(([k]) => k) });
+  }
+
+  const logo = b.logoUrl === undefined ? (stored.logo_url == null ? null : stored.logo_url)
+    : (b.logoUrl == null ? null : String(b.logoUrl));
   // The logo travels as a data URL (house transport for files) and lands on
   // every contract header, the portal included — so it is validated here, once.
   if (logo && !/^data:image\/(png|jpe?g|webp|svg\+xml);base64,/.test(logo)) return res.status(400).json({ error: 'The logo must be a PNG, JPEG, WebP or SVG image' });
@@ -8815,19 +8854,24 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
   /* The design fields, validated against the shared catalogue. All-or-nothing
      on the id: an unknown design is a 400, not a silent null — the client
      offering it is broken and should hear so. */
-  const designId = b.designId == null || b.designId === '' ? null : String(b.designId);
+  const _design = keep('designId', 'design_id');
+  const designId = _design == null || _design === '' ? null : String(_design);
   if (designId && !DOC_DESIGNS.some(d => d.id === designId)) return res.status(400).json({ error: 'Unknown document design' });
-  const logoPosition = b.logoPosition == null || b.logoPosition === '' ? null : String(b.logoPosition);
+  const _pos = keep('logoPosition', 'logo_position');
+  const logoPosition = _pos == null || _pos === '' ? null : String(_pos);
   if (logoPosition && !DESIGN_LOGO_POSITIONS.includes(logoPosition)) return res.status(400).json({ error: 'Unknown logo position' });
-  const accentColor = b.accentColor == null || b.accentColor === '' ? null : String(b.accentColor);
+  const _accent = keep('accentColor', 'accent_color');
+  const accentColor = _accent == null || _accent === '' ? null : String(_accent);
   if (accentColor && !/^#[0-9a-f]{6}$/i.test(accentColor)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
-  const accentSource = b.accentSource === 'manual' ? 'manual' : (b.accentSource === 'logo' ? 'logo' : null);
+  const _src = keep('accentSource', 'accent_source');
+  const accentSource = _src === 'manual' ? 'manual' : (_src === 'logo' ? 'logo' : null);
   /* Structure is validated the same all-or-nothing way as the design id: an
      unknown layout is a 400, not a silent null, because the client offering it
      is out of step with this build and should hear so. Standard Flow stores as
      null — it IS the absence of a structure, and storing it as a value would
      make every pre-structure row look deliberately chosen. */
-  let structureId = b.structureId == null || b.structureId === '' ? null : String(b.structureId);
+  const _struct = keep('structureId', 'structure_id');
+  let structureId = _struct == null || _struct === '' ? null : String(_struct);
   if (structureId && !DOC_STRUCTURES.some(x => x.id === structureId)) return res.status(400).json({ error: 'Unknown document structure' });
   if (structureId === DEFAULT_STRUCTURE) structureId = null;
   db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,
@@ -8840,8 +8884,11 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
       accent_color=excluded.accent_color, accent_source=excluded.accent_source,
       structure_id=excluded.structure_id,
       set_by=excluded.set_by, set_at=excluded.set_at, updated_at=excluded.updated_at`)
-    .run(WORKSPACE_ID, logo, clean(b.companyName).slice(0, 200), clean(b.registrationNumber).slice(0, 100),
-      clean(b.address).slice(0, 500), clean(b.defaultFooterText).slice(0, 500),
+    .run(WORKSPACE_ID, logo,
+      clean(keep('companyName', 'company_name')).slice(0, 200),
+      clean(keep('registrationNumber', 'registration_number')).slice(0, 100),
+      clean(keep('address', 'address')).slice(0, 500),
+      clean(keep('defaultFooterText', 'default_footer_text')).slice(0, 500),
       designId, logoPosition, accentColor, accentSource, structureId, req.user.name, now(), now());
   res.json({ ok: true });
 });

@@ -800,8 +800,15 @@ async function refreshOrgBranding(){
   }catch(e){ /* no branding yet is a normal state — render paths fall back to the legacy letterhead */ }
 }
 async function saveOrgBranding(b){
+  /* A PARTIAL SAVE LEAVES THE REST ALONE, in both modes and for the same
+     reason. Two screens write this record now — the design step owns the logo,
+     the colour and the layout; Company & market owns the registered name,
+     number and address — so a save carrying one half must not null the other.
+     The server preserves what a PUT does not carry (see /api/org/branding);
+     this is the same rule for the no-server mode, where the whole blob used to
+     be replaced. Absent is not null: sending logoUrl:null still clears it. */
   if(API_MODE()) await api('org/branding','PUT',b);
-  else { state.settings.branding={...b}; await saveSettings(); }
+  else { state.settings.branding={...(state.settings.branding||{}), ...b}; await saveSettings(); }
   await refreshOrgBranding();
 }
 Object.assign(window,{refreshOrgBranding,saveOrgBranding});

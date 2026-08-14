@@ -19,6 +19,8 @@
    ============================================================ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { startHati, seedWorkspace } = require('./helpers');
 
 let h, W;
@@ -123,12 +125,43 @@ describe('f194 — and the account surface still works, scoped to the caller', (
   test('an Editor keeps the company-design door the old page gave them', async () => {
     /* #brand-edit was gated admin-OR-legal on the old page. The page is
        admin-only now, so the door moved to their account surface — and the
-       SERVER has to agree, or the door leads to a refusal. */
+       SERVER has to agree, or the door leads to a refusal.
+
+       THE PAYLOAD CHANGED ON 14 Aug 2026 and the CLAIM did not. This used to
+       send companyName and registrationNumber, because at the time the design
+       and the company's legal identity shared one route. They no longer share a
+       screen — the identity moved to Company & market, which is admin-only —
+       so the identity half is closed to an Editor (see below, and
+       SET_CLOSURES['legal-identity']). What this test has always been about is
+       the DESIGN: the logo, the accent colour and the layout, which is what the
+       permission was for and which is untouched. */
     const r = await W.unrestricted.raw('/api/org/branding', { method: 'PUT',
-      body: { companyName: 'Highland Corporate Ltd', registrationNumber: 'PVT-1234' } });
+      body: { logoPosition: 'top-left', accentColor: '#1a7f6b', accentSource: 'manual' } });
     assert.notEqual(r.status, 403, 'an Editor may still change the company design');
     const values = await W.unrestricted.raw('/api/org/profile-values', { method: 'PUT', body: { values: { town: 'Nairobi' } } });
     assert.notEqual(values.status, 403);
+  });
+
+  test('but the company\'s LEGAL IDENTITY is closed to them — a named closure', async () => {
+    const r = await W.unrestricted.raw('/api/org/branding', { method: 'PUT',
+      body: { companyName: 'Something Else Ltd' } });
+    assert.equal(r.status, 403, 'this is the name that appears on executed paper');
+    assert.match(r.json.error, /admin/i, 'and the refusal says who can');
+    /* A CLOSURE IS NAMED, NOT SILENT — the same rule the August 2026 settings
+       closures follow. */
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/views/settings.js'), 'utf8');
+    const list = src.slice(src.indexOf('const SET_CLOSURES'), src.indexOf('WHICH TAB IS UP'));
+    assert.match(list, /legal-identity/);
+  });
+
+  test('and their ordinary design save is not refused just for carrying the identity along', async () => {
+    /* THE DIFFERENCE, not the field. A client that sends the identity back
+       UNCHANGED has moved nothing and must pass — otherwise every stale tab
+       becomes a refusal, and the guard stops being about the act. */
+    const now = await W.admin.json('/api/org/branding');
+    const r = await W.unrestricted.raw('/api/org/branding', { method: 'PUT', body: {
+      companyName: (now.branding || {}).companyName || '', logoPosition: 'top-right' } });
+    assert.notEqual(r.status, 403, 'nothing moved, so nothing is refused');
   });
 
   test('a member may export the contracts they can see, and only those', async () => {

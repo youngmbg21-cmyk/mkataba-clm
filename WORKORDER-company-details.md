@@ -3,8 +3,49 @@
 **Raised by:** Young, 2026-08-14, going through the overnight list: "C, and B
 now".
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** **B is BUILT** (2026-08-14, full suite 3451/3451 and
-settings-tabs-verify 48/48). **C is OPEN** — nothing of the move is built.
+**Status:** **CLOSED.** B was built on the morning of 2026-08-14 (full suite
+3451/3451, settings-tabs-verify 48/48). **C was built the same day** on
+Young's instruction ("complete the rest of the work orders autonomously"),
+taking this order's recommendations for D-1, D-2 and D-3.
+
+Proof: f201 (27), f194 (10, with its company-design claim re-pointed at the
+design half and the identity closure added beside it), settings-tabs-verify
+(54, browser), designstep-verify (28), full suite 3557/3557.
+
+---
+
+## ONE THING IN THIS ORDER WAS WRONG, AND IT IS CD-2
+
+CD-2 below says `passwordCurrent` means "changing the company's registered
+details asks for your password before it saves", and that the Company & market
+panel would therefore need a password prompt it does not have. **It does not
+mean that.** `passwordCurrent` refuses anybody who is still on a temporary
+password — *"Set your own password before making changes"* — a first-login
+gate, not a per-save credential check. Nothing in HaTi has ever prompted for a
+password to save branding; grep the client for it and there is nothing.
+
+So there was no prompt to move, none to drop, and nothing to keep off the
+market dropdown — which is `admin`, and `admin` itself calls the very same
+`passwordCurrent`, so the two already agreed. The protection travels because
+the ROUTE is unchanged, and f201 proves it still refuses (a member on a
+temporary password gets 403 and nothing is written) rather than assuming it.
+
+The instinct behind CD-2 was still right, and it is the reason that half of the
+work was done first: this was the part that could go wrong quietly.
+
+## AND ONE THING THE ORDER DID NOT SEE
+
+`PUT /api/org/branding` writes its row with `ON CONFLICT DO UPDATE`, so every
+field a request did not carry was stored as **null**. That was harmless while
+ONE screen owned the whole row — the design step always sent every key, filling
+the ones it was not editing from the stored record. It stops being harmless the
+moment two screens write it, which is exactly what this move creates: a save
+from either would have wiped what the other owns.
+
+So the route now leaves alone any key a request does not carry. **Absent is not
+null** — sending `logoUrl: null` still clears the logo. `saveOrgBranding` does
+the same merge for the no-server mode. This is the same shape as
+`PUT /api/settings` preserving a stored `signFolders.by` (the H-3 split).
 
 ---
 

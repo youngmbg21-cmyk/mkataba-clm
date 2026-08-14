@@ -1936,6 +1936,8 @@ const STRINGS = {
     ds_applies_future: 'Applies to future documents and anything not yet executed. Signed contracts keep the look they were sealed with.',
     ds_company_branding: 'Company branding',
     ds_png_jpg: 'PNG or JPG, under 500 KB',
+    ds_footer_placeholder: 'Footer text (e.g. Registered in Kenya · C.123456)',
+    ds_identity_moved: 'Signing as {name}. The registered name, number and address are set in Settings → Platform settings → Company & market.',
     ds_logo_position: 'Logo position',
     ds_what_changed_why: 'What changed, and why?',
     ds_becomes_default: 'This becomes your company default.',
@@ -3670,8 +3672,17 @@ const STRINGS = {
     ov_leaver_one: '{who} oversees {n} person. That step will name somebody with no account until an admin repoints it.',
     ov_leaver_other: '{who} oversees {n} people. Those steps will name somebody with no account until an admin repoints them.',
     st_company_address: 'Registered address',
+    /* st_company_details_btn / st_company_details_note are RETIRED — they
+       signposted the design step as the home of these fields, which it stopped
+       being on 14 Aug 2026. Left in place, inert, rather than deleted, so an
+       older cached build does not print an empty string. */
     st_company_details_btn: 'Edit company details & design',
     st_company_details_note: 'The legal name, registration number and registered address are entered on the company design step — they are printed on your paper, so they are kept with it. Changing them asks for your password.',
+    st_company_legal_sub: 'What your company is called on paper. These print on every contract and on the signature block.',
+    st_company_legal_note: 'Only an admin can change these.',
+    st_company_legal_saved: 'Company details saved',
+    st_company_design_sub: 'The logo, the accent colour and the layout your contracts are dressed in.',
+    st_company_design_btn: 'Open the design step',
     /* ---- which folders may this person sign in ---- */
     sf_title: 'Where they may sign',
     sf_rule_on: 'Refuse a signature outside the folders somebody may sign in',
@@ -5688,6 +5699,8 @@ const STRINGS = {
     ds_applies_future: 'Gäller framtida dokument och allt som inte undertecknats. Undertecknade avtal behåller utseendet de förseglades med.',
     ds_company_branding: 'Företagets varumärke',
     ds_png_jpg: 'PNG eller JPG, under 500 KB',
+    ds_footer_placeholder: 'Sidfotstext (t.ex. Registrerat i Kenya · C.123456)',
+    ds_identity_moved: 'Undertecknar som {name}. Registrerat namn, nummer och adress anges under Inställningar → Plattformsinställningar → Företag och marknad.',
     ds_logo_position: 'Logotypens placering',
     ds_what_changed_why: 'Vad ändrades, och varför?',
     ds_becomes_default: 'Detta blir företagets standard.',
@@ -7377,6 +7390,11 @@ const STRINGS = {
     st_company_address: 'Registrerad adress',
     st_company_details_btn: 'Redigera företagsuppgifter och utformning',
     st_company_details_note: 'Det juridiska namnet, organisationsnumret och den registrerade adressen anges i steget för företagets utformning — de trycks på era dokument, så de hålls samman med dem. Att ändra dem kräver ditt lösenord.',
+    st_company_legal_sub: 'Vad ert företag heter på papper. Detta trycks på varje avtal och i signaturrutan.',
+    st_company_legal_note: 'Bara en administratör kan ändra dessa.',
+    st_company_legal_saved: 'Företagsuppgifterna sparade',
+    st_company_design_sub: 'Logotypen, accentfärgen och den utformning era avtal kläs i.',
+    st_company_design_btn: 'Öppna utformningssteget',
     /* ---- i vilka mappar den här personen får underteckna ---- */
     sf_title: 'Var de får underteckna',
     sf_rule_on: 'Vägra en underskrift utanför de mappar någon får underteckna i',

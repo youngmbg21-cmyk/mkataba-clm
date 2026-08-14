@@ -142,6 +142,46 @@ const signIn = async (page, base, email, pass) => {
     await page.keyboard.press('Escape'); await page.waitForTimeout(400);
     check('opening it does not resize the page underneath', before === during, `${before}px → ${during}px`);
 
+    /* ---- THE COMPANY'S LEGAL DETAILS LIVE HERE NOW (14 Aug 2026) ----
+       They were four unlabelled boxes inside the design step. This is the half
+       a node test cannot see: three REAL boxes on screen, each with a word
+       beside it, and a Save that writes. */
+    await page.evaluate(() => { settingsGoTab('platform'); });
+    await page.waitForTimeout(250);
+    await page.click('[data-st-panel="company"]'); await page.waitForTimeout(500);
+    const legalBoxes = [];
+    for (const id of ['st-co-name', 'st-co-reg', 'st-co-addr']) {
+      const v = await page.evaluate(VISIBLE, '#' + id);
+      if (!v.ok) legalBoxes.push(`${id}: ${v.why}`);
+    }
+    check('the registered name, number and address are boxes on Company & market',
+      legalBoxes.length === 0, legalBoxes.join(' | ') || 'all three on screen');
+    const labelled = await page.evaluate(() =>
+      ['st-co-name', 'st-co-reg', 'st-co-addr'].every(id => {
+        const l = document.getElementById(id).closest('label');
+        return l && l.querySelector('span') && l.querySelector('span').textContent.trim().length > 2;
+      }));
+    check('and each carries a word, unlike the four unlabelled boxes it replaces', labelled);
+
+    /* A real save, typed and pressed, read back off the server. */
+    await page.fill('#st-co-name', 'Highland Corporate Limited');
+    await page.fill('#st-co-reg', 'PVT-2019-4471');
+    await page.fill('#st-co-addr', 'Ngong Road, Nairobi');
+    await page.click('#st-co-save');
+    await page.waitForTimeout(1400);
+    const savedLegal = (await W.admin.json('/api/org/branding')).branding || {};
+    check('pressing Save writes the record',
+      savedLegal.companyName === 'Highland Corporate Limited' && savedLegal.registrationNumber === 'PVT-2019-4471',
+      `${savedLegal.companyName} · ${savedLegal.registrationNumber}`);
+    /* The row behind the drawer states the legal name without being opened, so
+       it has to have caught up — and the page must not have rebuilt to do it. */
+    const legalRowSays = await page.evaluate(() =>
+      (document.querySelector('.st-row[data-st-panel="company"] .st-row-state') || {}).textContent || '');
+    check("and the row behind it says the new name", /Highland Corporate Limited/.test(legalRowSays), legalRowSays);
+    const stillOpen = await page.evaluate(() => document.getElementById('st-drawer').classList.contains('open'));
+    check('the drawer is still open — the page held still', stillOpen);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(350);
+
     /* ---- nothing spills sideways, at four widths ---- */
     const spills = [];
     for (const w of [1920, 1500, 1280, 1024]) {
@@ -404,6 +444,15 @@ const signIn = async (page, base, email, pass) => {
       theirs.roster === 0 && !theirs.rules && !theirs.gates,
       `${theirs.roster} people · rules ${theirs.rules} · gates ${theirs.gates}`);
     check("an Editor keeps the company-design door the old page gave them", theirs.design);
+    /* ---- AND NOT THE LEGAL IDENTITY (14 Aug 2026, a NAMED closure) ----
+       The design is theirs — logo, colour, layout — and that is what the
+       permission was for. The registered name is what appears on executed
+       paper, so it moved to the admin-only panel and the server refuses them.
+       The browser must agree, or the capability is invisible rather than
+       removed: no box on their surface, anywhere. */
+    const noLegal = await p2.evaluate(() =>
+      ['st-co-name', 'st-co-reg', 'st-co-addr'].every(id => !document.getElementById(id)));
+    check('but not the company\'s registered name, number or address', noLegal);
 
     const avatarLands = await p2.evaluate(async () => {
       document.getElementById('rail-avatar').click();
