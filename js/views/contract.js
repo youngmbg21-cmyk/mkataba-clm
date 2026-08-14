@@ -2913,6 +2913,48 @@ function ktRouteEmailRowHtml(c){
     `${esc(routeEmail)}<span style="display:block;font-size:10.5px;color:var(--color-neutral-600);line-height:1.4">${
       who?esc(who)+' · ':''}${i18t('ct_signing_route_email_note')}</span>`, '', false);
 }
+/* ---- WHICH DRAWER THIS CONTRACT IS FILED IN, AND WHO MAY CHANGE IT ----
+   HaTi picks the folder automatically for most contracts, so it will sometimes
+   pick wrong, and until now there was no way to correct it: this row reported
+   and nothing else. An admin can now re-file from here.
+
+   IT IS NOT AN ORDINARY KEY-TERMS FIELD, and it does not ride the [data-kt]
+   handler beside it. Every other row on this panel writes on each keystroke and
+   persists quietly, which is right for a fact somebody is typing in. Re-filing
+   is an ACT — it changes who can open the contract — so it asks first, says
+   what the change costs, and writes an audit line. See wireKtFolder.
+
+   ITS OWN READING OF WHO MAY. The rest of the panel is editable while
+   `c.status!=='Signed' && canEdit() && !PORTAL_MODE`; this row asks for an
+   admin, and it deliberately does NOT stand down on a signed contract. Filing
+   is housekeeping rather than part of the agreement — nothing in the executed
+   document mentions the drawer, `folder` is not on the server's
+   EXECUTED_IMMUTABLE list, and a mis-filed executed contract is precisely the
+   one you most want to be able to find again.
+
+   NO "CREATE A NEW FOLDER" HERE. Every other picker in the product is built by
+   folderOptionsHtml, which carries a `__new__` sentinel; this one is built
+   straight off visibleFolders — the SAME one list, without that option. A
+   custom folder is saved in the reader's own browser and no colleague's browser
+   knows it exists, so minting one in the middle of a move would file the
+   contract somewhere only one person can see. Creating folders stays where it
+   is stated as a browser-local thing. */
+function ktStreamRowHtml(c){
+  const read=esc((window.streamLabel?streamLabel(c):'')||'—');
+  const may=(typeof isAdmin==='function')&&isAdmin()&&!PORTAL_MODE&&typeof visibleFolders==='function';
+  if(!may) return ktRowHtml('stream', i18t('ct_value_stream'), read, '', false);
+  const opts=visibleFolders().slice();
+  /* The drawer it is ALREADY in stays on the list even where it is out of
+     reach, or opening the row silently re-files it — folderOptionsHtml's own
+     rule, kept. An admin holds every folder, so this is for the day the control
+     is widened. */
+  if(c.folder && FOLDERS[c.folder] && !opts.some(f=>f.id===c.folder)) opts.unshift(FOLDERS[c.folder]);
+  const SEL='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:5px;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
+  return ktRowHtml('stream', i18t('ct_value_stream'), read,
+    `<select data-kt-folder style="${SEL}">${
+      opts.map(f=>`<option value="${esc(f.id)}"${f.id===c.folder?' selected':''}>${esc(f.name)}</option>`).join('')
+    }</select>`, true, 'folder');
+}
 function ktTermsRowsHtml(c,opts={}){
   const ed=!!opts.editable;
   const KIN='min-width:0;width:100%;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:5px;padding:4px 8px;font:inherit;font-size:11.5px;text-align:right;outline:none';
@@ -2973,7 +3015,7 @@ function ktTermsRowsHtml(c,opts={}){
       `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/>`, ed, 'calendar'),
     ktRowHtml('expiry','Expiry', day(c.expiry),
       `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/>`, ed, 'calendar'),
-    ktRowHtml('stream','Value stream', esc((window.streamLabel?streamLabel(c):'')||'—'),'',false),
+    ktStreamRowHtml(c),
     tmpl?ktRowHtml('template','Template', esc(tmpl),'',false):'',
   ].join('');
 }
@@ -2988,12 +3030,77 @@ function wireKtRows(c){
       rows.forEach(o=>{ if(o!==r) shut(o); });
       r.querySelector('.kt-read').classList.add('hidden');
       const f=r.querySelector('.kt-field'); f.classList.remove('hidden'); r.classList.add('is-open');
-      const inp=f.querySelector('input:not([type=checkbox])'); if(inp){ inp.focus(); inp.select&&inp.select(); }
+      /* A SELECT IS A FIELD TOO. The value-stream row's picker is the one on
+         this panel that is not an <input>, and it was left unfocused and
+         unclosable until it was named here. */
+      const inp=f.querySelector('input:not([type=checkbox]), select'); if(inp){ inp.focus(); inp.select&&inp.select(); }
     });
-    r.querySelectorAll('.kt-field input').forEach(inp=>inp.addEventListener('blur',()=>{
-      /* Late enough for a click on the checkbox beside it to land first. */
-      setTimeout(()=>{ if(!r.contains(document.activeElement)) renderKeyTerms(c); },120);
+    r.querySelectorAll('.kt-field input, .kt-field select').forEach(inp=>inp.addEventListener('blur',()=>{
+      /* Late enough for a click on the checkbox beside it to land first — and
+         never while a confirm is open over the top of the panel, or the repaint
+         throws away the row the reader is being asked about. */
+      setTimeout(()=>{ if(!_ktFolderBusy && !r.contains(document.activeElement)) renderKeyTerms(c); },120);
     }));
+  });
+}
+/* ---- RE-FILING A CONTRACT SAYS WHAT IT COSTS BEFORE IT HAPPENS ----
+   Moving a contract to another drawer changes who can open it. That is the
+   point of the control and it is also its risk, so the confirm names the
+   consequence in plain words: how many people can see it now, how many will be
+   able to afterwards, and which way that number goes.
+
+   IT REFUSES NOTHING ON THAT BASIS. An admin moving a contract into a narrower
+   folder is a legitimate act and is often exactly the intention. Say what
+   happens; do not decide it for them.
+
+   THE COUNT IS NOT NEW ARITHMETIC — folderSeerCount is the same reading the
+   settings panel prints beside every folder, so the two can never disagree.
+
+   _ktFolderBusy holds the panel still while the question is on screen: the row
+   closes itself on blur, and pressing a button in the confirm blurs the select
+   that opened it. */
+let _ktFolderBusy=false;
+function wireKtFolder(c){
+  const sel=document.querySelector('[data-kt-folder]'); if(!sel) return;
+  /* BOUND ONCE PER ELEMENT — bindFolderSelect's own idiom, and needed for the
+     same reason it is there. wireKeyTerms runs from renderKeyTerms AND from the
+     room's main wiring, so a second binding would put a second listener on the
+     picker and ask the same question twice. */
+  if(sel.dataset.ktFolderBound) return; sel.dataset.ktFolderBound='1';
+  const F=window.FOLDERS||{};
+  const nameOf=id=>(F[id]&&F[id].name)||id||'—';
+  sel.addEventListener('change', async ()=>{
+    const from=c.folder||'', to=sel.value||'';
+    if(!to||to===from){ sel.value=from; return; }
+    _ktFolderBusy=true;
+    try{
+      const now=(typeof folderSeerCount==='function')?folderSeerCount(from):null;
+      const then=(typeof folderSeerCount==='function')?folderSeerCount(to):null;
+      const move=(then&&now)?then.n-now.n:0;
+      const swing=!now||!then ? ''
+        : (move>0 ? i18t('ct_refile_more',{n:move})
+        : move<0 ? i18t('ct_refile_fewer',{n:-move})
+        : i18t('ct_refile_same'));
+      const seen=(now&&then)
+        ? ` ${i18t('ct_refile_now',{n:now.n,total:now.total})} ${i18t('ct_refile_after',{n:then.n,total:then.total})} ${swing}`
+        : '';
+      const ok=await confirmDialog({
+        title:i18t('ct_refile_title',{to:nameOf(to)}),
+        message:i18t('ct_refile_body',{name:c.name||c.id,from:nameOf(from),to:nameOf(to)})+seen,
+        confirmLabel:i18t('ct_refile_do') });
+      if(!ok){ sel.value=from; return; }
+      c.folder=to;
+      c.lastAction=todayStr();
+      /* THE RECORD KEEPS ENGLISH. An audit entry is read by whoever opens the
+         history a year later, in whatever language they have chosen, and a
+         trail written half in one and half in another is not a record. */
+      logAudit(c,'Re-filed',`Re-filed from ${nameOf(from)} to ${nameOf(to)} by ${currentUser()?.name||'System'}`);
+      persist(c);
+      toast(i18t('ct_refile_done',{to:nameOf(to)}));
+      /* The whole room, not just the panel: the folder is printed in the room's
+         sub-line under the contract's name as well as on this row. */
+      renderWorkspace();
+    } finally { _ktFolderBusy=false; }
   });
 }
 /* Repaint the panel from the record — after an edit, so the read-out beside a
@@ -5033,6 +5140,7 @@ function wireKeyTerms(c){
     });
   });
   document.getElementById('kt-fill')?.addEventListener('click',()=>fillKeyTermsFromDocument(c));
+  wireKtFolder(c);
 }
 /* Read what the document itself says and drop it into the EMPTY fields — never
    over something already entered. Uses the Copilot reader when a key is configured

@@ -1073,6 +1073,17 @@ function userFolderAccess(u){
   return (own==null||own==='*'||!Array.isArray(own))?'*':own;
 }
 function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
+/* ---- HOW MANY PEOPLE CAN SEE WHAT IS IN THIS DRAWER ----
+   The settings panel has printed "N of M people can see it" beside every folder
+   since the August 2026 rebuild, and re-filing a contract is the act that
+   CHANGES that number — so the confirm has to be able to say it too. One
+   reading, two readers: it is built on canAccessFolder, which is the map's own
+   named predicate, so the sentence on the confirm and the line on the settings
+   panel can never disagree about who is in a folder. */
+function folderSeerCount(fid){
+  const users=((typeof getUsers==='function'?getUsers():[])||[]);
+  return { n:users.filter(u=>canAccessFolder(fid,u)).length, total:users.length };
+}
 
 /* ---------- signing capacity ----------
    A signature block states the capacity in which someone bound the company —
@@ -1133,7 +1144,7 @@ function canViewValues(u){
    authoritative, whole-register export is GET /api/export/contracts.csv, which
    the server masks the same way. */
 const csvValueCell = c => (!isMonetary(c) || !canViewValues()) ? '' : (c.value||0);
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,canViewValues,csvValueCell,signerTitle,signatureCapacity});
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,folderSeerCount,canViewValues,csvValueCell,signerTitle,signatureCapacity});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);

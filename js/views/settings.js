@@ -1279,7 +1279,15 @@ const SET_PANELS={
           <input id="st-folder-new" type="text" style="${window.RV_FLD||ST_INPUT}"/></label>
         <button id="st-folder-add" style="${ST_BTN_SM}">${i18t('set_add')}</button>
       </div>
-      <p class="st-note" style="margin-top:10px">${esc(i18t('st_p_folders_body'))}</p>`; },
+      <p class="st-note" style="margin-top:10px">${esc(i18t('st_p_folders_body'))}</p>
+      <!-- ---- WHERE A FOLDER YOU MAKE ACTUALLY LIVES ----
+           A rename box and a delete button on this panel make the custom-folder
+           list look like a company setting. It is not: addCustomFolder writes to
+           this browser's own storage (saveCustomFolders → localStorage) and no
+           colleague's browser ever learns of it. That is more confidence than
+           the storage deserves, so the panel says so. No behaviour change — the
+           smallest honest fix, until somebody actually needs one shared. -->
+      <p class="st-note" style="margin-top:6px">${esc(i18t('st_p_folders_local'))}</p>`; },
     wire(){ stPaintFolders(); },
   },
 
@@ -1679,11 +1687,12 @@ const SET_PANELS={
 function stPaintFolders(){
   const host=document.getElementById('st-folder-list'); if(!host) return;
   const users=getUsers()||[];
-  const seers=fid=>users.filter(u=>{
-    if(u.role==='admin') return true;
-    const v=(((state.settings||{}).folderAccess)||{})[u.id];
-    return v==null||v==='*'||(Array.isArray(v)&&(!v.length||v.includes(fid)));
-  }).length;
+  /* ONE READING, TWO READERS. This panel used to carry its own copy of the
+     access map's arithmetic; the re-filing confirm on Key terms needs the same
+     sentence, and two copies of "who can see this drawer" is two answers to one
+     question. folderSeerCount (js/core.js) is built on canAccessFolder, the
+     map's own named predicate. */
+  const seers=fid=>folderSeerCount(fid).n;
   host.innerHTML=Object.values(FOLDERS).map(f=>{
     const n=(state.contracts||[]).filter(c=>c.folder===f.id).length;
     return `<div class="st-frow" data-st-folder="${PB_ATTR(f.id)}">

@@ -3,7 +3,26 @@
 **Raised by:** Young, 2026-08-14: "Admins should be able to move a contract to
 a different folder."
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — written, not built.
+**Status:** CLOSED — built 14 Aug 2026 on Young's instruction ("complete the
+rest of the work orders autonomously"), taking this order's own
+recommendations for D-1, D-2 and D-3. M-1 to M-4 landed, and so did the
+custom-folder honesty line in the rider.
+
+M-4 was checked rather than assumed. Folder access and per-folder signing
+rights read the folder id at request time and follow a move on their own; an
+approval rule with a `folder` condition is rebuilt on every read, so a moved
+contract picks up the new folder's rules and an already-approved step is left
+alone, exactly as recommended; and **a live share link is unaffected** —
+`buildSharePayload` never carries `folder` at all, and the portal supplies its
+own default where the payload has none.
+
+**Not taken, as this order asked:** bulk re-filing (D-3), and moving custom
+folders to the server. No custom folder has ever been created in this
+workspace, so the second is half a day's work for a problem nobody has; the
+panel now states where a folder you create actually lives instead.
+
+Proof: f200 (31), refile-a-contract-verify (26, browser), full suite
+3528/3528.
 
 ---
 

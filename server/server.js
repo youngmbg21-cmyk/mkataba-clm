@@ -2149,6 +2149,42 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  /* ---------- WHICH DRAWER A CONTRACT IS FILED IN IS AN ADMIN'S TO CHANGE ----------
+     This route already asked TWO questions about folders, both of them SCOPE
+     questions and both of them still above: can the caller see where it IS
+     (404), and can the caller see where it is GOING (403). Neither asks whether
+     the folder CHANGED, so an Editor sending back a contract with a different
+     `folder` had it re-filed — no refusal, no audit line, nobody told. The
+     interface never offered the control, which is the only reason it never
+     happened by accident.
+
+     ASKED AS A DIFFERENCE, like every guard around it. This route receives the
+     whole contract on every save and every ordinary save carries the folder
+     unchanged, so the question is never "may this person touch folders" — that
+     would refuse a viewer saving a note — but "does this save MOVE the contract,
+     and is the caller an admin".
+
+     THE CREATION CASE IS NOT CAUGHT: a contract that did not exist a moment ago
+     has no previous drawer to have been moved out of. Guarded on `existing`,
+     exactly as the other difference-guards here are.
+
+     BOTH SCOPE CHECKS STAY. They answer a different question and they are still
+     the reason a contract cannot be filed somewhere the caller cannot see —
+     which is what stops a move being a one-request way to make a record
+     disappear, if this is ever widened past admins.
+
+     A SIGNED CONTRACT MAY STILL BE MOVED. Filing is housekeeping and nothing in
+     the executed document mentions it — `folder` is deliberately absent from
+     EXECUTED_IMMUTABLE, and a mis-filed executed contract is precisely the one
+     you most want to be able to find. */
+  if (prev && req.user.role !== 'admin'
+      && String(prev.folder || '') !== String(c.folder || '')) {
+    return res.status(403).json({
+      error: `${req.params.id} is filed under ${prev.folder || 'no value stream'} and only an admin can move it. `
+        + 'Ask an admin to re-file it.',
+      folderMove: { from: prev.folder || null, to: c.folder || null } });
+  }
+
   /* ---------- A SIGNING STEP RESERVED FOR SOMEONE IS RESERVED HERE TOO ----------
      The browser has always refused to let one member sign another member's
      step (js/views/contract.js, "This step is reserved for …"). That is a sign
