@@ -1,0 +1,1289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HaTi — Squared Edges Prototype</title>
+<style>
+/* ============================================================
+   HaTi — SQUARED EDGES PROTOTYPE
+   A look-and-feel prototype only. No app code, no data, no server.
+   Every corner in the platform is set to 0 here: buttons, cards,
+   panels, inputs, tabs, dialogs, table, sidebar, the document
+   sheet, the status pills and the person avatars.
+   The one radius knob below drives the whole page, so the
+   compare switch in the top strip can turn the old corners back
+   on for a side-by-side look.
+   Colours, type, spacing and layout are the platform's own.
+   ============================================================ */
+
+:root{
+  /* ---- THE CORNER KNOB (the whole point of this prototype) ---- */
+  --r-xs:0px;      /* chips, dots, small marks   (was 3-5px)  */
+  --r-sm:0px;      /* buttons, inputs, tiles     (was 8px)    */
+  --r-md:0px;      /* cards, panels              (was 12px)   */
+  --r-lg:0px;      /* hero band, big containers  (was 16-20px)*/
+  --r-pill:0px;    /* status pills               (was 999px)  */
+  --r-avatar:0px;  /* person circles             (was 50%)    */
+
+  /* ---- the platform's navy brand ---- */
+  --accent-50:#eef3fb;  --accent-100:#dce5f7; --accent-200:#b8caf0;
+  --accent-300:#8aa8e2; --accent-400:#5b82cf; --accent-500:#3560b4;
+  --accent-600:#24488f; --accent-700:#1c3872; --accent-800:#16295a;
+  --accent-900:#111f45;
+  --accent-solid:var(--accent-600);
+  --brand-cyan:#3f7ac4; --brand-cyan-700:#2b5c9e;
+  --hero-deep:#0f2447;
+  --hero:linear-gradient(120deg,var(--hero-deep) 0%,var(--accent-600) 62%,var(--brand-cyan-700) 100%);
+  --hero-sub:#c3d6f2;
+  --nav-bg:#122a4d; --nav-line:#0e2140; --nav-ink:#a5bde0; --nav-ink-strong:#fff;
+
+  /* ---- neutrals / surfaces ---- */
+  --bg:#f6f8fb; --surface:#fff; --text:#0f172a; --divider:#e2e8f0;
+  --n-100:#f1f5f9; --n-200:#e2e8f0; --n-300:#cbd5e1; --n-400:#94a3b8;
+  --n-500:#64748b; --n-600:#64748b; --n-700:#334155; --n-800:#1e293b; --n-900:#0f172a;
+
+  /* ---- the paper ---- */
+  --doc-warm:#fdfcf9; --doc-warm-line:#e8e4dc;
+  --doc-text:#15181a; --doc-muted:#4a4f54; --doc-rule:#c9ccd1;
+
+  /* ---- status palette ---- */
+  --gray-bg:#f1f5f9;  --gray-fg:#475569;  --gray-dot:#94a3b8;
+  --amber-bg:#fef3c7; --amber-fg:#b45309; --amber-dot:#f59e0b; --amber-line:#e0c48a;
+  --green-bg:#d1fae5; --green-fg:#047857; --green-dot:#10b981;
+  --ruby-bg:#ffe4e6;  --ruby-fg:#be123c;  --ruby-dot:#f43f5e;
+  --steel-bg:var(--accent-100); --steel-fg:var(--accent-800);
+
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+  --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+  --shadow-paper:0 1px 2px rgba(38,55,74,.05), 0 18px 44px -22px rgba(38,55,74,.28);
+
+  --font-heading:"Plus Jakarta Sans",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-body:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-serif:Georgia,"Times New Roman",serif;
+}
+
+/* The compare switch flips only this block back on — nothing else
+   in the file knows which mode it is in. */
+html[data-corners="round"]{
+  --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:18px;
+  --r-pill:999px; --r-avatar:50%;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:13px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;font-family:var(--font-body);cursor:pointer}
+h1,h2,h3,h4{font-family:var(--font-heading);margin:0}
+
+/* ============================================================
+   PROTOTYPE STRIP — not part of the platform.
+   ============================================================ */
+#proto-strip{
+  position:sticky;top:0;z-index:80;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:8px 18px;background:#0b1220;color:#cbd5e1;
+  font-size:11.5px;border-bottom:1px solid #1e293b;
+}
+#proto-strip b{color:#fff;font-weight:700;letter-spacing:.02em}
+#proto-strip .sep{width:1px;height:16px;background:#1e293b}
+.proto-seg{display:inline-flex;border:1px solid #334155;border-radius:var(--r-sm);overflow:hidden}
+.proto-seg button{
+  background:transparent;color:#94a3b8;border:0;padding:4px 11px;
+  font-size:11.5px;font-weight:600;border-radius:0;
+}
+.proto-seg button[aria-pressed="true"]{background:#1e293b;color:#fff}
+#proto-strip .note{color:#64748b}
+
+/* ============================================================
+   SHELL — sidebar + header + content
+   ============================================================ */
+#shell{display:grid;grid-template-columns:216px 1fr;min-height:calc(100vh - 34px)}
+
+aside#side-nav{
+  background:var(--nav-bg);border-right:1px solid var(--nav-line);
+  display:flex;flex-direction:column;padding:14px 12px;gap:2px;
+}
+.nav-brand{
+  display:flex;align-items:center;gap:10px;padding:6px 6px 16px;
+  color:#fff;font-family:var(--font-heading);font-weight:800;font-size:16px;letter-spacing:.04em;
+}
+.nav-mark{
+  width:28px;height:28px;border-radius:var(--r-sm);
+  background:rgba(255,255,255,.16);display:grid;place-items:center;
+  font-size:13px;font-weight:800;
+}
+.nav-sec{
+  color:#6f8ec2;font-size:9.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;padding:14px 10px 6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:11px;width:100%;
+  border:1px solid transparent;background:none;color:var(--nav-ink);
+  font-size:12px;font-weight:600;padding:9px 12px;text-align:left;
+  border-radius:var(--r-md);
+}
+.nav-item:hover{background:rgba(255,255,255,.08);color:var(--nav-ink-strong)}
+.nav-item.active{background:rgba(255,255,255,.15);color:var(--nav-ink-strong)}
+.nav-item .ico{flex:none;width:16px;height:16px;opacity:.9}
+.nav-count{
+  margin-left:auto;background:rgba(255,255,255,.14);color:var(--nav-ink);
+  font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:var(--r-pill);
+  min-width:20px;text-align:center;
+}
+.nav-item.active .nav-count{background:rgba(255,255,255,.24);color:#fff}
+
+#main{display:flex;flex-direction:column;min-width:0}
+
+header#top{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 20px;background:var(--surface);border-bottom:1px solid var(--divider);
+}
+.search{
+  flex:1;max-width:380px;display:flex;align-items:center;gap:8px;
+  border:1px solid var(--n-200);background:var(--n-100);
+  padding:7px 11px;border-radius:var(--r-sm);color:var(--n-500);font-size:12px;
+}
+.top-btn{
+  width:32px;height:32px;display:grid;place-items:center;
+  border:1px solid var(--n-200);background:var(--surface);
+  border-radius:var(--r-sm);color:var(--n-600);position:relative;
+}
+.top-dot{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;
+  background:#dc2626;color:#fff;font-size:9.5px;font-weight:700;
+  display:grid;place-items:center;border-radius:var(--r-pill);padding:0 4px;
+}
+.who{
+  display:flex;align-items:center;gap:8px;padding:4px 8px 4px 4px;
+  border:1px solid var(--n-200);border-radius:var(--r-sm);background:var(--surface);
+}
+.avatar{
+  width:26px;height:26px;border-radius:var(--r-avatar);
+  background:var(--accent-100);color:var(--accent-800);
+  display:grid;place-items:center;font-size:11px;font-weight:700;flex:none;
+}
+.avatar.lg{width:34px;height:34px;font-size:13px}
+
+#content{padding:18px 22px 40px;overflow:auto}
+
+/* ---- page head (one line, as the platform has it) ---- */
+.page-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.page-head h1{font-size:21px;font-weight:800;letter-spacing:-.01em}
+.page-head p{margin:0;color:var(--n-500);font-size:12px}
+
+/* ============================================================
+   SHARED FURNITURE — buttons, chips, cards
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--n-200);background:var(--surface);color:var(--n-800);
+  padding:8px 13px;font-size:12px;font-weight:600;border-radius:var(--r-sm);
+}
+.btn:hover{background:var(--n-100)}
+.btn.primary{background:var(--accent-solid);border-color:var(--accent-solid);color:#fff}
+.btn.primary:hover{background:var(--accent-700);border-color:var(--accent-700)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--n-600)}
+
+.chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 9px;font-size:11px;font-weight:700;border-radius:var(--r-pill);
+  border:1px solid transparent;
+}
+.chip .dot{width:6px;height:6px;border-radius:var(--r-pill);background:currentColor;flex:none}
+.chip.amber{background:var(--amber-bg);color:var(--amber-fg);border-color:var(--amber-line)}
+.chip.green{background:var(--green-bg);color:var(--green-fg)}
+.chip.ruby{background:var(--ruby-bg);color:var(--ruby-fg)}
+.chip.gray{background:var(--gray-bg);color:var(--gray-fg)}
+.chip.steel{background:var(--steel-bg);color:var(--steel-fg)}
+
+.card{
+  background:var(--surface);border:1px solid var(--divider);
+  border-radius:var(--r-md);box-shadow:var(--shadow-sm);padding:16px 18px;
+}
+.card h3{font-size:14px;font-weight:700;letter-spacing:-.01em}
+.card .sub{color:var(--n-500);font-size:11.5px;margin-top:2px}
+
+.tile{
+  width:34px;height:34px;border-radius:var(--r-sm);display:grid;place-items:center;flex:none;
+}
+.tile.steel{background:var(--accent-100);color:var(--accent-800)}
+.tile.green{background:var(--green-bg);color:var(--green-fg)}
+.tile.amber{background:var(--amber-bg);color:var(--amber-fg)}
+.tile.ruby{background:var(--ruby-bg);color:var(--ruby-fg)}
+
+.screen{display:none}
+.screen.on{display:block}
+
+/* ============================================================
+   HOME
+   ============================================================ */
+.hm-hero{
+  position:relative;overflow:hidden;display:flex;flex-wrap:wrap;
+  align-items:center;justify-content:space-between;gap:16px;
+  padding:20px 24px;border-radius:var(--r-lg);
+  background:var(--hero);box-shadow:var(--shadow-md);color:#fff;
+}
+.hm-hero-glow{
+  position:absolute;right:-60px;top:-90px;width:280px;height:280px;
+  border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 68%);
+  pointer-events:none;
+}
+.hm-hero h2{font-size:19px;font-weight:800;letter-spacing:-.01em}
+.hm-hero p{margin:4px 0 0;color:var(--hero-sub);font-size:12px}
+.hm-hero .btn{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28);color:#fff}
+.hm-hero .btn.white{background:#fff;border-color:#fff;color:var(--accent-800)}
+
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.kpi{
+  background:var(--surface);border:1px solid var(--divider);border-radius:var(--r-md);
+  box-shadow:var(--shadow-sm);padding:13px 15px;display:flex;gap:12px;align-items:flex-start;
+}
+.kpi .lab{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--n-500)}
+.kpi .val{font-family:var(--font-heading);font-size:24px;font-weight:800;line-height:1.1;margin-top:3px}
+.kpi .delta{font-size:11px;font-weight:600;margin-top:3px}
+.kpi .sub{font-size:10.5px;color:var(--n-500);margin-top:2px}
+
+.hm-main-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.hm-pipe-card,.hm-decisions{
+  background:var(--surface);border:1px solid var(--divider);
+  border-radius:var(--r-md);box-shadow:var(--shadow-sm);padding:16px 18px;min-width:0;
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.card-head h3{font-size:14px;font-weight:700}
+/* Grid children take their content as a floor unless told otherwise, which is
+   how a long contract name pushed out through the side of the card. */
+.hm-ring-row{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;align-items:start}
+.hm-ring-row>*{min-width:0}
+.hm-ring-wrap{display:flex;align-items:center;gap:16px}
+.hm-ring{
+  width:118px;height:118px;flex:none;position:relative;
+  border-radius:50%; /* a chart, not a corner — see the note in the strip */
+  background:conic-gradient(var(--n-400) 0 38%, var(--amber-dot) 38% 72%, var(--green-dot) 72% 100%);
+}
+.hm-ring::after{
+  content:"";position:absolute;inset:21px;background:var(--surface);border-radius:50%;
+}
+.hm-ring .mid{
+  position:absolute;inset:0;display:grid;place-content:center;text-align:center;z-index:1;
+}
+.hm-ring .mid b{font-family:var(--font-heading);font-size:22px;font-weight:800;display:block;line-height:1}
+.hm-ring .mid span{font-size:10px;color:var(--n-500);font-weight:600}
+.hm-key{display:flex;flex-direction:column;gap:9px;min-width:0}
+.hm-key-row{
+  display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:var(--r-sm);
+  border:1px solid transparent;background:transparent;text-align:left;width:100%;
+}
+.hm-key-row:hover{background:var(--n-100)}
+.hm-key-row.on{background:var(--accent-50);border-color:var(--accent-200)}
+.hm-key-row .sw{width:11px;height:11px;border-radius:var(--r-xs);flex:none}
+.hm-key-row .nm{font-size:11.5px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-key-row .n{font-family:var(--font-heading);font-size:14px;font-weight:800}
+.hm-side-list{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--divider)}
+.hm-side-row{
+  display:block;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px solid var(--divider);padding:8px 4px;border-radius:0;
+}
+.hm-side-row:hover{background:var(--n-100)}
+.hm-side-row .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-side-row .meta{font-size:10.5px;color:var(--n-500);margin-top:1px}
+.dec-row{
+  display:flex;align-items:center;gap:11px;padding:10px 2px;border-bottom:1px solid var(--divider);
+}
+.dec-row:last-child{border-bottom:0}
+.dec-row .nm{font-size:12px;font-weight:600}
+.dec-row .meta{font-size:10.5px;color:var(--n-500);margin-top:1px}
+
+/* ============================================================
+   REGISTER (Contracts)
+   ============================================================ */
+.filter-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--divider);border-radius:var(--r-md);
+  padding:10px 12px;box-shadow:var(--shadow-sm);margin-bottom:12px;
+}
+.fld{
+  border:1px solid var(--n-200);background:var(--surface);color:var(--n-700);
+  padding:6px 10px;font-size:11.5px;font-weight:600;border-radius:var(--r-sm);
+}
+.seg{display:inline-flex;border:1px solid var(--n-200);border-radius:var(--r-sm);overflow:hidden}
+.seg button{
+  border:0;background:var(--surface);color:var(--n-600);
+  padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:0;
+  border-right:1px solid var(--n-200);
+}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-600);color:#fff}
+.locked-chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--accent-100);
+  color:var(--accent-800);border:1px solid var(--accent-200);
+  padding:5px 10px;font-size:11.5px;font-weight:700;border-radius:var(--r-pill);
+}
+.table-wrap{
+  background:var(--surface);border:1px solid var(--divider);border-radius:var(--r-md);
+  box-shadow:var(--shadow-sm);overflow:hidden;
+}
+table.reg{width:100%;border-collapse:collapse}
+table.reg th{
+  text-align:left;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--n-500);padding:10px 12px;border-bottom:1px solid var(--divider);
+  background:var(--n-100);white-space:nowrap;
+}
+table.reg td{
+  padding:10px 12px;border-bottom:1px solid var(--divider);font-size:12px;vertical-align:middle;
+}
+table.reg tbody tr:hover{background:var(--accent-50)}
+table.reg tbody tr:last-child td{border-bottom:0}
+.reg-id{font-size:11px;font-weight:700;color:var(--n-500)}
+.reg-name{font-weight:600}
+.reg-name .stream{font-size:10.5px;color:var(--n-500);font-weight:500;margin-top:1px}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.band-row td{
+  background:var(--n-100);font-family:var(--font-heading);font-weight:700;font-size:11.5px;
+  color:var(--n-700);padding:9px 12px;border-bottom:1px solid var(--divider);
+}
+.band-row .n{color:var(--n-500);font-weight:600}
+.tbl-foot{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 12px;font-size:11.5px;color:var(--n-500);border-top:1px solid var(--divider);
+}
+.pager{display:flex;gap:5px}
+.pager button{
+  border:1px solid var(--n-200);background:var(--surface);color:var(--n-700);
+  min-width:28px;height:28px;font-size:11.5px;font-weight:600;border-radius:var(--r-sm);
+}
+.pager button[aria-current="true"]{background:var(--accent-600);border-color:var(--accent-600);color:#fff}
+.checkbox{
+  width:14px;height:14px;border:1px solid var(--n-300);background:var(--surface);
+  border-radius:var(--r-xs);display:inline-block;vertical-align:middle;
+}
+
+/* ============================================================
+   CONTRACT ROOM
+   ============================================================ */
+.room-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.back-btn{
+  width:44px;height:44px;display:grid;place-items:center;flex:none;
+  border:1px solid var(--n-200);background:var(--surface);border-radius:var(--r-sm);
+  color:var(--n-700);font-size:17px;
+}
+.room-title{flex:1;min-width:240px}
+.room-title h1{
+  font-size:25px;font-weight:800;letter-spacing:-.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:620px;
+}
+.room-sub{color:var(--n-500);font-size:12.5px;margin-top:7px}
+.room-sub .needs{color:#c2410c;font-weight:700}
+.room-sub .id{color:var(--accent-700);font-weight:700}
+.people-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid var(--n-200);background:var(--surface);color:var(--n-600);
+  padding:9px 16px;font-size:12.5px;font-weight:600;border-radius:var(--r-pill);
+}
+.room-acts{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.room-acts .btn{padding:11px 17px;font-size:13px}
+.room-acts .btn.primary{background:#1d3a63;border-color:#1d3a63}
+
+.tabrow{
+  display:flex;align-items:center;gap:4px;
+  border-bottom:1px solid var(--divider);margin-top:16px;
+}
+.tab{
+  border:0;background:none;padding:10px 14px;font-size:14px;font-weight:600;
+  color:var(--n-500);border-bottom:2px solid transparent;border-radius:0;
+}
+.tab.on{color:var(--accent-800);font-weight:800;border-bottom-color:var(--accent-700)}
+.tabrow-end{margin-left:auto;display:flex;align-items:center;gap:12px;padding-bottom:6px}
+.stepper{
+  display:inline-flex;align-items:center;gap:9px;
+  border:1px solid var(--n-200);background:var(--surface);
+  padding:5px 9px;border-radius:var(--r-sm);font-size:12px;color:var(--n-600);
+}
+.stepper b{
+  width:26px;height:24px;display:grid;place-items:center;
+  border:1px solid var(--n-200);border-radius:var(--r-xs);font-size:11.5px;background:var(--n-100);
+}
+.nego-btn{
+  display:inline-flex;align-items:center;gap:9px;background:#1d3a63;color:#fff;
+  border:1px solid #1d3a63;padding:11px 18px;font-size:13.5px;font-weight:700;
+  border-radius:var(--r-sm);
+}
+.nego-btn .dot{width:8px;height:8px;border-radius:var(--r-pill);background:var(--amber-dot);flex:none}
+
+.room-grid{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-top:16px;align-items:start}
+
+/* ---- the paper ---- */
+.doc-pane{
+  background:var(--doc-warm);border:1px solid var(--doc-warm-line);
+  border-radius:var(--r-md);box-shadow:var(--shadow-paper);
+  padding:34px 42px 46px;color:var(--doc-text);max-height:620px;overflow:auto;
+}
+.doc-logo{
+  width:132px;margin:0 auto 26px;border:1px solid var(--doc-rule);
+  border-radius:var(--r-xs);padding:14px 0;text-align:center;background:#fff;
+}
+.doc-logo b{font-family:var(--font-serif);font-size:19px;letter-spacing:.02em;color:#1d3a63;display:block}
+.doc-logo span{font-size:8px;letter-spacing:.28em;color:var(--doc-muted);display:block;margin-top:2px}
+.doc-party{
+  font-family:var(--font-serif);text-align:center;font-size:22px;
+  letter-spacing:.34em;font-weight:400;
+}
+.doc-meta{
+  text-align:center;font-size:11px;letter-spacing:.13em;color:var(--doc-muted);
+  margin-top:8px;text-transform:uppercase;
+}
+.doc-rule{
+  display:flex;align-items:center;gap:14px;margin:22px auto;max-width:540px;color:var(--doc-rule);
+}
+.doc-rule .ln{flex:1;height:1px;background:#3f4448}
+.doc-rule .dia{width:8px;height:8px;background:#3f4448;transform:rotate(45deg)}
+.doc-between{text-align:center;font-family:var(--font-serif);font-size:15px;margin-top:4px}
+.doc-name{text-align:center;font-family:var(--font-serif);font-size:16px;font-weight:700;letter-spacing:.06em;margin-top:12px}
+.doc-and{text-align:center;font-family:var(--font-serif);font-size:15px;margin-top:8px}
+.doc-kick{
+  text-align:center;font-size:9.5px;letter-spacing:.22em;color:var(--doc-muted);
+  text-transform:uppercase;margin-top:30px;
+}
+.doc-title{
+  text-align:center;font-family:var(--font-serif);font-size:20px;font-weight:700;
+  margin-top:10px;letter-spacing:-.01em;
+}
+.doc-lead{text-align:center;font-family:var(--font-serif);font-size:13px;color:var(--doc-muted);margin-top:8px}
+.doc-clause{margin-top:26px;font-family:var(--font-serif);font-size:13.5px;line-height:1.7}
+.doc-clause h4{font-family:var(--font-serif);font-size:13.5px;font-weight:700;margin-bottom:5px}
+/* The platform opens the seam between a deletion and the replacement that
+   follows it — otherwise the two weld together as one word. */
+.doc-clause del{background:var(--ruby-bg);color:var(--ruby-fg);border-radius:var(--r-xs);padding:0 2px}
+.doc-clause ins{background:var(--green-bg);color:var(--green-fg);text-decoration:none;border-radius:var(--r-xs);padding:0 2px}
+del+ins{margin-inline-start:.3em}
+.doc-field{
+  border-bottom:1px solid var(--doc-rule);padding:0 4px;background:rgba(36,72,143,.05);
+  border-radius:var(--r-xs);
+}
+
+/* ---- right column ---- */
+.checks-row{
+  display:flex;align-items:center;gap:11px;padding:11px 0;border-top:1px solid var(--divider);
+}
+.checks-row .nm{flex:1;font-size:13px;font-weight:600}
+.run-link{background:none;border:0;color:var(--accent-700);font-size:12.5px;font-weight:700;border-radius:0;padding:0}
+.live-dot{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--green-fg);font-weight:600}
+.live-dot i{width:7px;height:7px;border-radius:var(--r-pill);background:var(--green-dot);display:inline-block}
+.act-item{display:flex;gap:10px;padding:12px 0;border-top:1px solid var(--divider)}
+.act-item .body{min-width:0}
+.act-item .who{border:0;padding:0;background:none;display:block}
+.act-item .nm{font-size:12.5px;font-weight:700}
+.act-item .nm span{font-weight:500;color:var(--n-500);font-size:11.5px;margin-left:6px}
+.act-item p{margin:5px 0 0;font-size:12px;color:var(--n-700);line-height:1.55}
+.comment-as{font-size:11.5px;color:var(--n-500);padding:12px 0 8px;border-top:1px solid var(--divider);margin-top:6px}
+.comment-as b{color:var(--n-800)}
+.comment-box{display:flex;gap:8px}
+.comment-box input{
+  flex:1;border:1px solid var(--n-200);background:var(--surface);
+  padding:11px 12px;font-size:12.5px;border-radius:var(--r-sm);font-family:var(--font-body);
+}
+.send-btn{
+  width:44px;height:42px;display:grid;place-items:center;flex:none;
+  background:#1d3a63;border:1px solid #1d3a63;color:#fff;border-radius:var(--r-sm);
+}
+.fab{
+  position:fixed;right:22px;bottom:22px;width:48px;height:48px;
+  display:grid;place-items:center;background:var(--amber-bg);
+  border:1px solid var(--amber-line);color:var(--amber-fg);
+  border-radius:var(--r-avatar);box-shadow:var(--shadow-md);font-size:19px;z-index:40;
+}
+.fab i{
+  position:absolute;top:-3px;right:-3px;width:11px;height:11px;
+  background:var(--amber-dot);border:2px solid var(--surface);border-radius:var(--r-pill);
+}
+
+/* ============================================================
+   NEGOTIATIONS
+   ============================================================ */
+.move-pill{
+  display:inline-flex;align-items:center;gap:6px;padding:3px 10px;
+  font-size:11px;font-weight:700;border-radius:var(--r-pill);border:1px solid transparent;
+}
+.move-pill.you{background:var(--amber-bg);color:var(--amber-fg);border-color:var(--amber-line)}
+.move-pill.them{background:var(--steel-bg);color:var(--steel-fg)}
+.move-pill.none{background:var(--gray-bg);color:var(--gray-fg)}
+.live-btn{
+  display:inline-flex;align-items:center;gap:8px;border:1px solid var(--n-200);
+  background:var(--surface);color:var(--n-700);padding:8px 13px;
+  font-size:12px;font-weight:600;border-radius:var(--r-sm);
+}
+.live-btn .n{background:var(--n-100);padding:1px 7px;border-radius:var(--r-pill);font-weight:700}
+
+/* ---- workbench preview inside the negotiations screen ---- */
+.wb-grid{display:grid;grid-template-columns:1fr 316px;gap:14px;margin-top:12px;align-items:start}
+.q-tab{
+  display:inline-flex;align-items:center;gap:8px;border:1px solid var(--n-200);
+  background:var(--surface);padding:7px 12px;font-size:11.5px;font-weight:700;
+  border-radius:var(--r-sm);color:var(--n-700);
+}
+.q-tab .sc{background:var(--accent-100);color:var(--accent-800);padding:1px 7px;border-radius:var(--r-pill)}
+.col-head{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  background:var(--accent-700);color:#fff;padding:9px 12px;
+  border-radius:var(--r-md) var(--r-md) 0 0;
+}
+.col-head .cap{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.col-head .n{background:rgba(255,255,255,.2);padding:1px 8px;font-size:11px;font-weight:700;border-radius:var(--r-pill)}
+.col-seg{display:inline-flex;margin-left:auto;border:1px solid rgba(255,255,255,.3);border-radius:var(--r-sm);overflow:hidden}
+.col-seg button{
+  border:0;border-radius:0;background:transparent;color:#cbd9f0;
+  padding:3px 9px;font-size:10.5px;font-weight:700;border-right:1px solid rgba(255,255,255,.22);
+}
+.col-seg button:last-child{border-right:0}
+.col-seg button[aria-pressed="true"]{background:rgba(255,255,255,.22);color:#fff}
+.chg-card{
+  background:var(--surface);border:1px solid var(--divider);border-left:3px solid var(--accent-500);
+  border-radius:var(--r-md);padding:11px 12px;margin-top:10px;box-shadow:var(--shadow-sm);
+}
+.chg-card.theirs{border-left-color:var(--amber-dot)}
+.chg-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chg-id{font-size:10.5px;font-weight:700;color:var(--n-500)}
+.pop-btn{
+  margin-left:auto;border:1px solid var(--n-200);background:var(--surface);
+  width:24px;height:24px;display:grid;place-items:center;border-radius:var(--r-xs);
+  color:var(--n-600);font-size:11px;
+}
+.chg-meta{font-size:10.5px;color:var(--n-500);margin-top:5px}
+.chg-body{font-size:12px;color:var(--n-700);margin-top:7px;line-height:1.5}
+.chg-body del{background:var(--ruby-bg);color:var(--ruby-fg);text-decoration:line-through;border-radius:var(--r-xs);padding:0 2px}
+.chg-body ins{background:var(--green-bg);color:var(--green-fg);text-decoration:none;border-radius:var(--r-xs);padding:0 2px;margin-inline-start:.3em}
+.chg-acts{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.asktag{
+  display:inline-flex;align-items:center;gap:6px;background:var(--amber-bg);
+  color:var(--amber-fg);border:1px solid var(--amber-line);
+  padding:2px 8px;font-size:10px;font-weight:700;border-radius:var(--r-pill);
+}
+.empty-note{
+  border:1px dashed var(--n-300);background:var(--n-100);color:var(--n-500);
+  padding:14px;font-size:11.5px;border-radius:var(--r-sm);text-align:center;margin-top:10px;
+}
+
+@media (max-width:1200px){
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .hm-main-row,.room-grid,.wb-grid{grid-template-columns:1fr}
+}
+@media (max-width:900px){
+  #shell{grid-template-columns:64px 1fr}
+  aside#side-nav .nav-item span:not(.nav-count),.nav-brand b,.nav-sec{display:none}
+  .hm-ring-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ PROTOTYPE STRIP (not part of the platform) ============ -->
+<div id="proto-strip">
+  <b>SQUARED EDGES PROTOTYPE</b>
+  <span class="sep"></span>
+  <span>Corners</span>
+  <span class="proto-seg" id="corner-seg">
+    <button data-corners="square" aria-pressed="true">Squared</button>
+    <button data-corners="round" aria-pressed="false">Rounded (today)</button>
+  </span>
+  <span class="sep"></span>
+  <span class="note">Everything is squared — buttons, cards, panels, inputs, tabs, table, the paper, the status pills and the person avatars. Pie/ring charts stay round; they are pictures of data, not corners.</span>
+</div>
+
+<div id="shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside id="side-nav">
+    <div class="nav-brand"><span class="nav-mark">H</span><b>HaTi</b></div>
+
+    <button class="nav-item active" data-go="home"><span class="ico">◧</span><span>Home</span></button>
+    <button class="nav-item" data-go="register"><span class="ico">▤</span><span>Contracts</span><span class="nav-count">145</span></button>
+    <button class="nav-item" data-go="nego"><span class="ico">⇄</span><span>Negotiations</span><span class="nav-count">8</span></button>
+    <button class="nav-item"><span class="ico">▦</span><span>Calendar</span></button>
+    <button class="nav-item"><span class="ico">◔</span><span>Insights</span></button>
+
+    <div class="nav-sec">Workspace</div>
+    <button class="nav-item"><span class="ico">▥</span><span>Templates</span></button>
+    <button class="nav-item"><span class="ico">◫</span><span>Reports</span></button>
+    <button class="nav-item"><span class="ico">✎</span><span>Our standards</span></button>
+    <button class="nav-item"><span class="ico">⚙</span><span>Settings &amp; Rules</span></button>
+  </aside>
+
+  <div id="main">
+
+    <!-- ============ HEADER ============ -->
+    <header id="top">
+      <div class="search"><span>⌕</span><span>Search contracts, clauses, people…</span></div>
+      <div style="flex:1"></div>
+      <button class="top-btn" title="Activity">◴</button>
+      <button class="top-btn" title="Alerts">♪<span class="top-dot">9</span></button>
+      <button class="btn sm">EN</button>
+      <div class="who"><span class="avatar">YM</span><span style="font-size:11.5px;font-weight:600">Young Mbagaya</span></div>
+    </header>
+
+    <div id="content">
+
+      <!-- ================= HOME ================= -->
+      <section class="screen on" id="screen-home">
+        <div class="page-head">
+          <h1>Home</h1>
+          <p>What is moving, and what is waiting on you</p>
+        </div>
+
+        <section class="hm-hero">
+          <div class="hm-hero-glow"></div>
+          <div style="position:relative">
+            <h2>Good afternoon, Young</h2>
+            <p>145 agreements under management · 8 negotiations live · 3 decisions waiting on you</p>
+          </div>
+          <div style="position:relative;display:flex;gap:9px;flex-wrap:wrap">
+            <button class="btn white">+ Draft new agreement</button>
+            <button class="btn">Upload a contract</button>
+          </div>
+        </section>
+
+        <div class="kpi-row">
+          <div class="kpi">
+            <span class="tile steel">▣</span>
+            <div>
+              <div class="lab">Under management</div>
+              <div class="val">145</div>
+              <div class="delta" style="color:var(--green-fg)">+6 new this week</div>
+              <div class="sub">38 draft · 41 in review · 66 executed</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <span class="tile green">◈</span>
+            <div>
+              <div class="lab">Active value</div>
+              <div class="val">SEK 48.2M</div>
+              <div class="delta" style="color:var(--green-fg)">66 executed</div>
+              <div class="sub">Across 112 agreements</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <span class="tile amber">◷</span>
+            <div>
+              <div class="lab">Awaiting the other side</div>
+              <div class="val">12</div>
+              <div class="delta" style="color:var(--amber-fg)">4 stalled over 14 days</div>
+              <div class="sub">Out with the counterparty</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <span class="tile ruby">△</span>
+            <div>
+              <div class="lab">Expiring in 30 days</div>
+              <div class="val">7</div>
+              <div class="delta" style="color:var(--ruby-fg)">SEK 3.9M affected</div>
+              <div class="sub">Soonest in 6 days</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hm-main-row">
+
+          <!-- pipeline: ring + one list -->
+          <section class="hm-pipe-card">
+            <div class="card-head">
+              <h3>Pipeline</h3>
+              <button class="btn sm">View full register →</button>
+            </div>
+            <div class="hm-ring-row">
+              <div class="hm-ring-wrap">
+                <div class="hm-ring">
+                  <div class="mid"><b>145</b><span>agreements</span></div>
+                </div>
+                <div class="hm-key" style="flex:1">
+                  <button class="hm-key-row on">
+                    <span class="sw" style="background:var(--n-400)"></span>
+                    <span class="nm">1. Draft &amp; Template</span><span class="n">55</span>
+                  </button>
+                  <button class="hm-key-row">
+                    <span class="sw" style="background:var(--amber-dot)"></span>
+                    <span class="nm">2. In review &amp; negotiation</span><span class="n">49</span>
+                  </button>
+                  <button class="hm-key-row">
+                    <span class="sw" style="background:var(--green-dot)"></span>
+                    <span class="nm">3. Executed &amp; live</span><span class="n">41</span>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--n-500);margin-bottom:6px">Draft &amp; Template</div>
+                <div class="hm-side-list">
+                  <button class="hm-side-row"><div class="nm">Equipment Lease &amp; Maintenance — Juno Limited</div><div class="meta">Juno Limited · MK-253</div></button>
+                  <button class="hm-side-row"><div class="nm">Supply Agreement — Nordwind AB</div><div class="meta">Nordwind AB · MK-249</div></button>
+                  <button class="hm-side-row"><div class="nm">Mutual Non-Disclosure — Halden Group</div><div class="meta">Halden Group · MK-244</div></button>
+                  <button class="hm-side-row"><div class="nm">Distribution Agreement — Sahel Foods</div><div class="meta">Sahel Foods · MK-241</div></button>
+                  <button class="hm-side-row"><div class="nm">Facilities Services — Kabete Ltd</div><div class="meta">Kabete Ltd · MK-238</div></button>
+                </div>
+                <button class="btn sm" style="margin-top:9px">+50 more</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- decisions due -->
+          <section class="hm-decisions">
+            <div class="card-head">
+              <h3>Decisions due</h3>
+              <span class="chip amber"><i class="dot"></i>3 waiting on you</span>
+            </div>
+            <div class="dec-row">
+              <span class="tile amber">◷</span>
+              <div style="flex:1;min-width:0">
+                <div class="nm">Equipment Lease &amp; Maintenance — Juno Limited</div>
+                <div class="meta">1 change needs your answer · Round 1 · 2 days</div>
+              </div>
+              <button class="btn sm primary">Open</button>
+            </div>
+            <div class="dec-row">
+              <span class="tile steel">✎</span>
+              <div style="flex:1;min-width:0">
+                <div class="nm">Supply Agreement — Nordwind AB</div>
+                <div class="meta">Internal review handed back to you · 4 days</div>
+              </div>
+              <button class="btn sm primary">Open</button>
+            </div>
+            <div class="dec-row">
+              <span class="tile ruby">✍</span>
+              <div style="flex:1;min-width:0">
+                <div class="nm">Services Agreement — Halden Group</div>
+                <div class="meta">Your signature is next in the route · 1 day</div>
+              </div>
+              <button class="btn sm primary">Open</button>
+            </div>
+            <div class="dec-row">
+              <span class="tile green">✓</span>
+              <div style="flex:1;min-width:0">
+                <div class="nm">Nothing else outstanding</div>
+                <div class="meta">Approvals, reviews and signatures are all clear</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- ================= REGISTER ================= -->
+      <section class="screen" id="screen-register">
+        <div class="page-head">
+          <h1>Contracts</h1>
+          <p>Every contract lives here — open one for its document, negotiation and signing</p>
+        </div>
+
+        <div class="filter-bar">
+          <span class="seg">
+            <button aria-pressed="true">All</button>
+            <button aria-pressed="false">Draft</button>
+            <button aria-pressed="false">Under Review</button>
+            <button aria-pressed="false">Signed</button>
+            <button aria-pressed="false">Declined</button>
+          </span>
+          <select class="fld"><option>All streams</option><option>Manufacturing &amp; Production</option></select>
+          <select class="fld"><option>All counterparties</option></select>
+          <select class="fld"><option>Sort: Last updated</option><option>Sort: Value</option></select>
+          <div style="flex:1"></div>
+          <button class="btn sm">Export CSV</button>
+          <button class="btn sm primary">+ New contract</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="reg">
+            <thead>
+              <tr>
+                <th style="width:26px"><span class="checkbox"></span></th>
+                <th style="width:82px">MK</th>
+                <th>Contract</th>
+                <th>Counterparty</th>
+                <th>Type</th>
+                <th class="num">Value</th>
+                <th>Expires</th>
+                <th>Updated</th>
+                <th style="width:52px;text-align:center">Link</th>
+                <th style="text-align:right">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-253</td>
+                <td><div class="reg-name">Equipment Lease &amp; Maintenance</div><div class="stream">Manufacturing &amp; Production</div></td>
+                <td>Juno Limited</td>
+                <td>Equipment Lease</td>
+                <td class="num">SEK 1.85M</td>
+                <td>12 Aug 2027</td>
+                <td>13 Aug 2026</td>
+                <td style="text-align:center">🔗</td>
+                <td style="text-align:right"><span class="chip amber"><i class="dot"></i>In Review</span></td>
+              </tr>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-249</td>
+                <td><div class="reg-name">Supply Agreement</div><div class="stream">Procurement</div></td>
+                <td>Nordwind AB</td>
+                <td>Supply</td>
+                <td class="num">SEK 4.20M</td>
+                <td>30 Sep 2026</td>
+                <td>12 Aug 2026</td>
+                <td style="text-align:center">🔗</td>
+                <td style="text-align:right"><span class="chip amber"><i class="dot"></i>In Review</span></td>
+              </tr>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-244</td>
+                <td><div class="reg-name">Mutual Non-Disclosure</div><div class="stream">Legal &amp; Compliance</div></td>
+                <td>Halden Group</td>
+                <td>NDA</td>
+                <td class="num" style="color:var(--n-500)">No money</td>
+                <td>—</td>
+                <td>11 Aug 2026</td>
+                <td style="text-align:center">—</td>
+                <td style="text-align:right"><span class="chip gray"><i class="dot"></i>Draft</span></td>
+              </tr>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-241</td>
+                <td><div class="reg-name">Distribution Agreement</div><div class="stream">Sales</div></td>
+                <td>Sahel Foods</td>
+                <td>Distribution</td>
+                <td class="num">SEK 12.4M</td>
+                <td>01 Mar 2027</td>
+                <td>09 Aug 2026</td>
+                <td style="text-align:center">🔗</td>
+                <td style="text-align:right"><span class="chip green"><i class="dot"></i>Signed</span></td>
+              </tr>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-238</td>
+                <td><div class="reg-name">Facilities Services</div><div class="stream">Operations</div></td>
+                <td>Kabete Ltd</td>
+                <td>Services</td>
+                <td class="num">SEK 780k</td>
+                <td>20 Aug 2026 <span style="color:var(--ruby-fg);font-weight:700">in 6d</span></td>
+                <td>08 Aug 2026</td>
+                <td style="text-align:center">🔗</td>
+                <td style="text-align:right"><span class="chip green"><i class="dot"></i>Signed</span></td>
+              </tr>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-236</td>
+                <td><div class="reg-name">Software Licence — Renewal</div><div class="stream">IT</div></td>
+                <td>Verdant Systems</td>
+                <td>Licence</td>
+                <td class="num">SEK 2.05M</td>
+                <td>14 Nov 2026</td>
+                <td>06 Aug 2026</td>
+                <td style="text-align:center">—</td>
+                <td style="text-align:right"><span class="chip ruby"><i class="dot"></i>Declined</span></td>
+              </tr>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-231</td>
+                <td><div class="reg-name">Consultancy Framework</div><div class="stream">Professional Services</div></td>
+                <td>Brut Africa</td>
+                <td>Framework</td>
+                <td class="num">SEK 950k</td>
+                <td>31 Dec 2026</td>
+                <td>04 Aug 2026</td>
+                <td style="text-align:center">🔗</td>
+                <td style="text-align:right"><span class="chip steel"><i class="dot"></i>Under Review</span></td>
+              </tr>
+              <tr>
+                <td><span class="checkbox"></span></td>
+                <td class="reg-id">MK-228</td>
+                <td><div class="reg-name">Warehouse Lease</div><div class="stream">Manufacturing &amp; Production</div></td>
+                <td>Fort Knox Holdings</td>
+                <td>Lease</td>
+                <td class="num">SEK 6.10M</td>
+                <td>01 Jul 2029</td>
+                <td>02 Aug 2026</td>
+                <td style="text-align:center">—</td>
+                <td style="text-align:right"><span class="chip green"><i class="dot"></i>Signed</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tbl-foot">
+            <span>Showing <b>1–8</b> of <b>145</b> · SEK 48.2M active value</span>
+            <span class="pager">
+              <button>‹</button>
+              <button aria-current="true">1</button>
+              <button>2</button>
+              <button>3</button>
+              <button>…</button>
+              <button>19</button>
+              <button>›</button>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= CONTRACT ROOM ================= -->
+      <section class="screen" id="screen-room">
+        <div class="room-head">
+          <button class="back-btn">←</button>
+          <div class="room-title">
+            <h1>Equipment Lease &amp; Maintenance — Juno …</h1>
+            <div style="margin-top:8px"><span class="chip amber"><i class="dot"></i>In Review</span></div>
+            <div class="room-sub">
+              <span class="id">MK-253</span> · Manufacturing &amp; Production · Round 1 ·
+              <span class="needs">1 needs you</span> · updated 13 aug. 2026
+            </div>
+          </div>
+          <div class="room-acts">
+            <span class="people-chip">Nobody assigned yet</span>
+            <button class="btn" style="padding:11px 17px;font-size:13px">··· More ⌄</button>
+            <button class="btn primary">⇪ Share</button>
+            <button class="btn primary">◷ Review the changes</button>
+            <button class="btn primary">+ Draft new agreement</button>
+          </div>
+        </div>
+
+        <div class="tabrow">
+          <button class="tab">Key terms</button>
+          <button class="tab on">Document</button>
+          <button class="tab">Signing</button>
+          <button class="tab">History</button>
+          <div class="tabrow-end">
+            <span class="stepper"><b>A⁻</b> 10px <b>A⁺</b></span>
+            <button class="nego-btn"><span class="dot"></span>Open Negotiate · 1 waiting</button>
+          </div>
+        </div>
+
+        <div class="room-grid">
+
+          <!-- the paper -->
+          <div class="doc-pane">
+            <div class="doc-logo"><b>Brūt.</b><span>AFRICA</span></div>
+            <div class="doc-party">KWETU</div>
+            <div class="doc-meta">12345678 · Fort Knox, Indiana</div>
+            <div class="doc-rule"><span class="ln"></span><span class="dia"></span><span class="ln"></span></div>
+            <div class="doc-between">entered into between</div>
+            <div class="doc-name">KWETU</div>
+            <div class="doc-and">and</div>
+            <div class="doc-name">JUNO LIMITED</div>
+            <div class="doc-kick">Sweden · Working text</div>
+            <div class="doc-title">Equipment Lease &amp; Maintenance — Juno Limited</div>
+            <div class="doc-lead">Between Young and Juno Limited</div>
+
+            <div class="doc-clause">
+              <h4>1. The equipment</h4>
+              The Lessor leases to the Lessee the equipment described in Schedule 1, in good working
+              order, for the term set out below. Delivery shall be made to
+              <span class="doc-field">Fort Knox, Indiana</span> on or before
+              <span class="doc-field">1 September 2026</span>.
+            </div>
+            <div class="doc-clause">
+              <h4>2. Term</h4>
+              This agreement begins on <span class="doc-field">13 August 2026</span> and continues
+              until <span class="doc-field">12 August 2027</span>, unless ended earlier under clause 7.
+            </div>
+            <div class="doc-clause">
+              <h4>3. Rent and payment</h4>
+              The Lessee shall pay <span class="doc-field">SEK 1,850,000</span> per year, payable
+              monthly in advance. Invoices fall due <span class="doc-field">30</span> days from the
+              date of issue.
+            </div>
+            <div class="doc-clause">
+              <h4>4. Maintenance</h4>
+              The Lessor shall maintain the equipment in working order and attend to any reported
+              fault within <span class="doc-field">five (5)</span> business days of notice.
+            </div>
+          </div>
+
+          <!-- right column -->
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <section class="card">
+              <h3>Checks</h3>
+              <div class="sub" style="margin-bottom:8px">Run before sending — findings pin to the clause they concern.</div>
+              <div class="checks-row">
+                <span class="tile steel">◎</span>
+                <span class="nm">Playbook review</span>
+                <span class="chip ruby">4 to look at</span>
+              </div>
+              <div class="checks-row">
+                <span class="tile steel">◌</span>
+                <span class="nm">Copilot risk scan</span>
+                <button class="run-link">Run →</button>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head" style="margin-bottom:4px">
+                <h3 style="font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--n-500)">Activity &amp; Comments</h3>
+                <span class="live-dot"><i></i>live</span>
+              </div>
+              <div class="act-item">
+                <span class="avatar lg">S</span>
+                <div class="body">
+                  <div class="nm">System <span>Automation · 13d ago</span></div>
+                  <p>Drafted via the guided wizard from Template EQ (Equipment Lease). What you typed
+                     is filed as contract data — the register, filters and reports pick it up without
+                     re-keying.</p>
+                </div>
+              </div>
+              <div class="act-item">
+                <span class="avatar lg">JL</span>
+                <div class="body">
+                  <div class="nm">Juno Limited <span>Counterparty · 2d ago</span></div>
+                  <p>Proposed a change to clause 3 — payment terms out to forty-five (45) days.</p>
+                </div>
+              </div>
+              <div class="comment-as">Commenting as <b>Young Mbagaya</b> · internal</div>
+              <div class="comment-box">
+                <input placeholder="Add a comment on the terms…">
+                <button class="send-btn">➤</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= NEGOTIATIONS ================= -->
+      <section class="screen" id="screen-nego">
+        <div class="page-head">
+          <h1>Negotiations</h1>
+          <p>Every agreement being argued over right now</p>
+        </div>
+
+        <div class="filter-bar">
+          <span class="locked-chip">Negotiations · 8 live</span>
+          <select class="fld"><option>All streams</option></select>
+          <select class="fld"><option>All counterparties</option></select>
+          <select class="fld"><option>Sort: Last updated</option></select>
+          <div style="flex:1"></div>
+          <button class="btn sm">Clear</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="reg">
+            <thead>
+              <tr>
+                <th style="width:82px">MK</th>
+                <th>Contract</th>
+                <th>Counterparty</th>
+                <th>Round</th>
+                <th>Updated</th>
+                <th style="text-align:right">Whose move</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="band-row"><td colspan="6">Waiting on you <span class="n">· 3</span></td></tr>
+              <tr>
+                <td class="reg-id">MK-253</td>
+                <td><div class="reg-name">Equipment Lease &amp; Maintenance</div><div class="stream">Manufacturing &amp; Production</div></td>
+                <td>Juno Limited</td><td>Round 1</td><td>13 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill you">1 change to answer</span></td>
+              </tr>
+              <tr>
+                <td class="reg-id">MK-249</td>
+                <td><div class="reg-name">Supply Agreement</div><div class="stream">Procurement</div></td>
+                <td>Nordwind AB</td><td>Round 3</td><td>12 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill you">4 changes to answer</span></td>
+              </tr>
+              <tr>
+                <td class="reg-id">MK-231</td>
+                <td><div class="reg-name">Consultancy Framework</div><div class="stream">Professional Services</div></td>
+                <td>Brut Africa</td><td>Round 2</td><td>11 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill you">Publish this round</span></td>
+              </tr>
+
+              <tr class="band-row"><td colspan="6">With the other side <span class="n">· 3</span></td></tr>
+              <tr>
+                <td class="reg-id">MK-244</td>
+                <td><div class="reg-name">Mutual Non-Disclosure</div><div class="stream">Legal &amp; Compliance</div></td>
+                <td>Halden Group</td><td>Round 1</td><td>10 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill them">2 sent · awaiting reply</span></td>
+              </tr>
+              <tr>
+                <td class="reg-id">MK-241</td>
+                <td><div class="reg-name">Distribution Agreement</div><div class="stream">Sales</div></td>
+                <td>Sahel Foods</td><td>Round 2</td><td>09 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill them">1 sent · awaiting reply</span></td>
+              </tr>
+              <tr>
+                <td class="reg-id">MK-228</td>
+                <td><div class="reg-name">Warehouse Lease</div><div class="stream">Manufacturing &amp; Production</div></td>
+                <td>Fort Knox Holdings</td><td>Round 4</td><td>07 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill them">Out for 9 days</span></td>
+              </tr>
+
+              <tr class="band-row"><td colspan="6">Nothing outstanding <span class="n">· 2</span></td></tr>
+              <tr>
+                <td class="reg-id">MK-238</td>
+                <td><div class="reg-name">Facilities Services</div><div class="stream">Operations</div></td>
+                <td>Kabete Ltd</td><td>Round 2</td><td>06 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill none">Aligned — ready to sign</span></td>
+              </tr>
+              <tr>
+                <td class="reg-id">MK-236</td>
+                <td><div class="reg-name">Software Licence — Renewal</div><div class="stream">IT</div></td>
+                <td>Verdant Systems</td><td>Round 1</td><td>05 Aug 2026</td>
+                <td style="text-align:right"><span class="move-pill none">Nothing pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tbl-foot"><span>8 live negotiations · no paging on this list</span></div>
+        </div>
+
+        <!-- the workbench, as it looks when one is open -->
+        <div style="display:flex;align-items:center;gap:10px;margin-top:22px;flex-wrap:wrap">
+          <button class="live-btn">← Live negotiations <span class="n">8</span></button>
+          <div style="flex:1"></div>
+          <button class="q-tab">This round's queue <span class="sc">2/7</span></button>
+          <button class="btn sm">Playbook</button>
+          <span class="seg">
+            <button aria-pressed="true">Internal</button>
+            <button aria-pressed="false">Counterparty</button>
+          </span>
+          <button class="btn sm primary">Publish Round</button>
+        </div>
+
+        <div class="wb-grid">
+          <div class="doc-pane" style="max-height:460px;padding:28px 34px">
+            <div class="doc-kick" style="margin-top:0">Sweden · Working text</div>
+            <div class="doc-title" style="font-size:18px">Equipment Lease &amp; Maintenance — Juno Limited</div>
+            <div class="doc-clause">
+              <h4>3. Rent and payment</h4>
+              <span class="asktag">CHG-017 · Their ask</span><br>
+              The Lessee shall pay SEK 1,850,000 per year, payable monthly in advance. Invoices fall
+              due <del>thirty (30)</del><ins>forty-five (45)</ins> days from the date of issue.
+            </div>
+            <div class="doc-clause">
+              <h4>4. Maintenance</h4>
+              <span class="asktag" style="background:var(--steel-bg);color:var(--steel-fg);border-color:var(--accent-200)">CHG-018 · Our ask</span><br>
+              The Lessor shall maintain the equipment in working order and attend to any reported
+              fault within <del>ten (10)</del><ins>five (5)</ins> business days of notice.
+            </div>
+            <div class="doc-clause">
+              <h4>5. Insurance</h4>
+              The Lessee shall keep the equipment insured for its full replacement value throughout
+              the term, and shall name the Lessor on the policy.
+            </div>
+          </div>
+
+          <div>
+            <div class="col-head">
+              <span class="cap">Tracked changes</span>
+              <span class="n">7</span>
+              <span class="col-seg">
+                <button aria-pressed="false">Mine 3</button>
+                <button aria-pressed="false">Theirs 4</button>
+                <button aria-pressed="true">All 7</button>
+              </span>
+            </div>
+
+            <article class="chg-card theirs">
+              <div class="chg-head">
+                <span class="chg-id">CHG-017</span>
+                <span class="chip amber"><i class="dot"></i>Needs your answer</span>
+                <button class="pop-btn">⧉</button>
+              </div>
+              <div class="chg-meta">Juno Limited · Juno Limited · clause 3 · 2 days ago</div>
+              <div class="chg-body">Invoices fall due <del>thirty (30)</del><ins>forty-five (45)</ins> days from the date of issue.</div>
+              <div class="chg-acts">
+                <button class="btn sm primary">Accept</button>
+                <button class="btn sm">Reject</button>
+                <button class="btn sm">Edit</button>
+                <button class="btn sm">Reply</button>
+              </div>
+            </article>
+
+            <article class="chg-card">
+              <div class="chg-head">
+                <span class="chg-id">CHG-018</span>
+                <span class="chip gray"><i class="dot"></i>Held — not sent</span>
+                <button class="pop-btn">⧉</button>
+              </div>
+              <div class="chg-meta">Young Mbagaya · Kwetu · clause 4 · today</div>
+              <div class="chg-body">Fault response cut from <del>ten (10)</del><ins>five (5)</ins> business days.</div>
+              <div class="chg-acts">
+                <button class="btn sm">Edit</button>
+                <button class="btn sm">Withdraw</button>
+                <button class="btn sm">Ask for review</button>
+              </div>
+            </article>
+
+            <article class="chg-card theirs">
+              <div class="chg-head">
+                <span class="chg-id">CHG-015</span>
+                <span class="chip ruby"><i class="dot"></i>Refused</span>
+                <button class="pop-btn">⧉</button>
+              </div>
+              <div class="chg-meta">Juno Limited · Juno Limited · clause 7 · 4 days ago</div>
+              <div class="chg-body">Termination on <del>sixty (60)</del><ins>thirty (30)</ins> days' notice.</div>
+              <div class="chg-acts">
+                <button class="btn sm">Edit</button>
+                <button class="btn sm">Reopen</button>
+              </div>
+            </article>
+
+            <article class="chg-card" style="border-left-color:var(--n-300)">
+              <div class="chg-head">
+                <span class="chg-id">CHG-012</span>
+                <span class="chip green"><i class="dot"></i>Accepted</span>
+                <button class="pop-btn">⧉</button>
+              </div>
+              <div class="chg-meta">Young Mbagaya · Kwetu · clause 5 · 6 days ago</div>
+              <div class="chg-body">Insurance obligation moved to the Lessee.</div>
+            </article>
+
+            <div class="empty-note">Decided work sinks to the bottom. Nothing is hidden — the counts above are the whole column.</div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<button class="fab" title="Notices">♪<i></i></button>
+
+<script>
+/* Prototype plumbing only — screen switching and the corner compare switch. */
+(function(){
+  var SCREENS = {home:'screen-home', register:'screen-register', room:'screen-room', nego:'screen-nego'};
+
+  function show(key){
+    Object.keys(SCREENS).forEach(function(k){
+      document.getElementById(SCREENS[k]).classList.toggle('on', k===key);
+    });
+    document.querySelectorAll('.nav-item').forEach(function(b){
+      b.classList.toggle('active', b.dataset.go===key);
+    });
+    document.getElementById('content').scrollTop = 0;
+    window.scrollTo(0,0);
+  }
+
+  document.querySelectorAll('.nav-item[data-go]').forEach(function(b){
+    b.addEventListener('click', function(){ show(b.dataset.go); });
+  });
+
+  /* Home and the register both open a contract; the negotiate button goes
+     to the negotiations page. Enough wiring to walk the four screens. */
+  document.querySelectorAll('.hm-side-row, #screen-register tbody tr, .dec-row .btn').forEach(function(el){
+    el.addEventListener('click', function(){ show('room'); });
+  });
+  document.querySelector('.nego-btn').addEventListener('click', function(){ show('nego'); });
+  document.querySelector('.back-btn').addEventListener('click', function(){ show('register'); });
+  document.querySelectorAll('#screen-nego tbody tr:not(.band-row)').forEach(function(tr){
+    tr.addEventListener('click', function(){ show('room'); });
+  });
+  document.querySelector('.live-btn').addEventListener('click', function(){ show('nego'); });
+
+  /* The corner switch — flips one CSS block, nothing else. */
+  document.querySelectorAll('#corner-seg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.documentElement.setAttribute('data-corners', b.dataset.corners);
+      document.querySelectorAll('#corner-seg button').forEach(function(o){
+        o.setAttribute('aria-pressed', String(o===b));
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
