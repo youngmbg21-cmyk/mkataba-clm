@@ -322,6 +322,7 @@ function createBulkFromTemplate(t, rows, opts={}){
       if(!c.versions.length) c.versions=[{ n:1, at:nowISO(), by:u?.name||'System', label:`Template “${tplName}”`, text:bodyText, canon:bodyText, format:tFmt, body:bodyText }];
     }
     c._loaded=true; c._light=false; c._v=0;
+    if(window.contractOwnerStamp) contractOwnerStamp(c);
     state.contracts.unshift(c);
   /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
      wsTabDefaults. Registered at every creation site because there is no

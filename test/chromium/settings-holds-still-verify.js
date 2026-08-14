@@ -47,7 +47,12 @@ const check = (name, pass, detail) => {
    single reading taken once it has settled sees nothing at all. */
 async function watch(page, press) {
   await page.evaluate(() => {
-    const sc = document.getElementById('content-scroll');
+    /* THE SETTING MOVED INTO A DRAWER (Settings & Rules redesign, Aug 2026) and
+       the drawer is the thing that scrolls now, so that is what is measured.
+       The claim is untouched — the surface a person is answering must not move
+       under them — and a drawer is a SHORTER column than the page was, so a
+       rebuild there throws the reader further, not less far. */
+    const sc = document.getElementById('st-dbody') || document.getElementById('content-scroll');
     window.__w = [];
     window.__mark = () => {
       /* Found through the checkbox rather than through the marker this fix
@@ -57,10 +62,20 @@ async function watch(page, press) {
       const cb = document.querySelector('[data-ws-shape="standing"]');
       const card = cb ? cb.closest('label') : null;
       const mkt = document.getElementById('set-market');
+      /* HOW TALL IS WHAT IS IN THE PANEL — not how tall the panel's box is.
+         scrollHeight answers the box wherever the content is shorter than it,
+         so a refusal appearing in the drawer's PINNED FOOT (which shrinks the
+         body's box by its own height and moves nothing inside it) read as 47px
+         of "the page changed height". The fault being watched for is panels
+         EMPTYING, which shows as the content's own extent collapsing. */
+      const kids = [...sc.children];
+      const contentH = kids.length
+        ? Math.round(kids[kids.length - 1].getBoundingClientRect().bottom - kids[0].getBoundingClientRect().top)
+        : sc.scrollHeight;
       window.__w.push({
         top: card ? Math.round(card.getBoundingClientRect().top) : null,
         mktTop: mkt ? Math.round(mkt.getBoundingClientRect().top) : null,
-        h: sc.scrollHeight, scroll: sc.scrollTop,
+        h: contentH, scroll: sc.scrollTop,
         focus: document.activeElement ? (document.activeElement.id
           || document.activeElement.getAttribute('data-ws-shape') || document.activeElement.tagName) : null,
       });
@@ -115,10 +130,14 @@ async function watch(page, press) {
       currentUser().lang = 'en';
       wsSet(['standing', 'project'], 'project');
       renderTeam();
+      /* THE SETTING IS A ROW ON "Platform settings" AND OPENS IN THE DRAWER.
+         Staged through the product's own door — settingsGoTab then the row's
+         own panel key — so this measures the surface a person actually gets. */
+      settingsGoTab('platform'); stDrawerOpen('workshape');
     });
     await page.waitForTimeout(1600);
     await page.evaluate(() =>
-      document.querySelector('[data-ws-shape="standing"]').closest('section').scrollIntoView({ block: 'center' }));
+      document.querySelector('[data-ws-shape="standing"]').closest('label').scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(400);
 
     /* ---------- 1. a tick box ---------- */
@@ -169,10 +188,11 @@ async function watch(page, press) {
       `card ${r.cardDrift}px · focus ${r.last.focus}`);
 
     /* ---------- 4. the suggestion ---------- */
-    await page.evaluate(() => { wsSet(['standing'], 'matter'); renderTeam(); });
+    await page.evaluate(() => { wsSet(['standing'], 'matter'); renderTeam();
+      settingsGoTab('platform'); stDrawerOpen('workshape'); });
     await page.waitForTimeout(1400);
     await page.evaluate(() =>
-      document.querySelector('[data-ws-shape="standing"]').closest('section').scrollIntoView({ block: 'center' }));
+      document.querySelector('[data-ws-shape="standing"]').closest('label').scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(300);
     r = await watch(page, () => page.click('#ws-use-detected'));
     const sug = await page.evaluate(() => ({
@@ -192,10 +212,14 @@ async function watch(page, press) {
       saveApprovalRules([{ id: 'r_mkt', order: 1, cond: { type: 'value', op: '>=', value: 5000000 },
         approver: { kind: 'role', role: 'admin' } }]);
       renderTeam();
+      /* The market is a row on the same tab; the approval rules are a row of
+         their own, so this also proves the currency reaches a panel that is
+         not even open. */
+      settingsGoTab('platform'); stDrawerOpen('company');
     });
     await page.waitForTimeout(1400);
     await page.evaluate(() =>
-      document.getElementById('set-market').closest('section').scrollIntoView({ block: 'center' }));
+      document.getElementById('set-market').scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(300);
     r = await watch(page, () => page.selectOption('#set-market', 'sweden'));
     check('changing the market does not move the page',
@@ -205,7 +229,14 @@ async function watch(page, press) {
     check('and the three facts under it follow the new market',
       /SEK/.test(facts) && /Swedish law/.test(facts) && !/KES/.test(facts),
       facts.replace(/\s+/g, ' ').trim().slice(0, 90));
+    /* The rules live behind their own row now, so the money is read where a
+       person would read it. The point of the claim is unchanged: a currency
+       change reaches a panel that is NOT the one being answered. */
+    await page.evaluate(() => stDrawerOpen('approvals'));
+    await page.waitForTimeout(400);
     const arText = await page.textContent('#approval-rules');
+    await page.evaluate(() => stDrawerOpen('company'));
+    await page.waitForTimeout(400);
     check('and so does the money in the approval rules, off this card',
       /SEK/.test(arText) && !/KES/.test(arText), arText.replace(/\s+/g, ' ').trim().slice(0, 80));
     check('the reader who chose English is still reading English',
@@ -218,19 +249,22 @@ async function watch(page, press) {
       currentUser().lang = null;
       try { lsSet(I18N_LS, null); } catch (e) {}
       jxSet('kenya'); renderTeam();
+      settingsGoTab('platform'); stDrawerOpen('company');
     });
     await page.waitForTimeout(1600);
     await page.evaluate(() =>
-      document.getElementById('set-market').closest('section').scrollIntoView({ block: 'center' }));
+      document.getElementById('set-market').scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(300);
     r = await watch(page, () => page.selectOption('#set-market', 'sweden'));
     const flipped = await page.evaluate(() => ({
       lang: langId(),
-      elsewhere: document.querySelector('#set-page h4') ? document.querySelector('#set-page h4').textContent : '',
+      /* "Elsewhere on the page" is the tab row now — the page's own furniture,
+         outside the drawer that was being answered. */
+      elsewhere: document.querySelector('#set-page .st-tab') ? document.querySelector('#set-page .st-tab').textContent : '',
       facts: document.getElementById('set-market-facts').textContent,
     }));
     check('a market that changes the language redraws the WHOLE page, not three lines',
-      flipped.lang === 'sv' && /Medlemmar/.test(flipped.elsewhere) && /Valuta/.test(flipped.facts),
+      flipped.lang === 'sv' && /Personer/.test(flipped.elsewhere) && /Valuta/.test(flipped.facts),
       `lang ${flipped.lang} · elsewhere "${flipped.elsewhere.trim()}"`);
     /* Not the total drift here: the page really is being redrawn into another
        language and longer sentences push what is under them down. What must

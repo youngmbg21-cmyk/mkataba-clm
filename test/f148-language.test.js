@@ -54,6 +54,13 @@ const SAME_IN_BOTH = new Set([
   'lib_col_version',      // 'Version' is the same word in Swedish
   'set_rate_in',          // token rate "in" — the same preposition in Swedish
   'ct_live',              // 'live' is the borrowed word Swedish uses too
+  /* Settings & Rules redesign (Aug 2026) — four words that are genuinely the
+     same in both languages, not four forgotten translations. */
+  'st_people_count_one',  // "1 person" is written the same way in Swedish
+  'dir_count_one',        // ditto — the staff directory's own singular
+  'st_p_copilot',         // the product name
+  'st_b_env_server',      // 'Server' is the same word in Swedish
+  'st_b_env_version',     // ditto — 'Version'
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

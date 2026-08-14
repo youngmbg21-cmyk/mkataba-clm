@@ -91,11 +91,53 @@ function approvalDrift(step, c){
 }
 
 /* Build (or refresh) the ordered approval chain for a contract. */
+/* ============================================================
+   OVERSEEN BY — a per-person approver
+   ============================================================
+   A member can be given somebody who signs off THEIR contracts. It hangs on
+   the contract's OWNER (js/core.js), which is why it could not be built until
+   a contract knew whose it was: keying it off the reader would make the
+   approval panel say different things to different people, and a panel that
+   disagrees with itself is the fault this rulebook opens with.
+
+   It arrives the way every enforcement in this product arrives — behind a
+   switch that is OFF by default, so nothing changes on deploy.
+
+   A CONTRACT WITH NO OWNER GETS NO OVERSEER STEP. Imported back-catalogue
+   paper has no owner and never will; making it unapprovable would strand it.
+   The ordinary rules still apply to it, unchanged. */
+function overseerCfg(){
+  const s=(state.settings&&state.settings.overseer)||{};
+  return { on: !!s.on };
+}
+function saveOverseerCfg(cfg){
+  state.settings=state.settings||{};
+  state.settings.overseer={ on: !!(cfg&&cfg.on) };
+  if(typeof saveSettings==='function') saveSettings();
+  return overseerCfg();
+}
+const overseerEnforced = () => overseerCfg().on;
+/* Who oversees this contract's owner, resolved to a live member. Returns null
+   wherever any link in that chain is missing — no owner, no overseer named,
+   or an overseer whose account has gone. */
+function overseerFor(c){
+  if(!overseerEnforced()) return null;
+  const owner=(typeof contractOwnerName==='function')?contractOwnerName(c):null;
+  if(!owner) return null;
+  const users=((typeof getUsers==='function'?getUsers():[])||[]);
+  const raiser=(c&&c.owner&&c.owner.id)
+    ? users.find(u=>u&&String(u.id)===String(c.owner.id))
+    : users.find(u=>u&&u.name===owner);
+  if(!raiser||!raiser.overseerId) return null;
+  const over=users.find(u=>u&&String(u.id)===String(raiser.overseerId));
+  if(!over||over.id===raiser.id) return null;      // nobody oversees themselves
+  return { raiser, over };
+}
 function buildApprovalChain(c){
   const matched=approvalRules().filter(r=>ruleMatches(r,c)).sort((a,b)=>(a.order||99)-(b.order||99));
   // preserve prior decisions for rules that still match
   const prior=(c.approvalChain||[]);
-  return matched.map(r=>{ const was=prior.find(p=>p.ruleId===r.id);
+  const chain=matched.map(r=>{ const was=prior.find(p=>p.ruleId===r.id);
     /* A REJECTION HAD TO BE PRESERVED TOO, and was not.
 
        This kept only 'approved' and rebuilt everything else as 'pending'. But
@@ -115,7 +157,27 @@ function buildApprovalChain(c){
       if(drift.length){ step.status='stale'; step.drift=drift; }
     }
     return step; });
+  /* THE OVERSEER JOINS THE SAME CHAIN, LAST, as an ordinary step — so
+     approvalState, the panel, the refusal and the dashboard count all inherit
+     it and nothing grows a second gate. Its decision is preserved across
+     rebuilds exactly like a rule's, by the same ruleId lookup. */
+  const ov=overseerFor(c);
+  if(ov){
+    const was=prior.find(p=>p.ruleId===OVERSEER_STEP_ID);
+    const kept=was&&(was.status==='approved'||was.status==='rejected')?was.status:'pending';
+    const step={ ruleId:OVERSEER_STEP_ID, name:i18t('ov_step_name',{who:ov.raiser.name||''}),
+      approver:{kind:'member',name:ov.over.name}, order:9999,
+      status:kept, by:was?.by||null, at:was?.at||null, comment:was?.comment||null,
+      stamp:was?.stamp||null };
+    if(kept==='approved'){
+      const drift=approvalDrift(step, c);
+      if(drift.length){ step.status='stale'; step.drift=drift; }
+    }
+    chain.push(step);
+  }
+  return chain;
 }
+const OVERSEER_STEP_ID='__overseer__';
 function approvalState(c){
   // legacy single-approval contracts still resolve (c.approval) if no chain rules
   const chain=buildApprovalChain(c);
@@ -893,4 +955,204 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+Object.assign(window,{overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,approvalChainHtml,signerRouteHtml,wireApprovalPanel});
+
+/* ============================================================
+   HOW MUCH MAY THIS PERSON SIGN FOR
+   ============================================================
+   A per-member signing limit, in the workspace's own currency. It is new
+   machinery and it arrives the way every enforcement in this product arrives:
+   WARN BEFORE ENFORCE. The cap is recorded, printed and read back in plain
+   English from the day it ships, and it stops nothing at all until an admin
+   turns on a workspace switch that is OFF by default. A rule that started
+   refusing signatures the morning after a deploy would be an outage, not a
+   control.
+
+   THREE STATES, ONE READING, and the third is what makes the other two mean
+   something. `signCap` on the member record is:
+     · null / absent  — NOT ANSWERED. Nobody has said anything about this
+       person. Blocks nothing, and is the state every existing member is in
+       the moment this ships.
+     · 'none'         — ANSWERED, and the answer is no limit. The string is
+       deliberate and it is this codebase's own idiom: TEMPLATES.ND carries
+       valueType:'none' for exactly the same reason — "the question was asked
+       and the answer is nothing" is a different fact from "nobody asked".
+     · a number       — the ceiling, in the workspace currency.
+   Collapsing the first two (the way folderAccess collapses "no entry" into
+   "every stream") was considered and refused: an absent folder entry is a
+   GRANT and reads the same to everybody, while an absent cap is somebody
+   nobody has thought about, and the completeness chip exists to say so.
+
+   AN ADMIN IS NEVER CAPPED. Not because an admin's signature is worth more,
+   but because the switch and the caps are both an admin's to set: a workspace
+   whose only admin had capped themselves below their own paper would have
+   locked its own front door, and the way back in would be the very screen the
+   cap is refusing them. Said out loud rather than left to be discovered. */
+function signCapCfg(){
+  const s=(state.settings&&state.settings.signCap)||{};
+  return { on: !!s.on };
+}
+function saveSignCapCfg(cfg){
+  state.settings=state.settings||{};
+  state.settings.signCap={ on: !!(cfg&&cfg.on) };
+  if(typeof saveSettings==='function') saveSettings();
+  return signCapCfg();
+}
+const signCapEnforced = () => signCapCfg().on;
+/* THE ONE READING. `answered` is whether anybody has decided; `limit` is null
+   when the decision was "no limit". Everything — the drawer, the roster row,
+   the ladder, the completeness chip, the blocker and the server's own copy —
+   asks this and never the raw field. */
+function signCapOf(u){
+  const raw=u&&u.signCap;
+  if(raw===undefined||raw===null||raw==='') return { answered:false, limit:null };
+  if(raw==='none') return { answered:true, limit:null };
+  const n=Number(raw);
+  if(!Number.isFinite(n)||n<0) return { answered:false, limit:null };
+  return { answered:true, limit:n };
+}
+/* What the roster row and the ladder print. One sentence, three shapes, and
+   the unanswered one says so rather than reading as "no limit". */
+function signCapText(u){
+  const cap=signCapOf(u);
+  if(u&&u.role==='viewer') return i18t('sc_viewer_never');
+  if(!cap.answered) return i18t('sc_not_set');
+  if(cap.limit==null) return i18t('sc_no_limit');
+  return i18t('sc_up_to',{amount:(typeof fmtMoneyShort==='function')?fmtMoneyShort(cap.limit):String(cap.limit)});
+}
+/* The live sentence at the foot of the drawer's Signing section: what was just
+   configured, read back in the words the rest of the product uses. */
+function signCapSentence(u, cap, enforced){
+  const who=(u&&u.name)||i18t('sc_this_person');
+  if(u&&u.role==='admin') return i18t('sc_says_admin',{who});
+  if(u&&u.role==='viewer') return i18t('sc_says_viewer',{who});
+  if(!cap.answered) return i18t('sc_says_unset',{who});
+  if(cap.limit==null) return i18t('sc_says_none',{who});
+  const amount=(typeof fmtMoneyShort==='function')?fmtMoneyShort(cap.limit):String(cap.limit);
+  return enforced ? i18t('sc_says_limit_on',{who,amount}) : i18t('sc_says_limit_off',{who,amount});
+}
+/* THE BLOCKER, and it joins the ONE list of signing blockers rather than
+   becoming a second gate somewhere else — the same list the button reads to
+   disable itself and the refusal reads to say why. Returns null wherever the
+   rule does not apply, which is every case until an admin turns it on. */
+function signCapBlocker(c, u){
+  if(!c) return null;
+  if(!signCapEnforced()) return null;
+  const me=u||((typeof currentUser==='function')?currentUser():null);
+  if(!me || me.role==='admin') return null;
+  const cap=signCapOf(me);
+  if(!cap.answered || cap.limit==null) return null;
+  /* Money only where money passes. An NDA carries none and isMonetary is the
+     one answer to that question in this product. */
+  if(typeof isMonetary==='function' && !isMonetary(c)) return null;
+  const v=Number(c.value||0);
+  if(!(v>cap.limit)) return null;
+  const money=n=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(n):String(n);
+  return { key:'signcap',
+    label:i18t('sc_block',{amount:money(v),cap:money(cap.limit)}),
+    short:i18t('sc_block_short',{cap:money(cap.limit)}) };
+}
+/* WHO CAN SIGN WHAT TODAY — a read-only ladder, ordered by how much authority
+   each person holds, drawn beside the approval rules because it answers the
+   other half of the same question. */
+function signCapLadder(){
+  const users=(typeof getUsers==='function'?getUsers():[])||[];
+  /* FOUR BANDS AND A SORT INSIDE ONE OF THEM. A single number cannot express
+     this: "no limit" outranks any figure, and an admin outranks even that, so
+     comparing a ceiling against a sentinel is how the largest cap ends up above
+     the person who has none. */
+  const band=u=>{
+    if(u.role==='admin') return 0;                  // never capped
+    if(u.role==='viewer') return 4;                 // never signs
+    const cap=signCapOf(u);
+    if(!cap.answered) return 3;                     // nobody has said
+    return cap.limit==null ? 1 : 2;                 // no limit, then a ceiling
+  };
+  const within=u=>{ const cap=signCapOf(u); return cap.limit==null?0:-cap.limit; };
+  return users.slice().sort((a,b)=>band(a)-band(b)||within(a)-within(b)
+      ||String(a.name||'').localeCompare(String(b.name||'')))
+    .map(u=>({ id:u.id, name:u.name||u.email, role:u.role, text:signCapText(u),
+      answered:signCapOf(u).answered, mayEverSign:u.role!=='viewer' }));
+}
+/* Everyone who may ever sign has been thought about. Read by the go-live
+   checklist and by the People tab's completeness chip. */
+function signCapUnanswered(){
+  return ((typeof getUsers==='function'?getUsers():[])||[])
+    .filter(u=>u.role!=='viewer'&&u.role!=='admin'&&!signCapOf(u).answered);
+}
+Object.assign(window,{signCapCfg,saveSignCapCfg,signCapEnforced,signCapOf,signCapText,
+  signCapSentence,signCapBlocker,signCapLadder,signCapUnanswered});
+
+/* ============================================================
+   WHICH FOLDERS MAY THIS PERSON SIGN IN
+   ============================================================
+   A SEPARATE list from folder ACCESS, deliberately and on the owner's
+   instruction: seeing a stream and being allowed to put your name at the
+   bottom of its paper are different rights, and overloading one map with two
+   meanings is how a reader who was only ever meant to look ends up able to
+   execute. Its own key, its own route, its own guard.
+
+   ABSENT MEANS EVERY FOLDER THEY CAN ALREADY SEE — this list only ever
+   NARROWS, never widens: somebody restricted to Procurement on folderAccess
+   cannot sign a Marketing contract by having Marketing on this list, because
+   the contract is not theirs to open in the first place. And like every
+   enforcement in this product it arrives behind a switch that is OFF by
+   default, so nothing locks on deploy. */
+function signFolderCfg(){
+  const s = (state.settings && state.settings.signFolders) || {};
+  return { on: !!s.on };
+}
+function saveSignFolderCfg(cfg){
+  state.settings = state.settings || {};
+  const cur = state.settings.signFolders || {};
+  state.settings.signFolders = { ...cur, on: !!(cfg && cfg.on) };
+  if (typeof saveSettings === 'function') saveSettings();
+  return signFolderCfg();
+}
+const signFolderEnforced = () => signFolderCfg().on;
+/* THE ONE READING. '*' means "not narrowed"; an array is the narrowing. An
+   empty array is never stored — the two stores read it differently, which is
+   the lesson folderAccess already taught this codebase. */
+function signFolderAccess(u){
+  const who = u || ((typeof currentUser === 'function') ? currentUser() : null);
+  if (!who) return '*';
+  if (who.role === 'admin') return '*';
+  const map = ((state.settings || {}).signFolders || {}).by || {};
+  const v = map[who.id];
+  if (v == null || v === '*' || (Array.isArray(v) && !v.length)) return '*';
+  return v;
+}
+const maySignFolder = (fid, u) => { const a = signFolderAccess(u); return a === '*' || a.indexOf(fid) >= 0; };
+/* THE WRITER, shaped exactly like settingsWriteFolderAccess and for the same
+   reason: one place decides the payload, and an empty pick is refused rather
+   than sent. */
+async function saveSignFolders(userId, folders){
+  if (Array.isArray(folders) && !folders.length) throw new Error(i18t('set_pick_one_stream'));
+  state.settings = state.settings || {};
+  const cfg = state.settings.signFolders || {};
+  cfg.by = cfg.by || {};
+  if (folders == null) delete cfg.by[userId]; else cfg.by[userId] = folders;
+  state.settings.signFolders = cfg;
+  if (window.API_MODE && window.API_MODE()) await api('settings/sign-folders', 'PUT', { userId, folders });
+  else await saveSettings();
+}
+/* The blocker, joining the ONE list of signing blockers beside the cap. */
+function signFolderBlocker(c, u){
+  if (!c || !signFolderEnforced()) return null;
+  const who = u || ((typeof currentUser === 'function') ? currentUser() : null);
+  if (!who || who.role === 'admin') return null;
+  if (maySignFolder(c.folder, who)) return null;
+  const name = (typeof FOLDERS === 'object' && FOLDERS[c.folder] && FOLDERS[c.folder].name) || c.folder || '';
+  return { key: 'signfolder',
+    label: i18t('sf_block', { folder: name }),
+    short: i18t('sf_block_short') };
+}
+/* What the drawer and the ladder print. */
+function signFolderText(u){
+  if (u && u.role === 'admin') return i18t('sf_every');
+  const a = signFolderAccess(u);
+  if (a === '*') return i18t('sf_every_they_see');
+  return i18t('sf_only_n', { n: a.length, total: Object.keys(typeof FOLDERS === 'object' ? FOLDERS : {}).length });
+}
+Object.assign(window,{signFolderCfg,saveSignFolderCfg,signFolderEnforced,signFolderAccess,
+  maySignFolder,saveSignFolders,signFolderBlocker,signFolderText});

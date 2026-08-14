@@ -522,6 +522,12 @@ function createAmendment(parent, opts={}){
      amendment" band is for documents that arrived, not for one written here. */
   c.linkConfirmed = true;
   c._loaded=true; c._light=false; c._v=0;
+  /* WHO RAISED IT. The eighth creation site, and it owes this the same as the
+     other seven — an amendment with no owner falls out of the dashboard's
+     Decisions-due card and both of Reports' timing figures, which is the exact
+     hole c.owner was added to close. See contractOwnerStamp (js/core.js): it
+     stamps once and never overwrites. */
+  if(window.contractOwnerStamp) contractOwnerStamp(c);
   state.contracts.unshift(c);
   persist(c);
   const p=getContract(parent.id); if(p) persist(p);

@@ -1,7 +1,7 @@
 {
   "name": "hati-clm",
   "version": "0.2.0",
-  "description": "HaTi — Contract Lifecycle Management platform for the Kenyan market",
+  "description": "HaTi \u2014 Contract Lifecycle Management platform for the Kenyan market",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
@@ -13,7 +13,7 @@
     "test:structure": "node test/chromium/structure-verify.js",
     "test:standardpaper": "node test/chromium/standard-paper-verify.js",
     "test:designstep": "node test/chromium/designstep-verify.js",
-    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep && npm run test:laptops && npm run test:phone && npm run test:newcontract && npm run test:standardpaper && npm run test:themetokens && npm run test:swedish && npm run test:sharerecipient && npm run test:insights && npm run test:cardcollapse && npm run test:roomnotices && npm run test:historyhead && npm run test:kpifour && npm run test:amendment",
+    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity && npm run test:live && npm run test:timeline && npm run test:structure && npm run test:designstep && npm run test:laptops && npm run test:phone && npm run test:newcontract && npm run test:standardpaper && npm run test:themetokens && npm run test:swedish && npm run test:sharerecipient && npm run test:insights && npm run test:cardcollapse && npm run test:roomnotices && npm run test:historyhead && npm run test:kpifour && npm run test:settingstabs && npm run test:settingsholds && npm run test:amendment",
     "test:live": "node test/chromium/live-verify.js",
     "test:laptops": "node test/chromium/laptops-verify.js",
     "test:phone": "node test/chromium/phone-verify.js",
@@ -28,6 +28,8 @@
     "test:cpbell": "node test/chromium/counterparty-bell-verify.js",
     "test:historyhead": "node test/chromium/history-head-verify.js",
     "test:kpifour": "node test/chromium/kpi-four-verify.js",
+    "test:settingstabs": "node test/chromium/settings-tabs-verify.js",
+    "test:settingsholds": "node test/chromium/settings-holds-still-verify.js",
     "test:amendment": "node test/chromium/amendment-journey-verify.js"
   },
   "engines": {

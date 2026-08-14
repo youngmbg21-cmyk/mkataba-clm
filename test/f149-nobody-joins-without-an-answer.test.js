@@ -23,6 +23,16 @@
      · an admin is not asked: the role always carries every stream, so the
        control is disabled rather than collecting an answer that gets ignored
      · the three roles are explained on screen — "Viewer" says what it costs
+
+   RE-HOUSED, NOT REWRITTEN (Settings & Rules redesign, Aug 2026). The add-member
+   form left the bottom of a scrolling page for the person drawer on the People
+   tab. Every claim above is the claim it always was and is asserted against the
+   same element ids; what changed is the STAGING (the drawer is opened rather
+   than the page being read straight off) and two things the design genuinely
+   reverses, each marked where it happens:
+     · a refusal is shown IN THE DRAWER in words, not as a toast over the page
+     · the roles are explained one line PER ROLE beside each choice, rather than
+       one paragraph under the picker
    ============================================================ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -84,15 +94,31 @@ function stage() {
   vm.createContext(sb);
   for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
   sb.renderTeam();
+  /* THE FORM IS IN THE DRAWER NOW. Opening it is what a person does by pressing
+     "Add member" on the People tab, and it is the same drawer that opens for an
+     existing member — so staging it this way is the product's own path, not a
+     shortcut around it. */
+  sb.settingsPersonDrawer('new');
 
   const $ = id => win.document.getElementById(id);
   const fill = (name, email, pass) => { $('tm-name').value = name; $('tm-email').value = email; $('tm-pass').value = pass; };
   const click = el => el.dispatchEvent(new win.Event('click', { bubbles: true }));
   const change = el => el.dispatchEvent(new win.Event('change', { bubbles: true }));
+  /* The drawer's own Save & close is what the old page called "tm-add". */
+  const add = () => click($('st-dsave'));
+  /* A REFUSAL IS SHOWN IN THE DRAWER, in words. It used to be a toast — which
+     appears over the page BEHIND the panel a person is looking at. Either
+     channel counts as "the admin was told why"; this reads both so the claim
+     survives however the refusal is delivered. */
+  const refused = () => {
+    const box = $('st-drawer-refusal');
+    return (box && !box.hasAttribute('hidden') && !!box.textContent.trim())
+      || log.toasts.some(t => t.kind === 'err');
+  };
   // the product rebinds REMOTE.users on a create, so member count is read
   // through the object the product writes, never through a captured array
   const memberCount = () => sb.REMOTE.users.length;
-  return { win, sb, $, log, memberCount, me, fill, click, change };
+  return { win, sb, $, log, memberCount, me, fill, click, change, add, refused };
 }
 
 /* The click handler is async (it awaits the create call), so a test that reads
@@ -132,10 +158,10 @@ describe('f149 — the access question is part of adding somebody', () => {
   });
 
   test('adding without touching the role creates a viewer', async () => {
-    const { $, log, fill, click, change } = stage();
+    const { $, log, fill, add, change } = stage();
     fill('John Wayne', 'john@hati.test', 'temp12345');
     $('tm-access').value = '*'; change($('tm-access'));
-    click($('tm-add'));
+    add();
     await settle();
     const create = log.api.filter(c => c.route === 'users');
     assert.equal(create.length, 1, 'the account was created');
@@ -143,20 +169,20 @@ describe('f149 — the access question is part of adding somebody', () => {
   });
 
   test('unanswered is refused — no account is created', async () => {
-    const { $, log, memberCount, fill, click } = stage();
+    const { $, log, memberCount, fill, add, refused } = stage();
     fill('John Wayne', 'john@hati.test', 'temp12345');
-    click($('tm-add'));
+    add();
     await settle();
     assert.equal(memberCount(), 1, 'nobody was added');
     assert.equal(log.api.filter(c => c.route === 'users').length, 0, 'no create call went out');
-    assert.ok(log.toasts.some(t => t.kind === 'err'), 'the admin was told why');
+    assert.ok(refused(), 'the admin was told why');
   });
 
   test('"all streams" is a real answer — the account is created, unrestricted', async () => {
-    const { $, log, memberCount, fill, click, change, sb } = stage();
+    const { $, log, memberCount, fill, add, change, sb } = stage();
     fill('John Wayne', 'john@hati.test', 'temp12345');
     $('tm-access').value = '*'; change($('tm-access'));
-    click($('tm-add'));
+    add();
     await settle();
     assert.equal(memberCount(), 2, 'the member was added');
     assert.equal(log.api.filter(c => c.route === 'settings/folder-access').length, 0,
@@ -165,13 +191,13 @@ describe('f149 — the access question is part of adding somebody', () => {
   });
 
   test('"only these streams" restricts the account it just created', async () => {
-    const { $, log, memberCount, fill, click, change, sb } = stage();
+    const { $, log, memberCount, fill, add, change, sb } = stage();
     fill('Simon Jordan', 'simon@hati.test', 'temp12345');
     $('tm-access').value = 'pick'; change($('tm-access'));
     const boxes = $('tm-access-list').querySelectorAll('[data-tm-folder]');
     boxes[0].checked = true; boxes[2].checked = true;
     const want = [boxes[0].getAttribute('data-tm-folder'), boxes[2].getAttribute('data-tm-folder')];
-    click($('tm-add'));
+    add();
     await settle();
     assert.equal(memberCount(), 2, 'the member was added');
     const fa = log.api.filter(c => c.route === 'settings/folder-access');
@@ -184,34 +210,46 @@ describe('f149 — the access question is part of adding somebody', () => {
   });
 
   test('"only these streams" with none ticked is refused', async () => {
-    const { $, log, memberCount, fill, click, change } = stage();
+    const { $, log, memberCount, fill, add, change, refused } = stage();
     fill('Nobody Yet', 'nobody@hati.test', 'temp12345');
     $('tm-access').value = 'pick'; change($('tm-access'));
-    click($('tm-add'));
+    add();
     await settle();
     assert.equal(memberCount(), 1, 'nobody was added');
     assert.equal(log.api.filter(c => c.route === 'users').length, 0);
-    assert.ok(log.toasts.some(t => t.kind === 'err'));
+    assert.ok(refused(), 'and the refusal is on the screen they are looking at');
   });
 
   test('an admin is not asked — the role already carries every stream', async () => {
-    const { $, log, memberCount, fill, click, change } = stage();
+    const { $, log, memberCount, fill, add, change, refused } = stage();
     fill('Another Admin', 'admin2@hati.test', 'temp12345');
     $('tm-role').value = 'admin'; change($('tm-role'));
     assert.equal($('tm-access').disabled, true, 'the control is off rather than silently ignored');
     assert.notEqual($('tm-access-note').style.display, 'none', 'and it says why');
-    click($('tm-add'));
+    add();
     await settle();
     assert.equal(memberCount(), 2, 'the admin was added with no access question');
     assert.equal(log.api.filter(c => c.route === 'settings/folder-access').length, 0);
   });
 
-  test('the roles are explained where they are chosen', () => {
-    const { win } = stage();
-    const html = win.document.getElementById('content').innerHTML;
-    const help = require('../js/i18n.js').STRINGS.en.set_role_help;
-    assert.ok(/viewer/i.test(help) && /read/i.test(help),
-      'the help text says what a Viewer can and cannot do');
-    assert.ok(html.includes(help), 'and it is on the screen beside the role picker');
+  /* REVERSED IN PLACE by the Settings & Rules redesign (Aug 2026), and the
+     claim it is reversing is the same claim: the roles are explained where they
+     are chosen. It used to be ONE paragraph (set_role_help) under the dropdown,
+     describing all three; it is now one line PER ROLE beside that role's own
+     choice, which is where somebody deciding between them is actually looking.
+     The old paragraph is retired from this screen — flag set_role_help as stale
+     here (it is left in the dictionary, inert). */
+  test('the roles are explained where they are chosen — a line each, beside each', () => {
+    const { $ } = stage();
+    const body = $('st-dbody').innerHTML;
+    const S = require('../js/i18n.js').STRINGS.en;
+    for (const k of ['st_role_viewer_desc', 'st_role_legal_desc', 'st_role_admin_desc'])
+      assert.ok(body.includes(S[k]), `${k} is on the screen beside its own role`);
+    assert.ok(/read/i.test(S.st_role_viewer_desc),
+      'and the Viewer line still says what a Viewer can and cannot do');
+    // each line sits inside its own role option, not in a paragraph below them
+    const opts = $('st-dbody').querySelectorAll('.st-role');
+    assert.equal(opts.length, 3, 'three roles, three options');
+    for (const o of opts) assert.ok(o.querySelector('.st-note'), 'each option carries its own line');
   });
 });

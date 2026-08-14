@@ -217,7 +217,18 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      the default — see js/i18n.js for why this lives on the user and not the
      org. */
   lang: u.lang || null,
-  createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u) });
+  createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u),
+  /* Three states travel as three values — null, 'none' or a number — because
+     collapsing "nobody decided" into "no limit" is what the completeness chip
+     exists to tell apart. */
+  signCap: u.sign_cap == null || u.sign_cap === '' ? null
+    : (u.sign_cap === 'none' ? 'none' : Number(u.sign_cap)),
+  /* Absent travels as absent, never as `true`: the browser's reviewChecked
+     reads "not false" and a server that helpfully filled in a default would be
+     a second place this rule is decided. */
+  reviewChecked: u.review_checked == null ? null : !!u.review_checked,
+  reviewerId: u.reviewer_id || null,
+  overseerId: u.overseer_id || null });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -230,10 +241,65 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
    input must run this and carry ESCAPE '\'. */
 const likeEscape = s => String(s == null ? '' : s).replace(/[\\%_]/g, c => '\\' + c);
 
+/* ---- WHO RAISED THIS, AND WHEN ----
+   The audit trail's first Created/Uploaded/Migrated entry is where this
+   product records who a contract came from. It is also the field HEAVY strips
+   out of every list row — which is how the dashboard's "contracts I raised"
+   half came to answer false for everything in server mode while working
+   perfectly in local mode, where the records are whole.
+
+   So the fact is CARRIED rather than the trail: computed here, in the one
+   place that still has the trail in hand, and sent as two small transport
+   fields. It is not a new record — a contract does not gain an owner from
+   this — which is why the names are underscored like `_light` and `_v`, and
+   why js/core.js strips them before a save. The real answer is a stored owner
+   on the contract; that is WORKORDER-contract-owner.md and it supersedes this
+   the day it lands. */
+const RAISED_ACTIONS = ['Created', 'Uploaded', 'Migrated'];
+function raisedFrom(c) {
+  const trail = Array.isArray(c && c.audit) ? c.audit : [];
+  const e = trail.find(a => a && RAISED_ACTIONS.includes(a.action));
+  /* `System` raised nothing — it is what the seeded sample portfolio stamps.
+     Answering with it would put every demo contract in somebody's queue. */
+  if (!e || !e.user || e.user === 'System') return null;
+  return { by: e.user, at: e.at || null };
+}
+/* THE THREE DATES A LIST NEEDS AND CANNOT DERIVE. Reports measures how long a
+   contract took from raising to signature, and how long one has been sitting
+   where it is — both off the audit trail, which is not on a list row. Same
+   cause as the dashboard's "contracts I raised", same answer: carry the fact.
+   MEASURED before this existed: cycle time came out null for every signed
+   contract, and a contract that had sat in Draft for fifteen days reported a
+   stage age of 0.0 days. */
+function auditDatesOf(c) {
+  const trail = Array.isArray(c && c.audit) ? c.audit : [];
+  const first = trail.find(a => a && RAISED_ACTIONS.includes(a.action));
+  const signed = trail.find(a => a && a.action === 'Signed');
+  const last = trail.length ? trail[trail.length - 1] : null;
+  return {
+    raisedAt: (first && first.at) || null,
+    signedAt: (signed && signed.at) || null,
+    lastAt: (last && last.at) || null,
+  };
+}
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   if (x.execution) x.execution = { ...x.execution, html: undefined };
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
+  /* THE STORED OWNER WINS. `_raisedBy` was the stop-gap that made the
+     dashboard true before a contract had an owner field; it stays for every
+     record raised before that landed and never backfilled. One reading, two
+     sources, and the record is the senior of them. */
+  const own = x.owner && (x.owner.name || x.owner.id) ? x.owner : null;
+  const raised = own ? { by: own.name || null } : raisedFrom(x);
+  if (raised && raised.by) x._raisedBy = raised.by;
+  /* The DATES are not the same question as the PERSON: a seeded sample has no
+     owner to name but was still raised on a day, and its cycle time is a real
+     figure. So these are taken from the trail whoever stamped it. */
+  const d = auditDatesOf(x);
+  if (d.raisedAt) x._raisedAt = d.raisedAt;
+  if (d.signedAt) x._signedAt = d.signedAt;
+  if (d.lastAt) x._lastAuditAt = d.lastAt;
   x.comments = undefined; x.audit = undefined;
   x._light = true;
   return x;
@@ -363,6 +429,22 @@ function addColumnIfMissing(table, col, decl) {
   if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
 }
 addColumnIfMissing('users', 'lang', 'TEXT');   // per-person UI + email language (js/i18n.js)
+/* How much this member may sign a contract for, in the workspace currency.
+   TEXT rather than REAL because it carries THREE states and the third is the
+   point: absent = nobody has decided, 'none' = decided, no limit, a number =
+   the ceiling. See the note above signCapOf in js/approvals.js. */
+addColumnIfMissing('users', 'sign_cap', 'TEXT');
+/* Whether this member's wording is checked before it travels, and by whom.
+   NULL means CHECKED — that default is the whole migration for the per-person
+   review flag: a workspace with the gate already on keeps behaving exactly as
+   it did, because every existing record is null. See reviewChecked in
+   js/review.js. */
+addColumnIfMissing('users', 'review_checked', 'INTEGER');
+addColumnIfMissing('users', 'reviewer_id', 'TEXT');
+/* Who signs off this member's contracts, as a final approval step. Hangs on
+   the contract's OWNER, so it could not exist before a contract knew whose it
+   was. NULL = nobody, which is where every existing member starts. */
+addColumnIfMissing('users', 'overseer_id', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -692,6 +774,31 @@ const ADMIN_SCOPE = '*';
    Every one of these answers the SAFE way when it cannot tell: no desk, no
    rule, no claim means the behaviour this product had before the feature. */
 const deskRuleOn = () => !!((getSetting('appSettings') || {}).deskRule || {}).on;
+/* ---- SIGNING LIMITS, THE SERVER'S OWN READING ----
+   OFF by default and read from the stored settings, never from the request:
+   the browser's copy of this rule is cosmetics. It repeats js/approvals.js's
+   signCapOf deliberately — the server is the authority and a guard that
+   imported the browser's answer would be a guard the browser could move. */
+const signCapOn = () => !!((getSetting('appSettings') || {}).signCap || {}).on;
+const signFoldersOn = () => !!((getSetting('appSettings') || {}).signFolders || {}).on;
+/* '*' means not narrowed. Absent, '*' and an empty array all read as '*' — the
+   last of those only because a store that has one is a store somebody wrote by
+   hand; the route above refuses to create it. */
+function signFoldersOf(u) {
+  if (!u || u.role === 'admin') return '*';
+  const map = ((getSetting('appSettings') || {}).signFolders || {}).by || {};
+  const v = map[u.id];
+  if (v == null || v === '*' || (Array.isArray(v) && !v.length)) return '*';
+  return v.map(String);
+}
+function signCapOfRow(u) {
+  const raw = u && u.sign_cap;
+  if (raw == null || raw === '') return { answered: false, limit: null };
+  if (raw === 'none') return { answered: true, limit: null };
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return { answered: false, limit: null };
+  return { answered: true, limit: n };
+}
 const deskOfRow = c => (c && c.desk && typeof c.desk === 'object' && !Array.isArray(c.desk)) ? c.desk : null;
 const deskIsClaimed = c => { const d = deskOfRow(c); return !!(d && d.leadId && !d.closedAt); };
 const deskLeadName = c => (deskOfRow(c) || {}).leadName || 'the lead';
@@ -852,9 +959,18 @@ function rvGateCfg(){
   return { on: !!g.on, when: ['always', 'deviation', 'value'].includes(g.when) ? g.when : 'deviation',
     value: Number(g.value || 0) };
 }
-function rvGateApplies(c){
+/* Is THIS person's wording checked before it travels. NULL is checked, which
+   is what keeps a workspace with the gate already on behaving exactly as it
+   did — see the column note above and reviewChecked in js/review.js. */
+const rvChecked = u => !(u && u.review_checked === 0);
+function rvGateApplies(c, u){
   const g = rvGateCfg();
   if (!g.on) return false;
+  /* ONE ADDITIONAL QUESTION, IN THE PREDICATE. Every caller inherits it rather
+     than each enforcement point growing its own copy. `undefined` means "no
+     particular person" and keeps the old workspace-wide reading, which is what
+     a caller with nobody to name should get. */
+  if (u !== undefined && !rvChecked(u)) return false;
   if (g.when === 'always') return true;
   if (g.when === 'value') return Number((c && c.value) || 0) >= g.value;
   /* 'deviation' — the playbook says this contract is off-piste. */
@@ -864,8 +980,8 @@ function rvGateApplies(c){
 /* Which of our unsent asks the gate has not been satisfied about. A cleared
    verdict that has gone stale counts as unreviewed, which is the whole point of
    the staleness rule. */
-function rvUnreviewedIds(c){
-  if (!rvGateApplies(c)) return new Set();
+function rvUnreviewedIds(c, u){
+  if (!rvGateApplies(c, u)) return new Set();
   const out = new Set();
   for (const ch of rvUnsentOurs(c)) if (!rvHeld(ch) && !rvCleared(ch)) out.add(String(ch.id));
   return out;
@@ -1222,6 +1338,32 @@ db.exec(`
     cost REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (day, feature));
   CREATE INDEX IF NOT EXISTS idx_ai_spend_day ON ai_spend(day);
+
+  /* ---------- WHAT COPILOT COST, PER PERSON ----------
+     A SECOND SMALL TABLE RATHER THAN A WIDER ONE. Adding user_id to ai_spend's
+     primary key would multiply its rows by the number of members and change
+     what every existing reader of the by-feature breakdown gets back; a
+     separate ledger leaves those numbers byte-identical.
+
+     THE NAME IS STORED BESIDE THE ID for the reason the contract owner stores
+     both: the id is what survives a rename, the name is what survives an
+     account being deleted — and a spend line for somebody who has since left
+     is still money that was spent.
+
+     WHERE THERE IS NO PERSON, NOTHING IS BOOKED HERE. Anything running outside
+     a signed-in request has no owner; it still counts toward the WORKSPACE
+     total, which is what ai_spend is for. The two therefore do not always
+     agree, and the screen says so rather than letting an admin discover the
+     gap by subtracting. */
+  CREATE TABLE IF NOT EXISTS ai_spend_user (
+    day TEXT NOT NULL, user_id TEXT NOT NULL, user_name TEXT NOT NULL DEFAULT '',
+    requests INTEGER NOT NULL DEFAULT 0,
+    calls INTEGER NOT NULL DEFAULT 0,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    cost REAL NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, user_id));
+  CREATE INDEX IF NOT EXISTS idx_ai_spend_user_day ON ai_spend_user(day);
 `);
 
 /* Per-model prices in USD per MILLION tokens. Verified 2026-07-25 against
@@ -1289,6 +1431,23 @@ const AI_FEATURE_LABEL = {
 function aiSpendRows(day) {
   return db.prepare('SELECT * FROM ai_spend WHERE day=?').all(day || aiToday());
 }
+/* Largest first, so an admin reads the answer rather than sorting it. The
+   CURRENT name wins where the person still has an account — a rename should
+   move the label, not split the line — and the stored one carries somebody who
+   has since left, whose spending was still real.
+
+   ONE QUERY, NOT ONE PER PERSON. aiSpendToday() is called by aiBudgetGuard on
+   every single Copilot request, so a lookup per row here would be N+1 queries
+   on the hot path of the feature it is measuring. */
+function aiSpendPeople(day) {
+  return db.prepare(`
+    SELECT s.user_id, s.user_name, s.requests, s.calls, s.input_tokens, s.output_tokens, s.cost, u.name AS live_name
+      FROM ai_spend_user s LEFT JOIN users u ON u.id = s.user_id
+     WHERE s.day = ? ORDER BY s.cost DESC`).all(day || aiToday())
+    .map(r => ({ userId: r.user_id, name: r.live_name || r.user_name || r.user_id,
+      gone: !r.live_name, cost: r.cost, requests: r.requests, calls: r.calls,
+      inputTokens: r.input_tokens, outputTokens: r.output_tokens }));
+}
 function aiSpendToday() {
   const day = aiToday();
   const rows = aiSpendRows(day);
@@ -1298,7 +1457,14 @@ function aiSpendToday() {
     byFeature[r.feature] = { label: AI_FEATURE_LABEL[r.feature] || r.feature, cost: r.cost, requests: r.requests, calls: r.calls, inputTokens: r.input_tokens, outputTokens: r.output_tokens };
     cost += r.cost; requests += r.requests; calls += r.calls; inT += r.input_tokens; outT += r.output_tokens;
   }
-  return { date: day, cost, requests, calls, inputTokens: inT, outputTokens: outT, byFeature };
+  /* THE GAP IS A FIGURE, NOT A DISCOVERY. Spending with nobody behind it —
+     anything running outside a signed-in request — counts toward the workspace
+     total and against no person, so the two lists do not have to agree. Say by
+     how much, on the screen, rather than leaving an admin to subtract. */
+  const byPerson = aiSpendPeople(day);
+  const attributed = byPerson.reduce((t, p) => t + p.cost, 0);
+  return { date: day, cost, requests, calls, inputTokens: inT, outputTokens: outT, byFeature,
+    byPerson, unattributed: Math.max(0, Math.round((cost - attributed) * 1e9) / 1e9) };
 }
 // The request counter is derived from the same ledger so both survive a restart.
 function aiUsageToday() { const s = aiSpendToday(); return { date: s.date, count: s.requests }; }
@@ -1313,15 +1479,47 @@ const upsertSpend = db.prepare(`
     cache_read_tokens=cache_read_tokens+excluded.cache_read_tokens,
     cost=cost+excluded.cost`);
 
+const upsertSpendUser = db.prepare(`
+  INSERT INTO ai_spend_user (day,user_id,user_name,requests,calls,input_tokens,output_tokens,cost)
+  VALUES (?,?,?,?,?,?,?,?)
+  ON CONFLICT(day,user_id) DO UPDATE SET
+    user_name=excluded.user_name,
+    requests=requests+excluded.requests, calls=calls+excluded.calls,
+    input_tokens=input_tokens+excluded.input_tokens, output_tokens=output_tokens+excluded.output_tokens,
+    cost=cost+excluded.cost`);
+
+/* ---- WHO ASKED, READ IN ONE PLACE ----
+   The recorder sits deep inside the call to Anthropic and cannot see the
+   request, so the person travels on the meter tag that already carries the
+   feature. This is the one reading of who that person is: every metered call
+   site asks it, or forwards a who somebody else asked it for, and f203 walks
+   them all and fails on the site that does neither.
+
+   NULL IS A REAL ANSWER — anything running outside a signed-in request has no
+   owner, and inventing one would be worse than the gap. */
+function aiWho(req) {
+  const u = req && req.user;
+  if (!u || !u.id) return null;
+  return { id: String(u.id), name: u.name || u.email || String(u.id) };
+}
+
 /* Record one real Anthropic call. `countRequest` is false for OCR pages after
    the first: pages count toward SPEND (the honest measure) and toward
    ocrMaxPages, but a 20-page scan is one request, not twenty. */
-function recordAiSpend(feature, model, usage, { countRequest = true, allowance = false } = {}) {
+function recordAiSpend(feature, model, usage, { countRequest = true, allowance = false, who = null } = {}) {
   const f = AI_FEATURE_LABEL[feature] ? feature : 'other';
   const p = priceUsage(model, usage);
   try {
     upsertSpend.run(aiToday(), f, countRequest ? 1 : 0, 1, p.inT + p.cw + p.cr, p.outT, p.cw, p.cr, p.cost);
   } catch (e) { console.warn('[ai] could not write spend ledger:', e.message); }
+  /* Beside it, never instead of it: the by-feature line is the WORKSPACE's
+     total and is written whether or not anybody owns the call. */
+  if (who && who.id) {
+    try {
+      upsertSpendUser.run(aiToday(), String(who.id), String(who.name || ''),
+        countRequest ? 1 : 0, 1, p.inT + p.cw + p.cr, p.outT, p.cost);
+    } catch (e) { console.warn('[ai] could not write per-person spend ledger:', e.message); }
+  }
   if (allowance) drawAllowance(p.cost, 0);
   return p;
 }
@@ -1896,7 +2094,7 @@ app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, 
   const body = candidates.slice(0, 30).map(c => ({ id: c.id, name: c.name, counterparty: c.counterparty, text: String(c.text || '').slice(0, 3000) }));
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
-    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search' });
+    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search', who: aiWho(req) });
     if (!out.ok) return res.status(502).json({ error: 'Copilot provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -2033,6 +2231,42 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  /* ---------- WHICH DRAWER A CONTRACT IS FILED IN IS AN ADMIN'S TO CHANGE ----------
+     This route already asked TWO questions about folders, both of them SCOPE
+     questions and both of them still above: can the caller see where it IS
+     (404), and can the caller see where it is GOING (403). Neither asks whether
+     the folder CHANGED, so an Editor sending back a contract with a different
+     `folder` had it re-filed — no refusal, no audit line, nobody told. The
+     interface never offered the control, which is the only reason it never
+     happened by accident.
+
+     ASKED AS A DIFFERENCE, like every guard around it. This route receives the
+     whole contract on every save and every ordinary save carries the folder
+     unchanged, so the question is never "may this person touch folders" — that
+     would refuse a viewer saving a note — but "does this save MOVE the contract,
+     and is the caller an admin".
+
+     THE CREATION CASE IS NOT CAUGHT: a contract that did not exist a moment ago
+     has no previous drawer to have been moved out of. Guarded on `existing`,
+     exactly as the other difference-guards here are.
+
+     BOTH SCOPE CHECKS STAY. They answer a different question and they are still
+     the reason a contract cannot be filed somewhere the caller cannot see —
+     which is what stops a move being a one-request way to make a record
+     disappear, if this is ever widened past admins.
+
+     A SIGNED CONTRACT MAY STILL BE MOVED. Filing is housekeeping and nothing in
+     the executed document mentions it — `folder` is deliberately absent from
+     EXECUTED_IMMUTABLE, and a mis-filed executed contract is precisely the one
+     you most want to be able to find. */
+  if (prev && req.user.role !== 'admin'
+      && String(prev.folder || '') !== String(c.folder || '')) {
+    return res.status(403).json({
+      error: `${req.params.id} is filed under ${prev.folder || 'no value stream'} and only an admin can move it. `
+        + 'Ask an admin to re-file it.',
+      folderMove: { from: prev.folder || null, to: c.folder || null } });
+  }
+
   /* ---------- A SIGNING STEP RESERVED FOR SOMEONE IS RESERVED HERE TOO ----------
      The browser has always refused to let one member sign another member's
      step (js/views/contract.js, "This step is reserved for …"). That is a sign
@@ -2130,6 +2364,62 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           + 'Only they can sign it.',
         reservedFor: stolen.name || null,
       });
+    }
+  }
+
+  /* ---- HOW MUCH THIS PERSON MAY SIGN FOR, GUARDED ON THE WAY IN ----
+     Warn before enforce: signCapOn() is a workspace setting that is OFF by
+     default, so until an admin turns it on this guard passes everything and the
+     limits are a record rather than a rule.
+
+     ASKED AS A DIFFERENCE, like every guard around it. This route receives the
+     whole contract on every save, so the question is never "may this person
+     sign this contract" — a viewer saving a note would fail that — but "does
+     this save ADD a signature taken in this app, by this session". A
+     session-authenticated entry in c.signatures that was not in the stored copy
+     is exactly that act and nothing else: the counterparty's mark arrives down
+     a share token on its own route, a paper signature carries its own method,
+     and a save that touches no signature is untouched here.
+
+     AN ADMIN IS NEVER CAPPED — see the note above signCapOf in
+     js/approvals.js: the caps and the switch are both an admin's to set, and a
+     workspace whose only admin had capped themselves below their own paper
+     would have locked its own front door.
+
+     MONEY ONLY WHERE MONEY PASSES. A contract carrying no value cannot be over
+     anybody's limit, so an unvalued or non-monetary agreement passes. */
+  if (signCapOn() && req.user.role !== 'admin') {
+    const inApp = x => x && x.method === 'session-authenticated';
+    const key = x => `${x.name || ''}|${x.email || ''}|${x.at || ''}`;
+    const had = new Set((Array.isArray(prev && prev.signatures) ? prev.signatures : []).filter(inApp).map(key));
+    const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
+    if (fresh.length) {
+      const cap = signCapOfRow(req.user);
+      const value = Number(c.value || 0);
+      if (cap.answered && cap.limit != null && value > cap.limit)
+        return res.status(403).json({
+          error: `This contract is ${value} and your signing limit is ${cap.limit}. `
+            + 'Ask somebody with a higher limit to sign it, or ask an admin to raise yours.',
+          signCap: cap.limit, contractValue: value });
+    }
+  }
+
+  /* ---- AND WHICH FOLDERS THEY MAY SIGN IN ----
+     The same difference, asked the same way, behind its own default-OFF
+     switch. It only ever narrows: a folder the caller cannot SEE has already
+     been refused above by the scope check, so this can take rights away and
+     never hand them out. */
+  if (signFoldersOn() && req.user.role !== 'admin') {
+    const inApp = x => x && x.method === 'session-authenticated';
+    const key = x => `${x.name || ''}|${x.email || ''}|${x.at || ''}`;
+    const had = new Set((Array.isArray(prev && prev.signatures) ? prev.signatures : []).filter(inApp).map(key));
+    const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
+    if (fresh.length) {
+      const allowed = signFoldersOf(req.user);
+      if (allowed !== '*' && !allowed.includes(String(c.folder)))
+        return res.status(403).json({
+          error: `You may not sign contracts filed under ${c.folder}. Ask an admin, or ask somebody who may.`,
+          signFolder: c.folder });
     }
   }
 
@@ -2419,6 +2709,13 @@ app.put('/api/settings', auth, admin, (req, res) => {
   // sends folderAccess explicitly (the dedicated endpoint, the setup seed, or a
   // direct API call) still writes it.
   if (!('folderAccess' in incoming) && 'folderAccess' in stored) incoming.folderAccess = stored.folderAccess;
+  /* signFolders.by is the same kind of map — who may sign in which folder — and
+     it keeps the same protection: the SWITCH rides this blob, the MAP does not,
+     and a save that does not carry the map keeps the stored one. */
+  const incSF = (incoming.signFolders && typeof incoming.signFolders === 'object') ? incoming.signFolders : null;
+  const stoSF = (stored.signFolders && typeof stored.signFolders === 'object') ? stored.signFolders : null;
+  if (stoSF && stoSF.by && !(incSF && 'by' in incSF))
+    incoming.signFolders = { ...(incSF || {}), by: stoSF.by };
   setSetting('appSettings', incoming);
   res.json({ ok: true });
 });
@@ -2450,6 +2747,65 @@ const templateManager = (req, res, next) => {
     return res.status(403).json({ error: 'Admin or Editor access required' });
   next();
 };
+/* ---- WHICH FOLDERS MAY THIS PERSON SIGN IN ----
+   Its OWN key and its own route, never folderAccess: seeing a stream and being
+   allowed to put your name at the bottom of its paper are different rights, and
+   one map carrying two meanings is how a reader who was only ever meant to look
+   ends up able to execute. Atomic like its neighbour above, for the same
+   reason — a concurrent unrelated settings save must not revert a restriction. */
+/* ---- CLEARING THE DEMO SAMPLES ----
+   A new workspace is seeded with example contracts so the screens have
+   something on them on day one, and there was no way to take them out again:
+   the per-contract delete refuses anything past Draft or Under Review, and half
+   the samples are seeded as Signed.
+
+   ORIGIN, NEVER NAME. `seeded: true` is stamped on a sample at the moment the
+   portfolio is created and survives the light-list projection, so "is this a
+   sample?" is a fact on the record rather than a guess about its title. A real
+   contract called "Sample agreement", or one that happens to share a name with
+   a seeded row, is untouched — which is exactly what the test puts in front of
+   it. Nothing else can be reached from here: the query names the flag, and the
+   response says what went and what stayed so a wrong answer is visible rather
+   than silent. */
+app.post('/api/demo/clear', auth, admin, (req, res) => {
+  const rows = db.prepare('SELECT id, json FROM contracts').all();
+  const doomed = [];
+  for (const r of rows) {
+    let c = null; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    if (c && c.seeded === true) doomed.push({ id: r.id, fileIds: [
+      ...(c.upload && c.upload.fileId ? [c.upload.fileId] : []),
+      ...((Array.isArray(c.documents) ? c.documents : []).filter(d => d && d.fileId).map(d => d.fileId)),
+    ] });
+  }
+  txn(() => {
+    for (const d of doomed) {
+      db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), d.id);
+      for (const fid of d.fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
+      db.prepare('DELETE FROM contracts WHERE id=?').run(d.id);
+    }
+  });
+  res.json({ ok: true, removed: doomed.map(d => d.id), kept: rows.length - doomed.length });
+});
+
+app.put('/api/settings/sign-folders', auth, admin, (req, res) => {
+  const { userId, folders } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  if (folders != null && !Array.isArray(folders))
+    return res.status(400).json({ error: 'folders must be an array of folder ids, or null for every folder' });
+  /* An empty array is never accepted: the browser reads it as "nothing said"
+     and this server would read it as "deny all", and two stores disagreeing
+     about one value is how a restriction becomes a grant. */
+  if (Array.isArray(folders) && !folders.length)
+    return res.status(400).json({ error: 'Pick at least one folder, or send null for every folder' });
+  const all = getSetting('appSettings') || {};
+  const cfg = (all.signFolders && typeof all.signFolders === 'object') ? { ...all.signFolders } : {};
+  cfg.by = { ...(cfg.by || {}) };
+  if (folders == null) delete cfg.by[userId];
+  else cfg.by[userId] = folders.map(String);
+  setSetting('appSettings', { ...all, signFolders: cfg });
+  res.json({ ok: true, signFolders: cfg });
+});
+
 app.put('/api/settings/templates', auth, templateManager, (req, res) => {
   const list = req.body && req.body.customTemplates;
   if (!Array.isArray(list)) return res.status(400).json({ error: 'customTemplates must be an array' });
@@ -2529,7 +2885,7 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
   const def = AI_TIER_DEFAULTS[t];
   const book = (model, data) => {
     const spend = recordAiSpend(meter.feature || 'other', model, data && data.usage,
-      { countRequest: meter.countRequest !== false, allowance: !!meter.allowance });
+      { countRequest: meter.countRequest !== false, allowance: !!meter.allowance, who: meter.who || null });
     return spend;
   };
   const send = (model) => fetch(ANTHROPIC_BASE + '/v1/messages', {
@@ -2754,7 +3110,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, 600) : null;
   const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -2827,7 +3183,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
     const resp = await anthropicMessages(key, 'fast', {
       max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'transcribe_page' },
       messages: [{ role: 'user', content: [...blocks, { type: 'text', text: OCR_PROMPT }] }],
-    }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance });
+    }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance, who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no transcription' });
@@ -2881,7 +3237,7 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
   const body = scored.map(c => ({ id: c.id, name: c.name, kind: c.kind, counterparty: c.counterparty, value: c.value, status: c.status, expiry: c.expiry || '', clauses: String(c.text || '').slice(0, 6000) }));
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -2975,7 +3331,7 @@ ${String(text)}`;
     // Thorough mode reads the whole agreement chunk by chunk — judgement work
     // over partial context, so it runs on the deep tier.
     const tier = thorough ? 'deep' : 'fast';
-    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance });
+    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance, who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -3031,7 +3387,7 @@ Return via the propose_blanks tool.
 TEMPLATE:
 ${String(text)}`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
@@ -3073,7 +3429,7 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
   };
   const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations' });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -3114,7 +3470,7 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
   };
   const J = orgJx();
   const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
-  const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, meter || { feature: 'playbook' });
+  const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
   if (!resp.ok) return { ok: false, resp };
   const block = (resp.data.content || []).find(b => b.type === 'tool_use');
   if (!block) return { ok: false, resp, noResult: true };
@@ -3127,7 +3483,7 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
   const { text, playbook, kind } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   try {
-    const r = await aiPlaybookVerdicts(key, { text, playbook, kind });
+    const r = await aiPlaybookVerdicts(key, { text, playbook, kind }, { feature: 'playbook', who: aiWho(req) });
     if (!r.ok) {
       if (r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
       return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
@@ -3376,7 +3732,10 @@ function copilotResolvePlaybook(pb, key) {
    reads as not found, never as a playbook result), then the workspace
    playbook for this contract's kind, then the shared deep-tier review. The
    spend is booked to the chat feature line — it is a chat turn's cost. */
-async function copilotPlaybookCheck(ctx, id, key) {
+/* The `who` rides in from the chat turn that asked for it — this is booked to
+   the chat feature line because it IS a chat turn's cost, and to the person
+   whose turn it was. */
+async function copilotPlaybookCheck(ctx, id, key, who) {
   const c = copilotGetJson(ctx, id);
   if (!c) return { id, found: false };
   const pb = workspacePlaybook();
@@ -3384,7 +3743,7 @@ async function copilotPlaybookCheck(ctx, id, key) {
   if (!resolved) return { id: c.id, name: c.name || c.id, noPlaybook: true };
   const r = await aiPlaybookVerdicts(key,
     { text: contractFullBody(c).slice(0, 20000), playbook: resolved, kind: resolved.label },
-    { feature: 'chat' });
+    { feature: 'chat', who: who || null });
   if (!r.ok) return { error: 'playbook review failed' + (r.resp && r.resp.status ? ' (provider ' + r.resp.status + ')' : '') };
   return { id: c.id, name: c.name || c.id, playbook: resolved.label, verdicts: r.verdicts };
 }
@@ -3479,7 +3838,7 @@ async function runCopilotTool(ctx, name, input, aux) {
     if (name === 'get_scan_findings') { const d = copilotDetail(ctx, a.id); return d.found ? { id: d.id, name: d.name, openFindings: d.openFindings } : { id: a.id, found: false }; }
     if (name === 'list_portfolio') return copilotList(ctx, a);
     if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
-    if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key);
+    if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key, aux && aux.who);
     if (name === 'get_insights_panel') return copilotInsightsPanel(aux && aux.clientCtx, a.panel);
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
@@ -3672,7 +4031,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   try {
     for (let step = 0; step < 5; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat' });
+      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat', who: aiWho(req) });
       if (!resp.ok) {
         const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -3694,7 +4053,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
@@ -3856,7 +4215,7 @@ async function anthropicMessagesStream(key, tier, payload, meter = {}, { onToken
         u = { input_tokens: Math.ceil(JSON.stringify(payload).length / 4), output_tokens: Math.ceil(emittedChars / 4) || 1 };
         console.warn('[ai] stream ended without usage — booking a conservative estimate (' + u.input_tokens + ' in / ' + u.output_tokens + ' out).');
       }
-      return recordAiSpend(meter.feature || 'other', model, u, { countRequest: meter.countRequest !== false, allowance: !!meter.allowance });
+      return recordAiSpend(meter.feature || 'other', model, u, { countRequest: meter.countRequest !== false, allowance: !!meter.allowance, who: meter.who || null });
     };
     let spend;
     try {
@@ -3952,7 +4311,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          onToken: text => { if (text) send('token', { text }); } */
       const resp = await anthropicMessagesStream(key, compared ? 'deep' : 'fast',
         { max_tokens: 4000, system, tools: COPILOT_TOOLS, messages: working },
-        { feature: 'chat' },
+        { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal });
       if (!resp.ok) {
         const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
@@ -3976,7 +4335,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
@@ -4899,10 +5258,21 @@ app.post('/api/users', auth, admin, (req, res) => {
 app.patch('/api/users/:id', auth, (req, res) => {
   const b = req.body || {};
   const hasRole = b.role !== undefined, hasValues = b.canViewValues !== undefined, hasTitle = b.title !== undefined;
-  if (!hasRole && !hasValues && !hasTitle) return res.status(400).json({ error: 'Nothing to change' });
+  /* HOW MUCH THEY MAY SIGN FOR is an admin's grant, never a self-service one —
+     the same rule the role follows, and for the same reason. */
+  const hasCap = b.signCap !== undefined;
+  /* WHO CHECKS THEIR WORK is an admin's grant too, and for the plainest reason
+     there is: a person who could turn their own check off is not checked. */
+  const hasChecked = b.reviewChecked !== undefined, hasReviewer = b.reviewerId !== undefined;
+  /* Who oversees them is an admin's grant for the same reason the rest are:
+     somebody who could pick their own approver is not overseen. */
+  const hasOverseer = b.overseerId !== undefined;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer)
+    return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
-  if (req.user.role !== 'admin' && !(self && hasTitle && !hasRole && !hasValues))
+  if (req.user.role !== 'admin'
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -4918,6 +5288,50 @@ app.patch('/api/users/:id', auth, (req, res) => {
   if (!target) return res.status(404).json({ error: 'User not found' });
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
   if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
+  if (hasCap) {
+    /* null clears the decision, 'none' IS a decision, a number is the ceiling.
+       Anything else is refused rather than coerced — a signing limit read out
+       of a typo is worse than no signing limit. */
+    let store = null;
+    if (b.signCap === null || b.signCap === '') store = null;
+    else if (b.signCap === 'none') store = 'none';
+    else {
+      const n = Number(b.signCap);
+      if (!Number.isFinite(n) || n < 0)
+        return res.status(400).json({ error: 'A signing limit has to be a number that is not negative, or "none" for no limit.' });
+      store = String(n);
+    }
+    db.prepare('UPDATE users SET sign_cap=? WHERE id=?').run(store, req.params.id);
+  }
+  if (hasChecked)
+    db.prepare('UPDATE users SET review_checked=? WHERE id=?')
+      .run(b.reviewChecked == null ? null : (b.reviewChecked ? 1 : 0), req.params.id);
+  if (hasReviewer) {
+    const rid = b.reviewerId == null || b.reviewerId === '' ? null : String(b.reviewerId);
+    /* A reviewer who is not a member of this workspace is not a reviewer, and
+       nobody reviews themselves — the browser's picker refuses both and the
+       server is where that is true. */
+    if (rid) {
+      if (rid === req.params.id) return res.status(400).json({ error: 'Nobody reviews their own work.' });
+      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(rid);
+      if (!who) return res.status(400).json({ error: 'That reviewer is not a member of this workspace.' });
+      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot rule on a change.' });
+    }
+    db.prepare('UPDATE users SET reviewer_id=? WHERE id=?').run(rid, req.params.id);
+  }
+  if (hasOverseer) {
+    const oid = b.overseerId == null || b.overseerId === '' ? null : String(b.overseerId);
+    if (oid) {
+      /* NOBODY OVERSEES THEIR OWN CONTRACTS — an approval step you grant
+         yourself is not an approval. Refused here and not only in the picker,
+         because the picker is a decision about pixels. */
+      if (oid === req.params.id) return res.status(400).json({ error: 'Nobody oversees their own contracts.' });
+      const who = db.prepare('SELECT id, role FROM users WHERE id=?').get(oid);
+      if (!who) return res.status(400).json({ error: 'That person is not a member of this workspace.' });
+      if (who.role === 'viewer') return res.status(400).json({ error: 'A Viewer cannot approve a contract.' });
+    }
+    db.prepare('UPDATE users SET overseer_id=? WHERE id=?').run(oid, req.params.id);
+  }
   if (hasValues) {
     const role = hasRole ? b.role : target.role;
     if (role === 'admin' && !b.canViewValues)
@@ -5409,7 +5823,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     }
     /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
        at does not travel, and this is the refusal the setting promises. */
-    const unreviewed = rvUnreviewedIds(rvStored);
+    /* The SENDER is who the gate is about — it is their wording going out. */
+    const unreviewed = rvUnreviewedIds(rvStored, req.user);
     if (unreviewed.size){
       const carried = (payload.contract && Array.isArray(payload.contract.changes) ? payload.contract.changes : [])
         .filter(x => x && unreviewed.has(String(x.id)));
@@ -8405,7 +8820,7 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
       tools: [TPL_CONVERT_TOOL],
       tool_choice: { type: 'tool', name: 'propose_template' },
       messages: [{ role: 'user', content: userContent }],
-    }, { feature: 'template_convert', model: TPL_CONVERT_MODEL });
+    }, { feature: 'template_convert', model: TPL_CONVERT_MODEL, who: aiWho(req) });
     if (!out.ok) {
       errorNote = `The converter could not reach the model (HTTP ${out.status}) — the original file is stored; try again from the template's page`;
       console.error('[template-convert] model call failed:', out.status, String(out.error).slice(0, 500));
@@ -8477,7 +8892,46 @@ app.get('/api/org/branding', auth, (req, res) => {
 });
 app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
   const b = req.body || {};
-  const logo = b.logoUrl == null ? null : String(b.logoUrl);
+  /* ---------- A KEY THIS SAVE DOES NOT CARRY IS A KEY IT DOES NOT TOUCH ----------
+     This route writes one row with ON CONFLICT DO UPDATE, so every field it did
+     not receive used to be written as null. That was harmless while ONE screen
+     owned the whole row — the design step always sent every key, filling the
+     ones it was not editing from the stored record. It stopped being harmless
+     the moment the company's legal identity moved onto its own panel: two
+     screens now write to this row, and a partial save from either would have
+     wiped what the other owns.
+
+     ABSENT IS NOT null. A save that sends `logoUrl: null` still clears the
+     logo — the key is there and the answer is "none". Only a key that never
+     arrived is left alone. Same shape, and the same reasoning, as PUT
+     /api/settings preserving a stored signFolders.by (H-3). */
+  const stored = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID) || {};
+  const sent = k => Object.prototype.hasOwnProperty.call(b, k);
+  const keep = (k, col) => sent(k) ? b[k] : (stored[col] == null ? null : stored[col]);
+
+  /* ---------- THE COMPANY'S LEGAL IDENTITY IS AN ADMIN'S TO CHANGE ----------
+     The route is `templateManager` — admin OR Editor — because it also carries
+     the DESIGN: the logo, the accent colour, the layout. That is what the
+     Editor permission was for and it is untouched.
+
+     The registered name, number and address are a different kind of fact. They
+     are what appears on executed paper, and they belong with the market and the
+     currency, which are admin-only. So they are refused for a non-admin —
+     ASKED AS A DIFFERENCE, like every other guard in this file: an Editor
+     saving the design step passes untouched, whether or not the payload happens
+     to carry the identity along, because nothing about it moved. */
+  const IDENTITY = [['companyName', 'company_name'], ['registrationNumber', 'registration_number'], ['address', 'address']];
+  if (req.user.role !== 'admin') {
+    const moved = IDENTITY.filter(([k, col]) => sent(k) && clean(b[k]) !== String(stored[col] == null ? '' : stored[col]));
+    if (moved.length)
+      return res.status(403).json({
+        error: 'The company\'s registered name, number and address are an admin\'s to change — '
+          + 'they are what appears on executed contracts. Ask an admin, on Settings → Platform settings → Company & market.',
+        adminOnly: moved.map(([k]) => k) });
+  }
+
+  const logo = b.logoUrl === undefined ? (stored.logo_url == null ? null : stored.logo_url)
+    : (b.logoUrl == null ? null : String(b.logoUrl));
   // The logo travels as a data URL (house transport for files) and lands on
   // every contract header, the portal included — so it is validated here, once.
   if (logo && !/^data:image\/(png|jpe?g|webp|svg\+xml);base64,/.test(logo)) return res.status(400).json({ error: 'The logo must be a PNG, JPEG, WebP or SVG image' });
@@ -8485,19 +8939,24 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
   /* The design fields, validated against the shared catalogue. All-or-nothing
      on the id: an unknown design is a 400, not a silent null — the client
      offering it is broken and should hear so. */
-  const designId = b.designId == null || b.designId === '' ? null : String(b.designId);
+  const _design = keep('designId', 'design_id');
+  const designId = _design == null || _design === '' ? null : String(_design);
   if (designId && !DOC_DESIGNS.some(d => d.id === designId)) return res.status(400).json({ error: 'Unknown document design' });
-  const logoPosition = b.logoPosition == null || b.logoPosition === '' ? null : String(b.logoPosition);
+  const _pos = keep('logoPosition', 'logo_position');
+  const logoPosition = _pos == null || _pos === '' ? null : String(_pos);
   if (logoPosition && !DESIGN_LOGO_POSITIONS.includes(logoPosition)) return res.status(400).json({ error: 'Unknown logo position' });
-  const accentColor = b.accentColor == null || b.accentColor === '' ? null : String(b.accentColor);
+  const _accent = keep('accentColor', 'accent_color');
+  const accentColor = _accent == null || _accent === '' ? null : String(_accent);
   if (accentColor && !/^#[0-9a-f]{6}$/i.test(accentColor)) return res.status(400).json({ error: 'The accent colour must be a hex value like #1a7f6b' });
-  const accentSource = b.accentSource === 'manual' ? 'manual' : (b.accentSource === 'logo' ? 'logo' : null);
+  const _src = keep('accentSource', 'accent_source');
+  const accentSource = _src === 'manual' ? 'manual' : (_src === 'logo' ? 'logo' : null);
   /* Structure is validated the same all-or-nothing way as the design id: an
      unknown layout is a 400, not a silent null, because the client offering it
      is out of step with this build and should hear so. Standard Flow stores as
      null — it IS the absence of a structure, and storing it as a value would
      make every pre-structure row look deliberately chosen. */
-  let structureId = b.structureId == null || b.structureId === '' ? null : String(b.structureId);
+  const _struct = keep('structureId', 'structure_id');
+  let structureId = _struct == null || _struct === '' ? null : String(_struct);
   if (structureId && !DOC_STRUCTURES.some(x => x.id === structureId)) return res.status(400).json({ error: 'Unknown document structure' });
   if (structureId === DEFAULT_STRUCTURE) structureId = null;
   db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,
@@ -8510,8 +8969,11 @@ app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) 
       accent_color=excluded.accent_color, accent_source=excluded.accent_source,
       structure_id=excluded.structure_id,
       set_by=excluded.set_by, set_at=excluded.set_at, updated_at=excluded.updated_at`)
-    .run(WORKSPACE_ID, logo, clean(b.companyName).slice(0, 200), clean(b.registrationNumber).slice(0, 100),
-      clean(b.address).slice(0, 500), clean(b.defaultFooterText).slice(0, 500),
+    .run(WORKSPACE_ID, logo,
+      clean(keep('companyName', 'company_name')).slice(0, 200),
+      clean(keep('registrationNumber', 'registration_number')).slice(0, 100),
+      clean(keep('address', 'address')).slice(0, 500),
+      clean(keep('defaultFooterText', 'default_footer_text')).slice(0, 500),
       designId, logoPosition, accentColor, accentSource, structureId, req.user.name, now(), now());
   res.json({ ok: true });
 });

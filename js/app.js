@@ -43,6 +43,7 @@ import './views/portfolio.js';    // the universal frame: six panels every busin
 import './views/intelligence.js';
 import './ai.js';
 import './views/settings.js';
+import './views/directory.js';    // People: the roster, read-only, for every role
 import './views/queue.js';
 import './views/advice.js';
 import './views/adviceportal.js';
@@ -126,6 +127,7 @@ function commandMeta(view){
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
     case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
+    case 'directory': return [i18t('nav_people'), i18t('pg_people_sub')];
     case 'folder': {
       /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
          the sentence around it turns. */
@@ -328,13 +330,24 @@ function updateSidebarCounts(){
       nnew.hidden=!(Number(total||0)>=NAV_EARN_AT.intel && !navSeen('intel'));
     }
   }
+  /* ---- SETTINGS & RULES IS ADMIN-ONLY, AND THE DOOR SAYS SO ----
+     Hidden rather than greyed, for the reason the earned-nav rule above gives:
+     a control that exists but refuses teaches nothing. Everything a non-admin
+     used to reach through here now lives in "Your account" under the avatar.
+     The gate itself is renderTeam's — this is the door, not the wall, and a
+     hidden nav item was never going to be one. Same escape as above: the
+     CURRENT view keeps its door, so a restored session cannot leave somebody
+     standing on a page whose nav item has vanished. */
+  const teamNav=document.querySelector('.nav-item[data-view="team"]');
+  if(teamNav) teamNav.classList.toggle('hidden',
+    !((typeof isAdmin==='function' && isAdmin()) || state.view==='team'));
 }
 
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Our standards',
-  team:'Team & settings', workspace:'the contract workspace',
+  team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
@@ -428,6 +441,7 @@ function setView(view){
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
+    else if(view==='directory') renderDirectory();
     else if(view==='redline') renderRedline();
     else renderWorkspace();
   }catch(e){
@@ -498,6 +512,7 @@ function createFromTemplate(tid){
     audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Generated from Template ${tid} (${t.kind})`}],
     signatures:[] };
   c._loaded=true; c._light=false; c._v=0;
+  if(window.contractOwnerStamp) contractOwnerStamp(c);
   state.contracts.unshift(c);
   /* A NEW DRAFT OPENS ON KEY TERMS, not on its document — see
      wsTabDefaults. Registered at every creation site because there is no

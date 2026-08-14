@@ -460,11 +460,27 @@ function dsPaint(opts) {
           <div style="display:flex;gap:6px;flex-wrap:wrap">${posChips}</div>
         </div>
         ${accentRow}
+        ${''/* ---- THE LEGAL IDENTITY LEFT THIS STEP (14 Aug 2026) ----
+               The registered name, number and address were four unlabelled
+               boxes here, under the logo upload and the accent picker. A legal
+               name is not a design decision — it is the same kind of fact as
+               the market and the currency, something true about the company
+               that happens to get printed on paper — so they live on Settings →
+               Platform settings → Company & market now.
+
+               THIS IS A MOVE, NOT A COPY. Two places to type one fact is the
+               fault this codebase is built to avoid, so the boxes are gone
+               rather than mirrored, and dsOrgPayload no longer sends the three
+               (the route preserves what a save does not carry). The step still
+               READS them — the preview overleaf prints the registered name on
+               the paper exactly as it did.
+
+               THE FOOTER TEXT STAYS. Unlike the other three it genuinely is a
+               design choice about what prints at the bottom of a page. */}
         <div style="margin-top:14px;display:grid;gap:7px">
-          <input id="ds-b-name" style="${INP}" placeholder="${i18t('tb_company_name')}" value="${esc(b.companyName)}">
-          <input id="ds-b-reg" style="${INP}" placeholder="${i18t('tb_reg_number')}" value="${esc(b.registrationNumber)}">
-          <input id="ds-b-addr" style="${INP}" placeholder="${i18t('tb_reg_address')}" value="${esc(b.address)}">
-          <input id="ds-b-footer" style="${INP}" placeholder="Footer text (e.g. Registered in Kenya · C.123456)" value="${esc(b.footerText)}">
+          <input id="ds-b-footer" style="${INP}" placeholder="${i18t('ds_footer_placeholder')}" value="${esc(b.footerText)}">
+          <p style="font-size:9.5px;color:var(--color-neutral-500);line-height:1.5;margin:0">${
+            esc(i18t('ds_identity_moved',{name:b.companyName||i18t('st_not_set')}))}</p>
         </div>
         ${publish && step === 2 ? `
         <label style="display:block;margin-top:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">${i18t('ds_what_changed_why')}</span>
@@ -592,9 +608,9 @@ function dsPaint(opts) {
    the header, and the paint on the next design/position click refreshes it. */
 function dsHarvestIdentity() {
   const g = id => (document.getElementById(id) || { value: null }).value;
-  if (g('ds-b-name') != null) _ds.b.companyName = g('ds-b-name').trim();
-  if (g('ds-b-reg') != null) _ds.b.registrationNumber = g('ds-b-reg').trim();
-  if (g('ds-b-addr') != null) _ds.b.address = g('ds-b-addr').trim();
+  /* The name, number and address are not collected here any more — they moved
+     to Company & market (14 Aug 2026). The guard shape is kept: it reads a box
+     only where one exists, so nothing is assumed about which step is drawn. */
   if (g('ds-b-footer') != null) _ds.b.footerText = g('ds-b-footer').trim();
 }
 function dsHarvest() {
@@ -613,9 +629,13 @@ function dsHarvest() {
 function dsOrgPayload() {
   const b = _ds.b, org = window.ORG_BRANDING || {};
   const asDefault = _ds.saveDefault;
+  /* companyName / registrationNumber / address are DELIBERATELY ABSENT. This
+     step no longer edits them, and a key this route does not receive is a key
+     it does not touch — so sending the values back would be this screen
+     asserting a fact it does not own, and would refuse an Editor's ordinary
+     design save the moment an admin changed the name in another tab. */
   return {
-    logoUrl: b.logoUrl, companyName: b.companyName, registrationNumber: b.registrationNumber,
-    address: b.address, defaultFooterText: b.footerText,
+    logoUrl: b.logoUrl, defaultFooterText: b.footerText,
     designId: asDefault ? b.designId : (org.designId || null),
     structureId: asDefault ? b.structureId : (org.structureId || null),
     logoPosition: asDefault ? b.logoPosition : (org.logoPosition || null),
