@@ -718,7 +718,40 @@ function negoNextId(c){
    never status order. A revision of a pending change is an issuance like any
    other, so a revised change's new hash chains onto its own prior wording, and
    every earlier wording stays recoverable from the chain. */
-const NEGO_HASH_V = 3;
+/* ---- v4: THE FIELDS ARE LENGTH-PREFIXED, AND THE MARKS ARE INSIDE ----
+   (audit finding 8, 14 Aug 2026.) v2 and v3 joined the fields with '\n' and
+   nothing else, and two of those fields are CONTRACT WORDING, which contains
+   newlines. So the boundary between "the words before" and "the words after"
+   was a character the words themselves could contain, and moving a line break
+   across it produced a byte-identical hash input for a genuinely different
+   change. Demonstrated: {old:'Payment within 30 days.\nLate fees apply.',
+   new:'Payment within 45 days.'} and {old:'Payment within 30 days.',
+   new:'Late fees apply.\nPayment within 45 days.'} hashed the same. A
+   fingerprint that can attest to two different histories attests to neither.
+
+   THE REMEDY IS THE STANDARD ONE: write each field's length before it, so no
+   content can imitate a separator. `12:hello world` cannot be confused with
+   anything, whatever `hello world` contains.
+
+   AND `ops` COMES INSIDE. The marks are what the counterparty actually reads —
+   the rendered redline — and they travelled in the payload as authoritative
+   while sitting outside the attestation entirely, so the visible diff could be
+   rewritten without disturbing the fingerprint. Serialised through the same
+   length-prefixing rather than JSON, which has its own escaping to reason about.
+
+   OLD RECORDS ARE NOT RECOMPUTED. Every existing fingerprint was issued under
+   v2 or v3 and goes on verifying under the version stamped on it — the same
+   rule this file already kept for v2 when v3 arrived. Only new issuances are
+   v4, and verifyChangeChain reads each record's own stamp. */
+const NEGO_HASH_V = 4;
+/* Every format a record on a live contract may legitimately be stamped with.
+   A record verifies under the version it was WRITTEN under, forever — bumping
+   the format must never accuse an existing contract of tampering. */
+const NEGO_HASH_VERIFIES = new Set([2, 3, 4]);
+/* length-prefixed, so a field's own content can never look like the separator */
+const _lp = s => { const t = String(s == null ? '' : s); return `${t.length}:${t}`; };
+const _lpOps = ops => (Array.isArray(ops) ? ops : [])
+  .map(o => _lp((o && o.op) || '') + _lp((o && o.text) == null ? '' : o.text)).join('');
 function negoHashInput(contractRef, iss){
   const v = Number(iss.hashV) || NEGO_HASH_V;
   const fields = [
@@ -731,7 +764,10 @@ function negoHashInput(contractRef, iss){
     String(iss.createdAt || ''),
     String(iss.prevChangeHash || ''),
   ];
-  if (v >= 3) return ['hati-change-v3', ...fields,
+  if (v >= 4) return 'hati-change-v4' + fields.map(_lp).join('')
+    + _lp(iss.bodyHtml == null ? '' : iss.bodyHtml)
+    + _lp(_lpOps(iss.ops));
+  if (v === 3) return ['hati-change-v3', ...fields,
     String(iss.bodyHtml == null ? '' : iss.bodyHtml)].join('\n');
   return ['hati-change-v2', ...fields].join('\n');
 }
@@ -806,10 +842,15 @@ async function verifyChangeChain(c){
        predate the rich-body field and must keep verifying after v3 shipped, or
        bumping the format would have silently accused every existing contract
        of tampering. negoHashInput reads the record's own hashV stamp. */
-    if (iss.hashV !== 2 && iss.hashV !== NEGO_HASH_V)
+    /* v4 arrived on 14 Aug 2026 (see negoHashInput). The accepted set is now a
+       LIST rather than two named versions, so the next format joins it without
+       this line having to be rewritten — and, more importantly, so no record
+       already on a contract is ever accused of tampering by a build that moved
+       on without it. */
+    if (!NEGO_HASH_VERIFIES.has(Number(iss.hashV)))
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
         reason: 'unknown-hash-version',
-        detail: `#${iss.id} was written under hash format v${iss.hashV || 1}; this build verifies v2 and v${NEGO_HASH_V}` };
+        detail: `#${iss.id} was written under hash format v${iss.hashV || 1}; this build verifies v${[...NEGO_HASH_VERIFIES].join(', v')}` };
     /* A revision must follow its own previous wording; anything else must
        follow whatever was issued immediately before it. Rebuilt here from the
        stored records rather than trusted, so a reordered or removed issuance

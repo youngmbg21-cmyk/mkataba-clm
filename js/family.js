@@ -456,11 +456,40 @@ function amendmentSkeletonBody(parent, opts={}){
   const effDoc = eff && window.fmtDocDate ? fmtDocDate(String(eff).slice(0,10)) : null;
   const dated = effDoc ? ` dated ${_famEsc(effDoc)}` : '';
   const between = (us&&them) ? ` between <strong>${us}</strong> and <strong>${them}</strong>` : '';
+  /* ---- THE VERB FITS THE DOCUMENT (audit finding 9, 14 Aug 2026) ----
+     Every kind opened with amendment language: a Statement of Work said the
+     agreement was "amended as follows", a Renewal said the parties "wish to
+     amend it". An SoW does not amend a master agreement — it is ordered under
+     one — and a renewal extends rather than amends. The title was already
+     right per kind (RELATION_DOC_WORD); only the body was not, and the body is
+     what the counterparty reads.
+
+     FOUR SHAPES COVER THE SEVEN. Changing (amendment, variation) · adding
+     without changing (addendum, annex) · ordering work under it (sow) ·
+     extending it (renewal). A side letter sits with the changing group: it is a
+     separate letter that modifies the agreement, which is what its own
+     description says. */
+  const SHAPE = { amendment:'change', variation:'change', 'side-letter':'change',
+    addendum:'add', annex:'add', sow:'order', renewal:'extend' };
+  const W = {
+    change: { wish:'now wish to amend it',
+      lead:'The parties agree that the Agreement is amended as follows:',
+      close:'Except as amended above, all other terms of the Agreement remain in full force and effect.' },
+    add:    { wish:'now wish to add to it',
+      lead:'The parties agree that the following is added to the Agreement:',
+      close:'All other terms of the Agreement remain unchanged and in full force and effect.' },
+    order:  { wish:'now wish to record work ordered under it',
+      lead:'The parties agree that the following work is ordered under the Agreement:',
+      close:'This document is governed by the Agreement, whose terms apply to the work described above and remain in full force and effect.' },
+    extend: { wish:'now wish to extend it',
+      lead:'The parties agree that the Agreement is extended as follows:',
+      close:'Except as extended above, all other terms of the Agreement remain in full force and effect.' },
+  }[SHAPE[rel] || 'change'];
   return [
     `<p>This ${word} No. ${ord} is made on ____________${between}.</p>`,
-    `<p>The parties entered into the ${pname?`<strong>${pname}</strong>`:'agreement'}${dated} (the &ldquo;Agreement&rdquo;). The parties now wish to amend it.</p>`,
-    `<p>The parties agree that the Agreement is amended as follows:</p>`,
-    `<p>Except as amended above, all other terms of the Agreement remain in full force and effect.</p>`,
+    `<p>The parties entered into the ${pname?`<strong>${pname}</strong>`:'agreement'}${dated} (the &ldquo;Agreement&rdquo;). The parties ${W.wish}.</p>`,
+    `<p>${W.lead}</p>`,
+    `<p>${W.close}</p>`,
   ].join('');
 }
 
@@ -559,9 +588,18 @@ function openCreateAmendmentModal(parent, onDone){
         <input id="am-name" value="${_famAttr(amendmentDefaultName(parent,'amendment'))}" style="${FLD}"/>
         ${kids?`<span style="${HINT}" id="am-name-hint">${i18tn('fa_name_hint',kids,{n:kids})}</span>`:''}</label>
 
+      ${''/* ---- AND THE HINT TELLS THE TRUTH FOR THIS KIND (audit finding 10) ----
+             The field promised that a date typed here becomes the family's live
+             expiry and moves the renewal reminder. That is only true for the
+             four relations in TERM_CHANGING; on an annex, a statement of work or
+             a side letter the date is stored and never read, so somebody set it,
+             was told the reminder would move, and it did not. The field stays —
+             recording when a schedule runs out is a reasonable thing to want —
+             and the sentence under it changes with the kind. Repainted by the
+             same handler that renames the document. */}
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_end_q')}</span>
         <input id="am-expiry" type="date" placeholder="${_famAttr(i18t('fa_end_unchanged'))}" style="${FLD}"/>
-        <span style="${HINT}">${i18t('fa_end_unchanged')}. ${i18t('fa_end_hint')}</span></label>
+        <span style="${HINT}" id="am-end-hint">${i18t('fa_end_unchanged')}. ${i18t(TERM_CHANGING.has('amendment')?'fa_end_hint':'fa_end_hint_kept')}</span></label>
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_note_optional')}</span>
         <input id="am-note" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
@@ -590,7 +628,14 @@ function openCreateAmendmentModal(parent, onDone){
      has been edited by hand it is theirs and the kind stops rewriting it. */
   let nameTouched=false;
   $('am-name')?.addEventListener('input',()=>{ nameTouched=true; });
+  const paintEndHint=()=>{
+    const h=$('am-end-hint'); if(!h) return;
+    const moves = TERM_CHANGING.has($('am-rel').value);
+    h.textContent = `${i18t('fa_end_unchanged')}. ${i18t(moves?'fa_end_hint':'fa_end_hint_kept')}`;
+  };
+  paintEndHint();
   $('am-rel')?.addEventListener('change',()=>{
+    paintEndHint();
     if(nameTouched) return;
     $('am-name').value = amendmentDefaultName(parent, $('am-rel').value);
   });
