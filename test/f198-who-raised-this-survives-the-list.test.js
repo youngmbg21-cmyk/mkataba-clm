@@ -138,6 +138,9 @@ describe('f198 — it is transport, not a record', () => {
     const save = src.slice(src.indexOf('async function saveContract'));
     assert.match(save.slice(0, 1200), /delete payload\._raisedBy/, 'stripped on the way out');
     assert.match(save.slice(0, 1200), /delete payload\._raisedAt/);
+    /* The three dates go the same way, for the same reason. */
+    assert.match(save.slice(0, 1200), /delete payload\._signedAt/);
+    assert.match(save.slice(0, 1200), /delete payload\._lastAuditAt/);
 
     /* And proved against the server rather than off the source: send the row
        back the way the product would, then read the stored record. */
@@ -151,5 +154,84 @@ describe('f198 — it is transport, not a record', () => {
     assert.equal(after.audit.length, 1, 'and the trail it is derived from is intact');
     const row2 = await rowOf(W.unrestricted, 'MK-R1');
     assert.equal(row2._raisedBy, 'Unrestricted Legal', 'so the row still computes it fresh every time');
+  });
+});
+
+/* ============================================================
+   THE SAME CAUSE, ONE SCREEN OVER — REPORTS
+   ============================================================
+   computeReports() reads state.contracts too, and measures two things off the
+   audit trail: how long a contract took from raising to signature, and how
+   long one has been sitting where it is. Both came back empty on a real
+   server. MEASURED before the fix, with a contract raised 20 days ago and
+   signed 8 days ago, and another sitting in Draft for 15 days:
+
+       cycle time from the full record : 12 days
+       cycle time from the light row   : null
+       stage age  from the full record : 15.0 days
+       stage age  from the light row   : 0.0 days     <- every contract, always
+
+   The stage-age zero is the nastier of the two: null at least shows as "no
+   data", while 0.0 reads as "nothing is stuck", which is the opposite of the
+   truth and is exactly the number somebody would act on.
+   ============================================================ */
+const daysBetween = (a, b) => (a == null || b == null) ? null : Math.max(0, (b - a) / 86400000);
+const day = n => new Date(Date.now() - n * 86400000).toISOString();
+
+/* The product's own readings, lifted from js/views/reports.js. */
+const _repAt = v => { const t = Date.parse(v || ''); return isNaN(t) ? null : t; };
+const firstAuditAt = (c, actions) => { const h = ((c && c.audit) || []).find(a => actions.includes(a.action)); return h ? Date.parse(h.at) : null; };
+const repRaisedAt = c => _repAt(c && c._raisedAt) ?? firstAuditAt(c, ['Created', 'Uploaded', 'Migrated']);
+const repSignedAt = c => _repAt(c && c._signedAt) ?? firstAuditAt(c, ['Signed']);
+const lastActivity = c => {
+  const a = (c && c.audit) || [];
+  if (a.length) return Date.parse(a[a.length - 1].at);
+  return _repAt(c && c._lastAuditAt) ?? _repAt(c && c.lastAction) ?? Date.now();
+};
+
+describe('f198 — Reports measures off the same missing trail', () => {
+  before(async () => {
+    await put(W.admin, contract('MK-CY', 'Cycle', 'Amina Otieno', {
+      status: 'Signed',
+      audit: [{ at: day(20), user: 'Amina Otieno', action: 'Created', detail: 'x' },
+              { at: day(8),  user: 'Amina Otieno', action: 'Signed',  detail: 'x' }] }));
+    await put(W.admin, contract('MK-ST', 'Stuck in draft', 'Amina Otieno', {
+      status: 'Draft',
+      audit: [{ at: day(15), user: 'Amina Otieno', action: 'Created', detail: 'x' }] }));
+  });
+
+  test('cycle time is measurable from a light row', async () => {
+    const row = await rowOf(W.admin, 'MK-CY');
+    const d = daysBetween(repRaisedAt(row), repSignedAt(row));
+    assert.ok(d != null, 'BEFORE THE FIX THIS WAS null for every signed contract');
+    assert.ok(Math.abs(d - 12) < 0.1, `expected ~12 days, got ${d}`);
+  });
+
+  test('and it matches what the full record says, which is the point', async () => {
+    const row = await rowOf(W.admin, 'MK-CY');
+    const full = await W.admin.json('/api/contracts/MK-CY');
+    assert.equal(
+      Math.round(daysBetween(repRaisedAt(row), repSignedAt(row))),
+      Math.round(daysBetween(repRaisedAt(full), repSignedAt(full))),
+      'the light list and the opened contract must not disagree about a figure');
+  });
+
+  test('stage age is the age of the contract, not zero', async () => {
+    const row = await rowOf(W.admin, 'MK-ST');
+    const age = (Date.now() - lastActivity(row)) / 86400000;
+    assert.ok(age > 14 && age < 16, `expected ~15 days, got ${age.toFixed(1)}`);
+    /* THE OLD READING: no trail, so lastActivity fell through to "now" and the
+       age came out 0 — "nothing is stuck", which is the opposite of true. */
+    const naive = (Date.now() - (((row.audit || []).length) ? 0 : Date.now())) / 86400000;
+    assert.ok(naive < 0.001, 'and the old fall-through really did produce zero');
+  });
+
+  test('a seeded sample still gets its dates, even though it has no owner', async () => {
+    /* The PERSON and the DATES are different questions: "System" is not
+       somebody's queue, but a sample was still raised on a day and its cycle
+       time is a real figure. */
+    const row = await rowOf(W.admin, 'MK-R2');
+    assert.equal(row._raisedBy, undefined, 'no owner');
+    assert.ok(row._raisedAt, 'but a raising date');
   });
 });

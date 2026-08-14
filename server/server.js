@@ -263,12 +263,37 @@ function raisedFrom(c) {
   if (!e || !e.user || e.user === 'System') return null;
   return { by: e.user, at: e.at || null };
 }
+/* THE THREE DATES A LIST NEEDS AND CANNOT DERIVE. Reports measures how long a
+   contract took from raising to signature, and how long one has been sitting
+   where it is — both off the audit trail, which is not on a list row. Same
+   cause as the dashboard's "contracts I raised", same answer: carry the fact.
+   MEASURED before this existed: cycle time came out null for every signed
+   contract, and a contract that had sat in Draft for fifteen days reported a
+   stage age of 0.0 days. */
+function auditDatesOf(c) {
+  const trail = Array.isArray(c && c.audit) ? c.audit : [];
+  const first = trail.find(a => a && RAISED_ACTIONS.includes(a.action));
+  const signed = trail.find(a => a && a.action === 'Signed');
+  const last = trail.length ? trail[trail.length - 1] : null;
+  return {
+    raisedAt: (first && first.at) || null,
+    signedAt: (signed && signed.at) || null,
+    lastAt: (last && last.at) || null,
+  };
+}
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   if (x.execution) x.execution = { ...x.execution, html: undefined };
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
   const raised = raisedFrom(x);
-  if (raised) { x._raisedBy = raised.by; x._raisedAt = raised.at; }
+  if (raised) x._raisedBy = raised.by;
+  /* The DATES are not the same question as the PERSON: a seeded sample has no
+     owner to name but was still raised on a day, and its cycle time is a real
+     figure. So these are taken from the trail whoever stamped it. */
+  const d = auditDatesOf(x);
+  if (d.raisedAt) x._raisedAt = d.raisedAt;
+  if (d.signedAt) x._signedAt = d.signedAt;
+  if (d.lastAt) x._lastAuditAt = d.lastAt;
   x.comments = undefined; x.audit = undefined;
   x._light = true;
   return x;

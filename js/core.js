@@ -732,6 +732,7 @@ async function saveContract(c){
      being written back into the stored contract. */
   const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
   delete payload._raisedBy; delete payload._raisedAt;
+  delete payload._signedAt; delete payload._lastAuditAt;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   // Word-review version files and the rounds that carried them follow the same
   // rule: once the bytes live in the files store, the synced JSON keeps only

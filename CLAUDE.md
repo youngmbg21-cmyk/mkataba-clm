@@ -218,9 +218,11 @@ pbUI records what is SHUT, so a finding arrives read and pressing it folds it. D
 
 THE FACT IS CARRIED, NOT THE TRAIL. raisedFrom(c) (server/server.js, beside HEAVY) reads the first Created/Uploaded/Migrated entry in the one place that still HAS the trail, and HEAVY sends `_raisedBy` / `_raisedAt` on the row. UNDERSCORED BECAUSE IT IS TRANSPORT: a contract gains no owner from this, and saveContract deletes both alongside _light/_loaded/_v — a derived field written back into the record is stale the moment the trail says otherwise, and then there are two answers to one question. 'System' answers NOTHING (it is what the seeded portfolio stamps; answering with it puts the whole demo book in somebody's queue). The reader falls back to the trail where there is one, so local mode and an opened contract are untouched.
 
-THE REAL ANSWER IS A STORED OWNER on the contract — WORKORDER-contract-owner.md — and it supersedes this the day it lands. NOT FIXED HERE, said out loud: js/views/reports.js reads the same stripped field (firstAuditAt over Created/Uploaded, and lastActivity), so cycle time and stage age are measuring off light rows too. Same cause, own fix.
+AND REPORTS HAD THE SAME WOUND, fixed in the same pass. computeReports also reads state.contracts and measures two things off the trail. MEASURED before the fix, on a contract raised 20 days ago and signed 8 days ago and another sitting 15 days in Draft: cycle time came back null for EVERY signed contract, and stage age came back 0.0 days for all of them. The zero is the nastier of the two — null shows as "no data", while 0.0 reads as "nothing is stuck", which is the opposite of the truth and is the number somebody would act on. auditDatesOf (server, beside raisedFrom) carries `_raisedAt` / `_signedAt` / `_lastAuditAt`; repRaisedAt / repSignedAt / lastActivity prefer them and fall back to the trail. THE DATES ARE NOT THE PERSON: a seeded sample has no owner to name (System) but WAS raised on a day, so it gets dates and no `_raisedBy`.
 
-Tests: f198 (9 — fails FOUR ways against the old code, which is what makes it a regression test rather than a description).
+THE REAL ANSWER IS A STORED OWNER on the contract — WORKORDER-contract-owner.md — and it supersedes the `_raisedBy` half the day it lands.
+
+Tests: f198 (13 — fails FOUR ways against the old code on the dashboard half, which is what makes it a regression test rather than a description; the reports half pins the two figures against a real server).
 
 ## THE KPI RIBBON HOLDS FOUR (owner-asked, 13 Aug 2026)
 
