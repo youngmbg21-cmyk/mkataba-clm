@@ -1,0 +1,627 @@
+<title>HaTi Audit Findings</title>
+<style>
+  /* ============================================================
+     A forensic report, not a pitch. Two registers carry the page:
+     what broke (oxblood, the colour of a redline pen and a wax
+     seal) and what held (deep green). Everything else is ink and
+     paper, cooled slightly so neither register fights the ground.
+     Grotesque headings over a serif body — the structure reads
+     clinical, the findings read as evidence.
+     ============================================================ */
+  :root{
+    --paper:#f2f4f5;
+    --card:#ffffff;
+    --ink:#15202a;
+    --ink-2:#41525f;
+    --ink-3:#6b7c89;
+    --rule:#d6dde1;
+    --rule-soft:#e6ebee;
+
+    --seal:#8c2f39;        /* critical */
+    --seal-bg:#f7e9ea;
+    --brass:#8a5f22;       /* serious */
+    --brass-bg:#f8efdf;
+    --slate:#4a6070;       /* minor */
+    --slate-bg:#e8edf1;
+    --held:#2c6553;        /* what held */
+    --held-bg:#e3efe9;
+
+    --sans:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#0d1419; --card:#141d24; --ink:#e2e9ed; --ink-2:#a3b2bd; --ink-3:#7d8d99;
+      --rule:#26333c; --rule-soft:#1c272e;
+      --seal:#e08b93; --seal-bg:#2c1a1d;
+      --brass:#d7ab63; --brass-bg:#2a2113;
+      --slate:#9db3c2; --slate-bg:#1a242c;
+      --held:#78c1a7; --held-bg:#13251f;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0d1419; --card:#141d24; --ink:#e2e9ed; --ink-2:#a3b2bd; --ink-3:#7d8d99;
+    --rule:#26333c; --rule-soft:#1c272e;
+    --seal:#e08b93; --seal-bg:#2c1a1d;
+    --brass:#d7ab63; --brass-bg:#2a2113;
+    --slate:#9db3c2; --slate-bg:#1a242c;
+    --held:#78c1a7; --held-bg:#13251f;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:0 20px 100px;
+    background:var(--paper); color:var(--ink);
+    font-family:var(--serif); font-size:17.5px; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px;margin:0 auto}
+  .col{max-width:680px}
+  p{margin:0 0 18px}
+  strong{font-weight:700}
+  em{font-style:italic}
+
+  /* ---- masthead ---- */
+  .mast{padding:76px 0 0}
+  .stamp{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--sans);font-size:10.5px;font-weight:700;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--seal);
+    border:1px solid var(--seal);border-radius:2px;padding:6px 11px;margin-bottom:26px;
+  }
+  .stamp i{width:6px;height:6px;border-radius:50%;background:var(--seal);font-style:normal;flex:none}
+  h1{
+    font-family:var(--sans);font-weight:800;
+    font-size:clamp(38px,6.2vw,66px);line-height:.98;letter-spacing:-.035em;
+    margin:0 0 22px;text-wrap:balance;
+  }
+  .stand{font-size:20px;line-height:1.5;color:var(--ink-2);margin:0;max-width:620px}
+  .meta{
+    font-family:var(--sans);font-size:12px;color:var(--ink-3);
+    margin-top:30px;padding-top:18px;border-top:1px solid var(--rule);
+    display:flex;flex-wrap:wrap;gap:8px 26px;
+  }
+  .meta b{color:var(--ink);font-weight:600}
+
+  /* ---- the scoreboard: the page's thesis, two registers ---- */
+  .score{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);
+    border:1px solid var(--rule);border-radius:3px;margin:44px 0 0;overflow:hidden}
+  .score div{background:var(--card);padding:22px 20px}
+  .score .n{font-family:var(--sans);font-weight:800;font-size:40px;letter-spacing:-.03em;
+    line-height:1;display:block;font-variant-numeric:tabular-nums}
+  .score .k{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.11em;
+    text-transform:uppercase;color:var(--ink-3);display:block;margin-top:9px}
+  .score .broke .n{color:var(--seal)}
+  .score .ok .n{color:var(--held)}
+  @media(max-width:640px){.score{grid-template-columns:1fr}}
+
+  /* ---- sections ---- */
+  section{padding-top:72px}
+  .sec-k{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-3);margin:0 0 12px}
+  h2{font-family:var(--sans);font-weight:800;font-size:clamp(25px,3.3vw,34px);
+    line-height:1.1;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
+  h3{font-family:var(--sans);font-weight:700;font-size:16px;letter-spacing:-.01em;margin:0 0 8px}
+  .rule{height:2px;background:var(--ink);border:0;margin:22px 0 30px;opacity:.85}
+
+  /* ---- findings ledger ---- */
+  .find{border-top:1px solid var(--rule);padding:30px 0 30px 0;display:grid;
+    grid-template-columns:64px 1fr;gap:0 26px}
+  .find:last-of-type{border-bottom:1px solid var(--rule)}
+  .fnum{font-family:var(--sans);font-weight:800;font-size:15px;
+    font-variant-numeric:tabular-nums;padding-top:3px;letter-spacing:-.01em}
+  .find[data-sev="critical"] .fnum{color:var(--seal)}
+  .find[data-sev="serious"] .fnum{color:var(--brass)}
+  .find[data-sev="minor"] .fnum{color:var(--slate)}
+  .fhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .fhead h3{margin:0;flex:1;min-width:220px}
+  .sev{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;padding:4px 9px;border-radius:2px;white-space:nowrap;flex:none}
+  .sev-critical{background:var(--seal-bg);color:var(--seal)}
+  .sev-serious{background:var(--brass-bg);color:var(--brass)}
+  .sev-minor{background:var(--slate-bg);color:var(--slate)}
+  .find p{font-size:16.5px;margin:0 0 13px;max-width:640px}
+  .find p:last-child{margin-bottom:0}
+  .lab{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:3px}
+  .fix{border-left:2px solid var(--rule);padding-left:16px;margin-top:16px}
+  @media(max-width:620px){.find{grid-template-columns:1fr;gap:10px}}
+
+  /* ---- what held ---- */
+  .held-box{background:var(--held-bg);border:1px solid color-mix(in srgb,var(--held) 30%,transparent);
+    border-radius:3px;padding:26px 28px;margin-top:28px}
+  .held-box h3{color:var(--held);margin-bottom:14px}
+  .held-list{list-style:none;margin:0;padding:0;display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:11px 30px}
+  .held-list li{font-family:var(--sans);font-size:13.5px;line-height:1.45;
+    display:grid;grid-template-columns:18px 1fr;gap:0 8px;color:var(--ink-2)}
+  .held-list b{color:var(--ink);font-weight:600}
+  .tick{color:var(--held);font-weight:700}
+
+  /* ---- stories ---- */
+  .story{border-left:3px solid var(--rule);padding-left:24px;margin-top:26px}
+  .story p{max-width:620px}
+  .story p.hit{color:var(--ink)}
+
+  /* ---- decisions ---- */
+  .dec{border-top:1px solid var(--rule);padding:26px 0}
+  .dec:last-of-type{border-bottom:1px solid var(--rule)}
+  .dec p{font-size:16.5px;max-width:640px;margin-bottom:0}
+  .dec h3{color:var(--brass)}
+
+  /* ---- order ---- */
+  ol.order{list-style:none;counter-reset:o;margin:26px 0 0;padding:0;
+    display:flex;flex-direction:column;gap:0}
+  ol.order li{counter-increment:o;border-top:1px solid var(--rule-soft);padding:15px 0;
+    display:grid;grid-template-columns:38px 1fr;gap:0 18px;
+    font-family:var(--sans);font-size:15px;line-height:1.5}
+  ol.order li:first-child{border-top:1px solid var(--rule)}
+  ol.order li:last-child{border-bottom:1px solid var(--rule)}
+  ol.order li::before{content:counter(o);font-weight:800;color:var(--ink-3);
+    font-variant-numeric:tabular-nums}
+  ol.order li b{color:var(--ink);font-weight:700}
+  ol.order li span{color:var(--ink-2);display:block;font-size:13.5px;margin-top:2px}
+
+  /* ---- gaps / close ---- */
+  .gap{font-family:var(--sans);font-size:14.5px;line-height:1.6;color:var(--ink-2);
+    background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:22px 26px;margin-top:26px}
+  .gap b{color:var(--ink)}
+  .close{margin-top:80px;padding-top:24px;border-top:2px solid var(--ink);
+    font-family:var(--sans);font-size:12.5px;color:var(--ink-3);line-height:1.6;max-width:680px}
+  code{font-family:var(--mono);font-size:.86em;background:var(--rule-soft);
+    padding:1px 5px;border-radius:2px}
+  @media(max-width:700px){body{font-size:16.5px;padding:0 16px 72px}.stand{font-size:18px}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <span class="stamp"><i></i>Audit · 14 August 2026</span>
+      <h1>What holds, and what doesn&rsquo;t</h1>
+      <p class="stand">A legal and technical audit of HaTi. Three journeys played through the real
+        product, twenty attacks made against a running copy, and only what actually happened
+        written down.</p>
+      <div class="meta">
+        <span><b>Scope</b> negotiation · signing · the wall · families · permissions</span>
+        <span><b>Method</b> six code readers, three simulations, direct attack</span>
+        <span><b>Code changed</b> none</span>
+      </div>
+    </div>
+
+    <div class="score">
+      <div class="broke"><span class="n">12</span><span class="k">Confirmed findings</span></div>
+      <div class="ok"><span class="n">8</span><span class="k">Attacks repelled</span></div>
+      <div><span class="n">2</span><span class="k">Fix before anything else</span></div>
+    </div>
+  </header>
+
+  <!-- ======================= HEADLINE ======================= -->
+  <section>
+    <p class="sec-k">The headline</p>
+    <h2>Two things to fix first</h2>
+    <hr class="rule">
+    <div class="col">
+      <p><strong>A signed contract is not as fixed as it looks.</strong> The wording itself is
+        genuinely locked &mdash; an attempt to rewrite it was refused outright, and that is the single
+        most important guarantee in the product. But the <em>title</em>, the <em>end date</em> and
+        <em>which of your companies is named as a party</em> can all still be changed on a signed
+        contract, and nothing objects. Worse, a signed contract can be quietly put back to
+        &ldquo;Draft&rdquo; by an ordinary save &mdash; and once it is a draft, the sealed wording can be
+        rewritten too. Two requests, and a signed agreement becomes editable.</p>
+
+      <p><strong>One person can record another person&rsquo;s signature.</strong> An ordinary Editor can
+        save a contract with your Managing Director&rsquo;s name, title and email recorded as having
+        signed it in the app. The server accepts it. From that moment the false signature is locked
+        in by the very rule that protects real ones.</p>
+
+      <p>Four quieter problems follow. Any contract can be filed underneath any other by anyone who
+        can edit it &mdash; which switches off its renewal reminders and leaves no trace in its
+        history. Everyone in the workspace, read-only Viewers included, is handed their colleagues&rsquo;
+        signing limits. The product says a negotiation is &ldquo;waiting on the other side&rdquo; when what you
+        actually have is changes you wrote and never sent. And a contract sent from a phone leaves
+        no line in its history at all.</p>
+    </div>
+  </section>
+
+  <!-- ======================= THE DEAL ======================= -->
+  <section>
+    <p class="sec-k">Simulation one</p>
+    <h2>A deal, four rounds, two chairs</h2>
+    <hr class="rule">
+    <div class="col story">
+      <p>A logistics agreement was drafted and two changes made: payment tightened from sixty days
+        to thirty, and a new insurance clause inserted. A share link was created and opened in a
+        second browser with no login &mdash; the other side&rsquo;s experience exactly.</p>
+      <p class="hit"><strong>The wall held completely.</strong> The raw data sent down that link was
+        read directly rather than trusted to the screen. It contained the contract and nothing of
+        ours: no internal notes, no colleague&rsquo;s name attached to a review, no sign a review had
+        happened at all, no team roster, no history file, no covering note.</p>
+      <p>They refused the payment change with a reason and countered on liability.
+        <strong>Nothing reached us until they pressed Send</strong> &mdash; checked against our own copy,
+        which still showed nothing settled. That is the promise the page makes, and it is kept.</p>
+      <p>The refusal was reopened, countered at forty-five days, accepted, and the contract signed
+        and sealed. The history was complete, the timeline held every event, and the integrity check
+        came back clean.</p>
+      <p class="hit">Then the executed contract was attacked. The wording held &mdash; through the
+        product and through a direct request to the server with no button involved. The title, the
+        end date, the named party and the status did not.</p>
+    </div>
+  </section>
+
+  <!-- ======================= AMENDMENT ======================= -->
+  <section>
+    <p class="sec-k">Simulation two</p>
+    <h2>An amendment on a signed contract</h2>
+    <hr class="rule">
+    <div class="col story">
+      <p>One press, one date typed, one note &mdash; and a new draft opened on its own Document tab
+        carrying the letterhead, the parties, and an opening line naming the agreement it amends. It
+        was filed against its parent from the first moment; there was no point at which it sat loose.</p>
+      <p>A clause was written into it, it was signed and executed, and the payoff checked.
+        <strong>Everything landed.</strong> The master&rsquo;s live end date moved to 31 December 2029 and
+        its card said plainly where that date came from, naming the amendment rather than quietly
+        showing a different number. The family counted as one agreement with two documents. The
+        renewal reminder followed. On the signed master the obligations sweep was still pressable
+        while the two wording checks had correctly gone dead.</p>
+      <p class="hit">This journey worked end to end with nothing to report against it.</p>
+    </div>
+  </section>
+
+  <!-- ======================= PEOPLE ======================= -->
+  <section>
+    <p class="sec-k">Simulation three</p>
+    <h2>Three new people</h2>
+    <hr class="rule">
+    <div class="col story">
+      <p>An Admin, an Editor and a Viewer were created and signed in. All three were correctly
+        challenged for the temporary password before they could do anything.</p>
+      <p class="hit"><strong>The permission model is genuinely strong</strong>, and it was tested by
+        attacking it rather than by looking at the screen. The Editor could not promote themselves,
+        could not lift their own signing limit, and could not widen their own stream access &mdash;
+        three attempts, three refusals from the server. The Viewer could read; a direct write was
+        refused outright. Typing your way to Settings as an Editor lands you on your own account
+        page, so the page itself is the wall rather than a hidden menu item.</p>
+      <p>One thing failed: every one of them, Viewer included, was handed their colleagues&rsquo; signing
+        limits, who checks whose work, and who oversees whom.</p>
+    </div>
+  </section>
+
+  <!-- ======================= FINDINGS ======================= -->
+  <section>
+    <p class="sec-k">Confirmed &mdash; each one reproduced against a running copy</p>
+    <h2>The findings, worst first</h2>
+    <hr class="rule">
+
+    <article class="find" data-sev="critical">
+      <div class="fnum">01</div>
+      <div>
+        <div class="fhead"><h3>A signed contract can be unlocked in two saves</h3>
+          <span class="sev sev-critical">Critical</span></div>
+        <p><span class="lab">What happens</span>Saving a signed contract with its status changed to
+          &ldquo;Draft&rdquo; is accepted. Once it is a draft, the sealed wording can be rewritten and saved.
+          Both requests succeeded.</p>
+        <p><span class="lab">Why it matters</span>The one thing a contract system exists to guarantee
+          is that an executed agreement is the agreement that was executed. This is a two-step way
+          around it, available to anyone who can edit contracts.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Treat the status of a signed
+          contract as part of what was signed &mdash; refuse any save that moves it backwards, exactly
+          as saves that rewrite its wording already are. That protection is written and works; it is
+          simply not applied to the status.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="critical">
+      <div class="fnum">02</div>
+      <div>
+        <div class="fhead"><h3>One person can record another person&rsquo;s signature</h3>
+          <span class="sev sev-critical">Critical</span></div>
+        <p><span class="lab">What happens</span>An ordinary Editor saved a contract with a
+          colleague&rsquo;s name, title and email recorded as an in-app signature on that colleague&rsquo;s
+          step. The server accepted it. Nothing checks that a signature recorded as made
+          <em>in the app</em> names the person actually signed in.</p>
+        <p><span class="lab">Why it matters</span>This is the definition of a forged signature &mdash;
+          and once recorded, the rules that protect genuine signatures protect it too.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Two small changes. Check that an
+          in-app signature&rsquo;s name and email belong to the person making the request. And include
+          each signing step&rsquo;s internal identity in the check for a tampered signing route &mdash; at
+          present it does not look at it, which is why removing it defeats the guard.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="serious">
+      <div class="fnum">03</div>
+      <div>
+        <div class="fhead"><h3>Any contract can be silently filed under any other</h3>
+          <span class="sev sev-serious">Serious</span></div>
+        <p><span class="lab">What happens</span>A plain Editor filed one contract underneath another
+          simply by saving it that way. No refusal, and &mdash; the sharp part &mdash; <strong>no line in
+          the contract&rsquo;s history</strong>. Two contracts were also made each other&rsquo;s parent, a loop
+          the product&rsquo;s own rules forbid but nothing on the server prevents.</p>
+        <p><span class="lab">Why it matters</span>A contract filed under another stops being counted
+          as an agreement of its own and, more seriously, <strong>its renewal reminders stop
+          firing</strong>. A contract that quietly leaves your renewal warnings is the one you find
+          out about after it has auto-renewed. The missing history entry is what makes it hard to
+          notice.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Treat it the way moving a
+          contract between value streams is already treated: check the change is actually being
+          made, allow it deliberately, refuse loops, and write a line in the history saying it
+          happened and who did it.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="serious">
+      <div class="fnum">04</div>
+      <div>
+        <div class="fhead"><h3>&ldquo;Waiting on the other side&rdquo; is said about changes you never sent</h3>
+          <span class="sev sev-serious">Serious</span></div>
+        <p><span class="lab">What happens</span>With one change written and not yet published, the
+          product reports the next move as being with the other side.</p>
+        <p><span class="lab">Why it matters</span>This is the same class of problem you reported
+          personally on MK-255 in August and which was fixed for one route. This is a second route
+          into it. Someone reading their negotiations list sees a deal sitting with the counterparty
+          and waits &mdash; while nothing has left the building.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>The product already counts
+          changes written but not sent, and already uses that count elsewhere to say exactly this.
+          The statement of whose move it is should ask the same question before concluding the ball
+          is with the other side.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="serious">
+      <div class="fnum">05</div>
+      <div>
+        <div class="fhead"><h3>Everyone can read their colleagues&rsquo; permission settings</h3>
+          <span class="sev sev-serious">Serious</span></div>
+        <p><span class="lab">What happens</span>Every signed-in person, Viewers included, receives
+          each colleague&rsquo;s signing limit, whether their work is checked, who their standing reviewer
+          is, and who oversees them. Only the stream-access list is withheld.</p>
+        <p><span class="lab">Why it matters</span>These are management decisions about individuals.
+          The rulebook says they are admin-only, and the product&rsquo;s own test believes they are
+          protected &mdash; but it only checks the one field that genuinely is.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Remove the other four from what a
+          non-admin is sent, the same way stream access already is, and widen the test to check the
+          raw data rather than the screen.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="serious">
+      <div class="fnum">06</div>
+      <div>
+        <div class="fhead"><h3>A refused point can be buried by closing the round</h3>
+          <span class="sev sev-serious">Serious</span></div>
+        <p><span class="lab">What happens</span>When the other side asks for something and we refuse
+          it, the product correctly blocks signing while the disagreement is live. Pressing
+          &ldquo;Close Round&rdquo; archives the refusal and clears the block &mdash; and the contract can then be
+          signalled ready and signed.</p>
+        <p><span class="lab">Why it matters</span>It records agreement where there is a live
+          disagreement the other side never withdrew.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>A refused point the asker has not
+          withdrawn should survive the round boundary and keep blocking signature. The product
+          already computes exactly this list; nothing currently reads it.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="serious">
+      <div class="fnum">07</div>
+      <div>
+        <div class="fhead"><h3>A contract sent from a phone leaves no trace in its history</h3>
+          <span class="sev sev-serious">Serious</span></div>
+        <p><span class="lab">What happens</span>Creating a share link records a line in the
+          contract&rsquo;s history &mdash; but that line is written by the desktop screen, not by the server.
+          The phone sends the link without writing it. The link exists and is listed under sharing;
+          the history is unchanged.</p>
+        <p><span class="lab">Why it matters</span>&ldquo;When did we send this to them, and who sent it?&rdquo;
+          is one of the first questions asked in a dispute, and History is where you would go. A send
+          made from a phone is not there, and nothing looks wrong.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Write the line on the server when
+          the link is created rather than on the screen that happened to create it &mdash; then every
+          route in, including any added later, is recorded by construction.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="serious">
+      <div class="fnum">08</div>
+      <div>
+        <div class="fhead"><h3>A change fingerprint can be made to match two different histories</h3>
+          <span class="sev sev-serious">Serious</span></div>
+        <p><span class="lab">What happens</span>Each tracked change carries a fingerprint attesting
+          to the exact wording before and after. It is built by joining those pieces with line breaks
+          &mdash; and contract wording contains line breaks. Two genuinely different before/after pairs
+          were produced that give an identical fingerprint.</p>
+        <p><span class="lab">Why it matters</span>The fingerprint is the evidence that a change record
+          has not been altered. Where it can match two stories, it proves less than it claims. The
+          marked-up redline the other side actually reads is not covered by it at all.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Separate the pieces in a way
+          wording cannot imitate &mdash; recording the length of each piece before it, the standard
+          remedy &mdash; and bring the redline marks inside what the fingerprint covers.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="serious">
+      <div class="fnum">09</div>
+      <div>
+        <div class="fhead"><h3>Renumbering clauses on a phone is never saved, and says it was</h3>
+          <span class="sev sev-serious">Serious</span></div>
+        <p><span class="lab">What happens</span>Renumbering a contract&rsquo;s clauses from a phone
+          rewrites the wording, writes a history line and captures a version &mdash; all in memory
+          only. The screen then says the change was <em>&ldquo;recorded in History.&rdquo;</em> Nothing is
+          saved. On the next reload the renumbering, the repointed cross-references and the history
+          line have all gone. The desktop version of the same action saves correctly; the phone one
+          simply omits it.</p>
+        <p><span class="lab">Why it matters</span>Silent data loss with a confirmation message on top
+          of it &mdash; the worst combination, because the person has no reason to check. The message
+          itself is also broken, reading &ldquo;[object Object],[object Object] headings renumbered&rdquo;,
+          which is strong evidence this path has never actually been run.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Save after renumbering on the
+          phone, exactly as the desktop does. One line. The broken message is a second one-line fix
+          beside it.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="minor">
+      <div class="fnum">10</div>
+      <div>
+        <div class="fhead"><h3>An amendment&rsquo;s opening lines say &ldquo;amend&rdquo; whatever it is</h3>
+          <span class="sev sev-minor">Minor</span></div>
+        <p>Creating an Annex, a Statement of Work, a Renewal or a Side Letter produces a document
+          correctly titled but whose body reads <em>&ldquo;the parties now wish to amend it&rdquo;</em>. A
+          statement of work does not amend a master agreement, and a renewal extends rather than
+          amends. The other side reads this.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Write the opening and closing
+          lines per kind. Four short variants cover all seven.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="minor">
+      <div class="fnum">11</div>
+      <div>
+        <div class="fhead"><h3>The end-date question promises something it does not always do</h3>
+          <span class="sev sev-minor">Minor</span></div>
+        <p>The create form asks whether the document changes the end date and says that if you set
+          one it becomes the family&rsquo;s live end date. For an Annex, Statement of Work or Side Letter
+          that is not true &mdash; the date is stored and ignored, and the reminder does not move.</p>
+        <div class="fix"><p><span class="lab">Recommended fix</span>Either hide the question for kinds
+          that cannot move the term, or say plainly that the date is recorded but does not move the
+          family&rsquo;s.</p></div>
+      </div>
+    </article>
+
+    <article class="find" data-sev="minor">
+      <div class="fnum">12</div>
+      <div>
+        <div class="fhead"><h3>Two smaller things</h3>
+          <span class="sev sev-minor">Minor</span></div>
+        <p>The obligations row on the Checks card is always green, even when obligations are overdue
+          &mdash; unlike the other two rows, which turn amber and red. And any signed-in person,
+          including a Viewer, can read the workspace&rsquo;s total Copilot spend.</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ======================= WHAT HELD ======================= -->
+  <section>
+    <p class="sec-k">Attacked, and did not break</p>
+    <h2>What held</h2>
+    <hr class="rule">
+    <div class="col"><p>Silence should not read as &ldquo;not looked at&rdquo;. Each of these was specifically
+      attacked or walked through, and each one held.</p></div>
+    <div class="held-box">
+      <h3>Eight attacks repelled, and the journeys that worked</h3>
+      <ul class="held-list">
+        <li><span class="tick">&#10003;</span><span><b>Sealed wording.</b> Refused through the product and through the server.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>The confidentiality wall.</b> Read off the raw data, not the screen. Clean.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>Held decisions stayed held</b> until the other side pressed Send.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>Role escalation</b> refused in three directions.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>Viewers cannot write.</b> Refused at the server, not merely hidden.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>The signing limit</b> could not be tricked by zeroing the value.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>A negotiation link cannot sign.</b> Refused by the server.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>The other side cannot choose</b> the date on their own signature.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>Stream access</b> filtered and masked at the server throughout.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>The whole amendment journey</b>, end to end.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>The forced password change</b> on first sign-in, all three roles.</span></li>
+        <li><span class="tick">&#10003;</span><span><b>The existing test suite</b> passes.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ======================= DECISIONS ======================= -->
+  <section>
+    <p class="sec-k">Not bugs &mdash; decisions on the record</p>
+    <h2>Worth revisiting</h2>
+    <hr class="rule">
+    <div class="col"><p>Each of these is written down as a deliberate choice. A lawyer would want
+      them looked at again.</p></div>
+
+    <div class="dec col">
+      <h3>An unsigned amendment already moves the agreement&rsquo;s end date</h3>
+      <p>Create an amendment, type a new end date, and the master&rsquo;s live end date changes before
+        anybody has signed anything. <strong>This is the one I would most want you to think
+        about.</strong> An unsigned amendment has no legal effect. If someone reads that date and
+        decides not to serve a renewal notice, the decision rests on a term that does not yet exist.
+        The counter-argument is real &mdash; you are working on an extension and want the calendar to
+        reflect it &mdash; but the honest form of that is to show both:
+        <em>&ldquo;ends 30 June 2027; a draft amendment proposes 31 December 2029.&rdquo;</em> My
+        recommendation is that only a signed amendment moves the live date.</p>
+    </div>
+
+    <div class="dec col">
+      <h3>Your colleagues&rsquo; names travel with every change</h3>
+      <p>The rulebook says one thing about your side crosses to the counterparty: the negotiation
+        lead&rsquo;s name. The code does more &mdash; every change carries the name of the colleague who
+        wrote it, and so do version labels and shared comments. This may be what you want; drafters
+        are normally named. But the rulebook and the code disagree, and one of them should be
+        corrected. Commercially, which of your people worked on which clause tells the other side
+        where you are worried.</p>
+    </div>
+
+    <div class="dec col">
+      <h3>Signature images and email addresses cross before execution</h3>
+      <p>Once anyone on your side has signed, their name, job title, email address and the picture of
+        their signature travel to the counterparty on every link &mdash; including a negotiation link,
+        to a party who has signed nothing. The reason for showing a signature at all is sound: they
+        need to know the deal is waiting on them. The name and date achieve that. The email address
+        and the image do not, and a held signature image is the raw material for forgery.</p>
+    </div>
+
+    <div class="dec col">
+      <h3>&ldquo;Seal valid&rdquo; is said with the same confidence over a weak seal</h3>
+      <p>If a contract is sealed while the browser cannot reach proper cryptography, HaTi falls back
+        to a much weaker fingerprint &mdash; correctly, so that sealing still works. But the verify
+        button then reports &ldquo;Seal valid&rdquo; without mentioning that the seal is the weak kind. Two
+        other screens in the product do say so. This one should too.</p>
+    </div>
+
+    <div class="dec col">
+      <h3>Wording can still move between the first signature and the last</h3>
+      <p>On a contract with more than one signer, wording can change after the first person signs and
+        before the last one does &mdash; so the first signer&rsquo;s mark ends up on wording they did not
+        see. Worth deciding whether the document should freeze at the first signature rather than the
+        last.</p>
+    </div>
+  </section>
+
+  <!-- ======================= ORDER ======================= -->
+  <section>
+    <p class="sec-k">If you fix nothing else, fix these in this order</p>
+    <h2>Suggested fix order</h2>
+    <hr class="rule">
+    <ol class="order">
+      <li><div><b>Stop a signed contract being put back to Draft</b>
+        <span>Smallest change, largest consequence &mdash; it currently unlocks everything else.</span></div></li>
+      <li><div><b>Check an in-app signature belongs to the person making it</b>
+        <span>Forgery is worse than tampering, because it looks authentic.</span></div></li>
+      <li><div><b>Guard the filing of one contract under another, and record it</b>
+        <span>Silent loss of renewal reminders is the failure you find out about too late.</span></div></li>
+      <li><div><b>Freeze the title, end date and named party on a signed contract</b>
+        <span>The second half of finding one.</span></div></li>
+      <li><div><b>Stop saying &ldquo;waiting on them&rdquo; about unsent changes</b>
+        <span>Small fix, and the second time this class has bitten.</span></div></li>
+      <li><div><b>Withhold colleagues&rsquo; permission settings from non-admins</b>
+        <span>One change at the point the data is assembled.</span></div></li>
+      <li><div><b>Keep refused points alive across a round boundary</b>
+        <span>The right list is already computed and simply not read.</span></div></li>
+      <li><div><b>Record a share on the server, not on the screen that sent it</b>
+        <span>Cheap, and it closes the gap for every future route in as well.</span></div></li>
+      <li><div><b>Save a phone renumber</b>
+        <span>One line &mdash; it is silent data loss with a confirmation on top of it.</span></div></li>
+    </ol>
+    <div class="gap col">
+      <b>What this audit did not cover.</b> The Copilot&rsquo;s own answers and any AI-written wording;
+      email delivery beyond confirming nothing is actually sent in testing; the phone shell screen by
+      screen; the Swedish market pack beyond confirming the new wording exists in both languages;
+      performance, hosting, backups and physical security. The four-round negotiation was played
+      once, not repeatedly with varied timing. Two known pre-existing test failures were excluded by
+      instruction and are unrelated to anything here.
+    </div>
+  </section>
+
+  <p class="close">Every finding above was reproduced against a running copy of HaTi before it was
+  written down; eight further claims were attacked, held, and are not reported. The reproduction
+  scripts live in the repository under <code>test/audit/</code>, and the full report &mdash; including
+  the technical appendix with file references for whoever does the fixing &mdash; is
+  <code>AUDIT-LEGAL-REPORT.md</code>.</p>
+
+</div>

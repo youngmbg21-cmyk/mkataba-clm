@@ -16,7 +16,7 @@ time, three journeys were played through the real product in a real browser: a
 contract negotiated over four rounds with you on one screen and the other side
 on a share link on another, an amendment written and signed on an
 already-signed contract, and three new people added and signed in. Then every
-claimed fault was attacked against a running copy of HaTi. **Nineteen attacks
+claimed fault was attacked against a running copy of HaTi. **Twenty attacks
 were attempted; eight were repelled and are not reported here at all.** What
 follows is only what actually happened.
 
@@ -288,7 +288,24 @@ rather than on the screen that happened to create it. That way every route in �
 desktop, phone, or anything added later — is recorded by construction. The same
 reasoning the product already applies to its change funnel.
 
-### 11. Two smaller things — **Minor**
+### 11. Renumbering clauses on a phone is never saved, and says it was — **Serious**
+
+**What happens.** Renumbering a contract's clauses from a phone rewrites the
+wording, writes a history line and captures a version — all in memory only. The
+screen then says the change was *"recorded in History."* Nothing is saved. On
+the next reload the renumbering, the repointed cross-references and the history
+line have all gone. The desktop version of the same action saves correctly; the
+phone one simply omits the save.
+
+**Why it matters.** It is silent data loss with a confirmation message on top of
+it, which is the worst combination: the person has no reason to check. And the
+message itself is broken — it reads "[object Object],[object Object] headings
+renumbered", which is strong evidence this path has never actually been run.
+
+**Recommended fix.** Save after renumbering on the phone, exactly as the desktop
+does. One line. The broken message is a second one-line fix beside it.
+
+### 12. Two smaller things — **Minor**
 
 The obligations row on the Checks card is always green, even when obligations are
 overdue — unlike the other two rows, which turn amber and red. And any signed-in
@@ -400,7 +417,9 @@ were excluded by instruction and are unrelated to any finding here.
 7. **Keep refused points alive across a round boundary** (finding 6).
 8. **Record a share on the server, not on the screen that sent it** (finding 10) —
    cheap, and it closes the gap for every future route in as well.
-9. Then findings 7 to 9 and 11, and the decisions in section 7 as a conversation
+9. **Save a phone renumber** (finding 11) — one line, and it is silent data loss
+   with a confirmation on top.
+10. Then findings 7 to 9 and 12, and the decisions in section 7 as a conversation
    rather than a fix.
 
 ---
@@ -429,7 +448,8 @@ land in `test/audit/shots/`.
 | 8 | `js/family.js` `amendmentSkeletonBody` ~:461-463 hardcodes amendment language for all seven relations | reading |
 | 9 | `js/family.js` end-date field ~:562 shown for every relation; `TERM_CHANGING` (`js/family.js:36`) honours only four; hint key `fa_end_hint` | reading |
 | 10 | `js/mobile-contract.js` `mShareCreate` POSTs `/api/shares` and stops; the desktop dialog additionally calls `logAudit('Shared', …)` + `persist`; `POST /api/shares` (`server/server.js` ~:5794) appends nothing | `node test/audit/sim-phone-share-audit.audit.js` — audit entries 1 before, 1 after; 'Shared' lines 0 before, 0 after; link present in `/api/shares/overview`. `negoTimeline`'s link beat reads `c.audit`, so History misses it too |
-| 11 | `js/views/contract.js` `checkVerdict` 'oblig' branch always `tone:'ok'`; `GET /api/ai/spend` (`server/server.js` ~:2974) is auth-only | attack F3 (HTTP 200 for a Viewer) |
+| 11 | `js/mobile-contract.js` ~:592 `renumber-apply` calls `negoRenumberApply(c)` then `mRender()` with no `persist(c)`; the desktop twin at `js/views/negotiation.js` ~:1593 does persist. Toast at ~:597 interpolates `applied.headings` (an array) where desktop uses `.length` | reading, both halves anchored |
+| 12 | `js/views/contract.js` `checkVerdict` 'oblig' branch always `tone:'ok'`; `GET /api/ai/spend` (`server/server.js` ~:2974) is auth-only | attack F3 (HTTP 200 for a Viewer) |
 
 **Also worth a look, lower value:** `POST /api/shares/:token/applied` and
 `PATCH`/`DELETE /api/batches/:id` do no ownership or scope check;
