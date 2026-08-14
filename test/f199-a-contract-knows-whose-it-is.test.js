@@ -30,9 +30,15 @@ const { startHati, seedWorkspace } = require('./helpers');
 
 const ROOT = path.join(__dirname, '..');
 
-/* THE SAME SEVEN f170 WALKS. Kept as its own copy on purpose: if somebody
+/* THE SAME EIGHT f170 WALKS. Kept as its own copy on purpose: if somebody
    adds a creation site they must add it to both lists, and a test that
-   imported the other file's list would silently inherit a gap. */
+   imported the other file's list would silently inherit a gap.
+
+   The eighth arrived on 14 Aug 2026 and is the reason that reasoning earns its
+   keep: js/family.js writes an amendment from blank paper, and it is the one
+   creation site that deliberately does NOT send its draft to Key terms — so it
+   is an exception in f170's list and an ordinary member of this one. Both
+   facts have to be stated separately, which is exactly what two lists buy. */
 const CREATORS = [
   'js/wizard.js',              // the guided draft
   'js/app.js',                 // straight from a built-in template
@@ -41,6 +47,7 @@ const CREATORS = [
   'js/views/library.js',       // the clause library's own draft
   'js/views/contract.js',      // "Draft new agreement" from the room
   'js/views/migration.js',     // an imported / migrated agreement
+  'js/family.js',              // "Create an amendment" from the family card
 ];
 
 describe('f199 — every creation site stamps an owner', () => {
@@ -55,11 +62,26 @@ describe('f199 — every creation site stamps an owner', () => {
     });
   }
 
-  test('and the list is the same length as f170\'s — the two must not drift', () => {
+  test('and f170 knows about every one of them — the two lists must not drift', () => {
+    /* COMPARED BY NAME, NOT BY LENGTH. It was a length check, and a length
+       check stopped being able to answer this question on 14 Aug 2026: f170's
+       array is the sites that send a new draft to Key terms, and js/family.js
+       is a creation site that deliberately does not, so it is named in a test
+       of its own there rather than in the array. Counting rows would now
+       report a drift that is really a documented exception — and, worse, would
+       go on passing if somebody swapped one file for another. */
     const f170 = fs.readFileSync(path.join(ROOT, 'test/f170-a-new-draft-opens-on-key-terms.test.js'), 'utf8');
-    const listed = (f170.match(/^\s+'js\/[^']+',/gm) || []).length;
-    assert.equal(listed, CREATORS.length,
-      'f170 knows about a creation site this file does not, or the other way round');
+    const missing = CREATORS.filter(f => !f170.includes(f));
+    assert.deepEqual(missing, [],
+      'f170 does not know about a creation site this file does: ' + missing.join(', '));
+
+    /* And the other way round, which is the half that catches a NEW site added
+       to f170 alone: every js/ file f170 names must be here too. */
+    const named = [...new Set((f170.match(/'js\/[A-Za-z0-9/._-]+\.js'/g) || [])
+      .map(s => s.slice(1, -1)))];
+    const notHere = named.filter(f => !CREATORS.includes(f));
+    assert.deepEqual(notHere, [],
+      'f170 walks a creation site this file does not: ' + notHere.join(', '));
   });
 });
 

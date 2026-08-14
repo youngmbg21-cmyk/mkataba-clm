@@ -1363,13 +1363,37 @@
      The cap is on the ROWS so the head and the two buttons stay put. 322px is
      four rows and the top of a fifth: a list that ends flush at its boundary
      looks finished, and one that is visibly cut mid-row says "keep going". */
-  /* Key terms and Obligations square off — see renderKeyTermsSide. The card
-     fills the column it was given; the list inside it takes whatever is left
-     after the head and the two buttons, and scrolls. */
+  /* Key terms and the card beside it square off — see renderKeyTermsSide. The
+     card fills the column it was given; the list inside it takes whatever is
+     left after the head and the buttons, and scrolls. Since 14 Aug 2026 the
+     card in that slot is Agreement family, and .fam-list below is its .ob-list:
+     the same rule, so the two cards go on squaring off whichever is in there. */
   .terms-grid{ align-items:stretch; }
   .kt-side-card{ display:flex; flex-direction:column; min-height:0; flex:1; }
   .kt-side-card > div{ display:flex; flex-direction:column; min-height:0; flex:1; }
   .ob-list{ flex:1; min-height:120px; max-height:322px; overflow-y:auto; padding-right:4px; }
+  /* ---- THE OBLIGATIONS CARD IN THE SIDE PANEL ----
+     It is the same card, moved whole, into openSidePanel's 400px host. Two
+     things that were right in a stretched column are wrong in a panel that
+     scrolls on its own: the 322px cap on the rows (a second scrollbar inside a
+     scroller, for no reason — the panel has the height) and the flex:1 that
+     stretched the list to fill a column this host does not have. Both stand
+     down here; neither changes on Key terms, where the card no longer is. */
+  #side-panel .ob-list{ flex:0 1 auto; max-height:none; }
+  #side-panel #obligations-section > div{ padding:0; }
+
+  /* ---- AGREEMENT FAMILY ---- see renderFamilySection (js/family.js).
+     The acts are a row of their own under the head rather than beside the
+     title: a standalone agreement offers three of them, and the primary among
+     them has to be able to say "Create an amendment" without folding to a stub.
+     wrap, so a narrow column drops the third one to a second line instead of
+     pushing it out of the card. */
+  .fam-acts{ display:flex; flex-wrap:wrap; gap:6px; margin:9px 0 10px; }
+  .fam-acts button{ cursor:pointer; }
+  /* The family's rows absorb the height the way .ob-list did — a master with
+     nine amendments scrolls them rather than growing the card past its
+     neighbour. min-height 0 because there is often only one row. */
+  .fam-list{ flex:1; min-height:0; overflow-y:auto; padding-right:4px; }
   /* The obligation's own sentence — see the note at the field (js/obligations.js).
      resize:vertical, not both: the dialog is a two-column grid and a textarea
      dragged wider would push the Due date and Recurring pair out of it.

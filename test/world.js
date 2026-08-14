@@ -91,12 +91,18 @@ const HOME_VIEW = 'js/views/home.js';
    door therefore needs this file on the floor beside js/views/negotiation.js;
    everything else keeps the lighter stage. */
 const REGISTER_VIEW = 'js/views/register.js';
+/* The contract family: a master agreement and its amendments, and — since
+   14 Aug 2026 — writing a new amendment from blank paper
+   (buildWorld({family:true})). */
+const FAMILY = 'js/family.js';
+/* Obligations and renewal decisions (buildWorld({obligations:true})). */
+const OBLIGATIONS = 'js/obligations.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
 const HOST_IDS = ['content', 'modal-root', 'print-root', 'share-root', 'app-shell',
   'versions-section', 'nego-section', 'audit-section', 'shares-section', 'doc-scroll',
-  'nego-tab'];
+  'nego-tab', 'family-section'];
 
 function buildWorld(opts = {}) {
   /* A REAL ORIGIN, so localStorage works. Without a url jsdom serves the
@@ -176,6 +182,12 @@ function buildWorld(opts = {}) {
     fmtDT: iso => String(iso || ''),
     esc: s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])),
     icon: () => '<svg></svg>',
+    /* Minting a contract id — js/core.js's own counter, which nothing on this
+       stage had needed until a module here started CREATING contracts (see
+       createAmendment in js/family.js). Same shape as the real one so the ids a
+       test reads back look like the product's. */
+    uid: 900,
+    nextId: () => 'MK-' + (++win.uid),
 
     // the audit trail: a RECORDER. The product decides the actor and the
     // wording; these assertions are about exactly that decision. The optional
@@ -302,6 +314,15 @@ function buildWorld(opts = {}) {
   if (opts.contractView) files.push(CONTRACT_VIEW);
   if (opts.playbook) files.push(PLAYBOOK);
   if (opts.homeView) files.push(HOME_VIEW);
+  /* The family model and the obligations record (buildWorld({family:true}) /
+     ({obligations:true})). Loaded on request like the views: both sit beside the
+     change model rather than under it — they annotate a contract and never
+     touch its wording — so a stage without them behaves exactly as every test
+     written before they existed asserts. family.js loads FIRST because
+     obligations.js reads effectiveExpiry through `window` and answers correctly
+     when it is absent, which is the order js/app.js uses too. */
+  if (opts.family) files.push(FAMILY);
+  if (opts.obligations) files.push(OBLIGATIONS);
   /* The register draws against the whole application shell — value streams,
      status chips, share marks, the money formatter. This stage has the change
      model, not that shell, so the pieces it reaches for are stood in for here

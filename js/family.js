@@ -28,6 +28,9 @@ const CONTRACT_RELATIONS = [
 ];
 const RELATION_LABEL = Object.fromEntries(CONTRACT_RELATIONS.map(r=>[r.k,r.label]));
 const isRelation = r => CONTRACT_RELATIONS.some(x=>x.k===r);
+/* "a addendum" / "a annex" — the audit line below reads the relation's own
+   label, and four of the seven begin with a vowel. A record is read by people. */
+const _famAn = w => (/^[aeiou]/i.test(String(w||'').trim()) ? 'an' : 'a');
 /* Relations that can move the end of the term. A parent's effective expiry is
    taken from the most recent of these that actually states one. */
 const TERM_CHANGING = new Set(['amendment','variation','renewal','addendum']);
@@ -63,8 +66,9 @@ function applyParentLink(c, parentId, relation, note, actor){
   if(note!=null) c.relationNote = String(note);
   const who = (actor && actor.name) || currentUser()?.name || 'System';
   c.audit = c.audit || [];
+  const word=RELATION_LABEL[c.relation].toLowerCase();
   c.audit.push({ at:nowISO(), user:who, action:'Linked',
-    detail:`Filed as a ${RELATION_LABEL[c.relation].toLowerCase()} of ${parentId}${note?` — ${note}`:''}` });
+    detail:`Filed as ${_famAn(word)} ${word} of ${parentId}${note?` — ${note}`:''}` });
   return c;
 }
 /* Undo a link. */
@@ -227,7 +231,7 @@ function openLinkModal(c, onDone, opts={}){
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${mode==='child'?'Link to a parent agreement':'Add an amendment'}</h3></div>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing')}</h3></div>
       <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${mode==='child'
         ? `File <b>${_famEsc(c.id)}</b> as part of an existing agreement. The parent's renewal date, risk and KPI count then reflect the family — a master agreement plus its amendments is <b>one</b> agreement, not several.`
         : `Attach an existing document to <b>${_famEsc(c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
@@ -284,7 +288,8 @@ function openLinkModal(c, onDone, opts={}){
     persist(child);
     const parent=getContract(parentId); if(parent) persist(parent);
     closeModal();
-    toast(`${child.id} filed as a ${RELATION_LABEL[child.relation].toLowerCase()} of ${parentId}`);
+    const w=RELATION_LABEL[child.relation].toLowerCase();
+    toast(`${child.id} filed as ${_famAn(w)} ${w} of ${parentId}`);
     if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
   });
 }
@@ -302,23 +307,45 @@ function renderFamilySection(c){
       <b style="font-family:var(--font-mono);font-size:11px;color:var(--color-accent-700);flex:none">${_famEsc(x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
       <span style="flex:none;font-size:10.5px;color:var(--color-neutral-600)">${_famEsc(note||'')}</span></button>`;
+  /* ---- THE BUTTONS ARE A ROW OF THEIR OWN, UNDER THE HEAD ----
+     They were in the head beside the title, which was room enough for two. A
+     standalone agreement now offers three acts — write one, attach one, file
+     this under a master — and the primary among them has to be able to say
+     "Create an amendment" without being folded to a stub.
+
+     WHICH THREE, AND WHY THE SET DIFFERS. Create and Link-an-existing are
+     offered wherever a document can HAVE children: a parent or a standalone.
+     "Link to a parent agreement" is offered on a STANDALONE only — linkError
+     already refuses it for a master ("it already has N amendments of its own"),
+     and a control whose only outcome is a refusal is furniture. A child gets
+     neither: families are one level deep, so the only act on it is Unlink. */
+  const acts=[];
+  if(canEdit() && !parent){
+    acts.push(`<button id="fam-create" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 11px">${icon('file-plus','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
+    acts.push(`<button id="fam-add" style="${btn}">${i18t('fa_link_existing')}</button>`);
+    if(!kids.length) acts.push(`<button id="fam-link" style="${btn}">${i18t('fa_link_parent')}</button>`);
+  }
   host.innerHTML=`
     <div style="padding:16px 18px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         <span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">${i18t('fa_agreement_family')}</h4>
         <span style="flex:1"></span>
-        ${canEdit()?(parent
-          ? `<button id="fam-unlink" style="${btn};border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('fa_unlink')}</button>`
-          : `<button id="fam-add" style="${btn}">${i18t('fa_add_amendment')}</button>
-             <button id="fam-link" style="${btn}">${i18t('fa_link_parent')}</button>`):''}
+        ${(canEdit()&&parent)
+          ? `<button id="fam-unlink" style="${btn};border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('fa_unlink')}</button>`:''}
       </div>
+      ${acts.length?`<div class="fam-acts">${acts.join('')}</div>`:''}
       ${parent
-        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_filed_as')} <b>${_famEsc((RELATION_LABEL[c.relation]||'Amendment').toLowerCase())}</b> of <b>${_famEsc(parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
-           ${row(parent,'parent agreement')}`
+        /* The label is NOT lowercased here any more, and the sentence lost its
+           indefinite article with it: English wants a/an by the following word
+           ("a addendum", "a annex") and Swedish en/ett by the noun's own
+           gender, and the seven relations split both ways. Read as a filing
+           designation — "filed as Addendum of MK-1042" — neither needs one. */
+        ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_filed_as')} <b>${_famEsc(RELATION_LABEL[c.relation]||'Amendment')}</b> of <b>${_famEsc(parent.id)}</b>${c.relationNote?` — ${_famEsc(c.relationNote)}`:''}. It does not count as a separate agreement in the KPIs, and its renewal reminder fires on the parent.</p>
+           <div class="fam-list">${row(parent,'parent agreement')}</div>`
         : kids.length
         ? `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_this_is_a')} ${i18tn('fa_master_with',kids.length,{n:kids.length})} The family counts as <b>one agreement · ${kids.length+1} documents</b>.${from?` The live expiry <b>${_famEsc(eff)}</b> comes from <b>${_famEsc(from.id)}</b>, not from this document's own date${ownExpiry(c)?` of ${_famEsc(ownExpiry(c))}`:''}.`:''}</p>
-           ${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}`
+           <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`)).join('')}</div>`
         : `<p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
         <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:5px;padding:9px 11px">
@@ -333,10 +360,259 @@ function renderFamilySection(c){
   document.getElementById('fam-link')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-confirm')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-add')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'parent'}));
+  document.getElementById('fam-create')?.addEventListener('click',()=>openCreateAmendmentModal(c));
   document.getElementById('fam-unlink')?.addEventListener('click',()=>unlinkContract(c, again));
   document.getElementById('fam-standalone')?.addEventListener('click',()=>{
     logLinkDecision(c,false); persist(c); toast(`${c.id} confirmed as a standalone agreement`); again();
     if(typeof updateSidebarCounts==='function') updateSidebarCounts();
+  });
+}
+
+/* ============================================================
+   WRITING AN AMENDMENT FROM BLANK PAPER
+   ============================================================
+   Until now the only way to get an amendment into HaTi was to write it
+   somewhere else and attach the file. "Link an existing document" is that act
+   and it is unchanged. This is the other half: a NEW draft, on our letterhead,
+   filed against its parent from the moment it exists, negotiated and signed
+   like any other contract.
+
+   THE POINT OF THE WHOLE THING IS THAT NOTHING AFTER THIS IS NEW. A document
+   made entirely of inserted clauses is a document the negotiation page has
+   always known how to write. So this function's job ends the moment a valid
+   draft is on the record — no second editor, no amendment mode, no special
+   round. What it must get right is the START: the link, the parties, the
+   letterhead, and a body the rest of the product can read.
+
+   AND IT DOES NOT REGISTER roomOpenOnTerms. That rule exists because a new
+   draft's document is a template full of blanks fed from the terms, so landing
+   on the document shows somebody the output of a form they have not filled in.
+   Neither half is true here: every term this document inherits is already
+   filled in from the parent, and the document is the empty thing the reader
+   pressed the button to go and write. See wsTabDefaults, and f170, which names
+   this file as the one creation site that lands on the document and asserts it
+   rather than leaving the exception to be discovered. */
+
+/* The word the DOCUMENT uses for each relation, in English. Deliberately not
+   RELATION_LABEL: that is the SCREEN's word, it is built from getters at load
+   time, and it follows the reader's language. This one is stamped into the
+   contract's name, which is a record — it goes on the paper, into the register
+   and into every list, and a record keeps English (the rulebook's own rule,
+   the same one ROLE_LABEL follows). */
+const RELATION_DOC_WORD = { amendment:'Amendment', addendum:'Addendum', variation:'Variation',
+  renewal:'Renewal', sow:'Statement of Work', annex:'Annex', 'side-letter':'Side Letter' };
+/* Which number this one is: how many of the SAME kind already hang off this
+   parent, plus one. Counted per relation rather than across the family, because
+   "Amendment No. 2" is wrong on a document that follows one amendment and three
+   annexes. Declined documents still count — No. 2 was issued even if it died,
+   and reusing its number is how two documents come to share a name. */
+function amendmentOrdinal(parent, relation){
+  const rel = isRelation(relation) ? relation : 'amendment';
+  return familyChildren(parent.id).filter(k=>(k.relation||'amendment')===rel).length + 1;
+}
+function amendmentDefaultName(parent, relation){
+  const rel = isRelation(relation) ? relation : 'amendment';
+  const word = RELATION_DOC_WORD[rel] || 'Amendment';
+  const base = String((parent&&parent.name)||'').replace(/\s*\(draft\)\s*$/i,'').trim();
+  return `${word} No. ${amendmentOrdinal(parent, rel)}${base?` to ${base}`:''}`;
+}
+/* A body of one empty line. NOT an empty string and NOT '<p></p>': the first
+   sends docBody down the built-in-template branch (which drafts a whole NDA and
+   then reads a `kind` off a template that is not there), and the second is
+   dropped by the sanitiser, which lands back on the first. One <br> survives
+   sanitising, renders as blank paper, and gives the negotiation a body to
+   stamp clause ids into. */
+const FAMILY_BLANK_BODY = '<p><br></p>';
+/* The four lines an amendment conventionally opens and closes with.
+
+   IN ENGLISH, ALWAYS, and that is not an oversight: all twelve built-in
+   templates draft their paper in English whatever language the reader has
+   chosen (docBody's BUILD), and the document's own title is built from
+   RELATION_DOC_WORD above for the same reason. A skeleton that followed the
+   reader would put a Swedish body under an English title on a page the
+   counterparty reads. Every word is editable the moment it is drawn.
+
+   THEY ARE NOT DECORATION. The opening recitals are how a reader on the other
+   side knows which agreement is being changed, and they are what HaTi itself
+   reads later — see looksLikeAmendment and suggestParents, which match on
+   exactly this shape when the same document comes back through an import. */
+function amendmentSkeletonBody(parent, opts={}){
+  const rel = isRelation(opts.relation) ? opts.relation : 'amendment';
+  const word = RELATION_DOC_WORD[rel] || 'Amendment';
+  const ord = opts.ordinal || 1;
+  /* Our own entity ON THIS PAPER, which is contractParty's answer written out
+     rather than borrowed: the child copies parent.party, so both documents in
+     the family name the same signatory, and this reads it from the same place
+     with no dependency on a module that may not be on the floor. */
+  const us = _famEsc(String((parent&&parent.party) || window.FIRST_PARTY || '').trim());
+  const them = _famEsc(String((parent&&parent.counterparty)||'').trim());
+  const pname = _famEsc(String((parent&&parent.name)||'').replace(/\s*\(draft\)\s*$/i,'').trim());
+  const eff = (parent&&((parent.metadata&&parent.metadata.effectiveDate)||(parent.fields&&parent.fields.effDate)||parent.signedAt))||'';
+  /* Written the way the paper writes a date — "31 July 2026", never the date
+     input's 2026-07-31. fmtDocDate is the one formatter for this and it reads
+     a fixed month list, so the recital does not change wording with the
+     reader's language. Null when it is not a date we can print, in which case
+     the sentence simply names the agreement and no date. */
+  const effDoc = eff && window.fmtDocDate ? fmtDocDate(String(eff).slice(0,10)) : null;
+  const dated = effDoc ? ` dated ${_famEsc(effDoc)}` : '';
+  const between = (us&&them) ? ` between <strong>${us}</strong> and <strong>${them}</strong>` : '';
+  return [
+    `<p>This ${word} No. ${ord} is made on ____________${between}.</p>`,
+    `<p>The parties entered into the ${pname?`<strong>${pname}</strong>`:'agreement'}${dated} (the &ldquo;Agreement&rdquo;). The parties now wish to amend it.</p>`,
+    `<p>The parties agree that the Agreement is amended as follows:</p>`,
+    `<p>Except as amended above, all other terms of the Agreement remain in full force and effect.</p>`,
+  ].join('');
+}
+
+/* Mint the draft. No UI, no navigation — returns the contract so the dialog can
+   open it and a test can read it. Throws nothing: a refusal comes back as a
+   string on `.error` rather than as an exception, because both callers want to
+   print it rather than crash. */
+function createAmendment(parent, opts={}){
+  if(!parent) return { error:'No parent agreement.' };
+  if(parent.parentId) return { error:i18t('fa_child_cannot_amend') };
+  const rel = isRelation(opts.relation) ? opts.relation : 'amendment';
+  const ord = amendmentOrdinal(parent, rel);
+  const name = String(opts.name||'').trim() || amendmentDefaultName(parent, rel);
+  const u = (typeof currentUser==='function' && currentUser()) || null;
+  const who = u?.name || 'System';
+  const c = {
+    id: nextId(), name,
+    /* CARRIED OVER — the facts that are the same agreement's facts. The other
+       side and the address we have for them, our own legal entity on this
+       paper (contractParty, not the workspace), the value stream it is filed
+       under, and the letterhead. The MARKET is not copied because it is not on
+       the record: law, currency and the statute checks are the workspace's own
+       setting, so a new document is already in the right one. */
+    counterparty: (parent.counterparty||''),
+    party: parent.party || undefined,
+    folder: parent.folder,
+    branding: parent.branding || undefined,
+    /* LEFT BLANK, DELIBERATELY. The wording, because blank paper is the point.
+       The money, because an amendment either restates the figure or changes it
+       and a copied one would be a guess wearing a fact's clothes — but WHETHER
+       money passes is inherited, since an amendment to an NDA is no more likely
+       to carry a figure than the NDA was (see isMonetary: the record wins, and
+       this is the record saying something). The effective date, because this
+       document starts when it starts. The obligations, because they belong to
+       the document that created them. And who signs, because a signature is
+       given to one arrangement and last year's signatory may have left. */
+    value: 0, valueType: parent.valueType || 'estimated',
+    status: 'Draft', template: null, source: 'amendment',
+    lastAction: (typeof todayStr==='function'?todayStr():''), hash: null, signedAt: null,
+    signatory: who, compliance: {},
+    expiry: opts.expiry || null,
+    fields: {}, scan: null, comments: [], signatures: [],
+    format: 'rich',
+    audit: [{ at:nowISO(), user:who, action:'Created',
+      detail:`New ${(RELATION_DOC_WORD[rel]||'Amendment').toLowerCase()} written from blank paper against ${parent.id}`
+        + (opts.expiry?` — states a term to ${opts.expiry}`:'')
+        + (opts.skeleton===false?' — blank page':'') }],
+  };
+  if(parent.counterpartyEmail) c.counterpartyEmail = parent.counterpartyEmail;
+  c.redlineText = (opts.skeleton===false)
+    ? FAMILY_BLANK_BODY
+    : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord });
+  /* FILED AGAINST THE PARENT IN THE SAME BREATH — there is no second step and
+     no window in which this exists as a loose contract. applyParentLink writes
+     its own audit line under the Created one above. */
+  applyParentLink(c, parent.id, rel, opts.note||'', u);
+  /* A person just made this on purpose, so there is nothing for HaTi to
+     propose and nothing for anyone to confirm — the amber "this reads like an
+     amendment" band is for documents that arrived, not for one written here. */
+  c.linkConfirmed = true;
+  c._loaded=true; c._light=false; c._v=0;
+  /* WHO RAISED IT. The eighth creation site, and it owes this the same as the
+     other seven — an amendment with no owner falls out of the dashboard's
+     Decisions-due card and both of Reports' timing figures, which is the exact
+     hole c.owner was added to close. See contractOwnerStamp (js/core.js): it
+     stamps once and never overwrites. */
+  if(window.contractOwnerStamp) contractOwnerStamp(c);
+  state.contracts.unshift(c);
+  persist(c);
+  const p=getContract(parent.id); if(p) persist(p);
+  return { contract:c };
+}
+
+/* The form. Everything answered already except the one question that cannot be
+   guessed — whether this document moves the end of the term. */
+function openCreateAmendmentModal(parent, onDone){
+  if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
+  if(!parent) return;
+  if(parent.parentId){ toast(i18t('fa_child_cannot_amend'),'err'); return; }
+  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none';
+  const SEL='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 8px;font:inherit;font-size:13px';
+  const LBL='display:block;font-size:11px;font-weight:600;margin-bottom:4px';
+  const HINT='display:block;font-size:10.5px;font-weight:400;color:var(--color-neutral-600);margin-top:4px;line-height:1.45';
+  const kids=familyChildren(parent.id).length;
+  openModal(`
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('filenew','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">${i18t('fa_create_amendment')}</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.55">${i18t('fa_create_sub',{ref:`<b>${_famEsc(parent.id)} ${_famEsc(parent.name||'')}</b>`})}</p>
+
+      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_kind_q')}</span>
+        <select id="am-rel" style="${SEL}">${CONTRACT_RELATIONS.map(r=>
+          `<option value="${r.k}" ${r.k==='amendment'?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select></label>
+
+      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_name')}</span>
+        <input id="am-name" value="${_famAttr(amendmentDefaultName(parent,'amendment'))}" style="${FLD}"/>
+        ${kids?`<span style="${HINT}" id="am-name-hint">${i18tn('fa_name_hint',kids,{n:kids})}</span>`:''}</label>
+
+      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_end_q')}</span>
+        <input id="am-expiry" type="date" placeholder="${_famAttr(i18t('fa_end_unchanged'))}" style="${FLD}"/>
+        <span style="${HINT}">${i18t('fa_end_unchanged')}. ${i18t('fa_end_hint')}</span></label>
+
+      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_note_optional')}</span>
+        <input id="am-note" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
+
+      ${''/* THE ONE DECISION THAT WAS LEFT OPEN, PUT ON THE FORM RATHER THAN
+             BAKED IN. Blank paper was asked for; the four-line skeleton is what
+             a real amendment opens with and what HaTi reads to recognise one.
+             Both are one press, the skeleton leads because it is the safer
+             default, and unticking gives exactly the blank page. */}
+      <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:9px 11px;margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="am-skeleton" checked style="margin-top:2px;flex:none;accent-color:var(--color-accent)"/>
+        <span style="font-size:11.5px"><b>${i18t('fa_skeleton')}</b>
+          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('fa_skeleton_hint')}</span></span>
+      </label>
+
+      <div id="am-err" style="font-size:11px;color:var(--st-ruby-fg);min-height:15px;margin-bottom:8px"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button id="am-go" class="ui-btn ui-btn-primary">${i18t('fa_create_open')}</button>
+      </div>
+    </div>`, {maxWidth:'520px'});
+
+  const $=id=>document.getElementById(id);
+  /* The name follows the kind until somebody types over it — an "Annex No. 1"
+     called "Amendment No. 3" is a worse default than no default. Once the field
+     has been edited by hand it is theirs and the kind stops rewriting it. */
+  let nameTouched=false;
+  $('am-name')?.addEventListener('input',()=>{ nameTouched=true; });
+  $('am-rel')?.addEventListener('change',()=>{
+    if(nameTouched) return;
+    $('am-name').value = amendmentDefaultName(parent, $('am-rel').value);
+  });
+  $('am-cancel')?.addEventListener('click',closeModal);
+  $('am-go')?.addEventListener('click',()=>{
+    const err=$('am-err');
+    const name=String($('am-name').value||'').trim();
+    if(!name){ err.textContent=i18t('fa_needs_name'); return; }
+    const expiry=String($('am-expiry').value||'').trim();
+    if(expiry && !(window.dateOnly?dateOnly(expiry):/^\d{4}-\d{2}-\d{2}$/.test(expiry))){
+      err.textContent=i18t('fa_bad_date'); return; }
+    const made=createAmendment(parent,{
+      relation:$('am-rel').value, name, expiry:expiry||null,
+      note:String($('am-note').value||'').trim(),
+      skeleton: !!$('am-skeleton').checked });
+    if(made.error){ err.textContent=made.error; return; }
+    closeModal();
+    toast(i18t('fa_created',{ id:made.contract.id, pid:parent.id,
+      rel:(RELATION_LABEL[made.contract.relation]||'Amendment').toLowerCase() }));
+    if(typeof updateSidebarCounts==='function') updateSidebarCounts();
+    if(onDone) onDone(made.contract);
+    else if(typeof openWorkspace==='function') openWorkspace(made.contract.id);
   });
 }
 
@@ -354,6 +630,8 @@ async function unlinkContract(c, onDone){
 }
 
 Object.assign(window,{openLinkModal,unlinkContract,renderFamilySection,
+  openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
+  amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,
   CONTRACT_RELATIONS,RELATION_LABEL,TERM_CHANGING,isRelation,
   isChild,isParent,familyChildren,familyParent,familyOf,linkError,applyParentLink,clearParentLink,
   ownExpiry,amendmentDate,effectiveExpiry,expirySource,isAgreement,agreementsIn,familyCounts,familyCountLabel,

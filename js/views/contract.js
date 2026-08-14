@@ -1847,7 +1847,13 @@ function docBody(c){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
   if(c.redlineText) return redlineDocBody(c);
-  const t=TEMPLATES[c.template];
+  /* `|| TEMPLATES.ND` matches the `BUILD[c.template]||BUILD.ND` five lines from
+     the end, which has always fallen back. This one did not, and read `t.kind`
+     off it — so a contract with no template and no stored wording did not draw
+     a default body, it threw and took the whole Document tab down. Nothing
+     reached that state until an amendment could be written from blank paper;
+     the two halves of one expression now agree. */
+  const t=TEMPLATES[c.template]||TEMPLATES.ND;
   const locked=c.status==='Signed'||PORTAL_MODE||!canEdit();
   const dis=locked?'disabled':'';
   const fDate=(id,val)=>`<input ${dis} type="date" value="${val||''}" data-field="${id}" class="field field-date"/>`;
@@ -2665,12 +2671,38 @@ function wsTabRowEndHtml(c){
    Painted rather than built inline for the same reason the tab row's end is:
    the strips are wired by id, and a repaint that did not re-arm them would
    leave "Issue a signing link" looking pressable and doing nothing. */
+/* ---- A DOCUMENT WITH NOTHING WRITTEN ON IT SAYS SO ----
+   True of exactly one thing today: an amendment created from blank paper with
+   the skeleton unticked. Its body is one empty line — enough for the sanitiser
+   to keep and for the negotiation to stamp a clause id into, and nothing to
+   read. See createAmendment in js/family.js.
+
+   IN THE CORNER, NOT ON THE PAGE. Nothing that is not the agreement is allowed
+   on the sheet — the standing rule that took the working-text band off the
+   paper in the first place — so this is a card in the room's notice stack like
+   every other notice, over the bottom-right of the document.
+
+   AND IT REPLACES the working-text note rather than sitting beside it. That one
+   says the document carries edited working text and offers Edit and Compare;
+   over a blank page it is a sentence about wording that does not exist. */
+const docHasNoWording = c => !!(c && !isUpload(c) && c.redlineText
+  && !String((window.docPlainText?docPlainText(c):'')||'').trim());
+function docNothingWrittenHtml(c){
+  const btn=(window.negoNeedsYouIds||c.changes&&c.changes.length)
+    ? i18t('ct_open_negotiate') : i18t('ct_start_negotiating');
+  return `<div class="rl-note-card" id="ws-blank-note">
+    <div class="rl-note-k"><span class="rl-note-dot"></span>${i18t('fa_nothing_written')}</div>
+    <p class="rl-note-t">${i18t('fa_nothing_written_t',{btn:esc(btn)})}</p>
+  </div>`;
+}
 function wsNoticesHtml(c){
   if(!c || !window.rlNoticeStackHtml) return '';
   /* The working-text note only where its two verbs exist — this room, on the
      reader's own side. It came off the paper (see redlineDocBody) and it must
      not follow the document onto a page that has neither Edit nor Compare. */
-  const working=(c.redlineText && !PORTAL_MODE) ? docWorkingTextNoteHtml() : '';
+  const blank=(docHasNoWording(c) && !PORTAL_MODE);
+  const working=(c.redlineText && !PORTAL_MODE)
+    ? (blank ? docNothingWrittenHtml(c) : docWorkingTextNoteHtml()) : '';
   const cards=`${readyToSignStrip(c)}${returnedChangesStrip(c)}${working}`;
   return rlNoticeStackHtml(c, cards, '', 'ws-notices');
 }
@@ -3197,16 +3229,30 @@ function riskCardHtml(c){
    it beside it is a number to look at, and it was pushing the obligations it
    sat above off the fold.
 
-   THE ONE THAT STAYS IS SIZED TO ITS NEIGHBOUR. Obligations now takes the
-   column's full height with its list scrolling inside (see .ob-list), so the
+   THE ONE THAT STAYS IS SIZED TO ITS NEIGHBOUR. The card takes the column's
+   full height with its list scrolling inside (see .ob-list / .fam-list), so the
    two cards square off. align-items:stretch on the grid does the work; the
    height is not a number written twice, which is how two cards drift apart the
-   first time somebody adds a row to one of them. */
+   first time somebody adds a row to one of them.
+
+   ---- AND THE ONE THAT STAYS IS AGREEMENT FAMILY (owner-asked, 14 Aug 2026) ----
+   A SWAP, not an addition: Obligations leaves this column for a row on the
+   Document tab's Checks card, and Agreement family takes the slot it vacates.
+
+   WHY THIS WAY ROUND. renderFamilySection has existed, finished and tested,
+   since the family model was built, and it had never been drawn anywhere at
+   all — there was no element with this id in the product. So the one place
+   HaTi could say "the date this agreement really ends is not the date typed on
+   it" said nothing. Obligations, meanwhile, is a CHECK by shape — a sweep you
+   run over the wording, which is what the other two rows on that card are —
+   and it was a check row until August, when the row was removed as a duplicate
+   of this card. It is not a duplicate any more, because this card is not
+   staying: see checksRowsHtml. */
 function renderKeyTermsSide(c){
   const host=document.getElementById('kt-side'); if(!host) return;
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:8px;padding:13px 15px';
-  host.innerHTML=`<section id="obligations-section" class="kt-side-card" style="${CARD}"></section>`;
-  if(window.renderObligationsSection) renderObligationsSection(c);
+  host.innerHTML=`<section id="family-section" class="kt-side-card" style="${CARD}"></section>`;
+  if(window.renderFamilySection) renderFamilySection(c);
   /* #kt-readdoc's wiring went with the button — see readTermsHtml. */
 }
 
@@ -3803,6 +3849,11 @@ function checkVerdict(c,kind){
     const high=open.filter(x=>x.sev==='high').length;
     return {tone:high?'bad':'warn',label:high?`${high} high · ${open.length} open`:`${open.length} open`};
   }
+  /* 'oblig'. Named rather than left as the fall-through it used to be: the row
+     went away in August and this branch stayed, answering for any string that
+     was not 'playbook' or 'risk'. With the row back it is a real kind and the
+     card asks for it by name. Null before the sweep has run — which is what
+     draws "Run →", the same as the other two. */
   const n=((c.obligations)||[]).length;
   return n ? {tone:'ok',label:`${n} tracked`} : null;
 }
@@ -3828,19 +3879,28 @@ function checksRowsHtml(c){
       <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${
         v?`<span class="pill-x" style="${tone}">${v.label}</span>`:'Run &rarr;'}</button></div>`;
   };
-  /* ---- FIND OBLIGATIONS IS NOT A CHECK ON THIS CARD ANY MORE ----
-     Removed as a duplicate (Young, 10 Aug 2026). The Obligations card on Key
-     terms carries its own Find obligations button, beside the list the sweep
-     fills and beside Add obligation, which is the other half of the same job.
-     Two entry points to one act is one too many — and this one was the worse
-     of the two, because pressing it here took you to the other tab to read the
-     result anyway (see the roomGoTab in the wiring below, now gone with it).
+  /* ---- OBLIGATIONS IS A CHECK ROW AGAIN, AND IT LEADS (owner-asked, 14 Aug 2026) ----
+     This REVERSES the removal of 10 Aug 2026, and the reason that removal was
+     right has gone. It was taken out as a duplicate: the Obligations card on
+     Key terms carried its own Find obligations beside the list the sweep fills,
+     so there were two doors onto one act — and this was the worse door, because
+     pressing it here sent you to the other tab to read what it found.
 
-     THE OTHER TWO STAY, and the difference is where their results live: a
-     playbook review and a risk scan pin their findings to CLAUSES, on this
-     tab, in a panel over this document. They are checks on the wording. An
-     obligation is a commitment on the record, and the record is on Key terms. */
-  return row('playbook','shield',i18t('ct_playbook_review'))
+     BOTH HALVES ARE ANSWERED NOW. There is one door, because the card is not
+     staying on Key terms (see renderKeyTermsSide — Agreement family has taken
+     that slot). And nothing sends you anywhere: the findings open in a panel
+     over this document, which is how the other two rows already work.
+
+     IT LEADS BECAUSE IT IS THE ORDER THE WORK IS DONE IN — what does this
+     contract commit us to, then how does the wording compare with our
+     playbook, then what else is risky in it.
+
+     THE COST, SAID OUT LOUD: on a contract that is already signed, ticking off
+     a quarterly report is now one press deeper than it was. The calendar and
+     the dashboard still open an obligation directly, so this only bites while
+     reading the contract itself. */
+  return row('oblig','calendar',i18t('ob_obligations'))
+    + row('playbook','shield',i18t('ct_playbook_review'))
     + row('risk','scan',i18t('ct_copilot_risk_scan'));
 }
 function renderChecksCard(c){
@@ -3870,11 +3930,19 @@ function checksNoteHtml(c){
    and flashes the clause — behind a centred, scrimmed modal that was a jump you
    could not watch. See openSidePanel in js/core.js. */
 function openCheckPanel(c,kind){
-  const id=kind==='playbook'?'playbook-section':'scan-section';
-  const title=kind==='playbook'?i18t('ct_playbook_review'):i18t('ct_risk_scan');
+  const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':'scan-section';
+  const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):i18t('ct_risk_scan');
   if(window.openSidePanel) openSidePanel(`<div id="${id}"></div>`,{width:'400px',title,get label(){ return i18t('ct_checks'); }});
   else openModal(`<div style="padding:6px"><div id="${id}"></div></div>`,{maxWidth:'620px'});
-  if(kind==='playbook') renderPlaybookSection(c); else renderScanSection(c);
+  /* THE OBLIGATIONS CARD ARRIVES WHOLE, not as a second rendering of it. The
+     panel hosts the SAME element id the Key terms column used to, so
+     renderObligationsSection fills it without knowing it moved — which is also
+     why that column no longer carries one: two elements with one id is how a
+     "why did nothing happen" bug starts. Same list, same rows, same Add and
+     Find, same ticking off. */
+  if(kind==='playbook') renderPlaybookSection(c);
+  else if(kind==='oblig'){ if(window.renderObligationsSection) renderObligationsSection(c); }
+  else renderScanSection(c);
   /* Both section renderers empty their host when there is nothing to show, and
      a full-height column of nothing is a worse answer than a sentence. The
      Checks card only opens this once something HAS run, so this is a backstop
@@ -3882,16 +3950,34 @@ function openCheckPanel(c,kind){
   const host=document.getElementById(id);
   if(host && !host.innerHTML.trim()){
     host.innerHTML=`<p style="margin:0;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
-      Nothing has been ${kind==='playbook'?'reviewed against the playbook':'scanned'} on this contract yet.
-      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
+      Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':'scanned'} on this contract yet.
+      Close this and press <b>${kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):i18t('ct_copilot_risk_scan')}</b> ${i18t('ct_in_checks_card')}</p>`;
   }
 }
 function wireChecksCard(c){
   const card=document.getElementById('checks-card'); if(!card) return;
-  const editable=(typeof canEdit!=='function'||canEdit())&&c.status!=='Signed';
+  const mayEdit=(typeof canEdit!=='function'||canEdit());
+  /* ---- AN EXECUTED CONTRACT IS WHERE OBLIGATIONS START, NOT WHERE THEY STOP ----
+     The rule below — no re-running a check once the contract is signed — is
+     right for a playbook review and a risk scan: those read the WORDING, and
+     sealed wording does not change, so re-reading it can only produce the same
+     answer over a document nobody can act on.
+
+     It is wrong for obligations, and quietly so. An obligation is not a reading
+     of the wording, it is a commitment kept alongside it, and the whole point
+     of tracking a quarterly report is that the quarter comes round AFTER
+     signature. Left to inherit this rule, the sweep would go dead on exactly
+     the contracts where it is useful — which is the same mistake
+     renderObligationsSection had made and corrected in its own guard, so
+     inheriting it here would have re-introduced through the door the panel had
+     just shut.
+
+     Deliberate, and per-kind rather than a hole in the rule. */
+  const editableFor=kind=>mayEdit&&(kind==='oblig'||c.status!=='Signed');
   card.querySelectorAll('[data-check]').forEach(b=>{
     const kind=b.getAttribute('data-check');
     const ran=!!checkVerdict(c,kind);
+    const editable=editableFor(kind);
     /* Reading a finding is not editing. A viewer, and anyone on an executed
        contract, can still open what was found — they just cannot re-run it. */
     if(!editable&&!ran){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default';
@@ -3915,10 +4001,20 @@ function wireChecksCard(c){
           openCheckPanel(c,'playbook');
           return;
         }
-        /* The obligations branch lived here and has gone with its row — the
-           sweep is run from the Obligations card on Key terms, which is where
-           what it finds is read. runFindObligations itself is untouched; this
-           card simply no longer offers a second door onto it. */
+        if(kind==='oblig'){
+          if(!window.runFindObligations) throw new Error('unavailable');
+          /* NO openCheckPanel AFTERWARDS, and that is not an omission. The
+             sweep ends by opening its own review dialog — the list of what it
+             found, with tick-boxes — and that dialog and this panel are the
+             same #modal-root. Opening the panel here would be destroyed by the
+             dialog a frame later, leaving renderObligationsSection filling a
+             host that is no longer on the page. The row repaints instead, and
+             once anything is tracked it reads "N tracked" and opens the panel
+             on the next press, exactly like the other two. */
+          await runFindObligations(c);
+          renderChecksCard(c);
+          return;
+        }
       }catch(e){
         toast(i18t('ct_check_unavailable'),'err');
         renderChecksCard(c);
@@ -6051,5 +6147,5 @@ Object.assign(window,{applyDocZoom,renderDiscussSection,discussPointsSectionHtml
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,renderSignButton,renderSignSide,signBlockHtml,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
+  wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
   ROOM_TABS,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomCurrentTab,wsTabDefaults,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,roomVersionsHtml,docFillable,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,openCheckPanel,roomHeadHtml,wireRoomHead});
