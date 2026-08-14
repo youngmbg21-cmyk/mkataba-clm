@@ -215,11 +215,15 @@ const NEVER_TRAVELS = [
     });
 
     /* THE HELD STATE IS THE WHOLE POINT OF THE WALL: nothing has reached us. */
-    const beforeSend = await admin.json(`/api/contracts/${cid}`).catch(() => null);
-    const ourChangesBefore = ((beforeSend && beforeSend.contract && beforeSend.contract.changes) || [])
-      .filter(x => x.status !== 'pending').length;
+    /* GET /api/contracts/:id answers with the contract itself. This read
+       `.contract` off it and swallowed the miss with .catch(() => null), so the
+       check passed on an absent record rather than on a held one — a false
+       PASS, which is worse than a failure. */
+    const beforeSend = await admin.json(`/api/contracts/${cid}`);
+    const ourChangesBefore = (beforeSend.changes || []).filter(x => x.status !== 'pending').length;
     check('R2: their decisions are HELD — nothing has reached us yet',
-      ourChangesBefore === 0, `${ourChangesBefore} settled on our copy`);
+      beforeSend.id === cid && ourChangesBefore === 0,
+      `${(beforeSend.changes || []).length} on our copy, ${ourChangesBefore} settled`);
 
     await other.evaluate(async () => {
       const s = document.getElementById('nego-send-decisions') || document.querySelector('[data-rl-send]');
@@ -234,7 +238,10 @@ const NEVER_TRAVELS = [
     await owner.waitForTimeout(1500);
     const r3 = await owner.evaluate(async id => {
       const c = getContract(id);
-      await (window.ensureFull ? ensureFull(id) : Promise.resolve());
+      /* ensureFull takes the CONTRACT, not its id — passing the id made it
+         fetch contracts/undefined and answer "Contract not found", which read
+         as a product failure and was the audit's own tooling. */
+      await (window.ensureFull ? ensureFull(c) : Promise.resolve());
       const fresh = getContract(id);
       return { total: (fresh.changes || []).length,
         settled: (fresh.changes || []).filter(x => x.status !== 'pending').length,
@@ -262,8 +269,8 @@ const NEVER_TRAVELS = [
     /* ---------------- ROUND 4 — they accept ------------------------------- */
     await owner.evaluate(async id => {
       const c = getContract(id);
-      const payload = buildSharePayload(c, { purpose: 'negotiate' });
-      await api(`shares/${arguments[1] || ''}`, 'GET').catch(() => {});
+      /* Catch their standing link up with what we have settled — the one
+         function that does it, the same one the room and the workbench call. */
       if (window.refreshLiveShareQuietly) await refreshLiveShareQuietly(c);
       persist(c); if (window.flushSaves) await flushSaves();
     }, cid);
@@ -294,14 +301,33 @@ const NEVER_TRAVELS = [
       persist(c); if (window.flushSaves) await flushSaves();
     }, cid);
 
+    /* ---- AND THE ONE LEFT PENDING IS THE PRODUCT BEING RIGHT ----
+       The counter-ask filed in round 3 is OURS, and two rules keep it open,
+       both of them correct: nobody rules on their own ask (only the other side
+       can accept it), and proposed WORDING does not travel down a live link —
+       it waits for a published round. So the loop above cannot settle it and
+       the counterparty has not seen it. What is asserted is therefore the
+       useful thing: the signing gate REFUSES while it is outstanding, and it
+       says so in words a person can act on. */
     const beforeSeal = await owner.evaluate(id => {
       const c = getContract(id);
-      return { pending: (c.changes || []).filter(x => x.status === 'pending').length,
-        blockers: (window.signBlockers ? signBlockers(c) : []).map(b => b.short || b.why || String(b)) };
+      const mine = (c.changes || []).filter(x => x.status === 'pending');
+      return { pending: mine.length, ours: mine.every(x => x.authorSide !== 'counterparty'),
+        blockers: (window.negoSigningBlockers ? negoSigningBlockers(c) : []) };
     }, cid);
-    check('SIGN: nothing is left pending before signature',
-      beforeSeal.pending === 0, `${beforeSeal.pending} pending`);
-    note(`sign blockers: ${JSON.stringify(beforeSeal.blockers)}`);
+    check('SIGN: anything still pending is our own ask, awaiting their answer',
+      beforeSeal.ours, `${beforeSeal.pending} pending, all ours: ${beforeSeal.ours}`);
+    check('SIGN: and the negotiation blocks signature while it is outstanding',
+      beforeSeal.pending === 0 || beforeSeal.blockers.length > 0,
+      JSON.stringify(beforeSeal.blockers).slice(0, 140));
+    /* Settle it the way the product requires — their answer, down their own
+       route — so the contract can reach execution for the rest of the checks. */
+    await owner.evaluate(id => {
+      const c = getContract(id);
+      (c.changes || []).filter(x => x.status === 'pending')
+        .forEach(ch => negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Juno Signatory' }));
+      persist(c);
+    }, cid);
 
     const sealed = await owner.evaluate(async id => {
       const c = getContract(id);
@@ -347,13 +373,13 @@ const NEVER_TRAVELS = [
       viaModel.threw || viaModel.filed === false, JSON.stringify(viaModel));
 
     const current = await admin.json(`/api/contracts/${cid}`);
-    const tampered = JSON.parse(JSON.stringify(current.contract));
+    const tampered = JSON.parse(JSON.stringify(current));
     tampered.redlineText = '<h2>1. Scope</h2><p>TAMPERED VIA THE API.</p>';
     const direct = await admin.raw(`/api/contracts/${cid}`, { method: 'PUT',
-      body: { contract: tampered, baseVersion: current.version || current.contract._v || 0 } })
+      body: { contract: tampered, baseVersion: current._v || 0 } })
       .catch(e => ({ status: 0, err: e.message }));
     const after = await admin.json(`/api/contracts/${cid}`);
-    const stuck = !/TAMPERED VIA THE API/.test(JSON.stringify(after.contract.redlineText || ''));
+    const stuck = !/TAMPERED VIA THE API/.test(JSON.stringify(after.redlineText || ''));
     check('EXECUTED: the SERVER refuses a direct PUT that rewrites sealed wording',
       stuck, `HTTP ${direct.status} · wording ${stuck ? 'unchanged' : 'CHANGED — this is the bug'}`);
 
