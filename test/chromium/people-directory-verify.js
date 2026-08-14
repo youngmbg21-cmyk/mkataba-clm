@@ -190,6 +190,21 @@ const PAGE = () => {
       phone.screen === 'people' && phone.rows >= 4, `${phone.rows} rows`);
     check('with no folder on it there either',
       !['Procurement', 'value stream'].some(w => phone.words.includes(w)));
+
+    /* ---- AN ABSENCE READS THE SAME ON BOTH SHELLS ----
+       Somebody with no job title used to read as plain "Editor" here and as
+       "No job title on file" on the laptop. Measured on the real page, in both
+       shells, against the same person. */
+    const S = require('../../js/i18n.js').STRINGS.en;
+    const noTitle = await pp.evaluate(() => {
+      const row = [...document.querySelectorAll('[data-m-person]')]
+        .find(r => /Vera Reader/.test(r.textContent));
+      return row ? row.textContent.replace(/\s+/g, ' ').trim() : '';
+    });
+    check('the phone names a missing job title, in the laptop\'s own words',
+      noTitle.includes(S.dir_no_title), noTitle.slice(0, 80));
+    check('and the role still follows it rather than replacing it',
+      /Viewer/.test(noTitle), noTitle.slice(0, 80));
     const back = await pp.evaluate(VISIBLE, '[data-m-act="back"]');
     check('and a way back', back.ok, back.why);
     await pp.click('[data-m-act="back"]');

@@ -869,15 +869,27 @@ function mPeopleHtml(){
   const rows = people.map(u=>{
     const mail = String(u.email||'').trim();
     const ini = String(u.name||mail||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const sub = [u.title||'', (typeof roleName==='function') ? roleName(u.role) : (u.role||'')]
-      .filter(Boolean).join(' · ');
+    const role = (typeof roleName==='function') ? roleName(u.role) : (u.role||'');
+    /* ---- AN ABSENCE SAYS THE SAME THING ON BOTH SHELLS ----
+       The phone used to fold the title and the role into one line and fall back
+       to "No job title on file" only when BOTH were empty — which never
+       happens, because everybody has a role. So somebody with no title read as
+       plain "Editor" here and as "No job title on file" on the laptop: two
+       screens describing one person differently. The title half now carries its
+       own absence, in the same words and the same grey, and the role still
+       follows it. Same for the address, which the phone simply omitted. */
+    const title = u.title
+      ? mEsc(u.title)
+      : `<span class="dir-none">${mEsc(i18t('dir_no_title'))}</span>`;
     return `<div class="m-row" data-m-person="${mEsc(u.id||'')}">
       <span class="dir-av" style="margin-right:10px">${mEsc(ini)}</span>
       <span style="flex:1;min-width:0">
         <span class="m-row-name" style="font-weight:500">${mEsc(u.name||mail||'—')}${
           u.id&&u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500)">${mEsc(i18t('set_you'))}</span>`:''}</span>
-        <span class="m-row-sub">${mEsc(sub||i18t('dir_no_title'))}</span>
-        ${mail?`<span class="m-row-sub"><a href="mailto:${mEsc(mail)}" style="color:var(--color-accent-700)">${mEsc(mail)}</a></span>`:''}
+        <span class="m-row-sub">${title}${role?' · '+mEsc(role):''}</span>
+        <span class="m-row-sub">${mail
+          ? `<a href="mailto:${mEsc(mail)}" style="color:var(--color-accent-700)">${mEsc(mail)}</a>`
+          : `<span class="dir-none">${mEsc(i18t('dir_no_email'))}</span>`}</span>
       </span>
     </div>`;
   }).join('');

@@ -202,6 +202,31 @@ describe('f202 — every role', () => {
     assert.match(p.html, /dir_no_title/);
     assert.match(p.html, /dir_no_email/);
   });
+
+  test('AND THE PHONE SAYS THE SAME THING — an absence describes one person once', () => {
+    /* The phone folded the title and the role into one line and fell back to
+       "No job title on file" only when BOTH were empty — which never happens,
+       because everybody has a role. So somebody with no title read as plain
+       "Editor" there and as "No job title on file" on the laptop: two screens
+       describing one person differently. Reported off a screenshot. */
+    const m = read('js/mobile.js');
+    const fn = m.slice(m.indexOf('function mPeopleHtml'), m.indexOf('function mPeopleHtml') + 2000);
+    assert.match(fn, /dir_no_title/, 'the phone names a missing job title');
+    assert.match(fn, /dir_no_email/, 'and a missing address, which it used to omit entirely');
+    /* The role must still follow the title rather than replacing it — the fix
+       is not "drop the role", it is "the title carries its own absence". */
+    assert.match(fn, /\$\{title\}\$\{role\?' · '\+mEsc\(role\)/);
+    assert.ok(!/filter\(Boolean\)\.join\(' · '\)/.test(fn),
+      'the old fold is what let an absence vanish behind a role');
+  });
+
+  test('and it wears the same grey as the laptop, from the same class', () => {
+    const m = read('js/mobile.js');
+    const fn = m.slice(m.indexOf('function mPeopleHtml'), m.indexOf('function mPeopleHtml') + 2000);
+    const d = read('js/views/directory.js');
+    assert.match(fn, /class="dir-none"/);
+    assert.match(d, /class="dir-none"/, 'one class, defined once, so the two cannot drift in colour either');
+  });
 });
 
 /* ============================================================
