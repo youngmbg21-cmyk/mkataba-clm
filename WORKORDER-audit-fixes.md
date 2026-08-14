@@ -1,6 +1,6 @@
 # WORKORDER — The audit fixes
 
-### Findings 1–12 from AUDIT-LEGAL-REPORT.md, in five passes
+### Findings 1–12 and the five decisions, in six passes
 
 Written 14 Aug 2026, owner-asked. The audit is done and every finding below was
 reproduced against a running copy of HaTi before it was written down. This is the
@@ -37,14 +37,21 @@ before you start and are not yours: `live-verify` at 38/40 and
 
 ## How this is split, and why
 
-Five passes. Each is one coherent piece of work with one place to think, and each
-ends with a commit that could ship on its own. **Do them in order** — Pass 1
-closes the hole that makes several others reachable.
+Six passes. Each is one coherent piece of work with one place to think, and each
+ends with a commit that could ship on its own. **Do passes 1–5 in order** — Pass 1
+closes the hole that makes several others reachable. **Pass 6 can be done at any
+point**, including first: it is small, it touches different files, and none of it
+depends on the rest.
 
 Findings are grouped by *where the thinking is*, not by severity, because two
 findings in the same function are one careful read and two findings in different
 files are two. The severity ordering from the report survives inside that: Pass 1
 carries both Criticals.
+
+Passes 1–5 are **defects** — things that are wrong. Pass 6 is **decisions** that
+have now been taken: the behaviour was deliberate, it was argued on legal risk,
+and the owner has ruled. Both kinds are work; only the second kind needed
+somebody's permission first.
 
 ---
 
@@ -216,22 +223,112 @@ fits it.
 
 ---
 
+## PASS 6 — The five decisions, now answered
+### From the report's *"Worth revisiting"* section · owner-ruled 14 Aug 2026
+
+These were never defects. Each was a deliberate, documented choice, put to the
+owner as legal risk rather than as a bug. The owner has ruled on all five: **four
+change, one is corrected on paper rather than in code.** Four of the five are
+small. The reasoning is recorded here because in six months the code will look
+arbitrary without it.
+
+**6a · Only a signed amendment moves the live end date. — CHANGE**
+
+Today, typing a new end date into a draft amendment moves the master agreement's
+live end date and its renewal reminder immediately, before anybody has signed
+anything. An unsigned amendment has no legal effect, and somebody who reads that
+date and decides not to serve a renewal notice has made a costly decision on a
+term that does not yet exist.
+
+**Do not simply delete the behaviour** — the reason it exists is real. Show both:
+*"ends 30 June 2027 · a draft amendment proposes 31 December 2029."* The live
+date and the reminder follow only a **signed** amendment; the proposal is stated
+beside it. That keeps what was useful (you can see the extension coming) and
+removes the danger (nothing acts on it).
+
+Where it lands: the family's term resolution, and the family card, the register
+and the renewal reminder that read it. **Check every one of those** — the whole
+point of the family model is that they all read one answer, so a fix that lands
+in three of the four is worse than none. Two existing tests assert today's
+behaviour and will need their claims reversed in place, with the reasoning
+written down, the way this codebase does it.
+
+**6b · Colleagues' names may travel — the RULEBOOK is corrected, not the code. — DOCUMENT**
+
+The rulebook says exactly one thing about our side crosses to the counterparty:
+the negotiation lead's name. The code does more — every change carries the name of
+the colleague who wrote it, and so do version labels and shared comments.
+
+**The code is right and stays.** Drafters are normally named, the other side
+generally knows who they are dealing with, and the author's name is inside the
+change's fingerprint, so removing it there is not a free edit. What is wrong is
+the rulebook, and a rule that misdescribes the code is worse than no rule at all.
+
+So: correct CLAUDE.md to say what actually crosses — the lead, plus the author of
+each change, plus version authors and shared-comment authors — and keep the
+protections that are genuinely there (the internal review, and who *ruled* on a
+change, neither of which travels). **Costs nothing but a paragraph**, and if the
+owner later decides names should not travel, this is the accurate starting point
+that decision needs.
+
+**6c · Signature images and email addresses wait for execution. — CHANGE**
+
+Once anyone on our side has signed, their name, job title, email address and the
+picture of their signature travel to the counterparty on every link — including a
+negotiation link, to a party who has signed nothing.
+
+The reason a signature is shown at all is sound and stays: they need to know the
+deal is waiting on them. **The name and the date say that.** The email address
+and the image do not, and a held signature image sitting on somebody else's link
+is the raw material for forgery.
+
+So: send name, party and date always; send the email address and the image
+**only once the contract is executed**. This is the clearest of the five and the
+smallest — it is a condition on two fields in the one place the counterparty's
+copy is assembled.
+
+**6d · "Seal valid" says when the seal is the weak kind. — CHANGE**
+
+When a contract is sealed in a browser that cannot reach proper cryptography,
+HaTi correctly falls back to a much weaker fingerprint so that sealing still
+works. The verify button then reports "Seal valid" with no mention of it.
+
+Two other screens in the product already say so, with wording you can borrow.
+Add the same caveat here. **The cheapest fix on this list — one sentence** — and
+it stops the product overstating its own proof.
+
+**6e · The document freezes at the FIRST signature. — CHANGE, but measure first**
+
+On a contract with more than one signer, wording can change after the first
+person signs and before the last one does, so the first signer's mark ends up on
+wording they never saw.
+
+The principle is not in doubt: the paper should not move under somebody who has
+already signed it. **But before building it, count how many real agreements in
+this workspace have more than one signer on a side.** If it is rare, this sits at
+the bottom of the pass; if it is common, it moves to the top of it. Say the number
+in the summary either way — it is the fact that decides the priority, and nobody
+has looked it up.
+
+When built: the freeze belongs at the first signature, in the same place the
+negotiation already refuses to touch an executed contract — extend that condition
+rather than adding a second one beside it.
+
+**Done when:** a draft amendment no longer moves the live date but is stated
+beside it on every surface that reads the term; CLAUDE.md describes what actually
+crosses to the counterparty; a counterparty's copy carries no signature image or
+internal email address before execution; the verify button names a weak seal; and
+the multi-signer question is answered with a number.
+
+---
+
 ## What is NOT in this work order
 
-The five items in the report's *"Worth revisiting"* section are decisions, not
-defects, and each is recorded as deliberate. They are being answered separately
-and will arrive as their own work order. **Do not change any of them here**, even
-if a fix looks like it belongs beside one of these passes:
-
-unsigned amendments moving the live end date · colleagues' names travelling with
-each change · signature images and email addresses crossing before execution ·
-"Seal valid" said over a weak seal · wording moving between the first signature
-and the last.
-
-Also out of scope, and listed in the report's appendix if somebody wants them
-later: two unscoped low-value write routes, an unthrottled password-reset, a
-missing password gate on one template route, and a corrupt stored row skipping
-its guards.
+Listed in the report's appendix if somebody wants them later: two unscoped
+low-value write routes, an unthrottled password-reset, a missing password gate on
+one template route, and a corrupt stored row skipping its guards. None is
+reachable by an outsider and none was reproduced as harmful; they are hardening,
+not repair.
 
 ---
 
@@ -243,7 +340,10 @@ its guards.
 2. **Test where the user looks**, not where you edited.
 3. Run the four audit scripts and `npm test`.
 4. Update CLAUDE.md's matching section — that is encouraged and needs no
-   permission, but say in the summary what changed.
+   permission, but say in the summary what changed. **For Pass 6 this is not
+   optional**: every one of those five is a documented decision being reversed or
+   restated, and a rulebook still carrying the old reasoning is how the next
+   session puts the behaviour back.
 5. Write the summary in **plain English for a non-developer**: what you fixed,
    whether it is fixed everywhere, anything left alone and why, anything you were
    unsure about. No file paths.
