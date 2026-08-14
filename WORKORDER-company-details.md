@@ -3,15 +3,8 @@
 **Raised by:** Young, 2026-08-14, going through the overnight list: "C, and B
 now".
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — nothing built. Covers both halves: the small pointer fix
-(B) and the move (C).
-
-**Note on the working tree, 2026-08-14:** B was started and then stopped on
-Young's instruction ("do not code"). An edit to the Company & market panel and
-its two new dictionary entries may still be sitting uncommitted and unverified
-— check `git status` before starting, and either finish it properly or discard
-it. Do not assume it is there, and do not assume it works: it was never run
-against the full suite.
+**Status:** **B is BUILT** (2026-08-14, full suite 3451/3451 and
+settings-tabs-verify 48/48). **C is OPEN** — nothing of the move is built.
 
 ---
 
@@ -28,14 +21,16 @@ get printed on paper.
 
 ---
 
-## B — THE SMALL FIX, FIRST (half an hour, no behaviour change)
+## B — THE SMALL FIX (BUILT 2026-08-14, no behaviour change)
 
 The Company & market panel states the legal name and registration number over
 a button reading **"Edit design"**. Nothing says the fields are behind it, so
 an admin looking for the registered name has no reason to press it and would
 reasonably conclude there is nowhere to enter one.
 
-Three changes, none of which move a field:
+Three changes, none of which moves a field — signposting only. The fields are
+still edited in the same place, saved through the same route, with the same
+password protection:
 
 - the registered **address** joins the two facts already stated;
 - the button reads **"Edit company details & design"** rather than "Edit
@@ -44,8 +39,8 @@ Three changes, none of which move a field:
   your password.
 
 Both languages. This makes the current arrangement findable; C is what fixes
-it. **B is worth doing even if C is never built**, and it is worth doing
-first, because it is the whole benefit of C for a fraction of the risk.
+it. **B was worth doing even if C is never built** — it is most of the benefit
+of C for a fraction of the risk, which is why it went first.
 
 ---
 

@@ -1145,13 +1145,26 @@ const SET_PANELS={
           <div id="set-market-facts" style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.6">${settingsMarketFactsHtml()}</div>
         </div>
       </section>
+      ${''/* ---- THE DOOR HAS TO SAY WHAT IS BEHIND IT ----
+             The legal name, the registration number and the registered address
+             are edited in the COMPANY DESIGN step, in four unlabelled boxes
+             under the logo upload and the accent colour. That is a poor home
+             for them — a legal name is not a design decision — and moving them
+             is its own job (WORKORDER-company-details.md). What is wrong TODAY
+             is that this panel stated the facts over a button reading "Edit
+             design", so an admin looking for the registered name had no reason
+             to press it and would reasonably conclude there was nowhere to
+             enter one. The button now names what it opens, and the line under
+             it says where the fields live. */}
       <section class="st-sec">
         <h3 class="st-sec-h">${esc(i18t('st_p_company'))}</h3>
         <div class="st-facts">
           <div><span>${esc(i18t('st_company_name'))}</span><b>${esc((ob&&ob.companyName)||(getOrg()&&getOrg().name)||i18t('st_not_set'))}</b></div>
           <div><span>${esc(i18t('st_reg_number'))}</span><b>${esc((ob&&ob.registrationNumber)||i18t('st_not_set'))}</b></div>
+          <div><span>${esc(i18t('st_company_address'))}</span><b>${esc((ob&&ob.address)||i18t('st_not_set'))}</b></div>
         </div>
-        <button id="st-company-design" style="margin-top:9px;${ST_BTN2}">${i18t('set_edit_design')}</button>
+        <button id="st-company-design" style="margin-top:9px;${ST_BTN2}">${i18t('st_company_details_btn')}</button>
+        <span class="st-note">${esc(i18t('st_company_details_note'))}</span>
       </section>`;
     },
     wire(){

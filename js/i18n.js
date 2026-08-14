@@ -3640,6 +3640,9 @@ const STRINGS = {
     rv_phone_desktop: 'Clearing and holding changes is done on a computer.',
     rv_phone_held_one: '{n} change is held back and will not be sent.',
     rv_phone_held_other: '{n} changes are held back and will not be sent.',
+    st_company_address: 'Registered address',
+    st_company_details_btn: 'Edit company details & design',
+    st_company_details_note: 'The legal name, registration number and registered address are entered on the company design step — they are printed on your paper, so they are kept with it. Changing them asks for your password.',
     /* ---- which folders may this person sign in ---- */
     sf_title: 'Where they may sign',
     sf_rule_on: 'Refuse a signature outside the folders somebody may sign in',
@@ -7314,6 +7317,9 @@ const STRINGS = {
     rv_phone_desktop: 'Att släppa och hålla kvar ändringar görs på dator.',
     rv_phone_held_one: '{n} ändring hålls kvar och skickas inte.',
     rv_phone_held_other: '{n} ändringar hålls kvar och skickas inte.',
+    st_company_address: 'Registrerad adress',
+    st_company_details_btn: 'Redigera företagsuppgifter och utformning',
+    st_company_details_note: 'Det juridiska namnet, organisationsnumret och den registrerade adressen anges i steget för företagets utformning — de trycks på era dokument, så de hålls samman med dem. Att ändra dem kräver ditt lösenord.',
     /* ---- i vilka mappar den här personen får underteckna ---- */
     sf_title: 'Var de får underteckna',
     sf_rule_on: 'Vägra en underskrift utanför de mappar någon får underteckna i',
