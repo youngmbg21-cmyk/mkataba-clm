@@ -69,8 +69,10 @@ after(async () => { await h.stop(); });
    ============================================================ */
 describe('f202 — a restricted member sees every colleague', () => {
   let boot, page;
+  let adminBoot = null;
   before(async () => {
     boot = await W.restricted.json('/api/bootstrap');
+    adminBoot = await W.admin.json('/api/bootstrap');
     page = stage(boot.users, boot.me);
   });
 
@@ -117,23 +119,67 @@ describe('f202 — a restricted member sees every colleague', () => {
    ============================================================ */
 describe('f202 — the page carries nothing that was closed on purpose', () => {
   let boot, page;
+  let adminBoot = null;
   before(async () => {
     boot = await W.restricted.json('/api/bootstrap');
+    adminBoot = await W.admin.json('/api/bootstrap');
     page = stage(boot.users, boot.me);
   });
 
-  test('THE DATA IS NOT THERE: folder access is absent from every colleague\'s record', () => {
+  test('THE DATA IS NOT THERE: no admin-only fact about a colleague is sent', () => {
     /* The M-3 fix, done in two halves — stripped from the settings blob, then
        stripped from the per-user records. This is the FIRST half of the proof:
-       whatever the page draws, it cannot draw what it was never given. */
+       whatever the page draws, it cannot draw what it was never given.
+
+       WIDENED 14 Aug 2026, because it was the narrow half that let a real leak
+       through. This test asserted folderAccess and nothing else, and checked the
+       other four admin-only facts by GREPPING THE RENDERER — which proves the
+       page does not draw them and says nothing about whether the browser was
+       handed them. It was: every signed-in person, Viewers included, received
+       each colleague's signing limit, review-checked flag, standing reviewer and
+       overseer. The audit found it by reading a real Viewer's bootstrap, which
+       is what this now does.
+
+       READ OFF THE SERVER'S ANSWER, field by field, so the next per-person
+       setting added to publicUser without a thought fails here rather than
+       shipping. */
     const mine = boot.users.find(u => u.id === boot.me.id);
     assert.deepEqual(Array.from(mine.folderAccess || []), ['proc'], 'they get their OWN scope');
     const others = boot.users.filter(u => u.id !== boot.me.id);
     assert.ok(others.length >= 3);
+    const ADMIN_ONLY = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'];
     for (const u of others)
-      assert.equal(u.folderAccess, undefined, `${u.name}'s scope is not sent`);
+      for (const k of ADMIN_ONLY)
+        assert.equal(u[k], undefined,
+          `${u.name}'s ${k} is not this person's to read — it is an admin-only fact`);
     assert.equal(((boot.settings || {}).folderAccess), undefined,
       'and the workspace-wide map is not in their settings blob either');
+    /* signFolders.by is the same kind of map — who may sign in which stream,
+       for the whole workspace. The SWITCH may travel; the MAP may not. */
+    assert.equal((((boot.settings || {}).signFolders) || {}).by, undefined,
+      'nor the workspace-wide signing-rights map');
+  });
+
+  test('and the same is true for a plain Viewer, who has the least business knowing', async () => {
+    /* The restricted member above is an Editor. A Viewer reads and nothing
+       else, and was handed exactly the same facts. */
+    const vb = await W.novalues.json('/api/bootstrap');
+    const others = (vb.users || []).filter(u => u.id !== vb.me.id);
+    assert.ok(others.length >= 3);
+    for (const u of others)
+      for (const k of ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'])
+        assert.equal(u[k], undefined, `a colleague's ${k} reached a reader`);
+  });
+
+  test('an ADMIN still gets all of it — this is a wall, not a deletion', () => {
+    /* The facts have to reach the one screen that edits them, or Settings →
+       People cannot draw the roster it exists to manage. */
+    const ab = adminBoot;
+    const others = (ab.users || []).filter(u => u.id !== ab.me.id);
+    assert.ok(others.length >= 3);
+    assert.ok(others.some(u => 'signCap' in u), 'the admin is sent signing limits');
+    assert.ok(others.some(u => 'overseerId' in u), 'and overseers');
+    assert.ok(others.some(u => 'folderAccess' in u), 'and folder access');
   });
 
   test('and GET /api/settings does not exist for them at all', async () => {

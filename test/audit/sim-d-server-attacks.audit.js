@@ -275,10 +275,24 @@ const clone = o => JSON.parse(JSON.stringify(o));
     c.status = 'Under Review';
     c.changes = [{ id: 'CHG-901', clauseId: 'cl-1', clauseLabel: 'Clause 1', changeType: 'modify',
       status: 'pending', summary: 'held', oldText: 'a', newText: 'HELD-BY-REVIEW-WORDING',
-      author: 'Attacker Editor', authorSide: 'owner', createdAt: new Date().toISOString(),
-      review: { verdict: 'held', by: 'Restricted Legal', at: new Date().toISOString() } }];
-    c.review = [{ id: 'REV-1', status: 'open', reviewer: 'Restricted Legal',
-      requestedBy: 'Attacker Editor', changeIds: ['CHG-901'], at: new Date().toISOString() }];
+      author: 'Attacker Editor', authorSide: 'owner', createdAt: new Date().toISOString() }];
+    /* NO VERDICT ON THE CHANGE. The first two attempts seeded one, and the save
+       route REFUSED the seed outright (403) — a verdict may only be written by
+       the change's own named reviewer, which is the server working exactly as
+       it should. So the stored contract never carried the held change and the
+       wall had nothing to strip, which read as "the payload was let through".
+       This arms the OTHER half of rvWithheldIds and the more common one: a
+       change with no verdict yet, sitting inside an OPEN review. Out for
+       review is in flight, and in flight does not travel. */
+    /* THE REAL SHAPE: reviews live at c.review.requests, and the reviewer and
+       requester are objects. The first version of this block wrote c.review as a
+       bare array, so rvOpenList found no open review and the wall correctly did
+       nothing — which read as "the payload was let through" and was really "the
+       fixture never armed the rule". That false positive is why the audit
+       reported H2 as unproven rather than as a finding. */
+    c.review = { requests: [{ id: 'REV-1', status: 'open',
+      reviewer: { name: 'Restricted Legal' }, by: 'Attacker Editor',
+      changeIds: ['CHG-901'], at: new Date().toISOString() }] };
     await put(admin, 'MK-A2', c, cur.version);
 
     const sh = await admin.json('/api/shares', { method: 'POST', body: {

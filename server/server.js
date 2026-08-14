@@ -229,6 +229,11 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
   reviewChecked: u.review_checked == null ? null : !!u.review_checked,
   reviewerId: u.reviewer_id || null,
   overseerId: u.overseer_id || null });
+/* The facts on that record that are ONE PERSON'S OWN and an admin's business,
+   and nobody else's. Stripped from every colleague's copy at the bootstrap —
+   see the note there. A new per-person setting belongs on this list the day it
+   is added; f202 fails if one of these ever reaches a non-admin again. */
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -1879,7 +1884,20 @@ app.get('/api/bootstrap', auth, (req, res) => {
      them on `me.folderAccess`), and it quietly discloses the workspace's access
      structure. Strip it for non-admins; admins still get it to edit. */
   const rawSettings = getSetting('appSettings') || {};
-  const settings = req.user.role === 'admin' ? rawSettings : (() => { const s = { ...rawSettings }; delete s.folderAccess; return s; })();
+  /* `signFolders.by` is the same kind of map as folderAccess — WHO MAY SIGN IN
+     WHICH STREAM, for the whole workspace — and it rode this blob untouched
+     while folderAccess beside it was stripped (audit finding 5). The SWITCH is
+     an ordinary workspace setting every screen may read; the MAP is not, which
+     is the same split PUT /api/settings already keeps when it preserves the
+     stored map through a save that does not carry it. */
+  const settings = req.user.role === 'admin' ? rawSettings : (() => {
+    const s = { ...rawSettings };
+    delete s.folderAccess;
+    if (s.signFolders && typeof s.signFolders === 'object') {
+      s.signFolders = { ...s.signFolders }; delete s.signFolders.by;
+    }
+    return s;
+  })();
   res.json({
     org: getSetting('org'),
     me: publicUser(req.user),
@@ -1887,9 +1905,22 @@ app.get('/api/bootstrap', auth, (req, res) => {
        achieved nothing while this list handed the same map back one record at a
        time — every member's scope, to every signed-in member. A non-admin gets
        their own scope on `me` and nobody else's here. */
+    /* ---- WHAT ONE MEMBER MAY KNOW ABOUT ANOTHER (audit finding 5, 14 Aug 2026) ----
+       Only folderAccess was stripped, and the other four admin-only facts were
+       handed to everybody — including Viewers. A signing limit, whether
+       somebody's work is checked, who their standing reviewer is and who
+       oversees them are all management decisions ABOUT AN INDIVIDUAL, and this
+       rulebook says they are admin-only. The People directory was built on the
+       understanding that they do not travel.
+
+       ONE LIST, so the next per-person setting is added in one place rather
+       than being remembered in two. `canViewValues` stays: it is not a decision
+       about a person's standing but a fact the drawing needs — a colleague's
+       row has to know whether to print money. */
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(u => {
       const p = publicUser(u);
-      if (req.user.role !== 'admin' && u.id !== req.user.id) delete p.folderAccess;
+      if (req.user.role !== 'admin' && u.id !== req.user.id)
+        for (const k of ADMIN_ONLY_USER_FIELDS) delete p[k];
       return p;
     }),
     uid: getSetting('uid') || 100,
@@ -3119,7 +3150,13 @@ app.get('/api/ai/usage', auth, (req, res) => {
 
 /* Today's spend, broken down by feature — what an admin looks at to see what is
    actually expensive. Survives a restart because it is a SQLite table. */
-app.get('/api/ai/spend', auth, (req, res) => {
+/* ADMIN-ONLY, to match where it is drawn (audit finding 12, 14 Aug 2026). The
+   sidebar's running Copilot figure is deliberately shown to everybody and comes
+   from /api/ai/usage, which is unchanged. THIS is the full breakdown — by
+   feature, by person, against the workspace ceiling — and it lives on the
+   admin-only Copilot engine panel. A route more open than the page it feeds is
+   a permission that exists only in the pixels. */
+app.get('/api/ai/spend', auth, admin, (req, res) => {
   const day = typeof req.query.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.day) ? req.query.day : aiToday();
   const rows = aiSpendRows(day);
   res.json({
