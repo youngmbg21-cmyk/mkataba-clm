@@ -43,6 +43,7 @@ import './views/portfolio.js';    // the universal frame: six panels every busin
 import './views/intelligence.js';
 import './ai.js';
 import './views/settings.js';
+import './views/directory.js';    // People: the roster, read-only, for every role
 import './views/queue.js';
 import './views/advice.js';
 import './views/adviceportal.js';
@@ -126,6 +127,7 @@ function commandMeta(view){
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
     case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
+    case 'directory': return [i18t('nav_people'), i18t('pg_people_sub')];
     case 'folder': {
       /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
          the sentence around it turns. */
@@ -345,7 +347,7 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Our standards',
-  team:'Team & settings', workspace:'the contract workspace',
+  team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
@@ -439,6 +441,7 @@ function setView(view){
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
+    else if(view==='directory') renderDirectory();
     else if(view==='redline') renderRedline();
     else renderWorkspace();
   }catch(e){

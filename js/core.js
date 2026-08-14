@@ -1392,7 +1392,7 @@ function startApp(){
      honest empty state when their contract or template is not loaded yet, so
      resuming there is safe — and losing a refresh mid-negotiation to the
      dashboard was the exact complaint this list caused. */
-  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','migration','redline'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','templatelib','playbook','workspace','team','directory','migration','redline'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */

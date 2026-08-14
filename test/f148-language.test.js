@@ -57,6 +57,7 @@ const SAME_IN_BOTH = new Set([
   /* Settings & Rules redesign (Aug 2026) — four words that are genuinely the
      same in both languages, not four forgotten translations. */
   'st_people_count_one',  // "1 person" is written the same way in Swedish
+  'dir_count_one',        // ditto — the staff directory's own singular
   'st_p_copilot',         // the product name
   'st_b_env_server',      // 'Server' is the same word in Swedish
   'st_b_env_version',     // ditto — 'Version'

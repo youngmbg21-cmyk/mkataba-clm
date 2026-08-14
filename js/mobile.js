@@ -68,12 +68,13 @@ const M_SCREEN_FOR_VIEW = {
   dashboard:'home', register:'contracts', folder:'contracts', workspace:'contract',
   redline:'redline', doc:'contract', reports:'more', intel:'more', calendar:'more',
   templates:'more', templatelib:'more', playbook:'more', team:'more', advice:'more',
-  migration:'more', pipeline:'more', queue:'more',
+  migration:'more', pipeline:'more', queue:'more', directory:'people',
 };
 const M_VIEW_FOR_SCREEN = {
   home:'dashboard', contracts:'register', contract:'workspace', redline:'redline',
   negotiations:'redline',
   approvals:'dashboard', portfolio:'reports', more:'dashboard', handoff:'dashboard',
+  people:'directory',
 };
 
 /* --------------------------------------------------------------- THE MAP ---
@@ -820,9 +821,16 @@ function mTabsHtml(){
 
 /* --------------------------------------------------------------- SCREENS ---*/
 
-/* MORE — every door the phone does not open itself. */
+/* MORE — every door the phone does not open itself, and the one it does.
+   PEOPLE IS FIRST AND IT IS NOT A HANDOFF. Everything else in this list ends
+   at "open on a computer", because the work behind it is desk work. A staff
+   directory is not: it is four facts a row, it is exactly what you want on a
+   phone when you are trying to reach somebody, and the phone already holds the
+   roster. So it gets its own screen and its row carries a › rather than the
+   computer word — a row that promises a page and delivers a refusal is the
+   fault this whole list was built to avoid. */
 function mMoreHtml(){
-  const rows = M_DESK.map(d=>`
+  const desk = M_DESK.map(d=>`
     <button class="m-row" data-m-desk="${d.view}">
       <span style="flex:1;min-width:0">
         <span class="m-row-name" style="font-weight:500">${mEsc(d.label)}</span>
@@ -830,14 +838,59 @@ function mMoreHtml(){
       </span>
       <span style="flex:none;font-size:14px;color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>`).join('');
+  const people = `
+    <button class="m-row" data-m-go="people">
+      <span style="flex:1;min-width:0">
+        <span class="m-row-name" style="font-weight:500">${mEsc(i18t('nav_people'))}</span>
+        <span class="m-row-sub">${mEsc(i18t('pg_people_sub'))}</span>
+      </span>
+      <span style="flex:none;font-size:16px;color:var(--color-neutral-500)">›</span>
+    </button>`;
   return `
     <div class="m-pagehead">
       <div class="m-title">${i18t('m_more')}</div>
       <div class="m-sub">${i18t('m_rest_of_hati')}</div>
     </div>
     <div class="m-scroll">
-      <div class="m-card m-list" style="margin:16px">${rows}</div>
+      <div class="m-card m-list" style="margin:16px">${people}${desk}</div>
       <div class="m-note" style="margin:0 16px 24px">${i18t('m_nothing_missing')}</div>
+    </div>`;
+}
+
+/* PEOPLE — the same roster the laptop draws, in the phone's own row shape.
+   It DECIDES NOTHING of its own: dirPeople is the desktop's ordering, so the
+   two shells cannot disagree about who is on the list or in what order —
+   exactly as Contracts and Negotiations already work. What differs is the row.
+   Nothing here can carry folder access, a signing limit or a review flag,
+   because none of it is in a non-admin's browser at all. */
+function mPeopleHtml(){
+  const me = (typeof currentUser==='function' ? currentUser() : null) || {};
+  const people = (typeof dirPeople==='function') ? dirPeople() : [];
+  const rows = people.map(u=>{
+    const mail = String(u.email||'').trim();
+    const ini = String(u.name||mail||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const sub = [u.title||'', (typeof roleName==='function') ? roleName(u.role) : (u.role||'')]
+      .filter(Boolean).join(' · ');
+    return `<div class="m-row" data-m-person="${mEsc(u.id||'')}">
+      <span class="dir-av" style="margin-right:10px">${mEsc(ini)}</span>
+      <span style="flex:1;min-width:0">
+        <span class="m-row-name" style="font-weight:500">${mEsc(u.name||mail||'—')}${
+          u.id&&u.id===me.id?` <span style="font-weight:400;color:var(--color-neutral-500)">${mEsc(i18t('set_you'))}</span>`:''}</span>
+        <span class="m-row-sub">${mEsc(sub||i18t('dir_no_title'))}</span>
+        ${mail?`<span class="m-row-sub"><a href="mailto:${mEsc(mail)}" style="color:var(--color-accent-700)">${mEsc(mail)}</a></span>`:''}
+      </span>
+    </div>`;
+  }).join('');
+  return `
+    <div class="m-pagehead" style="display:flex;align-items:center;gap:4px;padding:8px 8px">
+      <button class="m-head-btn" data-m-act="back" aria-label="${i18t('m_back')}" style="color:var(--color-accent-700)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      </button>
+      <div style="font-size:19px;font-weight:600;font-family:var(--font-heading,inherit)">${i18t('nav_people')}</div>
+    </div>
+    <div class="m-scroll">
+      <div class="m-card m-list" style="margin:16px">${rows||`<div class="m-row"><span class="m-row-sub">${mEsc(i18t('dir_empty'))}</span></div>`}</div>
+      <div class="m-note" style="margin:0 16px 24px">${mEsc(i18t('dir_note'))}</div>
     </div>`;
 }
 
@@ -917,6 +970,7 @@ function mRender(){
   else if(s.screen==='approvals') body = mApprovalsHtml();
   else if(s.screen==='portfolio') body = mPortfolioHtml();
   else if(s.screen==='more')      body = mMoreHtml();
+  else if(s.screen==='people')    body = mPeopleHtml();
   else if(s.screen==='handoff')   body = mHandoffHtml();
   /* ---- THE NEGOTIATIONS SCREEN IS PHONE-SHAPED NOW ----
      It used to be the desktop's own builder drawn into this screen unchanged,
@@ -1007,6 +1061,10 @@ function mWire(){
   root.querySelectorAll('[data-m-desk]').forEach(b=>b.addEventListener('click',()=>{
     mGo('handoff',{ deskView:b.getAttribute('data-m-desk') });
   }));
+  /* A row on More that opens a REAL phone screen rather than a handoff. */
+  root.querySelectorAll('[data-m-go]').forEach(b=>b.addEventListener('click',()=>{
+    mGo(b.getAttribute('data-m-go'));
+  }));
   /* The review notice's clear. Session-only and shared with the desk — see
      reviewClearBanner. A refresh brings it back, which is the point. */
   root.querySelectorAll('[data-m-rv-clear]').forEach(b=>b.addEventListener('click',()=>{
@@ -1092,6 +1150,9 @@ function mWire(){
 function mBack(){
   const s = mS();
   if(s.screen==='handoff'){ mGo('more'); return; }
+  /* People is reached from More and goes back to it — the same way a handoff
+     does, because it is the same door. */
+  if(s.screen==='people'){ mGo('more'); return; }
   if(s.screen==='portfolio'){ mGo('home'); return; }
   if(s.screen==='contract'){ mGo('contracts'); return; }
   mGo('home');

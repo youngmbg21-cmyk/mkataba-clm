@@ -3,8 +3,26 @@
 **Raised by:** Young, 2026-08-14, reviewing what the admin-only settings page
 closed off: "add B to the list".
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — written, not built. Low priority; nobody has asked for it
-in anger.
+**Status:** CLOSED — built 14 Aug 2026 on Young's instruction ("complete the
+rest of the work orders autonomously"), taking all three decisions as
+recommended: it shows email addresses (D-1), it says who is an admin (D-2),
+and a Viewer sees it (D-3).
+
+One thing was built slightly larger than the order asked. It said "Phone: the
+same list, in the phone's own row shape, under More" — and More is the list of
+things the phone does NOT draw, every row of which ends at "open on a
+computer". A staff directory is not desk work: it is four facts a row and it is
+exactly what you want on a phone when you are trying to reach somebody. So its
+row on More opens a REAL phone screen and carries a › rather than the computer
+word. It decides nothing of its own — `dirPeople` is the desktop's own
+ordering, so the two shells cannot disagree about the list.
+
+Proof: f202 (25), people-directory-verify (25, browser — including the
+ABSENCE as visible pixels on a real restricted member's page, and on a real
+Viewer's), full suite 3582/3582, phone-verify 59/59.
+
+The workspace RULES as a read-only page (option C) was NOT built, as this
+order says. Every rule already explains itself where it bites.
 
 ---
 
