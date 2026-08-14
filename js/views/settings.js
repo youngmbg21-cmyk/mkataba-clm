@@ -2053,6 +2053,18 @@ function stEngineBodyHtml(){
       <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin:6px 0 4px">${i18t('set_today_dash')}</div>
       <div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
       <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
+      ${''/* ---- AND THE SAME MONEY BY PERSON ----
+             It is here, under the by-feature breakdown, because this is where
+             the money already lives — and NOT on the People tab, where a
+             per-person cost column would turn a list about permissions into a
+             league table. That is a different product decision from showing an
+             admin where the money went.
+
+             NOTHING IS REFUSED BY IT. Phase 1 shows the numbers; a cap
+             designed before anybody has seen them is a cap set to the wrong
+             figure. The note says what the figure IS, because somebody will
+             read it as a performance measure otherwise. */}
+      <div id="ai-spend-people" style="margin-bottom:10px"></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
         ${stLimitField('ai-daily-spend',i18t('set_lim_daily_spend'),i18t('set_lim_daily_spend_sub'),0)}
         ${stLimitField('ai-estimate-confirm',i18t('set_lim_confirm'),i18t('set_lim_confirm_sub'),0)}
@@ -2163,6 +2175,32 @@ function stWireEngine(){
             <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
           </div>`).join('')}</div>`
           :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${i18t('set_no_spend')}</div>`;
+      }
+      const pHost=document.getElementById('ai-spend-people');
+      if(pHost){
+        const people=Array.isArray(spend.byPerson)?spend.byPerson:[];
+        const un=Number(spend.unattributed||0);
+        pHost.innerHTML=`
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 4px">${
+            esc(i18t('set_spend_people'))}</div>
+          ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
+            ${people.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:11px">
+              <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(p.name||'—')}${
+                p.gone?` <span style="color:var(--color-neutral-500);font-size:10px">${esc(i18t('set_spend_left'))}</span>`:''}</span>
+              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(p.requests||0).toLocaleString(jxLocale())} req</span>
+              <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(p.cost||0).toFixed(4)}</span>
+            </div>`).join('')}</div>`
+          :`<div style="font-size:10.5px;color:var(--color-neutral-500)">${esc(i18t('set_spend_people_none'))}</div>`}
+          ${''/* THE GAP IS A FIGURE, NOT A DISCOVERY. Anything running outside
+                 a signed-in request counts toward the workspace total and
+                 against nobody, so the two lists need not agree — and an admin
+                 must not have to subtract to find that out. Drawn only when
+                 there IS a gap; an always-on "$0.0000 not attributed" is
+                 furniture. */}
+          ${un>0.000001?`<div style="font-size:10.5px;color:var(--st-amber-fg);margin-top:4px">${
+            esc(i18t('set_spend_unattributed',{amount:'$'+un.toFixed(4)}))}</div>`:''}
+          <div style="font-size:10px;color:var(--color-neutral-500);line-height:1.5;margin-top:5px">${
+            esc(i18t('set_spend_people_note'))}</div>`;
       }
       const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
       fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);

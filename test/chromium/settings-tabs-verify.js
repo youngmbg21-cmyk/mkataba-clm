@@ -398,6 +398,34 @@ const signIn = async (page, base, email, pass) => {
     await page.evaluate(() => { window.confirmDialog = window.__confirmWas; });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
+    /* ---- WHAT COPILOT COST, PER PERSON (14 Aug 2026) ----
+       Phase 1 shows the numbers and refuses nothing. The half a node test
+       cannot see: that the second breakdown is actually ON SCREEN under the
+       first, with the sentence saying what it measures. */
+    await page.evaluate(() => { settingsGoTab('build'); stDrawerOpen('engine'); });
+    await page.waitForTimeout(1600);
+    const byPerson = await page.evaluate(VISIBLE, '#ai-spend-people');
+    check('the Copilot engine panel carries a per-person breakdown', byPerson.ok, byPerson.why);
+    const order = await page.evaluate(() => {
+      const a = document.getElementById('ai-spend-breakdown');
+      const b = document.getElementById('ai-spend-people');
+      return (a && b) ? (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) > 0 : false;
+    });
+    check('and it sits UNDER the by-feature one, where the money already lives', order);
+    const said = await page.evaluate(() => (document.getElementById('ai-spend-people') || {}).textContent || '');
+    check('it says what the figure IS, because somebody will read it as a performance measure',
+      /not a performance measure/i.test(said), said.replace(/\s+/g, ' ').trim().slice(0, 90));
+    check('with nothing on it that refuses or caps anybody',
+      !/limit|cap|blocked/i.test(said), 'Phase 1 shows; Phase 2 is not built');
+    /* And NOT on the People tab, which is a list about permissions. */
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.evaluate(() => settingsGoTab('people'));
+    await page.waitForTimeout(500);
+    const roster = await page.evaluate(() =>
+      [...document.querySelectorAll('.st-person')].map(p => p.textContent).join(' '));
+    check('and no per-person cost column on the roster — that would be a league table',
+      !/\$|copilot|spend/i.test(roster));
+
     /* ---- the avatar is the account menu ---- */
     await page.click('#rail-avatar'); await page.waitForTimeout(600);
     const acct = await page.evaluate(() => ({

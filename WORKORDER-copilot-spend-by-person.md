@@ -2,7 +2,30 @@
 
 **Raised by:** Young, 2026-08-14: "work order for visibility first".
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
-**Status:** OPEN — written, not built.
+**Status:** **PHASE 1 BUILT** 14 Aug 2026, on Young's instruction ("complete
+the rest of the work orders autonomously"). **PHASE 2 IS DELIBERATELY NOT
+BUILT** — that is this order's own instruction and f203 enforces it, failing
+if `copilotCap` appears anywhere. Nothing is capped and nothing is refused.
+
+The thirteenth-site test was written first, as the order asked, and it failed
+on all eleven sites before any of the code existed.
+
+**The two sites this order marked "check — no explicit feature" both have
+one.** Line ~3101 is `ocr` and line ~8732 is `template_convert`. There was no
+pre-existing hole in the by-feature breakdown to fix in the same pass.
+
+**One thing the order did not anticipate.** `aiSpendToday()` is called by
+`aiBudgetGuard` on every single Copilot request, so reading the per-person
+ledger with a name lookup per row would have put N+1 queries on the hot path of
+the feature it exists to measure. It is one query with a LEFT JOIN.
+
+**A chat turn is a tool loop**, so one question is often several calls into
+Anthropic — the per-person figure counts calls, not questions, exactly as the
+by-feature one always has. Worth knowing before reading the numbers.
+
+Proof: f203 (22), settings-tabs-verify (59, browser — the breakdown on screen
+under the by-feature one, its sentence, and no cost column on the roster),
+full suite 3604/3604.
 
 ---
 

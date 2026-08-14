@@ -1338,6 +1338,32 @@ db.exec(`
     cost REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (day, feature));
   CREATE INDEX IF NOT EXISTS idx_ai_spend_day ON ai_spend(day);
+
+  /* ---------- WHAT COPILOT COST, PER PERSON ----------
+     A SECOND SMALL TABLE RATHER THAN A WIDER ONE. Adding user_id to ai_spend's
+     primary key would multiply its rows by the number of members and change
+     what every existing reader of the by-feature breakdown gets back; a
+     separate ledger leaves those numbers byte-identical.
+
+     THE NAME IS STORED BESIDE THE ID for the reason the contract owner stores
+     both: the id is what survives a rename, the name is what survives an
+     account being deleted — and a spend line for somebody who has since left
+     is still money that was spent.
+
+     WHERE THERE IS NO PERSON, NOTHING IS BOOKED HERE. Anything running outside
+     a signed-in request has no owner; it still counts toward the WORKSPACE
+     total, which is what ai_spend is for. The two therefore do not always
+     agree, and the screen says so rather than letting an admin discover the
+     gap by subtracting. */
+  CREATE TABLE IF NOT EXISTS ai_spend_user (
+    day TEXT NOT NULL, user_id TEXT NOT NULL, user_name TEXT NOT NULL DEFAULT '',
+    requests INTEGER NOT NULL DEFAULT 0,
+    calls INTEGER NOT NULL DEFAULT 0,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    cost REAL NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, user_id));
+  CREATE INDEX IF NOT EXISTS idx_ai_spend_user_day ON ai_spend_user(day);
 `);
 
 /* Per-model prices in USD per MILLION tokens. Verified 2026-07-25 against
@@ -1405,6 +1431,23 @@ const AI_FEATURE_LABEL = {
 function aiSpendRows(day) {
   return db.prepare('SELECT * FROM ai_spend WHERE day=?').all(day || aiToday());
 }
+/* Largest first, so an admin reads the answer rather than sorting it. The
+   CURRENT name wins where the person still has an account — a rename should
+   move the label, not split the line — and the stored one carries somebody who
+   has since left, whose spending was still real.
+
+   ONE QUERY, NOT ONE PER PERSON. aiSpendToday() is called by aiBudgetGuard on
+   every single Copilot request, so a lookup per row here would be N+1 queries
+   on the hot path of the feature it is measuring. */
+function aiSpendPeople(day) {
+  return db.prepare(`
+    SELECT s.user_id, s.user_name, s.requests, s.calls, s.input_tokens, s.output_tokens, s.cost, u.name AS live_name
+      FROM ai_spend_user s LEFT JOIN users u ON u.id = s.user_id
+     WHERE s.day = ? ORDER BY s.cost DESC`).all(day || aiToday())
+    .map(r => ({ userId: r.user_id, name: r.live_name || r.user_name || r.user_id,
+      gone: !r.live_name, cost: r.cost, requests: r.requests, calls: r.calls,
+      inputTokens: r.input_tokens, outputTokens: r.output_tokens }));
+}
 function aiSpendToday() {
   const day = aiToday();
   const rows = aiSpendRows(day);
@@ -1414,7 +1457,14 @@ function aiSpendToday() {
     byFeature[r.feature] = { label: AI_FEATURE_LABEL[r.feature] || r.feature, cost: r.cost, requests: r.requests, calls: r.calls, inputTokens: r.input_tokens, outputTokens: r.output_tokens };
     cost += r.cost; requests += r.requests; calls += r.calls; inT += r.input_tokens; outT += r.output_tokens;
   }
-  return { date: day, cost, requests, calls, inputTokens: inT, outputTokens: outT, byFeature };
+  /* THE GAP IS A FIGURE, NOT A DISCOVERY. Spending with nobody behind it —
+     anything running outside a signed-in request — counts toward the workspace
+     total and against no person, so the two lists do not have to agree. Say by
+     how much, on the screen, rather than leaving an admin to subtract. */
+  const byPerson = aiSpendPeople(day);
+  const attributed = byPerson.reduce((t, p) => t + p.cost, 0);
+  return { date: day, cost, requests, calls, inputTokens: inT, outputTokens: outT, byFeature,
+    byPerson, unattributed: Math.max(0, Math.round((cost - attributed) * 1e9) / 1e9) };
 }
 // The request counter is derived from the same ledger so both survive a restart.
 function aiUsageToday() { const s = aiSpendToday(); return { date: s.date, count: s.requests }; }
@@ -1429,15 +1479,47 @@ const upsertSpend = db.prepare(`
     cache_read_tokens=cache_read_tokens+excluded.cache_read_tokens,
     cost=cost+excluded.cost`);
 
+const upsertSpendUser = db.prepare(`
+  INSERT INTO ai_spend_user (day,user_id,user_name,requests,calls,input_tokens,output_tokens,cost)
+  VALUES (?,?,?,?,?,?,?,?)
+  ON CONFLICT(day,user_id) DO UPDATE SET
+    user_name=excluded.user_name,
+    requests=requests+excluded.requests, calls=calls+excluded.calls,
+    input_tokens=input_tokens+excluded.input_tokens, output_tokens=output_tokens+excluded.output_tokens,
+    cost=cost+excluded.cost`);
+
+/* ---- WHO ASKED, READ IN ONE PLACE ----
+   The recorder sits deep inside the call to Anthropic and cannot see the
+   request, so the person travels on the meter tag that already carries the
+   feature. This is the one reading of who that person is: every metered call
+   site asks it, or forwards a who somebody else asked it for, and f203 walks
+   them all and fails on the site that does neither.
+
+   NULL IS A REAL ANSWER — anything running outside a signed-in request has no
+   owner, and inventing one would be worse than the gap. */
+function aiWho(req) {
+  const u = req && req.user;
+  if (!u || !u.id) return null;
+  return { id: String(u.id), name: u.name || u.email || String(u.id) };
+}
+
 /* Record one real Anthropic call. `countRequest` is false for OCR pages after
    the first: pages count toward SPEND (the honest measure) and toward
    ocrMaxPages, but a 20-page scan is one request, not twenty. */
-function recordAiSpend(feature, model, usage, { countRequest = true, allowance = false } = {}) {
+function recordAiSpend(feature, model, usage, { countRequest = true, allowance = false, who = null } = {}) {
   const f = AI_FEATURE_LABEL[feature] ? feature : 'other';
   const p = priceUsage(model, usage);
   try {
     upsertSpend.run(aiToday(), f, countRequest ? 1 : 0, 1, p.inT + p.cw + p.cr, p.outT, p.cw, p.cr, p.cost);
   } catch (e) { console.warn('[ai] could not write spend ledger:', e.message); }
+  /* Beside it, never instead of it: the by-feature line is the WORKSPACE's
+     total and is written whether or not anybody owns the call. */
+  if (who && who.id) {
+    try {
+      upsertSpendUser.run(aiToday(), String(who.id), String(who.name || ''),
+        countRequest ? 1 : 0, 1, p.inT + p.cw + p.cr, p.outT, p.cost);
+    } catch (e) { console.warn('[ai] could not write per-person spend ledger:', e.message); }
+  }
   if (allowance) drawAllowance(p.cost, 0);
   return p;
 }
@@ -2012,7 +2094,7 @@ app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, 
   const body = candidates.slice(0, 30).map(c => ({ id: c.id, name: c.name, counterparty: c.counterparty, text: String(c.text || '').slice(0, 3000) }));
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
-    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search' });
+    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search', who: aiWho(req) });
     if (!out.ok) return res.status(502).json({ error: 'Copilot provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -2803,7 +2885,7 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
   const def = AI_TIER_DEFAULTS[t];
   const book = (model, data) => {
     const spend = recordAiSpend(meter.feature || 'other', model, data && data.usage,
-      { countRequest: meter.countRequest !== false, allowance: !!meter.allowance });
+      { countRequest: meter.countRequest !== false, allowance: !!meter.allowance, who: meter.who || null });
     return spend;
   };
   const send = (model) => fetch(ANTHROPIC_BASE + '/v1/messages', {
@@ -3028,7 +3110,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, 600) : null;
   const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -3101,7 +3183,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
     const resp = await anthropicMessages(key, 'fast', {
       max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'transcribe_page' },
       messages: [{ role: 'user', content: [...blocks, { type: 'text', text: OCR_PROMPT }] }],
-    }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance });
+    }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance, who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no transcription' });
@@ -3155,7 +3237,7 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
   const body = scored.map(c => ({ id: c.id, name: c.name, kind: c.kind, counterparty: c.counterparty, value: c.value, status: c.status, expiry: c.expiry || '', clauses: String(c.text || '').slice(0, 6000) }));
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -3249,7 +3331,7 @@ ${String(text)}`;
     // Thorough mode reads the whole agreement chunk by chunk — judgement work
     // over partial context, so it runs on the deep tier.
     const tier = thorough ? 'deep' : 'fast';
-    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance });
+    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance, who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -3305,7 +3387,7 @@ Return via the propose_blanks tool.
 TEMPLATE:
 ${String(text)}`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
@@ -3347,7 +3429,7 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
   };
   const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations' });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -3388,7 +3470,7 @@ async function aiPlaybookVerdicts(key, { text, playbook, kind }, meter) {
   };
   const J = orgJx();
   const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
-  const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, meter || { feature: 'playbook' });
+  const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
   if (!resp.ok) return { ok: false, resp };
   const block = (resp.data.content || []).find(b => b.type === 'tool_use');
   if (!block) return { ok: false, resp, noResult: true };
@@ -3401,7 +3483,7 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
   const { text, playbook, kind } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   try {
-    const r = await aiPlaybookVerdicts(key, { text, playbook, kind });
+    const r = await aiPlaybookVerdicts(key, { text, playbook, kind }, { feature: 'playbook', who: aiWho(req) });
     if (!r.ok) {
       if (r.noResult) return res.status(502).json({ error: 'Copilot returned no structured result' });
       return res.status(502).json({ error: 'Copilot provider error (' + r.resp.status + '): ' + String(r.resp.error).slice(0, 300) });
@@ -3650,7 +3732,10 @@ function copilotResolvePlaybook(pb, key) {
    reads as not found, never as a playbook result), then the workspace
    playbook for this contract's kind, then the shared deep-tier review. The
    spend is booked to the chat feature line — it is a chat turn's cost. */
-async function copilotPlaybookCheck(ctx, id, key) {
+/* The `who` rides in from the chat turn that asked for it — this is booked to
+   the chat feature line because it IS a chat turn's cost, and to the person
+   whose turn it was. */
+async function copilotPlaybookCheck(ctx, id, key, who) {
   const c = copilotGetJson(ctx, id);
   if (!c) return { id, found: false };
   const pb = workspacePlaybook();
@@ -3658,7 +3743,7 @@ async function copilotPlaybookCheck(ctx, id, key) {
   if (!resolved) return { id: c.id, name: c.name || c.id, noPlaybook: true };
   const r = await aiPlaybookVerdicts(key,
     { text: contractFullBody(c).slice(0, 20000), playbook: resolved, kind: resolved.label },
-    { feature: 'chat' });
+    { feature: 'chat', who: who || null });
   if (!r.ok) return { error: 'playbook review failed' + (r.resp && r.resp.status ? ' (provider ' + r.resp.status + ')' : '') };
   return { id: c.id, name: c.name || c.id, playbook: resolved.label, verdicts: r.verdicts };
 }
@@ -3753,7 +3838,7 @@ async function runCopilotTool(ctx, name, input, aux) {
     if (name === 'get_scan_findings') { const d = copilotDetail(ctx, a.id); return d.found ? { id: d.id, name: d.name, openFindings: d.openFindings } : { id: a.id, found: false }; }
     if (name === 'list_portfolio') return copilotList(ctx, a);
     if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
-    if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key);
+    if (name === 'check_against_playbook') return await copilotPlaybookCheck(ctx, a.id, aux && aux.key, aux && aux.who);
     if (name === 'get_insights_panel') return copilotInsightsPanel(aux && aux.clientCtx, a.panel);
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
@@ -3946,7 +4031,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   try {
     for (let step = 0; step < 5; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat' });
+      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat', who: aiWho(req) });
       if (!resp.ok) {
         const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -3968,7 +4053,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
@@ -4130,7 +4215,7 @@ async function anthropicMessagesStream(key, tier, payload, meter = {}, { onToken
         u = { input_tokens: Math.ceil(JSON.stringify(payload).length / 4), output_tokens: Math.ceil(emittedChars / 4) || 1 };
         console.warn('[ai] stream ended without usage — booking a conservative estimate (' + u.input_tokens + ' in / ' + u.output_tokens + ' out).');
       }
-      return recordAiSpend(meter.feature || 'other', model, u, { countRequest: meter.countRequest !== false, allowance: !!meter.allowance });
+      return recordAiSpend(meter.feature || 'other', model, u, { countRequest: meter.countRequest !== false, allowance: !!meter.allowance, who: meter.who || null });
     };
     let spend;
     try {
@@ -4226,7 +4311,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          onToken: text => { if (text) send('token', { text }); } */
       const resp = await anthropicMessagesStream(key, compared ? 'deep' : 'fast',
         { max_tokens: 4000, system, tools: COPILOT_TOOLS, messages: working },
-        { feature: 'chat' },
+        { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal });
       if (!resp.ok) {
         const err = 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
@@ -4250,7 +4335,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
@@ -8735,7 +8820,7 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
       tools: [TPL_CONVERT_TOOL],
       tool_choice: { type: 'tool', name: 'propose_template' },
       messages: [{ role: 'user', content: userContent }],
-    }, { feature: 'template_convert', model: TPL_CONVERT_MODEL });
+    }, { feature: 'template_convert', model: TPL_CONVERT_MODEL, who: aiWho(req) });
     if (!out.ok) {
       errorNote = `The converter could not reach the model (HTTP ${out.status}) — the original file is stored; try again from the template's page`;
       console.error('[template-convert] model call failed:', out.status, String(out.error).slice(0, 500));
